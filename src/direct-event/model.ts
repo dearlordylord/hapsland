@@ -102,7 +102,7 @@ export type ArtifactReference =
       readonly target:
         | { readonly kind: "known"; readonly artifactId: string }
         | { readonly kind: "unresolved"; readonly symbol: string };
-      readonly reason: "unresolved" | "unsupported" | "reference-limit";
+      readonly reason: "unresolved" | "unsupported" | "reference-limit" | "unavailable";
     };
 
 export type ReviewNode = {
@@ -198,8 +198,8 @@ export type ReviewInput = {
   readonly sourceFingerprints?: ReadonlyArray<{
     readonly path: string; readonly contentHash: string; readonly byteLength: number;
   }>;
-  /** Only complete semantic units are eligible for evaluation or reuse. */
-  readonly completeness: "complete";
+  /** Missing evidence may be irrelevant to every selected rule. */
+  readonly completeness: "complete" | "incomplete-irrelevant";
   readonly path: string;
   readonly declaration: ReviewArtifact;
   readonly unit: ReviewUnit;

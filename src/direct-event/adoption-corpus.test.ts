@@ -72,7 +72,9 @@ describe("proposed adoption corpus native completeness", () => {
       const selected = prepared.observation.outcomes.filter((outcome) => outcome.status === "observed")
         .flatMap((outcome) => outcome.units.map((unit) => unit.root.artifact.name));
       if (fixture.expectedBand === null) {
-        expect(selected).not.toContain(fixture.selectedRoot.name);
+        // The original declaration expected no Jev band. A bounded partial
+        // graph can now retain its root while this probe rule still lacks evidence.
+        expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(0);
       } else {
         expect(fixture.expectedCompleteness).toBe("complete-candidate");
         expect(selected).toEqual([fixture.selectedRoot.name]);
@@ -114,8 +116,10 @@ describe("proposed adoption corpus native completeness", () => {
       const multiRoot = fixture.category === "multi-root-add-control";
       const stale = fixture.category === "stale-support";
       const noRule = fixture.category === "no-target-rule";
+      const partialRoot = ["excluded-transitive", "private-support", "tree-overflow-continue"].includes(fixture.category) ||
+        fixture.category === "package-import" && fixture.branch === "function/v1";
       expect(selected).toEqual(multiRoot ? ["A", "B"] :
-        completeCycle || stale || noRule ? [fixture.branch === "type-shape/v2" ? "A" : "run"] : []);
+        completeCycle || stale || noRule || partialRoot ? [fixture.branch === "type-shape/v2" ? "A" : "run"] : []);
       expect(ready).toHaveLength(multiRoot ? 2 : completeCycle || stale ? 1 : 0);
       if (completeCycle) {
         const current = ready[0];

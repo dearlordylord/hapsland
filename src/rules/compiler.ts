@@ -267,6 +267,14 @@ export const selectApplicableRules = (
     ? !(target.inputContract === V2_TYPE_CONTRACT && rule.builtIn) &&
       !(target.inputContract === V2_FUNCTION_CONTRACT && rule.builtIn && rule.ruleId === "r9_body_reaches_undeclared")
     : authoredTarget === undefined) return false;
+  // Bundled rules predate authored evidence requirements. Keep them on full
+  // projections until each rule has an explicit partial-evidence contract.
+  if (rule.reviewTargets === undefined && rule.builtIn &&
+    (target.inputContract === V2_TYPE_CONTRACT || target.inputContract === V2_FUNCTION_CONTRACT) &&
+    !(target.inputContract === V2_TYPE_CONTRACT
+      ? ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"]
+      : ["signature", "body", "resolved-local-calls", "resolved-outbound-types"]
+    ).every((capability) => target.capabilities?.includes(capability as V2Capability) === true)) return false;
   return applicableRule({
   consent: true,
   complete: target.complete,

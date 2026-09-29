@@ -3,6 +3,7 @@ import * as Effect from "effect/Effect";
 import { put, makeGitFixture, addEvent } from "./test-fixtures.ts";
 import { adaptCodexAdd } from "./adapter.ts";
 import { prepareObservation } from "./pipeline.ts";
+import { preparedProviderInput } from "./pipeline.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { inspectGraphFile } from "./analyzer.ts";
@@ -12,11 +13,20 @@ import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts";
 import { compileRulePackV2 } from "../rules/compiler.ts";
 import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import type { ReviewNode } from "./model.ts";
+
+const hasOmitted = (node: ReviewNode): boolean => node.references.some((reference) =>
+  reference.kind === "omitted" || reference.kind === "expanded" && hasOmitted(reference.node));
 
 const candidateRules = compileRulePackV2({ schemaVersion: 2, id: "graph", contentVersion: "1", rules: [{
   id: "shape", question: "Is the type clear?", criteria: { false: "No", true: "Yes" },
   message: "Clarify type", reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
     capabilities: ["root-declaration", "resolved-outbound-types"] }],
+}] }, "fixture-v2");
+const rootOnlyRules = compileRulePackV2({ schemaVersion: 2, id: "root-only", contentVersion: "1", rules: [{
+  id: "shape", question: "Is the declaration clear?", criteria: { false: "No", true: "Yes" },
+  message: "Clarify declaration", reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+    capabilities: ["root-declaration"] }],
 }] }, "fixture-v2");
 
 describe("cross-file graph preparation", () => {
@@ -36,7 +46,7 @@ describe("cross-file graph preparation", () => {
       limits: { ...GRAPH_LIMIT_CEILINGS, sourceBytes: 80, readBytes: 160 },
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
-    expect(unit).toBeUndefined();
+    expect(unit && hasOmitted(unit.root)).toBe(true);
     expect(reads).toEqual([]);
   }));
 
@@ -59,7 +69,7 @@ describe("cross-file graph preparation", () => {
       limits: { ...GRAPH_LIMIT_CEILINGS, readBytes: GRAPH_LIMIT_CEILINGS.sourceBytes + 100 },
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
-    expect(unit).toBeUndefined();
+    expect(unit && hasOmitted(unit.root)).toBe(true);
     expect(reads).toEqual(["b.ts", "b.ts"]);
   }));
 
@@ -80,7 +90,7 @@ describe("cross-file graph preparation", () => {
       captureHooks: { sourceRead: (path: string) => { reads.push(path); } } };
     const exhausted = yield* resolveGraphUnit("a.ts", capture, "A", { ...base,
       limits: { ...GRAPH_LIMIT_CEILINGS, work: 3 } });
-    expect(exhausted).toBeUndefined();
+    expect(exhausted && hasOmitted(exhausted.root)).toBe(true);
     expect(reads).toEqual(["b.ts", "b.ts", "d.ts", "d.ts"]);
     reads.length = 0;
     const enough = yield* resolveGraphUnit("a.ts", capture, "A", { ...base,
@@ -106,7 +116,7 @@ describe("cross-file graph preparation", () => {
     const exhausted = yield* resolveGraphUnit("a.ts", capture, "A", {
       ...base, limits: { ...GRAPH_LIMIT_CEILINGS, work: 1 },
     });
-    expect(exhausted).toBeUndefined();
+    expect(exhausted && hasOmitted(exhausted.root)).toBe(true);
     expect(reads).toEqual([]);
     const sufficient = yield* resolveGraphUnit("a.ts", capture, "A", {
       ...base, limits: { ...GRAPH_LIMIT_CEILINGS, work: 2 },
@@ -147,7 +157,7 @@ describe("cross-file graph preparation", () => {
     for (const tighter of [{ depth: 1 }, { work: 1 }, { treeBytes: 1 }] as const) {
       const denied = yield* resolveGraphUnit("a.ts", capture, "A", { root, rootIdentity: observation.rootIdentity,
         policy: DEFAULT_DIRECT_FILE_POLICY, limits: { ...GRAPH_LIMIT_CEILINGS, outgoingEdges: 1, ...tighter } });
-      expect(denied).toBeUndefined();
+      expect(denied === undefined || hasOmitted(denied.root)).toBe(true);
     }
   }));
 
@@ -167,7 +177,7 @@ describe("cross-file graph preparation", () => {
     const unit = yield* resolveGraphUnit("a.ts", capture, "A", { root, rootIdentity: observation.rootIdentity,
       policy: DEFAULT_DIRECT_FILE_POLICY, limits: { ...GRAPH_LIMIT_CEILINGS, outgoingEdges: 1 },
       captureHooks: { sourceRead: (path) => { reads.push(path); } } });
-    expect(unit).toBeUndefined();
+    expect(unit && hasOmitted(unit.root)).toBe(true);
     expect(reads).toEqual(["b.ts", "b.ts"]);
   }));
 
@@ -222,6 +232,49 @@ describe("cross-file graph preparation", () => {
     });
     expect(excluded.outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
     expect(reads).toEqual(["a.ts", "a.ts"]);
+  }));
+
+  it.effect("reviews a root-only rule with an excluded import marked as omitted", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "export interface B { secret: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const reads: string[] = [];
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+      rules: rootOnlyRules, inputContract: V2_TYPE_CONTRACT,
+      policy: { includes: ["a.ts"], excludes: ["b.ts"] },
+      captureHooks: { sourceRead: (path) => { reads.push(path); } },
+    });
+    const ready = prepared.outcomes.find((outcome) => outcome.status === "ready");
+    expect(ready?.status).toBe("ready");
+    if (ready?.status !== "ready") return;
+    expect(ready.prepared.input.completeness).toBe("incomplete-irrelevant");
+    expect(preparedProviderInput(ready.prepared)?.evidence.edges).toContainEqual({
+      from: "a.ts:interface:A", kind: "omitted", symbol: "B", reason: "unavailable", order: 0,
+    });
+    expect(JSON.stringify(preparedProviderInput(ready.prepared))).not.toContain("secret");
+    expect(reads).toEqual(["a.ts", "a.ts"]);
+  }));
+
+  it.effect("keeps a later resolved import when an earlier import is missing", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './missing'; import type { C } from './c'; interface A { b: B; c: C }"));
+    yield* Effect.promise(() => put(root, "c.ts", "export interface C { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+      rules: rootOnlyRules, inputContract: V2_TYPE_CONTRACT,
+    });
+    const ready = prepared.outcomes.find((outcome) => outcome.status === "ready");
+    expect(ready?.status).toBe("ready");
+    if (ready?.status !== "ready") return;
+    expect(ready.prepared.input.unit.root.references.map((reference) => reference.kind)).toEqual(["omitted", "expanded"]);
+    expect(preparedProviderInput(ready.prepared)?.evidence.nodes.map((node) => node.id)).toEqual(["c.ts:interface:C"]);
   }));
 
   it.effect("does not read C when A imports B and B imports excluded C", () => Effect.gen(function* () {

@@ -29,6 +29,15 @@ for (const trace of fixture.traces) {
   assert.deepEqual(projectImportGraph(afterDeadline.state), projected, `${trace.name}: terminal result is stable`);
   assert.equal(afterDeadline.command.kind, "none", `${trace.name}: terminal deadline has no command`);
 }
+let missingThenNext = initialImportGraph();
+missingThenNext = stepImportGraph(missingThenNext, { kind: "root", target: 1, sourceBytes: 1,
+  treeBytes: 1, edges: [10, 20] }).state;
+missingThenNext = stepImportGraph(missingThenNext, { kind: "next" }).state;
+const missing = stepImportGraph(missingThenNext, { kind: "resolved", target: 2, result: "missing" });
+assert.deepEqual(missing.command, { kind: "skipImport", target: 2, reason: "Missing" });
+assert.deepEqual(projectImportGraph(missing.state).pending, [20]);
+const nextAfterMissing = stepImportGraph(missing.state, { kind: "next" });
+assert.deepEqual(nextAfterMissing.command, { kind: "resolveEdge", edge: 20 });
 let deadlineState = initialImportGraph();
 deadlineState = stepImportGraph(deadlineState, { kind: "root", target: 1, sourceBytes: 1, treeBytes: 1, edges: [10] }).state;
 const deadline = stepImportGraph(deadlineState, { kind: "deadlineReached" });

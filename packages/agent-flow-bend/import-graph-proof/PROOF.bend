@@ -80,7 +80,7 @@ def Laws.import_graph_exact_full_file_reservation_fits(t, per_file):
 def Laws.import_graph_zero_event_fuel_is_terminal(graph, event):
   match graph:
     case ImportGraph.Graph{phase, pending, visited, files, read_bytes, tree_bytes,
-        work, skipped_tree, skipped_excluded, limits}:
+        work, skipped_tree, skipped_excluded, skipped_other, limits}:
       match phase:
         case ImportGraph.Idle{}:
           {==}

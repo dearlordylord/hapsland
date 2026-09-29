@@ -161,6 +161,19 @@ export const hasCrossFileEvidence = (prepared: PreparedUnit): boolean => {
   return false;
 };
 
+const unitHasOmissions = (unit: ReviewUnit): boolean => {
+  const pending = [unit.root];
+  while (pending.length > 0) {
+    const node = pending.pop();
+    if (node === undefined) continue;
+    for (const reference of node.references) {
+      if (reference.kind === "omitted") return true;
+      if (reference.kind === "expanded") pending.push(reference.node);
+    }
+  }
+  return false;
+};
+
 const unitSourceFingerprints = (
   unit: ReviewUnit,
   captures: ReadonlyMap<string, import("./capture.ts").StableCapture>,
@@ -451,7 +464,10 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
         graphFailures.push({ root: root.name, reason: prior?.status === "unsupported" &&
           prior.reason === "reference-limit" ? "reference-limit" : "missing-evidence" });
       }
-      else units.push(unit);
+      else {
+        units.push(unit);
+        if (unitHasOmissions(unit)) graphFailures.push({ root: root.name, reason: "missing-evidence" });
+      }
     }
     const failures = [
       ...(graphFile === undefined && functionFile === undefined ? extractionFailures(analysis) : []),
@@ -488,10 +504,13 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
       const sourceFingerprints = unitSourceFingerprints(unit, supportingCaptures);
       if (sourceFingerprints === undefined) continue;
       const artifactKind = declaration.kind === "function" ? "function" as const : "typeShape" as const;
+      const partial = unitHasOmissions(unit);
       const capabilities = contract === V2_TYPE_CONTRACT
-        ? ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] as const
+        ? partial ? ["root-declaration"] as const
+          : ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] as const
         : contract === V2_FUNCTION_CONTRACT
-          ? ["signature", "body", "resolved-local-calls", "resolved-outbound-types"] as const
+          ? partial ? ["signature", "body"] as const
+            : ["signature", "body", "resolved-local-calls", "resolved-outbound-types"] as const
           : undefined;
       const rules = applicableRules(declaration.source, eligible.relativePath, currentRules(context), {
         artifactKind,
@@ -506,7 +525,7 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
         candidateProjection: true,
         ...(rootLocation === undefined ? {} : { rootLocation }),
         ...(sourceFingerprints === undefined ? {} : { sourceFingerprints }),
-        completeness: "complete",
+        completeness: partial ? "incomplete-irrelevant" : "complete",
         path: eligible.relativePath,
         declaration,
         unit,
@@ -599,7 +618,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
   } satisfies PreparedObservation;
 });
 
-/** Rebuild only the named complete unit under current file policy before a Jev request. */
+/** Rebuild the named rule input under current file policy before a Jev request. */
 export const preparedUnitStillCurrent = Effect.fn("DirectEvent.preparedUnitStillCurrent")(function* (
   observation: DirectObservation,
   prepared: PreparedUnit,
@@ -622,9 +641,9 @@ type Evaluation =
   | { readonly status: "backend" }
   | { readonly status: "timeout" };
 
-/** Flatten only Bend-authorized, fully represented graph edges in traversal order. */
+/** Flatten the bounded graph and its omission reasons in traversal order. */
 export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput | undefined => {
-  if (input.completeness !== "complete" || input.candidateProjection !== true ||
+  if (input.candidateProjection !== true ||
     (input.contract !== V2_TYPE_CONTRACT && input.contract !== V2_FUNCTION_CONTRACT)) return undefined;
   const root = input.unit.root;
   const path = root.artifact.path;
@@ -636,7 +655,11 @@ export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput |
   const seen = new Set([artifact.id]);
   const visit = (owner: typeof root): boolean => {
     for (const reference of owner.references) {
-      if (reference.kind === "omitted") return false;
+      if (reference.kind === "omitted") {
+        edges.push({ from: owner.artifact.id, kind: "omitted", symbol: reference.site.symbol,
+          reason: reference.reason, order: edges.length });
+        continue;
+      }
       if (reference.kind === "included") {
         if (!seen.has(reference.target)) return false;
         edges.push({ from: owner.artifact.id, to: reference.target, kind: "included",
@@ -656,7 +679,7 @@ export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput |
     return true;
   };
   if (!visit(root)) return undefined;
-  return { contract: input.contract, completeness: "complete",
+  return { contract: input.contract, completeness: input.completeness,
     treeBytesLimit: input.graphLimits?.treeBytes ?? GRAPH_LIMIT_CEILINGS.treeBytes,
     artifact, nodes, edges };
 };

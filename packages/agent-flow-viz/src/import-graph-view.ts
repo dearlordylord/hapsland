@@ -45,7 +45,7 @@ export const importGraphView = <Message>(h: HtmlBuilder<Message>, scenarioIndex:
   const current = history.at(-1);
   return h.section([h.Id("import-graph"), h.Class("card import-graph-section")], [
     h.h2([], ["Import exploration · separate Bend state machine"]),
-    h.p([h.Class("description")], ["Compiled ImportGraph.bend decides traversal from source-free facts through the checked transition adapter. These are synthetic examples, independent of the full-flow replay above. Native resolution and capture are supplied facts; no filesystem or Jev calls run here."]),
+    h.p([h.Class("description")], ["Compiled ImportGraph.bend decides traversal from source-free facts through the checked transition adapter. These are synthetic examples, independent of the full-flow replay above. Native resolution and capture are supplied facts; rule selection, filesystem calls, and Jev calls do not run here."]),
     h.div([h.Class("import-graph-legend")], [h.span([h.Class("native")], ["Native: resolution, permission facts, source capture"]), h.span([h.Class("bend")], ["Bend: gates, ordering, budgets, completion"]), h.span([h.Class("jev")], ["Jev: downstream outcome, not simulated"])]),
     h.div([h.Class("trace-options")], IMPORT_GRAPH_SCENARIOS.map((entry, index) => h.button([h.OnClick(select(index)), h.Class(index === scenarioIndex ? "trace selected" : "trace")], [entry.title]))),
     h.p([h.Class("description")], [`${scenario.description} Effective tree cap: ${states[0]?.limits.treeBytes ?? 0} bytes.`]),
@@ -65,7 +65,12 @@ export const importGraphView = <Message>(h: HtmlBuilder<Message>, scenarioIndex:
       h.span([], [`Files read: ${state.files}/${state.limits.files} · read bytes: ${state.readBytes}/${state.limits.readBytes} · accepted tree bytes: ${state.treeBytes}/${state.limits.treeBytes} · work: ${state.work}/${state.limits.work}`]),
       h.span([], [`Import skipped for remaining tree budget: ${state.skippedTree ? "yes" : "no"}`]),
       h.span([], [`Import skipped for denied permission: ${state.skippedExcluded ? "yes" : "no"}`]),
-      h.span([], [state.phase === "complete" ? "Jev: eligible; no request or result simulated" : state.phase === "incomplete" ? "Jev: no request for this unit" : state.skippedTree ? "Jev: waiting for remaining branches; unit will be incomplete" : "Jev: waiting for complete unit"]),
+      h.span([], [`Import skipped for unavailable source or another cap: ${state.skippedOther ? "yes" : "no"}`]),
+      h.span([], [state.phase === "complete" ? "Rule selection: full graph available; no Jev request simulated" :
+        state.phase === "incomplete" ? ["Deadline", "ProtocolViolation"].includes(state.reason ?? "")
+          ? "Rule selection: stopped; no Jev request"
+          : "Rule selection: omitted evidence must be checked for each rule; no Jev request simulated" :
+          "Rule selection: waiting for remaining import checks"]),
     ]))),
     h.p([h.Class("description")], ["The root is already allowed and captured at this boundary. Native code supplies deterministic edge order and stable declaration identities. Bend holds IDs and byte counts, never source or secrets. Supporting reads are requested only after the target permission fact passes the Bend gate."]),
     h.h3([], ["Bend transition trace"]),

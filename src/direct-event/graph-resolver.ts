@@ -11,7 +11,7 @@ import { eligibleNamedPath, type DirectFilePolicy } from "./selection.ts";
 
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] };
 type Pending = { readonly owner: MutableNode; readonly index: number; readonly from: string; readonly importPath: string; readonly name: string; readonly depth: number; readonly expectedKind?: "type" | "function" };
-type Built = { readonly node: ReviewNode; readonly pending: ReadonlyArray<Pending>; readonly complete: boolean };
+type Built = { readonly node: ReviewNode; readonly pending: ReadonlyArray<Pending> };
 type LocalBudget = {
   readonly limits: GraphLimits;
   /** Distinct outbound targets are charged to their source file, not the unit. */
@@ -60,7 +60,7 @@ const mayCaptureForObservation = (captures: ReadonlyMap<string, StableCapture>, 
     [...captures.values()].reduce((sum, source) => sum + source.byteLength, 0) + GRAPH_LIMIT_CEILINGS.sourceBytes <=
       MAX_OBSERVATION_GRAPH_READ_BYTES);
 
-/** Materialize complete supporting evidence without turning imports into edited roots. */
+/** Materialize bounded supporting evidence without turning imports into edited roots. */
 const buildLocal = (file: FactFile, path: string, name: string, visited: Set<string>, budget: LocalBudget, depth: number,
   expectedKind: "type" | "function" | undefined = undefined): Built | undefined => {
   const declaration = declarationFor(file, name, expectedKind);
@@ -69,24 +69,33 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
     artifact: declaration.artifact, references: [],
   };
   const pending: Pending[] = [];
-  let complete = true;
   const fileTargets = budget.targetsByPath.get(path) ?? new Set<string>();
   budget.targetsByPath.set(path, fileTargets);
   for (const reference of declaration.references) {
     budget.maxDepth = Math.max(budget.maxDepth, depth + 1);
-    if (reference.kind === "unsupported") { complete = false; continue; }
+    if (reference.kind === "unsupported") {
+      node.references.push({ kind: "omitted", site: { symbol: reference.name },
+        target: { kind: "unresolved", symbol: reference.name }, reason: "unsupported" });
+      continue;
+    }
     const local = declarationFor(file, reference.name, reference.expectedKind);
     const imported = file.imports.get(reference.name);
     const targetKey = local?.artifact.id ?? (imported === undefined ? reference.name : `${path}\0${imported.path}\0${imported.name}`);
     fileTargets.add(targetKey);
     budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size);
-    if (local !== undefined && imported !== undefined) { complete = false; continue; }
-    if (local !== undefined && !correctKind(local.artifact, reference.expectedKind)) { complete = false; continue; }
+    if (local !== undefined && imported !== undefined ||
+      local !== undefined && !correctKind(local.artifact, reference.expectedKind)) {
+      node.references.push({ kind: "omitted", site: { symbol: reference.name },
+        target: { kind: "unresolved", symbol: reference.name }, reason: "unsupported" });
+      continue;
+    }
     if (local !== undefined) budget.work += 1;
     // Bend owns the effective depth, local-work, and per-file target ceilings.
     // Ask before recursing or queuing a supporting-file read.
     if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, budget.graphWork)) {
-      complete = false; break;
+      node.references.push({ kind: "omitted", site: { symbol: reference.name },
+        target: { kind: "unresolved", symbol: reference.name }, reason: "reference-limit" });
+      continue;
     }
     if (local !== undefined) {
       if (visited.has(local.artifact.id)) {
@@ -94,23 +103,30 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
       } else {
         visited.add(local.artifact.id);
         const child = buildLocal(file, path, reference.name, visited, budget, depth + 1, reference.expectedKind);
-        if (child === undefined) { complete = false; continue; }
+        if (child === undefined) {
+          visited.delete(local.artifact.id);
+          node.references.push({ kind: "omitted", site: { symbol: reference.name },
+            target: { kind: "unresolved", symbol: reference.name }, reason: "unresolved" });
+          continue;
+        }
         node.references.push({ kind: "expanded", site: { symbol: reference.name }, node: child.node });
         pending.push(...child.pending);
-        complete &&= child.complete;
       }
     } else if (imported !== undefined) {
-      if (reference.expectedKind === "function" && imported.typeOnly === true) { complete = false; continue; }
+      if (reference.expectedKind === "function" && imported.typeOnly === true) {
+        node.references.push({ kind: "omitted", site: { symbol: reference.name },
+          target: { kind: "unresolved", symbol: reference.name }, reason: "unsupported" });
+        continue;
+      }
       const index = node.references.length;
-      node.references.push({ kind: "omitted", site: { symbol: reference.name }, target: { kind: "unresolved", symbol: reference.name }, reason: "unresolved" });
+      node.references.push({ kind: "omitted", site: { symbol: reference.name }, target: { kind: "unresolved", symbol: reference.name }, reason: "unavailable" });
       pending.push({ owner: node, index, from: path, importPath: imported.path, name: imported.name, depth,
         ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind }) });
     } else {
-      complete = false;
       node.references.push({ kind: "omitted", site: { symbol: reference.name }, target: { kind: "unresolved", symbol: reference.name }, reason: "unresolved" });
     }
   }
-  return { node, pending, complete };
+  return { node, pending };
 };
 
 export type GraphResolveContext = {
@@ -145,7 +161,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   const started = now();
   const expired = () => now() - started >= GRAPH_ANALYSIS_DEADLINE_MS;
   const built = buildLocal(rootFile, rootPath, name, visited, budget, 0);
-  if (built === undefined || !built.complete ||
+  if (built === undefined ||
     !permitLocalGraphFacts(limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 0)) return undefined;
   const unit: ReviewUnit = { root: built.node };
   let nextId = 1;
@@ -164,16 +180,20 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
     treeBytes: bytes(unit), localWork: budget.work, edges: addEdges(built.pending) });
   state = transition.state;
   let command: ImportGraphCommand = transition.command;
-  let complete = true;
+  const hasOmissions = (node: ReviewNode): boolean => node.references.some((reference) =>
+    reference.kind === "omitted" || reference.kind === "expanded" && hasOmissions(reference.node));
+  const partialUnit = (reason: string): ReviewUnit | undefined =>
+    reason !== "Deadline" && reason !== "ProtocolViolation" &&
+    projectImportGraph(state).files > 0 && hasOmissions(unit.root) &&
+    bytes(unit) <= limits.treeBytes ? unit : undefined;
   const captured = new Map<string, { readonly file: FactFile; readonly sourceBytes: number }>([[rootPath, { file: rootFile, sourceBytes: rootCapture.byteLength }]]);
   for (let step = 0; step < limits.work * 8 + 16; step += 1) {
     if (expired()) {
       transition = stepImportGraph(state, { kind: "deadlineReached" });
       return undefined;
     }
-    if (command.kind === "unitComplete") return complete && bytes(unit) <= limits.treeBytes ? unit : undefined;
-    if (command.kind === "unitIncomplete") return undefined;
-    if (command.kind === "skipImport") complete = false;
+    if (command.kind === "unitComplete") return bytes(unit) <= limits.treeBytes ? unit : undefined;
+    if (command.kind === "unitIncomplete") return partialUnit(command.reason);
     if (command.kind === "none" || command.kind === "skipImport") {
       transition = stepImportGraph(state, { kind: "next" });
     } else if (command.kind === "resolveEdge") {
@@ -263,7 +283,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
             if (!permitLocalGraphFacts(limits, budget.work, 0, 0, budget.graphWork)) {
               transition = stepImportGraph(state, { kind: "captured", sourceBytes: source.byteLength,
                 treeBytes: 0, localWork: budget.work - localWorkBefore, edges: [] });
-            } else if (child === undefined || !child.complete ||
+            } else if (child === undefined ||
               !permitLocalGraphFacts(limits, budget.work, budget.maxDepth,
                 budget.maxTargetsInFile, budget.graphWork)) {
               transition = stepImportGraph(state, { kind: "captureFailed" });
@@ -286,8 +306,8 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
     } else return undefined;
     state = transition.state;
     command = transition.command;
-    if (projectImportGraph(state).phase === "complete") return complete && bytes(unit) <= limits.treeBytes ? unit : undefined;
-    if (projectImportGraph(state).phase === "incomplete") return undefined;
+    if (projectImportGraph(state).phase === "complete") return bytes(unit) <= limits.treeBytes ? unit : undefined;
+    if (projectImportGraph(state).phase === "incomplete") return partialUnit(projectImportGraph(state).reason ?? "ProtocolViolation");
   }
   return undefined;
 });

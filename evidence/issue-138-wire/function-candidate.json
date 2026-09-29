@@ -32,8 +32,8 @@
       "id": "direct-event/function/v1",
       "completeness": "complete",
       "projectionFingerprint": "17cbdf6822f42347e8b8b528d0d3a0ed580af09a4fdc23894304b2f7aa8538e3",
-      "rendererVersion": "candidate-semantic-evidence/1",
-      "rendererDigest": "5755d7abe997a57c952111ef2e0ac2e85c3a0e7f84fb39b11bd7a576ae5c01de"
+      "rendererVersion": "candidate-semantic-evidence/2",
+      "rendererDigest": "16eb76ad99f9e13efeb921b45fb36196c36c8d7d127cced101a16ce478dece10"
     }
   },
   "completeRequest": {
@@ -70,8 +70,8 @@
         "id": "direct-event/function/v1",
         "completeness": "complete",
         "projectionFingerprint": "17cbdf6822f42347e8b8b528d0d3a0ed580af09a4fdc23894304b2f7aa8538e3",
-        "rendererVersion": "candidate-semantic-evidence/1",
-        "rendererDigest": "5755d7abe997a57c952111ef2e0ac2e85c3a0e7f84fb39b11bd7a576ae5c01de"
+        "rendererVersion": "candidate-semantic-evidence/2",
+        "rendererDigest": "16eb76ad99f9e13efeb921b45fb36196c36c8d7d127cced101a16ce478dece10"
       }
     },
     "decisions": {

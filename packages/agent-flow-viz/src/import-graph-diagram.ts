@@ -192,8 +192,8 @@ const nodes = [
   { id: "gate", x: 330, y: 50, title: "Permission and budgets", owner: "BEND DECISION", detail: "Allow before any source read", role: "bend" },
   { id: "capture", x: 630, y: 50, title: "Capture allowed target", owner: "NATIVE FACT", detail: "Report source and tree bytes", role: "native" },
   { id: "expand", x: 630, y: 260, title: "Accept or skip import", owner: "BEND DECISION", detail: "Use effective cap; keep later edges", role: "bend" },
-  { id: "complete", x: 330, y: 260, title: "Complete unit", owner: "BEND DECISION", detail: "Eligible for a Jev request", role: "bend" },
-  { id: "incomplete", x: 30, y: 260, title: "Incomplete unit", owner: "BEND DECISION", detail: "No Jev request for this unit", role: "bend" },
+  { id: "complete", x: 330, y: 260, title: "Complete graph", owner: "BEND DECISION", detail: "Rule selection follows", role: "bend" },
+  { id: "incomplete", x: 30, y: 260, title: "Incomplete graph", owner: "BEND DECISION", detail: "Rule evidence check follows", role: "bend" },
 ] as const;
 
 export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: ImportGraphStage | null, units: readonly string[], names: Readonly<Record<number, string>>, history: readonly HistoryStep[], states: readonly ImportGraphProjection[], unitLabel: string) =>

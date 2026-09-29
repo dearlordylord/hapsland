@@ -67,6 +67,12 @@ def Laws.import_graph_no_fit_support_skips_and_keeps_pending():
 def Laws.import_graph_skipped_tree_finishes_incomplete():
   {==}
 
+def Laws.import_graph_missing_import_keeps_later_edges():
+  {==}
+
+def Laws.import_graph_omitted_import_finishes_incomplete():
+  {==}
+
 def Laws.rotated_in_scope_advice_is_retired():
   {==}
 

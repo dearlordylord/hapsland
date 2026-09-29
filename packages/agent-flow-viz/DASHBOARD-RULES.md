@@ -74,7 +74,10 @@ through the checked `stepImportGraph` adapter.
 file graph from those native example facts, emitted Bend commands, and Bend
 state. Target names are display metadata; capture, exclusion, budget, cycle,
 and terminal labels follow Bend output. Its static state-machine boxes explain
-possible transitions and highlight the phase returned by Bend. The independent
+possible transitions and highlight the phase returned by Bend.
+The import graph view stops at graph traversal; it does not simulate the later
+per-rule evidence check or a Jev request.
+The independent
 [`conformance/import-graph-v1.json`](../../conformance/import-graph-v1.json)
 fixture checks phases and commands at every step and final states. Projection and browser checks
 verify that the visible graph follows replay, including excluded C receiving

@@ -35,14 +35,14 @@ configured meanings. Choice and Score result forms remain separate decisions.
 
 The active input contracts are direct-event/type-shape/v2 and
 direct-event/function/v1. Each request carries one changed root and its
-complete, bounded evidence tree. Supporting declarations can come from other
+bounded evidence tree with marked omissions. Supporting declarations can come from other
 selected files through supported local imports. They do not become separate
 edited roots. The request contains neither a whole file nor an edit diff,
 agent transcript, absolute path, or unrelated source.
 
-An incomplete root or graph never reaches Jev. Hapsland selects rules only
-after the whole review unit is complete. If no rule applies, it sends no
-request. A complete unit's identity includes the exact input contract,
+Hapsland selects each rule only when its declared evidence needs are met. A
+rule may run with a marked omission that is irrelevant to it. If no rule applies,
+Hapsland sends no request. A review input's identity includes the exact input contract,
 renderer, root, evidence tree, selected rule definitions, and effective
 policy. Source-file fingerprints support freshness checks but do not by
 themselves change semantic identity when an unrelated comment moves. Before

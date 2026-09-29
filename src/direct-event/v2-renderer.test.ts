@@ -42,6 +42,17 @@ describe("candidate review input renderer", () => {
     expect(renderCandidateReviewInput(functionInput)?.inputContract.id).toBe("direct-event/function/v1");
   });
 
+  it("renders a marked omission only for an incomplete-irrelevant rule input", () => {
+    const input = fixture();
+    const omitted = { from: input.artifact.id, kind: "omitted" as const,
+      symbol: "Hidden", reason: "unresolved" as const, order: 3 };
+    const partial = renderCandidateReviewInput({ ...input, completeness: "incomplete-irrelevant",
+      edges: [...input.edges, omitted] });
+    expect(partial?.inputContract.completeness).toBe("incomplete-irrelevant");
+    expect(partial?.evidence.edges.at(-1)).toEqual(omitted);
+    expect(renderCandidateReviewInput({ ...input, edges: [...input.edges, omitted] })).toBeUndefined();
+  });
+
   it("rejects incomplete, oversized, unresolved, or source-leaking facts", () => {
     const input = fixture();
     expect(renderCandidateReviewInput({ ...input, completeness: "incomplete" })).toBeUndefined();
@@ -60,6 +71,7 @@ describe("candidate review input renderer", () => {
     expect(renderCandidateReviewInput({ ...input, artifact: { ...input.artifact, id: "/private/project/a.ts:interface:A" } })).toBeUndefined();
     expect(renderCandidateReviewInput({ ...input, nodes: [
       { ...input.nodes[0], id: "src/c.ts:function:C", kind: "function" }, input.nodes[1],
-    ], edges: input.edges.map((item) => ({ ...item, to: item.to === input.nodes[0]!.id ? "src/c.ts:function:C" : item.to })) })).toBeUndefined();
+    ], edges: input.edges.map((item) => item.kind === "omitted" ? item :
+      ({ ...item, to: item.to === input.nodes[0]!.id ? "src/c.ts:function:C" : item.to })) })).toBeUndefined();
   });
 });

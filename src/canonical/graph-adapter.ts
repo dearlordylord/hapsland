@@ -82,7 +82,7 @@ const encode = (event: ImportGraphEvent): unknown => {
 };
 const reason = (value: unknown): string => {
   const name = tag(value);
-  if (!/^(ImportGraph\.)?(Missing|Ambiguous|Unsupported|Excluded|CaptureUnavailable|FileLimit|ReadLimit|TreeLimit|WorkLimit|DepthLimit|Deadline|ProtocolViolation)$/.test(name)) {
+  if (!/^(ImportGraph\.)?(Missing|Ambiguous|Unsupported|Omitted|Excluded|CaptureUnavailable|FileLimit|ReadLimit|TreeLimit|WorkLimit|DepthLimit|Deadline|ProtocolViolation)$/.test(name)) {
     throw new TypeError(`unknown Bend graph reason ${name}`);
   }
   return name.replace("ImportGraph.", "");
@@ -112,6 +112,7 @@ export type ImportGraphProjection = {
   readonly work: number;
   readonly skippedTree: boolean;
   readonly skippedExcluded: boolean;
+  readonly skippedOther: boolean;
 };
 const phases = { Idle: "idle", Ready: "ready", Resolving: "resolving", Checking: "checking", Capturing: "capturing", Complete: "complete", Incomplete: "incomplete" } as const;
 export const projectImportGraph = (state: unknown): ImportGraphProjection => {
@@ -137,7 +138,7 @@ export const projectImportGraph = (state: unknown): ImportGraphProjection => {
     pending: readList(object.pending, (edge) => { if (kind(edge) !== "Edge") throw new TypeError("invalid Bend graph edge"); return number(record(edge).id); }),
     visited: readList(object.visited, number), files: number(object.files), readBytes: number(object.read_bytes),
     treeBytes: number(object.tree_bytes), work: number(object.work), skippedTree: bool(object.skipped_tree),
-    skippedExcluded: bool(object.skipped_excluded) };
+    skippedExcluded: bool(object.skipped_excluded), skippedOther: bool(object.skipped_other) };
 };
 export const initialImportGraph = (limits: GraphLimits = GRAPH_LIMIT_CEILINGS): unknown => {
   const effective = validateGraphLimits(limits);

@@ -38,6 +38,20 @@ import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts";
 
 describe("checked local graph budget authority", () => {
+  it.effect("does not use a partial root when Bend rejects the root capture", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "interface A { missing: Missing }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity);
+    if (selected === undefined) throw new Error("root was not eligible");
+    const capture = yield* captureStable(root, selected, {}, observation.rootIdentity);
+    if (capture === undefined) throw new Error("root capture failed");
+    const unit = yield* resolveGraphUnit("a.ts", capture, "A", { root, rootIdentity: observation.rootIdentity,
+      policy: DEFAULT_DIRECT_FILE_POLICY, limits: { ...GRAPH_LIMIT_CEILINGS, sourceBytes: 1 } });
+    expect(unit).toBeUndefined();
+  }));
+
   it.effect("obeys a Bend gate denial at measured local work before recursing", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "interface A { b: B } interface B { c: C } interface C { value: string }"));
@@ -54,7 +68,8 @@ describe("checked local graph budget authority", () => {
     try {
       const denied = yield* resolveGraphUnit("a.ts", capture, "A", context);
       expect(denied).toBeUndefined();
-      expect(gate.observedWork).toEqual([1]);
+      expect(gate.observedWork.length).toBeGreaterThan(0);
+      expect(gate.observedWork.every((work) => work === 1)).toBe(true);
     } finally {
       gate.denyAtLocalWork = 0;
       gate.observedWork.length = 0;
@@ -84,7 +99,8 @@ describe("checked local graph budget authority", () => {
         policy: DEFAULT_DIRECT_FILE_POLICY, limits: GRAPH_LIMIT_CEILINGS,
         captureHooks: { sourceRead: (path) => { reads.push(path); } } });
       expect(denied).toBeUndefined();
-      expect(gate.observedDepth).toEqual([1]);
+      expect(gate.observedDepth.length).toBeGreaterThan(0);
+      expect(gate.observedDepth.every((depth) => depth === 1)).toBe(true);
       expect(reads).toEqual([]);
     } finally {
       gate.denyAtDepth = 0;
@@ -116,7 +132,7 @@ describe("checked local graph budget authority", () => {
         return { ...source, get text(): string { throw new Error("oversized source was parsed"); } };
       })) as typeof captureStable,
     });
-    expect(result).toBeUndefined();
+    expect(result?.root.references[0]).toMatchObject({ kind: "omitted" });
     expect(reads).toEqual(["b.ts", "b.ts"]);
     expect(gate.measuredCaptures).toEqual([{ sourceBytes: 127, reason: "ReadLimit" }]);
   }));

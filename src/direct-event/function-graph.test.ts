@@ -63,7 +63,7 @@ describe("bounded function graph candidate", () => {
       root, rootIdentity: observation.rootIdentity, policy: DEFAULT_DIRECT_FILE_POLICY, branch: "function",
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
-    expect(unit).toBeUndefined();
+    expect(unit?.root.references[0]).toMatchObject({ kind: "omitted", reason: "unsupported" });
     expect(reads).toEqual([]);
   }));
 });

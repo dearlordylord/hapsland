@@ -437,7 +437,9 @@ describe("direct-event vertical slice", () => {
           }
         }
         if (source.startsWith("interface Good") && prepared.observation.status === "incomplete") {
-          expect(prepared.observation.units.map(({ root: unitRoot }) => unitRoot.artifact.name)).toEqual(["Good"]);
+          expect(prepared.observation.units.map(({ root: unitRoot }) => unitRoot.artifact.name)).toEqual(["Good", "Broken"]);
+          expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
+            outcome.prepared.input.declaration.name === "Broken")).toBe(false);
         }
       }
     }).pipe(Effect.provide(Consent.testLayer())),

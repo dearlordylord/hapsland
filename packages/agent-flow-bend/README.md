@@ -17,15 +17,16 @@ the complete or incomplete result. Native code supplies syntax and import
 binding, path eligibility, and stable capture facts. Bend chooses the next
 edge and whether the measured work fits its limits. Before each supporting
 source read, native code checks the path against containment, protected paths,
-Git ignore, and user file selection. A denied path is never read; a unit that
-needs it is incomplete and makes no Jev request. The separate dashboard import
+Git ignore, and user file selection. A denied path is never read; the graph
+records an omission and later rule selection checks whether that evidence is
+required. The separate dashboard import
 view replays this checked model; production review uses the shared checked
 `Canonical.step` adapter for its decisions.
 Supporting tree contributions that do not fit the remaining budget emit `SkipImport(TreeLimit)` while
 later pending edges continue within the file, read, work, depth, and deadline
 limits. The accepted tree remains within its effective configured cap (20 KiB
-by default), and a unit with any skipped
-import finishes incomplete with no Jev request.
+by default). A graph with a skipped import finishes incomplete; a rule that does
+not need that import may still reach Jev with the omission marked.
 Each unit holds one versioned limits value and an event budget of
 `4 × work + 2`. Each delivered graph event spends one event; exhaustion
 terminates incomplete even when a captured node reports zero bytes. This
@@ -33,9 +34,11 @@ conditional liveness result assumes each `ResolveEdge`, `CheckPath`, and
 `ReadSource` command eventually receives its matching fact or the host
 delivers `DeadlineReached`. A stalled external command supplies no event.
 Terminal phases deliberately self-loop on subsequent events.
-Denied import paths emit `SkipImport(Excluded)` before any source read and also leave
-later edges pending. If both a denied path and a tree-budget skip occur, the final
-incomplete reason is `TreeLimit`; otherwise a denied path finishes `Excluded`.
+Denied import paths emit `SkipImport(Excluded)` before any source read and leave
+later edges pending. Missing, ambiguous, and unsupported targets also emit
+`SkipImport` and leave later edges pending. If both a denied path and a tree-budget
+skip occur, the final graph reason is `TreeLimit`; otherwise a denied path finishes
+`Excluded`. Other omitted imports finish `Omitted`.
 
 `Canonical.bend` is the production transition model and drives the main
 visualization through the checked TypeScript adapter.
