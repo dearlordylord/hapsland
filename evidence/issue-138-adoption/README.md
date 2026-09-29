@@ -14,7 +14,11 @@ Each case directory is a separate virtual repository: `root.ts` and `support.ts`
 
 `offline-manifest.json` names 26 source-backed *proposed* offline graph/skip cases, 13 per branch. TI04/FI04 are complete-cycle controls and TI13/FI13 are multi-root Add controls; the others are skip or stale-result cases. The expected public reason for declaration-cap cases TI08/FI08 is deliberately unresolved. These records do not assert that the product already returns those codes.
 
-`verify-corpus.py` checks fixture counts, SHA-256 of UTF-8 file bytes, path containment, selected-root header identity, 64 KiB command size, and exact patch execution/post bytes. It fails closed if the `apply_patch` executable is absent. `src/direct-event/adoption-corpus.test.ts` checks selection and current native graph completeness for all 24 semantic records without making a Jev call. These checks do **not** establish semantic truth, Jev probabilities, host delivery, or the proposed acceptance thresholds.
+`verify-corpus.py` checks fixture counts, SHA-256 of UTF-8 file bytes, path containment, selected-root header identity, 64 KiB command size, and exact patch execution/post bytes. It fails closed if the `apply_patch` executable is absent. `src/direct-event/adoption-corpus.test.ts` checks selection and current native graph completeness for all 24 semantic and 26 offline records. Its controlled DecisionModel asserts zero requests for incomplete, ambiguous, stale, source-capped, and rule-empty cases; complete-cycle cases make one controlled request and multi-root Add controls make two. It checks that A→B→excluded C never reads C and that an oversized first imported node still leads to a read of the later import. These are offline tests, not live Jev calls. They do **not** establish semantic truth, Jev probabilities, host delivery, or the proposed acceptance thresholds.
+
+TI05/FI05 and TI06/FI06 use verified root-only Updates. Their earlier Add forms selected unaffected sibling declarations as separate ready units, so they could not support a whole-event no-request assertion. In TI06/FI06, both oversized `huge.ts` and small `later.ts` are imports; the test observes two stable reads of each and no request for the incomplete root.
+
+The proposed source-free skip labels are not yet all validated as public codes. Current internal observations are `missing-evidence` for the depth and tree overflow cases TI05/FI05/TI06/FI06, `declaration-limit` for TI08, `no-declarations` for FI08 and FI11, and `declaration-merge` for TI11. The test fixes these observed facts while leaving the public-code acceptance decision open.
 
 ## Function branch blocker
 
@@ -32,7 +36,7 @@ The offline product test confirms none of F01–F04/F09/F11 yields a complete se
 
 1. Review type T01–T12 for human-checked semantic expectations, valid rule applicability, exact graph completeness, focused-diff and whole-file comparators, and stable source hashes. A **type-only** first milestone is possible if its separate owner-approved corpus and gates pass. It does not approve the function branch.
 2. Resolve the function resource-binding scope or approve a narrower rule and replace the six withheld cases with complete, checked positives. Re-review F05–F12 under the final rule.
-3. Add deterministic product-level fixture tests for all 50 records, including source-read counts and no-request checks; this hash verifier is only a structural guard.
+3. Review the deterministic product-level tests for all 50 records, including source-read counts and controlled no-request checks; the hash verifier is only a structural guard.
 4. Freeze exact v2 rule-pack content digests, renderer/wire examples, labels, thresholds, memory/host evidence, and finite live authorization. The candidate egress switch remains off until the accepted #93 adoption gates are met.
 
 The prior #16 comparison remains `reject-or-narrow`; its paired context-only and whole-file-dilution gates failed. This corpus does not revise that evidence.

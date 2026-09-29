@@ -121,6 +121,6 @@ for case in OFFLINE["cases"]:
             assert source.count("// marker") == 2 and before.count("// marker") == 1
             assert event["verifiedPostEditSpan"] is None, case["id"]
         else:
-            assert case["id"].endswith("07") and source != before
+            assert case["id"][-2:] in {"05", "06", "07"} and source != before
             assert event["verifiedPostEditSpan"] is not None, case["id"]
 print("verified 24 proposed semantic cases, 26 offline cases, all hashes and executable patches")

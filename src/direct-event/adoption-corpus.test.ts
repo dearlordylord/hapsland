@@ -2,11 +2,12 @@ import { describe, expect, it } from "@effect/vitest";
 import { readFile } from "node:fs/promises";
 import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "./adapter.ts";
-import { prepareObservation } from "./pipeline.ts";
+import { prepareObservation, preparedUnitStillCurrent, reviewObservation } from "./pipeline.ts";
 import { addEvent, makeGitFixture, put } from "./test-fixtures.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { compileRulePackV2 } from "../rules/compiler.ts";
 import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 
 type Case = {
   id: string;
@@ -26,6 +27,8 @@ const offlineManifest = JSON.parse(await readFile(new URL("offline-manifest.json
     branch: Case["branch"];
     event: Case["event"];
     sources: Case["sources"];
+    policy: { includes: string[]; excludes: string[] } | null;
+    category: string;
   }>;
 };
 const rules = compileRulePackV2({
@@ -77,14 +80,13 @@ describe("proposed adoption corpus native completeness", () => {
       }
     }));
   }
-  for (const id of ["TI09", "FI09", "TI13", "FI13"]) {
-    it.effect(id, () => Effect.gen(function* () {
-      const fixture = offlineManifest.cases.find((item) => item.id === id);
-      if (fixture === undefined) throw new Error(`missing offline fixture ${id}`);
+  for (const fixture of offlineManifest.cases) {
+    it.effect(fixture.id, () => Effect.gen(function* () {
+      const id = fixture.id;
       const root = yield* Effect.promise(makeGitFixture);
       for (const source of fixture.sources) {
         const name = source.path.split("/").at(-1);
-        if (name === undefined || name === "root.before.ts") continue;
+        if (name === undefined || name === "root.before.ts" || name.endsWith(".after.ts")) continue;
         const content = yield* Effect.promise(() => readFile(new URL(source.path, corpus), "utf8"));
         yield* Effect.promise(() => put(root, name, content));
       }
@@ -94,15 +96,78 @@ describe("proposed adoption corpus native completeness", () => {
       }));
       expect(observation).toBeDefined();
       if (observation === undefined) return;
-      const prepared = yield* prepareObservation(observation, {
+      const reads: string[] = [];
+      const context = {
         controlledWriter: true, advicee: observation.advicee,
         inputContract: fixture.branch === "type-shape/v2" ? V2_TYPE_CONTRACT : V2_FUNCTION_CONTRACT,
         settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
-        rules,
-      });
+        rules: fixture.category === "no-target-rule" ? [] : rules,
+        ...(fixture.policy === null ? {} : { policy: fixture.policy }),
+        captureHooks: { sourceRead: (path: string) => { reads.push(path); } },
+        allowCandidateCrossFileEgress: true,
+      } as const;
+      const prepared = yield* prepareObservation(observation, context);
       const selected = prepared.observation.outcomes.filter((outcome) => outcome.status === "observed")
         .flatMap((outcome) => outcome.units.map((unit) => unit.root.artifact.name));
-      expect(selected).toEqual(id.endsWith("09") ? [] : ["A", "B"]);
+      const ready = prepared.outcomes.filter((outcome) => outcome.status === "ready");
+      const completeCycle = fixture.category === "cycle-complete-control";
+      const multiRoot = fixture.category === "multi-root-add-control";
+      const stale = fixture.category === "stale-support";
+      const noRule = fixture.category === "no-target-rule";
+      expect(selected).toEqual(multiRoot ? ["A", "B"] :
+        completeCycle || stale || noRule ? [fixture.branch === "type-shape/v2" ? "A" : "run"] : []);
+      expect(ready).toHaveLength(multiRoot ? 2 : completeCycle || stale ? 1 : 0);
+      if (noRule) {
+        expect(prepared.observation.status).toBe("complete");
+      } else if (!completeCycle && !multiRoot && !stale) {
+        expect(prepared.observation.status).toBe("incomplete");
+      }
+      if (fixture.category === "source-cap") {
+        expect(prepared.observation.outcomes).toMatchObject([{ status: "incomplete", reason: "capture-unavailable" }]);
+      } else if (!completeCycle && !multiRoot && !stale && !noRule) {
+        const observed = prepared.observation.outcomes.find((outcome) => outcome.status === "observed");
+        const reason = fixture.category === "duplicate-update-location" ? "ambiguous-update" :
+          fixture.category === "package-import" && fixture.branch === "type-shape/v2" ? "import" :
+          fixture.category === "declaration-cap" ? fixture.branch === "type-shape/v2" ? "declaration-limit" : "no-declarations" :
+          fixture.category === "unsupported-binding" ? fixture.branch === "type-shape/v2" ? "declaration-merge" : "no-declarations" :
+          "missing-evidence";
+        expect(observed?.analysis).toMatchObject({ status: "incomplete",
+          failures: [expect.objectContaining({ reason })] });
+      }
+      const capturedReads = [...reads];
+      if (fixture.category === "excluded-transitive") {
+        expect(capturedReads).toEqual(["root.ts", "root.ts", "b.ts", "b.ts"]);
+        expect(capturedReads).not.toContain("c.ts");
+      } else if (fixture.category === "tree-overflow-continue") {
+        expect(capturedReads).toEqual(["root.ts", "root.ts", "huge.ts", "huge.ts", "later.ts", "later.ts"]);
+      } else if (fixture.category === "source-cap") {
+        expect(capturedReads).toEqual([]);
+      } else if (["private-support", "cycle-complete-control", "stale-support"].includes(fixture.category)) {
+        expect(capturedReads).toEqual(["root.ts", "root.ts", "b.ts", "b.ts"]);
+      } else {
+        expect(capturedReads).toEqual(["root.ts", "root.ts"]);
+      }
+      if (stale) {
+        const current = ready[0];
+        if (current?.status !== "ready") throw new Error(`missing ready stale fixture ${id}`);
+        const after = yield* Effect.promise(() => readFile(new URL(`offline/${id}/b.after.ts`, corpus), "utf8"));
+        yield* Effect.promise(() => put(root, "b.ts", after));
+        expect(yield* preparedUnitStillCurrent(observation, current.prepared, context)).toBe(false);
+        const original = yield* Effect.promise(() => readFile(new URL(`offline/${id}/b.ts`, corpus), "utf8"));
+        yield* Effect.promise(() => put(root, "b.ts", original));
+      }
+      let calls = 0;
+      const review = yield* reviewObservation(observation, {
+        ...context,
+        ...(stale ? { beforeDispatch: Effect.promise(async () => {
+          const after = await readFile(new URL(`offline/${id}/b.after.ts`, corpus), "utf8");
+          await put(root, "b.ts", after);
+        }) } : {}),
+      }).pipe(Effect.provide(controlledDecisionModelLayer({
+        onRequest: Effect.sync(() => { calls += 1; }),
+      })));
+      expect(review.status).toBe("no-advice");
+      expect(calls).toBe(completeCycle ? 1 : multiRoot ? 2 : 0);
     }));
   }
 });
