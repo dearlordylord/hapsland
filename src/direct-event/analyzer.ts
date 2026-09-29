@@ -153,7 +153,11 @@ const parsedDeclarations = (path: string, source: string, allowImports = false):
     if (!allowImports && nodes.some((node) => importSyntax.has(node.type))) {
       return { status: "unsupported", reason: "import", units: [] };
     }
-    const declarations = nodes.filter((node) => kindOf(node) !== undefined);
+    const declarations = (allowImports
+      ? tree.rootNode.namedChildren.flatMap((node) => node.type === "export_statement"
+        ? node.namedChildren.filter((child) => kindOf(child) !== undefined)
+        : kindOf(node) === undefined ? [] : [node])
+      : nodes.filter((node) => kindOf(node) !== undefined));
     if (declarations.length === 0) return { status: "unsupported", reason: "no-declarations", units: [] };
     if (declarations.length > MAX_TYPE_DECLARATIONS) {
       return { status: "unsupported", reason: "declaration-limit", units: [] };

@@ -7,6 +7,23 @@ import { resolveGraphUnit } from "./graph-resolver.ts";
 import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts";
 
 describe("bounded function graph candidate", () => {
+  it.effect("keeps same-spelling type and function artifacts distinct", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts",
+      "type Foo = string; function Foo(): Foo { return 'x' } export function run(): Foo { return Foo() }"));
+    const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity);
+    if (selected === undefined) throw new Error("root selection failed");
+    const capture = yield* captureStable(root, selected, undefined, observation.rootIdentity);
+    if (capture === undefined) throw new Error("capture failed");
+    const unit = yield* resolveGraphUnit("a.ts", capture, "run", {
+      root, rootIdentity: observation.rootIdentity, policy: DEFAULT_DIRECT_FILE_POLICY, branch: "function",
+    });
+    expect(unit?.root.references.map((edge) => edge.kind === "expanded" ? edge.node.artifact.id : undefined))
+      .toEqual(["a.ts:type-alias:Foo", "a.ts:function:Foo"]);
+  }));
+
   it.effect("expands a bound imported function through the Bend graph", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "import { helper } from './b'; export function run(): number { return helper() }"));

@@ -5,8 +5,21 @@ import { adaptCodexAdd } from "./adapter.ts";
 import { prepareObservation } from "./pipeline.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { configuredRules } from "../policy/rules.ts";
+import { inspectGraphFile } from "./analyzer.ts";
+import { compileRulePackV2 } from "../rules/compiler.ts";
+import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+
+const candidateRules = compileRulePackV2({ schemaVersion: 2, id: "graph", contentVersion: "1", rules: [{
+  id: "shape", question: "Is the type clear?", criteria: { false: "No", true: "Yes" },
+  message: "Clarify type", reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+    capabilities: ["root-declaration", "resolved-outbound-types"] }],
+}] }, "fixture-v2");
 
 describe("cross-file graph preparation", () => {
+  it("does not select a declaration nested in a namespace as a direct graph root", () => {
+    expect(inspectGraphFile("a.ts", "namespace N { export interface A { x: string } }")).toBeUndefined();
+  });
+
   it.effect("retains the accepted v1 same-file profile below 32 KiB", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", `type A = "${"x".repeat(24_000)}";\n`));
@@ -28,7 +41,7 @@ describe("cross-file graph preparation", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const base = { controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules } as const;
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT } as const;
     const prepared = yield* prepareObservation(observation, base);
     const a = prepared.outcomes.find((outcome) => outcome.status === "ready");
     expect(a?.status).toBe("ready");
@@ -56,7 +69,7 @@ describe("cross-file graph preparation", () => {
       controlledWriter: true,
       advicee: observation.advicee,
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
-      rules: configuredRules,
+      rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
       policy: { includes: ["a.ts", "b.ts"], excludes: ["c.ts"] },
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
@@ -72,7 +85,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) return;
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(true);
   }));
@@ -84,7 +97,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(true);
   }));
@@ -96,7 +109,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
     });
     const a = prepared.outcomes.find((outcome) => outcome.status === "ready");
     expect(a?.status).toBe("ready");
@@ -113,7 +126,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
   }));
@@ -126,7 +139,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
       outcome.prepared.input.declaration.name === "T0")).toBe(false);
@@ -143,7 +156,7 @@ describe("cross-file graph preparation", () => {
     let clock = 0;
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
       graphNow: () => { const value = clock; clock += 5_000; return value; },
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
@@ -159,7 +172,7 @@ describe("cross-file graph preparation", () => {
     const reads: string[] = [];
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
     expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(2);
@@ -174,7 +187,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
     });
     expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(64);
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&

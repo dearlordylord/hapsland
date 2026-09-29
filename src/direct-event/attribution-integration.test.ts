@@ -7,6 +7,7 @@ import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 import { compileRulePackV2 } from "../rules/compiler.ts";
+import { semanticIdentity } from "./model.ts";
 
 describe("v2 Codex root attribution", () => {
   it.effect("selects a complete named function Add root through the Bend graph", () => Effect.gen(function* () {
@@ -35,6 +36,12 @@ describe("v2 Codex root attribution", () => {
     if (ready?.status === "ready") {
       expect(ready.prepared.input.rules[0]?.target?.inputContract).toBe(V2_FUNCTION_CONTRACT);
       expect(ready.prepared.input.candidateProjection).toBe(true);
+      expect(ready.prepared.input.rootLocation).toBeDefined();
+      const location = ready.prepared.input.rootLocation!;
+      expect(semanticIdentity({ ...ready.prepared.input, rootLocation: {
+        start: { line: location.start.line + 1, column: location.start.column },
+        end: { line: location.end.line + 1, column: location.end.column },
+      } })).not.toBe(ready.prepared.identity);
       expect(ready.prepared.input.sourceFingerprints?.map((item) => item.path)).toEqual(["a.ts", "b.ts"]);
       const rendered = preparedProviderInput(ready.prepared);
       expect(rendered).toMatchObject({

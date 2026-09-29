@@ -79,7 +79,7 @@ describe("canonical Jev request boundary", () => {
       expect(server.accountingMetrics().pendingOperationalNotices).toBe(0);
     } finally { await server.close(); }
   });
-  it("dispatches a complete cross-file unit and never reads excluded C", async () => {
+  it("keeps candidate cross-file evidence off v1 Jev even with a fixture egress override", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "import type { B } from './b'; interface A { b: B }");
     await put(root, "b.ts", "import type { C } from './c'; export interface B { c: C }");
@@ -102,7 +102,7 @@ describe("canonical Jev request boundary", () => {
     try {
       expect(server.admit(observation, dispatch).status).toBe("accepted");
       await server.whenIdle();
-      expect(existsSync(capturePath)).toBe(true);
+      expect(existsSync(capturePath)).toBe(false);
       expect(reads).toContain("c.ts");
     } finally { await server.close(); }
 

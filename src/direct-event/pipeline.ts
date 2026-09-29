@@ -442,6 +442,14 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     }
     for (const unit of units) {
       const declaration = unit.root.artifact;
+      // Candidate graph evidence has a distinct contract. Schema-v1 rules must
+      // never evaluate it under the unchanged same-file v1 identifier.
+      if (!legacyV1 && contract === DIRECT_EVENT_INPUT_CONTRACT) continue;
+      const rootLocation = contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT
+        ? candidateDeclarations.find((candidate) => candidate.artifact.kind === declaration.kind &&
+          candidate.artifact.name === declaration.name)?.location
+        : undefined;
+      if ((contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT) && rootLocation === undefined) continue;
       const sourceFingerprints = legacyV1 ? undefined : unitSourceFingerprints(unit, supportingCaptures);
       if (!legacyV1 && sourceFingerprints === undefined) continue;
       const artifactKind = declaration.kind === "function" ? "function" as const : "typeShape" as const;
@@ -461,6 +469,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
         contract,
         graphLimits,
         candidateProjection: !legacyV1,
+        ...(rootLocation === undefined ? {} : { rootLocation }),
         ...(sourceFingerprints === undefined ? {} : { sourceFingerprints }),
         completeness: "complete",
         path: eligible.relativePath,

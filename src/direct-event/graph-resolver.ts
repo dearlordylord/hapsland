@@ -17,13 +17,18 @@ type FactReference = { readonly kind: "named" | "unsupported"; readonly name: st
 type FactFile = {
   readonly declarations: ReadonlyMap<string, { readonly artifact: ReviewArtifact; readonly references: ReadonlyArray<FactReference>; readonly exported: boolean }>;
   readonly imports: ReadonlyMap<string, { readonly path: string; readonly name: string; readonly typeOnly?: boolean }>;
+  readonly kindAware?: boolean;
 };
+const factKey = (file: FactFile, name: string, expected: "type" | "function" | undefined): string =>
+  file.kindAware ? `${expected ?? "function"}:${name}` : name;
+const declarationFor = (file: FactFile, name: string, expected: "type" | "function" | undefined) =>
+  file.declarations.get(factKey(file, name, expected));
 const inspectFunctionGraphFile = (path: string, source: string): FactFile | undefined => {
   const file = analyzeFunctionFile(path, source);
   if (file === undefined) return undefined;
   const declarations = new Map<string, { artifact: ReviewArtifact; references: ReadonlyArray<FactReference>; exported: boolean }>();
   for (const fact of [...file.types.values(), ...file.functions.values()]) {
-    declarations.set(fact.artifact.name, { artifact: fact.artifact, exported: fact.exported,
+    declarations.set(`${fact.artifact.kind === "function" ? "function" : "type"}:${fact.artifact.name}`, { artifact: fact.artifact, exported: fact.exported,
       references: fact.references.map((reference) => ({
         kind: reference.kind === "unsupported" ? "unsupported" : "named",
         name: reference.name,
@@ -31,7 +36,7 @@ const inspectFunctionGraphFile = (path: string, source: string): FactFile | unde
           reference.kind === "named-type" ? { expectedKind: "type" as const } : {}),
       })) });
   }
-  return { declarations, imports: file.imports };
+  return { declarations, imports: file.imports, kindAware: true };
 };
 const correctKind = (artifact: ReviewArtifact, expected: "type" | "function" | undefined): boolean =>
   expected === undefined || (expected === "function" ? artifact.kind === "function" : artifact.kind !== "function");
@@ -47,8 +52,9 @@ const mayCaptureForObservation = (captures: ReadonlyMap<string, StableCapture>, 
       MAX_OBSERVATION_GRAPH_READ_BYTES);
 
 /** Materialize same-file evidence without turning imported declarations into edited roots. */
-const buildLocal = (file: FactFile, path: string, name: string, visited: Set<string>, budget: LocalBudget, depth: number): Built | undefined => {
-  const declaration = file.declarations.get(name);
+const buildLocal = (file: FactFile, path: string, name: string, visited: Set<string>, budget: LocalBudget, depth: number,
+  expectedKind: "type" | "function" | undefined = undefined): Built | undefined => {
+  const declaration = declarationFor(file, name, expectedKind);
   if (declaration === undefined) return undefined;
   const node: MutableNode = {
     artifact: declaration.artifact, references: [],
@@ -61,7 +67,7 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
       complete = false; break;
     }
     if (reference.kind === "unsupported") { complete = false; continue; }
-    const local = file.declarations.get(reference.name);
+    const local = declarationFor(file, reference.name, reference.expectedKind);
     const imported = file.imports.get(reference.name);
     const targetKey = local?.artifact.id ?? (imported === undefined ? reference.name : `${path}\0${imported.path}\0${imported.name}`);
     budget.targets.add(targetKey);
@@ -75,7 +81,7 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
         node.references.push({ kind: "included", site: { symbol: reference.name }, target: local.artifact.id });
       } else {
         visited.add(local.artifact.id);
-        const child = buildLocal(file, path, reference.name, visited, budget, depth + 1);
+        const child = buildLocal(file, path, reference.name, visited, budget, depth + 1, reference.expectedKind);
         if (child === undefined) { complete = false; continue; }
         node.references.push({ kind: "expanded", site: { symbol: reference.name }, node: child.node });
         pending.push(...child.pending);
@@ -119,7 +125,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   const inspect = context.branch === "function" ? inspectFunctionGraphFile : inspectGraphFile;
   const rootFile = inspect(rootPath, rootCapture.text);
   if (rootFile === undefined) return undefined;
-  const rootDeclaration = rootFile.declarations.get(name);
+  const rootDeclaration = declarationFor(rootFile, name, context.branch === "function" ? "function" : undefined);
   if (rootDeclaration === undefined) return undefined;
   if (rootDeclaration.references.length > limits.outgoingEdges) return undefined;
   const visited = new Set([rootDeclaration.artifact.id]);
@@ -134,7 +140,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   let nextId = 1;
   const pending = new Map<number, Pending>();
   const pathForTarget = new Map<number, { readonly path: string; readonly name: string; readonly edge: Pending }>();
-  const targetIds = new Map<string, number>([[`${rootPath}\0${name}`, 1]]);
+  const targetIds = new Map<string, number>([[`${rootPath}\0${context.branch === "function" ? "function" : "type"}\0${name}`, 1]]);
   const artifactsByTarget = new Map<number, string>([[1, rootDeclaration.artifact.id]]);
   let nextTargetId = 2;
   const addEdges = (edges: ReadonlyArray<Pending>): number[] => edges.map((edge) => {
@@ -187,11 +193,12 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
         if (selectedPath === undefined) return undefined;
         const targetFile = captured.get(selectedPath)?.file;
         const targetName = edge.name;
-        const key = `${selectedPath}\0${targetName}`;
+        const key = `${selectedPath}\0${edge.expectedKind ?? "type"}\0${targetName}`;
         const targetId = targetIds.get(key) ?? nextTargetId++;
         targetIds.set(key, targetId);
-        if (targetFile !== undefined && (!targetFile.declarations.get(targetName)?.exported ||
-          !correctKind(targetFile.declarations.get(targetName)!.artifact, edge.expectedKind))) {
+        const knownDeclaration = targetFile === undefined ? undefined : declarationFor(targetFile, targetName, edge.expectedKind);
+        if (targetFile !== undefined && (!knownDeclaration?.exported ||
+          !correctKind(knownDeclaration.artifact, edge.expectedKind))) {
           transition = stepImportGraph(state, { kind: "resolved", target: targetId, result: "missing" });
         } else {
           // Bend must issue CheckPath before any new supporting source read.
@@ -227,12 +234,13 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
           transition = stepImportGraph(state, { kind: "captureFailed" });
         } else {
           const file = inspect(selected.relativePath, source.text);
-          const declaration = file?.declarations.get(target.name);
+          const declaration = file === undefined ? undefined : declarationFor(file, target.name, target.edge.expectedKind);
           if (file === undefined || declaration === undefined || !declaration.exported ||
             !correctKind(declaration.artifact, target.edge.expectedKind)) {
             transition = stepImportGraph(state, { kind: "captureFailed" });
           } else {
-            const child = buildLocal(file, selected.relativePath, target.name, visited, budget, target.edge.depth + 1);
+            const child = buildLocal(file, selected.relativePath, target.name, visited, budget, target.edge.depth + 1,
+              target.edge.expectedKind);
             if (child === undefined || !child.complete ||
               !permitLocalGraphFacts(limits, budget.work, budget.maxDepth,
                 budget.targets.size, projectImportGraph(state).work)) {

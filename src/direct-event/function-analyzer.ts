@@ -254,7 +254,7 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
       if (node.type === "function_declaration") {
         const identifier = node.namedChildren.find((child) => child.type === "identifier");
         const body = node.namedChildren.find((child) => child.type === "statement_block");
-        if (identifier === undefined || body === undefined || signatures.has(identifier.text) || functions.has(identifier.text) || types.has(identifier.text) || imports.has(identifier.text) || otherTopLevelBindings.has(identifier.text)) return undefined;
+        if (identifier === undefined || body === undefined || signatures.has(identifier.text) || functions.has(identifier.text) || imports.has(identifier.text) || otherTopLevelBindings.has(identifier.text)) return undefined;
         const rendered = exportSource(node);
         functions.set(identifier.text, { artifact: artifact(path, "function", identifier.text, rendered.source), references: functionReferences(node, identifier.text, boundTypes, boundFunctions), exported: rendered.exported, location: rendered.location });
         if (functions.size + types.size > 64) return undefined;
@@ -263,7 +263,7 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
       const kind = node.type === "interface_declaration" ? "interface" : node.type === "type_alias_declaration" ? "type-alias" : undefined;
       if (kind !== undefined) {
         const identifier = node.namedChildren.find((child) => child.type === "type_identifier");
-        if (identifier === undefined || types.has(identifier.text) || functions.has(identifier.text) || imports.has(identifier.text)) return undefined;
+        if (identifier === undefined || types.has(identifier.text) || imports.has(identifier.text)) return undefined;
         const rendered = exportSource(node);
         types.set(identifier.text, { artifact: artifact(path, kind, identifier.text, rendered.source), references: namedTypeReferences(node, identifier.text, boundTypes), exported: rendered.exported, location: rendered.location });
         if (functions.size + types.size > 64) return undefined;

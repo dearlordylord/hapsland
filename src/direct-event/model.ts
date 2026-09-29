@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { CompiledRule } from "../rules/compiler.ts";
 import type { ReviewTargetV2 } from "../rules/v2-targets.ts";
+import type { PostEditLocation } from "./attribution-v2.ts";
 import type { GraphLimits } from "../configuration/graph-limits.ts";
 import { V1_DIRECT_TYPE_INPUT_CONTRACT } from "../rules/contracts.ts";
 
@@ -189,6 +190,8 @@ export type ReviewInput = {
   readonly graphLimits?: GraphLimits;
   /** Candidate graph/source profile requires explicit egress authorization. */
   readonly candidateProjection?: boolean;
+  /** Parser-derived selected root range, retained in candidate identity only. */
+  readonly rootLocation?: PostEditLocation;
   readonly sourceFingerprints?: ReadonlyArray<{
     readonly path: string; readonly contentHash: string; readonly byteLength: number;
   }>;
