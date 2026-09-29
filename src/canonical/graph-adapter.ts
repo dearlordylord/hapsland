@@ -3,11 +3,11 @@ import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../
 export { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../configuration/graph-limits.ts";
 
 export type ImportGraphEvent =
-  | { readonly kind: "root"; readonly target: number; readonly sourceBytes: number; readonly treeBytes: number; readonly edges: readonly number[] }
+  | { readonly kind: "root"; readonly target: number; readonly sourceBytes: number; readonly treeBytes: number; readonly localWork?: number; readonly edges: readonly number[] }
   | { readonly kind: "next" }
   | { readonly kind: "resolved"; readonly target: number; readonly result: "found" | "missing" | "ambiguous" | "unsupported" }
   | { readonly kind: "pathChecked"; readonly allowed: boolean }
-  | { readonly kind: "captured"; readonly sourceBytes: number; readonly treeBytes: number; readonly edges: readonly number[] }
+  | { readonly kind: "captured"; readonly sourceBytes: number; readonly treeBytes: number; readonly localWork?: number; readonly edges: readonly number[] }
   | { readonly kind: "captureFailed" }
   | { readonly kind: "deadlineReached" };
 
@@ -71,11 +71,11 @@ const readList = <T>(value: unknown, decode: (value: unknown) => T): T[] => {
 };
 const encode = (event: ImportGraphEvent): unknown => {
   switch (event.kind) {
-    case "root": return { $: "ImportGraph.Root", target: nat(event.target), source_bytes: nat(event.sourceBytes), tree_bytes: nat(event.treeBytes), edges: list(event.edges) };
+    case "root": return { $: "ImportGraph.Root", target: nat(event.target), source_bytes: nat(event.sourceBytes), tree_bytes: nat(event.treeBytes), local_work: nat(event.localWork ?? 0), edges: list(event.edges) };
     case "next": return { $: "ImportGraph.Next" };
     case "resolved": return { $: "ImportGraph.Resolved", target: nat(event.target), result: { $: ({ found: "ImportGraph.Found", missing: "ImportGraph.NotFound", ambiguous: "ImportGraph.Many", unsupported: "ImportGraph.Unhandled" } as const)[event.result] } };
     case "pathChecked": return { $: "ImportGraph.PathChecked", allowed: event.allowed };
-    case "captured": return { $: "ImportGraph.Captured", source_bytes: nat(event.sourceBytes), node_bytes: nat(event.treeBytes), edges: list(event.edges) };
+    case "captured": return { $: "ImportGraph.Captured", source_bytes: nat(event.sourceBytes), node_bytes: nat(event.treeBytes), local_work: nat(event.localWork ?? 0), edges: list(event.edges) };
     case "captureFailed": return { $: "ImportGraph.CaptureFailed" };
     case "deadlineReached": return { $: "ImportGraph.DeadlineReached" };
   }

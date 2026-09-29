@@ -18,6 +18,8 @@ type LocalBudget = {
   readonly targetsByPath: Map<string, Set<string>>;
   maxTargetsInFile: number;
   work: number;
+  /** Import work already charged in Bend, excluding local work in this budget. */
+  graphWork: number;
   maxDepth: number;
 };
 type FactReference = { readonly kind: "named" | "unsupported"; readonly name: string; readonly expectedKind?: "type" | "function" };
@@ -83,7 +85,7 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
     if (local !== undefined) budget.work += 1;
     // Bend owns the effective depth, local-work, and per-file target ceilings.
     // Ask before recursing or queuing a supporting-file read.
-    if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, 0)) {
+    if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, budget.graphWork)) {
       complete = false; break;
     }
     if (local !== undefined) {
@@ -138,7 +140,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   const rootDeclaration = declarationFor(rootFile, name, context.branch === "function" ? "function" : undefined);
   if (rootDeclaration === undefined) return undefined;
   const visited = new Set([rootDeclaration.artifact.id]);
-  const budget: LocalBudget = { limits, targetsByPath: new Map(), maxTargetsInFile: 0, work: 0, maxDepth: 0 };
+  const budget: LocalBudget = { limits, targetsByPath: new Map(), maxTargetsInFile: 0, work: 0, graphWork: 0, maxDepth: 0 };
   const now = context.now ?? (() => performance.now());
   const started = now();
   const expired = () => now() - started >= GRAPH_ANALYSIS_DEADLINE_MS;
@@ -157,16 +159,9 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
     pending.set(id, edge);
     return id;
   });
-  // Bend's local_budget checks the immutable total before the import graph
-  // receives a residual work allowance. One pending import needs at least one
-  // graph step; a spent local budget must refuse it before any supporting read.
-  if (built.pending.length > 0 &&
-    !permitLocalGraphFacts(limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 1)) return undefined;
-  const remainingWork = limits.work - budget.work;
-  // The graph adapter requires a positive profile. With no pending edges this
-  // value is inert: Bend can complete the root without consuming graph work.
-  let state = initialImportGraph({ ...limits, work: remainingWork === 0 ? 1 : remainingWork });
-  let transition = stepImportGraph(state, { kind: "root", target: 1, sourceBytes: rootCapture.byteLength, treeBytes: bytes(unit), edges: addEdges(built.pending) });
+  let state = initialImportGraph(limits);
+  let transition = stepImportGraph(state, { kind: "root", target: 1, sourceBytes: rootCapture.byteLength,
+    treeBytes: bytes(unit), localWork: budget.work, edges: addEdges(built.pending) });
   state = transition.state;
   let command: ImportGraphCommand = transition.command;
   let complete = true;
@@ -246,9 +241,15 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
           source = yield* (context.captureSource ?? captureStable)(context.root, selected, context.captureHooks, context.rootIdentity);
           if (source !== undefined) context.captureCache?.set(selected.relativePath, source);
         }
-        if (source === undefined || source.byteLength > limits.sourceBytes) {
+        if (source === undefined) {
           transition = stepImportGraph(state, { kind: "captureFailed" });
+        } else if (source.byteLength > limits.sourceBytes) {
+          // The stable capture supplied measured bytes. Let Bend reject the
+          // effective source cap before inspecting or retaining its text.
+          transition = stepImportGraph(state, { kind: "captured", sourceBytes: source.byteLength, treeBytes: 0, edges: [] });
         } else {
+          const localWorkBefore = budget.work;
+          budget.graphWork = projectImportGraph(state).work - budget.work;
           const file = inspect(selected.relativePath, source.text);
           const declaration = file === undefined ? undefined : declarationFor(file, target.name, target.edge.expectedKind);
           if (file === undefined || declaration === undefined || !declaration.exported ||
@@ -257,15 +258,19 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
           } else {
             const child = buildLocal(file, selected.relativePath, target.name, visited, budget, target.edge.depth + 1,
               target.edge.expectedKind);
-            if (child === undefined || !child.complete ||
+            if (!permitLocalGraphFacts(limits, budget.work, 0, 0, budget.graphWork)) {
+              transition = stepImportGraph(state, { kind: "captured", sourceBytes: source.byteLength,
+                treeBytes: 0, localWork: budget.work - localWorkBefore, edges: [] });
+            } else if (child === undefined || !child.complete ||
               !permitLocalGraphFacts(limits, budget.work, budget.maxDepth,
-                budget.maxTargetsInFile, projectImportGraph(state).work)) {
+                budget.maxTargetsInFile, budget.graphWork)) {
               transition = stepImportGraph(state, { kind: "captureFailed" });
             } else {
               const previous = bytes(unit);
               target.edge.owner.references[target.edge.index] = { kind: "expanded", site: { symbol: target.edge.name }, node: child.node };
               const contribution = bytes(unit) - previous;
-              transition = stepImportGraph(state, { kind: "captured", sourceBytes: source.byteLength, treeBytes: Math.max(0, contribution), edges: addEdges(child.pending) });
+              transition = stepImportGraph(state, { kind: "captured", sourceBytes: source.byteLength,
+                treeBytes: Math.max(0, contribution), localWork: budget.work - localWorkBefore, edges: addEdges(child.pending) });
               if (transition.command.kind === "skipImport") {
                 target.edge.owner.references[target.edge.index] = { kind: "omitted", site: { symbol: target.edge.name }, target: { kind: "unresolved", symbol: target.edge.name }, reason: "reference-limit" };
               } else {

@@ -39,6 +39,29 @@ assert.throws(() => stepImportGraph(initialImportGraph(), { kind: "root", target
 assert.throws(() => initialImportGraph({ ...projectImportGraph(initialImportGraph()).limits, sourceBytes: 0 }), /graphLimits.sourceBytes/);
 assert.throws(() => initialImportGraph({ ...projectImportGraph(initialImportGraph()).limits, readBytes: 1 }), /graphLimits.readBytes/);
 const defaults = projectImportGraph(initialImportGraph()).limits;
+const charged = { ...defaults, work: 3 };
+let combined = initialImportGraph(charged);
+const combinedEvents = [
+  { kind: "root", target: 1, sourceBytes: 1, treeBytes: 1, localWork: 0, edges: [10] },
+  { kind: "next" },
+  { kind: "resolved", target: 2, result: "found" },
+  { kind: "pathChecked", allowed: true },
+  { kind: "captured", sourceBytes: 1, treeBytes: 1, localWork: 1, edges: [11] },
+  { kind: "next" },
+  { kind: "resolved", target: 3, result: "found" },
+  { kind: "pathChecked", allowed: true },
+  { kind: "captured", sourceBytes: 1, treeBytes: 1, localWork: 0, edges: [12] },
+  { kind: "next" },
+];
+let lastCombined;
+for (const event of combinedEvents) {
+  lastCombined = stepImportGraph(combined, event);
+  combined = lastCombined.state;
+}
+assert.equal(lastCombined.command.kind, "unitIncomplete");
+assert.equal(lastCombined.command.reason, "WorkLimit");
+assert.equal(projectImportGraph(combined).work, 3);
+assert.deepEqual(projectImportGraph(combined).pending, [12]);
 assert.equal(permitLocalGraphFacts(defaults, 4, 4, 16, 124), true);
 assert.equal(permitLocalGraphFacts(defaults, 5, 4, 16, 124), false);
 assert.equal(permitLocalGraphFacts(defaults, 4, 5, 16, 0), false);

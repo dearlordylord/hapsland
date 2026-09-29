@@ -20,6 +20,32 @@ const candidateRules = compileRulePackV2({ schemaVersion: 2, id: "graph", conten
 }] }, "fixture-v2");
 
 describe("cross-file graph preparation", () => {
+  it.effect("charges local work inside a supporting file before the next import", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "import type { D } from './d'; interface C { value: string } export interface B { c: C; d: D }"));
+    yield* Effect.promise(() => put(root, "d.ts", "import type { E } from './e'; export interface D { e: E }"));
+    yield* Effect.promise(() => put(root, "e.ts", "export interface E { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity);
+    if (selected === undefined) throw new Error("root path was not eligible");
+    const capture = yield* captureStable(root, selected, {}, observation.rootIdentity);
+    if (capture === undefined) throw new Error("root capture failed");
+    const reads: string[] = [];
+    const base = { root, rootIdentity: observation.rootIdentity, policy: DEFAULT_DIRECT_FILE_POLICY,
+      captureHooks: { sourceRead: (path: string) => { reads.push(path); } } };
+    const exhausted = yield* resolveGraphUnit("a.ts", capture, "A", { ...base,
+      limits: { ...GRAPH_LIMIT_CEILINGS, work: 3 } });
+    expect(exhausted).toBeUndefined();
+    expect(reads).toEqual(["b.ts", "b.ts", "d.ts", "d.ts"]);
+    reads.length = 0;
+    const enough = yield* resolveGraphUnit("a.ts", capture, "A", { ...base,
+      limits: { ...GRAPH_LIMIT_CEILINGS, work: 4 } });
+    expect(enough?.root.references[0]?.kind).toBe("expanded");
+    expect(reads).toEqual(["b.ts", "b.ts", "d.ts", "d.ts", "e.ts", "e.ts"]);
+  }));
+
   it.effect("keeps local and import work under one immutable total", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface C { value: string } interface A { c: C; b: B }"));
