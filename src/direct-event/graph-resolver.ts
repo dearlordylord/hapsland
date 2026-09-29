@@ -72,23 +72,21 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
   budget.targetsByPath.set(path, fileTargets);
   for (const reference of declaration.references) {
     budget.maxDepth = Math.max(budget.maxDepth, depth + 1);
-    if (depth >= budget.limits.depth) {
-      complete = false; break;
-    }
     if (reference.kind === "unsupported") { complete = false; continue; }
     const local = declarationFor(file, reference.name, reference.expectedKind);
     const imported = file.imports.get(reference.name);
     const targetKey = local?.artifact.id ?? (imported === undefined ? reference.name : `${path}\0${imported.path}\0${imported.name}`);
     fileTargets.add(targetKey);
     budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size);
+    if (local !== undefined && imported !== undefined) { complete = false; continue; }
+    if (local !== undefined && !correctKind(local.artifact, reference.expectedKind)) { complete = false; continue; }
+    if (local !== undefined) budget.work += 1;
+    // Bend owns the effective depth, local-work, and per-file target ceilings.
+    // Ask before recursing or queuing a supporting-file read.
     if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, 0)) {
       complete = false; break;
     }
-    if (local !== undefined && imported !== undefined) { complete = false; continue; }
-    if (local !== undefined && !correctKind(local.artifact, reference.expectedKind)) { complete = false; continue; }
     if (local !== undefined) {
-      budget.work += 1;
-      if (budget.work > budget.limits.work) { complete = false; break; }
       if (visited.has(local.artifact.id)) {
         node.references.push({ kind: "included", site: { symbol: reference.name }, target: local.artifact.id });
       } else {
