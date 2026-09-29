@@ -164,6 +164,23 @@ export class CapacityLedger {
     this.#reservations.delete(id);
   }
 
+  /** Bind the round atomically opened or reused by canonical edit admission. */
+  consumeEditPermit(partition: string, event: Extract<ResidentTransition, { readonly kind: "consumePermit" }>):
+    ReturnType<typeof stepCanonical> {
+    const result = this.transition(event);
+    if (result.rejection !== undefined) return result;
+    const consumed = result.commands.find((command) => command.kind === "permitConsumed");
+    const round = result.commands.find((command) => command.kind === "roundStarted");
+    const boundRound = this.canonicalProjection().rounds.find(
+      (item) => item.partition === event.partition && item.lifetime === event.lifetime);
+    const roundId = round?.kind === "roundStarted" ? round.id : boundRound?.id;
+    if (consumed?.kind !== "permitConsumed" || roundId === undefined || boundRound?.id !== roundId) {
+      throw new Error("canonical edit admission omitted its round");
+    }
+    this.#roundIds.set(partition, roundId);
+    return result;
+  }
+
   roundId(partition: string): number {
     const existing = this.#roundIds.get(partition);
     if (existing !== undefined) return existing;

@@ -562,6 +562,8 @@ describe("resident delivery lease", () => {
     expect((await server.handle({ ...admission,
       observation: { ...observation, advicee: { ...observation.advicee, subagentId: "child" } } })).status)
       .toBe("rejected-stale");
+    expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "permit-only" })).toEqual({ status: "busy" });
     expect((await server.handle(admission)).status).toBe("accepted");
     expect((await server.handle(admission)).status).toBe("rejected-stale");
     await server.whenIdle();
@@ -1275,6 +1277,10 @@ describe("resident delivery lease", () => {
 
   it("shares prompt continuation state across host adapters while isolating advicees", async () => {
     const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const dispatch = findingDispatch(join(root, "consent"));
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const codex = advicee({ sessionId: "codex-session" });
     const claude = { host: "claude-code" as const, hostVersion: "2.1.218" as const,
@@ -1288,6 +1294,7 @@ describe("resident delivery lease", () => {
         root, advicee: selected, token: firstToken })).toEqual({ status: "busy" });
       expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: selected, startedAt: monotonicNow() - 1 })).toEqual({ status: "advanced" });
+      expect(server.admit({ ...observation, advicee: selected }, dispatch, false, true, true)).toEqual({ status: "accepted" });
       expect(await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
         root, advicee: selected, token: firstToken })).toEqual({ status: "background-claimed" });
       expect(await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
@@ -1304,10 +1311,16 @@ describe("resident delivery lease", () => {
       for (let i = 0; i < 3; i++) expect(await server.handle({ requestRoute: "shared", operation: "consume-stop", lifetime: server.lifetime, root, advicee: selected })).toEqual({ status: "continuation-allowed" });
       expect(await server.handle({ requestRoute: "shared", operation: "consume-stop", lifetime: server.lifetime, root, advicee: selected })).toEqual({ status: "continuation-denied" });
     }
+    await server.whenIdle();
+    await server.close();
   });
 
   it("requires child edit evidence to initialize Stop allowance and isolates parent and siblings", async () => {
     const root = await makeGitFixture();
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const dispatch = findingDispatch(join(root, "consent"));
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     for (const host of ["codex-cli", "claude-code"] as const) {
       const parent = host === "codex-cli" ? { host, hostVersion: "0.155.1" as const, sessionId: "session", turnId: "turn", toolUseId: "stop", subagentId: null }
@@ -1325,6 +1338,9 @@ describe("resident delivery lease", () => {
       expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: { ...child, toolUseId: "child-edit" }, startedAt: monotonicNow() - 1 }))
         .toEqual({ status: "advanced" });
+      expect(await consume(child)).toEqual({ status: "continuation-denied" });
+      expect(server.admit({ ...observation, advicee: { ...child, toolUseId: "child-edit" } }, dispatch, false, true, true))
+        .toEqual({ status: "accepted" });
       for (let i = 0; i < 4; i++) expect(await consume(child)).toEqual({ status: "continuation-allowed" });
       expect(await ensure(child)).toEqual({ status: "advanced" });
       expect(await consume(child)).toEqual({ status: "continuation-denied" });
@@ -1335,8 +1351,13 @@ describe("resident delivery lease", () => {
       expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: { ...sibling, toolUseId: "sibling-edit" }, startedAt: monotonicNow() - 1 }))
         .toEqual({ status: "advanced" });
+      expect(await consume(sibling)).toEqual({ status: "continuation-denied" });
+      expect(server.admit({ ...observation, advicee: { ...sibling, toolUseId: "sibling-edit" } }, dispatch, false, true, true))
+        .toEqual({ status: "accepted" });
       expect(await consume(sibling)).toEqual({ status: "continuation-allowed" });
     }
+    await server.whenIdle();
+    await server.close();
   });
 
   it("reports pending work only to its advicee during composed collection", async () => {

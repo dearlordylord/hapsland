@@ -129,7 +129,7 @@ export class ComposedDelivery {
   registerEditDecision(partition: string, eventId: string, startedAt: number,
     now = monotonicNow()): { readonly accepted: true } | { readonly accepted: false; readonly reason: string } {
     this.expirePermits(now);
-    let round = this.#rounds.get(partition);
+    const round = this.#rounds.get(partition);
     const admission = this.canonical.canonicalProjection().admissions.find(
       (item) => item.partition === this.canonical.partitionId(partition));
     const event = eventId;
@@ -177,11 +177,6 @@ export class ComposedDelivery {
       this.#releaseAdmissionPermit(partition, command.token);
       return { accepted: false, reason: "StaleRound" };
     }
-    if (round === undefined) {
-      round = this.#startRound(partition);
-      if (round === undefined) return { accepted: false, reason: "RoundLimit" };
-    }
-    this.#rounds.set(partition, { ...round, events: new Set([...round.events, event]) });
     this.#permits.set(`${partition}\0${event}`, { partition,
       generation: command.round, expiresAt: startedAt + EDIT_PERMIT_EXPIRY_MS,
       token: command.token, tool });
@@ -196,7 +191,11 @@ export class ComposedDelivery {
       this.expirePermits(now);
       const permit = this.#permits.get(key);
       this.#permits.delete(key);
-      if (previous === undefined || permit === undefined) return undefined;
+      if (permit === undefined) return undefined;
+      if (previous === undefined && this.#rounds.size >= MAX_COMPOSED_ROUNDS) {
+        this.#releaseAdmissionPermit(partition, permit.token);
+        return undefined;
+      }
       const admission = this.canonical.canonicalProjection().admissions.find(
         (item) => item.partition === this.canonical.partitionId(partition));
       if (admission === undefined || permit.generation !== admission.round + (admission.active ? 0 : 1)) {
@@ -205,7 +204,7 @@ export class ComposedDelivery {
       }
       let consumed;
       try {
-        consumed = this.canonical.transition({ kind: "consumePermit",
+        consumed = this.canonical.consumeEditPermit(partition, { kind: "consumePermit",
           partition: this.canonical.partitionId(partition), lifetime: 1,
           token: permit.token, tool: permit.tool, now: this.#bendTime(now) });
       } catch {
@@ -217,6 +216,11 @@ export class ComposedDelivery {
         this.#releaseAdmissionPermit(partition, permit.token);
         return undefined;
       }
+      if (previous === undefined) {
+        previous = this.#startRound(partition);
+        if (previous === undefined) return undefined;
+      }
+      this.#rounds.set(partition, { ...previous, events: new Set([...previous.events, event]) });
       return this.generation(partition);
     }
     // Internal deterministic fixtures and the non-installed API may start a
@@ -234,7 +238,7 @@ export class ComposedDelivery {
         newRound: previous === undefined, eventCount: previous?.events.size ?? 0, eventLimit: 4096 } });
     const permit = issued.commands[0];
     if (permit?.kind !== "permitIssued") return undefined;
-    const consumed = this.canonical.transition({ kind: "consumePermit", partition: partitionId,
+    const consumed = this.canonical.consumeEditPermit(partition, { kind: "consumePermit", partition: partitionId,
       lifetime: 1, token: permit.token, tool, now: syntheticNow });
     if (consumed.commands[0]?.kind !== "permitConsumed") {
       this.#releaseAdmissionPermit(partition, permit.token);
@@ -268,8 +272,7 @@ export class ComposedDelivery {
   isActive(partition: string, generation = this.generation(partition)): boolean {
     const admission = this.canonical.canonicalProjection().admissions.find(
       (item) => item.partition === this.canonical.partitionId(partition));
-    // An issued first permit creates a virtual round before the edit callback
-    // consumes it. Its admission round remains zero until that callback.
+    // Only accepted post-edit admission binds a host round.
     const result = this.canonical.transition({ kind: "roundActivityCheck",
       bound: this.#rounds.has(partition), hasAdmission: admission !== undefined,
       round: admission?.round ?? 0, active: admission?.active ?? false,
@@ -520,7 +523,7 @@ export class ComposedDelivery {
       const at = Math.max(this.#bendTime(closedAt + 1), admission.closedAt);
       const closed = this.canonical.transition({ kind: "closePermitRound",
         partition: admission.partition, lifetime: admission.lifetime,
-        round: stop.generation, at, prospective: !admission.active });
+        round: stop.generation, at, prospective: false });
       if (closed.rejection !== undefined || closed.commands[0]?.kind !== "permitRoundClosed" ||
           closed.commands[0].round !== stop.generation) throw new Error("canonical permit closure disagrees with round");
     }

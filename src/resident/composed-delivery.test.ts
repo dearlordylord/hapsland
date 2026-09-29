@@ -112,16 +112,46 @@ describe("shared Hapsland rounds", () => {
       .toBeUndefined();
   });
 
-  it("closes an expired prospective round and admits a fresh tool in the next round", () => {
+  it("expires a failed edit permit without opening a round", () => {
     const state = new ComposedDelivery();
     expect(state.registerEdit("agent", "first", 100, 101)).toBe(true);
     state.expirePermits(100 + EDIT_PERMIT_EXPIRY_MS);
-    expect(state.beginStop("agent", "stop")).toBe(true);
-    expect(state.finishStop("agent", "stop", true, 100 + EDIT_PERMIT_EXPIRY_MS + 1)).toBe(1);
+    expect(state.beginStop("agent", "stop")).toBe(false);
+    expect(state.generation("agent")).toBe(0);
+    expect(state.canonical.canonicalProjection().rounds).toHaveLength(0);
     expect(state.admitEdit("agent", "first", 100 + EDIT_PERMIT_EXPIRY_MS + 2, true)).toBeUndefined();
     expect(state.registerEdit("agent", "second", 100 + EDIT_PERMIT_EXPIRY_MS + 3,
       100 + EDIT_PERMIT_EXPIRY_MS + 4)).toBe(true);
-    expect(state.admitEdit("agent", "second", 100 + EDIT_PERMIT_EXPIRY_MS + 5, true)).toBe(2);
+    expect(state.admitEdit("agent", "second", 100 + EDIT_PERMIT_EXPIRY_MS + 5, true)).toBe(1);
+  });
+
+  it("expires an unsuccessful next edit without reopening the closed round", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "first", 1);
+    state.beginStop("agent", "stop");
+    state.finishStop("agent", "stop", true, 100);
+    expect(state.registerEdit("agent", "failed", 102, 103)).toBe(true);
+    state.expirePermits(102 + EDIT_PERMIT_EXPIRY_MS);
+    expect(state.admitEdit("agent", "failed", 103 + EDIT_PERMIT_EXPIRY_MS, true)).toBeUndefined();
+    expect(state.generation("agent")).toBe(1);
+    expect(state.isActive("agent")).toBe(false);
+    expect(state.beginStop("agent", "permit-only")).toBe(false);
+    expect(state.registerEdit("agent", "fresh", 104 + EDIT_PERMIT_EXPIRY_MS,
+      105 + EDIT_PERMIT_EXPIRY_MS)).toBe(true);
+    expect(state.admitEdit("agent", "fresh", 106 + EDIT_PERMIT_EXPIRY_MS, true)).toBe(2);
+  });
+
+  it("does not consume or activate an edit when canonical round capacity is exhausted", () => {
+    const state = new ComposedDelivery();
+    for (let i = 0; i < 256; i++) state.canonical.roundId(`occupied-${i}`);
+    expect(state.registerEdit("agent", "edit", 100, 101)).toBe(true);
+    expect(state.admitEdit("agent", "edit", 102, true)).toBeUndefined();
+    expect(state.generation("agent")).toBe(0);
+    expect(state.isActive("agent")).toBe(false);
+    expect(state.beginStop("agent", "stop")).toBe(false);
+    const admission = state.canonical.canonicalProjection().admissions.find(
+      (item) => item.partition === state.canonical.partitionId("agent"));
+    expect(admission).toMatchObject({ active: false, round: 0, used: [], permits: [] });
   });
 
   it("keeps native tool identity across duplicate and cross-advicee callbacks", () => {
@@ -229,6 +259,7 @@ describe("shared Hapsland rounds", () => {
     const state = new ComposedDelivery();
     for (let i = 0; i < MAX_COMPOSED_ROUNDS; i++) {
       expect(state.registerEdit(`agent-${i}`, "edit", 1, 2)).toBe(true);
+      expect(state.admitEdit(`agent-${i}`, "edit", 3, true)).toBe(1);
     }
     state.expire(600_000);
     expect(state.registerEdit("overflow", "edit", 600_001, 600_002)).toBe(false);
@@ -242,21 +273,35 @@ describe("shared Hapsland rounds", () => {
     expect(state.beginStop("agent", "stop")).toBe(false);
     expect(state.consumeStop("agent")).toBe(false);
     expect(state.registerEdit("agent", "edit", 12, 13)).toBe(true);
-    expect(state.generation("agent")).toBe(1);
+    expect(state.generation("agent")).toBe(0);
+    expect(state.beginStop("agent", "stop")).toBe(false);
+    expect(state.canonical.canonicalProjection().rounds).toHaveLength(0);
+    expect(state.admitEdit("agent", "edit", 14, true)).toBe(1);
   });
 
-  it("closes an unconsumed prospective permit and only reopens for a fresh edit", () => {
+  it("starts the next round only when a fresh post edit arrives and shares it across edits", () => {
     const state = new ComposedDelivery();
-    expect(state.registerEdit("agent", "uncompleted", 10, 11)).toBe(true);
+    state.admitEdit("agent", "first", 10);
     expect(state.beginStop("agent", "stop")).toBe(true);
     expect(state.finishStop("agent", "stop", true, 100)).toBe(1);
-    expect(state.admitEdit("agent", "uncompleted", 101, true)).toBeUndefined();
     expect(state.registerEdit("agent", "fresh", 102, 103)).toBe(true);
+    const closedRounds = state.canonical.canonicalProjection().rounds;
+    expect(state.generation("agent")).toBe(1);
+    expect(state.isActive("agent")).toBe(false);
+    expect(state.beginStop("agent", "permit-only")).toBe(false);
+    expect(state.canonical.canonicalProjection().rounds).toEqual(closedRounds);
     expect(state.admitEdit("agent", "fresh", 104, true)).toBe(2);
+    const openRounds = state.canonical.canonicalProjection().rounds;
+    expect(state.admitEdit("agent", "fresh", 105, true)).toBeUndefined();
+    expect(state.canonical.canonicalProjection().rounds).toEqual(openRounds);
+    expect(state.registerEdit("agent", "second", 106, 107)).toBe(true);
+    expect(state.admitEdit("agent", "second", 108, true)).toBe(2);
+    expect(state.canonical.canonicalProjection().rounds).toEqual(openRounds);
   });
 
   it("releases pending permits in canonical state at a Stop cutoff", () => {
     const state = new ComposedDelivery();
+    state.admitEdit("agent", "first", 1);
     expect(state.registerEdit("agent", "pending", 10, 11)).toBe(true);
     expect(state.beginStop("agent", "stop")).toBe(true);
     expect(state.finishGate("agent", "stop", 0, true)?.status).toBe("cutoff");

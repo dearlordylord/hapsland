@@ -3006,7 +3006,6 @@ export class ResidentServer {
       const group = adviceePartition(request.root, request.advicee);
       const decision = this.#composedDelivery.registerEditDecision(group, request.advicee.toolUseId, request.startedAt);
       if (!decision.accepted) return { status: "rejected-stale", reason: decision.reason };
-      this.#roundActivity.set(group, { root: request.root, advicee: request.advicee, activityPath: request.activityPath });
       return { status: "advanced" };
     }
     if (request.operation === "admit") {
