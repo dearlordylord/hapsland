@@ -130,8 +130,11 @@ needs are met by A and B may run with the omission marked in its input.
 Independent roots follow the same rule. No excluded source is copied into an
 allowed file's review input.
 
-The target per-source-file stable-capture ceiling is **256 KiB inclusive**. The
-target evidence-tree ceiling is **20 KiB of canonical UTF-8 encoded root, nodes,
+The target per-source-file stable-capture ceiling is **256 KiB inclusive**. A
+lower configured ceiling applies on every supported platform; native capture
+enforces it before reading source.
+
+The target evidence-tree ceiling is **20 KiB of canonical UTF-8 encoded root, nodes,
 edges, and required metadata per review unit**, including evidence reached from
 multiple files. Use the checked canonical encoding. Check the
 remaining tree budget before accepting a captured contribution. If a supporting

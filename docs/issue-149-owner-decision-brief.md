@@ -1,4 +1,4 @@
-# #149: important decisions and assumptions for owner review
+# #149: important decisions and evidence limits for owner review
 
 **Purpose:** Show the product owner the consequential choices made while implementing #145, #142, #148, #147, #138, and #143 together.
 **Status:** Working review brief; the branch is a draft PR and #147 design acceptance is paused at the owner's request.
@@ -34,15 +34,9 @@ The work began from `master` at `baafffe` in separate issue worktrees and was as
 | Area | Choice and visible effect | Important limit |
 | --- | --- | --- |
 | Claude feedback, [#145](https://github.com/dearlordylord/hapsland/issues/145) | One resident-owned finding can reach Claude through the immediate edit response, background output, or Stop. Advice is the default. Blocking feedback requires a user's opt-in and a final policy check. The complete encoded Claude response has a 10 KiB limit and no separate five-finding cap. | A successful host write proves submission, not that Claude saw, used, or repaired the advice. Slow review can miss the immediate hook and remain eligible later. |
-| Graph limits, [#142](https://github.com/dearlordylord/hapsland/issues/142) | One validated limits snapshot follows each review unit. Bend decides traversal and budget outcomes. Native code checks the physical source read before it happens. The default source ceiling is 256 KiB per file and the evidence-tree ceiling is 20 KiB. | The evidence-tree cap does not cover rule text or provider overhead. A missing, excluded, unsupported, or capped reference is marked omitted; a rule runs only when its declared evidence needs are still met. |
+| Graph limits, [#142](https://github.com/dearlordylord/hapsland/issues/142) | One validated limits snapshot follows each review unit. Bend decides traversal and budget outcomes. Native code checks the physical source read before it happens. The default source ceiling is 256 KiB per file and the evidence-tree ceiling is 20 KiB; a lower configured source ceiling applies on every supported platform. | The evidence-tree cap does not cover rule text or provider overhead. A missing, excluded, unsupported, or capped reference is marked omitted; a rule runs only when its declared evidence needs are still met. |
 | Jev requests, [#148](https://github.com/dearlordylord/hapsland/issues/148) | Bend issues explicit request permission. Eight preparation places and eight Jev request places are separate from the resident's item/byte capacity ledger. A ninth ready Jev request becomes unavailable immediately. | There is no Jev wait queue in this design. A Bend command does not prove that native code sent a request. |
 | Resident lifetime, [#143](https://github.com/dearlordylord/hapsland/issues/143) | An empty shared resident retires after a five-second grace period; a later hook can start a new lifetime. | Active connections, work, advice, leases, notices, and valid resume work keep it alive. It is shared by callers using one resident connection directory, not tied to a single worktree. |
-
-## Implementation assumptions and limits to inspect
-
-| Assumption or choice made without a new owner decision | Practical effect and status |
-| --- | --- |
-| A configured source cap below 256 KiB must work on macOS as well as Linux. | The final #142 review found that the old macOS helper could only enforce the default cap. The rebuilt arm64 helper passed native checks at 80 bytes and at the default 256 KiB, and refused an oversized file and a symlink. [The macOS evidence](https://github.com/dearlordylord/hapsland/pull/149#issuecomment-5892687827) supports that narrow platform claim; the full package check has a separate missing-document failure. |
 
 ## What the evidence does not establish
 
