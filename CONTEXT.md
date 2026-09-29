@@ -24,7 +24,11 @@ material only beside the plain-language meaning it represents.
 | Type-shape artifact | An artifact describing the domain values admitted by one interface, type declaration, or schema. |
 | Change observation | Agent runtime or reconciliation evidence that eligible working-tree content may have changed. |
 | Observation origin | The kind of evidence behind a change observation: direct edit or checkpoint reconciliation. |
-| Change attribution | Agent runtime evidence that associates an exact current snapshot with an intended advicee and canonical working root. Root co-location or checkpoint discovery alone is not attribution. |
+| Agent attribution | Agent runtime evidence that associates an exact current snapshot with an intended advicee and canonical working root. Root co-location or checkpoint discovery alone is not agent attribution. |
+| Codex patch hunk | A part of Codex `apply_patch` edit data that shows added, removed, and nearby unchanged lines. |
+| Claude edit data | The file path and before-and-after content reported by a Claude Code `Edit` or `Write` event. |
+| Post-edit span | A range of lines or characters in the file after an edit, derived from a Codex patch hunk or Claude edit data. It gives Hapsland one way to locate a change when identifying the changed type or function. |
+| Verified post-edit span | A post-edit span whose position Hapsland has checked against the captured snapshot. This check links the reported edit to observed file content; it does not prove who made the edit. |
 | File selection | The policy decision that a candidate path may be captured. By default, otherwise eligible files are included. User file settings can include or exclude paths; containment, protected paths, file kind, and ignore rules still apply. Selection does not encode language or semantic-analyzer applicability. |
 | Analysis applicability | Whether bounded captured content is understood by an available semantic analyzer and yields reviewable artifacts. No applicable analyzer is an ordinary quiet result, distinct from file exclusion. |
 | Snapshot | The exact eligible source content observed at one capture boundary, identified by its source identity. It is transient review evidence, not a backup, history, or durable replay record. |

@@ -54,7 +54,8 @@ Only a still-current matching unit may reuse a successful Jev result.
 Update attribution currently requires an exact verified post-edit span. Codex
 `apply_patch` hunks and Claude `Edit`/`Write` before and after content can supply
 one. Source containing non-ASCII characters currently fails this coordinate
-check closed, so that update produces no review unit.
+check closed for both Add and Update, so the path produces no review unit.
+[#151](https://github.com/dearlordylord/hapsland/issues/151) tracks this limit.
 
 The previous compatibility assessment for the one-file input remains in Git
 history. Its old prospective gates do not govern the 2026-09-29 decision.

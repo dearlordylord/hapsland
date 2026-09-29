@@ -57,9 +57,10 @@ study work are named at the end. Runtime claims require separate test evidence.
 
 `direct-root-selection/v2` takes an attributed, completed direct edit event,
 canonical working root, eligible repository-relative named paths, stable post-edit
-snapshots, and bounded patch structure. Codex CLI `apply_patch` supplies checked
-post-edit hunks. Claude Code `Edit` and `Write` derive exact changed spans from
-the verified before and after text captured by the adapter. Host delivery
+snapshots, and bounded patch structure. Codex CLI `apply_patch` supplies patch
+hunks; Hapsland verifies their location against the captured post-edit snapshot.
+Claude Code `Edit` and `Write` supply edit data; Hapsland verifies it against the
+captured snapshot and derives post-edit spans. Host delivery
 behavior still needs host-specific evidence; OpenCode mapping remains separate.
 Delete, move, metadata-only, unattributed writes,
 and paths outside the existing capture/selection boundary are inapplicable.
