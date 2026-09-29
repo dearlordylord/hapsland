@@ -14,12 +14,14 @@ PLAN = HERE / "live-plan-proposal.json"
 CORPUS = HERE / "manifest.json"
 PACK = HERE / "proposed-type-rule-pack-v2.json"
 RENDERER = REPO / "src/direct-event/v2-renderer.ts"
+PIPELINE = REPO / "src/direct-event/pipeline.ts"
 WIRE = REPO / "evidence/issue-138-wire/type-candidate.json"
 SEED = "hapsland-138-type-proposal-2026-09-29-seed-1"
 ARMS = ("candidate", "focusedDiff", "wholeFile", "v1Type")
 BASE_ARMS = ARMS[:3]
 REPETITIONS = (1, 2, 3)
 APPROVALS = ("corpusLabels", "rulePack", "rendererWire", "sourceEgress", "studyBudget", "hostProfile")
+V1_CONTRACT = "direct-event/same-file-named-types/v1"
 
 
 def require(condition, message):
@@ -58,6 +60,13 @@ def renderer_identity():
     return {"version": version.group(1), "digest": digest_bytes(payload.group(1).encode("utf-8"))}
 
 
+def local_gate_bytes():
+    source = PIPELINE.read_text(encoding="utf-8")
+    limit = re.search(r'MAX_FULL_JEV_REQUEST_BYTES\s*=\s*([0-9_]+)', source)
+    require(limit is not None, "local full-request gate declaration missing")
+    return int(limit.group(1).replace("_", ""))
+
+
 def source_case(case):
     require(case["branch"] == "type-shape/v2", f"wrong branch: {case['id']}")
     require(case["expectedCompleteness"] == "complete-candidate", f"incomplete case: {case['id']}")
@@ -93,9 +102,47 @@ def expected_slots(cases):
             for index, (case_id, arm, repetition) in enumerate(ordered, 1)]
 
 
+def unresolved_comparator(contract):
+    return {"status": "unresolved-pre-execution", "contractId": contract,
+            "providerInputFormat": None, "providerInputExample": None, "rendererDigest": None,
+            "providerEnvelopeFormat": None}
+
+
+def expected_arm_wire(anchors):
+    return {
+        "candidate": {"status": "proposed-unapproved", "contractId": "direct-event/type-shape/v2",
+                      "providerInputFormat": "candidate-semantic-evidence/1",
+                      "providerInputExample": anchors["wireExample"],
+                      "rendererDigest": anchors["renderer"]["digest"],
+                      "providerEnvelopeFormat": None},
+        "focusedDiff": unresolved_comparator(None),
+        "wholeFile": unresolved_comparator(None),
+        "v1Type": unresolved_comparator(V1_CONTRACT),
+    }
+
+
+def expected_backend_parity(pack):
+    question_criteria = {"question": pack["rules"][0]["question"],
+                         "criteria": pack["rules"][0]["criteria"]}
+    return {"status": "unresolved-pre-execution", "providerId": None, "modelId": None,
+            "backendSettingsDigest": None, "effectiveRuleBatchDigest": None,
+            "questionCriteriaDigest": digest_bytes(canonical(question_criteria).encode("utf-8")),
+            "batchParityProof": None}
+
+
+def expected_egress_accounting():
+    return {"status": "unresolved-pre-execution", "localGateBytes": local_gate_bytes(),
+            "localGateMeaning": "JSON.stringify({input,decisions}) only; excludes unverified provider framing",
+            "providerEnvelopeBytesDefinition": None, "approvedProviderWireLimitBytes": None,
+            "perArm": {arm: {"sourceSelectionAndExclusions": None,
+                             "sourceBytesDefinition": None,
+                             "completeRequestBytesDefinition": None} for arm in ARMS}}
+
+
 def structural(plan):
     require(set(plan) == {"schemaVersion", "phase", "status", "declaredOn", "branch", "scope", "recordPolicy",
-                          "seed", "orderAlgorithm", "anchors", "budget", "approvals", "thresholds",
+                          "seed", "orderAlgorithm", "anchors", "armWire", "backendParity",
+                          "egressAccounting", "budget", "approvals", "thresholds",
                           "metrics", "cases", "slots"}, "unexpected or missing plan fields")
     manifest = load(CORPUS)
     pack = load(PACK)
@@ -135,6 +182,12 @@ def structural(plan):
     require(plan["seed"] == SEED and plan["orderAlgorithm"] == "sha256(seed|caseId|arm|repetition)-ascending",
             "ordering changed")
     require(plan["anchors"] == expected_anchors, "immutable source/pack/wire anchor mismatch")
+    require(plan["armWire"] == expected_arm_wire(expected_anchors),
+            "arm wire contracts changed; comparator formats need successor approval")
+    require(plan["backendParity"] == expected_backend_parity(pack),
+            "shared backend/model/rule configuration declaration changed")
+    require(plan["egressAccounting"] == expected_egress_accounting(),
+            "per-arm egress accounting declaration changed")
     require(plan["cases"] == cases, "case label/hash/arm declaration mismatch")
     slots = expected_slots(cases)
     require(plan["slots"] == slots, "slot list/order differs from declared seed")
@@ -174,6 +227,20 @@ def eligible(plan):
     blockers = [name for name, value in plan["approvals"].items() if value != "owner-approved"]
     if plan["thresholds"]["status"] != "owner-approved-frozen":
         blockers.append("thresholds")
+    for arm, details in plan["armWire"].items():
+        if details["status"] != "owner-approved-frozen" or any(details[key] is None for key in
+                ("contractId", "providerInputFormat", "providerInputExample", "rendererDigest",
+                 "providerEnvelopeFormat")):
+            blockers.append(f"{arm}-wire")
+    parity = plan["backendParity"]
+    if parity["status"] != "owner-approved-frozen" or any(parity[key] is None for key in
+            ("providerId", "modelId", "backendSettingsDigest", "effectiveRuleBatchDigest", "batchParityProof")):
+        blockers.append("backend-model-rule-parity")
+    egress = plan["egressAccounting"]
+    if egress["status"] != "owner-approved-frozen" or any(egress[key] is None for key in
+            ("providerEnvelopeBytesDefinition", "approvedProviderWireLimitBytes")) or any(
+                value is None for arm in egress["perArm"].values() for value in arm.values()):
+        blockers.append("per-arm-egress-accounting")
     require(not blockers, "not eligible: " + ", ".join(blockers))
     # This script deliberately contains no Jev client, network path, or execution mode.
 

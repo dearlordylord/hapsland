@@ -1311,5 +1311,80 @@
       "repetition": 1
     }
   ],
-  "recordPolicy": "This is a pre-execution declaration. Owner decisions, amendments, and outcomes belong in separately dated successor artifacts; do not rewrite this declaration."
+  "recordPolicy": "This is a pre-execution declaration. Owner decisions, amendments, and outcomes belong in separately dated successor artifacts; do not rewrite this declaration.",
+  "armWire": {
+    "candidate": {
+      "status": "proposed-unapproved",
+      "contractId": "direct-event/type-shape/v2",
+      "providerInputFormat": "candidate-semantic-evidence/1",
+      "providerInputExample": {
+        "path": "evidence/issue-138-wire/type-candidate.json",
+        "sha256": "997078517d4680b3cd1525f9be399e2b671398a45c342e68655d3e6d69648624"
+      },
+      "rendererDigest": "5755d7abe997a57c952111ef2e0ac2e85c3a0e7f84fb39b11bd7a576ae5c01de",
+      "providerEnvelopeFormat": null
+    },
+    "focusedDiff": {
+      "status": "unresolved-pre-execution",
+      "contractId": null,
+      "providerInputFormat": null,
+      "providerInputExample": null,
+      "rendererDigest": null,
+      "providerEnvelopeFormat": null
+    },
+    "wholeFile": {
+      "status": "unresolved-pre-execution",
+      "contractId": null,
+      "providerInputFormat": null,
+      "providerInputExample": null,
+      "rendererDigest": null,
+      "providerEnvelopeFormat": null
+    },
+    "v1Type": {
+      "status": "unresolved-pre-execution",
+      "contractId": "direct-event/same-file-named-types/v1",
+      "providerInputFormat": null,
+      "providerInputExample": null,
+      "rendererDigest": null,
+      "providerEnvelopeFormat": null
+    }
+  },
+  "backendParity": {
+    "status": "unresolved-pre-execution",
+    "providerId": null,
+    "modelId": null,
+    "backendSettingsDigest": null,
+    "effectiveRuleBatchDigest": null,
+    "questionCriteriaDigest": "86013348b43fa5ead69acbf08a7c9e2f9190b247ae9e372af7b0755f3ba49d89",
+    "batchParityProof": null
+  },
+  "egressAccounting": {
+    "status": "unresolved-pre-execution",
+    "localGateBytes": 131072,
+    "localGateMeaning": "JSON.stringify({input,decisions}) only; excludes unverified provider framing",
+    "providerEnvelopeBytesDefinition": null,
+    "approvedProviderWireLimitBytes": null,
+    "perArm": {
+      "candidate": {
+        "sourceSelectionAndExclusions": null,
+        "sourceBytesDefinition": null,
+        "completeRequestBytesDefinition": null
+      },
+      "focusedDiff": {
+        "sourceSelectionAndExclusions": null,
+        "sourceBytesDefinition": null,
+        "completeRequestBytesDefinition": null
+      },
+      "wholeFile": {
+        "sourceSelectionAndExclusions": null,
+        "sourceBytesDefinition": null,
+        "completeRequestBytesDefinition": null
+      },
+      "v1Type": {
+        "sourceSelectionAndExclusions": null,
+        "sourceBytesDefinition": null,
+        "completeRequestBytesDefinition": null
+      }
+    }
+  }
 }
