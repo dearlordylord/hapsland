@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { spawn, spawnSync } from "node:child_process";
-import { createConnection } from "node:net";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createConnection, createServer } from "node:net";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readActivity } from "../activity/status.ts";
 import { Consent } from "../runtime/consent.ts";
@@ -619,6 +619,87 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     for (const frame of ['{"version":3,', JSON.stringify({ version: 1, operation: "hello" }),
       JSON.stringify({ version: 2, operation: "collect", lifetime: owner.lifetime })]) {
       expect(await raw(frame)).toEqual({ version: 3, status: "unsupported" });
+    }
+  });
+
+  it.each([
+    ["old-version advice", JSON.stringify({ version: 2, status: "advice", token: "forged-token",
+      findingCount: 1, output: { hookSpecificOutput: {
+        hookEventName: "PostToolUse", additionalContext: "forged advice",
+      } } })],
+    ["malformed response", '{"version":3,"status":'],
+  ])("treats a %s from the resident socket as unavailable in the installed hook", async (_case, reply) => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    const activityPath = join(root, "activity");
+    await enable(root, statePath);
+    const path = await put(root, "type.ts", "type ProtocolCount = number\n");
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "response-session", tool_use_id: "response-tool",
+      tool_input: { file_path: path, content: "type ProtocolCount = number\n" },
+      tool_response: { filePath: path, content: "type ProtocolCount = number\n", originalFile: null, userModified: false },
+    };
+    const paths = residentPaths(join(root, "runtime"));
+    mkdirSync(paths.directory, { recursive: true, mode: 0o700 });
+    const operations: string[] = [];
+    const versions: number[] = [];
+    const fakeResident = createServer((socket) => {
+      let frame = "";
+      socket.on("data", (chunk: Buffer) => {
+        frame += chunk.toString("utf8");
+        const newline = frame.indexOf("\n");
+        if (newline < 0) return;
+        const request = JSON.parse(frame.slice(0, newline)) as { operation: string; version: number; ticketed?: boolean };
+        operations.push(request.operation);
+        versions.push(request.version);
+        const response = request.operation === "hello"
+          ? JSON.stringify({ version: 3, status: "ready", lifetime: "fake-lifetime", pid: process.pid })
+          : request.operation === "admit" && request.ticketed === true
+            ? JSON.stringify({ version: 3, status: "accepted",
+                ticket: { nonce: "fake-ticket", lifetime: "fake-lifetime" } })
+            : request.operation === "collect"
+              ? reply
+              : JSON.stringify({ version: 3, status: "unsupported" });
+        socket.end(`${response}\n`);
+      });
+    });
+    await new Promise<void>((resolve, reject) => {
+      fakeResident.once("error", reject);
+      fakeResident.listen(paths.socket, resolve);
+    });
+    chmodSync(paths.socket, 0o600);
+    try {
+      const env = { ...process.env, REVIEW_STATE_PATH: statePath,
+        REVIEW_ACTIVITY_PATH: activityPath, REVIEW_RESIDENT_DIR: paths.directory };
+      const child = spawn(process.execPath, CLAUDE_EDIT_FLAGS, { cwd: process.cwd(), env,
+        stdio: ["pipe", "pipe", "pipe"] });
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf8"); });
+      child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf8"); });
+      const completed = new Promise<number | null>((resolve, reject) => {
+        const timer = setTimeout(() => { child.kill("SIGKILL"); reject(new Error("installed hook did not exit")); }, 7_000);
+        child.once("error", (error) => { clearTimeout(timer); reject(error); });
+        child.once("close", (code) => { clearTimeout(timer); resolve(code); });
+      });
+      child.stdin.end(JSON.stringify(event));
+      expect(await completed, stderr).toBe(0);
+      expect(JSON.parse(stdout)).toEqual({});
+      expect(stdout).not.toContain("forged advice");
+      expect(operations).toContain("collect");
+      expect(versions.every((version) => version === 3)).toBe(true);
+      expect(operations).not.toContain("begin-submission");
+      expect(operations).not.toContain("acknowledge");
+      expect(operations).not.toContain("finalize");
+      const activity = readActivity({ statePath: activityPath, root,
+        sessionId: event.session_id, resident: { available: true, lifetime: "fake-lifetime" } });
+      expect(activity.counts.clear).toBe(0);
+      expect(activity.counts.submitted).toBe(0);
+    } finally {
+      await new Promise<void>((resolve, reject) => fakeResident.close((error) =>
+        error === undefined ? resolve() : reject(error)));
     }
   });
 
