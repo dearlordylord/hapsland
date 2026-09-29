@@ -74,6 +74,106 @@ const dispatchFor = (
 });
 
 describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
+  it("exits losing launch contenders while one owner remains", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-contenders-"));
+    directories.push(temporary);
+    const paths = residentPaths(join(temporary, "runtime"));
+    const contenders = Array.from({ length: 16 }, () => spawn(process.execPath,
+      ["src/resident/main.ts", paths.directory], {
+        cwd: process.cwd(), stdio: ["ignore", "ignore", "pipe"],
+      }));
+    const owner = await waitFor(async () => {
+      if (!existsSync(paths.owner)) return undefined;
+      return JSON.parse(await readFile(paths.owner, "utf8")) as { pid: number };
+    }, 8_000);
+    processes.push(owner.pid);
+    await waitFor(async () => contenders.every((child) => child.pid === owner.pid || child.exitCode !== null)
+      ? true : undefined, 8_000);
+    expect(contenders.filter((child) => child.pid === owner.pid)).toHaveLength(1);
+    expect(contenders.filter((child) => child.pid !== owner.pid).every((child) => child.exitCode === 0)).toBe(true);
+    expect(() => process.kill(owner.pid, 0)).not.toThrow();
+  });
+
+  it("retires an empty installed resident and starts a distinct lifetime on the next hook", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-idle-"));
+    directories.push(temporary);
+    const paths = residentPaths(join(temporary, "runtime"));
+    const first = await ensureResident(paths, 5_000);
+    processes.push(first.pid);
+    expect((await residentRequest(paths, { version: 1, operation: "hello" })).status).toBe("ready");
+    await waitFor(async () => {
+      try { process.kill(first.pid, 0); return undefined; }
+      catch { return true; }
+    }, 8_000);
+    expect(existsSync(paths.owner)).toBe(false);
+    const second = await ensureResident(paths, 5_000);
+    processes.push(second.pid);
+    expect(second.pid).not.toBe(first.pid);
+    expect(second.lifetime).not.toBe(first.lifetime);
+    expect((await residentRequest(paths, { version: 1, operation: "hello" })).status).toBe("ready");
+  });
+
+  it("keeps a live connected client until it disconnects", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-connected-"));
+    directories.push(temporary);
+    const paths = residentPaths(join(temporary, "runtime"));
+    const owner = await ensureResident(paths, 5_000);
+    processes.push(owner.pid);
+    const client = (await import("node:net")).connect(paths.socket);
+    const heartbeat = setInterval(() => client.write(" "), 500);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        client.once("connect", resolve);
+        client.once("error", reject);
+      });
+      await new Promise<void>((resolve) => setTimeout(resolve, 5_500));
+      expect(() => process.kill(owner.pid, 0)).not.toThrow();
+    } finally {
+      clearInterval(heartbeat);
+      client.destroy();
+    }
+  });
+
+  it("keeps accepted review work and pending advice beyond the idle grace", async () => {
+    const root = await makeGitFixture();
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-work-idle-"));
+    directories.push(root, temporary);
+    await put(root, "type.ts", "type OrderCount = number\n");
+    const statePath = join(temporary, "consent");
+    const gate = join(temporary, "backend.gate");
+    const paths = residentPaths(join(temporary, "runtime"));
+    await enable(root, statePath);
+    const launched = spawn(process.execPath, ["--input-type=module", "-e",
+      "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));",
+    ], {
+      cwd: process.cwd(),
+      env: { ...process.env, REVIEW_RESIDENT_DIR: paths.directory,
+        REVIEW_RESIDENT_BACKEND_GATE_PATH: gate, REVIEW_RESIDENT_CONTROLLED: "1" },
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    const owner = JSON.parse(await childResult(launched)) as { pid: number; lifetime: string };
+    processes.push(owner.pid);
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    expect(observation).toBeDefined();
+    if (observation === undefined) return;
+    const accepted = await residentRequest(paths, { version: 1, operation: "admit",
+      lifetime: owner.lifetime, observation, controlledWriter: true, dispatch: dispatchFor(statePath) });
+    expect(accepted.status).toBe("accepted");
+    await waitFor(async () => {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      return stats.status === "stats" && stats.running > 0 ? true : undefined;
+    });
+    await new Promise<void>((resolve) => setTimeout(resolve, 5_500));
+    expect(() => process.kill(owner.pid, 0)).not.toThrow();
+    await writeFile(gate, "release\n");
+    await waitFor(async () => {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      return stats.status === "stats" && stats.pendingAdvice > 0 ? true : undefined;
+    });
+    await new Promise<void>((resolve) => setTimeout(resolve, 5_500));
+    expect(() => process.kill(owner.pid, 0)).not.toThrow();
+  });
+
   it("ignores and removes an orphaned pre-portability startup marker", async () => {
     const temporary = await mkdtemp(join(tmpdir(), "r-"));
     directories.push(temporary);

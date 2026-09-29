@@ -541,6 +541,8 @@ export class ResidentServer {
   #connections = 0;
   #lifecycle: "active" | "retiring" | "closed" = "active";
   #retirementScheduled = false;
+  #idleTimer: ReturnType<typeof setTimeout> | undefined;
+  readonly #lifetimeController = new AbortController();
   #rejectedCapacity = 0;
   #peakLedgerBytes = 0;
   #maxMaterializedPreparedUnits = 0;
@@ -1887,7 +1889,8 @@ export class ResidentServer {
   }
 
   #jobActive(job: Job): boolean {
-    return !job.work?.controller.signal.aborted && this.#roundActive(job.round);
+    return this.#lifecycle === "active" && !this.#lifetimeController.signal.aborted &&
+      !job.work?.controller.signal.aborted && this.#roundActive(job.round);
   }
 
   /** Cut off the pre-decision work cohort without retiring completed advice. */
@@ -2017,6 +2020,10 @@ export class ResidentServer {
         return;
       }
       await this.#awaitBackendGate();
+      if (this.#lifecycle !== "active") {
+        this.#ledger.release(job.reservation);
+        return;
+      }
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
       const settings = await Effect.runPromise(Effect.gen(function* () {
@@ -2035,7 +2042,7 @@ export class ResidentServer {
         ) return undefined;
         return settings;
       }),
-        { signal: job.work?.controller.signal });
+        { signal: job.work?.controller.signal ?? this.#lifetimeController.signal });
       this.#ledger.release(job.reservation);
       if (settings === undefined || this.#lifecycle !== "active" || !this.#jobActive(job)) {
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
@@ -2078,7 +2085,7 @@ export class ResidentServer {
               }),
             });
           }),
-        { signal: job.work?.controller.signal });
+        { signal: job.work?.controller.signal ?? this.#lifetimeController.signal });
         } catch (cause) {
           this.#ledger.release(workspace);
           throw cause;
@@ -2321,7 +2328,9 @@ export class ResidentServer {
     } catch {
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident preparation unavailable");
       this.#ledger.release(job.reservation);
-      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
+      if (this.#lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
+        root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime,
+        stage: "unavailable" });
     } finally {
       for (const key of unassignedClaims) this.#releaseReuseClaim(key);
       if (!job.completed) this.#ledger.observation(job.partition, job.canonicalObservationId, "interruptObservation");
@@ -2343,7 +2352,7 @@ export class ResidentServer {
         ...(request === undefined ? {} : { request }),
         ...(outcome === undefined ? {} : { outcome }) });
     };
-    const signal = job.work?.controller.signal;
+    const signal = job.work?.controller.signal ?? this.#lifetimeController.signal;
     const requestReady = (facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
       readonly credentialReady: boolean; readonly selected: boolean; readonly currentWork: boolean;
       readonly physicalAvailable: boolean }) => {
@@ -2554,7 +2563,7 @@ export class ResidentServer {
           ? evaluation
           : evaluation.pipe(Effect.provide(credentialProvider)));
       }),
-        { signal: job.work?.controller.signal });
+        { signal: job.work?.controller.signal ?? this.#lifetimeController.signal });
       if (result?.status === "notAuthorized") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit,
           result.reason === "credential" ? "credential" : "lost");
@@ -2693,7 +2702,9 @@ export class ResidentServer {
       if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
       this.#settleJoined(job.evaluationKey, "unavailable", "backend");
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident evaluation unavailable");
-      recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
+      if (this.#lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
+        root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime,
+        stage: "unavailable", unitIdentity: job.evaluationKey });
     } finally {
       signal?.removeEventListener("abort", reportInterruption);
     }
@@ -2845,6 +2856,7 @@ export class ResidentServer {
     const backendGatePath = process.env.REVIEW_RESIDENT_BACKEND_GATE_PATH;
     if (backendGatePath === undefined) return;
     while (true) {
+      if (this.#lifetimeController.signal.aborted) return;
       try {
         await access(backendGatePath);
         return;
@@ -2895,7 +2907,7 @@ export class ResidentServer {
             server.#isCurrentWork(advice.revision, prepared)),
         });
       }),
-        { signal: advice.round?.controller.signal });
+        { signal: advice.round?.controller.signal ?? this.#lifetimeController.signal });
       return capacityUnavailable ? { status: "unavailable", findings: [] } : current;
     } catch {
       return { status: "unavailable", findings: [] };
@@ -3353,6 +3365,7 @@ export class ResidentServer {
       return;
     }
     this.#connections += 1;
+    this.#scheduleIdleCheck();
     let bytes = 0;
     let encoded = "";
     let handled = false;
@@ -3360,6 +3373,7 @@ export class ResidentServer {
     socket.setTimeout(1_500, () => socket.destroy());
     socket.once("close", () => {
       this.#connections -= 1;
+      this.#scheduleIdleCheck();
       const closedPath = process.env.REVIEW_RESIDENT_COLLECT_DISCONNECT_PATH;
       if (
         closedPath !== undefined && request?.operation === "collect" &&
@@ -3415,6 +3429,21 @@ export class ResidentServer {
     setTimeout(() => void this.close(), 10);
   }
 
+  // Connection activity starts a fresh grace period. Retained review state is
+  // checked by cleanup(), so an agent's exit cannot retire another's work.
+  #scheduleIdleCheck(): void {
+    if (this.#idleTimer !== undefined) clearTimeout(this.#idleTimer);
+    if (this.#lifecycle !== "active") return;
+    this.#idleTimer = setTimeout(() => {
+      this.#idleTimer = undefined;
+      if (this.#connections === 0 && this.cleanup() === "cleaned") {
+        this.#scheduleRetirementClose();
+      } else {
+        this.#scheduleIdleCheck();
+      }
+    }, 5_000);
+  }
+
   async listen(): Promise<void> {
     if (process.platform !== "linux" && process.platform !== "darwin") {
       throw new Error(`resident IPC is unsupported on ${process.platform}; use Linux or macOS`);
@@ -3437,9 +3466,13 @@ export class ResidentServer {
       `${JSON.stringify({ pid: process.pid, lifetime: this.lifetime })}\n`,
       { encoding: "utf8", mode: 0o600 },
     );
+    this.#scheduleIdleCheck();
   }
 
   async close(): Promise<void> {
+    if (this.#idleTimer !== undefined) clearTimeout(this.#idleTimer);
+    this.#idleTimer = undefined;
+    this.#lifetimeController.abort();
     for (const timer of this.#stopTimers.values()) clearTimeout(timer);
     this.#stopTimers.clear();
     for (const round of this.#rounds.values()) { round.controller.abort(); round.work.controller.abort(); }
