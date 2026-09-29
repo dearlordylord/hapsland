@@ -1535,3 +1535,20 @@ law canonical_edit_open_failure_is_atomic:
   for reason: Canonical.Reason
   {Canonical.consume_opened(state, round, Canonical.Rejected{provisional, reason}) ==
     Canonical.Rejected{state, reason} : Canonical.Step}
+
+def round_with_pending_permit() -> Admission.AdmissionState:
+  Admission.AdmissionState{7n, 3n, 1n, True{}, 0n, 3n,
+    Admission.Permit{2n, 43n, 1n, 11n, 30n} <> Nil{},
+    Admission.Used{1n, 42n} <> Nil{}}
+
+def closed_round_with_retired_permit() -> Admission.AdmissionState:
+  Admission.AdmissionState{7n, 3n, 1n, False{}, 20n, 3n, Nil{},
+    Admission.Used{2n, 43n} <> Admission.Used{1n, 42n} <> Nil{}}
+
+law closure_retires_pending_permits:
+  {Admission.close_round(round_with_pending_permit(), 20n) ==
+    Admission.Accepted{closed_round_with_retired_permit(), None{}, Some{1n}} : Admission.AdmissionResult}
+
+law closure_prevents_pending_tool_reissue:
+  {Admission.issue(closed_round_with_retired_permit(), 43n, 21n, 30n, 22n) ==
+    Admission.Rejected{closed_round_with_retired_permit(), Admission.DuplicateTool{}} : Admission.AdmissionResult}

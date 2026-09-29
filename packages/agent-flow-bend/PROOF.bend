@@ -933,3 +933,9 @@ def Laws.retired_tool_cannot_get_second_permit():
 
 def Laws.retired_permit_does_not_prevent_fresh_tool():
   {==}
+
+def Laws.closure_retires_pending_permits():
+  {==}
+
+def Laws.closure_prevents_pending_tool_reissue():
+  {==}

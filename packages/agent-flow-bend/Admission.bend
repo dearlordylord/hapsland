@@ -268,10 +268,19 @@ def close_round.active(state: AdmissionState, partition: Nat, lifetime: Nat, rou
     case True{}:
       close_round.time(state, partition, lifetime, round, next_token, used, at, Nat.is_ge(at, closed_at))
 
+# Closure retires every still-pending tool identity, just like explicit release.
+def record_all_used(permits: List<&2, Permit>, used: List<&2, Used>) -> List<&2, Used>:
+  match permits:
+    case Nil{}:
+      used
+    case Permit{token, tool, _, _, _} <> rest:
+      record_all_used(rest, Used{token, tool} <> used)
+
 def close_round(+state: AdmissionState, at: Nat) -> AdmissionResult:
   match state:
-    case AdmissionState{partition, lifetime, round, active, closed_at, next_token, _, used}:
-      close_round.active(state, partition, lifetime, round, active, closed_at, next_token, used, at)
+    case AdmissionState{partition, lifetime, round, active, closed_at, next_token, permits, used}:
+      close_round.active(state, partition, lifetime, round, active, closed_at, next_token,
+        record_all_used(permits, used), at)
 
 def restart.fresh(state: AdmissionState, partition: Nat, lifetime: Nat, closed_at: Nat, new_lifetime: Nat, at: Nat, valid: Bool) -> AdmissionResult:
   match valid:

@@ -57,10 +57,11 @@
         {"kind": "consume", "partition": 1, "token": 1, "tool": 31, "now": 1200, "expect": "permitConsumed:1,roundStarted"},
         {"kind": "consume", "partition": 1, "token": 2, "tool": 32, "now": 1201, "expect": "permitConsumed:1"},
         {"kind": "close", "partition": 1, "round": 1, "at": 1300, "expect": "permitRoundClosed:1"},
-        {"kind": "consume", "partition": 1, "token": 3, "tool": 33, "now": 1400, "expect": "rejected:NoPermit"},
-        {"kind": "consume", "partition": 1, "token": 1, "tool": 31, "now": 1401, "expect": "rejected:UsedPermit"}
+        {"kind": "consume", "partition": 1, "token": 3, "tool": 33, "now": 1400, "expect": "rejected:UsedPermit"},
+        {"kind": "consume", "partition": 1, "token": 1, "tool": 31, "now": 1401, "expect": "rejected:UsedPermit"},
+        {"kind": "issue", "partition": 1, "tool": 33, "started": 1500, "now": 1501, "deadline": 3000, "expect": "rejected:DuplicateTool"}
       ],
-      "rounds": [{"partition": 1, "round": 1, "active": false, "permits": 0, "retiredTokens": 2}],
+      "rounds": [{"partition": 1, "round": 1, "active": false, "permits": 0, "retiredTokens": 3}],
       "consumedEdits": 2
     },
     {

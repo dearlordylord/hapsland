@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:2320484bd14a68b4d4c9933857078bc02c6845c1dd079d5bb49708a42cb97302
+// hapsland-bend-source-sha256:f129583a0b97f9bad3db2e241e8ba0e1ec1faba0fcc2d434a348b3f14952b7e3
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -2201,9 +2201,9 @@ function $Admission$close_round$(_state_0, _at_0) {
   const _active_0 = _state_0["active"];
   const _closed_at_0 = _state_0["closed_at"];
   const _next_token_0 = _state_0["next_token"];
-  const __0 = _state_0["permits"];
+  const _permits_0 = _state_0["permits"];
   const _used_0 = _state_0["used"];
-  return $Admission$close_round$active$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": __0, "used": _used_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _used_0, _at_0);
+  return $Admission$close_round$active$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, ($Admission$record_all_used$(_permits_0, _used_0)), _at_0);
 }
 
 function $Admission$restart$(_state_0, _new_lifetime_0, _at_0) {
@@ -2509,6 +2509,26 @@ function $Admission$close_round$active$(_state_0, _partition_0, _lifetime_0, _ro
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.RoundAlreadyClosed"}};
   } else {
     return $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _used_0, _at_0, ($Nat$is_ge$(_at_0, _closed_at_0)));
+  }
+}
+
+function $Admission$record_all_used$($0, $1) {
+  for (;;) {
+    {
+      const _permits_0 = $0;
+      const _used_0 = $1;
+      if (_permits_0.$ === "Nil") {
+        return _used_0;
+      } else {
+        const _t_0 = _permits_0["head"];
+        const _token_0 = _t_0["token"];
+        const _tool_0 = _t_0["tool"];
+        const _rest_0 = _permits_0["tail"];
+        $0 = _rest_0;
+        $1 = {$: "Con", "head": {$: "Admission.Used", "token": _token_0, "tool": _tool_0}, "tail": _used_0};
+        continue;
+      }
+    }
   }
 }
 
