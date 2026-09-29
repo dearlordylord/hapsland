@@ -1005,8 +1005,8 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
         if (!["reserved", "authorized", "submitted", "uncertain"].includes(phase)) throw new TypeError("invalid submission phase");
         return { advice: nat(item.advice, true), group: nat(item.group, true), round: nat(item.round, true),
           token: nat(item.token, true), surface: surface(item.surface), phase: phase as "reserved" | "authorized" | "submitted" | "uncertain",
-          fingerprints: readList(item.fingerprints, (id) => nat(id, true), 5),
-          units: readList(item.units, (id) => nat(id, true), 5) };
+          fingerprints: readList(item.fingerprints, (id) => nat(id, true)),
+          units: readList(item.units, (id) => nat(id, true)) };
       }),
       leases: readList(rawSubmissions.leases, (value) => {
         const item = fields(value, "SubmissionState.LeaseRecord", ["advice", "fingerprint", "current", "previous"]);

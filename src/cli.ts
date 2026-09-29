@@ -668,10 +668,6 @@ const runDirectBoundedHook = async (
   if (isClaudeHook) {
     const accepted = await bounded(() => admitTicketedObservation(observation, dispatch, undefined, isComposedEditHook));
     if (accepted?.status !== "accepted") return {};
-    // The composed background hook and Stop own collection. The synchronous
-    // edit hook only admits work so a later repair edit cannot consume its
-    // entire host budget waiting for a clear review.
-    if (isComposedEditHook) return {};
     while (remaining() > 150) {
       const outcome = await bounded(() => collectOutcome(accepted.admission));
       if (outcome === undefined) return {};

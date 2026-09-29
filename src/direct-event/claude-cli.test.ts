@@ -467,6 +467,38 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(readFileSync(path, "utf8")).toBe(source);
   });
 
+  it("submits six small findings in one encoded Claude response", async () => {
+    const root = await makeGitFixture();
+    roots.push(root);
+    const statePath = join(root, "consent");
+    await enable(root, statePath);
+    const source = Array.from({ length: 6 }, (_, index) => `type Count${index} = number`).join("\n") + "\n";
+    const path = await put(root, "type.ts", source);
+    const event = {
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
+      session_id: "six-findings-session", tool_use_id: "six-findings-tool",
+      tool_input: { file_path: path, content: source },
+      tool_response: { filePath: path, content: source, originalFile: null, userModified: false },
+    };
+    const env = { ...process.env, REVIEW_STATE_PATH: statePath,
+      REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
+        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+      ])) }),
+    };
+    expect(preClaudeEdit(event, env).status).toBe(0);
+    const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+      cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+    });
+    expect(result.status).toBe(0);
+    const output = JSON.parse(result.stdout) as { hookSpecificOutput?: { additionalContext: string } };
+    const context = output.hookSpecificOutput?.additionalContext ?? "";
+    expect([...context.matchAll(/\[r6_bare_domain_value/g)]).toHaveLength(6);
+    for (let index = 0; index < 6; index++) expect(context).toContain(`Count${index}`);
+    expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
+    expect(readFileSync(path, "utf8")).toBe(source);
+  });
+
   it("delivers a finding while another unit fails and records both facts", async () => {
     const root = await makeGitFixture();
     roots.push(root);

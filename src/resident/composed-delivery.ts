@@ -670,7 +670,7 @@ export class ComposedDelivery {
       ? new Map(existing.batches) : new Map<string, SubmissionBatch>();
     if (batches.has(token)) return undefined;
     const fingerprints = new Set(findings.map(fingerprint));
-    if (fingerprints.size === 0 || fingerprints.size > 5) return undefined;
+    if (fingerprints.size === 0) return undefined;
     const id = this.#submissionTokenId(token);
     const offered = this.canonical.transition({ kind: "submissionBegin",
       advice: this.#submissionAdviceId(adviceId), group: this.canonical.partitionId(partition),
