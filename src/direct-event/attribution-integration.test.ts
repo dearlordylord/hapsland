@@ -39,7 +39,9 @@ describe("v2 Codex root attribution", () => {
   it.effect("selects the declaration enclosing a verified post-edit hunk", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "interface A { value: string }\ninterface B { value: number }\n"));
-    const event = updateEvent(root, "a.ts", ["interface B { value: number }"]);
+    const event = updateEvent(root, "a.ts", ["interface B { value: number }"], {
+      tool_response: { success: true },
+    });
     const observation = yield* adaptCodexDirectEvent(event);
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
@@ -55,8 +57,24 @@ describe("v2 Codex root attribution", () => {
   it.effect("does not fall back to text matching when post-image position is ambiguous", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "interface A { value: string }\n// marker\ninterface B { value: number }\n// marker\n"));
-    const event = updateEvent(root, "a.ts", ["// marker"]);
+    const event = updateEvent(root, "a.ts", ["// marker"], {
+      tool_response: { success: true },
+    });
     const observation = yield* adaptCodexDirectEvent(event);
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      inputContract: V2_TYPE_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+    });
+    expect(prepared.observation.status).toBe("incomplete");
+    if (prepared.observation.status === "incomplete") expect(prepared.observation.units).toEqual([]);
+  }));
+
+  it.effect("requires a confirmed successful Codex Update before v2 attribution", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "interface B { value: number }\n"));
+    const observation = yield* adaptCodexDirectEvent(updateEvent(root, "a.ts", ["interface B { value: number }"]));
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
