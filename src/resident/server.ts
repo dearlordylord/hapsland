@@ -2949,6 +2949,8 @@ export class ResidentServer {
           : { requestRoute: "ticketed", status: "obsolete-lifetime" }
         : { status: "obsolete-lifetime" };
     }
+    if (("advicee" in request && request.advicee.host === "opencode") ||
+        (request.operation === "admit" && request.observation.advicee.host === "opencode")) return { status: "unsupported" };
     if (request.operation === "prompt-marker") {
       const group = adviceePartition(request.root, request.advicee);
       return (request.onlyIfMissing === true
@@ -3013,17 +3015,19 @@ export class ResidentServer {
       return this.admit(request.observation, request.dispatch, request.requestRoute === "ticketed", true, true);
     }
     if (request.operation === "collect") {
+      if (request.composed !== true || (request.mode === "turn-end" &&
+          (request.requestRoute === "ticketed" || request.finish === undefined))) return { status: "unsupported" };
       if (request.requestRoute === "ticketed") {
         const ticket = this.#ticketFor(request.ticket, request.root, request.advicee,
-          request.composed === true);
+          true);
         if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
         const gate = this.#ticketCollectGate(ticket, request.dispatch, this.#now());
         if (gate !== undefined) return gate;
         const collected = await this.collect(request.root, request.advicee, request.dispatch,
-          request.mode ?? "ordinary", ticket, request.composed === true);
+          request.mode ?? "ordinary", ticket, true);
         return collected.status === "advice" ? { ...collected, requestRoute: "ticketed" }
           : this.#ticketCollectionStatus(ticket, request.root, request.advicee,
-              request.composed === true, this.#now());
+              true, this.#now());
       }
       if (request.finish !== undefined) {
         const group = adviceePartition(request.root, request.advicee);
@@ -3051,9 +3055,7 @@ export class ResidentServer {
           return { status: "empty" };
         }
       }
-      const collected = request.composed === true
-        ? await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", undefined, true)
-        : await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary");
+      const collected = await this.collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", undefined, true);
       if (request.finish !== undefined) {
         const group = adviceePartition(request.root, request.advicee);
         const round = this.#rounds.get(group);
@@ -3085,9 +3087,11 @@ export class ResidentServer {
         return collected;
       }
       return request.reportWorkState === true && collected.status === "empty"
-        ? this.#collectionWorkState(request.root, request.advicee, request.composed === true)
+        ? this.#collectionWorkState(request.root, request.advicee, true)
         : collected;
     }
+    if ((request.operation === "acknowledge" || request.operation === "finalize") &&
+        !this.#composedDelivery.hasToken(request.token)) return { status: "empty" };
     if (request.operation === "acknowledge") return this.acknowledge(request.token);
     if (request.operation === "finalize") return this.finalize(request.token);
     if (request.operation === "stats") return this.stats();

@@ -53,7 +53,7 @@ export type ResidentRequest =
       readonly requestRoute: "ticketed"; readonly operation: "collect"; readonly lifetime: string;
       readonly ticket: ResidentCollectionTicket; readonly root: string;
       readonly advicee: DirectAdvicee; readonly dispatch: ResidentDispatchContext;
-      readonly mode?: CollectionMode; readonly composed?: true;
+      readonly mode?: CollectionMode; readonly composed: true;
     }
   | { readonly requestRoute: "shared"; readonly operation: "hello" }
   | { readonly requestRoute: "shared"; readonly operation: "prompt-marker"; readonly lifetime: string;
@@ -92,7 +92,7 @@ export type ResidentRequest =
       readonly mode?: CollectionMode;
       readonly reportWorkState?: true;
       readonly finish?: { readonly token: string; readonly deadlineReached: boolean };
-      readonly composed?: true;
+      readonly composed: true;
     }
   | {
       readonly requestRoute: "shared";
@@ -169,10 +169,9 @@ const string = (value: unknown): value is string =>
 
 const advicee = (value: unknown): value is DirectAdvicee => {
   const item = record(value);
-  if (item?.host === "claude-code" || item?.host === "opencode") return item.hostVersion ===
-    (item.host === "claude-code" ? "2.1.218" : "1.14.44") &&
+  if (item?.host === "claude-code") return item.hostVersion === "2.1.218" &&
     string(item.sessionId) && item.turnId === null && string(item.toolUseId) &&
-    (item.subagentId === null || (item.host === "claude-code" && string(item.subagentId)));
+    (item.subagentId === null || string(item.subagentId));
   return item?.host === "codex-cli" && isCodexHostVersion(item.hostVersion) &&
     string(item.sessionId) && string(item.turnId) && string(item.toolUseId) &&
     (item.subagentId === null || string(item.subagentId));
@@ -266,14 +265,14 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
         observation: value.observation, controlledWriter: true, dispatch: value.dispatch, composed: true };
     }
     const ticket = record(value.ticket);
-    if (value.operation === "collect" && string(ticket?.nonce) && string(ticket.lifetime) &&
+    if (value.operation === "collect" && value.composed === true && string(ticket?.nonce) && string(ticket.lifetime) &&
         string(value.root) && advicee(value.advicee) && value.advicee.host === "claude-code" &&
-        dispatch(value.dispatch) && (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end")) {
+        dispatch(value.dispatch) && (value.mode === undefined || value.mode === "ordinary")) {
       return { requestRoute: "ticketed", operation: "collect", lifetime: value.lifetime,
         ticket: { nonce: ticket.nonce, lifetime: ticket.lifetime }, root: value.root,
         advicee: value.advicee, dispatch: value.dispatch,
         ...(value.mode === undefined ? {} : { mode: value.mode }),
-        ...(value.composed === true ? { composed: true } : {}) };
+        composed: true };
     }
     return undefined;
   }
@@ -337,7 +336,7 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     (value.reportWorkState === undefined || value.reportWorkState === true) &&
     (value.finish === undefined || (value.composed === true && value.mode === "turn-end" &&
       string(finishToken) && typeof deadlineReached === "boolean")) &&
-    (value.composed === undefined || value.composed === true)
+    value.composed === true && (value.mode !== "turn-end" || value.finish !== undefined)
   ) {
     return {
       requestRoute: "shared",
@@ -349,7 +348,7 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
       ...(value.mode === undefined ? {} : { mode: value.mode }),
       ...(value.reportWorkState === true ? { reportWorkState: true } : {}),
       ...(string(finishToken) && typeof deadlineReached === "boolean" ? { finish: { token: finishToken, deadlineReached } } : {}),
-      ...(value.composed === true ? { composed: true } : {}),
+      composed: true,
     };
   }
   if ((value.operation === "acknowledge" || value.operation === "finalize") && string(value.token)) {

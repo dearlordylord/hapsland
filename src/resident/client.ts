@@ -311,7 +311,7 @@ export type TicketedAdmission = {
   readonly root: string;
   readonly advicee: DirectAdvicee;
   readonly dispatch: ResidentDispatchContext;
-  readonly composed: boolean;
+  readonly composed: true;
 };
 
 export type TicketedAdmissionResult =
@@ -346,7 +346,7 @@ export const admitTicketedObservation = async (
       root: observation.root,
       advicee: observation.advicee,
       dispatch,
-      composed,
+      composed: true,
     } };
   }
   if (response.status === "rejected-capacity" || response.status === "rejected-stale" || response.status === "obsolete-lifetime") {
@@ -374,7 +374,7 @@ export const collectOutcome = async (
     advicee: admission.advicee,
     dispatch: admission.dispatch,
     mode,
-    ...(admission.composed ? { composed: true } : {}),
+    composed: true,
   }).catch(() => undefined);
   if (response === undefined) return { status: "unavailable", reason: "lost" };
   if (!("requestRoute" in response) || response.requestRoute !== "ticketed") return { status: "unavailable", reason: "lost" };
@@ -411,6 +411,7 @@ export const collectReady = async (
     advicee,
     dispatch,
     mode,
+    composed: true,
   });
   return response.status === "advice" && !("requestRoute" in response)
     ? {
