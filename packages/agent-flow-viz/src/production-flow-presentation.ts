@@ -25,7 +25,7 @@ export const SQUARES: Record<Place, Square> = {
     detail: (s) => `issued, not observed started ${ids(s.dispatch.requests.filter((x) => !x.started).map((x) => x.request))}` },
   effect: { title: "Jev request attempt", owner: "NATIVE FACT", x: 866, y: 322,
     detail: (s) => `observed started requests ${ids(s.dispatch.requests.filter((x) => x.started).map((x) => x.request))}` },
-  jev: { title: "Awaiting Jev result", owner: "BEND + EXTERNAL FACT", x: 588, y: 322,
+  jev: { title: "Awaiting Jev result", owner: "BEND STATE", x: 588, y: 322,
     detail: (s) => `at Jev work ${ids(work(s, "atJev"))} · reserved request permits ${ids(s.dispatch.requests.map((x) => x.request))}` },
   outcomes: { title: "Review outcomes", owner: "BEND DECISION", x: 310, y: 322,
     detail: (s) => `pending finding operations ${ids(work(s, "pendingFinding"))} · ticket units ${s.tickets.flatMap((x) => x.units).map((x) => `#${x.id}:${x.stage}`).join(", ") || "none"}` },

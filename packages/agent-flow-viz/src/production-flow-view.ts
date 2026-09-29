@@ -5,7 +5,7 @@ import { projectFlowStep, type FlowStage as Place } from "@hapsland/agent-flow-p
 import { CONNECTIONS, PLACE_ORDER, SQUARES } from "./production-flow-presentation";
 
 type Route = { readonly from: Place; readonly to: Place; readonly label: string; readonly active: boolean;
-  readonly command: boolean; readonly mixed: boolean; readonly evidence: string };
+  readonly command: boolean; readonly external: boolean; readonly mixed: boolean; readonly evidence: string };
 const has = (commands: readonly CanonicalCommand[], ...kinds: CanonicalCommand["kind"][]) =>
   commands.some((command) => kinds.includes(command.kind));
 
@@ -113,7 +113,8 @@ export const productionFlowView = <Message>(
     const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
     const hasCommand = evidence.some((item) => item.source === "command");
     const hasFact = evidence.some((item) => item.source !== "command");
-    return { ...connection, active: evidence.length > 0, command: hasCommand && !hasFact, mixed: hasCommand && hasFact,
+    return { ...connection, active: evidence.length > 0, command: hasCommand && !hasFact,
+      external: evidence.some((item) => item.source === "external fact"), mixed: hasCommand && hasFact,
       evidence: evidence.map((item) => `${item.source}: ${item.description}`).join("; ") };
   });
   const routeMultiplicity = new Map<string, number>();
@@ -131,7 +132,7 @@ export const productionFlowView = <Message>(
     { label: "Cancel unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
   ];
   return h.div([h.Class("production-topology")], [
-    h.p([h.Class("flow-legend")], ["Blue: Bend state or decision · gray: native fact/effect · gold: external Jev fact. Orange arrows mark the accepted event or fact. Purple dashed arrows mark emitted commands; they do not prove a native effect or stored advice."]),
+    h.p([h.Class("flow-legend")], ["Blue squares: checked Bend state or decision · gray squares: native fact/effect. Gold arrows mark supplied external Jev facts; orange arrows mark other accepted facts or state movement. Purple dashed arrows mark emitted commands; they do not prove a native effect or stored advice."]),
     h.div([h.Class("topology-scroll")], [
       h.svg([h.ViewBox("0 0 1400 830"), h.Role("img"),
         h.AriaLabel("Connected production flow from agent observation through Jev review to advice and round decision")], [
@@ -139,8 +140,8 @@ export const productionFlowView = <Message>(
           const same = routeMultiplicity.get(`${route.from}:${route.to}`) ?? 1;
           const offset = (routeOffsets[index] - (same - 1) / 2) * 18;
           const { path, badge, tip, toward } = routeGeometry(route, offset);
-          const color = route.active ? route.command ? "#794aa0" : "#e66035" : "#91a4ba";
-          return h.g([h.Class(`topology-route ${route.active ? "active" : ""}`)], [
+          const color = route.active ? route.command ? "#794aa0" : route.external ? "#8a5a00" : "#e66035" : "#91a4ba";
+          return h.g([h.Class(`topology-route ${route.active ? "active" : ""} ${route.external ? "external" : ""}`)], [
             h.title([], [`${index + 1}. ${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.active ? route.evidence : `possible: ${route.label}`}`]),
             h.path([h.D(path), h.Fill("none"), h.Stroke(color),
               h.StrokeWidth(route.active ? "4" : "2"),
@@ -156,8 +157,7 @@ export const productionFlowView = <Message>(
         }),
         ...nodes.map((node) => {
           const point = PLACES[node.id];
-          const palette = node.owner.includes("EXTERNAL") ? { fill: "#fff0c8", stroke: "#ad7524" }
-            : node.owner.includes("NATIVE") ? { fill: "#edf1f6", stroke: "#7d8da2" }
+          const palette = node.owner.includes("NATIVE") ? { fill: "#edf1f6", stroke: "#7d8da2" }
             : { fill: "#e9f1ff", stroke: "#547dc0" };
           return h.g([h.Class(`topology-node ${flow.changedStages.includes(node.id) ? "active" : ""}`)], [
             h.title([], [`${node.title}: ${node.detail}`]),
@@ -174,13 +174,13 @@ export const productionFlowView = <Message>(
           ]);
         }),
         h.text([h.X("32"), h.Y("810"), h.FontSize("12"), h.Fill("#52647d")], [
-          "Numbers match the route key. Orange is an accepted fact; purple dashed is a command. Gray shows possible paths.",
+          "Numbers match the route key. Gold is an external Jev fact; orange is other accepted evidence; purple dashed is a command. Gray shows possible paths.",
         ]),
       ]),
     ]),
     h.details([h.Class("topology-route-key")], [
       h.summary([], ["Numbered route key"]),
-      h.ol([], routes.map((route) => h.li([h.Class(`${route.active ? "active" : ""} ${route.command ? "command" : ""}`)], [
+      h.ol([], routes.map((route) => h.li([h.Class(`${route.active ? "active" : ""} ${route.command ? "command" : ""} ${route.external ? "external" : ""}`)], [
         `${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.active ? route.evidence : `possible: ${route.label}`}`,
       ]))),
     ]),
