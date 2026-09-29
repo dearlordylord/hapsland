@@ -418,6 +418,7 @@ try {
       import { mkdtemp, writeFile, symlink, rm } from 'node:fs/promises';
       import { tmpdir } from 'node:os';
       import { join } from 'node:path';
+      import { spawnSync } from 'node:child_process';
       import * as Effect from 'effect/Effect';
       import { captureStable, MAX_SOURCE_BYTES } from './src/direct-event/capture.ts';
       const root = await mkdtemp(join(tmpdir(), 'hapsland-mac-cap-'));
@@ -432,7 +433,8 @@ try {
         const normal = await Effect.runPromise(captureStable(root, selected('default.ts')));
         const link = await Effect.runPromise(captureStable(root, selected('link.ts')));
         if (exact?.byteLength !== 80 || over !== undefined || normal?.byteLength !== MAX_SOURCE_BYTES || link !== undefined) {
-          throw new Error(JSON.stringify({ exact: exact?.byteLength, over: over?.byteLength, normal: normal?.byteLength, link: link?.byteLength }));
+          const direct = spawnSync(join(process.cwd(), 'native/prebuilt/darwin-arm64/capture-open'), [root, 'exact.ts', '-', '-', '-', '-', '-', '80']);
+          throw new Error(JSON.stringify({ exact: exact?.byteLength, over: over?.byteLength, normal: normal?.byteLength, link: link?.byteLength, directStatus: direct.status, directStdoutBytes: direct.stdout?.byteLength, directStderrBytes: direct.stderr?.byteLength }));
         }
         process.stdout.write('macOS default and lower capture bounds passed\\n');
       } finally { await rm(root, { recursive: true, force: true }); }
