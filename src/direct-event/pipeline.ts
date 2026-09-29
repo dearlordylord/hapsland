@@ -155,6 +155,7 @@ export const hasCrossFileEvidence = (prepared: PreparedUnit): boolean => {
 
 /** The accepted v1 egress profile is limited to 32 KiB and same-file evidence. */
 export const requiresCandidateEgressAuthorization = (prepared: PreparedUnit): boolean =>
+  prepared.input.candidateProjection === true ||
   Buffer.byteLength(prepared.input.declaration.source, "utf8") > 32 * 1024 ||
   hasCrossFileEvidence(prepared);
 
@@ -305,7 +306,9 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       ? inspectGraphFile(eligible.relativePath, captured.text)
       : undefined;
     const analysis = analyzeTypeFile(eligible.relativePath, captured.text);
-    const analyses: ReadonlyArray<UnitAnalysis> = graphFile === undefined
+    const legacyV1 = captured.byteLength <= 32 * 1024 && graphFile?.imports.size === 0 &&
+      currentInputContract(context) === DIRECT_EVENT_INPUT_CONTRACT;
+    const analyses: ReadonlyArray<UnitAnalysis> = legacyV1 || graphFile === undefined
       ? analysis.status === "analyzed" ? analysis.units : []
       : [...graphFile.declarations.values()].map(({ artifact }) => ({
           status: "unsupported" as const,
@@ -329,7 +332,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
         continue;
       }
       selectedGraphUnits += 1;
-      const unit = yield* resolveGraphUnit(eligible.relativePath, captured, root.name, {
+      const unit = legacyV1 ? item.status === "ready" ? item.unit : undefined : yield* resolveGraphUnit(eligible.relativePath, captured, root.name, {
         root: observation.root,
         rootIdentity: observation.rootIdentity,
         policy: currentPolicy(context),
@@ -383,6 +386,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       const input = freezeInput({
         contract: currentInputContract(context),
         graphLimits,
+        candidateProjection: !legacyV1,
         completeness: "complete",
         path: eligible.relativePath,
         declaration,

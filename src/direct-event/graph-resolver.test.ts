@@ -7,6 +7,19 @@ import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.t
 import { configuredRules } from "../policy/rules.ts";
 
 describe("cross-file graph preparation", () => {
+  it.effect("retains the accepted v1 same-file profile below 32 KiB", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", `type A = "${"x".repeat(24_000)}";\n`));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+    });
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
+      outcome.prepared.input.declaration.name === "A" && !outcome.prepared.input.candidateProjection)).toBe(true);
+  }));
+
   it.effect("expands allowed imported evidence and omits excluded supporting source", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));
@@ -106,7 +119,8 @@ describe("cross-file graph preparation", () => {
   }));
   it.effect("refuses a fifth local edge even when the encoded tree fits", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
-    const source = Array.from({ length: 6 }, (_, i) => `interface T${i} { next: ${i === 5 ? "string" : `T${i + 1}`} }`).join("\n");
+    const source = "import type { External } from './unused';\n" +
+      Array.from({ length: 6 }, (_, i) => `interface T${i} { next: ${i === 5 ? "string" : `T${i + 1}`} }`).join("\n");
     yield* Effect.promise(() => put(root, "a.ts", source));
     const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
     if (observation === undefined) throw new Error("fixture adaptation failed");

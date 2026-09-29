@@ -180,6 +180,8 @@ export type FrozenRule = {
 export type ReviewInput = {
   readonly contract: string;
   readonly graphLimits?: GraphLimits;
+  /** Candidate graph/source profile requires explicit egress authorization. */
+  readonly candidateProjection?: boolean;
   /** Only complete semantic units are eligible for evaluation or reuse. */
   readonly completeness: "complete";
   readonly path: string;
