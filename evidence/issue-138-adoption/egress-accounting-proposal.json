@@ -1,0 +1,847 @@
+{
+  "schemaVersion": 1,
+  "status": "unapproved-offline-egress-accounting-proposal",
+  "boundary": "HTTP JSON body from pinned injected Effect provider; excludes headers and transport framing",
+  "anchors": {
+    "corpus": "c98080309609ef839b2bfcedf70f16872d7f07c71864114e5b06b35e3e21d0f2",
+    "declaredPlan": "0853503fabe74e92d356fc11dde6c6e5cf5c212dcf9be23c71b5dad788ccf0c0",
+    "comparators": "a8afe6848bcf38d2711fc5fd83adedad69f2280480280b67d7bc2335fd91ac25",
+    "providerObservations": "db9fe0dd57b3ea2eb6322e60b50dc7809c2fd4f24c3cea9151d640032ed04014",
+    "typeGolden": "997078517d4680b3cd1525f9be399e2b671398a45c342e68655d3e6d69648624",
+    "functionGolden": "0dd661c5b79a45b7e38c018b22ece2e10338ebcff02e3d92201c42717f46000b"
+  },
+  "provider": {
+    "package": "@effect/ai-typesafe@4.0.0-rc.116",
+    "effect": "effect@4.0.0-rc.116",
+    "endpoint": "https://api.typesafe.ai/v1/systemone",
+    "model": "jev-latest"
+  },
+  "candidateGoldens": [
+    {
+      "id": "type-candidate",
+      "corpusCaseId": null,
+      "contract": "direct-event/type-shape/v2",
+      "sourceFields": [
+        {
+          "path": "src/order.ts",
+          "sha256": "5abb0c5a93c4ba68d28e48d95507751f543347df9f146200eb70be3afc52d366",
+          "bytes": 41
+        },
+        {
+          "path": "src/amount.ts",
+          "sha256": "ee3c4d714f702c9f14d5184b698f3bac819bcd4c5e8436382aeea9ccde4b133d",
+          "bytes": 27
+        }
+      ],
+      "sourceFieldUtf8Bytes": 68,
+      "localRequestBytes": 942,
+      "httpBodyBytes": 956,
+      "httpBodySha256": "5e5bf4c020994b564d35adbbf48492fcc72f839e3247e55b7aa051025a2e3b33"
+    },
+    {
+      "id": "function-candidate",
+      "corpusCaseId": null,
+      "contract": "direct-event/function/v1",
+      "sourceFields": [
+        {
+          "path": "src/checkout.ts",
+          "sha256": "173b5c013de20b6bf20d6682a6d9ac4a5df7afed56fba43e4a213752ede31932",
+          "bytes": 72
+        },
+        {
+          "path": "src/helper.ts",
+          "sha256": "1b77b429c1097174d5f2ff59eb2ef1db5bdb7c48ab4aaf7217b88bf4e386a8fc",
+          "bytes": 66
+        }
+      ],
+      "sourceFieldUtf8Bytes": 138,
+      "localRequestBytes": 1026,
+      "httpBodyBytes": 1040,
+      "httpBodySha256": "8d1e353886f4d8891403d3d36645a33c40bf1252e64ad40859633981f2d67adf"
+    }
+  ],
+  "cases": [
+    {
+      "id": "T01",
+      "sourceFiles": [
+        {
+          "path": "cases/T01/root.ts",
+          "sha256": "21cf7e43ea225f1014075c59aae99c9706a43008f84aa1942ad68955d47fea25",
+          "bytes": 104
+        },
+        {
+          "path": "cases/T01/root.before.ts",
+          "sha256": "1b7ae451556628191a09befff487ed6c516a5c93d15e19ae840a77f01b2eff57",
+          "bytes": 82
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T01/root.ts"
+            },
+            {
+              "role": "pre:root.ts",
+              "fixturePath": "cases/T01/root.before.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 162,
+          "localRequestBytes": 1673,
+          "httpBodyBytes": 1687,
+          "httpBodySha256": "1e27078daa32b8a48a254c2ec061092ebdac5bc5cba36b889ddf013982ba97cc"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T01/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 104,
+          "localRequestBytes": 1606,
+          "httpBodyBytes": 1620,
+          "httpBodySha256": "9ca21232afcfde571567a969fd54867688f3b727b44fdf3d66ef6b9d43e2668a"
+        },
+        "v1Type": {
+          "status": "current-offline-production-path",
+          "inputContract": "direct-event/same-file-named-types/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T01/root.ts"
+            },
+            {
+              "role": "supporting-post:root.ts",
+              "fixturePath": "cases/T01/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 102,
+          "localRequestBytes": 1848,
+          "httpBodyBytes": 1862,
+          "httpBodySha256": "ad665bb2b9668fb9a3b0afa8311506e81afdb9686bebcc82ac3b524c4740ff3e"
+        }
+      }
+    },
+    {
+      "id": "T02",
+      "sourceFiles": [
+        {
+          "path": "cases/T02/root.ts",
+          "sha256": "e9534447c6507332facb0181a3bc9618a14b6bc8d308ebe92f978fca8920ea1b",
+          "bytes": 120
+        },
+        {
+          "path": "cases/T02/support.ts",
+          "sha256": "db866f3674628ab1c1b17307d09b5190031e13510d4ad0d7b4298ca12af82433",
+          "bytes": 54
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T02/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 174,
+          "localRequestBytes": 1687,
+          "httpBodyBytes": 1701,
+          "httpBodySha256": "cab7a5f585eb51aff087340875f7fcf443d923caf87172d1f204e4395adf48b4"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T02/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 120,
+          "localRequestBytes": 1620,
+          "httpBodyBytes": 1634,
+          "httpBodySha256": "1fde8ccca89b44cdbd3ab63dd342ecfa80ea14551cf8d5c54afafa17af9694ed"
+        }
+      }
+    },
+    {
+      "id": "T03",
+      "sourceFiles": [
+        {
+          "path": "cases/T03/root.ts",
+          "sha256": "786c60904afdf582deaff4256d3b3a611db5443d1f12e61432aea6920d80b354",
+          "bytes": 118
+        },
+        {
+          "path": "cases/T03/support.ts",
+          "sha256": "8d8d512299e6c71e7ab30c590ccc0ed4bc5aceb220ecf7609445aca747a41634",
+          "bytes": 63
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T03/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 172,
+          "localRequestBytes": 1685,
+          "httpBodyBytes": 1699,
+          "httpBodySha256": "38c60f913b978127a557204d46ff152065ae996fdd9f4bae2249b64326f15e18"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T03/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 118,
+          "localRequestBytes": 1618,
+          "httpBodyBytes": 1632,
+          "httpBodySha256": "55e9dada3eb9c5a9a9cc061a7858cd98e354ca14f9b2db247bedaa0947f92806"
+        }
+      }
+    },
+    {
+      "id": "T04",
+      "sourceFiles": [
+        {
+          "path": "cases/T04/root.ts",
+          "sha256": "9fd170187d170f5d779d980c9cbac7b4b9119b791e79e89334dea7c641a0f23b",
+          "bytes": 112
+        },
+        {
+          "path": "cases/T04/root.before.ts",
+          "sha256": "bd06ce749bad8dc6d32fa82065be0f776589280a45eb32fcfe99d9e569324cd6",
+          "bytes": 108
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T04/root.ts"
+            },
+            {
+              "role": "pre:root.ts",
+              "fixturePath": "cases/T04/root.before.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 188,
+          "localRequestBytes": 1699,
+          "httpBodyBytes": 1713,
+          "httpBodySha256": "8cfacb9bda01f316e39396f4bfd918caceaeb55333131ff7478741e5d29369c3"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T04/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 112,
+          "localRequestBytes": 1610,
+          "httpBodyBytes": 1624,
+          "httpBodySha256": "74be5d2a824607d7669f701d65c478fe9ba1eeceb0cf1b6c4038e7abeaa3efcb"
+        },
+        "v1Type": {
+          "status": "current-offline-production-path",
+          "inputContract": "direct-event/same-file-named-types/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T04/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 68,
+          "localRequestBytes": 1565,
+          "httpBodyBytes": 1579,
+          "httpBodySha256": "40b8cc00435aaf009d7a95c033cd0f6181abd91b28789216a6da8deffa635c4d"
+        }
+      }
+    },
+    {
+      "id": "T05",
+      "sourceFiles": [
+        {
+          "path": "cases/T05/root.ts",
+          "sha256": "b1e5b9dfe3eaa1a731dd5b31daaace7b86bba15f962561638e02d36ba8a5bd62",
+          "bytes": 90
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T05/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 143,
+          "localRequestBytes": 1657,
+          "httpBodyBytes": 1671,
+          "httpBodySha256": "9c577fad91b569e1b02a893d049f76f374a8ae09a867af2e312b9505e309c20a"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T05/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 90,
+          "localRequestBytes": 1591,
+          "httpBodyBytes": 1605,
+          "httpBodySha256": "520df9fe5d94aa44815543c12ae0c0e1db3373b31df0a80f0ec2be3319471b27"
+        },
+        "v1Type": {
+          "status": "current-offline-production-path",
+          "inputContract": "direct-event/same-file-named-types/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T05/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 89,
+          "localRequestBytes": 1590,
+          "httpBodyBytes": 1604,
+          "httpBodySha256": "a9c227604b91e47912fee3ef7ae742b9d2d461664bd5a092c5f71eb154a5edbd"
+        }
+      }
+    },
+    {
+      "id": "T06",
+      "sourceFiles": [
+        {
+          "path": "cases/T06/root.ts",
+          "sha256": "aabd9d46df6b550e7240e4fd53fe1f0d7f3b8a94348e932890236ded1e24093b",
+          "bytes": 64
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T06/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 117,
+          "localRequestBytes": 1627,
+          "httpBodyBytes": 1641,
+          "httpBodySha256": "bb883f72d1a46e6d2ead8cc73aef329dc73262d828831168c1bf308b8d7cf1a6"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T06/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 64,
+          "localRequestBytes": 1561,
+          "httpBodyBytes": 1575,
+          "httpBodySha256": "55623a13242be1e51adbf506e94bcdb0d048182693c460b0b5d587b44dc48097"
+        },
+        "v1Type": {
+          "status": "current-offline-production-path",
+          "inputContract": "direct-event/same-file-named-types/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T06/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 63,
+          "localRequestBytes": 1560,
+          "httpBodyBytes": 1574,
+          "httpBodySha256": "71a5f2f909e943ddc4d58157ba23556bd783805fdcbc0f4055de6e0d25a68cec"
+        }
+      }
+    },
+    {
+      "id": "T07",
+      "sourceFiles": [
+        {
+          "path": "cases/T07/root.ts",
+          "sha256": "1306515a5ebe2d4b243a38cb5a1be9fd469abca86dfa4592725fd5b139e8383c",
+          "bytes": 112
+        },
+        {
+          "path": "cases/T07/root.before.ts",
+          "sha256": "9c0e70cdb560973f8eb55ee5359ec734317ba24a2425346976a1a6472d930b88",
+          "bytes": 145
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T07/root.ts"
+            },
+            {
+              "role": "pre:root.ts",
+              "fixturePath": "cases/T07/root.before.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 147,
+          "localRequestBytes": 1658,
+          "httpBodyBytes": 1672,
+          "httpBodySha256": "9ffb343225d8fa49640db70d7781f575b989c29acb96d85d13e1e811bef06bda"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T07/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 112,
+          "localRequestBytes": 1614,
+          "httpBodyBytes": 1628,
+          "httpBodySha256": "853fda551dd06e57fb468908f2a4d87e60a0fad1974631be2bb34e960d3e6b71"
+        },
+        "v1Type": {
+          "status": "current-offline-production-path",
+          "inputContract": "direct-event/same-file-named-types/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T07/root.ts"
+            },
+            {
+              "role": "supporting-post:root.ts",
+              "fixturePath": "cases/T07/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 110,
+          "localRequestBytes": 1856,
+          "httpBodyBytes": 1870,
+          "httpBodySha256": "2c9b59b8e8f61a979c9079ab10effdec56d3601265f52cabe6dce61f490cf319"
+        }
+      }
+    },
+    {
+      "id": "T08",
+      "sourceFiles": [
+        {
+          "path": "cases/T08/root.ts",
+          "sha256": "c1bad6de3a23a86f8dc332424d521f1ab26673d7cd2250dca0f4935b277726e1",
+          "bytes": 85
+        },
+        {
+          "path": "cases/T08/support.ts",
+          "sha256": "ded9101aee17b8718506c97ec7e43ed2905eb0e7256d2f29a8d49d5c458f5dd0",
+          "bytes": 96
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T08/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 139,
+          "localRequestBytes": 1652,
+          "httpBodyBytes": 1666,
+          "httpBodySha256": "d92dfd78fe06cc224bb31d61582abb3b18c7ae412a9c9ad6e6766a9665c02ec5"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T08/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 85,
+          "localRequestBytes": 1585,
+          "httpBodyBytes": 1599,
+          "httpBodySha256": "2c3db346d21102a01d54fee0b56b85a26cd4ec24f5a35fefb1bba0cbb3bf9453"
+        }
+      }
+    },
+    {
+      "id": "T09",
+      "sourceFiles": [
+        {
+          "path": "cases/T09/root.ts",
+          "sha256": "e44e55c87109b5446a002b6724da9a9cfd85a6c329c1cacd2e29c29388d5271a",
+          "bytes": 69
+        },
+        {
+          "path": "cases/T09/root.before.ts",
+          "sha256": "4fb6db4e05d4cc2d95d21dba3e69acbfc590b9e1390baca87989f57086ac75a6",
+          "bytes": 65
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T09/root.ts"
+            },
+            {
+              "role": "pre:root.ts",
+              "fixturePath": "cases/T09/root.before.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 188,
+          "localRequestBytes": 1699,
+          "httpBodyBytes": 1713,
+          "httpBodySha256": "8cfacb9bda01f316e39396f4bfd918caceaeb55333131ff7478741e5d29369c3"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T09/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 69,
+          "localRequestBytes": 1566,
+          "httpBodyBytes": 1580,
+          "httpBodySha256": "b21c3454aae2408bd8a4eb2c244138edf1d24a214ce861ebcbb0fe4199cd890f"
+        },
+        "v1Type": {
+          "status": "current-offline-production-path",
+          "inputContract": "direct-event/same-file-named-types/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T09/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 68,
+          "localRequestBytes": 1565,
+          "httpBodyBytes": 1579,
+          "httpBodySha256": "40b8cc00435aaf009d7a95c033cd0f6181abd91b28789216a6da8deffa635c4d"
+        }
+      }
+    },
+    {
+      "id": "T10",
+      "sourceFiles": [
+        {
+          "path": "cases/T10/root.ts",
+          "sha256": "bcffd334d3edf86396676747d84312590f5aee1543305d42a8bf95a1dea34f39",
+          "bytes": 90
+        },
+        {
+          "path": "cases/T10/root.before.ts",
+          "sha256": "6e20142ad0f0bde0a56b27472318cc98bcd6e408dac3f46008b8ebf4ee8e6912",
+          "bytes": 67
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T10/root.ts"
+            },
+            {
+              "role": "pre:root.ts",
+              "fixturePath": "cases/T10/root.before.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 211,
+          "localRequestBytes": 1722,
+          "httpBodyBytes": 1736,
+          "httpBodySha256": "f93cd806172d3208a284a704f240fd5ee562468881b8597a33d9c8d440ea26bd"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T10/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 90,
+          "localRequestBytes": 1587,
+          "httpBodyBytes": 1601,
+          "httpBodySha256": "641175de8fe9dc6d2a03ee29eacc8f3020792842fb9e0c25b3e3e2705a815a70"
+        },
+        "v1Type": {
+          "status": "current-offline-production-path",
+          "inputContract": "direct-event/same-file-named-types/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T10/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 89,
+          "localRequestBytes": 1586,
+          "httpBodyBytes": 1600,
+          "httpBodySha256": "a4b5d9caec35f15a8d3cc1963ade3fd7989c19f1899643bf31ddfbbf38552087"
+        }
+      }
+    },
+    {
+      "id": "T11",
+      "sourceFiles": [
+        {
+          "path": "cases/T11/root.ts",
+          "sha256": "a9e9794197119511e900d88c67d34347c676f88378edbda598f2e566d9200a2c",
+          "bytes": 1692
+        },
+        {
+          "path": "cases/T11/root.before.ts",
+          "sha256": "8dd25221451df60055043693c842715da3bbd7e2bccf29ed2274d043fe875d93",
+          "bytes": 1713
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T11/root.ts"
+            },
+            {
+              "role": "pre:root.ts",
+              "fixturePath": "cases/T11/root.before.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 213,
+          "localRequestBytes": 1724,
+          "httpBodyBytes": 1738,
+          "httpBodySha256": "dfda94bab2916e38dce3efac5477ee01e5f07ec866c52f2471354de33df29b2b"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T11/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 1692,
+          "localRequestBytes": 3221,
+          "httpBodyBytes": 3235,
+          "httpBodySha256": "06707b0f70228b365bbeb12c70e12b737e26f294d087c2f19cd6a9bf3014c029"
+        },
+        "v1Type": {
+          "status": "current-offline-production-path",
+          "inputContract": "direct-event/same-file-named-types/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T11/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 68,
+          "localRequestBytes": 1565,
+          "httpBodyBytes": 1579,
+          "httpBodySha256": "40b8cc00435aaf009d7a95c033cd0f6181abd91b28789216a6da8deffa635c4d"
+        }
+      }
+    },
+    {
+      "id": "T12",
+      "sourceFiles": [
+        {
+          "path": "cases/T12/root.ts",
+          "sha256": "8dd25221451df60055043693c842715da3bbd7e2bccf29ed2274d043fe875d93",
+          "bytes": 1713
+        },
+        {
+          "path": "cases/T12/root.before.ts",
+          "sha256": "a9e9794197119511e900d88c67d34347c676f88378edbda598f2e566d9200a2c",
+          "bytes": 1692
+        }
+      ],
+      "candidate": {
+        "status": "unmeasured-per-fixture",
+        "httpBodyBytes": null,
+        "httpBodySha256": null,
+        "sourceRoles": null,
+        "sourceFieldUtf8Bytes": null
+      },
+      "arms": {
+        "focusedDiff": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/focused-unified-diff/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T12/root.ts"
+            },
+            {
+              "role": "pre:root.ts",
+              "fixturePath": "cases/T12/root.before.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 213,
+          "localRequestBytes": 1724,
+          "httpBodyBytes": 1738,
+          "httpBodySha256": "f374bc9e94a8ac3a2426a7dfeab2a5a0a696de5d26e8ecdd7eb5d138e9b4c9e3"
+        },
+        "wholeFile": {
+          "status": "unapproved-comparator-proposal",
+          "inputContract": "proposal/whole-post-edit-file/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T12/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 1713,
+          "localRequestBytes": 3242,
+          "httpBodyBytes": 3256,
+          "httpBodySha256": "d708e270980ad14dcd3268fe829bc51380e4ec6db6872e95b1ab86025d497f46"
+        },
+        "v1Type": {
+          "status": "current-offline-production-path",
+          "inputContract": "direct-event/same-file-named-types/v1",
+          "sourceRoles": [
+            {
+              "role": "post:root.ts",
+              "fixturePath": "cases/T12/root.ts"
+            }
+          ],
+          "sourceFieldUtf8Bytes": 89,
+          "localRequestBytes": 1586,
+          "httpBodyBytes": 1600,
+          "httpBodySha256": "a4b5d9caec35f15a8d3cc1963ade3fd7989c19f1899643bf31ddfbbf38552087"
+        }
+      }
+    }
+  ],
+  "unresolved": [
+    "No T01-T12 candidate HTTP body or source-scope observation; candidate goldens do not map to corpus fixtures.",
+    "Comparator input contracts and source egress await owner approval.",
+    "Pinned HTTP body measurements exclude header bytes and transport framing; #140 owns production sizing.",
+    "No live Jev responses, semantic outcomes, or adoption eligibility have been established."
+  ]
+}

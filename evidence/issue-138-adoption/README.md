@@ -42,3 +42,28 @@ The offline product test confirms none of F01–F04/F09/F11 yields a complete se
 4. Freeze exact v2 rule-pack content digests, renderer/wire examples, labels, thresholds, memory/host evidence, and finite live authorization. The candidate egress switch remains off until the accepted #93 adoption gates are met.
 
 The prior #16 comparison remains `reject-or-narrow`; its paired context-only and whole-file-dilution gates failed. This corpus does not revise that evidence.
+
+## Later offline egress accounting
+
+`egress-accounting-proposal.json` is a successor observation, not an amendment to
+the pre-execution `live-plan-proposal.json`. It joins the 12 proposed T cases to
+their 33 focused-diff, whole-file, and applicable v1 comparator inputs and to
+the pinned Effect provider's observed HTTP **body** byte counts and SHA-256
+hashes. Each case lists verified fixture path/hash/byte anchors; each arm lists
+the pre/post source roles and source-bearing field byte count. Repeated roles
+such as a v1 root and its supporting declaration can refer to one distinct
+fixture file while contributing separate source-bearing fields. Run
+`node evidence/issue-138-adoption/verify-egress-accounting.mjs --check` to
+verify these joins against current source files, proposal artifacts, and the
+separate provider observation. The provider HTTP test in
+`src/direct-event/provider-http-wire.test.ts` independently replays the body
+hashes using an injected, offline client.
+
+The two candidate goldens are separate synthetic examples. Neither maps to a
+T01–T12 case, so this artifact leaves every per-case candidate body and source
+scope unmeasured. File anchors identify full fixture buffers; a focused diff's
+source-field byte count identifies the excerpt actually placed in its proposed
+input. The measurement excludes HTTP header bytes and transport framing.
+Comparator contracts and expanded source egress still require owner approval;
+this accounting does not make the paid study eligible or establish #140's
+production provider-aware request limit.
