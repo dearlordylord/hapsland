@@ -22,6 +22,11 @@ describe("bounded function graph candidate", () => {
     });
     expect(unit?.root.references.map((edge) => edge.kind === "expanded" ? edge.node.artifact.id : undefined))
       .toEqual(["a.ts:type-alias:Foo", "a.ts:function:Foo"]);
+    const functionEdge = unit?.root.references[1];
+    expect(functionEdge?.kind).toBe("expanded");
+    if (functionEdge?.kind === "expanded") {
+      expect(functionEdge.node.references).toMatchObject([{ kind: "included", target: "a.ts:type-alias:Foo" }]);
+    }
   }));
 
   it.effect("expands a bound imported function through the Bend graph", () => Effect.gen(function* () {

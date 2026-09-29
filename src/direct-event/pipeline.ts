@@ -335,8 +335,8 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       ? inspectGraphFile(eligible.relativePath, captured.text)
       : undefined;
     const analysis = analyzeTypeFile(eligible.relativePath, captured.text);
-    const legacyV1 = captured.byteLength <= 32 * 1024 && graphFile?.imports.size === 0 &&
-      contract === DIRECT_EVENT_INPUT_CONTRACT;
+    const legacyV1 = captured.byteLength <= 32 * 1024 &&
+      contract === DIRECT_EVENT_INPUT_CONTRACT && analysis.status === "analyzed";
     const analyses: ReadonlyArray<UnitAnalysis> = functionFile !== undefined
       ? [...functionFile.functions.values()].map(({ artifact }) => ({
           status: "unsupported" as const, root: artifact,

@@ -166,7 +166,9 @@ const functionReferences = (node: SyntaxNode, name: string, boundTypes: Readonly
   }
   // Type references and calls both carry offsets in the source tree. Recollect the
   // type sites here so the graph adapter sees one deterministic lexical order.
-  const types = namedTypeReferencesWithOffsets(node, name, boundTypes);
+  // A function may share its name with a type. Its return annotation can be
+  // that type, so the function name is not an own-name type exclusion.
+  const types = namedTypeReferencesWithOffsets(node, "", boundTypes);
   return [...types, ...calls, ...unsupportedBindings].sort((a, b) => a.offset - b.offset).map(({ reference }) => reference);
 };
 

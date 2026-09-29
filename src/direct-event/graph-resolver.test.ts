@@ -16,6 +16,19 @@ const candidateRules = compileRulePackV2({ schemaVersion: 2, id: "graph", conten
 }] }, "fixture-v2");
 
 describe("cross-file graph preparation", () => {
+  it.effect("retains the legacy v1 namespace root behavior below 32 KiB", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "namespace N { export interface A { x: string } }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+    });
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
+      outcome.prepared.input.declaration.name === "A" && !outcome.prepared.input.candidateProjection)).toBe(true);
+  }));
+
   it("does not select a declaration nested in a namespace as a direct graph root", () => {
     expect(inspectGraphFile("a.ts", "namespace N { export interface A { x: string } }")).toBeUndefined();
   });
