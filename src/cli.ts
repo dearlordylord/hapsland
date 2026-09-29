@@ -27,7 +27,6 @@ import {
 } from "./direct-event/adapter.ts";
 import { isCodexHostVersion, type CodexHostVersion } from "./direct-event/model.ts";
 import type { DirectObservation } from "./direct-event/model.ts";
-import { adaptOpenCodeDirectEvent } from "./hosts/opencode/adapter.ts";
 import {
   claudeHostOutputText,
   encodeClaudeHostOutputLine,
@@ -39,8 +38,6 @@ import {
   admitObservation,
   admitTicketedObservation,
   collectOutcome,
-  collectAdviceeOutcome,
-  collectReady,
   beginComposedSubmission,
   releaseComposedSubmission,
   ensureResident,
@@ -380,7 +377,7 @@ const writeHostOutputWithinHookBudget = (encoded: string): Promise<HostOutputWri
 };
 const hookVersionArgument = process.argv.find((argument) => argument.startsWith("--codex-version="));
 const requestedHookVersion = hookVersionArgument?.slice("--codex-version=".length);
-if (isCodexHook && requestedHookVersion !== undefined && !isCodexHostVersion(requestedHookVersion)) {
+if (isCodexHook && (isComposedEditHook || composedKind !== undefined) && requestedHookVersion !== undefined && !isCodexHostVersion(requestedHookVersion)) {
   throw new Error("unsupported Codex hook version");
 }
 const codexHookVersion: CodexHostVersion = isCodexHostVersion(requestedHookVersion) ? requestedHookVersion : "0.155.1";
@@ -403,17 +400,11 @@ const runDirectCodexHook = (
   userConfigPath: string | undefined,
 ): Effect.Effect<DirectHookDispatch, unknown> =>
   Effect.gen(function* () {
-    const record = typeof nativeEvent === "object" && nativeEvent !== null
-      ? nativeEvent as Readonly<Record<string, unknown>>
-      : undefined;
-    const isBash = record?.hook_event_name === "PostToolUse" && record.tool_name === "Bash";
-    if (!isCodexNativeApplyPatch(nativeEvent) && !isBash) return { handled: false } as const;
-    // Every mapped hook ensures the singleton, including Bash collection-only
-    // replies and installations where no initialization command was run.
+    if (!isCodexNativeApplyPatch(nativeEvent)) return { handled: false } as const;
     const reply = yield* adaptCodexReply(nativeEvent, hostVersion);
     const owner = yield* Effect.tryPromise(() => ensureResident()).pipe(Effect.option);
     if (Option.isNone(owner)) {
-      if (!isBash && reply !== undefined) {
+      if (reply !== undefined) {
         recordActivity({ statePath: activityPath, root: reply.root, advicee: reply.advicee, lifetime: "resident-unavailable", stage: "unavailable" });
       }
       return { handled: true, output: {} } as const;
@@ -427,20 +418,6 @@ const runDirectCodexHook = (
           userConfigPath,
           controlled,
         )).pipe(Effect.catch(() => Effect.succeed(undefined)));
-    const collected = reply === undefined || dispatch === undefined
-      ? undefined
-      : yield* Effect.tryPromise(async () => {
-          if (isComposedEditHook) return undefined;
-          return collectReady(reply.root, reply.advicee, dispatch);
-        }).pipe(
-          Effect.catch(() => Effect.succeed(undefined)),
-        );
-    // Bash has no path adaptation and can never create backend work.
-    if (isBash) {
-      return collected === undefined
-        ? { handled: true, output: {} } as const
-        : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
-    }
     const observation = yield* adaptCodexDirectEvent(nativeEvent, hostVersion);
     if (observation !== undefined) {
       recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, observation.root, observation.advicee, { kind: "edit" });
@@ -451,9 +428,7 @@ const runDirectCodexHook = (
       if (reply !== undefined) {
         recordActivity({ statePath: activityPath, root: reply.root, advicee: reply.advicee, lifetime: owner.value.lifetime, stage: "incomplete" });
       }
-      return collected === undefined
-        ? { handled: true, output: {} } as const
-        : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
+      return { handled: true, output: {} } as const;
     }
     // Matching reads are not attribution. The hook command must explicitly be
     // installed with this controlled-writer assertion for the supported Add profile.
@@ -469,9 +444,7 @@ const runDirectCodexHook = (
         }),
       );
     }
-    return collected === undefined
-      ? { handled: true, output: {} } as const
-      : { handled: true, output: { _tag: "DirectEventReady" as const, value: collected.output, collected } } as const;
+    return { handled: true, output: {} } as const;
   });
 
 const runDirectBoundedHook = async (
@@ -500,28 +473,15 @@ const runDirectBoundedHook = async (
     observation.root, statePath, activityPath, userConfigPath, controlled,
   ));
   if (dispatch === undefined) return {};
-  if (isClaudeHook) {
-    const accepted = await bounded(() => admitTicketedObservation(observation, dispatch, undefined, isComposedEditHook));
-    if (accepted?.status !== "accepted") return {};
-    while (remaining() > 150) {
-      const outcome = await bounded(() => collectOutcome(accepted.admission));
-      if (outcome === undefined) return {};
-      if (outcome.status === "advice") {
-        return { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice };
-      }
-      if (outcome.status !== "pending") return {};
-      await new Promise((resolve) => setTimeout(resolve, Math.min(50, remaining())));
-    }
-    return {};
-  }
-  const accepted = await bounded(() => admitObservation(observation, true, dispatch, undefined, isComposedEditHook));
+  const accepted = await bounded(() => admitTicketedObservation(observation, dispatch, undefined, isComposedEditHook));
   if (accepted?.status !== "accepted") return {};
-  if (isComposedEditHook) return {};
   while (remaining() > 150) {
-    const collected = await bounded(() => collectReady(
-      observation.root, observation.advicee, dispatch,
-    ));
-    if (collected !== undefined) return { _tag: "DirectEventReady", value: collected.output, collected };
+    const outcome = await bounded(() => collectOutcome(accepted.admission));
+    if (outcome === undefined) return {};
+    if (outcome.status === "advice") {
+      return { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice };
+    }
+    if (outcome.status !== "pending") return {};
     await new Promise((resolve) => setTimeout(resolve, Math.min(50, remaining())));
   }
   return {};
@@ -647,6 +607,8 @@ const runOperation = (
   });
 
 const program = Effect.gen(function* () {
+  // Retired entry points cannot decode events, start a resident, or dispatch work.
+  if (isOpenCodeHook || (isCodexHook && !isComposedEditHook && composedKind === undefined)) return {};
   const input = yield* readStdin;
   const statePath = yield* statePathConfig;
   const activityPath = yield* activityPathConfig;
@@ -903,12 +865,10 @@ const program = Effect.gen(function* () {
 
   const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
 
-  if (isClaudeHook || isOpenCodeHook) {
-    if (isClaudeHook && !isComposedEditHook) return {};
+  if (isClaudeHook) {
+    if (!isComposedEditHook) return {};
     const nativeEvent = yield* decodeJson(input);
-    const observation = isClaudeHook
-      ? yield* adaptClaudeDirectEvent(nativeEvent, userConfigPath === undefined ? {} : { userConfigPath })
-      : yield* adaptOpenCodeDirectEvent(nativeEvent);
+    const observation = yield* adaptClaudeDirectEvent(nativeEvent, userConfigPath === undefined ? {} : { userConfigPath });
     return yield* Effect.tryPromise(() => runDirectBoundedHook(
       observation, controlled, statePath, activityPath, userConfigPath,
     )).pipe(Effect.catch(() => Effect.succeed({})));

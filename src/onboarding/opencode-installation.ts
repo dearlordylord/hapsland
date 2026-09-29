@@ -79,12 +79,16 @@ const plan = (kind: Kind, request: OpenCodeInstallationRequest) => {
 };
 const conflict = (operation: string, cause: unknown) => ({ version: 1 as const, operation, status: "conflict" as const,
   error: { message: message(cause) } });
+const unsupported = (operation: string) => ({
+  version: 1 as const, operation, status: "unsupported" as const,
+  host: { adapter: ADAPTER },
+  error: { message: "OpenCode review is unavailable until its pre-edit permit lifecycle is implemented." },
+});
 const preview = (kind: Kind, request: OpenCodeInstallationRequest) => {
   const operation = kind === "uninstall" ? "uninstall-preview" : `${kind}-preview`;
+  if (kind !== "uninstall") return unsupported(operation);
   try {
     const next = plan(kind, request);
-    if (kind !== "uninstall" && !next.input.compatibility.supported) return { version: 1 as const, operation,
-      status: "unsupported" as const, host: { adapter: ADAPTER, compatibility: next.input.compatibility } };
     return { version: 1 as const, operation, status: "preview" as const,
       host: { adapter: ADAPTER, home: next.input.home, compatibility: next.input.compatibility },
       proposal: { digest: next.proposalDigest, changes: [
@@ -92,18 +96,17 @@ const preview = (kind: Kind, request: OpenCodeInstallationRequest) => {
         ...(next.beforeRecord === next.afterRecord ? [] : [{ path: next.input.paths.ownership, description: "ownership record" }]),
       ], ownedChanges: { plugin: next.input.paths.plugin, hook: "tool.execute.after", tools: ["edit", "write"],
         timeoutMilliseconds: 4500 } },
-      installed: kind !== "uninstall",
+      installed: false,
       trust: { status: "host-owned", guidance: "OpenCode controls plugin loading; effective file settings and credentials govern review." },
       unsupported: ["existing-file write", "edit without unique changed whole lines", "OpenCode --pure",
         "shell writes", "file.edited", "OpenCode v2"],
-      pending: ["apply this proposal digest", "review effective file settings and credential access"] };
+      pending: ["apply this proposal digest to remove the owned integration"] };
   } catch (cause) { return conflict(operation, cause); }
 };
 const apply = (kind: Kind, request: OpenCodeInstallationRequest) => {
+  if (kind !== "uninstall") return unsupported(kind);
   try {
     const input = inputs(request);
-    if (kind !== "uninstall" && !input.compatibility.supported) return { version: 1 as const,
-      operation: kind, status: "unsupported" as const, host: input.compatibility };
     mkdirSync(dirname(input.paths.lock), { recursive: true, mode: 0o700 });
     try { mkdirSync(input.paths.lock); } catch { throw new Error("OpenCode installation is locked"); }
     try {
@@ -145,6 +148,7 @@ export const diagnoseOpenCodeIntegration = (request: OpenCodeInstallationRequest
   const input = inputs(request);
   const inspection = inspectOpenCodeInstallation(request);
   const checks = [
+    { stage: "pre-edit-permit", status: "unsupported", observed: "OpenCode has no supported pre-edit permit lifecycle; review hooks are inactive" },
     { stage: "host", status: input.compatibility.host.observed === PROFILE ? "ready" : "unsupported", observed: input.compatibility.host },
     { stage: "runtime", status: input.compatibility.runtime.observed === "v24.20.0" ? "ready" : "unsupported", observed: input.compatibility.runtime },
     { stage: "configuration-ownership", status: inspection.status === "conflict" ? "conflict" : inspection.installed ? "ready" : "missing", observed: inspection },

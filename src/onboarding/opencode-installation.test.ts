@@ -1,4 +1,5 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -22,33 +23,46 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-describe("OpenCode owned plugin installation", () => {
-  it("previews, installs, updates, diagnoses, and removes only the owned plugin", async () => {
+const seedOwnedPlugin = (home: string) => {
+  const plugin = "export const HapslandPlugin = async () => ({});\n";
+  mkdirSync(join(home, "plugins"), { recursive: true });
+  mkdirSync(join(home, ".realtime-review-tool"), { recursive: true });
+  writeFileSync(join(home, "plugins", "hapsland.mjs"), plugin);
+  writeFileSync(join(home, ".realtime-review-tool", "opencode-installation-v1.json"), JSON.stringify({
+    version: 1, adapter: "opencode", home,
+    pluginDigest: createHash("sha256").update(plugin).digest("hex"),
+    runtime: process.execPath, entrypoint: process.env.REVIEW_INSTALL_ENTRYPOINT,
+  }));
+};
+
+describe("OpenCode unsupported installation and owned cleanup", () => {
+  it("blocks install and update previews and applications without writes", async () => {
     const { home, request } = fixture();
-    mkdirSync(join(home, "plugins"), { recursive: true });
-    writeFileSync(join(home, "plugins", "other.mjs"), "export const Other = async () => ({});\n");
-    const proposal = previewOpenCodeInstallation(request);
-    expect(proposal.status).toBe("preview");
-    if (proposal.status !== "preview") return;
-    expect((await installOpenCodeIntegration({ ...request, proposalDigest: proposal.proposal.digest })).status).toBe("complete");
-    expect(readFileSync(join(home, "plugins", "other.mjs"), "utf8")).toContain("Other");
-    expect(diagnoseOpenCodeIntegration(request).checks.find((check) => check.stage === "configuration-ownership")?.status).toBe("ready");
-    const update = previewOpenCodeUpdate(request);
-    expect(update.status).toBe("preview");
-    if (update.status !== "preview") return;
-    expect((await updateOpenCodeIntegration({ ...request, proposalDigest: update.proposal.digest })).status).toBe("already-current");
+    expect(previewOpenCodeInstallation(request).status).toBe("unsupported");
+    expect(previewOpenCodeUpdate(request).status).toBe("unsupported");
+    expect((await installOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" })).status).toBe("unsupported");
+    expect((await updateOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" })).status).toBe("unsupported");
+    expect(existsSync(home)).toBe(false);
+  });
+
+  it("reports not-ready for an existing owned installation and permits its removal", async () => {
+    const { home, request } = fixture();
+    seedOwnedPlugin(home);
+    writeFileSync(join(home, "plugins", "other.mjs"), "other plugin");
+    const doctor = diagnoseOpenCodeIntegration(request);
+    expect(doctor.status).toBe("not-ready");
+    expect(doctor.checks.find((check) => check.stage === "pre-edit-permit")?.status).toBe("unsupported");
     const removal = await uninstallOpenCodeIntegration(request);
     expect(removal.status).toBe("preview");
-    if (removal.status !== "preview") return;
+    if (removal.status !== "preview") throw new Error("removal preview unavailable");
     expect((await uninstallOpenCodeIntegration({ ...request, proposalDigest: removal.proposal.digest })).status).toBe("complete");
-    expect(readFileSync(join(home, "plugins", "other.mjs"), "utf8")).toContain("Other");
+    expect(existsSync(join(home, "plugins", "hapsland.mjs"))).toBe(false);
+    expect(readFileSync(join(home, "plugins", "other.mjs"), "utf8")).toBe("other plugin");
   });
 
   it("refuses a modified owned file and never removes it", async () => {
     const { home, request } = fixture();
-    const proposal = previewOpenCodeInstallation(request);
-    if (proposal.status !== "preview") throw new Error("preview unavailable");
-    await installOpenCodeIntegration({ ...request, proposalDigest: proposal.proposal.digest });
+    seedOwnedPlugin(home);
     const plugin = join(home, "plugins", "hapsland.mjs");
     writeFileSync(plugin, "modified\n");
     expect((await uninstallOpenCodeIntegration(request)).status).toBe("conflict");

@@ -126,39 +126,32 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     expect(child.status).toBe(0);
     expect(child.stderr).toBe("");
     expect(JSON.parse(child.stdout)).toEqual({});
-    const bash = {
-      ...input,
-      tool_name: "Bash",
-      turn_id: "later-turn",
-      tool_use_id: "later-tool",
-      tool_input: { command: "true" },
-    };
-    let later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled-reviewer", `--codex-version=${hostVersion}`], {
-      cwd: process.cwd(), input: JSON.stringify(bash), encoding: "utf8", env: residentEnv,
-    });
-    for (let attempt = 0; attempt < 20 && JSON.parse(later.stdout).hookSpecificOutput === undefined; attempt++) {
-      later = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled-reviewer", `--codex-version=${hostVersion}`], {
-        cwd: process.cwd(), input: JSON.stringify(bash), encoding: "utf8", env: residentEnv,
-      });
-    }
-    expect(later.status).toBe(0);
-    const output = JSON.parse(later.stdout) as {
-      hookSpecificOutput: { hookEventName: string; additionalContext: string };
-    };
-    expect(output.hookSpecificOutput.hookEventName).toBe("PostToolUse");
-    expect(output.hookSpecificOutput.additionalContext).toContain("pinned.ts");
-    expect(output.hookSpecificOutput.additionalContext).toContain("Advisory direct-event review");
-    expect(later.stdout).not.toContain("submission attempted");
-    expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(1);
+    expect(existsSync(capturePath)).toBe(false);
+    expect(existsSync(residentDirectory)).toBe(false);
     expect(readFileSync(path, "utf8")).toBe("type OrderCount = number\n");
   };
 
-  it("routes a native controlled-writer Codex Add through direct-event stdout", () => {
+  it("keeps the retired Codex 0.155.1 entry point quiet", () => {
     checkNativeControlledWriterAdd("0.155.1");
   });
 
-  it("routes a native controlled-writer Codex 0.156.0 Add through direct-event stdout", () => {
+  it("keeps the retired Codex 0.156.0 entry point quiet", () => {
     checkNativeControlledWriterAdd("0.156.0");
+  });
+
+  it("quiets retired native hooks before decoding input or reviewer settings", () => {
+    const root = makeTemporaryDirectory("review-retired-hook-");
+    roots.push(root);
+    for (const flags of [["--codex-hook"], ["--opencode-hook"], ["--opencode-hook", "--composed-edit-hook"]]) {
+      const child = spawnSync(process.execPath, ["src/cli.ts", ...flags, "--controlled-reviewer"], {
+        cwd: process.cwd(), input: "malformed JSON", encoding: "utf8",
+        env: { ...process.env, REVIEW_CONTROL_JSON: "malformed", REVIEW_RESIDENT_DIR: join(root, "runtime") },
+      });
+      expect(child.status).toBe(0);
+      expect(child.stderr).toBe("");
+      expect(child.stdout.trim()).toBe(flags.includes("--codex-hook") ? "{}" : "");
+      expect(existsSync(join(root, "runtime"))).toBe(false);
+    }
   });
 
   it("keeps unsupported native apply_patch events quiet", () => {

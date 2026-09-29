@@ -8,7 +8,7 @@ import { renderOpenCodePlugin } from "./plugin.ts";
 const dirs: string[] = [];
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
-it("adds bounded CLI advice only to the triggering edit tool output", async () => {
+it("registers no executable hooks while pre-edit permits are unsupported", async () => {
   const dir = mkdtempSync(join(tmpdir(), "hapsland-opencode-plugin-"));
   dirs.push(dir);
   const cli = join(dir, "cli.mjs");
@@ -19,7 +19,8 @@ it("adds bounded CLI advice only to the triggering edit tool output", async () =
   const hooks = await module.HapslandPlugin({ directory: dir });
   const output = { title: "Edited", output: "Applied", metadata: {} };
   await hooks["tool.execute.after"]?.({ tool: "edit", sessionID: "s", callID: "c", args: { filePath: "x.ts" } }, output);
-  expect(output.output).toContain("Applied\n\nReview finding for this edit");
+  expect(output.output).toBe("Applied");
+  expect(hooks).toEqual({});
   const other = { title: "Read", output: "Read result", metadata: {} };
   await hooks["tool.execute.after"]?.({ tool: "read", sessionID: "s", callID: "d", args: { filePath: "x.ts" } }, other);
   expect(other.output).toBe("Read result");
