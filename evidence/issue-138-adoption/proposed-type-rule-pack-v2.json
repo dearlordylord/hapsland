@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "id": "noul-type-v2-proposal",
+  "contentVersion": "0.0.0-proposal.1",
+  "rules": [
+    {
+      "id": "r2_meaningless_combinations",
+      "question": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+      "criteria": {
+        "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+        "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+      },
+      "threshold": 0.7,
+      "message": "The type appears to admit field combinations with no domain meaning.",
+      "reviewTargets": [
+        {
+          "artifactKind": "typeShape",
+          "inputContract": "direct-event/type-shape/v2",
+          "capabilities": [
+            "root-declaration",
+            "resolved-outbound-types",
+            "selected-source-type-closure"
+          ]
+        }
+      ]
+    }
+  ]
+}
