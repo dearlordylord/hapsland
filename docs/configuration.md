@@ -235,8 +235,9 @@ or protected path.
 
 Rule authors must use rule-pack schema 2 and name an exact type or function
 input contract and required capabilities. The resident reviews one changed
-TypeScript type or function per unit, with bounded, complete supporting evidence
-from selected files reached through supported local imports. Its Jev input does
+TypeScript type or function per unit, with bounded supporting evidence
+from selected files reached through supported local imports. Omitted evidence is
+marked, and a rule runs only when its declared needs are met. Its Jev input does
 not contain a whole file, a before/after diff, or task or transcript context.
 Schema-1 authored packs fail configuration before source capture; migrate them
 to explicit schema-2 targets. Findings may describe
