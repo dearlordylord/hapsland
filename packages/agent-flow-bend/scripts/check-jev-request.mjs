@@ -9,17 +9,16 @@ const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname,
 for (const trace of fixture.traces) {
   let state = initialCanonical(fixture.limits);
   for (const step of trace.events) {
-    const { expect: expected, requestAfter, requestCount, ...event } = step;
+    const { expect: expected, issuedRequest, requestCount, ...event } = step;
     const result = stepCanonical(state, event);
     state = result.state;
     const actual = result.rejection === undefined
       ? result.commands.map((command) => command.kind).join(",")
       : `rejected:${result.rejection}`;
     assert.equal(actual, expected, `${trace.name}: ${event.kind} operation ${event.operation ?? "-"}`);
-    if (requestAfter != null) {
-      assert.equal(result.commands.find((command) => command.kind === "jevRequestIssued")?.request,
-        requestAfter, `${trace.name}: exact request operation`);
-    }
+    const issued = result.commands.filter((command) => command.kind === "jevRequestIssued");
+    assert.deepEqual(issued, issuedRequest === undefined ? [] : [issuedRequest],
+      `${trace.name}: exact issued request identity`);
     if (requestCount != null) {
       assert.equal(projectCanonical(state).dispatch.requests.length, requestCount,
         `${trace.name}: request permits`);

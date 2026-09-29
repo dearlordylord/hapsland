@@ -55,8 +55,15 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 3,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 2,
+            "request": 3
+          }
         },
         {
           "kind": "jevRequestSettled",
@@ -132,8 +139,15 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 3,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 2,
+            "request": 3
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -218,8 +232,15 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 3,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 2,
+            "request": 3
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -304,8 +325,15 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 3,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 2,
+            "request": 3
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -390,8 +418,15 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 3,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 2,
+            "request": 3
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -476,8 +511,15 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 3,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 2,
+            "request": 3
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -579,9 +621,16 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 11,
           "requestCount": 1,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 2,
+            "request": 11
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -612,9 +661,16 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 12,
           "requestCount": 2,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 3,
+            "request": 12
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -645,9 +701,16 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 13,
           "requestCount": 3,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 4,
+            "request": 13
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -678,9 +741,16 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 14,
           "requestCount": 4,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 5,
+            "request": 14
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -711,9 +781,16 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 15,
           "requestCount": 5,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 6,
+            "request": 15
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -744,9 +821,16 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 16,
           "requestCount": 6,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 7,
+            "request": 16
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -777,9 +861,16 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 17,
           "requestCount": 7,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 8,
+            "request": 17
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -810,9 +901,16 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 18,
           "requestCount": 8,
-          "expect": "jevRequestIssued"
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 9,
+            "request": 18
+          }
         },
         {
           "kind": "jevRequestStarted",
@@ -843,7 +941,6 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": null,
           "requestCount": 8,
           "expect": "reservationReleased,reviewRecorded,jevRequestUnavailable"
         },
@@ -898,9 +995,124 @@
           "selected": true,
           "currentWork": true,
           "physicalAvailable": true,
-          "requestAfter": 21,
           "requestCount": 8,
+          "expect": "jevRequestIssued",
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 1,
+            "lifetime": 1,
+            "round": 1,
+            "operation": 20,
+            "request": 21
+          }
+        }
+      ]
+    },
+    {
+      "name": "retired work ignores late Jev observation, releases permit, and rejects duplicate",
+      "events": [
+        {
+          "kind": "openRound",
+          "partition": 9,
+          "lifetime": 5,
+          "expect": "roundStarted"
+        },
+        {
+          "kind": "openRound",
+          "partition": 7,
+          "lifetime": 11,
+          "expect": "roundStarted"
+        },
+        {
+          "kind": "beginPreparation",
+          "partition": 7,
+          "lifetime": 11,
+          "round": 2,
+          "bytes": 10,
+          "expect": "prepare"
+        },
+        {
+          "kind": "preparationCompleted",
+          "partition": 7,
+          "lifetime": 11,
+          "round": 2,
+          "operation": 1,
+          "unitBytes": [
+            10
+          ],
+          "expect": "preparationReleased,unitAdmitted"
+        },
+        {
+          "kind": "startReview",
+          "partition": 7,
+          "lifetime": 11,
+          "round": 2,
+          "operation": 2,
+          "expect": "reviewStarted"
+        },
+        {
+          "kind": "jevRequestReady",
+          "partition": 7,
+          "lifetime": 11,
+          "round": 2,
+          "operation": 2,
+          "rootValid": true,
+          "configurationValid": true,
+          "credentialReady": true,
+          "selected": true,
+          "currentWork": true,
+          "physicalAvailable": true,
+          "issuedRequest": {
+            "kind": "jevRequestIssued",
+            "partition": 7,
+            "lifetime": 11,
+            "round": 2,
+            "operation": 2,
+            "request": 3
+          },
+          "requestCount": 1,
           "expect": "jevRequestIssued"
+        },
+        {
+          "kind": "jevRequestStarted",
+          "partition": 7,
+          "lifetime": 11,
+          "round": 2,
+          "operation": 2,
+          "request": 3,
+          "expect": "jevRequestStartRecorded"
+        },
+        {
+          "kind": "retirePartition",
+          "partition": 7,
+          "lifetime": 11,
+          "round": 2,
+          "requestCount": 1,
+          "expect": "reservationReleased,cancelWork,partitionRetired"
+        },
+        {
+          "kind": "jevRequestSettled",
+          "partition": 7,
+          "lifetime": 11,
+          "round": 2,
+          "operation": 2,
+          "request": 3,
+          "outcome": "clear",
+          "currentWork": false,
+          "requestCount": 0,
+          "expect": "jevObservationIgnored"
+        },
+        {
+          "kind": "jevRequestSettled",
+          "partition": 7,
+          "lifetime": 11,
+          "round": 2,
+          "operation": 2,
+          "request": 3,
+          "outcome": "clear",
+          "currentWork": false,
+          "requestCount": 0,
+          "expect": "rejected:StaleOperation"
         }
       ]
     }
