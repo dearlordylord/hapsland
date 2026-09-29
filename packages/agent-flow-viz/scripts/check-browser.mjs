@@ -264,3 +264,5 @@ try {
   await browser?.close();
   await server.close();
 }
+
+await import("./check-compiled-limits.mjs");
