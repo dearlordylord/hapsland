@@ -1,0 +1,2007 @@
+{
+  "schemaVersion": 1,
+  "status": "unapproved-offline-comparator-proposal",
+  "corpusManifestSha256": "c98080309609ef839b2bfcedf70f16872d7f07c71864114e5b06b35e3e21d0f2",
+  "proposedV2PackSha256": "978f1950520320efb3ef9bb684a6b12e0baae4b30af55feebf7688a6a38f06b1",
+  "semanticDecision": {
+    "questionAndCriteriaIdenticalAcrossArms": true,
+    "threshold": 0.7,
+    "v2RuleId": "noul-type-v2-proposal/r2_meaningless_combinations",
+    "currentV1RuleId": "r2_meaningless_combinations"
+  },
+  "providerHttpEnvelope": {
+    "status": "unverified",
+    "exactBytes": null
+  },
+  "provenance": {
+    "focusedDiff": "#16 corrected focused-hunk concept, adapted as zero-context T fixture before/after hunk; unapproved new Effect input contract",
+    "wholeFile": "#16 whole post-edit file scope, adapted to T fixture root.ts; unapproved new Effect input contract",
+    "v1Type": "current same-file named-type direct-event preparation and preparedProviderInput"
+  },
+  "cases": [
+    {
+      "id": "T01",
+      "category": "context-required-positive",
+      "expectedBand": ">0.70",
+      "sourceHashes": [
+        {
+          "path": "cases/T01/root.ts",
+          "sha256": "21cf7e43ea225f1014075c59aae99c9706a43008f84aa1942ad68955d47fea25",
+          "bytes": 104
+        },
+        {
+          "path": "cases/T01/root.before.ts",
+          "sha256": "1b7ae451556628191a09befff487ed6c516a5c93d15e19ae840a77f01b2eff57",
+          "bytes": 82
+        }
+      ],
+      "patchSha256": "5c88ec5250fa03c33191b5000958895aa2638b7d7b38a59f024e7798de4b35b1",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [
+              "root.ts"
+            ],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 162
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "b872a65dfa72de0640dfc1a63f617a281c5084347cf7cee72b83d195a4b78207"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -2,1 +2,1 @@\n-export interface Receipt { state: Status }\n+export interface Receipt { state: Status; deliveredAt?: number }"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -2,1 +2,1 @@\n-export interface Receipt { state: Status }\n+export interface Receipt { state: Status; deliveredAt?: number }"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 322,
+          "localRequestBytes": 1673,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 104
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "21cf7e43ea225f1014075c59aae99c9706a43008f84aa1942ad68955d47fea25"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "type Status = \"pending\" | \"delivered\";\nexport interface Receipt { state: Status; deliveredAt?: number }\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "type Status = \"pending\" | \"delivered\";\nexport interface Receipt { state: Status; deliveredAt?: number }\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 255,
+          "localRequestBytes": 1606,
+          "providerHttpEnvelopeBytes": null
+        },
+        "v1Type": {
+          "contractStatus": "current-offline-production-path",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [
+              "root.ts"
+            ],
+            "sourceFieldUtf8Bytes": 102
+          },
+          "derivation": {
+            "algorithm": "current-v1-preparedProviderInput",
+            "selectedRoot": "Receipt"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export interface Receipt { state: Status; deliveredAt?: number }"
+            },
+            "evidence": [
+              {
+                "kind": "expanded",
+                "site": {
+                  "symbol": "Status"
+                },
+                "node": {
+                  "artifact": {
+                    "id": "root.ts:type-alias:Status",
+                    "kind": "type-alias",
+                    "name": "Status",
+                    "source": "type Status = \"pending\" | \"delivered\";",
+                    "sourceHash": "585ed3e914d933bf8e5fafa15e7ab222f359245290c2490e0ffc7518123b1e6d"
+                  },
+                  "references": []
+                }
+              }
+            ],
+            "inputContract": {
+              "id": "direct-event/same-file-named-types/v1",
+              "evidence": "complete named direct-event unit"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export interface Receipt { state: Status; deliveredAt?: number }"
+              },
+              "evidence": [
+                {
+                  "kind": "expanded",
+                  "site": {
+                    "symbol": "Status"
+                  },
+                  "node": {
+                    "artifact": {
+                      "id": "root.ts:type-alias:Status",
+                      "kind": "type-alias",
+                      "name": "Status",
+                      "source": "type Status = \"pending\" | \"delivered\";",
+                      "sourceHash": "585ed3e914d933bf8e5fafa15e7ab222f359245290c2490e0ffc7518123b1e6d"
+                    },
+                    "references": []
+                  }
+                }
+              ],
+              "inputContract": {
+                "id": "direct-event/same-file-named-types/v1",
+                "evidence": "complete named direct-event unit"
+              }
+            },
+            "decisions": {
+              "r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 519,
+          "localRequestBytes": 1848,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T02",
+      "category": "context-required-positive",
+      "expectedBand": ">0.70",
+      "sourceHashes": [
+        {
+          "path": "cases/T02/root.ts",
+          "sha256": "e9534447c6507332facb0181a3bc9618a14b6bc8d308ebe92f978fca8920ea1b",
+          "bytes": 120
+        },
+        {
+          "path": "cases/T02/support.ts",
+          "sha256": "db866f3674628ab1c1b17307d09b5190031e13510d4ad0d7b4298ca12af82433",
+          "bytes": 54
+        }
+      ],
+      "patchSha256": "54b59fa7fbea8dbb58270c1c08216b1ff93fac210481212bd087531f58572066",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 174
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "9eb3dc4c06fd4c7725aac78ac725f9179a9b969d4e90c0e1815d4dfde5a02f19"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,2 @@\n+import type { DeliveryStatus } from \"./support\";\n+export type Receipt = { state: DeliveryStatus; deliveredAt?: number };"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,2 @@\n+import type { DeliveryStatus } from \"./support\";\n+export type Receipt = { state: DeliveryStatus; deliveredAt?: number };"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 336,
+          "localRequestBytes": 1687,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 120
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "e9534447c6507332facb0181a3bc9618a14b6bc8d308ebe92f978fca8920ea1b"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "import type { DeliveryStatus } from \"./support\";\nexport type Receipt = { state: DeliveryStatus; deliveredAt?: number };\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "import type { DeliveryStatus } from \"./support\";\nexport type Receipt = { state: DeliveryStatus; deliveredAt?: number };\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 269,
+          "localRequestBytes": 1620,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T03",
+      "category": "context-required-positive",
+      "expectedBand": ">0.70",
+      "sourceHashes": [
+        {
+          "path": "cases/T03/root.ts",
+          "sha256": "786c60904afdf582deaff4256d3b3a611db5443d1f12e61432aea6920d80b354",
+          "bytes": 118
+        },
+        {
+          "path": "cases/T03/support.ts",
+          "sha256": "8d8d512299e6c71e7ab30c590ccc0ed4bc5aceb220ecf7609445aca747a41634",
+          "bytes": 63
+        }
+      ],
+      "patchSha256": "bc4cb192eba5645f1b8e5e62551fa78989642b3aa398cc16f94428debdda6087",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 172
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "eedd95dbe135e531381b3ada4223b23e3781a6caa9120e4253aa1a44928545dd"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,2 @@\n+import type { SelectionMode } from \"./support\";\n+export interface Picker { mode: SelectionMode; selections: string[] }"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,2 @@\n+import type { SelectionMode } from \"./support\";\n+export interface Picker { mode: SelectionMode; selections: string[] }"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 334,
+          "localRequestBytes": 1685,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 118
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "786c60904afdf582deaff4256d3b3a611db5443d1f12e61432aea6920d80b354"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "import type { SelectionMode } from \"./support\";\nexport interface Picker { mode: SelectionMode; selections: string[] }\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "import type { SelectionMode } from \"./support\";\nexport interface Picker { mode: SelectionMode; selections: string[] }\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 267,
+          "localRequestBytes": 1618,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T04",
+      "category": "multi-root-update-positive",
+      "expectedBand": ">0.70",
+      "sourceHashes": [
+        {
+          "path": "cases/T04/root.ts",
+          "sha256": "9fd170187d170f5d779d980c9cbac7b4b9119b791e79e89334dea7c641a0f23b",
+          "bytes": 112
+        },
+        {
+          "path": "cases/T04/root.before.ts",
+          "sha256": "bd06ce749bad8dc6d32fa82065be0f776589280a45eb32fcfe99d9e569324cd6",
+          "bytes": 108
+        }
+      ],
+      "patchSha256": "1a3862c39b192eff99cdb78b742aaa491610554f692fb38a73faea763ac8fce3",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [
+              "root.ts"
+            ],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 188
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "a57a48ce364b690b4848fd88b184e2025b67a1645cd6f73cb4c87962606b9545"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export interface Session { authenticated: true; userId: string }\n+export interface Session { authenticated: boolean; userId?: string }"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export interface Session { authenticated: true; userId: string }\n+export interface Session { authenticated: boolean; userId?: string }"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 348,
+          "localRequestBytes": 1699,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 112
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "9fd170187d170f5d779d980c9cbac7b4b9119b791e79e89334dea7c641a0f23b"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export interface Session { authenticated: boolean; userId?: string }\nexport type Unrelated = { token: string };\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export interface Session { authenticated: boolean; userId?: string }\nexport type Unrelated = { token: string };\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 259,
+          "localRequestBytes": 1610,
+          "providerHttpEnvelopeBytes": null
+        },
+        "v1Type": {
+          "contractStatus": "current-offline-production-path",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 68
+          },
+          "derivation": {
+            "algorithm": "current-v1-preparedProviderInput",
+            "selectedRoot": "Session"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export interface Session { authenticated: boolean; userId?: string }"
+            },
+            "evidence": [],
+            "inputContract": {
+              "id": "direct-event/same-file-named-types/v1",
+              "evidence": "complete named direct-event unit"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export interface Session { authenticated: boolean; userId?: string }"
+              },
+              "evidence": [],
+              "inputContract": {
+                "id": "direct-event/same-file-named-types/v1",
+                "evidence": "complete named direct-event unit"
+              }
+            },
+            "decisions": {
+              "r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 236,
+          "localRequestBytes": 1565,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T05",
+      "category": "clear-negative",
+      "expectedBand": "<0.30",
+      "sourceHashes": [
+        {
+          "path": "cases/T05/root.ts",
+          "sha256": "b1e5b9dfe3eaa1a731dd5b31daaace7b86bba15f962561638e02d36ba8a5bd62",
+          "bytes": 90
+        }
+      ],
+      "patchSha256": "bd42cd4d98788d1a4f8f4d1b8a52392e9676b99cfc136783ace492c3d75c227d",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 143
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "97bd7d1a36a87dc129ea66186dfa12936fd21c42add3a374fd75ec5dffbdec74"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,1 @@\n+export type Receipt = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,1 @@\n+export type Receipt = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 306,
+          "localRequestBytes": 1657,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 90
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "b1e5b9dfe3eaa1a731dd5b31daaace7b86bba15f962561638e02d36ba8a5bd62"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export type Receipt = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export type Receipt = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 240,
+          "localRequestBytes": 1591,
+          "providerHttpEnvelopeBytes": null
+        },
+        "v1Type": {
+          "contractStatus": "current-offline-production-path",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 89
+          },
+          "derivation": {
+            "algorithm": "current-v1-preparedProviderInput",
+            "selectedRoot": "Receipt"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export type Receipt = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };"
+            },
+            "evidence": [],
+            "inputContract": {
+              "id": "direct-event/same-file-named-types/v1",
+              "evidence": "complete named direct-event unit"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export type Receipt = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };"
+              },
+              "evidence": [],
+              "inputContract": {
+                "id": "direct-event/same-file-named-types/v1",
+                "evidence": "complete named direct-event unit"
+              }
+            },
+            "decisions": {
+              "r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 261,
+          "localRequestBytes": 1590,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T06",
+      "category": "clear-negative",
+      "expectedBand": "<0.30",
+      "sourceHashes": [
+        {
+          "path": "cases/T06/root.ts",
+          "sha256": "aabd9d46df6b550e7240e4fd53fe1f0d7f3b8a94348e932890236ded1e24093b",
+          "bytes": 64
+        }
+      ],
+      "patchSha256": "e895d62a477c827033753a154f19aa34d13d869d958a84fcabe87c41fe856344",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 117
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "fac78c14541d7cf389ba4d32a9840cbcf1f16d24ccaa2ca56b3e678c0c71fe99"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,1 @@\n+export interface Customer { nickname?: string; phone?: string }"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,1 @@\n+export interface Customer { nickname?: string; phone?: string }"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 276,
+          "localRequestBytes": 1627,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 64
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "aabd9d46df6b550e7240e4fd53fe1f0d7f3b8a94348e932890236ded1e24093b"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export interface Customer { nickname?: string; phone?: string }\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export interface Customer { nickname?: string; phone?: string }\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 210,
+          "localRequestBytes": 1561,
+          "providerHttpEnvelopeBytes": null
+        },
+        "v1Type": {
+          "contractStatus": "current-offline-production-path",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 63
+          },
+          "derivation": {
+            "algorithm": "current-v1-preparedProviderInput",
+            "selectedRoot": "Customer"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export interface Customer { nickname?: string; phone?: string }"
+            },
+            "evidence": [],
+            "inputContract": {
+              "id": "direct-event/same-file-named-types/v1",
+              "evidence": "complete named direct-event unit"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export interface Customer { nickname?: string; phone?: string }"
+              },
+              "evidence": [],
+              "inputContract": {
+                "id": "direct-event/same-file-named-types/v1",
+                "evidence": "complete named direct-event unit"
+              }
+            },
+            "decisions": {
+              "r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 231,
+          "localRequestBytes": 1560,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T07",
+      "category": "similar-clear-negative",
+      "expectedBand": "<0.30",
+      "sourceHashes": [
+        {
+          "path": "cases/T07/root.ts",
+          "sha256": "1306515a5ebe2d4b243a38cb5a1be9fd469abca86dfa4592725fd5b139e8383c",
+          "bytes": 112
+        },
+        {
+          "path": "cases/T07/root.before.ts",
+          "sha256": "9c0e70cdb560973f8eb55ee5359ec734317ba24a2425346976a1a6472d930b88",
+          "bytes": 145
+        }
+      ],
+      "patchSha256": "a2e881c59943f31918067eb247c9ca3981db46a7d046679becbf1245db362777",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [
+              "root.ts"
+            ],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 147
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "9cbdd34c009e5e617c68e298d829a50788854d8591a7f0942632d943052ae321"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -2,1 +2,1 @@\n-export type Receipt = { state: string; deliveredAt?: number };\n+export type Receipt = Status;"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -2,1 +2,1 @@\n-export type Receipt = { state: string; deliveredAt?: number };\n+export type Receipt = Status;"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 307,
+          "localRequestBytes": 1658,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 112
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "1306515a5ebe2d4b243a38cb5a1be9fd469abca86dfa4592725fd5b139e8383c"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "type Status = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };\nexport type Receipt = Status;\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "type Status = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };\nexport type Receipt = Status;\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 263,
+          "localRequestBytes": 1614,
+          "providerHttpEnvelopeBytes": null
+        },
+        "v1Type": {
+          "contractStatus": "current-offline-production-path",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [
+              "root.ts"
+            ],
+            "sourceFieldUtf8Bytes": 110
+          },
+          "derivation": {
+            "algorithm": "current-v1-preparedProviderInput",
+            "selectedRoot": "Receipt"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export type Receipt = Status;"
+            },
+            "evidence": [
+              {
+                "kind": "expanded",
+                "site": {
+                  "symbol": "Status"
+                },
+                "node": {
+                  "artifact": {
+                    "id": "root.ts:type-alias:Status",
+                    "kind": "type-alias",
+                    "name": "Status",
+                    "source": "type Status = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };",
+                    "sourceHash": "9189ebaf54cc6fdcd7a6f500e2c1891ab54d595378201ec60eea2959c5ed3ffc"
+                  },
+                  "references": []
+                }
+              }
+            ],
+            "inputContract": {
+              "id": "direct-event/same-file-named-types/v1",
+              "evidence": "complete named direct-event unit"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export type Receipt = Status;"
+              },
+              "evidence": [
+                {
+                  "kind": "expanded",
+                  "site": {
+                    "symbol": "Status"
+                  },
+                  "node": {
+                    "artifact": {
+                      "id": "root.ts:type-alias:Status",
+                      "kind": "type-alias",
+                      "name": "Status",
+                      "source": "type Status = { state: \"pending\" } | { state: \"delivered\"; deliveredAt: number };",
+                      "sourceHash": "9189ebaf54cc6fdcd7a6f500e2c1891ab54d595378201ec60eea2959c5ed3ffc"
+                    },
+                    "references": []
+                  }
+                }
+              ],
+              "inputContract": {
+                "id": "direct-event/same-file-named-types/v1",
+                "evidence": "complete named direct-event unit"
+              }
+            },
+            "decisions": {
+              "r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 527,
+          "localRequestBytes": 1856,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T08",
+      "category": "similar-clear-negative",
+      "expectedBand": "<0.30",
+      "sourceHashes": [
+        {
+          "path": "cases/T08/root.ts",
+          "sha256": "c1bad6de3a23a86f8dc332424d521f1ab26673d7cd2250dca0f4935b277726e1",
+          "bytes": 85
+        },
+        {
+          "path": "cases/T08/support.ts",
+          "sha256": "ded9101aee17b8718506c97ec7e43ed2905eb0e7256d2f29a8d49d5c458f5dd0",
+          "bytes": 96
+        }
+      ],
+      "patchSha256": "eec0c7433b58e3a53fabc5c3661686fdd949fe59772685e9b5598f48573ca796",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 139
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "de414bc8200d97685c5c73a241594cb9ac487b56b40b0bd56e9409c3c606fb58"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,2 @@\n+import type { ReceiptFields } from \"./support\";\n+export type Receipt = ReceiptFields;"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -0,0 +1,2 @@\n+import type { ReceiptFields } from \"./support\";\n+export type Receipt = ReceiptFields;"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 301,
+          "localRequestBytes": 1652,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 85
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "c1bad6de3a23a86f8dc332424d521f1ab26673d7cd2250dca0f4935b277726e1"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "import type { ReceiptFields } from \"./support\";\nexport type Receipt = ReceiptFields;\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "import type { ReceiptFields } from \"./support\";\nexport type Receipt = ReceiptFields;\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 234,
+          "localRequestBytes": 1585,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T09",
+      "category": "diff-control-positive",
+      "expectedBand": ">0.70",
+      "sourceHashes": [
+        {
+          "path": "cases/T09/root.ts",
+          "sha256": "e44e55c87109b5446a002b6724da9a9cfd85a6c329c1cacd2e29c29388d5271a",
+          "bytes": 69
+        },
+        {
+          "path": "cases/T09/root.before.ts",
+          "sha256": "4fb6db4e05d4cc2d95d21dba3e69acbfc590b9e1390baca87989f57086ac75a6",
+          "bytes": 65
+        }
+      ],
+      "patchSha256": "1a3862c39b192eff99cdb78b742aaa491610554f692fb38a73faea763ac8fce3",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [
+              "root.ts"
+            ],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 188
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "a57a48ce364b690b4848fd88b184e2025b67a1645cd6f73cb4c87962606b9545"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export interface Session { authenticated: true; userId: string }\n+export interface Session { authenticated: boolean; userId?: string }"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export interface Session { authenticated: true; userId: string }\n+export interface Session { authenticated: boolean; userId?: string }"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 348,
+          "localRequestBytes": 1699,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 69
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "e44e55c87109b5446a002b6724da9a9cfd85a6c329c1cacd2e29c29388d5271a"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export interface Session { authenticated: boolean; userId?: string }\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export interface Session { authenticated: boolean; userId?: string }\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 215,
+          "localRequestBytes": 1566,
+          "providerHttpEnvelopeBytes": null
+        },
+        "v1Type": {
+          "contractStatus": "current-offline-production-path",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 68
+          },
+          "derivation": {
+            "algorithm": "current-v1-preparedProviderInput",
+            "selectedRoot": "Session"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export interface Session { authenticated: boolean; userId?: string }"
+            },
+            "evidence": [],
+            "inputContract": {
+              "id": "direct-event/same-file-named-types/v1",
+              "evidence": "complete named direct-event unit"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export interface Session { authenticated: boolean; userId?: string }"
+              },
+              "evidence": [],
+              "inputContract": {
+                "id": "direct-event/same-file-named-types/v1",
+                "evidence": "complete named direct-event unit"
+              }
+            },
+            "decisions": {
+              "r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 236,
+          "localRequestBytes": 1565,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T10",
+      "category": "diff-control-clear",
+      "expectedBand": "<0.30",
+      "sourceHashes": [
+        {
+          "path": "cases/T10/root.ts",
+          "sha256": "bcffd334d3edf86396676747d84312590f5aee1543305d42a8bf95a1dea34f39",
+          "bytes": 90
+        },
+        {
+          "path": "cases/T10/root.before.ts",
+          "sha256": "6e20142ad0f0bde0a56b27472318cc98bcd6e408dac3f46008b8ebf4ee8e6912",
+          "bytes": 67
+        }
+      ],
+      "patchSha256": "0e9616170184165307416e8bdca1bf684db4c21fcb72a39dfdd2b2699f380bd6",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [
+              "root.ts"
+            ],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 211
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "df9d05b74664c5bb339286e54a28f4fb48f907b4324f093c05fcf4f4ef8a8c23"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export type Session = { authenticated: boolean; userId?: string };\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export type Session = { authenticated: boolean; userId?: string };\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 371,
+          "localRequestBytes": 1722,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 90
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "bcffd334d3edf86396676747d84312590f5aee1543305d42a8bf95a1dea34f39"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export type Session = { authenticated: false } | { authenticated: true; userId: string };\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export type Session = { authenticated: false } | { authenticated: true; userId: string };\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 236,
+          "localRequestBytes": 1587,
+          "providerHttpEnvelopeBytes": null
+        },
+        "v1Type": {
+          "contractStatus": "current-offline-production-path",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 89
+          },
+          "derivation": {
+            "algorithm": "current-v1-preparedProviderInput",
+            "selectedRoot": "Session"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export type Session = { authenticated: false } | { authenticated: true; userId: string };"
+            },
+            "evidence": [],
+            "inputContract": {
+              "id": "direct-event/same-file-named-types/v1",
+              "evidence": "complete named direct-event unit"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export type Session = { authenticated: false } | { authenticated: true; userId: string };"
+              },
+              "evidence": [],
+              "inputContract": {
+                "id": "direct-event/same-file-named-types/v1",
+                "evidence": "complete named direct-event unit"
+              }
+            },
+            "decisions": {
+              "r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 257,
+          "localRequestBytes": 1586,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T11",
+      "category": "whole-file-dilution-positive",
+      "expectedBand": ">0.70",
+      "sourceHashes": [
+        {
+          "path": "cases/T11/root.ts",
+          "sha256": "a9e9794197119511e900d88c67d34347c676f88378edbda598f2e566d9200a2c",
+          "bytes": 1692
+        },
+        {
+          "path": "cases/T11/root.before.ts",
+          "sha256": "8dd25221451df60055043693c842715da3bbd7e2bccf29ed2274d043fe875d93",
+          "bytes": 1713
+        }
+      ],
+      "patchSha256": "c8d407393a2f37921211b5ec4070a7208374419c004e74c1640e2dd90512d1d2",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [
+              "root.ts"
+            ],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 213
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "c75041a16a786948fc0276d0eb16cf6fdc50e14982e6ef20a64806d9c5066b7f"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export type Session = { authenticated: false } | { authenticated: true; userId: string };\n+export interface Session { authenticated: boolean; userId?: string }"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export type Session = { authenticated: false } | { authenticated: true; userId: string };\n+export interface Session { authenticated: boolean; userId?: string }"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 373,
+          "localRequestBytes": 1724,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 1692
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "a9e9794197119511e900d88c67d34347c676f88378edbda598f2e566d9200a2c"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export interface Session { authenticated: boolean; userId?: string }\ninterface Unrelated01 { value: string; index: 1 }\ninterface Unrelated02 { value: string; index: 2 }\ninterface Unrelated03 { value: string; index: 3 }\ninterface Unrelated04 { value: string; index: 4 }\ninterface Unrelated05 { value: string; index: 5 }\ninterface Unrelated06 { value: string; index: 6 }\ninterface Unrelated07 { value: string; index: 7 }\ninterface Unrelated08 { value: string; index: 8 }\ninterface Unrelated09 { value: string; index: 9 }\ninterface Unrelated10 { value: string; index: 10 }\ninterface Unrelated11 { value: string; index: 11 }\ninterface Unrelated12 { value: string; index: 12 }\ninterface Unrelated13 { value: string; index: 13 }\ninterface Unrelated14 { value: string; index: 14 }\ninterface Unrelated15 { value: string; index: 15 }\ninterface Unrelated16 { value: string; index: 16 }\ninterface Unrelated17 { value: string; index: 17 }\ninterface Unrelated18 { value: string; index: 18 }\ninterface Unrelated19 { value: string; index: 19 }\ninterface Unrelated20 { value: string; index: 20 }\ninterface Unrelated21 { value: string; index: 21 }\ninterface Unrelated22 { value: string; index: 22 }\ninterface Unrelated23 { value: string; index: 23 }\ninterface Unrelated24 { value: string; index: 24 }\ninterface Unrelated25 { value: string; index: 25 }\ninterface Unrelated26 { value: string; index: 26 }\ninterface Unrelated27 { value: string; index: 27 }\ninterface Unrelated28 { value: string; index: 28 }\ninterface Unrelated29 { value: string; index: 29 }\ninterface Unrelated30 { value: string; index: 30 }\ninterface Unrelated31 { value: string; index: 31 }\ninterface Unrelated32 { value: string; index: 32 }\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export interface Session { authenticated: boolean; userId?: string }\ninterface Unrelated01 { value: string; index: 1 }\ninterface Unrelated02 { value: string; index: 2 }\ninterface Unrelated03 { value: string; index: 3 }\ninterface Unrelated04 { value: string; index: 4 }\ninterface Unrelated05 { value: string; index: 5 }\ninterface Unrelated06 { value: string; index: 6 }\ninterface Unrelated07 { value: string; index: 7 }\ninterface Unrelated08 { value: string; index: 8 }\ninterface Unrelated09 { value: string; index: 9 }\ninterface Unrelated10 { value: string; index: 10 }\ninterface Unrelated11 { value: string; index: 11 }\ninterface Unrelated12 { value: string; index: 12 }\ninterface Unrelated13 { value: string; index: 13 }\ninterface Unrelated14 { value: string; index: 14 }\ninterface Unrelated15 { value: string; index: 15 }\ninterface Unrelated16 { value: string; index: 16 }\ninterface Unrelated17 { value: string; index: 17 }\ninterface Unrelated18 { value: string; index: 18 }\ninterface Unrelated19 { value: string; index: 19 }\ninterface Unrelated20 { value: string; index: 20 }\ninterface Unrelated21 { value: string; index: 21 }\ninterface Unrelated22 { value: string; index: 22 }\ninterface Unrelated23 { value: string; index: 23 }\ninterface Unrelated24 { value: string; index: 24 }\ninterface Unrelated25 { value: string; index: 25 }\ninterface Unrelated26 { value: string; index: 26 }\ninterface Unrelated27 { value: string; index: 27 }\ninterface Unrelated28 { value: string; index: 28 }\ninterface Unrelated29 { value: string; index: 29 }\ninterface Unrelated30 { value: string; index: 30 }\ninterface Unrelated31 { value: string; index: 31 }\ninterface Unrelated32 { value: string; index: 32 }\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 1870,
+          "localRequestBytes": 3221,
+          "providerHttpEnvelopeBytes": null
+        },
+        "v1Type": {
+          "contractStatus": "current-offline-production-path",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 68
+          },
+          "derivation": {
+            "algorithm": "current-v1-preparedProviderInput",
+            "selectedRoot": "Session"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export interface Session { authenticated: boolean; userId?: string }"
+            },
+            "evidence": [],
+            "inputContract": {
+              "id": "direct-event/same-file-named-types/v1",
+              "evidence": "complete named direct-event unit"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export interface Session { authenticated: boolean; userId?: string }"
+              },
+              "evidence": [],
+              "inputContract": {
+                "id": "direct-event/same-file-named-types/v1",
+                "evidence": "complete named direct-event unit"
+              }
+            },
+            "decisions": {
+              "r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 236,
+          "localRequestBytes": 1565,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    },
+    {
+      "id": "T12",
+      "category": "whole-file-dilution-clear",
+      "expectedBand": "<0.30",
+      "sourceHashes": [
+        {
+          "path": "cases/T12/root.ts",
+          "sha256": "8dd25221451df60055043693c842715da3bbd7e2bccf29ed2274d043fe875d93",
+          "bytes": 1713
+        },
+        {
+          "path": "cases/T12/root.before.ts",
+          "sha256": "a9e9794197119511e900d88c67d34347c676f88378edbda598f2e566d9200a2c",
+          "bytes": 1692
+        }
+      ],
+      "patchSha256": "ff827493aa10eb5e8386cb856071e8c6ee7d06770b61337ec48596dc195aacfb",
+      "arms": {
+        "focusedDiff": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [
+              "root.ts"
+            ],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 213
+          },
+          "derivation": {
+            "algorithm": "focused-unified-zero-context-hunk-proposal/1",
+            "sourceHash": "cbde7f99135bc24877a8842fce3de250d9656e13ef5ff83940399f05b626cb37"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export interface Session { authenticated: boolean; userId?: string }\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };"
+            },
+            "inputContract": {
+              "id": "proposal/focused-unified-diff/v1",
+              "evidence": "verified root.ts zero-context edit hunk"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "--- before/root.ts\n+++ after/root.ts\n@@ -1,1 +1,1 @@\n-export interface Session { authenticated: boolean; userId?: string }\n+export type Session = { authenticated: false } | { authenticated: true; userId: string };"
+              },
+              "inputContract": {
+                "id": "proposal/focused-unified-diff/v1",
+                "evidence": "verified root.ts zero-context edit hunk"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 373,
+          "localRequestBytes": 1724,
+          "providerHttpEnvelopeBytes": null
+        },
+        "wholeFile": {
+          "contractStatus": "unapproved-comparator-proposal",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 1713
+          },
+          "derivation": {
+            "algorithm": "exact-post-edit-root-file/1",
+            "sourceHash": "8dd25221451df60055043693c842715da3bbd7e2bccf29ed2274d043fe875d93"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export type Session = { authenticated: false } | { authenticated: true; userId: string };\ninterface Unrelated01 { value: string; index: 1 }\ninterface Unrelated02 { value: string; index: 2 }\ninterface Unrelated03 { value: string; index: 3 }\ninterface Unrelated04 { value: string; index: 4 }\ninterface Unrelated05 { value: string; index: 5 }\ninterface Unrelated06 { value: string; index: 6 }\ninterface Unrelated07 { value: string; index: 7 }\ninterface Unrelated08 { value: string; index: 8 }\ninterface Unrelated09 { value: string; index: 9 }\ninterface Unrelated10 { value: string; index: 10 }\ninterface Unrelated11 { value: string; index: 11 }\ninterface Unrelated12 { value: string; index: 12 }\ninterface Unrelated13 { value: string; index: 13 }\ninterface Unrelated14 { value: string; index: 14 }\ninterface Unrelated15 { value: string; index: 15 }\ninterface Unrelated16 { value: string; index: 16 }\ninterface Unrelated17 { value: string; index: 17 }\ninterface Unrelated18 { value: string; index: 18 }\ninterface Unrelated19 { value: string; index: 19 }\ninterface Unrelated20 { value: string; index: 20 }\ninterface Unrelated21 { value: string; index: 21 }\ninterface Unrelated22 { value: string; index: 22 }\ninterface Unrelated23 { value: string; index: 23 }\ninterface Unrelated24 { value: string; index: 24 }\ninterface Unrelated25 { value: string; index: 25 }\ninterface Unrelated26 { value: string; index: 26 }\ninterface Unrelated27 { value: string; index: 27 }\ninterface Unrelated28 { value: string; index: 28 }\ninterface Unrelated29 { value: string; index: 29 }\ninterface Unrelated30 { value: string; index: 30 }\ninterface Unrelated31 { value: string; index: 31 }\ninterface Unrelated32 { value: string; index: 32 }\n"
+            },
+            "inputContract": {
+              "id": "proposal/whole-post-edit-file/v1",
+              "evidence": "exact post-edit root.ts file"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export type Session = { authenticated: false } | { authenticated: true; userId: string };\ninterface Unrelated01 { value: string; index: 1 }\ninterface Unrelated02 { value: string; index: 2 }\ninterface Unrelated03 { value: string; index: 3 }\ninterface Unrelated04 { value: string; index: 4 }\ninterface Unrelated05 { value: string; index: 5 }\ninterface Unrelated06 { value: string; index: 6 }\ninterface Unrelated07 { value: string; index: 7 }\ninterface Unrelated08 { value: string; index: 8 }\ninterface Unrelated09 { value: string; index: 9 }\ninterface Unrelated10 { value: string; index: 10 }\ninterface Unrelated11 { value: string; index: 11 }\ninterface Unrelated12 { value: string; index: 12 }\ninterface Unrelated13 { value: string; index: 13 }\ninterface Unrelated14 { value: string; index: 14 }\ninterface Unrelated15 { value: string; index: 15 }\ninterface Unrelated16 { value: string; index: 16 }\ninterface Unrelated17 { value: string; index: 17 }\ninterface Unrelated18 { value: string; index: 18 }\ninterface Unrelated19 { value: string; index: 19 }\ninterface Unrelated20 { value: string; index: 20 }\ninterface Unrelated21 { value: string; index: 21 }\ninterface Unrelated22 { value: string; index: 22 }\ninterface Unrelated23 { value: string; index: 23 }\ninterface Unrelated24 { value: string; index: 24 }\ninterface Unrelated25 { value: string; index: 25 }\ninterface Unrelated26 { value: string; index: 26 }\ninterface Unrelated27 { value: string; index: 27 }\ninterface Unrelated28 { value: string; index: 28 }\ninterface Unrelated29 { value: string; index: 29 }\ninterface Unrelated30 { value: string; index: 30 }\ninterface Unrelated31 { value: string; index: 31 }\ninterface Unrelated32 { value: string; index: 32 }\n"
+              },
+              "inputContract": {
+                "id": "proposal/whole-post-edit-file/v1",
+                "evidence": "exact post-edit root.ts file"
+              }
+            },
+            "decisions": {
+              "noul-type-v2-proposal/r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 1891,
+          "localRequestBytes": 3242,
+          "providerHttpEnvelopeBytes": null
+        },
+        "v1Type": {
+          "contractStatus": "current-offline-production-path",
+          "sourceScope": {
+            "postEditPaths": [
+              "root.ts"
+            ],
+            "preEditPaths": [],
+            "supportingPostEditPaths": [],
+            "sourceFieldUtf8Bytes": 89
+          },
+          "derivation": {
+            "algorithm": "current-v1-preparedProviderInput",
+            "selectedRoot": "Session"
+          },
+          "providerInput": {
+            "artifact": {
+              "domain": "root.ts",
+              "source": "export type Session = { authenticated: false } | { authenticated: true; userId: string };"
+            },
+            "evidence": [],
+            "inputContract": {
+              "id": "direct-event/same-file-named-types/v1",
+              "evidence": "complete named direct-event unit"
+            }
+          },
+          "localRequest": {
+            "input": {
+              "artifact": {
+                "domain": "root.ts",
+                "source": "export type Session = { authenticated: false } | { authenticated: true; userId: string };"
+              },
+              "evidence": [],
+              "inputContract": {
+                "id": "direct-event/same-file-named-types/v1",
+                "evidence": "complete named direct-event unit"
+              }
+            },
+            "decisions": {
+              "r2_meaningless_combinations": {
+                "_tag": "Probability",
+                "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+                "criteria": {
+                  "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+                  "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+                }
+              }
+            }
+          },
+          "providerInputBytes": 257,
+          "localRequestBytes": 1586,
+          "providerHttpEnvelopeBytes": null
+        }
+      }
+    }
+  ]
+}
