@@ -155,7 +155,6 @@ type RoundWork = {
   readonly generation: number;
   readonly canonicalRound: number;
   readonly controller: AbortController;
-  readonly partitions: Set<string>;
   work: WorkCohort;
   readonly policyWork: BendWorkTracker;
   readonly discarded: { queued: number; running: number };
@@ -751,16 +750,14 @@ export class ResidentServer {
     }
     let round = composed ? this.#rounds.get(group) : undefined;
     if (generation !== undefined && round?.generation !== generation) {
-      const partitions = new Set<string>();
       const canonicalRound = this.#ledger.roundId(group);
-      round = { group, generation, canonicalRound, controller: new AbortController(), partitions,
+      round = { group, generation, canonicalRound, controller: new AbortController(),
         work: { id: randomUUID(), controller: new AbortController() },
         policyWork: new BendWorkTracker(this.#ledger, group, canonicalRound), discarded: { queued: 0, running: 0 } };
       this.#rounds.set(group, round);
     }
     const partition = group;
     const canonicalRound = round?.canonicalRound ?? this.#ledger.roundId(partition);
-    round?.partitions.add(partition);
     if (round !== undefined) this.#roundActivity.set(group, { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath });
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
     if (reservation === undefined) {
@@ -1891,7 +1888,7 @@ export class ResidentServer {
   #allowFinish(group: string, token: string, reason: RoundCloseReason): void {
     const counts = this.#composedDelivery.closureCounts(group);
     const closed = this.#composedDelivery.finishStop(group, token, true,
-      this.#now(), [...(this.#rounds.get(group)?.partitions ?? [])]);
+      this.#now());
     if (closed !== undefined) this.#closeRound(group, closed, reason, counts);
   }
 
@@ -1966,17 +1963,17 @@ export class ResidentServer {
     for (const job of discarded) this.#discardJob(job);
     for (const advice of [...this.#advice]) if (advice.round === round) this.#removeAdvice(advice.id);
     for (const [key, notice] of this.#noticeCooldowns) {
-      if (round.partitions.has(notice.partition) || notice.deliveryGroup === group) this.#releaseNoticeCooldown(key);
+      if (notice.partition === round.group) this.#releaseNoticeCooldown(key);
     }
-    for (const partition of round.partitions) this.#reuse.discardPartition(partition);
-    for (const [key, ticket] of this.#tickets) if (round.partitions.has(ticket.partition)) {
+    this.#reuse.discardPartition(round.group);
+    for (const [key, ticket] of this.#tickets) if (ticket.partition === round.group) {
       this.#tickets.delete(key);
       this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
       for (const unit of this.#ticketUnits) {
         if (unit.ticketId === ticket.generation) this.#ticketUnits.delete(unit);
       }
     }
-    for (const partition of round.partitions) this.#ledger.retireRound(partition, round.canonicalRound);
+    this.#ledger.retireRound(round.group, round.canonicalRound);
   }
 
   async #run(job: Job, cycle: number, sequence: number): Promise<void> {
@@ -2979,7 +2976,7 @@ export class ResidentServer {
       const group = adviceePartition(request.root, request.advicee);
       const counts = this.#composedDelivery.closureCounts(group);
       const closed = this.#composedDelivery.finishStop(group, request.token, request.close === true,
-        this.#now(), [...(this.#rounds.get(group)?.partitions ?? [])]);
+        this.#now());
       if (closed !== undefined) this.#closeRound(group, closed, request.reason ?? "no-advice", counts);
       return { status: "advanced" };
     }
@@ -3043,7 +3040,7 @@ export class ResidentServer {
         const ownUnfinished = round?.policyWork.unfinished() ?? 0;
         const extraUnfinished = Math.max(0, totalUnfinished - ownUnfinished);
         const gate = this.#composedDelivery.finishGate(group, request.finish.token,
-          extraUnfinished, request.finish.deadlineReached, [...(round?.partitions ?? [])]);
+          extraUnfinished, request.finish.deadlineReached);
         if (gate === undefined) return { status: "empty" };
         if (gate.status === "waiting") return { status: "pending" };
         if (round !== undefined && !this.#discardUnfinishedWork(round, gate)) {
