@@ -54,9 +54,9 @@ try {
   root = await makeGitFixture();
   await put(root, path, manifest.positive.source);
   await put(root, "rules.jsonc", JSON.stringify({
-    schemaVersion: 2, id: "security-probe", contentVersion: "1",
+    schemaVersion: 1, id: "security-probe", contentVersion: "1",
     rules: [{ ...oracleRule, reviewTargets: [{ artifactKind: "typeShape",
-      inputContract: "direct-event/type-shape/v2",
+      inputContract: "direct-event/type-shape/v1",
       capabilities: ["root-declaration", "resolved-outbound-types"] }] }],
   }));
   const config = { version: 1, packs: [{ id: "noul", enabled: false }, "rules.jsonc"] };

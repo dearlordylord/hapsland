@@ -8,6 +8,7 @@ import {
 import { parseJsonc } from "../configuration/jsonc.ts";
 import { validateGlobPattern } from "../matcher/glob.ts";
 import { RuleIdentitySchema } from "../domain/rule-identity.ts";
+import { FUNCTION_CAPABILITIES, FUNCTION_INPUT_CONTRACT, TYPE_CAPABILITIES, TYPE_INPUT_CONTRACT } from "./targets.ts";
 
 /** The first declarative pack wire schema. A pack's content version is separate. */
 export const RULE_PACK_SCHEMA_VERSION = 1 as const;
@@ -50,6 +51,20 @@ export const RuleCriteria = Schema.Struct({
 });
 export interface RuleCriteria extends Schema.Schema.Type<typeof RuleCriteria> {}
 
+export const TypeShapeReviewTarget = Schema.Struct({
+  artifactKind: Schema.Literal("typeShape"),
+  inputContract: Schema.Literal(TYPE_INPUT_CONTRACT),
+  capabilities: Schema.Array(Schema.Literals(TYPE_CAPABILITIES)),
+}).annotate({ identifier: "TypeShapeReviewTarget" });
+
+export const FunctionReviewTarget = Schema.Struct({
+  artifactKind: Schema.Literal("function"),
+  inputContract: Schema.Literal(FUNCTION_INPUT_CONTRACT),
+  capabilities: Schema.Array(Schema.Literals(FUNCTION_CAPABILITIES)),
+}).annotate({ identifier: "FunctionReviewTarget" });
+
+export const ReviewTarget = Schema.Union([TypeShapeReviewTarget, FunctionReviewTarget]);
+
 export const RuleDefinition = Schema.Struct({
   id: RuleIdentitySchema.annotate({
     description: "Stable rule identity within this pack; it cannot contain separators or whitespace.",
@@ -66,6 +81,9 @@ export const RuleDefinition = Schema.Struct({
     description: "Authored advice text attached to a qualifying result.",
   }),
   applicability: Schema.optionalKey(RuleApplicability),
+  reviewTargets: Schema.Array(ReviewTarget).annotate({
+    description: "Exact input contracts and evidence required by this rule.",
+  }),
 }).annotate({
   identifier: "RuleDefinition",
   description: "One declarative rule in a rule pack.",
@@ -110,22 +128,11 @@ const strict = {
   errors: "all",
 } as const;
 
-/** Keep v1's implicit target and probability semantics fixed at the wire boundary. */
-const rejectUnsupportedDeclarations = (value: unknown, source: string): void => {
+const checkVersion = (value: unknown, source: string): void => {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return;
   const document = value as Record<string, unknown>;
   if (document.schemaVersion !== undefined && document.schemaVersion !== RULE_PACK_SCHEMA_VERSION) {
     throw configurationError(source, "schemaVersion", `unsupported rule-pack schema version; supported version is ${RULE_PACK_SCHEMA_VERSION}`);
-  }
-  if (!Array.isArray(document.rules)) return;
-  for (const [index, candidate] of document.rules.entries()) {
-    if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) continue;
-    const rule = candidate as Record<string, unknown>;
-    for (const field of ["reviewTargets", "target", "resultForm"] as const) {
-      if (Object.prototype.hasOwnProperty.call(rule, field)) {
-        throw configurationError(source, `rules[${index}].${field}`, `${field} is unsupported in rule-pack schema v1`);
-      }
-    }
   }
 };
 
@@ -154,6 +161,19 @@ const validateRulePackSemantics = (pack: RulePack, source: string): void => {
       throw configurationError(source, `rules[${index}].id`, `duplicate rule identity '${rule.id}'`);
     }
     ids.add(rule.id);
+    if (rule.reviewTargets.length < 1 || rule.reviewTargets.length > 2) {
+      throw configurationError(source, `rules[${index}].reviewTargets`, "declare one or two review targets");
+    }
+    const kinds = new Set<string>();
+    for (const [targetIndex, target] of rule.reviewTargets.entries()) {
+      if (kinds.has(target.artifactKind)) {
+        throw configurationError(source, `rules[${index}].reviewTargets[${targetIndex}]`, "duplicate artifact kind");
+      }
+      kinds.add(target.artifactKind);
+      if (target.capabilities.length === 0 || new Set(target.capabilities).size !== target.capabilities.length) {
+        throw configurationError(source, `rules[${index}].reviewTargets[${targetIndex}].capabilities`, "declare distinct required capabilities");
+      }
+    }
     validatePatterns(rule.applicability?.includes, source, `rules[${index}].applicability.includes`);
     validatePatterns(rule.applicability?.excludes, source, `rules[${index}].applicability.excludes`);
   }
@@ -194,7 +214,7 @@ export const decodeRulePackDocument = (
   source: string,
   origin?: RulePackOrigin,
 ): DecodedRulePack => {
-  rejectUnsupportedDeclarations(unknown, source);
+  checkVersion(unknown, source);
   let decoded: RulePack;
   try {
     decoded = Schema.decodeUnknownSync(RulePack, strict)(unknown);

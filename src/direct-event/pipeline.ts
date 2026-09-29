@@ -7,7 +7,6 @@ import type { CompiledRule } from "../rules/compiler.ts";
 import { applicableRules, configuredRules } from "../policy/rules.ts";
 import { compareRuleRank, findingFromProbability } from "../rules/decision.ts";
 import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts";
-import type { Consent } from "../runtime/consent.ts";
 import { admitReview } from "../configuration/decision.ts";
 import { effectiveGraphLimits } from "../configuration/resolve.ts";
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-limits.ts";
@@ -16,10 +15,10 @@ import type { ReviewSettings } from "../runtime/review-config.ts";
 import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
 import { selectEditedRootsV2 } from "./attribution-v2.ts";
 import { verifyCodexPostEditHunks } from "./codex-v2-hunks.ts";
-import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
-import { V2_FUNCTION_CONTRACT } from "../rules/v2-targets.ts";
+import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
+import { FUNCTION_INPUT_CONTRACT } from "../rules/targets.ts";
 import { analyzeFunctionFile } from "./function-analyzer.ts";
-import { renderCandidateReviewInput, type CandidateReviewInput } from "./v2-renderer.ts";
+import { renderCandidateReviewInput, type CandidateReviewInput } from "./review-renderer.ts";
 import {
   analyzeTypeFile,
   combinedAnalyzerMaterializationPreflight,
@@ -61,8 +60,6 @@ export type DirectReviewContext = {
   readonly controlledWriter: boolean;
   /** The only advicee for whom this invocation may produce advice. */
   readonly advicee: DirectAdvicee;
-  /** Retained only for callers that still supply the retired grant service. */
-  readonly consent?: Consent.Interface;
   readonly settings: Pick<ReviewSettings, "backend" | "destination"> &
     Partial<Pick<ReviewSettings, "configuration" | "rules">>;
   readonly policy?: DirectFilePolicy | (() => DirectFilePolicy);
@@ -224,30 +221,11 @@ const currentRules = (context: DirectReviewContext): ReadonlyArray<CompiledRule>
 
 const currentInputContract = (context: DirectReviewContext): string =>
   context.inputContract === undefined
-    ? V2_TYPE_CONTRACT
+    ? TYPE_INPUT_CONTRACT
     : current(context.inputContract);
-
-const linesOf = (source: string): ReadonlySet<string> =>
-  new Set(source.split(/\r?\n/u).map((line) => line.trim()).filter((line) => line.length > 0));
 
 const analysisRoot = (analysis: UnitAnalysis) =>
   analysis.status === "ready" ? analysis.unit.root.artifact : analysis.root;
-
-const selectedAnalyses = (
-  analyses: ReadonlyArray<UnitAnalysis>,
-  operation: "add" | "update",
-  addedLines: ReadonlyArray<string>,
-): { readonly selected: ReadonlyArray<UnitAnalysis>; readonly ambiguous: boolean } => {
-  if (operation === "add") return { selected: analyses, ambiguous: false };
-  const selected = new Set<UnitAnalysis>();
-  let ambiguous = false;
-  for (const line of addedLines.map((value) => value.trim()).filter((value) => value.length > 0)) {
-    const matching = analyses.filter((analysis) => linesOf(analysisRoot(analysis).source).has(line));
-    if (matching.length === 1 && matching[0] !== undefined) selected.add(matching[0]);
-    if (matching.length > 1) ambiguous = true;
-  }
-  return { selected: [...selected], ambiguous };
-};
 
 type AnalysisFailure = Extract<
   Extract<PathObservationOutcome, { status: "observed" }>["analysis"],
@@ -323,7 +301,7 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
     const graphLimits = context.settings.configuration === undefined
       ? GRAPH_LIMIT_CEILINGS
       : effectiveGraphLimits(context.settings.configuration.policy);
-    const graphContract = contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT;
+    const graphContract = contract === TYPE_INPUT_CONTRACT || contract === FUNCTION_INPUT_CONTRACT;
     let captured = supportingCaptures.get(eligible.relativePath);
     if (captured === undefined) {
       const admittedBytes = [...supportingCaptures.values()].reduce((sum, source) => sum + source.byteLength, 0);
@@ -377,9 +355,9 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
       continue;
     }
     materializedPaths.add(eligible.relativePath);
-    const functionFile = contract === V2_FUNCTION_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
+    const functionFile = contract === FUNCTION_INPUT_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
       ? analyzeFunctionFile(eligible.relativePath, captured.text) : undefined;
-    const graphFile = contract !== V2_FUNCTION_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
+    const graphFile = contract !== FUNCTION_INPUT_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
       ? inspectGraphFile(eligible.relativePath, captured.text)
       : undefined;
     const analysis = analyzeTypeFile(eligible.relativePath, captured.text);
@@ -388,7 +366,7 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
           status: "unsupported" as const, root: artifact,
           unit: { root: { artifact, references: [] } }, reason: "missing-evidence" as const,
         }))
-      : contract === V2_FUNCTION_CONTRACT ? []
+      : contract === FUNCTION_INPUT_CONTRACT ? []
       : graphFile === undefined
       ? []
       : [...graphFile.declarations.values()].map(({ artifact }) => ({
@@ -397,10 +375,10 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
           unit: { root: { artifact, references: [] } },
           reason: "missing-evidence" as const,
         }));
-    const candidateDeclarations = contract === V2_FUNCTION_CONTRACT
+    const candidateDeclarations = contract === FUNCTION_INPUT_CONTRACT
       ? [...functionFile?.functions.values() ?? []]
       : [...graphFile?.declarations.values() ?? []];
-    const v2Selection = frozen === undefined && (contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT) &&
+    const candidateSelection = frozen === undefined && (contract === TYPE_INPUT_CONTRACT || contract === FUNCTION_INPUT_CONTRACT) &&
       candidateDeclarations.length > 0
       ? (() => {
           // Tree-sitter positions are byte-based; this narrow candidate does not
@@ -432,7 +410,7 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
         })()
       : undefined;
     const selection = frozen === undefined
-      ? v2Selection ?? selectedAnalyses(analyses, candidate.operation, candidate.addedLines ?? [])
+      ? candidateSelection ?? { selected: [], ambiguous: false }
       : {
           selected: analyses.filter((item) => frozen.has(analysisRoot(item).name)),
           ambiguous: false,
@@ -452,7 +430,7 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
         rootIdentity: observation.rootIdentity,
         policy: currentPolicy(context),
         limits: graphLimits,
-        ...(contract === V2_FUNCTION_CONTRACT ? { branch: "function" as const } : {}),
+        ...(contract === FUNCTION_INPUT_CONTRACT ? { branch: "function" as const } : {}),
         captureCache: supportingCaptures,
         ...(context.graphNow === undefined ? {} : { now: context.graphNow }),
         ...(context.captureHooks === undefined ? {} : { captureHooks: context.captureHooks }),
@@ -496,19 +474,19 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
     }
     for (const unit of units) {
       const declaration = unit.root.artifact;
-      const rootLocation = contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT
+      const rootLocation = contract === TYPE_INPUT_CONTRACT || contract === FUNCTION_INPUT_CONTRACT
         ? candidateDeclarations.find((candidate) => candidate.artifact.kind === declaration.kind &&
           candidate.artifact.name === declaration.name)?.location
         : undefined;
-      if ((contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT) && rootLocation === undefined) continue;
+      if ((contract === TYPE_INPUT_CONTRACT || contract === FUNCTION_INPUT_CONTRACT) && rootLocation === undefined) continue;
       const sourceFingerprints = unitSourceFingerprints(unit, supportingCaptures);
       if (sourceFingerprints === undefined) continue;
       const artifactKind = declaration.kind === "function" ? "function" as const : "typeShape" as const;
       const partial = unitHasOmissions(unit);
-      const capabilities = contract === V2_TYPE_CONTRACT
+      const capabilities = contract === TYPE_INPUT_CONTRACT
         ? partial ? ["root-declaration"] as const
           : ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] as const
-        : contract === V2_FUNCTION_CONTRACT
+        : contract === FUNCTION_INPUT_CONTRACT
           ? partial ? ["signature", "body"] as const
             : ["signature", "body", "resolved-local-calls", "resolved-outbound-types"] as const
           : undefined;
@@ -571,7 +549,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
   const rejectedPaths = new Set<string>();
   const selectedCount = { value: 0 };
   const requested = context.inputContract === undefined
-    ? [V2_TYPE_CONTRACT, V2_FUNCTION_CONTRACT]
+    ? [TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT]
     : [currentInputContract(context)];
   const branches: PreparedObservation[] = [];
   for (const contract of requested) {
@@ -644,7 +622,7 @@ type Evaluation =
 /** Flatten the bounded graph and its omission reasons in traversal order. */
 export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput | undefined => {
   if (input.candidateProjection !== true ||
-    (input.contract !== V2_TYPE_CONTRACT && input.contract !== V2_FUNCTION_CONTRACT)) return undefined;
+    (input.contract !== TYPE_INPUT_CONTRACT && input.contract !== FUNCTION_INPUT_CONTRACT)) return undefined;
   const root = input.unit.root;
   const path = root.artifact.path;
   if (path === undefined || path !== input.path || root.artifact.id !== input.declaration.id) return undefined;
@@ -686,7 +664,7 @@ export const candidateReviewInput = (input: ReviewInput): CandidateReviewInput |
 
 /** Exact source-bearing `DecisionModel` input before provider serialization. */
 export const preparedProviderInput = (prepared: PreparedUnit) => {
-  if (prepared.input.contract === V2_TYPE_CONTRACT || prepared.input.contract === V2_FUNCTION_CONTRACT) {
+  if (prepared.input.contract === TYPE_INPUT_CONTRACT || prepared.input.contract === FUNCTION_INPUT_CONTRACT) {
     const candidate = candidateReviewInput(prepared.input);
     return candidate === undefined ? undefined : renderCandidateReviewInput(candidate);
   }

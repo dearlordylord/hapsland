@@ -7,7 +7,7 @@ import { MAX_FULL_JEV_REQUEST_BYTES, encodedFullJevRequestBytes,
   encodedPreparedProviderHttpBodyBytes, evaluatePrepared } from "./pipeline.ts";
 import type { PreparedUnit } from "./model.ts";
 import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts";
-import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 
 describe("finite complete Jev request", () => {
   it("fails closed for unsupported or invalid provider bodies", () => {
@@ -30,7 +30,7 @@ describe("finite complete Jev request", () => {
       root: "/fixture", advicee: { host: "codex-cli", hostVersion: "0.155.1", sessionId: "s",
         turnId: "t", toolUseId: "u", subagentId: null },
       identity: "fixture",
-      input: { contract: V2_TYPE_CONTRACT, candidateProjection: true, completeness: "complete", path: "a.ts",
+      input: { contract: TYPE_INPUT_CONTRACT, candidateProjection: true, completeness: "complete", path: "a.ts",
         declaration: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
           source: "type A = number", sourceHash: "fixture" },
         unit: { root: { artifact: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
@@ -52,7 +52,7 @@ describe("finite complete Jev request", () => {
       root: "/fixture", advicee: { host: "codex-cli", hostVersion: "0.155.1", sessionId: "s",
         turnId: "t", toolUseId: "u", subagentId: null },
       identity: "fixture",
-      input: { contract: V2_TYPE_CONTRACT, candidateProjection: true, completeness: "complete", path: "a.ts",
+      input: { contract: TYPE_INPUT_CONTRACT, candidateProjection: true, completeness: "complete", path: "a.ts",
         declaration: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
           source: "type A = number", sourceHash: "fixture" },
         unit: { root: { artifact: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",

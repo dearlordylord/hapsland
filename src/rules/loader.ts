@@ -4,8 +4,6 @@ import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { configurationError, ConfigurationError } from "../configuration/errors.ts";
 import type { ConfigurationLayer } from "../configuration/resolve.ts";
 import { BUNDLED_NOUL_PACK } from "./bundled.ts";
-import { parseJsonc } from "../configuration/jsonc.ts";
-import { decodeRulePackV2 } from "./v2-targets.ts";
 import {
   decodeRulePackText,
   type DecodedRulePack,
@@ -19,10 +17,7 @@ export type RulePackReference = {
   readonly origin: RulePackOrigin;
 };
 
-export type LoadedRulePack = Omit<DecodedRulePack, "origin" | "schemaVersion"> & {
-  readonly schemaVersion: 1 | 2;
-  /** The strictly checked v2 document, retained for explicit target compilation. */
-  readonly v2Raw?: unknown;
+export type LoadedRulePack = Omit<DecodedRulePack, "origin"> & {
   readonly origin: RulePackOrigin;
   readonly path: string;
   readonly enabled: boolean;
@@ -146,16 +141,7 @@ const readPack = async (
   try {
     await access(resolved.path);
     const sourceText = await readFile(resolved.path, "utf8");
-    const raw = parseJsonc(sourceText);
-    const decoded = typeof raw === "object" && raw !== null && "schemaVersion" in raw && raw.schemaVersion === 2
-      ? (() => {
-          const facts = decodeRulePackV2(raw);
-          return { schemaVersion: 2 as const, id: facts.id, contentVersion: facts.contentVersion,
-            contentDigest: facts.contentDigest,
-            rules: (raw as unknown as { rules: DecodedRulePack["rules"] }).rules,
-            source: resolved.path, v2Raw: raw };
-        })()
-      : decodeRulePackText(sourceText, resolved.path, reference.origin);
+    const decoded = decodeRulePackText(sourceText, resolved.path, reference.origin);
     if (reference.id !== undefined && reference.id !== decoded.id) {
       throw configurationError(
         reference.origin.source,

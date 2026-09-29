@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { CompiledRule } from "../rules/compiler.ts";
-import type { ReviewTargetV2 } from "../rules/v2-targets.ts";
+import type { ReviewTarget } from "../rules/targets.ts";
 import type { PostEditLocation, VerifiedPatchHunkV2 } from "./attribution-v2.ts";
 import type { GraphLimits } from "../configuration/graph-limits.ts";
 
@@ -185,7 +185,7 @@ export type FrozenRule = {
   readonly message: string;
   readonly rank: number;
   readonly decision: CompiledRule["decision"];
-  readonly target?: ReviewTargetV2;
+  readonly target?: ReviewTarget;
 };
 
 export type ReviewInput = {

@@ -50,7 +50,7 @@ const fixture = async () => {
 
 const installCapacityRule = async (root: string, threshold = 0.7, messageBytes = 300 * 1024) => {
   await put(root, "rules.jsonc", JSON.stringify({
-    schemaVersion: 2,
+    schemaVersion: 1,
     id: "team",
     contentVersion: "1",
     rules: [{
@@ -60,7 +60,7 @@ const installCapacityRule = async (root: string, threshold = 0.7, messageBytes =
       threshold,
       message: "x".repeat(messageBytes),
       applicability: { includes: ["**/*.ts"] },
-      reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v2",
+      reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v1",
         capabilities: ["root-declaration", "resolved-outbound-types"] }],
     }],
   }));

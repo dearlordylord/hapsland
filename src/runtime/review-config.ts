@@ -90,14 +90,6 @@ export const loadReviewSettings = Effect.fn("ReviewConfig.load")(function* (
         }),
     ),
   );
-  const oldPack = packs.find((pack) => pack.schemaVersion === 1 && pack.path !== "built-in:noul");
-  if (oldPack !== undefined) {
-    return yield* Effect.fail(new ReviewConfigError({
-      source: oldPack.source,
-      field: "schemaVersion",
-      reason: "authored rule packs for direct review must use schemaVersion 2 and explicit reviewTargets",
-    }));
-  }
   const rules = yield* Effect.try({
     try: () => compileRules({ packs, layers: capture.policy.layers }),
     catch: (error) =>

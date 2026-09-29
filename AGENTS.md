@@ -19,6 +19,15 @@ For an acceptance decision, state the proposed scope, observed limitations, and
 what acceptance permits next. Cite the source requiring owner approval. Separate
 design acceptance from empirical validation and release/platform support claims.
 
+## Pre-release compatibility and code review
+
+During this pre-release phase, update accepted formats in place. Rule packs
+and direct-review input contracts remain at version 1.
+Delete superseded production code, schemas, and maintained documentation;
+do not keep legacy paths, migration shims, or parallel versions. Code review
+must flag leftovers. Keep compatibility only when an accepted product contract
+explicitly requires it.
+
 ## Product identity
 
 The repository checkout may still be named `jev`, but the product is **Hapsland**.

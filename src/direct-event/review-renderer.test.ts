@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   CANDIDATE_RENDERER_DIGEST, CANDIDATE_RENDERER_VERSION, renderCandidateReviewInput,
   type CandidateReviewInput,
-} from "./v2-renderer.ts";
+} from "./review-renderer.ts";
 
 const fixture = (): CandidateReviewInput => ({
-  contract: "direct-event/type-shape/v2", completeness: "complete", treeBytesLimit: 20 * 1024,
+  contract: "direct-event/type-shape/v1", completeness: "complete", treeBytesLimit: 20 * 1024,
   artifact: { id: "src/a.ts:interface:A", kind: "interface", name: "A", domain: "src/a.ts", source: "interface A { b: B }" },
   nodes: [
     { id: "src/c.ts:type-alias:C", kind: "type-alias", name: "C", domain: "src/c.ts", source: "type C = string", order: 2 },

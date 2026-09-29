@@ -4,28 +4,28 @@ import { resolveConfiguration } from "../configuration/resolve.ts";
 import { effectiveGraphLimits } from "../configuration/resolve.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { compileRulePackV2 } from "../rules/compiler.ts";
-import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { compileRulePack } from "../rules/compiler.ts";
+import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 import { adaptCodexDirectEvent } from "./adapter.ts";
 import { measuredRootSourceDecision, prepareObservation, reviewObservation } from "./pipeline.ts";
 import { addEvent, makeGitFixture, put } from "./test-fixtures.ts";
 
-const rules = compileRulePackV2({
-  schemaVersion: 2, id: "root-cap", contentVersion: "1", rules: [
+const rules = compileRulePack({
+  schemaVersion: 1, id: "root-cap", contentVersion: "1", rules: [
     { id: "type", question: "Is the type clear?", criteria: { false: "No", true: "Yes" },
       message: "Review type", reviewTargets: [{ artifactKind: "typeShape",
-        inputContract: V2_TYPE_CONTRACT, capabilities: ["root-declaration"] }] },
+        inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }] },
     { id: "function", question: "Is the function clear?", criteria: { false: "No", true: "Yes" },
       message: "Review function", reviewTargets: [{ artifactKind: "function",
-        inputContract: V2_FUNCTION_CONTRACT, capabilities: ["signature", "body"] }] },
+        inputContract: FUNCTION_INPUT_CONTRACT, capabilities: ["signature", "body"] }] },
   ],
 }, "fixture:root-cap");
 
 describe("configured v2 root source cap", () => {
   for (const branch of [
-    { contract: V2_TYPE_CONTRACT, declaration: "export interface A { value: string }" },
-    { contract: V2_FUNCTION_CONTRACT, declaration: "export function A(): number { return 1 }" },
+    { contract: TYPE_INPUT_CONTRACT, declaration: "export interface A { value: string }" },
+    { contract: FUNCTION_INPUT_CONTRACT, declaration: "export function A(): number { return 1 }" },
   ] as const) {
     it.effect(`lets Bend reject measured ${branch.contract} root bytes before parsing`, () => Effect.gen(function* () {
       const root = yield* Effect.promise(makeGitFixture);

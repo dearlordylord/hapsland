@@ -146,7 +146,7 @@ describe("Claude terminal collection", () => {
       .toEqual({ version: 2, status: "empty" });
       expect(evaluationCount).toBe(4);
       expect(evaluatedIdentities.size).toBe(1);
-      expect([...evaluatedContracts]).toEqual(["direct-event/type-shape/v2"]);
+      expect([...evaluatedContracts]).toEqual(["direct-event/type-shape/v1"]);
       // Primer, both blockers, and owner occupy four distinct session partitions.
       expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 4, pendingEvaluations: 0 });
     const activity = readActivity({ statePath: activityPath, root: data.root,

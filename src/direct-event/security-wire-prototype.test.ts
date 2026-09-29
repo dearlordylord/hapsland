@@ -7,9 +7,8 @@ import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import * as HttpClient from "effect/unstable/http/HttpClient";
 import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
-import { compileRulePackV2 } from "../rules/compiler.ts";
-import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
-import { Consent } from "../runtime/consent.ts";
+import { compileRulePack } from "../rules/compiler.ts";
+import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { DEFAULT_API_BASE, DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { adaptCodexAdd } from "./adapter.ts";
 import { prepareObservation, evaluatePrepared } from "./pipeline.ts";
@@ -29,8 +28,8 @@ const oracleRule = {
   threshold: 0.7,
   message: "Prototype rule matched.",
 } as const;
-const rules = compileRulePackV2({ schemaVersion: 2, id: "security-probe", contentVersion: "1", rules: [{
-  ...oracleRule, reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+const rules = compileRulePack({ schemaVersion: 1, id: "security-probe", contentVersion: "1", rules: [{
+  ...oracleRule, reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
     capabilities: ["root-declaration", "resolved-outbound-types"] }],
 }] }, "fixture:security-wire");
 const ruleId = "security-probe/security_wire_probe";
@@ -60,19 +59,15 @@ const prepare = (root: string, path: string, source: string, reads: Array<string
     const observation = yield* adaptCodexAdd(updateEvent(root, path, [changedLine]));
     expect(observation).toBeDefined();
     if (observation === undefined) throw new Error("fixture adaptation failed");
-    const consent = yield* Consent.Service;
-    const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
-    yield* consent.enable(proposal);
     return yield* prepareObservation(observation, {
       controlledWriter: true,
       advicee: observation.advicee,
-      consent,
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
       ...(policy === undefined ? {} : { policy }),
       rules,
       captureHooks: { sourceRead: () => { reads.push(path); } },
     });
-  }).pipe(Effect.provide(Consent.testLayer()));
+  });
 
 describe("security wire prototype", () => {
   it.effect("sends exactly the selected declaration, reachable reference, rule, and transport fields", () =>
@@ -108,7 +103,7 @@ describe("security wire prototype", () => {
               to: `${manifest.positive.path}:interface:Branch`, kind: "expanded", symbol: "Branch" },
               { from: `${manifest.positive.path}:interface:Branch`,
                 to: `${manifest.positive.path}:interface:Receipt`, kind: "included", symbol: "Receipt" }] },
-          inputContract: { id: V2_TYPE_CONTRACT, completeness: "complete" },
+          inputContract: { id: TYPE_INPUT_CONTRACT, completeness: "complete" },
         },
         questions: {
           [ruleId]: { type: "noul", instructions: oracleRule.question, criteria: oracleRule.criteria },

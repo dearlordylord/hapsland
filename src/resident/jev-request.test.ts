@@ -10,7 +10,7 @@ import { residentPaths } from "./paths.ts";
 import { ResidentServer, type JevRequestObservation } from "./server.ts";
 import { CapacityLedger } from "./capacity.ts";
 import { captureStable } from "../direct-event/capture.ts";
-import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 
 const deferred = () => {
   let resolve!: () => void;
@@ -22,12 +22,12 @@ describe("canonical Jev request boundary", () => {
   it("uses configured v2 rules for complete type and function units", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "export type Count = number;\nexport function count(): Count { return 1; }\n");
-    await put(root, "rules.jsonc", JSON.stringify({ schemaVersion: 2, id: "team", contentVersion: "1", rules: [{
+    await put(root, "rules.jsonc", JSON.stringify({ schemaVersion: 1, id: "team", contentVersion: "1", rules: [{
       id: "check", question: "Is this clear?", criteria: { false: "No", true: "Yes" },
       message: "Clarify", reviewTargets: [
-        { artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+        { artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
           capabilities: ["root-declaration", "resolved-outbound-types"] },
-        { artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT,
+        { artifactKind: "function", inputContract: FUNCTION_INPUT_CONTRACT,
           capabilities: ["signature", "body"] },
       ],
     }] }));
@@ -43,7 +43,7 @@ describe("canonical Jev request boundary", () => {
       expect(server.admit(observation, { statePath: join(root, "consent"), userConfigPath: null,
         credential: null, controlled: { capturePath } }).status).toBe("accepted");
       await server.whenIdle();
-      expect(new Set(seen)).toEqual(new Set([V2_TYPE_CONTRACT, V2_FUNCTION_CONTRACT]));
+      expect(new Set(seen)).toEqual(new Set([TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT]));
       expect(existsSync(capturePath)).toBe(true);
     } finally { await server.close(); }
   });

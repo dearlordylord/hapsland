@@ -2,7 +2,6 @@ import { describe, expect, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
-import * as Layer from "effect/Layer";
 import * as TestClock from "effect/testing/TestClock";
 import type * as DecisionModel from "effect/unstable/ai/DecisionModel";
 import { execFile } from "node:child_process";
@@ -10,7 +9,6 @@ import { writeFile, rm, symlink, rename, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { configuredRules } from "../policy/rules.ts";
-import { Consent } from "../runtime/consent.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import {
   controlledDecisionModelLayer,
@@ -30,7 +28,7 @@ import { claimDemoBudget, readDemoBudgetUsage, writeDemoBudget } from "../onboar
 import { attemptCodexHostOutput } from "./writer.ts";
 import { addEvent, makeGitFixture, put, advicee, updateEvent } from "./test-fixtures.ts";
 import { adaptCodexAdd } from "./adapter.ts";
-import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -51,21 +49,14 @@ const enabledReview = (
   modelOptions: ControlledDecisionModelOptions = { answers: findingAnswers() },
   extend: (base: DirectReviewContext) => DirectReviewContext = (base) => base,
 ) => Effect.gen(function* () {
-  const consent = yield* Consent.Service;
-  const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
-  yield* consent.enable(proposal);
   return yield* reviewCodexAdd(event, extend({
     controlledWriter: true,
     advicee: advicee(),
-    consent,
     settings,
     rules: configuredRules,
   }));
 }).pipe(
-  Effect.provide(Layer.mergeAll(
-    Consent.testLayer(),
-    controlledDecisionModelLayer(modelOptions),
-  )),
+  Effect.provide(controlledDecisionModelLayer(modelOptions)),
 );
 
 describe("direct-event vertical slice", () => {
@@ -83,13 +74,9 @@ describe("direct-event vertical slice", () => {
       const observation = yield* adaptCodexAdd(addEvent(root));
       expect(observation).toBeDefined();
       if (observation === undefined) return;
-      const consent = yield* Consent.Service;
-      const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
-      yield* consent.enable(proposal);
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
         advicee: observation.advicee,
-        consent,
         settings,
         rules: configuredRules,
       });
@@ -118,7 +105,7 @@ describe("direct-event vertical slice", () => {
       expect(result.status).toBe("backend");
       expect(providerCalls).toBe(0);
       expect(readDemoBudgetUsage(budgetPath)).toEqual({ sourceBytes: 0, providerCalls: 0 });
-    }).pipe(Effect.provide(Consent.testLayer()))),
+    })),
 
   it.effect("runs one Add declaration from native adapter to attempted output", () =>
     Effect.gen(function* () {
@@ -137,7 +124,7 @@ describe("direct-event vertical slice", () => {
         artifact: { domain: "type.ts", kind: "type-alias", name: "OrderCount",
           source: "type OrderCount = number" },
         evidence: { rootId: "type.ts:type-alias:OrderCount", nodes: [], edges: [] },
-        inputContract: { id: "direct-event/type-shape/v2", completeness: "complete" },
+        inputContract: { id: "direct-event/type-shape/v1", completeness: "complete" },
       });
     }),
   );
@@ -376,11 +363,9 @@ describe("direct-event vertical slice", () => {
       const observation = yield* adaptCodexAdd(native);
       expect(observation).toBeDefined();
       if (observation === undefined) return;
-      const consent = yield* Consent.Service;
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true,
         advicee: advicee(),
-        consent,
         settings,
         rules: configuredRules,
       });
@@ -390,7 +375,7 @@ describe("direct-event vertical slice", () => {
         expect(prepared.observation.units.map(({ root: unitRoot }) => unitRoot.artifact.name)).toEqual(["OrderCount"]);
         expect("changeSet" in prepared.observation).toBe(false);
       }
-    }).pipe(Effect.provide(Consent.testLayer())),
+    }),
   );
 
   it.effect("keeps analyzer failures incomplete with their reasons and no ChangeSet", () =>
@@ -413,7 +398,6 @@ describe("direct-event vertical slice", () => {
           "reference-limit",
         ],
       ] as const;
-      const consent = yield* Consent.Service;
       for (const [source, reason] of cases) {
         yield* Effect.promise(() => put(root, "types.ts", source));
         const observation = yield* adaptCodexAdd(addEvent(root, ["types.ts"]));
@@ -422,7 +406,6 @@ describe("direct-event vertical slice", () => {
         const prepared = yield* prepareObservation(observation, {
           controlledWriter: true,
           advicee: advicee(),
-          consent,
           settings,
           rules: configuredRules,
         });
@@ -442,7 +425,7 @@ describe("direct-event vertical slice", () => {
             outcome.prepared.input.declaration.name === "Broken")).toBe(false);
         }
       }
-    }).pipe(Effect.provide(Consent.testLayer())),
+    }),
   );
 
   it.effect("makes no backend request for embedded import evidence", () =>
@@ -695,13 +678,9 @@ describe("direct-event vertical slice", () => {
       let reads = 0;
       let calls = 0;
       const result = yield* Effect.gen(function* () {
-        const consent = yield* Consent.Service;
-        const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
-        yield* consent.enable(proposal);
         return yield* reviewObservation(observation, {
           controlledWriter: true,
           advicee: observation.advicee,
-          consent,
           settings,
           rules: configuredRules,
           captureHooks: { sourceRead: () => { reads += 1; } },
@@ -714,13 +693,10 @@ describe("direct-event vertical slice", () => {
             await put(root, ".review.jsonc", "{ invalid");
           }),
         });
-      }).pipe(Effect.provide(Layer.mergeAll(
-        Consent.testLayer(),
-        controlledDecisionModelLayer({
+      }).pipe(Effect.provide(controlledDecisionModelLayer({
           answers: findingAnswers(),
           onRequest: Effect.sync(() => { calls += 1; }),
-        }),
-      )));
+        })));
       expect(result.status).toBe("no-advice");
       expect(reads).toBe(0);
       expect(calls).toBe(0);
@@ -763,13 +739,9 @@ describe("direct-event vertical slice", () => {
       let reads = 0;
       let calls = 0;
       const result = yield* Effect.gen(function* () {
-        const consent = yield* Consent.Service;
-        const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
-        yield* consent.enable(proposal);
         return yield* reviewObservation(observation, {
           controlledWriter: true,
           advicee: observation.advicee,
-          consent,
           settings,
           rules: configuredRules,
           captureHooks: { sourceRead: () => { reads += 1; } },
@@ -778,13 +750,10 @@ describe("direct-event vertical slice", () => {
             await execFileAsync("git", ["init", "-q", root]);
           }),
         });
-      }).pipe(Effect.provide(Layer.mergeAll(
-        Consent.testLayer(),
-        controlledDecisionModelLayer({
+      }).pipe(Effect.provide(controlledDecisionModelLayer({
           answers: findingAnswers(),
           onRequest: Effect.sync(() => { calls += 1; }),
-        }),
-      )));
+        })));
       expect(result.status).toBe("no-advice");
       expect(reads).toBe(0);
       expect(calls).toBe(0);
@@ -818,26 +787,6 @@ describe("direct-event vertical slice", () => {
         extraDecisionKey: "unexpected",
       });
       expect(extra.status).toBe("unavailable");
-    }),
-  );
-
-  it.effect("does not use a retired grant as a dispatch gate", () =>
-    Effect.gen(function* () {
-      const root = yield* Effect.promise(makeGitFixture);
-      yield* Effect.promise(() => put(root, "type.ts", "type OrderCount = number"));
-      let calls = 0;
-      const result = yield* enabledReview(root, addEvent(root), {
-        answers: findingAnswers(),
-        onRequest: Effect.sync(() => { calls += 1; }),
-      }, (base) => ({
-        ...base,
-        beforeDispatch: base.consent!.disable(root, DEFAULT_BACKEND, DEFAULT_DESTINATION).pipe(
-          Effect.asVoid,
-          Effect.orDie,
-        ),
-      }));
-      expect(result.status).toBe("ready");
-      expect(calls).toBe(1);
     }),
   );
 
@@ -968,7 +917,7 @@ describe("direct-event vertical slice", () => {
         expect(result).toEqual({ status: "unavailable", reason: "stale", output: undefined });
       }
 
-      let contract: string = V2_TYPE_CONTRACT;
+      let contract: string = TYPE_INPUT_CONTRACT;
       const changedContract = yield* enabledReview(root, addEvent(root), undefined, (base) => ({
         ...base,
         inputContract: () => contract,
@@ -1037,13 +986,9 @@ describe("direct-event vertical slice", () => {
       const observation = yield* adaptCodexAdd(addEvent(root));
       expect(observation).toBeDefined();
       if (observation === undefined) return;
-      const consent = yield* Consent.Service;
-      const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
-      yield* consent.enable(proposal);
       const context: DirectReviewContext = {
         controlledWriter: true,
         advicee: observation.advicee,
-        consent,
         settings,
         rules: configuredRules,
       };
@@ -1085,10 +1030,7 @@ describe("direct-event vertical slice", () => {
         currentResidentPublication,
       );
       expect(unavailable.status).toBe("unavailable");
-    }).pipe(Effect.provide(Layer.mergeAll(
-      Consent.testLayer(),
-      controlledDecisionModelLayer({ answers: findingAnswers() }),
-    ))),
+    }).pipe(Effect.provide(controlledDecisionModelLayer({ answers: findingAnswers() }))),
   );
 
   it.effect("never publishes a late completion superseded while its backend call is gated", () =>
@@ -1098,13 +1040,9 @@ describe("direct-event vertical slice", () => {
       const observation = yield* adaptCodexAdd(addEvent(root));
       expect(observation).toBeDefined();
       if (observation === undefined) return;
-      const consent = yield* Consent.Service;
-      const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
-      yield* consent.enable(proposal);
       const context: DirectReviewContext = {
         controlledWriter: true,
         advicee: observation.advicee,
-        consent,
         settings,
         rules: configuredRules,
       };
@@ -1137,7 +1075,7 @@ describe("direct-event vertical slice", () => {
         isCurrentWork: () => Effect.sync(() => isLatest),
       });
       expect(revalidated.status).toBe("stale");
-    }).pipe(Effect.provide(Consent.testLayer()))),
+    })),
   );
 
   it.effect("recaptures only paths and units retained for publication", () =>
@@ -1148,13 +1086,9 @@ describe("direct-event vertical slice", () => {
       const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts", "b.ts"]));
       expect(observation).toBeDefined();
       if (observation === undefined) return;
-      const consent = yield* Consent.Service;
-      const proposal = yield* consent.preview(root, DEFAULT_BACKEND, DEFAULT_DESTINATION);
-      yield* consent.enable(proposal);
       const context: DirectReviewContext = {
         controlledWriter: true,
         advicee: observation.advicee,
-        consent,
         settings,
         rules: configuredRules,
       };
@@ -1182,10 +1116,7 @@ describe("direct-event vertical slice", () => {
       if (partiallySuperseded.status === "current") {
         expect(new Set(partiallySuperseded.findings.map(({ path }) => path))).toEqual(new Set(["a.ts"]));
       }
-    }).pipe(Effect.provide(Layer.mergeAll(
-      Consent.testLayer(),
-      controlledDecisionModelLayer({ answers: findingAnswers() }),
-    ))),
+    }).pipe(Effect.provide(controlledDecisionModelLayer({ answers: findingAnswers() }))),
   );
 
   it.effect("retires advice when recursive supporting evidence changes", () =>

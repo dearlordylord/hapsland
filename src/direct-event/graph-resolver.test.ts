@@ -10,22 +10,22 @@ import { captureStable } from "./capture.ts";
 import { resolveGraphUnit } from "./graph-resolver.ts";
 import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts";
-import { compileRulePackV2 } from "../rules/compiler.ts";
-import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { compileRulePack } from "../rules/compiler.ts";
+import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import type { ReviewNode } from "./model.ts";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 
 const hasOmitted = (node: ReviewNode): boolean => node.references.some((reference) =>
   reference.kind === "omitted" || reference.kind === "expanded" && hasOmitted(reference.node));
 
-const candidateRules = compileRulePackV2({ schemaVersion: 2, id: "graph", contentVersion: "1", rules: [{
+const candidateRules = compileRulePack({ schemaVersion: 1, id: "graph", contentVersion: "1", rules: [{
   id: "shape", question: "Is the type clear?", criteria: { false: "No", true: "Yes" },
-  message: "Clarify type", reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+  message: "Clarify type", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
     capabilities: ["root-declaration", "resolved-outbound-types"] }],
 }] }, "fixture-v2");
-const rootOnlyRules = compileRulePackV2({ schemaVersion: 2, id: "root-only", contentVersion: "1", rules: [{
+const rootOnlyRules = compileRulePack({ schemaVersion: 1, id: "root-only", contentVersion: "1", rules: [{
   id: "shape", question: "Is the declaration clear?", criteria: { false: "No", true: "Yes" },
-  message: "Clarify declaration", reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+  message: "Clarify declaration", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
     capabilities: ["root-declaration"] }],
 }] }, "fixture-v2");
 
@@ -219,7 +219,7 @@ describe("cross-file graph preparation", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const base = { controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT } as const;
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT } as const;
     const prepared = yield* prepareObservation(observation, base);
     const a = prepared.outcomes.find((outcome) => outcome.status === "ready");
     expect(a?.status).toBe("ready");
@@ -244,7 +244,7 @@ describe("cross-file graph preparation", () => {
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
-      rules: rootOnlyRules, inputContract: V2_TYPE_CONTRACT,
+      rules: rootOnlyRules, inputContract: TYPE_INPUT_CONTRACT,
       policy: { includes: ["a.ts"], excludes: ["b.ts"] },
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
@@ -260,7 +260,7 @@ describe("cross-file graph preparation", () => {
     expect(yield* preparedUnitStillCurrent(observation, ready.prepared, {
       controlledWriter: true, advicee: observation.advicee,
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
-      rules: rootOnlyRules, inputContract: V2_TYPE_CONTRACT,
+      rules: rootOnlyRules, inputContract: TYPE_INPUT_CONTRACT,
       policy: { includes: ["a.ts"], excludes: ["b.ts"] },
     })).toBe(true);
     const evaluated = yield* evaluatePrepared(ready.prepared).pipe(Effect.provide(controlledDecisionModelLayer({
@@ -278,7 +278,7 @@ describe("cross-file graph preparation", () => {
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
-      rules: rootOnlyRules, inputContract: V2_TYPE_CONTRACT,
+      rules: rootOnlyRules, inputContract: TYPE_INPUT_CONTRACT,
     });
     const ready = prepared.outcomes.find((outcome) => outcome.status === "ready");
     expect(ready?.status).toBe("ready");
@@ -300,7 +300,7 @@ describe("cross-file graph preparation", () => {
       controlledWriter: true,
       advicee: observation.advicee,
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
-      rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
+      rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT,
       policy: { includes: ["a.ts", "b.ts"], excludes: ["c.ts"] },
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
@@ -316,7 +316,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) return;
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(true);
   }));
@@ -328,7 +328,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(true);
   }));
@@ -340,7 +340,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT,
     });
     const a = prepared.outcomes.find((outcome) => outcome.status === "ready");
     expect(a?.status).toBe("ready");
@@ -357,7 +357,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
   }));
@@ -370,7 +370,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT,
     });
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
       outcome.prepared.input.declaration.name === "T0")).toBe(false);
@@ -387,7 +387,7 @@ describe("cross-file graph preparation", () => {
     let clock = 0;
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT,
       graphNow: () => { const value = clock; clock += 5_000; return value; },
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
@@ -403,7 +403,7 @@ describe("cross-file graph preparation", () => {
     const reads: string[] = [];
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT,
       captureHooks: { sourceRead: (path) => { reads.push(path); } },
     });
     expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(2);
@@ -418,7 +418,7 @@ describe("cross-file graph preparation", () => {
     if (observation === undefined) throw new Error("fixture adaptation failed");
     const prepared = yield* prepareObservation(observation, {
       controlledWriter: true, advicee: observation.advicee,
-      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: V2_TYPE_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: candidateRules, inputContract: TYPE_INPUT_CONTRACT,
     });
     expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(64);
     expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&

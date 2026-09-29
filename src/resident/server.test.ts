@@ -1538,7 +1538,7 @@ describe("resident delivery lease", () => {
       ).join("\n"));
     }
     await put(root, "rules.jsonc", JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 1,
       id: "team",
       contentVersion: "1",
       rules: [{
@@ -1548,7 +1548,7 @@ describe("resident delivery lease", () => {
         threshold: 0.7,
         message: "x".repeat(1024),
         applicability: { includes: ["**/*.ts"] },
-        reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v2",
+        reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v1",
           capabilities: ["root-declaration", "resolved-outbound-types"] }],
       }],
     }));
@@ -1600,7 +1600,7 @@ describe("resident delivery lease", () => {
       const root = await makeGitFixture();
       await put(root, "type.ts", "type LargeFinding = number\n");
       await put(root, "rules.jsonc", JSON.stringify({
-        schemaVersion: 2,
+        schemaVersion: 1,
         id: "team",
         contentVersion: "1",
         rules: [{
@@ -1610,7 +1610,7 @@ describe("resident delivery lease", () => {
           threshold: 0.7,
           message: "x".repeat(messageBytes),
           applicability: { includes: ["**/*.ts"] },
-          reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v2",
+          reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v1",
             capabilities: ["root-declaration", "resolved-outbound-types"] }],
         }],
       }));
@@ -2139,7 +2139,7 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const rules = (message: string) => JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 1,
       id: "team",
       contentVersion: "1",
       rules: [{
@@ -2149,7 +2149,7 @@ describe("resident delivery lease", () => {
         threshold: 0.7,
         message,
         applicability: { includes: ["**/*.ts"] },
-        reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v2",
+        reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v1",
           capabilities: ["root-declaration", "resolved-outbound-types"] }],
       }],
     });

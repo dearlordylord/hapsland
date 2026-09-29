@@ -48,6 +48,79 @@
       "additionalProperties": false,
       "description": "Rule-level path filters, intersected with global file selection."
     },
+    "TypeShapeReviewTarget": {
+      "type": "object",
+      "properties": {
+        "artifactKind": {
+          "type": "string",
+          "enum": [
+            "typeShape"
+          ]
+        },
+        "inputContract": {
+          "type": "string",
+          "enum": [
+            "direct-event/type-shape/v1"
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "root-declaration",
+              "resolved-outbound-types",
+              "selected-source-type-closure"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "artifactKind",
+        "inputContract",
+        "capabilities"
+      ],
+      "additionalProperties": false
+    },
+    "FunctionReviewTarget": {
+      "type": "object",
+      "properties": {
+        "artifactKind": {
+          "type": "string",
+          "enum": [
+            "function"
+          ]
+        },
+        "inputContract": {
+          "type": "string",
+          "enum": [
+            "direct-event/function/v1"
+          ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "signature",
+              "body",
+              "resolved-local-calls",
+              "resolved-outbound-types"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "artifactKind",
+        "inputContract",
+        "capabilities"
+      ],
+      "additionalProperties": false
+    },
     "RuleDefinition": {
       "type": "object",
       "properties": {
@@ -79,13 +152,46 @@
         },
         "applicability": {
           "$ref": "#/$defs/RuleApplicability"
+        },
+        "reviewTargets": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/TypeShapeReviewTarget"
+              },
+              {
+                "$ref": "#/$defs/FunctionReviewTarget"
+              }
+            ]
+          },
+          "description": "Exact input contracts and evidence required by this rule.",
+          "minItems": 1,
+          "maxItems": 2,
+          "allOf": [
+            {
+              "contains": {
+                "$ref": "#/$defs/TypeShapeReviewTarget"
+              },
+              "minContains": 0,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "$ref": "#/$defs/FunctionReviewTarget"
+              },
+              "minContains": 0,
+              "maxContains": 1
+            }
+          ]
         }
       },
       "required": [
         "id",
         "question",
         "criteria",
-        "message"
+        "message",
+        "reviewTargets"
       ],
       "additionalProperties": false,
       "description": "One declarative rule in a rule pack."

@@ -25,7 +25,7 @@ reject undeclared versions and other platform profiles rather than inferring sup
 The accepted [review specification](type-function-review-proposal.md)
 now requires checked cross-file supporting evidence, a 256 KiB per-source-file
 ceiling, and a 20 KiB evidence-tree ceiling. The active path prepares bounded
-type/function units under distinct contracts and explicit schema-2 rule targets.
+type/function units under distinct contracts and explicit schema-1 rule targets.
 Expanded source egress is enabled by the 2026-09-29 owner decision.
 This matrix is the validated v1 record, not validation of cross-file Jev
 results. The resident uses 32 MiB per partition and

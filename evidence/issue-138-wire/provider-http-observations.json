@@ -17,13 +17,13 @@
       "id": "type-candidate",
       "localRequestBytes": 942,
       "httpBodyBytes": 956,
-      "httpBodySha256": "e466504613d7fc4b17453158b34e49a601b5af1caf3285eec13bc6e76ef28a31",
+      "httpBodySha256": "602a628fe0134600cfdd7a06fdecdf97769bc2da4d713e77b90581d96cba69c8",
       "stateBytes": 777,
       "questionsBytes": 135,
       "questionKeys": [
         "wire-proposal/type"
       ],
-      "inputContract": "direct-event/type-shape/v2",
+      "inputContract": "direct-event/type-shape/v1",
       "headerNames": [
         "accept",
         "authorization",
@@ -37,7 +37,7 @@
       "id": "function-candidate",
       "localRequestBytes": 1026,
       "httpBodyBytes": 1040,
-      "httpBodySha256": "ba38193880e28f54cc6c1b87d722e0697a48c692d1376e86efc30bbdf0087e9b",
+      "httpBodySha256": "3839d901b69e8d577c7d01b93150169cf73dac318988235b5e39e9ebb81b9061",
       "stateBytes": 854,
       "questionsBytes": 142,
       "questionKeys": [

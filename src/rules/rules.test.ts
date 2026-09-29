@@ -10,7 +10,7 @@ import { compileRules, selectApplicableRules } from "./compiler.ts";
 import { loadRulePacks } from "./loader.ts";
 import { decodeRulePackText, digestRulePack } from "./schema.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
-import { decodeRulePackV2, V2_TYPE_CONTRACT } from "./v2-targets.ts";
+import { TYPE_INPUT_CONTRACT } from "./targets.ts";
 
 const origin = (layer: ConfigurationLayer["name"], source: string) => ({
   layer,
@@ -29,43 +29,34 @@ const packText = (id = "team", version = "1.0.0") => JSON.stringify({
     threshold: 0.7,
     message: "Review the authored problem.",
     applicability: { includes: ["src/**"], excludes: ["src/generated/**"] },
-  }],
-});
-
-const activePackText = (id = "team", version = "1.0.0") => JSON.stringify({
-  ...JSON.parse(packText(id, version)),
-  schemaVersion: 2,
-  rules: [{
-    ...JSON.parse(packText(id, version)).rules[0],
-    reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+    reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
       capabilities: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] }],
   }],
 });
 
 describe("rule-pack schema and identity", () => {
-  it("keeps v1 identities stable and rejects future targets and result forms explicitly", () => {
-    const legacy = JSON.parse(packText()) as Record<string, unknown>;
-    const baseline = decodeRulePackText(JSON.stringify(legacy), "legacy.jsonc");
-    expect(decodeRulePackText(JSON.stringify(legacy), "legacy.jsonc").contentDigest).toBe(baseline.contentDigest);
+  it("keeps current identities stable and rejects unknown result forms", () => {
+    const document = JSON.parse(packText()) as Record<string, unknown>;
+    const baseline = decodeRulePackText(JSON.stringify(document), "pack.jsonc");
+    expect(decodeRulePackText(JSON.stringify(document), "pack.jsonc").contentDigest).toBe(baseline.contentDigest);
     expect(baseline.rules[0]?.threshold).toBe(0.7);
-    const rule = (legacy.rules as Array<Record<string, unknown>>)[0]!;
+    const rule = (document.rules as Array<Record<string, unknown>>)[0]!;
     for (const [field, declaration] of [
-      ["reviewTargets", [{ artifactKind: "function", inputContract: "direct-event/function/v1", requiredEvidence: ["body"] }]],
       ["resultForm", { kind: "choice", options: ["yes", "no"] }],
       ["resultForm", { kind: "score", range: [0, 5] }],
     ] as const) {
-      const candidate = { ...legacy, rules: [{ ...rule, [field]: declaration }] };
+      const candidate = { ...document, rules: [{ ...rule, [field]: declaration }] };
       expect(() => decodeRulePackText(JSON.stringify(candidate), "future.jsonc")).toThrowError(
         expect.objectContaining({ source: "future.jsonc", field: `rules[0].${field}` }),
       );
     }
-    expect(() => decodeRulePackText(JSON.stringify({ ...legacy, schemaVersion: 2 }), "future.jsonc"))
+    expect(() => decodeRulePackText(JSON.stringify({ ...document, schemaVersion: 2 }), "future.jsonc"))
       .toThrowError(expect.objectContaining({ source: "future.jsonc", field: "schemaVersion" }));
   });
 
   it("decodes canonical JSONC, inserts defaults and creates stable digests", () => {
     const one = decodeRulePackText(`{
-      // content meaning is independent from schema version
+      // content meaning is independent from JSONC formatting
       "schemaVersion": 1,
       "id": "team",
       "contentVersion": "1.0.0",
@@ -73,7 +64,8 @@ describe("rule-pack schema and identity", () => {
         "id": "r",
         "question": "Q",
         "criteria": { "false": "No", "true": "Yes" },
-        "message": "M"
+        "message": "M",
+        "reviewTargets": [{"artifactKind":"typeShape","inputContract":"direct-event/type-shape/v1","capabilities":["root-declaration"]}]
       }]
     }`, "pack.jsonc");
     const two = decodeRulePackText(JSON.stringify({
@@ -83,6 +75,7 @@ describe("rule-pack schema and identity", () => {
         criteria: { false: "No", true: "Yes" },
         threshold: 0.7,
         message: "M",
+        reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }],
       }],
       contentVersion: "1.0.0",
       id: "team",
@@ -123,6 +116,7 @@ describe("rule-pack schema and identity", () => {
           question: "Q",
           criteria: { false: "F", true: "T" },
           message: 17,
+          reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }],
         }],
       }), "bounded-pack.jsonc");
       throw new Error("expected schema failure");
@@ -141,6 +135,7 @@ describe("rule-pack schema and identity", () => {
         question: "Q",
         criteria: { false: "F", true: "T" },
         message: "M",
+        reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }],
         applicability: { includes: ["../src/**"] },
       }],
     }), "invalid-pattern.jsonc")).toThrowError(expect.objectContaining({
@@ -155,8 +150,8 @@ describe("rule-pack schema and identity", () => {
       id: "team",
       contentVersion: "1",
       rules: [
-        { id: "same", question: "Q", criteria: { false: "F", true: "T" }, message: "M" },
-        { id: "same", question: "Q", criteria: { false: "F", true: "T" }, message: "M" },
+        { id: "same", question: "Q", criteria: { false: "F", true: "T" }, message: "M", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }] },
+        { id: "same", question: "Q", criteria: { false: "F", true: "T" }, message: "M", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, capabilities: ["root-declaration"] }] },
       ],
     }), "duplicate.jsonc")).toThrow(ConfigurationError);
   });
@@ -171,7 +166,7 @@ describe("layered local pack loading and compilation", () => {
       const source = join(root, "rules");
       const { mkdirSync } = await import("node:fs");
       mkdirSync(source);
-      writeFileSync(packPath, activePackText());
+      writeFileSync(packPath, packText());
       const layer: ConfigurationLayer = {
         name: "project",
         source: configPath,
@@ -185,7 +180,7 @@ describe("layered local pack loading and compilation", () => {
       expect(selectApplicableRules(localRules, "const x = 1", "src/generated/a.ts")).toHaveLength(0);
       expect(selectApplicableRules(localRules, "const x = 1", "docs/a.ts")).toHaveLength(0);
       expect(selectApplicableRules(localRules, "const x = 1", "src/a.ts", {
-        artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT, complete: false,
+        artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, complete: false,
       })).toHaveLength(0);
       expect(selectApplicableRules(localRules, "const x = 1", "src/a.ts", {
         artifactKind: "function", inputContract: "direct-event/function/v1", complete: true,
@@ -204,7 +199,7 @@ describe("layered local pack loading and compilation", () => {
       const packPath = join(packDirectory, "team.jsonc");
       const { mkdirSync } = await import("node:fs");
       mkdirSync(packDirectory, { recursive: true });
-      writeFileSync(packPath, activePackText());
+      writeFileSync(packPath, packText());
       const layer: ConfigurationLayer = {
         name: "project",
         source: configPath,
@@ -292,7 +287,7 @@ describe("layered local pack loading and compilation", () => {
 describe("bounded rule selection combinations", () => {
   it("executes all 128 Boolean gates through production configuration, compilation, and selection", () => {
     const rawPack = {
-      schemaVersion: 2,
+      schemaVersion: 1,
       id: "selection",
       contentVersion: "1",
       rules: [{
@@ -300,18 +295,11 @@ describe("bounded rule selection combinations", () => {
         question: "Does this candidate require review?",
         criteria: { false: "No.", true: "Yes." },
         message: "Review this candidate.",
-        reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+        reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
           capabilities: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] }],
       }],
     };
-    const facts = decodeRulePackV2(rawPack);
-    const pack = {
-      ...decodeRulePackText(JSON.stringify({ ...rawPack, schemaVersion: 1,
-        rules: rawPack.rules.map(({ reviewTargets: _targets, ...rule }) => rule) }), "selection.jsonc"),
-      schemaVersion: 2 as const,
-      contentDigest: facts.contentDigest,
-      v2Raw: rawPack,
-    };
+    const pack = decodeRulePackText(JSON.stringify(rawPack), "selection.jsonc");
     const source = "const candidate = true;";
     const path = "src/candidate.ts";
     for (let mask = 0; mask < 128; mask += 1) {

@@ -5,8 +5,8 @@ import { adaptCodexDirectEvent } from "./adapter.ts";
 import { prepareObservation, preparedUnitStillCurrent, reviewObservation } from "./pipeline.ts";
 import { addEvent, makeGitFixture, put } from "./test-fixtures.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
-import { compileRulePackV2 } from "../rules/compiler.ts";
-import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { compileRulePack } from "../rules/compiler.ts";
+import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 
 type Case = {
@@ -31,16 +31,16 @@ const offlineManifest = JSON.parse(await readFile(new URL("offline-manifest.json
     category: string;
   }>;
 };
-const rules = compileRulePackV2({
-  schemaVersion: 2, id: "corpus-probe", contentVersion: "1", rules: [
+const rules = compileRulePack({
+  schemaVersion: 1, id: "corpus-probe", contentVersion: "1", rules: [
     {
       id: "type", question: "Is the shape meaningful?", criteria: { false: "No", true: "Yes" },
-      message: "Review type", reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+      message: "Review type", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
         capabilities: ["root-declaration", "resolved-outbound-types"] }],
     },
     {
       id: "function", question: "Is the body accounted for?", criteria: { false: "No", true: "Yes" },
-      message: "Review function", reviewTargets: [{ artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT,
+      message: "Review function", reviewTargets: [{ artifactKind: "function", inputContract: FUNCTION_INPUT_CONTRACT,
         capabilities: ["signature", "body", "resolved-local-calls"] }],
     },
   ],
@@ -65,7 +65,7 @@ describe("proposed adoption corpus native completeness", () => {
       if (observation === undefined) return;
       const prepared = yield* prepareObservation(observation, {
         controlledWriter: true, advicee: observation.advicee,
-        inputContract: fixture.branch === "type-shape/v2" ? V2_TYPE_CONTRACT : V2_FUNCTION_CONTRACT,
+        inputContract: fixture.branch === "type-shape/v2" ? TYPE_INPUT_CONTRACT : FUNCTION_INPUT_CONTRACT,
         settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
         rules,
       });
@@ -101,7 +101,7 @@ describe("proposed adoption corpus native completeness", () => {
       const reads: string[] = [];
       const context = {
         controlledWriter: true, advicee: observation.advicee,
-        inputContract: fixture.branch === "type-shape/v2" ? V2_TYPE_CONTRACT : V2_FUNCTION_CONTRACT,
+        inputContract: fixture.branch === "type-shape/v2" ? TYPE_INPUT_CONTRACT : FUNCTION_INPUT_CONTRACT,
         settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
         rules: fixture.category === "no-target-rule" ? [] : rules,
         ...(fixture.policy === null ? {} : { policy: fixture.policy }),

@@ -29,11 +29,11 @@
       ]
     },
     "inputContract": {
-      "id": "direct-event/type-shape/v2",
+      "id": "direct-event/type-shape/v1",
       "completeness": "complete",
       "projectionFingerprint": "5334fbc03c4fd8fd4947c92e362b9adbdf3a5a4e04aead1f0ad893ed5574074b",
-      "rendererVersion": "candidate-semantic-evidence/2",
-      "rendererDigest": "16eb76ad99f9e13efeb921b45fb36196c36c8d7d127cced101a16ce478dece10"
+      "rendererVersion": "candidate-semantic-evidence/1",
+      "rendererDigest": "5c3b2bd71f8797f88d241c131397441ff5bbe9c0b06e231cd89d8bf36cbbfe04"
     }
   },
   "completeRequest": {
@@ -67,11 +67,11 @@
         ]
       },
       "inputContract": {
-        "id": "direct-event/type-shape/v2",
+        "id": "direct-event/type-shape/v1",
         "completeness": "complete",
         "projectionFingerprint": "5334fbc03c4fd8fd4947c92e362b9adbdf3a5a4e04aead1f0ad893ed5574074b",
-        "rendererVersion": "candidate-semantic-evidence/2",
-        "rendererDigest": "16eb76ad99f9e13efeb921b45fb36196c36c8d7d127cced101a16ce478dece10"
+        "rendererVersion": "candidate-semantic-evidence/1",
+        "rendererDigest": "5c3b2bd71f8797f88d241c131397441ff5bbe9c0b06e231cd89d8bf36cbbfe04"
       }
     },
     "decisions": {

@@ -30,8 +30,8 @@ try {
   const path = securityWireManifest.positive.path;
   await put(root, path, securityWireManifest.positive.source);
   await put(root, "rules.jsonc", JSON.stringify({
-    schemaVersion: 2, id: "security-probe", contentVersion: "1", rules: [{ ...securityWireRule,
-      reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v2",
+    schemaVersion: 1, id: "security-probe", contentVersion: "1", rules: [{ ...securityWireRule,
+      reviewTargets: [{ artifactKind: "typeShape", inputContract: "direct-event/type-shape/v1",
         capabilities: ["root-declaration", "resolved-outbound-types"] }] }],
   }));
   const config = { version: 1, packs: [{ id: "noul", enabled: false }, "rules.jsonc"] };

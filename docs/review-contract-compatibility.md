@@ -21,19 +21,20 @@ file passes containment, protected-path, Git-ignore, and file-selection checks
 before Hapsland reads its source. Configuration must be valid before source
 capture. The old repository grant is not a dispatch gate.
 
-Authored packs for direct review use schemaVersion 2. Each rule declares
+Authored packs for direct review use schemaVersion 1, updated in place during
+this pre-release phase. Each rule declares
 reviewTargets with an exact artifact kind, input contract, and required
 capabilities. A rule shared by type and function review names both targets.
 Unknown versions, targets, capabilities, or fields fail the selected pack.
-An authored schema-1 pack fails current resident configuration before source
-capture; it cannot silently run against a new input. Bundled Noul rules target
-type review; its body rule also targets function review. Rule IDs, enablement,
+Invalid or unsupported pack versions fail configuration before source capture.
+Bundled Noul rules target type review; its body rule also targets function review.
+Rule IDs, enablement,
 path filters, probability thresholds, and authored messages retain their
 configured meanings. Choice and Score result forms remain separate decisions.
 
 ## Review input and result identity
 
-The active input contracts are direct-event/type-shape/v2 and
+The active input contracts are direct-event/type-shape/v1 and
 direct-event/function/v1. Each request carries one changed root and its
 bounded evidence tree with marked omissions. Supporting declarations can come from other
 selected files through supported local imports. They do not become separate

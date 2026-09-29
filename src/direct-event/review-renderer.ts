@@ -2,14 +2,14 @@ import { createHash } from "node:crypto";
 import { posix } from "node:path";
 import { canonicalValue } from "./model.ts";
 
-export const CANDIDATE_RENDERER_VERSION = "candidate-semantic-evidence/2";
+export const CANDIDATE_RENDERER_VERSION = "candidate-semantic-evidence/1";
 export const MAX_CANDIDATE_TREE_BYTES = 20 * 1024;
 const MAX_CANDIDATE_SOURCE_BYTES = 256 * 1024;
 const MAX_CANDIDATE_NODES = 128;
 const MAX_CANDIDATE_EDGES = 128;
 const sha256 = (value: string): string => createHash("sha256").update(value, "utf8").digest("hex");
 export const CANDIDATE_RENDERER_DIGEST = sha256(
-  "candidate-semantic-evidence/2:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,order],edges[from,to?,kind,symbol,reason?,order]):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)",
+  "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,order],edges[from,to?,kind,symbol,reason?,order]):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)",
 );
 
 type Kind = "interface" | "type-alias" | "function";
@@ -19,7 +19,7 @@ type Edge = Readonly<{ from: string; to: string; kind: "expanded" | "included"; 
   Readonly<{ from: string; kind: "omitted"; symbol: string;
     reason: "unresolved" | "unsupported" | "reference-limit" | "unavailable"; order: number }>;
 export type CandidateReviewInput = Readonly<{
-  contract: "direct-event/type-shape/v2" | "direct-event/function/v1";
+  contract: "direct-event/type-shape/v1" | "direct-event/function/v1";
   completeness: "complete" | "incomplete-irrelevant";
   treeBytesLimit: number;
   artifact: Artifact;
@@ -91,7 +91,7 @@ export const renderCandidateReviewInput = (value: unknown): RenderedCandidateRev
   const input = record(value);
   if (input === undefined || !exactKeys(input,
     ["contract", "completeness", "treeBytesLimit", "artifact", "nodes", "edges"]) ||
-    (input.contract !== "direct-event/type-shape/v2" && input.contract !== "direct-event/function/v1") ||
+    (input.contract !== "direct-event/type-shape/v1" && input.contract !== "direct-event/function/v1") ||
     (input.completeness !== "complete" && input.completeness !== "incomplete-irrelevant") ||
     !Number.isSafeInteger(input.treeBytesLimit) ||
     Number(input.treeBytesLimit) < 1 || Number(input.treeBytesLimit) > MAX_CANDIDATE_TREE_BYTES ||
@@ -103,7 +103,7 @@ export const renderCandidateReviewInput = (value: unknown): RenderedCandidateRev
   const nodes = input.nodes.map((item) => artifact(item, true));
   const edges = input.edges.map(edge);
   if (nodes.some((item) => item === undefined) || edges.some((item) => item === undefined)) return undefined;
-  if (input.contract === "direct-event/type-shape/v2" && nodes.some((item) => item?.kind === "function")) return undefined;
+  if (input.contract === "direct-event/type-shape/v1" && nodes.some((item) => item?.kind === "function")) return undefined;
   const orderedNodes = (nodes as Node[]).sort((a, b) => a.order - b.order || a.domain.localeCompare(b.domain) ||
     a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
   const orderedEdges = (edges as Edge[]).sort((a, b) => a.order - b.order || a.from.localeCompare(b.from) ||

@@ -1,28 +1,28 @@
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { compileRulePackV2 } from "../rules/compiler.ts";
-import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { compileRulePack } from "../rules/compiler.ts";
+import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { canonicalValue, freezeRules, type PreparedUnit, type ReviewArtifact, type ReviewNode } from "./model.ts";
 import {
   MAX_FULL_JEV_REQUEST_BYTES, candidateReviewInput, encodedFullJevRequestBytes,
   encodedPreparedProviderInputBytes, preparedProviderInput,
 } from "./pipeline.ts";
 import { CANDIDATE_RENDERER_DIGEST, CANDIDATE_RENDERER_VERSION, MAX_CANDIDATE_TREE_BYTES,
-  renderCandidateReviewInput } from "./v2-renderer.ts";
+  renderCandidateReviewInput } from "./review-renderer.ts";
 
 const hash = (source: string): string => createHash("sha256").update(source, "utf8").digest("hex");
 const artifact = (path: string, kind: ReviewArtifact["kind"], name: string, source: string): ReviewArtifact =>
   ({ path, id: `${path}:${kind}:${name}`, kind, name, source, sourceHash: hash(source) });
 const node = (value: ReviewArtifact, references: ReviewNode["references"] = []): ReviewNode =>
   ({ artifact: value, references });
-const rules = compileRulePackV2({
-  schemaVersion: 2, id: "wire-proposal", contentVersion: "1", rules: [
+const rules = compileRulePack({
+  schemaVersion: 1, id: "wire-proposal", contentVersion: "1", rules: [
     { id: "type", question: "Is the selected type closure meaningful?", criteria: { false: "No", true: "Yes" },
-      message: "Review the type closure", reviewTargets: [{ artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+      message: "Review the type closure", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
         capabilities: ["root-declaration", "resolved-outbound-types"] }] },
     { id: "function", question: "Does the selected function call its helper?", criteria: { false: "No", true: "Yes" },
-      message: "Review the function body", reviewTargets: [{ artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT,
+      message: "Review the function body", reviewTargets: [{ artifactKind: "function", inputContract: FUNCTION_INPUT_CONTRACT,
         capabilities: ["signature", "body", "resolved-local-calls"] }] },
   ],
 }, "fixture:issue-138-wire");
@@ -41,7 +41,7 @@ const prepared = (branch: "type" | "function"): PreparedUnit => {
   const rootNode = node(root, [{ kind: "expanded", site: { symbol: isType ? "Amount" : "double" }, node: supportNode }]);
   const rule = rules[isType ? 0 : 1];
   if (rule === undefined) throw new Error("missing proposed fixture rule");
-  const contract = isType ? V2_TYPE_CONTRACT : V2_FUNCTION_CONTRACT;
+  const contract = isType ? TYPE_INPUT_CONTRACT : FUNCTION_INPUT_CONTRACT;
   return {
     root: "/fixture", identity: `wire-${branch}`,
     advicee: { host: "codex-cli", hostVersion: "0.155.1", sessionId: "s", turnId: "t", toolUseId: "u", subagentId: null },

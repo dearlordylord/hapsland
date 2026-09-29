@@ -88,7 +88,7 @@ partial or unstable capture.
 
 | Contract | Artifact root | Proposed evidence projection | Inapplicable examples |
 | --- | --- | --- | --- |
-| `direct-event/type-shape/v2` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and bounded outbound named-type reference graph with marked omissions, following supported local imports across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
+| `direct-event/type-shape/v1` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and bounded outbound named-type reference graph with marked omissions, following supported local imports across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
 | `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and bounded directly referenced type and named-function graph with marked omissions, following supported local imports across selected files | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, unresolved or excluded evidence needed by a selected rule |
 
 These contract IDs replace the former production
@@ -163,7 +163,7 @@ The implementation must check the graph boundary and each rule's declared needs;
 
 ## Rule pack and configuration contract
 
-`rule-pack/v2` adds a required, explicit `reviewTargets` declaration
+`rule-pack/v1` requires an explicit `reviewTargets` declaration
 to each rule. Each target names `artifactKind` (`typeShape` or `function`), exact
 `inputContract`, and an enumerated set of evidence capabilities the rule needs.
 These declarations decide whether a candidate's evidence is sufficient for that
@@ -272,7 +272,7 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
    and rationale. Missing labels mean unchecked; rules needing omitted evidence
    have skip expectations, not probability bands.
 2. Deterministic offline checks establish unique attribution, finite expansion,
-   per-rule evidence checks, schema-v1 isolation and strict v2 target validation,
+   per-rule evidence checks and strict schema-v1 target validation,
    exact request shape, per-path file selection before any source read
    (including A → B → excluded C),
    no read of excluded C, continued bounded traversal after a contribution

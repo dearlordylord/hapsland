@@ -9,7 +9,7 @@ import {
 } from "../direct-event/model.ts";
 import { advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { CapacityLedger } from "./capacity.ts";
 import {
   EvaluationReuse,
@@ -29,7 +29,7 @@ const artifact = (source: string): TypeDeclaration => ({
 const input = (overrides: Partial<ReviewInput> = {}): ReviewInput => {
   const declaration = artifact("type OrderCount = number");
   return freezeInput({
-    contract: V2_TYPE_CONTRACT,
+    contract: TYPE_INPUT_CONTRACT,
     completeness: "complete",
     path: "type.ts",
     declaration,

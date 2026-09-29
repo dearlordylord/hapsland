@@ -4,22 +4,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as Effect from "effect/Effect";
 import { loadReviewSettings } from "../runtime/review-config.ts";
-import { compileRulePackV2, selectApplicableRules } from "./compiler.ts";
-import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "./v2-targets.ts";
+import { compileRulePack, selectApplicableRules } from "./compiler.ts";
+import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "./targets.ts";
 
-const pack = () => ({ schemaVersion: 2, id: "team", contentVersion: "1", rules: [{
+const pack = () => ({ schemaVersion: 1, id: "team", contentVersion: "1", rules: [{
   id: "readable", question: "Is it readable?", criteria: { false: "No", true: "Yes" },
   threshold: 0.8, message: "Improve readability", reviewTargets: [
-    { artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT,
+    { artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
       capabilities: ["root-declaration", "resolved-outbound-types"] },
-    { artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT,
+    { artifactKind: "function", inputContract: FUNCTION_INPUT_CONTRACT,
       capabilities: ["signature", "body"] },
   ],
 }] });
 
-describe("explicit v2 rule target compilation", () => {
-  it("loads an authored v2 pack for both active review branches", async () => {
-    const root = mkdtempSync(join(tmpdir(), "hapsland-v2-pack-"));
+describe("explicit rule target compilation", () => {
+  it("loads an authored pack for both active review branches", async () => {
+    const root = mkdtempSync(join(tmpdir(), "hapsland-rule-pack-"));
     try {
       writeFileSync(join(root, ".review.jsonc"), JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
       writeFileSync(join(root, "rules.jsonc"), JSON.stringify(pack()));
@@ -27,43 +27,43 @@ describe("explicit v2 rule target compilation", () => {
       const authored = settings.rules?.filter((rule) => rule.packId === "team") ?? [];
       expect(authored).toHaveLength(1);
       expect(selectApplicableRules(authored, "type A = number", "a.ts", {
-        artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT, complete: true,
+        artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, complete: true,
         capabilities: ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"],
       })).toHaveLength(1);
       expect(selectApplicableRules(authored, "function run() {}", "a.ts", {
-        artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT, complete: true,
+        artifactKind: "function", inputContract: FUNCTION_INPUT_CONTRACT, complete: true,
         capabilities: ["signature", "body", "resolved-local-calls", "resolved-outbound-types"],
       })).toHaveLength(1);
     } finally { rmSync(root, { recursive: true, force: true }); }
   });
   it("selects only the exact branch and complete declared capabilities", () => {
-    const rules = compileRulePackV2(pack(), "fixture-v2");
+    const rules = compileRulePack(pack(), "fixture-rule-pack");
     expect(rules).toHaveLength(1);
     expect(rules[0]?.threshold).toBe(0.8);
     expect(selectApplicableRules(rules, "function run() {}", "a.ts", {
-      artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT, complete: true,
+      artifactKind: "function", inputContract: FUNCTION_INPUT_CONTRACT, complete: true,
       capabilities: ["signature", "body", "resolved-local-calls", "resolved-outbound-types"],
     })).toHaveLength(1);
     expect(selectApplicableRules(rules, "function run() {}", "a.ts", {
-      artifactKind: "function", inputContract: V2_FUNCTION_CONTRACT, complete: true,
+      artifactKind: "function", inputContract: FUNCTION_INPUT_CONTRACT, complete: true,
       capabilities: ["signature"],
     })).toEqual([]);
     expect(selectApplicableRules(rules, "function run() {}", "a.ts", {
-      artifactKind: "function", inputContract: V2_TYPE_CONTRACT, complete: true,
+      artifactKind: "function", inputContract: TYPE_INPUT_CONTRACT, complete: true,
       capabilities: ["root-declaration", "resolved-outbound-types"],
     })).toEqual([]);
     expect(selectApplicableRules(rules, "type A = number", "a.ts", {
-      artifactKind: "typeShape", inputContract: V2_TYPE_CONTRACT, complete: false,
+      artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT, complete: false,
       capabilities: ["root-declaration", "resolved-outbound-types"],
     })).toEqual([]);
   });
 
   it("changes compiled identity when an authored target or effective threshold changes", () => {
-    const original = compileRulePackV2(pack(), "fixture-v2")[0];
+    const original = compileRulePack(pack(), "fixture-rule-pack")[0];
     const changed = pack();
     changed.rules[0]!.reviewTargets[1]!.capabilities.push("resolved-local-calls");
-    const targetChanged = compileRulePackV2(changed, "fixture-v2")[0];
-    const thresholdChanged = compileRulePackV2({ ...pack(), rules: [{ ...pack().rules[0], threshold: 0.6 }] }, "fixture-v2")[0];
+    const targetChanged = compileRulePack(changed, "fixture-rule-pack")[0];
+    const thresholdChanged = compileRulePack({ ...pack(), rules: [{ ...pack().rules[0], threshold: 0.6 }] }, "fixture-rule-pack")[0];
     expect(targetChanged?.definitionDigest).not.toBe(original?.definitionDigest);
     expect(thresholdChanged?.threshold).not.toBe(original?.threshold);
   });
