@@ -2,10 +2,11 @@
 // Offline, bounded benchmark. Run from the repository root with:
 // node --experimental-strip-types evidence/issue-138-memory/benchmark.mjs
 import { execFile } from "node:child_process";
-import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { cpus, freemem, platform, arch, totalmem, tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import { getHeapStatistics } from "node:v8";
 import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts";
@@ -21,7 +22,25 @@ import { Consent } from "../../src/runtime/consent.ts";
 const execFileAsync = promisify(execFile);
 const ITEMS = 8;
 const SOURCE_BYTES = 256 * 1024;
-const output = new URL("./aggregate.json", import.meta.url);
+const evidenceDirectory = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(evidenceDirectory, "../..");
+const sourceCommit = "55bddc26410b5bc54bea333dd94dffff4bb3a9c6";
+const options = new Map();
+for (let index = 2; index < process.argv.length; index += 2) {
+  const key = process.argv[index];
+  const value = process.argv[index + 1];
+  if (value === undefined || (key !== "--output" && key !== "--source-commit") || options.has(key)) {
+    throw new Error("expected unique --output and --source-commit values");
+  }
+  options.set(key, value);
+}
+const outputName = options.get("--output") ?? "aggregate.json";
+if (isAbsolute(outputName) || outputName.split(/[\\/]/u).includes("..")) {
+  throw new Error("output must remain under the benchmark evidence directory");
+}
+const output = resolve(evidenceDirectory, outputName);
+const declaredSourceCommit = options.get("--source-commit") ?? sourceCommit;
+if (!/^[0-9a-f]{40}$/u.test(declaredSourceCommit)) throw new Error("source commit must be a full Git hash");
 const timeoutMs = 10_000;
 
 const withDeadline = async (promise, label) => {
@@ -211,10 +230,10 @@ try {
   const result = {
     schemaVersion: 1,
     authority: "offline implementation measurement; not product acceptance or release support",
-    sourceCommit: "55bddc26410b5bc54bea333dd94dffff4bb3a9c6",
+    sourceCommit: declaredSourceCommit,
     benchmark: { items: ITEMS, sourceBytesPerItem: SOURCE_BYTES, totalSourceBytes: ITEMS * SOURCE_BYTES,
       sampleIntervalMs: 2, noLiveJev: true, credentialUsed: false,
-      sourceOutputRetained: false },
+      sourceOutputRetained: false, outputArtifact: relative(repoRoot, output) },
     method: {
       command: "node --experimental-strip-types evidence/issue-138-memory/benchmark.mjs",
       resident: "one small inapplicable Markdown primer starts a dispatch cycle; eight 256 KiB TypeScript captures form the next concurrent cohort and are held after stable capture",
@@ -227,6 +246,7 @@ try {
     resident,
     candidate,
   };
+  await mkdir(dirname(output), { recursive: true });
   await writeFile(output, `${JSON.stringify(result, null, 2)}\n`, "utf8");
   process.stdout.write(`${JSON.stringify({ residentRunningAtGate: resident.runningAtGate,
     residentPeakLedgerBytes: resident.peakLedgerBytes, candidateReadyUnits: candidate.readyUnits })}\n`);
