@@ -42,7 +42,7 @@ export const PLACE_ORDER = FLOW_STAGES;
 
 
 /** Fixed edges describe possible presentation connections; they make no reducer decisions. */
-export const CONNECTIONS: readonly Readonly<{ from: Place; to: Place; label: string }>[] = [
+export const CONNECTIONS = [
   { from: "observation", to: "admission", label: "observation supplied" },
   { from: "admission", to: "queued", label: "dispatch queued" },
   { from: "observation", to: "preparation", label: "source reading begins" },
@@ -66,4 +66,4 @@ export const CONNECTIONS: readonly Readonly<{ from: Place; to: Place; label: str
   { from: "delivery", to: "delivery", label: "delivery phase recorded" },
   { from: "delivery", to: "round", label: "output fact changes round" },
   { from: "round", to: "round", label: "round retirement and release" },
-];
+] as const satisfies readonly Readonly<{ from: Place; to: Place; label: string }>[];

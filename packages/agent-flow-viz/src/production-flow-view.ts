@@ -1,11 +1,42 @@
 import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalCommand, CanonicalProjection } from "../../../src/canonical/adapter";
 import type { ReplayStep } from "./canonical-replay";
-import { projectFlowStep, type FlowStage as Place } from "@hapsland/agent-flow-projection";
+import { projectFlowStep, type FlowEvidence } from "@hapsland/agent-flow-projection";
 import { CONNECTIONS, PLACE_ORDER, SQUARES } from "./production-flow-presentation";
 
-type Route = { readonly from: Place; readonly to: Place; readonly label: string; readonly active: boolean;
-  readonly command: boolean; readonly external: boolean; readonly mixed: boolean; readonly evidence: string };
+type ArrowKind = FlowEvidence["source"] | "possible" | "mixed" | "mixed external";
+type Route = (typeof CONNECTIONS)[number] & Readonly<{ active: boolean; kind: ArrowKind; evidence: string }>;
+const unreachable = (value: never): never => { throw new Error(`unknown arrow kind: ${String(value)}`); };
+const arrowKind = (evidence: readonly FlowEvidence[]): ArrowKind => {
+  if (evidence.length === 0) return "possible";
+  let command = false;
+  let external = false;
+  let native = false;
+  for (const item of evidence) {
+    switch (item.source) {
+      case "command": command = true; break;
+      case "external fact": external = true; break;
+      case "native fact": native = true; break;
+      case "state": break;
+      default: unreachable(item.source);
+    }
+  }
+  if (command && evidence.some((item) => item.source !== "command")) return external ? "mixed external" : "mixed";
+  if (command) return "command";
+  if (external) return "external fact";
+  return native ? "native fact" : "state";
+};
+const arrowPaint = (kind: ArrowKind) => {
+  switch (kind) {
+    case "possible": return { color: "#91a4ba", dashed: false, overlay: false, external: false, command: false };
+    case "state": case "native fact": return { color: "#e66035", dashed: false, overlay: false, external: false, command: false };
+    case "external fact": return { color: "#8a5a00", dashed: false, overlay: false, external: true, command: false };
+    case "command": return { color: "#794aa0", dashed: true, overlay: false, external: false, command: true };
+    case "mixed": return { color: "#e66035", dashed: false, overlay: true, external: false, command: false };
+    case "mixed external": return { color: "#8a5a00", dashed: false, overlay: true, external: true, command: false };
+    default: return unreachable(kind);
+  }
+};
 const has = (commands: readonly CanonicalCommand[], ...kinds: CanonicalCommand["kind"][]) =>
   commands.some((command) => kinds.includes(command.kind));
 
@@ -115,13 +146,15 @@ export const productionFlowView = <Message>(
   const stopEvent = event === "stopPolled" || event === "stopGroupPolled";
   const requests = projection.dispatch.requests;
   const flow = projectFlowStep(last);
+  const declaredRoutes = new Set(CONNECTIONS.map(({ from, to }) => `${from}:${to}`));
+  if (declaredRoutes.size !== CONNECTIONS.length) throw new Error("duplicate dashboard arrow route");
+  for (const item of flow.evidence) if (!declaredRoutes.has(`${item.from}:${item.to}`)) {
+    throw new Error(`undeclared dashboard arrow route: ${item.from}:${item.to}`);
+  }
   const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection) }));
   const routes: readonly Route[] = CONNECTIONS.map((connection): Route => {
     const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
-    const hasCommand = evidence.some((item) => item.source === "command");
-    const hasFact = evidence.some((item) => item.source !== "command");
-    return { ...connection, active: evidence.length > 0, command: hasCommand && !hasFact,
-      external: evidence.some((item) => item.source === "external fact"), mixed: hasCommand && hasFact,
+    return { ...connection, active: evidence.length > 0, kind: arrowKind(evidence),
       evidence: evidence.map((item) => `${item.source}: ${item.description}`).join("; ") };
   });
   const routeMultiplicity = new Map<string, number>();
@@ -147,13 +180,14 @@ export const productionFlowView = <Message>(
           const same = routeMultiplicity.get(`${route.from}:${route.to}`) ?? 1;
           const offset = (routeOffsets[index] - (same - 1) / 2) * 18;
           const { path, badge, tip, toward } = routeGeometry(route, offset);
-          const color = route.active ? route.command ? "#794aa0" : route.external ? "#8a5a00" : "#e66035" : "#91a4ba";
-          return h.g([h.Class(`topology-route ${route.active ? "active" : ""} ${route.external ? "external" : ""}`)], [
+          const paint = arrowPaint(route.kind);
+          const color = paint.color;
+          return h.g([h.Class(`topology-route ${route.active ? "active" : ""} ${paint.external ? "external" : ""}`)], [
             h.title([], [`${index + 1}. ${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.active ? route.evidence : `possible: ${route.label}`}`]),
             h.path([h.D(path), h.Fill("none"), h.Stroke(color),
               h.StrokeWidth(route.active ? "4" : "2"),
-              ...(route.command ? [h.StrokeDasharray("7 5")] : [])], []),
-            ...(route.mixed ? [h.path([h.D(path), h.Fill("none"), h.Stroke("#794aa0"), h.StrokeWidth("2"), h.StrokeDasharray("7 5")], [])] : []),
+              ...(paint.dashed ? [h.StrokeDasharray("7 5")] : [])], []),
+            ...(paint.overlay ? [h.path([h.D(path), h.Fill("none"), h.Stroke("#794aa0"), h.StrokeWidth("2"), h.StrokeDasharray("7 5")], [])] : []),
             h.path([h.D(arrowHead(tip, toward)), h.Fill(color)], []),
             h.circle([h.Cx(String(badge.x)), h.Cy(String(badge.y)), h.R("11"),
               h.Fill(route.active ? color : "#fff"), h.Stroke(color)], []),
@@ -187,9 +221,12 @@ export const productionFlowView = <Message>(
     ]),
     h.details([h.Class("topology-route-key")], [
       h.summary([], ["Numbered route key"]),
-      h.ol([], routes.map((route) => h.li([h.Class(`${route.active ? "active" : ""} ${route.command ? "command" : ""} ${route.external ? "external" : ""}`)], [
-        `${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.active ? route.evidence : `possible: ${route.label}`}`,
-      ]))),
+      h.ol([], routes.map((route) => {
+        const paint = arrowPaint(route.kind);
+        return h.li([h.Class(`${route.active ? "active" : ""} ${paint.command ? "command" : ""} ${paint.external ? "external" : ""}`)], [
+          `${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.active ? route.evidence : `possible: ${route.label}`}`,
+        ]);
+      })),
     ]),
     h.div([h.Class("finish-decision")], [
       h.strong([], ["Stop finish decision · canonical branches"]),
