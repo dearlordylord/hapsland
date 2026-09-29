@@ -72,18 +72,14 @@ import {
   combinedReviewOutput,
   encodedComposedClaudeOutputBytes,
   selectFittingComposedClaudeFindings,
-  selectFittingComposedClaudeNotices,
   selectFittingFindings,
   selectFittingCurrentFindingIndices,
   selectFittingClaudeFindings,
-  selectFittingClaudeNotices,
-  selectFittingNotices,
   type ClaudeOutputMode,
   type ComposedClaudeSurface,
   type CollectionMode,
   type FindingSelectionFacts,
   type CanonicalFindingOffer,
-  type CanonicalNoticeOffer,
   type OperationalNotice,
   type OperationalNoticeKind,
 } from "./collection.ts";
@@ -881,18 +877,6 @@ export class ResidentServer {
     }
   };
 
-  #collectionNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting) => {
-    const result = this.#ledger.transition({ kind: "collectionNoticeCheck",
-      items, bytes, skipUnfitting });
-    if (result.rejection !== undefined) throw new Error("canonical notice fit refused");
-    switch (result.commands[0]?.kind) {
-      case "collectionNoticeIncluded": return "include";
-      case "collectionNoticeSkipped": return "skip";
-      case "collectionNoticeStopped": return "stop";
-      default: throw new Error("invalid canonical notice fit");
-    }
-  };
-
   #reserveAdviceLease(advice: Advice, token: string): boolean {
     const result = this.#ledger.transition({ kind: "collectionReserveLease",
       advice: advice.canonicalOperationId, token: this.#ledger.collectionTokenId(token) });
@@ -1227,15 +1211,14 @@ export class ResidentServer {
         handoffFindings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
       }
     }
-    const handoffNow = this.#now();
-    const notices = this.#leaseNotices(partition, token, handoffFindings, handoffNow,
-      ticket, composed, claudeSurface);
-    if (handoffFindings.length === 0 && notices.length === 0) return { status: "empty" };
+    // Operational failures stay in resident diagnostics; agent output carries
+    // only actionable findings.
+    if (handoffFindings.length === 0) return { status: "empty" };
     return ticket === undefined
       ? { status: "advice", token, findingCount: handoffFindings.length,
-          output: combinedReviewOutput(handoffFindings, notices.map((notice) => notice.value)) }
+          output: combinedReviewOutput(handoffFindings, []) }
       : { version: 2, status: "advice", token, findingCount: handoffFindings.length,
-          output: combinedClaudeOutput(handoffFindings, notices.map((notice) => notice.value), ticket.claudeFeedbackMode) };
+          output: combinedClaudeOutput(handoffFindings, [], ticket.claudeFeedbackMode) };
   }
 
   #candidateRoute(event: Extract<CanonicalEvent, { readonly kind:
@@ -1555,43 +1538,6 @@ export class ResidentServer {
       return true;
     }
     return false;
-  }
-
-  #leaseNotices(
-    partition: string,
-    token: string,
-    findings: ReadonlyArray<Finding>,
-    now: number,
-    ticket?: TicketRecord,
-    composed = false,
-    claudeSurface?: ComposedClaudeSurface,
-  ): ReadonlyArray<PendingNotice> {
-    const partitionId = this.#ledger.partitionId(partition);
-    const selection = this.#noticeTransition({ kind: "noticeSelect", partition: partitionId,
-      group: partitionId, composed, ticketed: false, allowed: [] }, "noticeSelected");
-    if (selection.kind !== "noticeSelected") throw new Error("invalid canonical notice selection");
-    const byId = new Map([...this.#noticeCooldowns.values()]
-      .flatMap((cooldown) => cooldown.pending === undefined ? [] : [[cooldown.pending.canonicalId, cooldown.pending] as const]));
-    const candidates = selection.ids.map((id) => byId.get(id) ??
-      (() => { throw new Error("canonical notice missing native payload"); })());
-    const candidateValues = candidates.map(({ value }) => value);
-    const selectedValues = ticket === undefined
-      ? claudeSurface === undefined
-        ? selectFittingNotices(findings, [], candidateValues, this.#collectionNoticeOffer)
-        : selectFittingComposedClaudeNotices(findings, candidateValues,
-            claudeSurface, this.#collectionNoticeOffer)
-      : selectFittingClaudeNotices(findings, candidateValues,
-        ticket.claudeFeedbackMode, this.#collectionNoticeOffer);
-    const selected = candidates.filter((candidate) => selectedValues.includes(candidate.value));
-    for (const notice of selected) {
-      this.#setNoticeLeased(notice.id, true);
-      notice.delivery = {
-        token,
-        leaseUntil: now + DELIVERY_LEASE_MS,
-        acknowledged: false,
-      };
-    }
-    return selected;
   }
 
   #noticeKey(partition: string, kind: OperationalNoticeKind): string {
@@ -2940,8 +2886,8 @@ export class ResidentServer {
           this.#allowFinish(group, request.finish.token, output.reason);
           if (collected.status === "advice") return { status: "empty" };
         }
-        // Operational notices must pass the IPC handoff barrier before the hook
-        // closes the round; unlike findings they cannot reserve a continuation.
+        // Only findings can reach the hook. Operational failures remain in
+        // resident diagnostics and cannot reserve a continuation.
         return collected;
       }
       return request.reportWorkState === true && collected.status === "empty"

@@ -27,7 +27,7 @@ The installed composed path uses the same resident delivery module for Codex CLI
 and Claude Code. Native hooks translate runtime events and response formats; they
 do not own another review queue, reconstruct reviews from the filesystem, or call
 Jev to produce delivery output. The resident owns admitted work, pending advice,
-leases, notices, expiry, finish decisions, and virtual-round resources. There is
+leases, source-free operational failure records, expiry, finish decisions, and virtual-round resources. There is
 one installed delivery behavior, without a legacy/composed mode selector.
 
 ### Agent response is controlled by its instructions
@@ -116,8 +116,8 @@ returns a **continue-with-advice response** (`block`). This asks the runtime to
 let the agent work on the advice in the same virtual round. Otherwise it returns
 an **allow-finish response** (`allow`) and closes the virtual round. The wait
 does not itself continue the agent, and `allow` does not prove that every other
-hook let the actual agent round end. Operational notices alone cannot justify a
-repair continuation.
+hook let the actual agent round end. Operational failures do not produce agent
+output or justify a repair continuation.
 
 **At either decision,** Hapsland selects the available advice batch, discards
 queued unfinished pre-decision work, requests cancellation of pre-decision
@@ -139,8 +139,9 @@ the same advicee and virtual round. For example, edit B's synchronous response
 may include a still-current finding from edit A in that round, even when the
 finding was not ready during edit A's hook. An admission identifies each
 derived review unit and carries authorization and lifetime facts; it does not limit the batch
-to one edit or store a second ticket-wide outcome. Operational notices use the
-same advicee scope and one delivery lease across those opportunities. The installed edit path
+to one edit or store a second ticket-wide outcome. Operational failure records use the
+same advicee scope across those opportunities, but are retained for diagnostics
+instead of being included in agent output. The installed edit path
 automatically starts a bounded background advice wait.
 CLI and resident exchange one version 3 local IPC envelope across admission,
 collection, lifecycle, and delivery operations. An older peer's response cannot
@@ -168,9 +169,9 @@ selected finding.
 Overlapping collectors cannot own that item together. The collector releases a
 lease on a known pre-output failure; a completed advice submission records only
 submission to the runtime. Lost acknowledgements and uncertain submissions
-remain uncertain; lease recovery requires revalidation. Current response limits are five findings
-and 2 KiB of final encoded host output, including Claude-specific wrapping and
-notices. An individually oversized finding yields a bounded
+remain uncertain; lease recovery requires revalidation. Current self-imposed
+response limits are five findings and 2 KiB of final encoded host output,
+including Claude-specific wrapping. An individually oversized finding yields a bounded
 limitation rather than an endless retry.
 
 At most one finish collector owns an advicee's active finish attempt. A

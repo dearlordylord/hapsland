@@ -38,14 +38,16 @@ secret- or source-bearing fields in the new evidence records.
 | 6 | Revalidation and publication authority | Relevant root/reference/rule/contract changes stale; unrelated comments/siblings remain current; no whole-file fallback; late/superseded work and uncertain writer attribution do not publish | 3 obligations |
 | 7 | Resident dispatch and collection | Prompt lone dispatch; finite cycles; 8 concurrent preparation/evaluation jobs; completion or 50 ms collection; deterministic 5-finding/2 KiB response; overflow retained; expiry at 600,000 ms equality | 4 obligations |
 | 8 | Logical capacity and transport | Global 512 items/64 MiB; partition 16 items/2 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
-| 9 | Operational notices | First capacity/backend failure eligible; same kind/partition suppressed before 60,000 ms and eligible at equality; no timer-only notice; 64 bounded keys; restart reset; no recursive notice or finding displacement | 3 obligations |
+| 9 | Operational failure diagnostics | First capacity/backend failure recorded; same kind/partition suppressed before 60,000 ms and refreshed at equality; 64 bounded keys; restart reset; never included in agent output | 3 obligations |
 | 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |
 | 11 | Effective file settings | Default selection, accumulated exclusions, protected paths, and current settings before dispatch; retired grant operations leave saved files untouched | 3 obligations |
 | 12 | Jev request/evidence boundary | One provider-neutral `DecisionModel` request per unit; 15-second deadline; zero automatic retries; source-free live outcome classification; admission is not a provider-call counter | 3 obligations |
 
-All 39 obligations and 95 unique mapped checks pass through product boundaries or narrowly focused external
-boundaries. Ordinary `npm test` and `npm run conformance:direct-event` are deterministic
-and offline. The live Jev script is separate and explicit.
+The original profile recorded 39 obligations and 95 unique mapped checks passing through
+product boundaries or narrowly focused external boundaries. The updated findings-only
+handoff has not yet had a full conformance run. Ordinary `npm test` and
+`npm run conformance:direct-event` are deterministic and offline. The live Jev
+script is separate and explicit.
 
 ## Installed package evidence
 
@@ -88,7 +90,7 @@ unverified rather than inferred from the packaged hook run.
 | Logical capacity | 512 items and 64 MiB per resident; 16 items and 2 MiB per partition. Children have separate partitions. Claude partitions also separate tool calls; composed rounds separate generations. All partitions share the resident limit. |
 | Successful cache | 8 entries and 128 KiB, charged to capacity |
 | Resident job concurrency | 8 shared preparation/evaluation slots; at most 8 Jev calls if every running job is evaluating |
-| Combined host handoff | 5 findings/notices and 2 KiB |
+| Host handoff | 5 findings and 2 KiB; Hapsland's own response budget |
 | Readiness / client request | 10 seconds / 1.5 seconds |
 | Jev request / retries | 15 seconds / zero automatic retries |
 | Collection / relevance / notice | 50 ms / 600,000 ms (expired at equality) / 60,000 ms per kind/partition |
@@ -109,7 +111,7 @@ Jev dispatch.
 The Add hook admits work to the resident reviewer and normally returns before evaluation.
 A later mapped hook may collect current advice. Exclusions, unsupported operations, no
 analyzer, parser containment, and clear evaluations are quiet. Capacity rejection or Jev
-unavailability may produce a bounded rate-limited operational notice. Excess current
+unavailability stays in source-free resident diagnostics, without agent output. Excess current
 findings remain for a later reply. A host write is **attempted/unacknowledged**; it is not
 proof that the model saw the text. Actual reviewer restart, process kill, or accepted idle
 cleanup loses in-memory work, successful reuse, notices, and pending advice. There is no
