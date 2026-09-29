@@ -109,4 +109,3 @@ law import_graph_initial_terminates_for_every_finite_profile:
   {ImportGraph.bounded_terminal(ImportGraph.responsive_run(
     ImportGraph.event_budget(limits), ImportGraph.bounded_initial(limits),
     events, fallback)) == True{} : Bool}
-

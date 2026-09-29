@@ -118,4 +118,3 @@ def Laws.import_graph_responsive_termination(fuel, graph, events, fallback):
 def Laws.import_graph_initial_terminates_for_every_finite_profile(limits, events, fallback):
   Laws.import_graph_responsive_termination(ImportGraph.event_budget(limits),
     ImportGraph.initial(limits), events, fallback)
-
