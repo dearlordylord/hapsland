@@ -32,7 +32,7 @@ The offline product test confirms none of F01–F04/F09/F11 yields a complete se
 
 1. Review type T01–T12 for human-checked semantic expectations, valid rule applicability, exact graph completeness, focused-diff and whole-file comparators, and stable source hashes. A **type-only** first milestone is possible if its separate owner-approved corpus and gates pass. It does not approve the function branch.
 2. Resolve the function resource-binding scope or approve a narrower rule and replace the six withheld cases with complete, checked positives. Re-review F05–F12 under the final rule.
-3. Add deterministic product-level fixture tests for all 48 records, including source-read counts and no-request checks; this hash verifier is only a structural guard.
+3. Add deterministic product-level fixture tests for all 50 records, including source-read counts and no-request checks; this hash verifier is only a structural guard.
 4. Freeze exact v2 rule-pack content digests, renderer/wire examples, labels, thresholds, memory/host evidence, and finite live authorization. The candidate egress switch remains off until the accepted #93 adoption gates are met.
 
 The prior #16 comparison remains `reject-or-narrow`; its paired context-only and whole-file-dilution gates failed. This corpus does not revise that evidence.
