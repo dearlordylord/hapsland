@@ -109,9 +109,13 @@ describe("Claude advicee scoped resident delivery", () => {
     expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     expect(server.stats().pendingFindingBatches).toBe(1);
+    const stopToken = "stop-collection";
+    expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: stopToken })).status).toBe("advanced");
     const collect = (advicee: typeof observation.advicee, composed: true) => server.handle({
       requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee, dispatch, mode: "turn-end", composed,
+      finish: { token: stopToken, deadlineReached: false },
     });
     const stopAdvicee = { ...observation.advicee, toolUseId: "stop" };
     expect((await collect(stopAdvicee, true)).status).toBe("advice");
@@ -176,10 +180,10 @@ describe("Claude advicee scoped resident delivery", () => {
     if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") return;
     await server.whenIdle();
     const wrong = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-      ticket: accepted.ticket, root, advicee: { ...observation.advicee, toolUseId: "other" }, dispatch });
+      ticket: accepted.ticket, root, advicee: { ...observation.advicee, toolUseId: "other" }, dispatch, composed: true });
     expect(wrong).toMatchObject({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
     const delivered = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-      ticket: accepted.ticket, root, advicee: observation.advicee, dispatch });
+      ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
     expect(delivered).toMatchObject({ requestRoute: "ticketed", status: "advice", findingCount: 1,
       output: { decision: "block" } });
     if (delivered.status !== "advice" || !("requestRoute" in delivered) || delivered.requestRoute !== "ticketed") return;
@@ -197,7 +201,7 @@ describe("Claude advicee scoped resident delivery", () => {
     await server.whenIdle();
     writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
     const laterOutput = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-      ticket: later.ticket, root, advicee: laterObservation.advicee, dispatch });
+      ticket: later.ticket, root, advicee: laterObservation.advicee, dispatch, composed: true });
     expect(laterOutput).toMatchObject({ requestRoute: "ticketed", status: "advice",
       output: { hookSpecificOutput: { hookEventName: "PostToolUse" } } });
     if (laterOutput.status === "advice") expect(laterOutput.output).not.toHaveProperty("decision");
@@ -235,7 +239,7 @@ describe("Claude advicee scoped resident delivery", () => {
       await server.whenIdle();
       changeAtHandoff = true;
       const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch });
+        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
       expect(response.status).not.toBe("advice");
       expect(server.stats().pendingAdvice).toBe(0);
     } finally {
@@ -279,7 +283,7 @@ describe("Claude advicee scoped resident delivery", () => {
       await server.whenIdle();
       revoke = true;
       const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch });
+        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
       expect(response).toMatchObject({ requestRoute: "ticketed", status: "pending" });
       expect(server.stats().pendingAdvice).toBe(1);
     } finally {

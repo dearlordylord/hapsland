@@ -43,7 +43,7 @@ const collect = (server: ResidentServer, ticket: ResidentCollectionTicket,
   data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext,
   advicee = data.observation.advicee) => server.handle({
     requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime, ticket,
-    root: data.root, advicee, dispatch,
+    root: data.root, advicee, dispatch, composed: true,
   } satisfies ResidentRequest);
 
 const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTicket,
@@ -59,7 +59,7 @@ const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTic
     });
     socket.on("connect", () => socket.write(`${JSON.stringify({
       version, operation: "collect", lifetime: server.lifetime, ticket,
-      root: data.root, advicee: data.observation.advicee, dispatch,
+      root: data.root, advicee: data.observation.advicee, dispatch, composed: true,
     })}\n`));
   });
 
@@ -124,22 +124,24 @@ describe("Claude terminal collection", () => {
     releasePrimer.resolve();
     await blockersEntered.promise;
     holdOwner = true;
-    const first = server.admit(data.observation, dispatch, true);
+    const first = server.admit(data.observation, dispatch, true, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("owner not admitted");
-    const second = server.admit(data.observation, dispatch, true);
+    const secondObservation = { ...data.observation,
+      advicee: { ...data.observation.advicee, toolUseId: "tool-two" } };
+    const second = server.admit(secondObservation, dispatch, true, true);
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("repeat not admitted");
     releaseBlockers.resolve();
     await ownerClaimed.promise;
     try {
       await claimJoined.promise;
-      expect(await collect(server, second.ticket, data, dispatch))
+      expect(await collect(server, second.ticket, data, dispatch, secondObservation.advicee))
         .toEqual({ requestRoute: "ticketed", status: "pending" });
     } finally {
       releaseOwner.resolve();
     }
     await server.whenIdle();
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
-    expect(await collect(server, second.ticket, data, dispatch))
+    expect(await collect(server, second.ticket, data, dispatch, secondObservation.advicee))
       .toEqual({ requestRoute: "ticketed", status: "empty" });
       expect(evaluationCount).toBe(4);
       expect(evaluatedIdentities.size).toBe(1);
