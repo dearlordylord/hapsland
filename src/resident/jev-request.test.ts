@@ -18,6 +18,37 @@ const deferred = () => {
 };
 
 describe("canonical Jev request boundary", () => {
+  it("captures an over-32 KiB same-file candidate without sending a v1 request", async () => {
+    const root = await makeGitFixture();
+    const source = `export type LargeName = { value: "${"x".repeat(33_000)}" };\n`;
+    await put(root, "large.ts", source);
+    const statePath = join(root, "consent");
+    await Effect.runPromise(Effect.gen(function* () {
+      const consent = yield* Consent.Service;
+      yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
+    }).pipe(Effect.provide(Consent.layer({ statePath }))));
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["large.ts"])));
+    if (observation === undefined) throw new Error("fixture observation missing");
+    const reads: string[] = [];
+    const captureSource: typeof captureStable = (sourceRoot, path, hooks, identity) =>
+      captureStable(sourceRoot, path, { ...hooks, sourceRead: (name) => { reads.push(name); } }, identity);
+    const capturePath = join(root, "provider-calls.txt");
+    const commands: JevRequestObservation[] = [];
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      captureSource, jevRequestObserver: (value) => { commands.push(value); },
+    });
+    try {
+      expect(Buffer.byteLength(source, "utf8")).toBeGreaterThan(32 * 1024);
+      expect(server.admit(observation, { statePath, userConfigPath: null, credential: null,
+        controlled: { capturePath } }).status).toBe("accepted");
+      await server.whenIdle();
+      expect(reads).toContain("large.ts");
+      expect(commands).toEqual([]);
+      expect(existsSync(capturePath)).toBe(false);
+      expect(server.accountingMetrics().pendingOperationalNotices).toBe(0);
+    } finally { await server.close(); }
+  });
+
   it("refuses oversized full input before issuing a Jev permit", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type A = number\n");

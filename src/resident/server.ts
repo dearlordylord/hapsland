@@ -14,7 +14,7 @@ import {
   encodedPreparedProviderInputBytes,
   encodedFullJevRequestBytes,
   MAX_FULL_JEV_REQUEST_BYTES,
-  hasCrossFileEvidence,
+  requiresCandidateEgressAuthorization,
   prepareObservation,
   preparedUnitStillCurrent,
   revalidateEvaluations,
@@ -2517,7 +2517,7 @@ export class ResidentServer {
           credentialStatus: credential?.status ?? "not-required",
           credentialGeneration: credential?.generation ?? null,
         });
-        if ((hasCrossFileEvidence(job.prepared) && !allowCandidateCrossFileEgress) ||
+        if ((requiresCandidateEgressAuthorization(job.prepared) && !allowCandidateCrossFileEgress) ||
           encodedFullJevRequestBytes(job.prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
           return { status: "input-limit" as const };
         }

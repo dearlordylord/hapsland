@@ -153,6 +153,11 @@ export const hasCrossFileEvidence = (prepared: PreparedUnit): boolean => {
   return false;
 };
 
+/** The accepted v1 egress profile is limited to 32 KiB and same-file evidence. */
+export const requiresCandidateEgressAuthorization = (prepared: PreparedUnit): boolean =>
+  Buffer.byteLength(prepared.input.declaration.source, "utf8") > 32 * 1024 ||
+  hasCrossFileEvidence(prepared);
+
 const preparedBelongsTo = (
   prepared: PreparedUnit,
   observation: DirectObservation,
@@ -562,7 +567,7 @@ export const reviewObservation = Effect.fn("DirectEvent.reviewObservation")(func
       return { status: "unavailable", reason: "stale", output: undefined } satisfies DirectReviewResult;
     }
     if (admission !== "admitReview") continue;
-    if (hasCrossFileEvidence(outcome.prepared) && context.allowCandidateCrossFileEgress !== true) continue;
+    if (requiresCandidateEgressAuthorization(outcome.prepared) && context.allowCandidateCrossFileEgress !== true) continue;
     if (!(yield* preparedUnitStillCurrent(observation, outcome.prepared, context))) continue;
     const evaluation = yield* evaluatePrepared(outcome.prepared);
     if (evaluation.status !== "evaluated") {
