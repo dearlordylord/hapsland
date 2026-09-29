@@ -134,8 +134,8 @@ const functionReferences = (node: SyntaxNode, name: string, boundTypes: Readonly
       }
     }
     if (child.type === "required_parameter" || child.type === "optional_parameter" || child.type === "variable_declarator") {
-      const binding = child.namedChildren.find((part) => part.type === "identifier");
-      if (binding !== undefined) localBindings.add(binding.text);
+      const binding = child.namedChildren[0];
+      if (binding?.type === "identifier") localBindings.add(binding.text);
       else {
         uncertainBinding = true;
         unsupportedBindings.push({ offset: child.startIndex, reference: { kind: "unsupported", name: child.text } });
