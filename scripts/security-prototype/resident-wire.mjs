@@ -9,6 +9,7 @@ import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts";
 import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts";
 import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts";
 import { residentRequest } from "../../src/resident/client.ts";
+import { monotonicNow } from "../../src/resident/hook-clock.ts";
 import { residentPaths } from "../../src/resident/paths.ts";
 import { ResidentServer } from "../../src/resident/server.ts";
 import { makeOfflineSecurityHttpClient, securityWireManifest, securityWireRule } from "./security-wire-observer.ts";
@@ -98,9 +99,14 @@ try {
     },
     controlled: null,
   };
+  const permit = await residentRequest(paths, {
+    requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+    root: observation.root, advicee: observation.advicee, startedAt: monotonicNow(),
+  });
+  if (permit.status !== "advanced") throw new Error(`resident rejected fixture permit: ${permit.status}`);
   const admit = await residentRequest(paths, {
     requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
-    observation, controlledWriter: true, dispatch,
+    observation, controlledWriter: true, dispatch, composed: true,
   });
   event("admit", { status: admit.status, repoId: "fixture-repo", path, source: "production" });
   if (admit.status !== "accepted") throw new Error(`resident rejected fixture: ${admit.status}`);
@@ -120,6 +126,11 @@ try {
   }
   release();
   await server.whenIdle();
+  const collection = await residentRequest(paths, {
+    requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+    root: observation.root, advicee: observation.advicee, dispatch, composed: true,
+  });
+  if (collection.status === "unsupported") throw new Error("resident rejected composed fixture collection");
   event("settled", { repoId: "fixture-repo", path, source: "production" });
   const expectedCount = scenario === "allowed" ? 1 : 0;
   if (requests.length !== expectedCount) failure = `expected ${expectedCount} request(s), observed ${requests.length}`;

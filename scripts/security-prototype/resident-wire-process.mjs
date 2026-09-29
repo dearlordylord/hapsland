@@ -7,6 +7,7 @@ import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts";
 import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts";
 import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts";
 import { residentRequest } from "../../src/resident/client.ts";
+import { monotonicNow } from "../../src/resident/hook-clock.ts";
 import { residentPaths } from "../../src/resident/paths.ts";
 import { decodeResidentRequest } from "../../src/resident/protocol.ts";
 import { securityWireManifest, securityWireRule } from "./security-wire-observer.ts";
@@ -60,11 +61,16 @@ try {
     }, controlled: null,
   };
   const admission = {
-    requestRoute: "shared", operation: "admit", lifetime, observation, controlledWriter: true, dispatch,
+    requestRoute: "shared", operation: "admit", lifetime, observation, controlledWriter: true, dispatch, composed: true,
   };
   if (decodeResidentRequest(JSON.stringify(admission)) === undefined) {
     throw new Error("fixture admission failed resident protocol validation before send");
   }
+  const permit = await residentRequest(paths, {
+    requestRoute: "shared", operation: "register-edit", lifetime,
+    root: observation.root, advicee: observation.advicee, startedAt: monotonicNow(),
+  });
+  if (permit.status !== "advanced") throw new Error(`resident rejected fixture permit: ${permit.status}`);
   const admit = await residentRequest(paths, admission);
   events.push({ kind: "admit", status: admit.status, source: "production", repoId: "fixture-repo", path });
   if (admit.status !== "accepted") throw new Error(`resident rejected fixture: ${admit.status}`);
@@ -90,6 +96,11 @@ try {
     await pause();
   }
   if (!settled) throw new Error("offline resident did not become idle");
+  const collection = await residentRequest(paths, {
+    requestRoute: "shared", operation: "collect", lifetime,
+    root: observation.root, advicee: observation.advicee, dispatch, composed: true,
+  });
+  if (collection.status === "unsupported") throw new Error("resident rejected composed fixture collection");
   const journalPath = join(root, "wire-child-journal.jsonl");
   let childRecords = [];
   try { childRecords = (await readFile(journalPath, "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse); }
