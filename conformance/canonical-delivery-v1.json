@@ -463,7 +463,7 @@
           "lifetime": 1,
           "round": 2,
           "operation": 4,
-          "expect": ""
+          "expect": "dispatchStarted"
         },
         {
           "kind": "reviewObserved",
@@ -481,7 +481,7 @@
           "lifetime": 1,
           "round": 2,
           "operation": 3,
-          "expect": "dispatchCycleCompleted,dispatchStarted"
+          "expect": ""
         },
         {
           "kind": "startReview",
