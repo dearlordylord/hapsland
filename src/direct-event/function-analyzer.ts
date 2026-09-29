@@ -127,7 +127,8 @@ const functionReferences = (node: SyntaxNode, name: string, boundTypes: Readonly
     if (child.type === "assignment_expression" || child.type === "augmented_assignment_expression" || child.type === "update_expression") {
       const target = child.namedChildren[0];
       if ((target?.type === "identifier" && boundFunctions.has(target.text)) ||
-        target?.type === "object_pattern" || target?.type === "array_pattern") {
+        target?.type === "object_pattern" || target?.type === "array_pattern" ||
+        target?.type === "parenthesized_expression") {
         uncertainBinding = true;
         unsupportedBindings.push({ offset: child.startIndex, reference: { kind: "unsupported", name: child.text } });
       }
@@ -231,6 +232,7 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
         }
       }
     }
+    if ([...otherTopLevelBindings].some((name) => imports.has(name))) return undefined;
     for (const node of top) {
       if (node.type === "import_statement") continue;
       if (node.type === "function_declaration") {

@@ -123,6 +123,21 @@ describe("function native facts", () => {
     }
   });
 
+  it("rejects imports colliding with top-level variables or classes", () => {
+    for (const declaration of ["const helper = 1", "class helper {}"]) {
+      expect(analyzeFunctionFile("a.ts", `import { helper } from './helper'; ${declaration}; function run() { helper() }`)).toBeUndefined();
+    }
+  });
+
+  it("marks parenthesized assignment targets uncertain", () => {
+    const file = analyzeFunctionFile("a.ts", "function helper() {} function run(value: any) { (helper) = value; helper() }");
+    expect(file).toBeDefined();
+    if (file === undefined) return;
+    const edges = resolveFunctionUnit(file, "run")?.references ?? [];
+    expect(edges.some((edge) => edge.target.kind === "unsupported")).toBe(true);
+    expect(edges.some((edge) => edge.reference.name === "helper" && edge.target.kind === "local")).toBe(false);
+  });
+
   it("rejects inapplicable files, malformed syntax, and nested-only functions", () => {
     expect(analyzeFunctionFile("a.js", "function f() {}" )).toBeUndefined();
     expect(analyzeFunctionFile("a.ts", "function f( {" )).toBeUndefined();
