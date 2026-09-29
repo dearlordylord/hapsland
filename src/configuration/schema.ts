@@ -1,7 +1,6 @@
 export {
   CONFIGURATION_VERSION,
   ConfigurationDocument,
-  RuntimeSettings,
   GraphLimitsSettings,
   RulePackReference,
   RuleOverride,

@@ -274,7 +274,7 @@ const markdownTable = (schema: JsonObject): string => {
 const shortIntroduction = (): string => [
   "## Configuration",
   "",
-  "Configure file selection and exclusions, whole-file JSON request settings, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.",
+  "Configure file selection and exclusions, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.",
   "",
   "A small project configuration:",
   "",

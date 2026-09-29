@@ -109,7 +109,7 @@ uninstall, and an optional first-review demo.
 
 ## Configuration
 
-Configure file selection and exclusions, whole-file JSON request settings, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.
+Configure file selection and exclusions, local rule packs, per-rule overrides, and the credential environment-variable reference. The product accepts layered JSONC files. With no file settings, all otherwise eligible files are selected; user exclusions can turn review off.
 
 A small project configuration:
 
@@ -135,10 +135,7 @@ npm run config:check
 npm run typecheck
 npm test
 npm run conformance:package
-npm run review -- --controlled-reviewer < request.json
 ```
-
-`--controlled-reviewer` selects the local test reviewer. It does not send a request to Jev.
 
 `npm pack` builds JavaScript release entry points for the review CLI, TypeScript parser,
 resident process, and offline package doctor. The tested installed profile is exactly Node
@@ -209,13 +206,10 @@ Codex command hook invokes
 `node /absolute/path/to/this/repo/src/cli.ts --codex-hook --controlled-writer`.
 The second flag is an explicit operator assertion that the supported Add event is in the
 controlled-writer envelope; matching source reads alone never establish attribution.
-Without that assertion, supported Add input stays quiet rather than falling back to the
-superseded whole-file path. A packed installation invokes the corresponding installed
+Without that assertion, supported Add input stays quiet. A packed installation invokes the corresponding installed
 `dist/cli.js` entry and never depends on this source path. Live use reads `TYPESAFE_API_KEY` through
 the Effect provider configuration. Run the live integration checks only with explicit
-opt-in via `npm run test:live`. The reproducible 100-call milestone additionally requires
-`RUN_LIVE_JEV_BENCHMARK=1 npm run benchmark:live`.
-
+opt-in via `npm run test:live`.
 The initial direct-event capture profile is Linux-only. It binds the adapted working-tree
 device/inode to an open directory descriptor and traverses through `/proc/self/fd`; hosts
 without that facility are unsupported rather than falling back to path-only source reads.

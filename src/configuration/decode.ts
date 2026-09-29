@@ -8,7 +8,6 @@ import {
 } from "./errors.ts";
 import {
   ConfigurationDocument,
-  RuntimeSettings,
   type ConfigurationDocument as ConfigurationDocumentType,
 } from "./types.ts";
 import { validateGlobPattern } from "../matcher/glob.ts";
@@ -120,9 +119,4 @@ export const decodeConfigurationTextEffect = Effect.fn(
   }),
 );
 
-export const runtimeSettingsFrom = (
-  document: ConfigurationDocumentType,
-): ConfigurationDocumentType["settings"] => document.settings;
-
-// Keep these exports discoverable for callers constructing test documents.
-export { ConfigurationDocument, RuntimeSettings };
+export { ConfigurationDocument };

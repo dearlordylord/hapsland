@@ -39,12 +39,12 @@ for the same hashed unit remain idempotent. Submission does not prove that the m
 `modelReaction` remains `unavailable` until separate host evidence
 exists. Missing instrumentation and silence are never reported as `clear`.
 
-## Legacy receipts
+## Historical receipts
 
-The older whole-file review path records a small local receipt for a host session when the
-incoming event supplies `sessionId` (Codex PostToolUse events provide this identity).
+The retired whole-file review path recorded a small local receipt for a host session when the
+incoming event supplied `sessionId` (Codex PostToolUse events provided this identity).
 The same host session ID is reused when a host resumes, so resumed activity appears in
-the same session view. A receipt is evidence of activity observed by the integration;
+the same session view. A historical receipt is evidence of activity observed by the integration;
 it is not evidence that every host edit was intercepted or that the host run succeeded.
 
 Receipt state is stored below `REVIEW_RECEIPT_PATH` (or
@@ -83,6 +83,4 @@ category counts. Receipt/status reads do not call Jev.
 
 For a human-readable response, pass `"format": "human"` in the same operation or use
 the `--status-human` flag. Corrupt, unreadable, or unwritable state is reported as a
-`limited` activity/limitation rather than being presented as healthy review. Routine
-review output remains advisory and continues when receipt persistence is unavailable;
-the limitation means only that local observation could not be recorded.
+`limited` activity/limitation rather than being presented as healthy review. Historical receipt persistence failures did not alter review output. A limited status means only that local observation could not be recorded.

@@ -6,7 +6,6 @@ const source = (path) => readFileSync(resolve(root, path), "utf8");
 const compiler = source("src/rules/compiler.ts");
 const policy = source("src/policy/rules.ts");
 const direct = source("src/direct-event/pipeline.ts");
-const legacy = source("src/runtime/review.ts");
 const resident = source("src/resident/server.ts");
 const adapter = source("src/rules/decision.ts");
 
@@ -22,8 +21,6 @@ if (!compiler.includes("includeRule(packEnabled") ||
     !policy.includes("withinAdviceBudget(") ||
     !direct.includes("findingFromProbability(") ||
     !direct.includes("compareRuleRank(") ||
-    !legacy.includes("compareAdviceOrder(") ||
-    !legacy.includes("withinAdviceBudget(") ||
     !resident.includes("findingFromProbability(1,") ||
     !adapter.includes('kind: "ruleFindingCheck"') ||
     !adapter.includes('kind: "ruleApplicabilityCheck"')) {

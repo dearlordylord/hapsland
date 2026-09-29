@@ -6,7 +6,6 @@ import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import { Decision, DecisionModel } from "effect/unstable/ai";
 import { BackendError } from "../domain/errors.ts";
-import { DEFAULT_RUNTIME_SETTINGS } from "../configuration/types.ts";
 import type { Rule } from "../policy/rules.ts";
 
 export type BackendAnswer = unknown;
@@ -95,7 +94,7 @@ export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =
         Effect.andThen(layerOptions.beforeDispatch ?? Effect.void),
         Effect.andThen(providerDispatch),
         Effect.retry({
-          times: layerOptions.transientRetries ?? DEFAULT_RUNTIME_SETTINGS.transientRetries,
+          times: layerOptions.transientRetries ?? 2,
           while: (error) => error.retryable,
           schedule: Schedule.spaced(`${REVIEW_RETRY_BACKOFF_MS} millis`),
         }),

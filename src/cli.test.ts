@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdtempSync,
@@ -60,44 +59,20 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     expect(JSON.parse(codex.stdout).error).toBeUndefined();
   });
 
-  it("reviews a completed edit and reserves stdout for one protocol response", () => {
-    const root = makeTemporaryDirectory("review-cli-");
+  it("rejects the retired whole-file review request without invoking Jev", () => {
+    const root = makeTemporaryDirectory("review-retired-");
     roots.push(root);
-    const statePath = initializeRepository(root);
-    mkdirSync(join(root, "src"));
-    const content = "export type Counter = { count: number };\n";
-    const path = join(root, "src/counter.ts");
-    writeFileSync(path, content);
-    const input = {
-      version: 1,
-      event: {
-        id: "subprocess-1",
-        kind: "successful-edit",
-        host: "test",
-        cwd: root,
-        paths: ["src/counter.ts"],
-      },
-    };
+    initializeRepository(root);
+    const capturePath = join(root, "backend-called.txt");
+    const input = { version: 1, event: { id: "old", kind: "successful-edit", host: "test",
+      cwd: root, paths: ["example.ts"] } };
     const child = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
-      cwd: process.cwd(),
-      input: JSON.stringify(input),
-      encoding: "utf8",
-      env: { ...process.env, REVIEW_CONTROL_JSON: "{}", REVIEW_STATE_PATH: statePath },
+      cwd: process.cwd(), input: JSON.stringify(input), encoding: "utf8",
+      env: { ...process.env, REVIEW_CONTROL_JSON: JSON.stringify({ capturePath }) },
     });
-
-    expect(child.status).toBe(0);
-    expect(child.stderr).toBe("");
-    expect(child.stdout.trim().split("\n")).toHaveLength(1);
-    const output = JSON.parse(child.stdout) as {
-      results: Array<{ status: string; snapshot?: { contentHash: string } }>;
-    };
-    expect(output.results[0]).toMatchObject({
-      status: "reviewed",
-      snapshot: {
-        contentHash: createHash("sha256").update(content).digest("hex"),
-      },
-    });
-    expect(readFileSync(path, "utf8")).toBe(content);
+    expect(child.status).toBe(2);
+    expect(JSON.parse(child.stdout)).toMatchObject({ error: { code: "invalid_request" } });
+    expect(existsSync(capturePath)).toBe(false);
   });
 
   const checkNativeControlledWriterAdd = (hostVersion: "0.155.1" | "0.156.0") => {
@@ -186,14 +161,13 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     checkNativeControlledWriterAdd("0.156.0");
   });
 
-  it("claims unsupported native apply_patch events without legacy review work", () => {
+  it("keeps unsupported native apply_patch events quiet", () => {
     const root = makeTemporaryDirectory("r-");
     roots.push(root);
     const source = join(root, "existing.ts");
     writeFileSync(source, "type Existing = number\n");
     execFileSync("git", ["init", "--quiet", root]);
-    // If these events fell through to legacy preflight, this malformed config
-    // would produce an operational message rather than the required quiet object.
+    // Malformed configuration must not start review for unsupported events.
     writeFileSync(join(root, ".review.jsonc"), "{ malformed");
     const capturePath = join(root, "backend-called.txt");
     const residentDirectory = join(root, "runtime");
@@ -258,180 +232,6 @@ describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () =>
     const output = JSON.parse(child.stdout) as { error: { code: string; message: string } };
     expect(output.error.code).toBe("invalid_request");
     expect(output.error.message.length).toBeLessThanOrEqual(300);
-  });
-
-  it("does not emit duplicate advice for the same event and snapshot", () => {
-    const root = makeTemporaryDirectory("review-cli-dedupe-");
-    roots.push(root);
-    const statePath = initializeRepository(root);
-    mkdirSync(join(root, "src"));
-    writeFileSync(
-      join(root, "src/example.ts"),
-      "export type Delivery = { email?: string; phone?: string };\n",
-    );
-    const input = JSON.stringify({
-      version: 1,
-      event: {
-        id: `dedupe-${root}`,
-        kind: "successful-edit",
-        host: "test",
-        cwd: root,
-        paths: ["src/example.ts"],
-      },
-    });
-    const control = JSON.stringify({
-      answers: Object.fromEntries(
-        configuredRules.map((rule) => [
-          rule.id,
-          { _tag: "Probability", probability: 0.9 },
-        ]),
-      ),
-    });
-    const invoke = () =>
-      spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
-        cwd: process.cwd(),
-        input,
-        encoding: "utf8",
-        env: { ...process.env, REVIEW_CONTROL_JSON: control, REVIEW_STATE_PATH: statePath },
-      });
-
-    const first = JSON.parse(invoke().stdout) as { advice: Array<unknown> };
-    const second = JSON.parse(invoke().stdout) as { advice: Array<unknown> };
-    expect(first.advice.length).toBeGreaterThan(0);
-    expect(second.advice).toEqual([]);
-  });
-
-  it("preserves the completed edit and reports unavailable without credentials", () => {
-    const root = makeTemporaryDirectory("review-cli-no-credential-");
-    roots.push(root);
-    const statePath = initializeRepository(root);
-    const credentialStatePath = join(root, "credential-state.json");
-    // Removing the environment key alone still permits saved-keychain lookup.
-    writeFileSync(credentialStatePath, JSON.stringify({
-      version: 1,
-      generation: 0,
-      savedUseSuspended: true,
-    }));
-    mkdirSync(join(root, "src"));
-    const content = "export type Counter = { count: number };\n";
-    const path = join(root, "src/counter.ts");
-    writeFileSync(path, content);
-    const input = JSON.stringify({
-      version: 1,
-      event: {
-        id: "missing-credential-1",
-        kind: "successful-edit",
-        host: "test",
-        cwd: root,
-        paths: ["src/counter.ts"],
-      },
-    });
-    const environment = { ...process.env };
-    delete environment.TYPESAFE_API_KEY;
-    const child = spawnSync(process.execPath, ["src/cli.ts"], {
-      cwd: process.cwd(),
-      input,
-      encoding: "utf8",
-      env: {
-        ...environment,
-        REVIEW_STATE_PATH: statePath,
-        REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath,
-      },
-    });
-
-    expect(child.status).toBe(0);
-    expect(child.stderr).toBe("");
-    expect(JSON.parse(child.stdout).results[0]).toMatchObject({
-      status: "unavailable",
-      path: "src/counter.ts",
-    });
-    expect(readFileSync(path, "utf8")).toBe(content);
-  });
-
-  it("reviews by default and leaves retired grant files untouched", () => {
-    const root = makeTemporaryDirectory("review-cli-default-");
-    roots.push(root);
-    const statePath = initializeRepository(root);
-    mkdirSync(join(root, "src"));
-    writeFileSync(join(root, "src/example.ts"), "export type Example = string;\n");
-    writeFileSync(statePath, "legacy-grant-sentinel\n");
-    const request = (id: string) => JSON.stringify({ version: 1,
-      event: { id, kind: "successful-edit", host: "test", cwd: root, paths: ["src/example.ts"] } });
-    const runReview = (id: string) => JSON.parse(spawnSync(process.execPath,
-      ["src/cli.ts", "--controlled-reviewer"], { cwd: process.cwd(), input: request(id),
-        encoding: "utf8", env: { ...process.env, REVIEW_STATE_PATH: statePath } }).stdout);
-    expect(runReview("default").results[0]).toMatchObject({ status: "reviewed" });
-    for (const operation of ["enable", "enable-confirm", "disable"] as const) {
-      const result = spawnSync(process.execPath, ["src/cli.ts", `--${operation}`], {
-        cwd: process.cwd(), input: JSON.stringify({ version: 1, operation, cwd: root,
-          ...(operation === "enable-confirm" ? { proposalDigest: "0".repeat(64) } : {}) }),
-        encoding: "utf8", env: { ...process.env, REVIEW_STATE_PATH: statePath },
-      });
-      expect(JSON.parse(result.stdout)).toMatchObject({ status: "retired" });
-    }
-    expect(readFileSync(statePath, "utf8")).toBe("legacy-grant-sentinel\n");
-    expect(runReview("after-retired-operation").results[0]).toMatchObject({ status: "reviewed" });
-    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"consent":true}');
-    expect(runReview("invalid-project-consent").results[0]).toMatchObject({
-      status: "unavailable", code: "invalid_configuration",
-    });
-  });
-
-  it("keeps user exclude-all effective when a project supplies includes", () => {
-    const root = makeTemporaryDirectory("review-cli-exclude-all-");
-    roots.push(root);
-    const statePath = initializeRepository(root);
-    mkdirSync(join(root, "src"));
-    writeFileSync(join(root, "src/example.ts"), "export type Example = string;\n");
-    const userConfig = join(root, "user.jsonc");
-    writeFileSync(userConfig, '{"version":1,"excludes":["**/*"]}');
-    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"includes":["src/**"]}');
-    const result = spawnSync(process.execPath, ["src/cli.ts", "--controlled-reviewer"], {
-      cwd: process.cwd(), encoding: "utf8",
-      input: JSON.stringify({ version: 1, event: { id: "user-exclude-all", kind: "successful-edit",
-        host: "test", cwd: root, paths: ["src/example.ts"] } }),
-      env: { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_USER_CONFIG_PATH: userConfig },
-    });
-    expect(JSON.parse(result.stdout).results[0]).toMatchObject({ status: "skipped", code: "excluded" });
-    const doctor = spawnSync(process.execPath, ["src/cli.ts", "--doctor"], {
-      cwd: process.cwd(), encoding: "utf8",
-      input: JSON.stringify({ version: 1, operation: "doctor", cwd: root }),
-      env: { ...process.env, REVIEW_USER_CONFIG_PATH: userConfig },
-    });
-    expect(JSON.parse(doctor.stdout).checks).toContainEqual(expect.objectContaining({
-      stage: "file-selection", status: "missing", observed: "user file settings exclude all files",
-    }));
-    writeFileSync(userConfig, '{"version":1}');
-    writeFileSync(join(root, ".review.jsonc"), '{"version":1,"excludes":["**/*"]}');
-    const projectDoctor = spawnSync(process.execPath, ["src/cli.ts", "--doctor"], {
-      cwd: process.cwd(), encoding: "utf8",
-      input: JSON.stringify({ version: 1, operation: "doctor", cwd: root }),
-      env: { ...process.env, REVIEW_USER_CONFIG_PATH: userConfig },
-    });
-    expect(JSON.parse(projectDoctor.stdout).checks).toContainEqual(expect.objectContaining({
-      stage: "file-selection", status: "missing", observed: "effective file settings exclude all files",
-    }));
-  });
-
-  it("applies file settings independently in distinct working trees", () => {
-    const first = makeTemporaryDirectory("review-cli-policy-first-");
-    const second = makeTemporaryDirectory("review-cli-policy-second-");
-    roots.push(first, second);
-    initializeRepository(first);
-    initializeRepository(second);
-    for (const root of [first, second]) {
-      mkdirSync(join(root, "src"));
-      writeFileSync(join(root, "src/example.ts"), "export type Example = string;\n");
-    }
-    writeFileSync(join(first, ".review.jsonc"), '{"version":1,"excludes":["src/**"]}');
-    const review = (root: string) => JSON.parse(spawnSync(process.execPath,
-      ["src/cli.ts", "--controlled-reviewer"], {
-        cwd: process.cwd(), encoding: "utf8",
-        input: JSON.stringify({ version: 1, event: { id: "independent-worktree", kind: "successful-edit",
-          host: "test", cwd: root, paths: ["src/example.ts"] } }),
-      }).stdout).results[0];
-    expect(review(first)).toMatchObject({ status: "skipped", code: "excluded" });
-    expect(review(second)).toMatchObject({ status: "reviewed" });
   });
 
   it("inspects credential presence without exposing the value", () => {

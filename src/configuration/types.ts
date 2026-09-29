@@ -81,37 +81,6 @@ export const RuleOverride = Schema.Struct({
 });
 export interface RuleOverride extends Schema.Schema.Type<typeof RuleOverride> {}
 
-export const RuntimeSettings = Schema.Struct({
-  deadlineMs: Schema.optionalKey(
-    Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 60_000 })).annotate({
-      description: "Per-file deadline in milliseconds for whole-file JSON requests.",
-      default: DEFAULT_RUNTIME_SETTINGS.deadlineMs,
-    }),
-  ),
-  concurrency: Schema.optionalKey(
-    Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 32 })).annotate({
-      description: "Maximum concurrently reviewed files for whole-file JSON requests.",
-      default: DEFAULT_RUNTIME_SETTINGS.concurrency,
-    }),
-  ),
-  adviceBudget: Schema.optionalKey(
-    Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 100 })).annotate({
-      description: "Maximum findings delivered for a whole-file JSON request event.",
-      default: DEFAULT_RUNTIME_SETTINGS.adviceBudget,
-    }),
-  ),
-  transientRetries: Schema.optionalKey(
-    Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 5 })).annotate({
-      description: "Additional retry attempts for transient backend failures in the whole-file JSON request path.",
-      default: DEFAULT_RUNTIME_SETTINGS.transientRetries,
-    }),
-  ),
-}).annotate({
-  identifier: "RuntimeSettings",
-  description: "Optional whole-file JSON request controls. Omitted layer values inherit; built-in values apply when no layer supplies a value.",
-});
-export interface RuntimeSettings extends Schema.Schema.Type<typeof RuntimeSettings> {}
-
 const graphBound = (ceiling: number, description: string) =>
   Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: ceiling })).annotate({ description, default: ceiling });
 
@@ -152,7 +121,6 @@ export const ConfigurationDocument = Schema.Struct({
   })),
   credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
   claudeFeedbackMode: Schema.optionalKey(ClaudeFeedbackMode),
-  settings: Schema.optionalKey(RuntimeSettings),
   graphLimits: Schema.optionalKey(GraphLimitsSettings),
   /** Explicit local pack references. Bundled Noul is loaded independently. */
   packs: Schema.optionalKey(Schema.Array(RulePackReference).annotate({
@@ -164,7 +132,7 @@ export const ConfigurationDocument = Schema.Struct({
   })),
 }).annotate({
   title: "Review configuration v1",
-  description: "JSONC configuration for file selection, rule packs, credential references, and whole-file JSON request settings.",
+  description: "JSONC configuration for file selection, bounded import exploration, rule packs, and credential references.",
 });
 export interface ConfigurationDocument
   extends Schema.Schema.Type<typeof ConfigurationDocument> {}
@@ -194,12 +162,6 @@ export type ResolvedPolicy = {
   readonly protectedExcludes: ReadonlyArray<PatternOrigin>;
   readonly credentialEnvVar: Originated<string>;
   readonly claudeFeedbackMode: Originated<ClaudeFeedbackMode>;
-  readonly settings: {
-    readonly deadlineMs: Originated<number>;
-    readonly concurrency: Originated<number>;
-    readonly adviceBudget: Originated<number>;
-    readonly transientRetries: Originated<number>;
-  };
   readonly graphLimits: Readonly<{ version: 1 } & Record<GraphLimitField, Originated<number>>>;
   readonly layers: ReadonlyArray<{
     readonly name: ConfigurationLayerName;

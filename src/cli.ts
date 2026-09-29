@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import * as Config from "effect/Config";
-import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -12,41 +11,16 @@ import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { discoverWorkingTreeRoot, rootRelativePath } from "./repository/root.ts";
-import { admitReview, selectFile } from "./configuration/decision.ts";
+import { selectFile } from "./configuration/decision.ts";
 import {
-  DEFAULT_BACKEND,
   DEFAULT_CREDENTIAL_ENV_VAR,
-  DEFAULT_DESTINATION,
   loadReviewSettings,
   type ReviewSettings,
 } from "./runtime/review-config.ts";
-import { liveLayer as jevDecisionModelLiveLayer } from "./jev-decision.ts";
-import {
-  decodeCodexJson,
-  toCodexOutput,
-  toReviewRequest,
-} from "./adapters/codex.ts";
 import { explainPath, formatPathExplanation } from "./explanation/index.ts";
-import { decodeReviewRequest, type ReviewRequest } from "./domain/contracts.ts";
-import { ReviewBackend } from "./ports/review-backend.ts";
-import { BackendError } from "./domain/errors.ts";
-import { DedupeStore } from "./ports/dedupe-store.ts";
-import { SnapshotReader } from "./ports/snapshot-reader.ts";
 import { ReceiptStore } from "./ports/receipt-store.ts";
 import { formatHuman as formatReceiptStatus, read as readReceiptStatus } from "./receipts/status.ts";
-import type { ReceiptOutcomeInput } from "./ports/receipt-store.ts";
-import { DiagnosticStore } from "./diagnostics/store.ts";
-import {
-  eventFromOutcomeCodes,
-  makeDiagnosticScope,
-  type DiagnosticObservation,
-} from "./diagnostics/domain.ts";
-import type { ReviewContext } from "./runtime/review.ts";
-import { review } from "./runtime/review.ts";
-import {
-  controlledDecisionModelLayer,
-  type ControlledDecisionModelOptions,
-} from "./test-support/controlled-decision-model.ts";
+import type { ControlledDecisionModelOptions } from "./test-support/controlled-decision-model.ts";
 import { runEvaluationCommand } from "./evaluation/command.ts";
 import {
   adaptCodexDirectEvent,
@@ -276,11 +250,6 @@ const receiptPathConfig = Config.String("REVIEW_RECEIPT_PATH").pipe(
   Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "receipts")),
 );
 
-const diagnosticPathConfig = Config.String("REVIEW_DIAGNOSTIC_PATH").pipe(
-  Config.orElse(() => Config.String("REVIEW_DIAGNOSTICS_PATH")),
-  Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "diagnostics")),
-);
-
 const activityPathConfig = Config.String("REVIEW_ACTIVITY_PATH").pipe(
   Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "activity")),
 );
@@ -369,64 +338,9 @@ const decodeOperation = (input: string, forced: ConsentOperation["operation"] | 
     ),
   );
 
-const defaultResponse = (
-  request: ReviewRequest,
-  code: "backend_unavailable" | "missing_credentials" | "invalid_configuration",
-  reason: string,
-) => ({
-  version: 1 as const,
-  eventId: request.event.id,
-  results: request.event.paths.map((path) => ({
-    status: "unavailable" as const,
-    path,
-    reason,
-    retryable: false,
-    code,
-  })),
-  advice: [],
-});
-
 const assertNever = (value: never): never => {
   throw new Error(`unsupported consent operation: ${String(value)}`);
 };
-
-const preflight = (
-  request: ReviewRequest,
-  userConfigPath: string | undefined,
-) =>
-  Effect.gen(function* () {
-    const discovered = yield* discoverWorkingTreeRoot(request.event.cwd).pipe(Effect.result);
-    if (discovered._tag === "Failure") {
-      return {
-        root: undefined,
-        settings: {
-          backend: DEFAULT_BACKEND,
-          destination: DEFAULT_DESTINATION,
-          credentialEnvVar: DEFAULT_CREDENTIAL_ENV_VAR,
-        },
-      };
-    }
-    const root = discovered.success;
-    const settings = yield* loadReviewSettings(
-      root,
-      userConfigPath === undefined ? {} : { userConfigPath },
-    );
-    return { root, settings };
-  });
-
-const unsupportedRepositoryResponse = (
-  request: ReviewRequest,
-) => ({
-  version: 1 as const,
-  eventId: request.event.id,
-  results: request.event.paths.map((path) => ({
-    status: "skipped" as const,
-    path,
-    reason: "review is unsupported outside a discoverable Git working tree",
-    code: "unsupported_repository" as const,
-  })),
-  advice: [],
-});
 
 const fileSelectionReadiness = (settings: ReviewSettings) => {
   const includesEmpty = settings.configuration.policy.includes.length === 0;
@@ -446,58 +360,6 @@ const fileSelectionReadiness = (settings: ReviewSettings) => {
         : "effective file settings loaded",
   };
 };
-
-const runtimeLayer = (
-  controlled: ControlledDecisionModelOptions | undefined,
-  settings: ReviewSettings,
-  credentialCapability?: {
-    readonly generation: number;
-    readonly source: "environment" | "saved";
-    readonly statePath?: string;
-  },
-) => {
-  const decisionModel =
-    controlled === undefined
-      ? jevDecisionModelLiveLayer({
-          apiUrl: settings.apiBase,
-          credentialEnvVar: settings.credentialEnvVar,
-        })
-      : controlledDecisionModelLayer(controlled);
-  const backendLayer = ReviewBackend.layerWithOptions({
-    transientRetries: settings.configuration.policy.settings.transientRetries.value,
-    ...(credentialCapability === undefined ? {} : {
-      beforeDispatch: Effect.suspend(() => {
-        const current = readCredentialState(credentialCapability.statePath);
-        return current.generation === credentialCapability.generation &&
-            (credentialCapability.source === "environment" || !current.savedUseSuspended)
-          ? Effect.void
-          : Effect.fail(new BackendError({
-              reason: "review credential changed before provider dispatch",
-              retryable: false,
-            }));
-      }),
-    }),
-  });
-  return Layer.mergeAll(
-    SnapshotReader.layer,
-    DedupeStore.layer,
-    backendLayer.pipe(Layer.provide(decisionModel)),
-  );
-};
-
-const runRequest = (
-  request: ReviewRequest,
-  controlled: ControlledDecisionModelOptions | undefined,
-  settings: ReviewSettings,
-  context: ReviewContext,
-  credentialCapability?: {
-    readonly generation: number;
-    readonly source: "environment" | "saved";
-    readonly statePath?: string;
-  },
-) => review(request, context).pipe(
-  Effect.provide(runtimeLayer(controlled, settings, credentialCapability)),
-);
 
 const isCodexHook = process.argv.includes("--codex-hook");
 const isClaudeHook = process.argv.includes("--claude-hook");
@@ -611,7 +473,7 @@ const runDirectCodexHook = (
       recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, observation.root, observation.advicee, { kind: "edit" });
     }
     // The direct dispatcher owns every native apply_patch event. Unsupported
-    // shapes remain quiet and can never reach the legacy whole-file runtime.
+    // shapes remain quiet and can never create review work.
     if (observation === undefined) {
       if (reply !== undefined) {
         recordActivity({ statePath: activityPath, root: reply.root, advicee: reply.advicee, lifetime: owner.value.lifetime, stage: "incomplete" });
@@ -858,224 +720,10 @@ const runOperation = (
     ),
   );
 
-const runReviewRequestCore = (
-  request: ReviewRequest,
-  controlled: ControlledDecisionModelOptions | undefined,
-  statePath: string,
-  userConfigPath: string | undefined,
-) =>
-  Effect.gen(function* () {
-    const authorization = yield* preflight(request, userConfigPath).pipe(Effect.result);
-    if (authorization._tag === "Failure") {
-      const failure: unknown = authorization.failure;
-      const detail =
-        typeof failure === "object" && failure !== null &&
-        "source" in failure && "field" in failure && "reason" in failure
-          ? `${String(failure.source)}#${String(failure.field)}: ${String(failure.reason)}`
-          : failure instanceof Error
-            ? failure.message
-            : undefined;
-      return {
-        response: defaultResponse(
-          request,
-          "invalid_configuration",
-          detail === undefined
-            ? "review configuration is unavailable"
-            : `review configuration is invalid (${detail})`,
-        ),
-        diagnosticScope: makeDiagnosticScope(
-          request.event.sessionId ?? request.event.id,
-          request.event.cwd,
-          DEFAULT_BACKEND,
-        ),
-      };
-    }
-    const diagnosticScope = makeDiagnosticScope(
-      request.event.sessionId ?? request.event.id,
-      authorization.success.root ?? request.event.cwd,
-      authorization.success.settings.backend,
-    );
-    if (admitReview({ rootValid: authorization.success.root !== undefined,
-      configurationValid: true, credentialReady: true, selected: true }) !== "admitReview") {
-      return {
-        response: unsupportedRepositoryResponse(request),
-        diagnosticScope,
-      };
-    }
-    const credentialStatePath = process.env.REVIEW_CREDENTIAL_STATE_PATH;
-    const credential = controlled === undefined
-      ? yield* Effect.promise(() => resolveCredential({
-          envVar: authorization.success.settings.credentialEnvVar,
-          environmentOnly:
-            "configuration" in authorization.success.settings &&
-            authorization.success.settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
-          ...(credentialStatePath === undefined ? {} : { statePath: credentialStatePath }),
-        }))
-      : undefined;
-    const credentialAdmission = admitReview({ rootValid: true, configurationValid: true,
-      credentialReady: controlled !== undefined || credential?.status === "present", selected: true });
-    if (credentialAdmission === "refuseCredential") {
-        return {
-          response: defaultResponse(
-            request,
-            "missing_credentials",
-            credential?.source === "environment"
-              ? `review credential is unavailable; set ${authorization.success.settings.credentialEnvVar}`
-              : `saved review credential is ${credential?.status ?? "unavailable"}; run hapsland --login`,
-          ),
-          diagnosticScope,
-        };
-    }
-    if (authorization.success.root === undefined) {
-      return {
-        response: defaultResponse(
-          request,
-          "invalid_configuration",
-          "review working-tree identity is unavailable",
-        ),
-        diagnosticScope,
-      };
-    }
-    const repositoryRoot = authorization.success.root;
-    if (credential?.status === "present") {
-      const current = readCredentialState(credentialStatePath);
-      if (current.generation !== credential.generation ||
-          (credential.source === "saved" && current.savedUseSuspended)) {
-        return {
-          response: defaultResponse(
-            request,
-            "missing_credentials",
-            "review credential changed before dispatch; retry the edit",
-          ),
-          diagnosticScope,
-        };
-      }
-    }
-    const requestEffect = runRequest(
-      request,
-      controlled,
-      authorization.success.settings,
-      {
-        _tag: "authorized",
-        root: repositoryRoot,
-        settings: authorization.success.settings,
-        reloadPolicy: () => loadReviewSettings(
-          repositoryRoot,
-          userConfigPath === undefined ? {} : { userConfigPath },
-        ).pipe(Effect.map((settings) => settings.configuration.policy)),
-      },
-      credential?.status === "present"
-        ? {
-            generation: credential.generation,
-            source: credential.source,
-            ...(credentialStatePath === undefined ? {} : { statePath: credentialStatePath }),
-          }
-        : undefined,
-    );
-    const credentialProvider = credential?.status === "present"
-      ? ConfigProvider.layer(ConfigProvider.fromUnknown({
-          [authorization.success.settings.credentialEnvVar]: credential.value,
-        }))
-      : undefined;
-    const response = yield* (credentialProvider === undefined
-      ? requestEffect
-      : requestEffect.pipe(Effect.provide(credentialProvider))).pipe(
-      Effect.catchCause(() =>
-        Effect.succeed(
-          defaultResponse(
-            request,
-            "backend_unavailable",
-            "review backend unavailable; the completed edit was preserved",
-          ),
-        ),
-      ),
-    );
-    return { response, diagnosticScope };
-  });
-
-const receiptOutcomes = (response: { readonly results: ReadonlyArray<{ readonly status: string; readonly code?: string }> }):
-  ReadonlyArray<ReceiptOutcomeInput> =>
-  response.results.flatMap((result) => {
-    if (
-      result.status === "reviewed" ||
-      result.status === "skipped" ||
-      result.status === "unavailable"
-    ) {
-      return [{ status: result.status, ...(result.code === undefined ? {} : { code: result.code }) }];
-    }
-    return [];
-  });
-
-/**
- * Receipt writes are observational.  A failed local write must not turn the
- * already-completed host edit into a review failure or alter protocol output.
- */
-const runReviewRequest = (
-  request: ReviewRequest,
-  controlled: ControlledDecisionModelOptions | undefined,
-  statePath: string,
-  diagnosticPath: string,
-  userConfigPath: string | undefined,
-) =>
-  Effect.gen(function* () {
-    const receipt = yield* ReceiptStore.Service;
-    const sessionId = request.event.sessionId;
-    if (sessionId !== undefined) {
-      yield* receipt
-        .start({
-          sessionId,
-          eventId: request.event.id,
-          expectedResults: request.event.paths.length,
-        })
-        .pipe(Effect.catch(() => Effect.succeed(undefined)));
-    }
-    const core = yield* runReviewRequestCore(
-      request,
-      controlled,
-      statePath,
-      userConfigPath,
-    );
-    const outcomeCodes = core.response.results.flatMap((result) =>
-      result.status === "reviewed" ? [] : [result.code],
-    );
-    const diagnosticEvent = eventFromOutcomeCodes(
-      core.diagnosticScope,
-      outcomeCodes,
-    );
-    const diagnostic = yield* DiagnosticStore.Service;
-    // Diagnostic persistence is best effort. A persistence failure must not
-    // prevent receipt completion or alter the review outcome for the edit.
-    const observation = yield* diagnostic.observe(diagnosticEvent).pipe(
-      Effect.catch(() =>
-        Effect.succeed({
-          ...diagnosticEvent,
-          suppressed: true,
-        } satisfies DiagnosticObservation),
-      ),
-    );
-    const response = {
-      ...core.response,
-      diagnostics: [observation],
-    };
-    if (sessionId !== undefined) {
-      yield* receipt
-        .complete({
-          sessionId,
-          eventId: request.event.id,
-          expectedResults: request.event.paths.length,
-          outcomes: receiptOutcomes(response),
-          findings: response.advice.length,
-        })
-        .pipe(Effect.catch(() => Effect.succeed(undefined)));
-    }
-    return response;
-  });
-
 const program = Effect.gen(function* () {
   const input = yield* readStdin;
   const statePath = yield* statePathConfig;
   const receiptPath = yield* receiptPathConfig;
-  const diagnosticPath = yield* diagnosticPathConfig;
   const activityPath = yield* activityPathConfig;
   const userConfigPathOption = yield* userConfigPathConfig;
   const userConfigPath = Option.isSome(userConfigPathOption)
@@ -1352,45 +1000,10 @@ const program = Effect.gen(function* () {
       userConfigPath,
     );
     if (direct.handled) return direct.output;
-    // The legacy whole-file adapter is evidenced only on the earlier host.
-    // A new native event shape on 0.156.0 must stay quiet until attributed.
-    if (codexHookVersion !== "0.155.1" || isComposedEditHook) return {};
-    const event = yield* decodeCodexJson(input);
-    const request = toReviewRequest(event);
-    if (request === undefined) return {};
-    const response = yield* runReviewRequest(
-      request,
-      controlled,
-      statePath,
-      diagnosticPath,
-      userConfigPath,
-    ).pipe(
-      Effect.provide(
-        Layer.mergeAll(
-          ReceiptStore.layer({ statePath: receiptPath }),
-          DiagnosticStore.layer({ statePath: diagnosticPath }),
-        ),
-      ),
-    );
-    return toCodexOutput(response);
+    return {};
   }
 
-  const unknownRequest = yield* decodeJson(input);
-  const request = yield* decodeReviewRequest(unknownRequest);
-  return yield* runReviewRequest(
-    request,
-    controlled,
-    statePath,
-    diagnosticPath,
-    userConfigPath,
-  ).pipe(
-    Effect.provide(
-      Layer.mergeAll(
-        ReceiptStore.layer({ statePath: receiptPath }),
-        DiagnosticStore.layer({ statePath: diagnosticPath }),
-      ),
-    ),
-  );
+  return { version: 1, error: { code: "invalid_request", message: "unsupported command" } };
 }).pipe(
   Effect.catchCause(() =>
     Effect.succeed(
@@ -1403,7 +1016,7 @@ const program = Effect.gen(function* () {
             version: 1,
             error: {
               code: "invalid_request",
-              message: "input does not satisfy the version-1 review contract",
+              message: "input does not satisfy a supported command contract",
             },
           },
     ),

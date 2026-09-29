@@ -66,7 +66,7 @@ describe("configuration v1 decoding", () => {
     ["undocumented credential object", '{"version":1,"credentials":{"envVar":"ALT_KEY"}}', "credentials"],
     ["credential value", '{"version":1,"credentials":{"value":"secret"}}', "credentials"],
     ["invalid pattern array", '{"version":1,"includes":"src/**"}', "includes"],
-    ["invalid runtime bound", '{"version":1,"settings":{"deadlineMs":0}}', "settings.deadlineMs"],
+    ["retired runtime settings", '{"version":1,"settings":{"deadlineMs":0}}', "settings"],
     ["invalid graph version", '{"version":1,"graphLimits":{"version":2}}', "graphLimits.version"],
     ["zero graph file cap", '{"version":1,"graphLimits":{"version":1,"files":0}}', "graphLimits.files"],
     ["oversized graph tree cap", '{"version":1,"graphLimits":{"version":1,"treeBytes":20481}}', "graphLimits.treeBytes"],
@@ -95,13 +95,13 @@ describe("configuration v1 decoding", () => {
 
   it("accepts only canonical fields at the configuration boundary", () => {
     expect(decodeConfigurationText(
-      '{"version":1,"includes":["src/**"],"credentialEnvVar":"ALT_KEY","settings":{"deadlineMs":9}}',
+      '{"version":1,"includes":["src/**"],"credentialEnvVar":"ALT_KEY","graphLimits":{"version":1,"files":2}}',
       "canonical.jsonc",
     )).toEqual({
       version: 1,
       includes: ["src/**"],
       credentialEnvVar: "ALT_KEY",
-      settings: { deadlineMs: 9 },
+      graphLimits: { version: 1, files: 2 },
     });
     for (const [field, text] of [
       ["include", '{"version":1,"include":["src/**"]}'],
@@ -381,7 +381,7 @@ describe("configuration composition properties", () => {
         fc.array(patternArb, { maxLength: 3 }),
         (includes, excludes) => {
           const document = decodeConfigurationText(
-            JSON.stringify({ version: 1, includes, excludes, settings: { deadlineMs: 1_000 } }),
+            JSON.stringify({ version: 1, includes, excludes, graphLimits: { version: 1, files: 2 } }),
             "roundtrip.jsonc",
           );
           const serialized = serializeConfigurationDocument(document);

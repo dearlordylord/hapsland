@@ -80,7 +80,7 @@ describe("configuration documentation generator", () => {
       const readme = initial[0] ?? "";
       const guide = initial[1] ?? "";
       expect(readme).toContain("Configure file selection");
-      expect(readme).toContain("whole-file JSON request settings");
+      expect(readme).toContain("local rule packs");
       expect(guide).toContain("ruleOverrides.<key>.threshold");
       expect(guide).toContain("`packs[].path` | non-empty string | Required (path form)");
       expect(guide).toContain("`includes` | array of non-empty string (may be empty)");
@@ -117,20 +117,9 @@ describe("configuration documentation generator", () => {
         required: ["version"],
         additionalProperties: false,
         properties: {
-          settings: { $ref: "#/$defs/RuntimeSettings" },
           packs: { items: { $ref: "#/$defs/RulePackReference" } },
         },
         $defs: {
-          RuntimeSettings: {
-            properties: {
-              deadlineMs: {
-                minimum: 1,
-                maximum: 60_000,
-                description: expect.stringContaining("whole-file JSON requests"),
-              },
-            },
-            additionalProperties: false,
-          },
           RuleOverride: {
             properties: {
               threshold: {
@@ -169,7 +158,6 @@ describe("configuration documentation generator", () => {
       }).success).toBe(true);
       expect(configurationValidator.safeParse({
         version: 1,
-        settings: { deadlineMs: 1, concurrency: 32 },
         ruleOverrides: { "team/check": { threshold: 0.5 } },
         packs: [{ path: "rules.jsonc", enabled: true }],
       }).success).toBe(true);

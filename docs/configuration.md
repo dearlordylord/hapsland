@@ -53,11 +53,6 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 | `privacyExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
 | `claudeFeedbackMode` | string | Optional | "advisory" | Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory. |
-| `settings` | object | Optional | — | Optional whole-file JSON request controls. Omitted layer values inherit; built-in values apply when no layer supplies a value. |
-| `settings.deadlineMs` | integer (1–60000) | Optional | 1000 | Per-file deadline in milliseconds for whole-file JSON requests. |
-| `settings.concurrency` | integer (1–32) | Optional | 4 | Maximum concurrently reviewed files for whole-file JSON requests. |
-| `settings.adviceBudget` | integer (0–100) | Optional | 5 | Maximum findings delivered for a whole-file JSON request event. |
-| `settings.transientRetries` | integer (0–5) | Optional | 2 | Additional retry attempts for transient backend failures in the whole-file JSON request path. |
 | `graphLimits` | object | Optional | — | Versioned bounded import graph limits; omitted values inherit. |
 | `graphLimits.version` | fixed value 1 | Required | — | Import graph limits profile version. |
 | `graphLimits.sourceBytes` | integer (1–262144) | Optional | 262144 | Maximum source bytes in each graph file. |
@@ -215,13 +210,11 @@ egress. A fork must use a distinct pack ID. Rule filters intersect global
 eligibility: they can narrow a review, but cannot re-include a globally excluded
 or protected path.
 
-Rule authors should state the available input explicitly. The whole-file JSON
-request path provides one completed post-edit file and its repository-relative
-path. The supported direct-event path instead evaluates one named TypeScript
-`interface` or `type` declaration per unit, with bounded, complete same-file
-named-type reference evidence and the repository-relative path. Its Jev input
-does not contain the whole file. Neither path provides a before/after diff, task
-or transcript context, or other files; findings may describe pre-existing content.
+Rule authors should state the available input explicitly. The supported resident path
+reviews one named TypeScript `interface` or `type` declaration per unit, with bounded,
+complete same-file named-type reference evidence and the repository-relative path.
+Its Jev input does not contain the whole file, a before/after diff, task or
+transcript context, or other files. Findings may describe pre-existing content.
 Do not author a rule that promises to judge evidence its request cannot contain.
 Advice is local authored text attached to the validated probability, rule ID,
 path, and snapshot hash; no extra model call generates a message.
@@ -239,34 +232,10 @@ files, symlink containment, and the 256 KiB snapshot limit.
 
 ## Runtime behavior
 
-The generated field table describes accepted settings and their bounds. The
-whole-file JSON request path in `src/runtime/review.ts` consumes these configured
-controls. The resident direct-event path uses a fixed 15,000 ms deadline and a
-dispatch capacity of 2; it does not consume the configured runtime settings.
-
-For whole-file JSON requests, each transient retry waits 50 ms after the preceding
-failed attempt. The retry delay is fixed. A timeout interrupts the current attempt
-or backoff, so an exhausted retry sequence cannot continue past the per-file
-deadline. Retries repeat only the captured review request; they never replay or
-undo the already-completed host edit.
-
-The CLI process or its host wrapper also has a process timeout. When using the
-whole-file JSON request path, configure that timeout above the selected
-`deadlineMs` with room for process startup, snapshot reads, and response delivery;
-a lower wrapper timeout can terminate the request first. The configured values
-bound waiting, parallelism, findings, and attempted requests on the whole-file
-path; they do not guarantee a monetary spend ceiling. A provider may count each
-initial request and retry independently, and the review backend can apply its own
-billing or rate limits.
-
-For the whole-file path, resolved settings and file-selection policy are captured
-once per event. Current file settings are checked immediately before dispatch, and the file is
-reread before any finding is delivered. A changed file produces an unavailable
-stale-snapshot result. Eligible questions for one file are sent as one logical
-batch per attempt. Results from all files are combined, sorted by probability
-(then path and rule ID), and only then truncated to the single event-wide advice
-budget. Duplicate paths in an event and duplicate event/snapshot deliveries do
-not duplicate advice.
+The resident dispatches eligible semantic units after final source and policy
+currentness checks. The old whole-file JSON review command and its `settings`
+configuration were retired under issue #148. The configuration parser rejects
+`settings`; request capacity and deadlines are resident policy, not JSONC controls.
 
 Credentials are references only. The value is read from the named environment
 variable at dispatch and is never persisted, printed, or included in diagnostics.
@@ -274,15 +243,10 @@ The configuration schema rejects retired `consent` and `enabled` fields. The
 Jev destination is fixed for version 1 at
 `https://api.typesafe.ai/v1/systemone`; endpoint routing cannot be configured.
 
-The version-1 whole-file JSON request/response process contract is unchanged. A
-selected configuration failure on that path returns the existing `unavailable` result with
-`code: "invalid_configuration"` for each requested path; it never dispatches a
-backend request and never changes the already-completed edit. Configuration capture
-and explanation use the same policy digest. Shared fixture, configuration-case,
-scenario, observation, and comparison identities are defined in
-[`src/evaluation/model.ts`](../src/evaluation/model.ts), so later semantic slices can
-refer to these configuration cases without changing the process contract.
+The old version-1 whole-file JSON request/response process contract is retired.
+Configuration capture and explanation use the same policy digest. Shared
+fixture, configuration-case, scenario, observation, and comparison identities
+are defined in [`src/evaluation/model.ts`](../src/evaluation/model.ts).
 
 The semantic milestone command is documented separately in
-[`evaluation.md`](./evaluation.md). It is an explicit maintainer operation and does
-not alter this version-1 review request/response protocol.
+[`evaluation.md`](./evaluation.md). It is an explicit maintainer operation and does not provide a production review route.

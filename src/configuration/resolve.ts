@@ -3,7 +3,6 @@ import {
   BUILT_IN_INCLUDES,
   BUILT_IN_PROTECTED_EXCLUDES,
   DEFAULT_CREDENTIAL_ENV_VAR,
-  DEFAULT_RUNTIME_SETTINGS,
   type ConfigurationDocument,
   type ConfigurationLayerName,
   type ConfigurationOrigin,
@@ -98,27 +97,6 @@ const allLayers = (layers: ReadonlyArray<ConfigurationLayer>): ReadonlyArray<Con
 
 const layerRank = (name: ConfigurationLayerName): number =>
   name === "built-in" ? 0 : name === "user" ? 1 : 2;
-
-const effectiveSetting = (
-  layers: ReadonlyArray<ConfigurationLayer>,
-  key: "deadlineMs" | "concurrency" | "adviceBudget" | "transientRetries",
-  defaultValue: number,
-): Originated<number> => {
-  let value = defaultValue;
-  let owner: ConfigurationOrigin = {
-    layer: "built-in",
-    source: "built-in",
-    field: `settings.${key}`,
-  };
-  for (const layer of layers) {
-    const nested = layer.document.settings?.[key];
-    if (nested !== undefined) {
-      value = nested;
-      owner = origin(layer, `settings.${key}`);
-    }
-  }
-  return originated(value, owner);
-};
 
 const effectiveGraphLimit = (layers: ReadonlyArray<ConfigurationLayer>, key: GraphLimitField): Originated<number> => {
   let value: number = GRAPH_LIMIT_CEILINGS[key];
@@ -264,16 +242,6 @@ export const resolveConfiguration = (
     credentialEnvVar,
     claudeFeedbackMode,
     graphLimits,
-    settings: {
-      deadlineMs: effectiveSetting(layers, "deadlineMs", DEFAULT_RUNTIME_SETTINGS.deadlineMs),
-      concurrency: effectiveSetting(layers, "concurrency", DEFAULT_RUNTIME_SETTINGS.concurrency),
-      adviceBudget: effectiveSetting(layers, "adviceBudget", DEFAULT_RUNTIME_SETTINGS.adviceBudget),
-      transientRetries: effectiveSetting(
-        layers,
-        "transientRetries",
-        DEFAULT_RUNTIME_SETTINGS.transientRetries,
-      ),
-    },
     layers,
   };
   return {
@@ -303,7 +271,6 @@ export const validateCapturedPolicy = (policy: ResolvedPolicy): void => {
     credentialEnvVar: policy.credentialEnvVar,
     claudeFeedbackMode: policy.claudeFeedbackMode,
     graphLimits: policy.graphLimits,
-    settings: policy.settings,
     layers: policy.layers,
   })) {
     throw new ConfigurationError({

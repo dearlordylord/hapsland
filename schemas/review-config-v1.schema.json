@@ -55,9 +55,6 @@
       "description": "Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory.",
       "default": "advisory"
     },
-    "settings": {
-      "$ref": "#/$defs/RuntimeSettings"
-    },
     "graphLimits": {
       "$ref": "#/$defs/GraphLimitsSettings"
     },
@@ -81,43 +78,8 @@
   ],
   "additionalProperties": false,
   "title": "Review configuration v1",
-  "description": "JSONC configuration for file selection, rule packs, credential references, and whole-file JSON request settings.",
+  "description": "JSONC configuration for file selection, bounded import exploration, rule packs, and credential references.",
   "$defs": {
-    "RuntimeSettings": {
-      "type": "object",
-      "properties": {
-        "deadlineMs": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 60000,
-          "description": "Per-file deadline in milliseconds for whole-file JSON requests.",
-          "default": 1000
-        },
-        "concurrency": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 32,
-          "description": "Maximum concurrently reviewed files for whole-file JSON requests.",
-          "default": 4
-        },
-        "adviceBudget": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Maximum findings delivered for a whole-file JSON request event.",
-          "default": 5
-        },
-        "transientRetries": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 5,
-          "description": "Additional retry attempts for transient backend failures in the whole-file JSON request path.",
-          "default": 2
-        }
-      },
-      "additionalProperties": false,
-      "description": "Optional whole-file JSON request controls. Omitted layer values inherit; built-in values apply when no layer supplies a value."
-    },
     "GraphLimitsSettings": {
       "type": "object",
       "properties": {
