@@ -337,7 +337,7 @@ describe("resident delivery lease", () => {
 
   it("cancels a queued and running review fanout using Bend work identities", async () => {
     const root = await makeGitFixture();
-    const paths = Array.from({ length: 5 }, (_, index) => `item-${index}.ts`);
+    const paths = Array.from({ length: 12 }, (_, index) => `item-${index}.ts`);
     for (const [index, path] of paths.entries()) await put(root, path, `type Item${index}Count = number\n`);
     const statePath = join(root, "consent");
     const activityPath = join(root, "activity");
@@ -362,6 +362,7 @@ describe("resident delivery lease", () => {
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
       expect(activity.roundClosures?.[0]?.reason).toBe("deadline");
+      expect(activity.roundClosures?.[0]?.discarded?.queued).toBeGreaterThan(0);
       expect(activity.roundClosures?.[0]?.discarded?.running).toBeGreaterThan(0);
       gate.resolve();
       await server.whenIdle();
