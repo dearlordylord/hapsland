@@ -38,6 +38,14 @@ try {
   };
   assert.match(await canonical.innerText(), /What uses review capacity/);
   assert.match(await canonical.innerText(), /All agents in this Hapsland process · 0\/3 work items/);
+  assert.match(await canonical.innerText(), /Two edits through a queue, Jev findings, and Stop output/);
+  await advanceGuided(1, 5, 35);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).innerText(), /pending 1:/);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "dispatch item queued" }).count(), 1);
+  await advanceGuided(6, 10, 35);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "dispatch cycle starts" }).count(), 1);
+  await canonical.getByRole("button", { name: "Shared review capacity and partial unit admission", exact: true }).click();
+  await waitForText(".canonical-progress", "Guided step 0 of 11");
   for (let step = 1; step <= 3; step++) {
     await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
     await waitForText(".canonical-progress", `Guided step ${step} of 11`);

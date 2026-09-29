@@ -16,6 +16,58 @@ export type ReplayStep = Readonly<{
   rejection?: string;
 }>;
 
+const showcaseScope = { partition: 1, lifetime: 1, round: 1 } as const;
+const showcaseReady = { ...showcaseScope, rootValid: true, configurationValid: true,
+  credentialReady: true, selected: true, currentWork: true, physicalAvailable: true } as const;
+export const SHOWCASE_SCENARIO = {
+  name: "Two edits through a queue, Jev findings, and Stop output",
+  description: "Two edits share one review round. The second waits in the dispatch queue, both reach Jev at once, findings become ready advice, and Hapsland records a Stop response.",
+  limits: fixture.limits,
+  events: [
+    { kind: "openRound", partition: 1, lifetime: 1 },
+    { kind: "admitObservation", ...showcaseScope },
+    { kind: "queueDispatch", ...showcaseScope, operation: 1 },
+    { kind: "admitObservation", ...showcaseScope },
+    { kind: "queueDispatch", ...showcaseScope, operation: 2 },
+    { kind: "startObservation", ...showcaseScope, observation: 1 },
+    { kind: "beginObservedPreparation", ...showcaseScope, observation: 1, bytes: 10 },
+    { kind: "preparationCompleted", ...showcaseScope, operation: 3, unitBytes: [5] },
+    { kind: "completeObservation", ...showcaseScope, observation: 1 },
+    { kind: "dispatchSettled", ...showcaseScope, operation: 1 },
+    { kind: "startObservation", ...showcaseScope, observation: 2 },
+    { kind: "beginObservedPreparation", ...showcaseScope, observation: 2, bytes: 10 },
+    { kind: "preparationCompleted", ...showcaseScope, operation: 5, unitBytes: [5] },
+    { kind: "completeObservation", ...showcaseScope, observation: 2 },
+    { kind: "dispatchSettled", ...showcaseScope, operation: 2 },
+    { kind: "queueDispatch", ...showcaseScope, operation: 4 },
+    { kind: "startReview", ...showcaseScope, operation: 4 },
+    { kind: "jevRequestReady", ...showcaseReady, operation: 4 },
+    { kind: "jevRequestStarted", ...showcaseScope, operation: 4, request: 7 },
+    { kind: "queueDispatch", ...showcaseScope, operation: 6 },
+    { kind: "startReview", ...showcaseScope, operation: 6 },
+    { kind: "jevRequestReady", ...showcaseReady, operation: 6 },
+    { kind: "jevRequestStarted", ...showcaseScope, operation: 6, request: 8 },
+    { kind: "jevRequestSettled", ...showcaseScope, operation: 4, request: 7, outcome: "finding", currentWork: true },
+    // Native storage is represented by a later supplied readiness fact, not
+    // by the reducer's retainFinding command alone.
+    { kind: "collectionReady", advice: 10, already: false, turnEnd: false, cycleComplete: true, elapsed: 0, window: 200 },
+    { kind: "dispatchSettled", ...showcaseScope, operation: 4 },
+    { kind: "jevRequestSettled", ...showcaseScope, operation: 6, request: 8, outcome: "finding", currentWork: true },
+    { kind: "collectionReady", advice: 11, already: false, turnEnd: false, cycleComplete: true, elapsed: 0, window: 200 },
+    { kind: "dispatchSettled", ...showcaseScope, operation: 6 },
+    { kind: "stopPolled", ...showcaseScope, deadline: false },
+    { kind: "finishReserve", group: 1, lifetime: 1, round: 1, attempt: 7, token: 8,
+      selected: [4, 6], hasNotice: false, passNotices: true, canWrite: true,
+      bindingValid: true, deadlineReached: true },
+    { kind: "submissionBegin", advice: 10, group: 1, round: 1, token: 8, surface: "stop",
+      authorizeNow: false, fingerprints: [10], units: [4] },
+    { kind: "submissionBegin", advice: 11, group: 1, round: 1, token: 8, surface: "stop",
+      authorizeNow: false, fingerprints: [11], units: [6] },
+    { kind: "finishAuthorize", group: 1, round: 1, attempt: 7, token: 8, selected: [4, 6] },
+    { kind: "finishTerminal", group: 1, round: 1, attempt: 7, token: 8, selected: [4, 6], outcome: "acknowledged" },
+  ] as CanonicalEvent[],
+};
+
 export const CAPACITY_SCENARIO = {
   name: "Shared review capacity and partial unit admission",
   description: "Two advicees share one ledger. A preparation releases its space, then admits, refuses, and admits three units in order.",
@@ -31,7 +83,7 @@ export const ALTERNATE_LEDGER_LIMITS_SCENARIO = {
     { kind: "reserveCapacity", partition: 1, bytes: 20, purpose: "reviewUnit" },
   ] as CanonicalEvent[],
 };
-export const CANONICAL_SCENARIOS = [CAPACITY_SCENARIO, ...fixture.traces.map((trace) => ({
+export const CANONICAL_SCENARIOS = [SHOWCASE_SCENARIO, CAPACITY_SCENARIO, ...fixture.traces.map((trace) => ({
   name: trace.name,
   description: "Independent source-free canonical event sequence covering resident work and output decisions.",
   limits: fixture.limits,

@@ -70,6 +70,33 @@ try {
   assert.equal(elements(initial, "topology-node").length, 13);
   assert.equal(elements(initial, "topology-route").length, 24);
   assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
+  assert.equal(canonical.CANONICAL_SCENARIOS[initial.scenario].name, canonical.SHOWCASE_SCENARIO.name);
+  let showcase = initial;
+  const showcasedRoutes = new Set();
+  for (const [index, event] of canonical.SHOWCASE_SCENARIO.events.entries()) {
+    showcase = send(showcase, main.Message.Advanced());
+    const step = canonical.replayCanonical(showcase.history, showcase.position).steps.at(-1);
+    assert.deepEqual(step.event, event);
+    assert.equal(step.rejection, undefined, `showcase step ${index + 1} must be accepted`);
+    const active = elements(showcase, "topology-route").filter((node) => node.data.class.active);
+    for (const route of active) showcasedRoutes.add(labels(route));
+    if (index === 4) {
+      assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
+      assert.ok(active.some((route) => labels(route).includes("dispatch item queued")));
+    }
+    if (index === 9) assert.ok(active.some((route) => labels(route).includes("dispatch cycle starts")));
+    if (index === 17) assert.ok(active.some((route) => labels(route).includes("Jev request commanded")));
+    if (index === 22) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
+    if (index === 23) assert.ok(active.some((route) => labels(route).includes("retain finding command")));
+    if (index === 24) {
+      assert.deepEqual(step.after.collection.ready, [10], "ready advice follows its native storage fact");
+      assert.ok(active.some((route) => labels(route).includes("background or Stop selection command")));
+    }
+    if (index === 27) assert.deepEqual(step.after.collection.ready, [11, 10]);
+    if (index === 33) assert.ok(active.some((route) => labels(route).includes("authorize output")));
+    if (index === 34) assert.ok(active.some((route) => labels(route).includes("output or delivery result recorded")));
+  }
+  assert.ok(showcasedRoutes.size >= 12, "the opening replay should expose a broad connected route set");
   const replayAt = (name, count) => {
     const index = canonical.CANONICAL_SCENARIOS.findIndex((scenario) => scenario.name === name);
     assert.notEqual(index, -1, `${name}: source-free scenario exists`);
@@ -129,7 +156,9 @@ try {
     node.data.class.active && labels(node).includes("Stop waits for work or output")));
   assert.ok(!elements(waitingView, "topology-route").some((node) =>
     node.data.class.active && labels(node).includes("attempt interrupted / cancelled")));
-  let model = initial;
+  let model = send(initial, main.Message.SelectedScenario({
+    index: canonical.CANONICAL_SCENARIOS.findIndex((scenario) => scenario.name === canonical.CAPACITY_SCENARIO.name),
+  }));
   for (let index = 0; index < fixture.capacityTrace.events.length; index += 1) {
     model = send(model, main.Message.Advanced());
     assert.equal(model.position, index + 1, "guided canonical cursor advances including rejected events");
@@ -143,7 +172,7 @@ try {
   assert.deepEqual(capacityReplay.steps[7].after.charges, fixture.capacityTrace.afterResizeCharges);
   assert.deepEqual(capacityReplay.projection.global, fixture.capacityTrace.finalGlobal);
   for (const [index, trace] of fixture.traces.entries()) {
-    let alternate = send(initial, main.Message.SelectedScenario({ index: index + 1 }));
+    let alternate = send(initial, main.Message.SelectedScenario({ index: index + 2 }));
     for (const event of trace.events) alternate = send(alternate, main.Message.Advanced());
     assert.equal(alternate.position, trace.events.length, `${trace.name}: guided replay includes every result variant`);
     const replay = canonical.replayCanonical(alternate.history, alternate.position);
@@ -159,7 +188,10 @@ try {
       trace.expectedDecisionPending, `${trace.name}: terminal decision wait matches the independent trace`);
     assert.match(text(alternate), new RegExp(`Guided step ${trace.events.length} of ${trace.events.length}`));
   }
-  model = send(initial, main.Message.Advanced());
+  model = send(initial, main.Message.SelectedScenario({
+    index: canonical.CANONICAL_SCENARIOS.findIndex((scenario) => scenario.name === canonical.CAPACITY_SCENARIO.name),
+  }));
+  model = send(model, main.Message.Advanced());
   model = send(model, main.Message.Advanced());
   model = send(model, main.Message.Advanced());
   const third = canonical.replayCanonical(model.history, model.position).steps[2];
@@ -170,7 +202,9 @@ try {
   assert.match(text(model), /Unit 1: accepted.*Unit 2: no capacity.*Unit 3: accepted/s);
   assert.match(text(model), /Before event · 2 shared items · 70 shared bytes/);
   assert.match(text(model), /After event · 3 shared items · 70 shared bytes/);
-  let preparation = send(initial, main.Message.SelectedScenario({ index: 3 }));
+  let preparation = send(initial, main.Message.SelectedScenario({
+    index: canonical.CANONICAL_SCENARIOS.findIndex((scenario) => scenario.name === "many units admit in order and Stop waits"),
+  }));
   for (let index = 0; index < 3; index += 1) preparation = send(preparation, main.Message.Advanced());
   assert.match(text(preparation), /Preparation completion decisions/);
   assert.match(text(preparation), /Unit 1: accepted.*Unit 2: no capacity.*Unit 3: accepted/s);
@@ -208,11 +242,11 @@ try {
   assert.ok(timeline.TIMELINE_CASES.length > 0, "retained native timing evidence remains visible");
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
-    Scene.click(Scene.getByRole("button", { name: "Next canonical step: reserveCapacity", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 11/)),
+    Scene.click(Scene.getByRole("button", { name: "Next canonical step: openRound", exact: true })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 35/)),
     Scene.click(Scene.getByRole("button", { name: "Previous canonical step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 11/)));
-  console.log("Checked compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 35/)));
+  console.log("Checked the opening connected replay, compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
 } finally {
   await server.close();
 }
