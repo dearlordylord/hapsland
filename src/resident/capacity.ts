@@ -1,4 +1,5 @@
 import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent, type CapacityPurpose, type JevRequestOutcome } from "../canonical/adapter.ts";
+import { randomUUID } from "node:crypto";
 export type { CapacityPurpose } from "../canonical/adapter.ts";
 
 export const GLOBAL_ITEM_LIMIT = 512;
@@ -94,6 +95,10 @@ export const encodedBytesWithin = (value: unknown, maximum: number): number | un
  * no-op, so terminal/finalizer paths can safely converge on one cleanup call.
  */
 export class CapacityLedger {
+  // Each ledger owns one canonical state. Its local lifetime 1 is bound to
+  // exactly one resident UUID and must be carried with external observations.
+  readonly residentLifetime: string;
+  readonly canonicalLifetime = 1;
   readonly #reservations = new Map<number, CapacityReservation>();
   readonly #partitionIds = new Map<string, number>();
   readonly #roundIds = new Map<string, number>();
@@ -104,8 +109,9 @@ export class CapacityLedger {
   readonly #limits: CapacityLimits;
   #state: unknown;
 
-  constructor(limits: CapacityLimits = defaultLimits) {
+  constructor(limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) {
     this.#limits = limits;
+    this.residentLifetime = residentLifetime;
     this.#state = initialCanonical(limits);
   }
 
@@ -240,7 +246,8 @@ export class CapacityLedger {
     facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
       readonly credentialReady: boolean; readonly selected: boolean;
       readonly currentWork: boolean; readonly physicalAvailable: boolean }):
-    { readonly status: "issued"; readonly request: number } | { readonly status: "unavailable" } | { readonly status: "stale" } {
+    { readonly status: "issued"; readonly request: number; readonly round: number } |
+    { readonly status: "unavailable"; readonly round: number } | { readonly status: "stale" } {
     if (this.#reservations.get(reservation.id) !== reservation) return { status: "stale" };
     const round = this.#roundIds.get(partition);
     if (round === undefined) return { status: "stale" };
@@ -250,11 +257,11 @@ export class CapacityLedger {
     const issued = result.commands[0];
     if (issued?.kind === "jevRequestIssued") {
       this.#requestRounds.set(issued.request, { partition, round });
-      return { status: "issued", request: issued.request };
+      return { status: "issued", request: issued.request, round };
     }
     if (result.commands.at(-1)?.kind !== "jevRequestUnavailable") throw new Error("invalid canonical request readiness");
     this.#reservations.delete(reservation.id);
-    return { status: "unavailable" };
+    return { status: "unavailable", round };
   }
 
   startJevRequest(partition: string, operation: number, request: number): boolean {

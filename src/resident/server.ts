@@ -266,6 +266,11 @@ type Job = IngressJob | UnitJob;
 export type JevRequestObservation = {
   readonly stage: "issued" | "unavailable" | "started" | "interrupted" | "settled";
   readonly partition: string;
+  readonly canonicalPartition: number;
+  readonly lifetime: string;
+  readonly canonicalLifetime: number;
+  readonly round: number;
+  readonly hapslandRound: number | null;
   readonly operation: number;
   readonly request?: number;
   readonly outcome?: "neverSent" | "finding" | "clear" | "backendFailure" | "timeout" | "interrupted";
@@ -522,7 +527,7 @@ export class ResidentServer {
   readonly #joinedReviews = new Map<string, Array<JoinedReview>>();
   #nextAdmissionGeneration = 1;
   #nextTicketUnitId = 1;
-  readonly #ledger = new CapacityLedger();
+  readonly #ledger = new CapacityLedger(undefined, this.lifetime);
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatcher: DispatchCycles<string, Job>;
   readonly #roundActivity = new Map<string, { root: string; advicee: DirectAdvicee; activityPath: string | undefined }>();
@@ -2329,6 +2334,15 @@ export class ResidentServer {
     let requestSettled = false;
     let interruptionReported = false;
     let readyReported = false;
+    let requestIdentity: Pick<JevRequestObservation, "partition" | "canonicalPartition" |
+      "lifetime" | "canonicalLifetime" | "round" | "hapslandRound" | "operation"> | undefined;
+    const observeRequest = (stage: JevRequestObservation["stage"], request?: number,
+      outcome?: JevRequestObservation["outcome"]) => {
+      if (requestIdentity === undefined) throw new Error("Jev request observation lacks canonical identity");
+      this.#observeJevRequest({ ...requestIdentity, stage,
+        ...(request === undefined ? {} : { request }),
+        ...(outcome === undefined ? {} : { outcome }) });
+    };
     const signal = job.work?.controller.signal;
     const requestReady = (facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
       readonly credentialReady: boolean; readonly selected: boolean; readonly currentWork: boolean;
@@ -2336,15 +2350,22 @@ export class ResidentServer {
       readyReported = true;
       const decision = this.#ledger.readyJevRequest(job.partition,
         job.canonicalOperationId, job.reservation, facts);
+      if (decision.status !== "stale") requestIdentity = {
+        partition: job.partition,
+        canonicalPartition: this.#ledger.partitionId(job.partition),
+        lifetime: this.#ledger.residentLifetime,
+        canonicalLifetime: this.#ledger.canonicalLifetime,
+        round: decision.round,
+        hapslandRound: job.round?.generation ?? null,
+        operation: job.canonicalOperationId,
+      };
       if (decision.status === "issued") {
         issuedRequest = decision.request;
         job.requestId = decision.request;
-        this.#observeJevRequest({ stage: "issued", partition: job.partition,
-          operation: job.canonicalOperationId, request: decision.request });
+        observeRequest("issued", decision.request);
         signal?.addEventListener("abort", reportInterruption, { once: true });
       } else if (decision.status === "unavailable") {
-        this.#observeJevRequest({ stage: "unavailable", partition: job.partition,
-          operation: job.canonicalOperationId });
+        observeRequest("unavailable");
       }
       return decision;
     };
@@ -2359,8 +2380,7 @@ export class ResidentServer {
       if (issuedRequest === undefined || !requestStarted || interruptionReported) return;
       interruptionReported = this.#ledger.interruptJevRequest(job.partition,
         job.canonicalOperationId, issuedRequest);
-      if (interruptionReported) this.#observeJevRequest({ stage: "interrupted",
-        partition: job.partition, operation: job.canonicalOperationId, request: issuedRequest });
+      if (interruptionReported) observeRequest("interrupted", issuedRequest);
     };
     try {
       if (job.round !== undefined && job.workUnitId !== undefined &&
@@ -2394,8 +2414,6 @@ export class ResidentServer {
       const ledger = this.#ledger;
       const isCurrentWork = () => this.#isCurrentWork(job.revision, job.prepared);
       const isJobActive = () => this.#jobActive(job);
-      const observeJevRequest = (observation: JevRequestObservation) =>
-        this.#observeJevRequest(observation);
       const observeDispatchAuthority = (details: DispatchAuthorityObservationDetails): void =>
         this.#observeDispatchAuthority(job, details);
       const result = await Effect.runPromise(Effect.gen(function* () {
@@ -2525,8 +2543,7 @@ export class ResidentServer {
             }
             requestStarted = true;
             job.requestStarted = true;
-            observeJevRequest({ stage: "started", partition: job.partition,
-              operation: job.canonicalOperationId, request: ready.request });
+            observeRequest("started", ready.request);
             if (signal?.aborted) reportInterruption();
           })),
         );
@@ -2571,9 +2588,8 @@ export class ResidentServer {
           issuedRequest, job.reservation,
           result.findings.length === 0 ? "clear" : "finding", currentWork);
         requestSettled = true;
-        this.#observeJevRequest({ stage: "settled", partition: job.partition,
-          operation: job.canonicalOperationId, request: issuedRequest,
-          outcome: result.findings.length === 0 ? "clear" : "finding" });
+        observeRequest("settled", issuedRequest,
+          result.findings.length === 0 ? "clear" : "finding");
         if (disposition === "ignored" || disposition === "stale") {
           this.#releaseReuseClaim(job.evaluationKey);
           this.#releaseUnit(job);
@@ -2641,9 +2657,7 @@ export class ResidentServer {
         this.#ledger.settleJevRequest(job.partition, job.canonicalOperationId,
           issuedRequest, job.reservation, observed ?? "neverSent", false);
         requestSettled = true;
-        this.#observeJevRequest({ stage: "settled", partition: job.partition,
-          operation: job.canonicalOperationId, request: issuedRequest,
-          outcome: observed ?? "neverSent" });
+        observeRequest("settled", issuedRequest, observed ?? "neverSent");
       }
       if (failure === "failureBackend") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
@@ -2674,8 +2688,7 @@ export class ResidentServer {
         this.#ledger.settleJevRequest(job.partition, job.canonicalOperationId,
           issuedRequest, job.reservation, observed, false);
         requestSettled = true;
-        this.#observeJevRequest({ stage: "settled", partition: job.partition,
-          operation: job.canonicalOperationId, request: issuedRequest, outcome: observed });
+        observeRequest("settled", issuedRequest, observed);
       }
       if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
       this.#settleJoined(job.evaluationKey, "unavailable", "backend");

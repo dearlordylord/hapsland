@@ -8,6 +8,7 @@ import { Consent } from "../runtime/consent.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer, type JevRequestObservation } from "./server.ts";
+import { CapacityLedger } from "./capacity.ts";
 
 const deferred = () => {
   let resolve!: () => void;
@@ -43,6 +44,9 @@ describe("canonical Jev request boundary", () => {
       expect(observations.map((item) => [item.stage, item.outcome])).toEqual([
         ["issued", undefined], ["settled", "neverSent"],
       ]);
+      expect(observations.every((item) => item.lifetime === server.lifetime &&
+        item.canonicalLifetime === 1 && item.canonicalPartition > 0 &&
+        item.round > 0 && item.hapslandRound === null)).toBe(true);
       expect(existsSync(capturePath)).toBe(false);
       expect(server.stats().retainedBytes).toBe(0);
 
@@ -51,9 +55,26 @@ describe("canonical Jev request boundary", () => {
       expect(observations.slice(2).map((item) => item.stage)).toEqual([
         "issued", "started", "settled",
       ]);
+      expect(new Set(observations.map((item) => item.round)).size).toBe(1);
       expect(existsSync(capturePath)).toBe(true);
     } finally {
       await server.close();
+    }
+    const nextLifetime: JevRequestObservation[] = [];
+    const restarted = new ResidentServer(residentPaths(join(root, "restarted-runtime")), undefined, {
+      jevRequestObserver: (observation) => { nextLifetime.push(observation); },
+    });
+    try {
+      expect(restarted.admit(await event(), dispatch, false, true).status).toBe("accepted");
+      await restarted.whenIdle();
+      expect(nextLifetime.map((item) => item.stage)).toEqual(["issued", "started", "settled"]);
+      expect(nextLifetime.every((item) => item.lifetime === restarted.lifetime)).toBe(true);
+      expect(nextLifetime.every((item) => (item.hapslandRound ?? 0) > 0)).toBe(true);
+      expect(restarted.lifetime).not.toBe(server.lifetime);
+      expect(nextLifetime[0]?.canonicalLifetime).toBe(observations[0]?.canonicalLifetime);
+      expect(nextLifetime[0]?.round).toBe(observations[0]?.round);
+    } finally {
+      await restarted.close();
     }
   });
 
@@ -129,4 +150,38 @@ describe("canonical Jev request boundary", () => {
       await server.close();
     }
   }, 15_000);
+
+  it("binds local canonical lifetime 1 to each resident UUID and rotates canonical rounds", () => {
+    const first = new CapacityLedger(undefined, "resident-a");
+    const second = new CapacityLedger(undefined, "resident-b");
+    const facts = { rootValid: true, configurationValid: true,
+      credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
+    const issue = (ledger: CapacityLedger) => {
+      const partition = "review-partition";
+      const observation = ledger.admitObservation(partition);
+      expect(ledger.observation(partition, observation, "startObservation")).toBe(true);
+      const preparation = ledger.beginObservedPreparation(partition, observation, 100);
+      if (preparation === undefined) throw new Error("preparation refused");
+      expect(ledger.observation(partition, observation, "completeObservation")).toBe(true);
+      const unit = ledger.completePreparation(partition, preparation.operation,
+        preparation.reservation, [10])[0];
+      if (unit === undefined) throw new Error("unit refused");
+      expect(ledger.startReview(partition, unit.operation)).toBe(true);
+      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts);
+      if (ready.status !== "issued") throw new Error("request refused");
+      expect(ledger.startJevRequest(partition, unit.operation, ready.request)).toBe(true);
+      expect(ledger.settleJevRequest(partition, unit.operation, ready.request,
+        unit.reservation, "clear", true)).toBe("settleClear");
+      return ready.round;
+    };
+    const firstRound = issue(first);
+    const otherLifetimeRound = issue(second);
+    expect(first.residentLifetime).toBe("resident-a");
+    expect(second.residentLifetime).toBe("resident-b");
+    expect(first.canonicalLifetime).toBe(1);
+    expect(second.canonicalLifetime).toBe(1);
+    expect(firstRound).toBe(otherLifetimeRound);
+    first.retireRound("review-partition");
+    expect(issue(first)).toBeGreaterThan(firstRound);
+  });
 });
