@@ -316,6 +316,31 @@ describe("shared Hapsland rounds", () => {
     expect(state.canonical.canonicalProjection().rounds).toEqual(openRounds);
   });
 
+  it("keeps closure diagnostics read only until a fresh edit opens the next round", () => {
+    const state = new ComposedDelivery();
+    expect(state.registerEdit("agent", "first", 10, 11)).toBe(true);
+    expect(state.admitEdit("agent", "first", 12, true)).toBe(1);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishStop("agent", "stop", true, 100)).toBe(1);
+    expect(state.canonical.currentRoundId("agent")).toBeUndefined();
+    expect(state.canonical.canonicalProjection().rounds).toEqual([]);
+
+    expect(state.closureCounts("agent")).toEqual({
+      reservedContinuations: 0, submitted: 0, uncertain: 0, editPermits: 0,
+    });
+    expect(state.hasVirtualRoundContinuationBudget("agent")).toBe(false);
+    expect(state.canSubmit("agent", "background")).toBe(false);
+    expect(state.isDeciding("agent")).toBe(false);
+    expect(state.canonical.currentRoundId("agent")).toBeUndefined();
+    expect(state.canonical.canonicalProjection().rounds).toEqual([]);
+
+    expect(state.registerEdit("agent", "second", 102, 103)).toBe(true);
+    expect(state.canonical.canonicalProjection().rounds).toEqual([]);
+    expect(state.admitEdit("agent", "second", 104, true)).toBe(2);
+    expect(state.canonical.currentRoundId("agent")).toBeDefined();
+    expect(state.canonical.canonicalProjection().rounds).toHaveLength(1);
+  });
+
   it("releases pending permits in canonical state at a Stop cutoff", () => {
     const state = new ComposedDelivery();
     state.admitEdit("agent", "first", 1);

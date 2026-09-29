@@ -631,7 +631,8 @@ export class ComposedDelivery {
     return result.commands[0]?.kind === "roundBarrierRaised";
   }
 
-  #continuationCount(partition: string, round = this.canonical.roundId(partition)): number {
+  #continuationCount(partition: string, round = this.canonical.currentRoundId(partition)): number {
+    if (round === undefined) return 0;
     const group = this.canonical.partitionId(partition);
     return this.canonical.canonicalProjection().delivery.counters.find((item) =>
       item.group === group && item.round === round)?.used ?? 0;

@@ -191,6 +191,11 @@ export class CapacityLedger {
     return command.id;
   }
 
+  /** Read the bound round without opening one. */
+  currentRoundId(partition: string): number | undefined {
+    return this.#roundIds.get(partition);
+  }
+
   admitObservation(partition: string, round: number = this.roundId(partition)): number {
     const result = this.transition({ kind: "admitObservation", partition: this.partitionId(partition),
       lifetime: 1, round });
