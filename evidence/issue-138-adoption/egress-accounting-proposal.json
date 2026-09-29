@@ -8,7 +8,8 @@
     "comparators": "a8afe6848bcf38d2711fc5fd83adedad69f2280480280b67d7bc2335fd91ac25",
     "providerObservations": "db9fe0dd57b3ea2eb6322e60b50dc7809c2fd4f24c3cea9151d640032ed04014",
     "typeGolden": "997078517d4680b3cd1525f9be399e2b671398a45c342e68655d3e6d69648624",
-    "functionGolden": "0dd661c5b79a45b7e38c018b22ece2e10338ebcff02e3d92201c42717f46000b"
+    "functionGolden": "0dd661c5b79a45b7e38c018b22ece2e10338ebcff02e3d92201c42717f46000b",
+    "candidateTest": "0018b44780bc8bc9dc91e65d1ef3147cbd2d7c5bd876a0f2989d0b627f2d6bb2"
   },
   "provider": {
     "package": "@effect/ai-typesafe@4.0.0-rc.116",
@@ -76,11 +77,28 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T01/root.ts",
+            "sha256": "212e17011abb0c16be0bed3cce1d24c07af3db5befd4174db567aee04891f7db",
+            "bytes": 64
+          },
+          {
+            "role": "node:0",
+            "path": "root.ts",
+            "fixturePath": "cases/T01/root.ts",
+            "sha256": "585ed3e914d933bf8e5fafa15e7ab222f359245290c2490e0ffc7518123b1e6d",
+            "bytes": 38
+          }
+        ],
+        "sourceFieldUtf8Bytes": 102,
+        "localRequestBytes": 2139,
+        "httpBodyBytes": 2153,
+        "httpBodySha256": "bc249b7b1d2b3a3c22c8975db578cb083201c6f71ad900948bd4f2952bbf4458"
       },
       "arms": {
         "focusedDiff": {
@@ -150,11 +168,28 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T02/root.ts",
+            "sha256": "a00a976b6bdfbe21f7f0b3b791d4d1ec2100ba3d1ef86922947c05b866cce5b9",
+            "bytes": 70
+          },
+          {
+            "role": "node:0",
+            "path": "support.ts",
+            "fixturePath": "cases/T02/support.ts",
+            "sha256": "a337e0da74b2cb54e5acf0abdc4f2c14e4ef470d3c3733c9dda980e62dbbf7a8",
+            "bytes": 53
+          }
+        ],
+        "sourceFieldUtf8Bytes": 123,
+        "localRequestBytes": 2204,
+        "httpBodyBytes": 2218,
+        "httpBodySha256": "93506e4e1771764264c44ea0f8b6177a57086b06c54a5c311f1d2594e1b5292c"
       },
       "arms": {
         "focusedDiff": {
@@ -202,11 +237,28 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T03/root.ts",
+            "sha256": "9c5fbfff9ab93b1c9c557c695f976fc13ad55741732bd9bdad6968db087e1e63",
+            "bytes": 69
+          },
+          {
+            "role": "node:0",
+            "path": "support.ts",
+            "fixturePath": "cases/T03/support.ts",
+            "sha256": "6851c66030daac3fc11116282d8cc2eb013a0de3aa9a2394243f3646b42d64d6",
+            "bytes": 62
+          }
+        ],
+        "sourceFieldUtf8Bytes": 131,
+        "localRequestBytes": 2199,
+        "httpBodyBytes": 2213,
+        "httpBodySha256": "a49d5430d053f480b7cc1df9b1e254a69f84abc862a79e3656944cb9d7501364"
       },
       "arms": {
         "focusedDiff": {
@@ -254,11 +306,21 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T04/root.ts",
+            "sha256": "4fac19eb39802f427a691fd295e8c4d93793321c41f037493ca88a33ebf2d778",
+            "bytes": 68
+          }
+        ],
+        "sourceFieldUtf8Bytes": 68,
+        "localRequestBytes": 1875,
+        "httpBodyBytes": 1889,
+        "httpBodySha256": "22ef3de18dda5a70a8d71e251a3c52e7c868948960c93fb5abbc7e1c95638dbb"
       },
       "arms": {
         "focusedDiff": {
@@ -319,11 +381,21 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T05/root.ts",
+            "sha256": "545826248327fa9ce97173d565212fcee1f77040027c6314bacdd777a1d8823e",
+            "bytes": 89
+          }
+        ],
+        "sourceFieldUtf8Bytes": 89,
+        "localRequestBytes": 1902,
+        "httpBodyBytes": 1916,
+        "httpBodySha256": "2676ad35e1639c6f747ac925c1bc87da7c946a0c0c1a6f807991189aaf6da09b"
       },
       "arms": {
         "focusedDiff": {
@@ -380,11 +452,21 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T06/root.ts",
+            "sha256": "fbc3dc71b12ce8002cbc4e2c7e4493486248c7a14337550f751a103bbb91a045",
+            "bytes": 63
+          }
+        ],
+        "sourceFieldUtf8Bytes": 63,
+        "localRequestBytes": 1872,
+        "httpBodyBytes": 1886,
+        "httpBodySha256": "257c962b59b09aeaf4614d8f84041cabfff289a0b5c3102a1d93c85dd5fad0fd"
       },
       "arms": {
         "focusedDiff": {
@@ -446,11 +528,28 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T07/root.ts",
+            "sha256": "0a58faf8205584173dd6e663db1be8aff877fd8ef0b4bfaa615332d448b78cd3",
+            "bytes": 29
+          },
+          {
+            "role": "node:0",
+            "path": "root.ts",
+            "fixturePath": "cases/T07/root.ts",
+            "sha256": "9189ebaf54cc6fdcd7a6f500e2c1891ab54d595378201ec60eea2959c5ed3ffc",
+            "bytes": 81
+          }
+        ],
+        "sourceFieldUtf8Bytes": 110,
+        "localRequestBytes": 2150,
+        "httpBodyBytes": 2164,
+        "httpBodySha256": "a8c566a818d174e978246d8fdef7fbaf622ec657335017274e97f37360e9c84f"
       },
       "arms": {
         "focusedDiff": {
@@ -520,11 +619,28 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T08/root.ts",
+            "sha256": "54254834f7fdaceca11b57edb333894d1d9baf28abbb9ecc4838f1851772d049",
+            "bytes": 36
+          },
+          {
+            "role": "node:0",
+            "path": "support.ts",
+            "fixturePath": "cases/T08/support.ts",
+            "sha256": "118403394780cd0a692b3b835e6fb010c6dabb34a2ba2e55f13c5ca618eeec4a",
+            "bytes": 95
+          }
+        ],
+        "sourceFieldUtf8Bytes": 131,
+        "localRequestBytes": 2208,
+        "httpBodyBytes": 2222,
+        "httpBodySha256": "6916db5913519fe1251df236c7502405a8c3f2809977dd45138e7ba396d76972"
       },
       "arms": {
         "focusedDiff": {
@@ -572,11 +688,21 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T09/root.ts",
+            "sha256": "4fac19eb39802f427a691fd295e8c4d93793321c41f037493ca88a33ebf2d778",
+            "bytes": 68
+          }
+        ],
+        "sourceFieldUtf8Bytes": 68,
+        "localRequestBytes": 1875,
+        "httpBodyBytes": 1889,
+        "httpBodySha256": "22ef3de18dda5a70a8d71e251a3c52e7c868948960c93fb5abbc7e1c95638dbb"
       },
       "arms": {
         "focusedDiff": {
@@ -642,11 +768,21 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T10/root.ts",
+            "sha256": "83398f25c2e1924c737bee9d75149d0348019e011da8a761f37483e075d1ac55",
+            "bytes": 89
+          }
+        ],
+        "sourceFieldUtf8Bytes": 89,
+        "localRequestBytes": 1898,
+        "httpBodyBytes": 1912,
+        "httpBodySha256": "8649ff384f8b48d2703260b2d25ebcc0e0639dfcac84edc2fc23339fee5ad3de"
       },
       "arms": {
         "focusedDiff": {
@@ -712,11 +848,21 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T11/root.ts",
+            "sha256": "4fac19eb39802f427a691fd295e8c4d93793321c41f037493ca88a33ebf2d778",
+            "bytes": 68
+          }
+        ],
+        "sourceFieldUtf8Bytes": 68,
+        "localRequestBytes": 1875,
+        "httpBodyBytes": 1889,
+        "httpBodySha256": "22ef3de18dda5a70a8d71e251a3c52e7c868948960c93fb5abbc7e1c95638dbb"
       },
       "arms": {
         "focusedDiff": {
@@ -782,11 +928,21 @@
         }
       ],
       "candidate": {
-        "status": "unmeasured-per-fixture",
-        "httpBodyBytes": null,
-        "httpBodySha256": null,
-        "sourceRoles": null,
-        "sourceFieldUtf8Bytes": null
+        "status": "observed-offline-pinned-client-only",
+        "inputContract": "direct-event/type-shape/v2",
+        "sourceFields": [
+          {
+            "role": "root",
+            "path": "root.ts",
+            "fixturePath": "cases/T12/root.ts",
+            "sha256": "83398f25c2e1924c737bee9d75149d0348019e011da8a761f37483e075d1ac55",
+            "bytes": 89
+          }
+        ],
+        "sourceFieldUtf8Bytes": 89,
+        "localRequestBytes": 1898,
+        "httpBodyBytes": 1912,
+        "httpBodySha256": "8649ff384f8b48d2703260b2d25ebcc0e0639dfcac84edc2fc23339fee5ad3de"
       },
       "arms": {
         "focusedDiff": {
@@ -839,7 +995,7 @@
     }
   ],
   "unresolved": [
-    "No T01-T12 candidate HTTP body or source-scope observation; candidate goldens do not map to corpus fixtures.",
+    "Candidate T-case bodies were observed only with synthetic fixtures and an injected HTTP client; no backend acceptance or semantic result was measured.",
     "Comparator input contracts and source egress await owner approval.",
     "Pinned HTTP body measurements exclude header bytes and transport framing; #140 owns production sizing.",
     "No live Jev responses, semantic outcomes, or adoption eligibility have been established."

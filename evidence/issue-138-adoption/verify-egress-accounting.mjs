@@ -49,6 +49,8 @@ const generate = async () => {
   };
   const [corpus, plan, comparators, provider, typeGolden, functionGolden] = await Promise.all(
     Object.values(files).map(json));
+  const measuredCandidates = new Map((await json(target)).cases.map((item) => [item.id, item.candidate]));
+  const candidateTest = resolve(here, "../../src/direct-event/candidate-egress-accounting.test.ts");
   const packageJson = await json(resolve(here, "../../package.json"));
   insist(corpus.status === "proposal-unapproved-no-live-egress" &&
     plan.phase === "pre-execution-declaration" && plan.status === "proposal-unapproved-no-live", "proposal status changed");
@@ -135,18 +137,35 @@ const generate = async () => {
     }
     insist(JSON.stringify(Object.keys(arms).sort()) === JSON.stringify(declared.applicableArms.filter((arm) => arm !== "candidate").sort()),
       `${fixture.id}: comparator arms differ from plan`);
-    cases.push({id: fixture.id, sourceFiles, candidate: {status: "unmeasured-per-fixture", httpBodyBytes: null,
-      httpBodySha256: null, sourceRoles: null, sourceFieldUtf8Bytes: null}, arms});
+    const candidate = measuredCandidates.get(fixture.id);
+    insist(candidate?.status === "observed-offline-pinned-client-only" &&
+      candidate.inputContract === "direct-event/type-shape/v2" &&
+      Number.isSafeInteger(candidate.localRequestBytes) && candidate.localRequestBytes > 0 &&
+      Number.isSafeInteger(candidate.httpBodyBytes) &&
+      candidate.httpBodyBytes === candidate.localRequestBytes + 14 &&
+      /^[0-9a-f]{64}$/.test(candidate.httpBodySha256) &&
+      Array.isArray(candidate.sourceFields) && candidate.sourceFields.length > 0,
+      `${fixture.id}: candidate observation missing or malformed`);
+    insist(candidate.sourceFields[0].role === "root" &&
+      candidate.sourceFields.every((part, index) => {
+        const file = sourceFiles.find((source) => source.path === part.fixturePath);
+        return part.role === (index === 0 ? "root" : `node:${index - 1}`) &&
+          part.path === part.fixturePath.split("/").at(-1) &&
+          file !== undefined && part.bytes > 0 && part.bytes <= file.bytes &&
+          /^[0-9a-f]{64}$/.test(part.sha256);
+      }) && candidate.sourceFieldUtf8Bytes === candidate.sourceFields.reduce((sum, part) => sum + part.bytes, 0),
+    `${fixture.id}: candidate source scope mismatched fixture inventory`);
+    cases.push({id: fixture.id, sourceFiles, candidate, arms});
   }
   insist(used.size === observed.size, "unjoined provider observations");
   return {schemaVersion: 1, status: "unapproved-offline-egress-accounting-proposal",
     boundary: "HTTP JSON body from pinned injected Effect provider; excludes headers and transport framing",
-    anchors: Object.fromEntries(await Promise.all(Object.entries(files).map(async ([name, path]) =>
-      [name, sha(await read(path))]))),
+    anchors: {...Object.fromEntries(await Promise.all(Object.entries(files).map(async ([name, path]) =>
+      [name, sha(await read(path))]))), candidateTest: await anchor(candidateTest)},
     provider: {package: provider.providerPackage, effect: provider.effectPackage,
       endpoint: provider.endpoint, model: provider.model},
     candidateGoldens, cases,
-    unresolved: ["No T01-T12 candidate HTTP body or source-scope observation; candidate goldens do not map to corpus fixtures.",
+    unresolved: ["Candidate T-case bodies were observed only with synthetic fixtures and an injected HTTP client; no backend acceptance or semantic result was measured.",
       "Comparator input contracts and source egress await owner approval.",
       "Pinned HTTP body measurements exclude header bytes and transport framing; #140 owns production sizing.",
       "No live Jev responses, semantic outcomes, or adoption eligibility have been established."]};
@@ -157,8 +176,8 @@ insist(mode === "--check" || mode === "--write", "usage: verify-egress-accountin
 const generated = await generate();
 if (mode === "--write") {
   await writeFile(target, `${JSON.stringify(generated, null, 2)}\n`);
-  console.log("wrote 12 T-case comparator joins and two separate candidate goldens");
+  console.log("wrote 12 T-case candidate observations, 33 comparator joins, and two separate goldens");
 } else {
   insist(JSON.stringify(await json(target)) === JSON.stringify(generated), "egress accounting differs from current source artifacts");
-  console.log("verified 33 T-case comparator joins and two separate candidate goldens");
+  console.log("verified 12 T-case candidate observations, 33 comparator joins, and two separate goldens");
 }

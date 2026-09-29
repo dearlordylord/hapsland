@@ -59,11 +59,22 @@ separate provider observation. The provider HTTP test in
 `src/direct-event/provider-http-wire.test.ts` independently replays the body
 hashes using an injected, offline client.
 
-The two candidate goldens are separate synthetic examples. Neither maps to a
-T01–T12 case, so this artifact leaves every per-case candidate body and source
-scope unmeasured. File anchors identify full fixture buffers; a focused diff's
-source-field byte count identifies the excerpt actually placed in its proposed
-input. The measurement excludes HTTP header bytes and transport framing.
-Comparator contracts and expanded source egress still require owner approval;
-this accounting does not make the paid study eligible or establish #140's
-production provider-aware request limit.
+The later `src/direct-event/candidate-egress-accounting.test.ts` replays all 12
+T-case Codex patches through the current candidate pipeline with the proposed
+v2 type rule. It checks each source against its corpus hash, selects one complete
+PreparedUnit, and captures that unit's exact HTTP body through an injected
+`@effect/ai-typesafe` client with a sentinel key and synthetic response. Its
+12 candidate rows record body bytes/hash and each rendered root or supporting
+declaration's virtual path, source hash, and source-field byte count. Re-run this
+test before treating those rows as current; the accounting verifier checks
+their schema, fixture joins, and test-file anchor but does not replace the
+pipeline/provider replay. The two earlier candidate goldens remain separate
+synthetic examples and are not mapped to T01–T12.
+
+File anchors identify full fixture buffers; a focused diff's source-field byte
+count identifies the excerpt actually placed in its proposed input. Candidate
+source hashes identify rendered declarations, which can be smaller than their
+fixture files. The measurement excludes HTTP header bytes and transport
+framing. Comparator contracts and expanded source egress still require owner
+approval; this accounting does not make the paid study eligible or establish
+#140's production provider-aware request limit.
