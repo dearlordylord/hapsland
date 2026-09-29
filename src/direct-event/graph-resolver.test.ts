@@ -20,6 +20,46 @@ const candidateRules = compileRulePackV2({ schemaVersion: 2, id: "graph", conten
 }] }, "fixture-v2");
 
 describe("cross-file graph preparation", () => {
+  it.effect("keeps local and import work under one immutable total", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface C { value: string } interface A { c: C; b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "export interface B { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity);
+    if (selected === undefined) throw new Error("root path was not eligible");
+    const capture = yield* captureStable(root, selected, {}, observation.rootIdentity);
+    if (capture === undefined) throw new Error("root capture failed");
+    const reads: string[] = [];
+    const base = { root, rootIdentity: observation.rootIdentity,
+      policy: DEFAULT_DIRECT_FILE_POLICY,
+      captureHooks: { sourceRead: (path: string) => { reads.push(path); } } };
+    const exhausted = yield* resolveGraphUnit("a.ts", capture, "A", {
+      ...base, limits: { ...GRAPH_LIMIT_CEILINGS, work: 1 },
+    });
+    expect(exhausted).toBeUndefined();
+    expect(reads).toEqual([]);
+    const sufficient = yield* resolveGraphUnit("a.ts", capture, "A", {
+      ...base, limits: { ...GRAPH_LIMIT_CEILINGS, work: 2 },
+    });
+    expect(sufficient?.root.references.map((edge) => edge.kind)).toEqual(["expanded", "expanded"]);
+    expect(reads).toEqual(["b.ts", "b.ts"]);
+  }));
+
+  it.effect("accepts a complete local unit when the graph has zero remaining work", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "interface C { value: string } interface A { c: C }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity);
+    if (selected === undefined) throw new Error("root path was not eligible");
+    const capture = yield* captureStable(root, selected, {}, observation.rootIdentity);
+    if (capture === undefined) throw new Error("root capture failed");
+    const complete = yield* resolveGraphUnit("a.ts", capture, "A", { root, rootIdentity: observation.rootIdentity,
+      policy: DEFAULT_DIRECT_FILE_POLICY, limits: { ...GRAPH_LIMIT_CEILINGS, work: 1 } });
+    expect(complete?.root.references[0]).toMatchObject({ kind: "expanded", node: { artifact: { id: "a.ts:interface:C" } } });
+  }));
+
   it.effect("applies the outgoing target cap per source file across A to B to C", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));

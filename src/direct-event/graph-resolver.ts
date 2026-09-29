@@ -157,8 +157,15 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
     pending.set(id, edge);
     return id;
   });
-  const remainingWork = Math.max(1, limits.work - budget.work);
-  let state = initialImportGraph({ ...limits, work: remainingWork });
+  // Bend's local_budget checks the immutable total before the import graph
+  // receives a residual work allowance. One pending import needs at least one
+  // graph step; a spent local budget must refuse it before any supporting read.
+  if (built.pending.length > 0 &&
+    !permitLocalGraphFacts(limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 1)) return undefined;
+  const remainingWork = limits.work - budget.work;
+  // The graph adapter requires a positive profile. With no pending edges this
+  // value is inert: Bend can complete the root without consuming graph work.
+  let state = initialImportGraph({ ...limits, work: remainingWork === 0 ? 1 : remainingWork });
   let transition = stepImportGraph(state, { kind: "root", target: 1, sourceBytes: rootCapture.byteLength, treeBytes: bytes(unit), edges: addEdges(built.pending) });
   state = transition.state;
   let command: ImportGraphCommand = transition.command;
