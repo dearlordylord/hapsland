@@ -1235,11 +1235,7 @@ if (isDirectEventReady(output)) {
   if (hostWriteResult === "timed-out") keepDirectHookWatchdog = true;
   if (submissionReady && (!isClaudeHook || hostWriteResult === "written") &&
       (!composedSubmission || hostWriteResult === "written")) {
-    if (!isClaudeHook && isOpenCodeHook) {
-      if ("hookSpecificOutput" in output.value) {
-        process.stdout.write(output.value.hookSpecificOutput.additionalContext);
-      }
-    } else if (!isClaudeHook && !composedSubmission && "hookSpecificOutput" in output.value) attemptCodexHostOutput(output.value, (encoded) => {
+    if (!isClaudeHook && !composedSubmission && "hookSpecificOutput" in output.value) attemptCodexHostOutput(output.value, (encoded) => {
       process.stdout.write(encoded);
     });
     recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.advicee, {

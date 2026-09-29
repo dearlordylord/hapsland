@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { renderOpenCodePlugin } from "../hosts/opencode/plugin.ts";
 import { atomicInstallationFile } from "./atomic-installation-file.ts";
 
 const PROFILE = "1.14.44";
@@ -55,10 +54,9 @@ const inputs = (request: OpenCodeInstallationRequest) => {
   const compatibility = { supported: observed === PROFILE && runtimeObserved === "v24.20.0" && existsSync(entrypoint),
     host: { observed, required: PROFILE }, runtime: { observed: runtimeObserved, required: "v24.20.0" },
     entrypoint: { path: entrypoint, ready: existsSync(entrypoint) } };
-  return { home, runtime, entrypoint, compatibility, paths: paths(home), plugin: renderOpenCodePlugin(runtime, entrypoint) };
+  return { home, compatibility, paths: paths(home) };
 };
-type Kind = "install" | "update" | "uninstall";
-const plan = (kind: Kind, request: OpenCodeInstallationRequest) => {
+const planUninstall = (request: OpenCodeInstallationRequest) => {
   const input = inputs(request);
   const beforePlugin = read(input.paths.plugin);
   const beforeRecord = read(input.paths.ownership);
@@ -67,15 +65,10 @@ const plan = (kind: Kind, request: OpenCodeInstallationRequest) => {
     throw new Error("owned OpenCode plugin is missing or locally modified");
   }
   if (beforePlugin !== undefined && ownership === undefined) throw new Error("OpenCode plugin path is already occupied");
-  if (kind === "install" && ownership !== undefined) throw new Error("OpenCode integration already installed; use update");
-  if (kind === "update" && ownership === undefined) throw new Error("OpenCode integration is not installed");
-  const afterPlugin = kind === "uninstall" ? undefined : input.plugin;
-  const afterRecord = kind === "uninstall" ? undefined : `${JSON.stringify({ version: 1, adapter: ADAPTER,
-    home: input.home, pluginDigest: digest(input.plugin), runtime: input.runtime, entrypoint: input.entrypoint } satisfies OwnedRecord, null, 2)}\n`;
-  const proposalDigest = digest(JSON.stringify([kind, input.home, digest(beforePlugin ?? "<missing>"),
-    digest(beforeRecord ?? "<missing>"), digest(afterPlugin ?? "<missing>"), digest(afterRecord ?? "<missing>")]));
-  return { input, beforePlugin, beforeRecord, afterPlugin, afterRecord, proposalDigest,
-    noChange: beforePlugin === afterPlugin && beforeRecord === afterRecord };
+  const proposalDigest = digest(JSON.stringify(["uninstall", input.home, digest(beforePlugin ?? "<missing>"),
+    digest(beforeRecord ?? "<missing>"), digest("<missing>"), digest("<missing>")]));
+  return { input, beforePlugin, beforeRecord, proposalDigest,
+    noChange: beforePlugin === undefined && beforeRecord === undefined };
 };
 const conflict = (operation: string, cause: unknown) => ({ version: 1 as const, operation, status: "conflict" as const,
   error: { message: message(cause) } });
@@ -84,16 +77,15 @@ const unsupported = (operation: string) => ({
   host: { adapter: ADAPTER },
   error: { message: "OpenCode review is unavailable until its pre-edit permit lifecycle is implemented." },
 });
-const preview = (kind: Kind, request: OpenCodeInstallationRequest) => {
-  const operation = kind === "uninstall" ? "uninstall-preview" : `${kind}-preview`;
-  if (kind !== "uninstall") return unsupported(operation);
+const previewUninstall = (request: OpenCodeInstallationRequest) => {
+  const operation = "uninstall-preview";
   try {
-    const next = plan(kind, request);
+    const next = planUninstall(request);
     return { version: 1 as const, operation, status: "preview" as const,
       host: { adapter: ADAPTER, home: next.input.home, compatibility: next.input.compatibility },
       proposal: { digest: next.proposalDigest, changes: [
-        ...(next.beforePlugin === next.afterPlugin ? [] : [{ path: next.input.paths.plugin, description: "owned global plugin" }]),
-        ...(next.beforeRecord === next.afterRecord ? [] : [{ path: next.input.paths.ownership, description: "ownership record" }]),
+        ...(next.beforePlugin === undefined ? [] : [{ path: next.input.paths.plugin, description: "owned global plugin" }]),
+        ...(next.beforeRecord === undefined ? [] : [{ path: next.input.paths.ownership, description: "ownership record" }]),
       ], ownedChanges: { plugin: next.input.paths.plugin, hook: "tool.execute.after", tools: ["edit", "write"],
         timeoutMilliseconds: 4500 } },
       installed: false,
@@ -103,43 +95,37 @@ const preview = (kind: Kind, request: OpenCodeInstallationRequest) => {
       pending: ["apply this proposal digest to remove the owned integration"] };
   } catch (cause) { return conflict(operation, cause); }
 };
-const apply = (kind: Kind, request: OpenCodeInstallationRequest) => {
-  if (kind !== "uninstall") return unsupported(kind);
+const applyUninstall = (request: OpenCodeInstallationRequest) => {
   try {
     const input = inputs(request);
     mkdirSync(dirname(input.paths.lock), { recursive: true, mode: 0o700 });
     try { mkdirSync(input.paths.lock); } catch { throw new Error("OpenCode installation is locked"); }
     try {
-      const next = plan(kind, request);
-      if (request.proposalDigest === undefined) return preview(kind, request);
-      if (request.proposalDigest !== next.proposalDigest) return { version: 1 as const, operation: kind,
+      const next = planUninstall(request);
+      if (request.proposalDigest === undefined) return previewUninstall(request);
+      if (request.proposalDigest !== next.proposalDigest) return { version: 1 as const, operation: "uninstall" as const,
         status: "proposal-mismatch" as const, error: { message: "OpenCode configuration changed since preview" } };
-      if (next.noChange) return { version: 1 as const, operation: kind, status: "already-current" as const };
+      if (next.noChange) return { version: 1 as const, operation: "uninstall" as const, status: "already-current" as const };
       try {
-        if (kind === "uninstall") {
-          atomicInstallationFile(input.paths.plugin, undefined);
-          atomicInstallationFile(input.paths.ownership, undefined);
-        } else {
-          atomicInstallationFile(input.paths.ownership, next.afterRecord);
-          atomicInstallationFile(input.paths.plugin, next.afterPlugin);
-        }
+        atomicInstallationFile(input.paths.plugin, undefined);
+        atomicInstallationFile(input.paths.ownership, undefined);
       } catch (cause) {
         if (read(input.paths.plugin) === next.beforePlugin) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
         throw cause;
       }
-      return { version: 1 as const, operation: kind, status: "complete" as const };
+      return { version: 1 as const, operation: "uninstall" as const, status: "complete" as const };
     } finally { rmSync(input.paths.lock, { recursive: true, force: true }); }
-  } catch (cause) { return conflict(kind, cause); }
+  } catch (cause) { return conflict("uninstall", cause); }
 };
-export const previewOpenCodeInstallation = (request: OpenCodeInstallationRequest) => preview("install", request);
-export const installOpenCodeIntegration = async (request: OpenCodeInstallationRequest) => apply("install", request);
-export const previewOpenCodeUpdate = (request: OpenCodeInstallationRequest) => preview("update", request);
-export const updateOpenCodeIntegration = async (request: OpenCodeInstallationRequest) => apply("update", request);
+export const previewOpenCodeInstallation = (_request: OpenCodeInstallationRequest) => unsupported("install-preview");
+export const installOpenCodeIntegration = async (_request: OpenCodeInstallationRequest) => unsupported("install");
+export const previewOpenCodeUpdate = (_request: OpenCodeInstallationRequest) => unsupported("update-preview");
+export const updateOpenCodeIntegration = async (_request: OpenCodeInstallationRequest) => unsupported("update");
 export const uninstallOpenCodeIntegration = async (request: OpenCodeInstallationRequest) =>
-  request.proposalDigest === undefined ? preview("uninstall", request) : apply("uninstall", request);
+  request.proposalDigest === undefined ? previewUninstall(request) : applyUninstall(request);
 export const inspectOpenCodeInstallation = (request: OpenCodeInstallationRequest) => {
   try {
-    const next = plan("uninstall", request);
+    const next = planUninstall(request);
     return { version: 1 as const, operation: "inspect-installation" as const, status: "ready" as const,
       installed: next.beforeRecord !== undefined };
   } catch (cause) { return conflict("inspect-installation", cause); }

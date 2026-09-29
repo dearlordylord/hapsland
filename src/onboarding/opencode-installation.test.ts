@@ -49,6 +49,10 @@ describe("OpenCode unsupported installation and owned cleanup", () => {
     const { home, request } = fixture();
     seedOwnedPlugin(home);
     writeFileSync(join(home, "plugins", "other.mjs"), "other plugin");
+    const ownedPlugin = readFileSync(join(home, "plugins", "hapsland.mjs"), "utf8");
+    expect((await installOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" })).status).toBe("unsupported");
+    expect((await updateOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" })).status).toBe("unsupported");
+    expect(readFileSync(join(home, "plugins", "hapsland.mjs"), "utf8")).toBe(ownedPlugin);
     const doctor = diagnoseOpenCodeIntegration(request);
     expect(doctor.status).toBe("not-ready");
     expect(doctor.checks.find((check) => check.stage === "pre-edit-permit")?.status).toBe("unsupported");
