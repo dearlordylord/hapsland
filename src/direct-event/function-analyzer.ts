@@ -19,6 +19,8 @@ type SyntaxNode = {
   readonly text: string;
   readonly startIndex: number;
   readonly endIndex: number;
+  readonly startPosition: { readonly row: number; readonly column: number };
+  readonly endPosition: { readonly row: number; readonly column: number };
   readonly namedChildren: ReadonlyArray<SyntaxNode>;
   readonly parent?: SyntaxNode | null;
   readonly hasError?: boolean;
@@ -41,12 +43,15 @@ export type FunctionDeclarationFact = {
   readonly artifact: FunctionArtifact & { readonly kind: "function" };
   readonly references: ReadonlyArray<FunctionReference>;
   readonly exported: boolean;
+  readonly location: { readonly start: { readonly line: number; readonly column: number };
+    readonly end: { readonly line: number; readonly column: number } };
 };
 
 export type TypeDeclarationFact = {
   readonly artifact: FunctionArtifact & { readonly kind: "interface" | "type-alias" };
   readonly references: ReadonlyArray<FunctionReference>;
   readonly exported: boolean;
+  readonly location: FunctionDeclarationFact["location"];
 };
 
 export type FunctionFileAnalysis = {
@@ -83,9 +88,13 @@ const artifact = <K extends FunctionArtifact["kind"]>(path: string, kind: K, nam
   sourceHash: createHash("sha256").update(source, "utf8").digest("hex"),
 });
 
-const exportSource = (node: SyntaxNode): { readonly source: string; readonly exported: boolean } => {
+const exportSource = (node: SyntaxNode): { readonly source: string; readonly exported: boolean;
+  readonly location: FunctionDeclarationFact["location"] } => {
   const wrapper = node.parent?.type === "export_statement" ? node.parent : undefined;
-  return { source: (wrapper ?? node).text, exported: wrapper !== undefined };
+  const selected = wrapper ?? node;
+  return { source: selected.text, exported: wrapper !== undefined,
+    location: { start: { line: selected.startPosition.row + 1, column: selected.startPosition.column + 1 },
+      end: { line: selected.endPosition.row + 1, column: selected.endPosition.column + 1 } } };
 };
 
 const typeParameters = (node: SyntaxNode): ReadonlySet<string> => {
@@ -245,7 +254,7 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
         const body = node.namedChildren.find((child) => child.type === "statement_block");
         if (identifier === undefined || body === undefined || signatures.has(identifier.text) || functions.has(identifier.text) || types.has(identifier.text) || imports.has(identifier.text) || otherTopLevelBindings.has(identifier.text)) return undefined;
         const rendered = exportSource(node);
-        functions.set(identifier.text, { artifact: artifact(path, "function", identifier.text, rendered.source), references: functionReferences(node, identifier.text, boundTypes, boundFunctions), exported: rendered.exported });
+        functions.set(identifier.text, { artifact: artifact(path, "function", identifier.text, rendered.source), references: functionReferences(node, identifier.text, boundTypes, boundFunctions), exported: rendered.exported, location: rendered.location });
         if (functions.size + types.size > 64) return undefined;
         continue;
       }
@@ -254,7 +263,7 @@ export const analyzeFunctionFile = (path: string, source: string): FunctionFileA
         const identifier = node.namedChildren.find((child) => child.type === "type_identifier");
         if (identifier === undefined || types.has(identifier.text) || functions.has(identifier.text) || imports.has(identifier.text)) return undefined;
         const rendered = exportSource(node);
-        types.set(identifier.text, { artifact: artifact(path, kind, identifier.text, rendered.source), references: namedTypeReferences(node, identifier.text, boundTypes), exported: rendered.exported });
+        types.set(identifier.text, { artifact: artifact(path, kind, identifier.text, rendered.source), references: namedTypeReferences(node, identifier.text, boundTypes), exported: rendered.exported, location: rendered.location });
         if (functions.size + types.size > 64) return undefined;
       }
     }

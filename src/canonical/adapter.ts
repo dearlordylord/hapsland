@@ -195,7 +195,7 @@ export type CanonicalEvent =
   | { readonly kind: "candidateFileCheck"; readonly gitAdmin: boolean; readonly physicalSafe: boolean; readonly gitAllowed: boolean }
   | { readonly kind: "reviewAdmissionCheck"; readonly rootValid: boolean; readonly configurationValid: boolean; readonly credentialReady: boolean; readonly selected: boolean }
   | { readonly kind: "ruleEnableCheck"; readonly packEnabled: boolean; readonly ruleEnabled: boolean }
-  | { readonly kind: "ruleApplicabilityCheck"; readonly consent: boolean; readonly complete: boolean; readonly target: "directTypeShape" | "legacyFileTypeShape" | "otherTypeShape" | "functionTarget"; readonly globalIncluded: boolean; readonly globalExcluded: boolean; readonly packEnabled: boolean; readonly ruleEnabled: boolean; readonly ruleIncluded: boolean; readonly ruleExcluded: boolean; readonly semanticApplicable: boolean }
+  | { readonly kind: "ruleApplicabilityCheck"; readonly consent: boolean; readonly complete: boolean; readonly target: "directTypeShape" | "legacyFileTypeShape" | "otherTypeShape" | "functionTarget" | "directTypeShapeV2" | "directFunctionV1"; readonly globalIncluded: boolean; readonly globalExcluded: boolean; readonly packEnabled: boolean; readonly ruleEnabled: boolean; readonly ruleIncluded: boolean; readonly ruleExcluded: boolean; readonly semanticApplicable: boolean }
   | { readonly kind: "ruleFindingCheck"; readonly probability: ProbabilityWords; readonly threshold: ProbabilityWords }
   | { readonly kind: "ruleRankOrderCheck"; readonly left: ProbabilityWords; readonly right: ProbabilityWords; readonly leftRank: number; readonly rightRank: number }
   | { readonly kind: "adviceOrderCheck"; readonly left: ProbabilityWords; readonly right: ProbabilityWords; readonly pathOrder: "before" | "equal" | "after"; readonly idOrder: "before" | "equal" | "after" }
@@ -540,7 +540,7 @@ const encode = (event: CanonicalEvent): unknown => {
     case "ruleEnableCheck": inputFields(event, ["kind", "packEnabled", "ruleEnabled"]); return { $: "Canonical.RuleEnableCheck", pack_enabled: bool(event.packEnabled), rule_enabled: bool(event.ruleEnabled) };
     case "ruleApplicabilityCheck": {
       inputFields(event, ["kind", "consent", "complete", "target", "globalIncluded", "globalExcluded", "packEnabled", "ruleEnabled", "ruleIncluded", "ruleExcluded", "semanticApplicable"]);
-      if (!["directTypeShape", "legacyFileTypeShape", "otherTypeShape", "functionTarget"].includes(event.target)) throw new TypeError("invalid rule target fact");
+      if (!["directTypeShape", "legacyFileTypeShape", "otherTypeShape", "functionTarget", "directTypeShapeV2", "directFunctionV1"].includes(event.target)) throw new TypeError("invalid rule target fact");
       return { $: "Canonical.RuleApplicabilityCheck", consent: bool(event.consent), complete: bool(event.complete), target: { $: `RulePolicy.${event.target.slice(0, 1).toUpperCase()}${event.target.slice(1)}` }, global_included: bool(event.globalIncluded), global_excluded: bool(event.globalExcluded), pack_enabled: bool(event.packEnabled), rule_enabled: bool(event.ruleEnabled), rule_included: bool(event.ruleIncluded), rule_excluded: bool(event.ruleExcluded), semantic_applicable: bool(event.semanticApplicable) };
     }
     case "ruleFindingCheck": inputFields(event, ["kind", "probability", "threshold"]); return { $: "Canonical.RuleFindingCheck", probability: encodedProbabilityWords(event.probability), threshold: encodedProbabilityWords(event.threshold) };

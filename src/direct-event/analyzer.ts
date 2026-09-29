@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ArtifactReference, ReviewNode, ReviewUnit, TypeDeclaration } from "./model.ts";
+import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit, TypeDeclaration } from "./model.ts";
 
 const nativeRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../native/prebuilt", `${process.platform}-${process.arch}`);
 const parserRuntime = resolve(nativeRoot, "tree-sitter");
@@ -54,7 +54,7 @@ export type UnitAnalysis =
   | { readonly status: "ready"; readonly unit: ReviewUnit }
   | {
       readonly status: "unsupported";
-      readonly root: TypeDeclaration;
+      readonly root: ReviewArtifact;
       readonly unit: ReviewUnit;
       readonly reason: "missing-evidence" | "unsupported-reference" | "reference-limit";
     };
@@ -346,12 +346,15 @@ export const readyTypeUnits = (path: string, source: string): ReadonlyArray<Revi
 /** Compatibility helper for the original Add-only surface. */
 export const analyzeSingleType = (path: string, source: string): TypeDeclaration | undefined => {
   const units = readyTypeUnits(path, source);
-  return units.length === 1 ? units[0]?.root.artifact : undefined;
+  const artifact = units.length === 1 ? units[0]?.root.artifact : undefined;
+  return artifact?.kind === "function" ? undefined : artifact;
 };
 
 /** Revalidation returns the named root only when its complete evidence remains available. */
 export const analyzeNamedUnit = (path: string, source: string, name: string): ReviewUnit | undefined =>
   readyTypeUnits(path, source).find(({ root }) => root.artifact.name === name);
 
-export const analyzeNamedType = (path: string, source: string, name: string): TypeDeclaration | undefined =>
-  analyzeNamedUnit(path, source, name)?.root.artifact;
+export const analyzeNamedType = (path: string, source: string, name: string): TypeDeclaration | undefined => {
+  const artifact = analyzeNamedUnit(path, source, name)?.root.artifact;
+  return artifact?.kind === "function" ? undefined : artifact;
+};

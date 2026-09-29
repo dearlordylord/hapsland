@@ -12,6 +12,8 @@ type Target is Data:
   LegacyFileTypeShape{}
   OtherTypeShape{}
   FunctionTarget{}
+  DirectTypeShapeV2{}
+  DirectFunctionV1{}
 
 type Order is Data:
   Before{}
@@ -37,6 +39,8 @@ def target_compatible(target: Target) -> Bool:
     case LegacyFileTypeShape{}: True{}
     case OtherTypeShape{}: False{}
     case FunctionTarget{}: False{}
+    case DirectTypeShapeV2{}: True{}
+    case DirectFunctionV1{}: True{}
 
 def applicable(consent: Bool, complete: Bool, target: Target,
     global_included: Bool, global_excluded: Bool,

@@ -2,11 +2,40 @@ import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "./adapter.ts";
 import { prepareObservation } from "./pipeline.ts";
-import { makeGitFixture, put, updateEvent } from "./test-fixtures.ts";
+import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
-import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { compileRulePackV2 } from "../rules/compiler.ts";
 
 describe("v2 Codex root attribution", () => {
+  it.effect("selects a complete named function Add root through the Bend graph", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import { helper } from './b'; export function run(): number { return helper() }"));
+    yield* Effect.promise(() => put(root, "b.ts", "export function helper(): number { return 1 }"));
+    const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      inputContract: V2_FUNCTION_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+      rules: compileRulePackV2({ schemaVersion: 2, id: "team", contentVersion: "1", rules: [{
+        id: "function", question: "Is this function clear?", criteria: { false: "No", true: "Yes" },
+        message: "Clarify it", reviewTargets: [{ artifactKind: "function",
+          inputContract: V2_FUNCTION_CONTRACT, capabilities: ["signature", "body"] }],
+      }] }, "fixture-v2"),
+    });
+    expect(prepared.observation.outcomes[0]?.status).toBe("observed");
+    if (prepared.observation.outcomes[0]?.status !== "observed") return;
+    expect(prepared.observation.outcomes[0].units.map((unit) => [unit.root.artifact.kind,
+      unit.root.artifact.name, unit.root.references[0]?.kind])).toEqual([["function", "run", "expanded"]]);
+    const ready = prepared.outcomes.find((outcome) => outcome.status === "ready");
+    expect(ready?.status).toBe("ready");
+    if (ready?.status === "ready") {
+      expect(ready.prepared.input.rules[0]?.target?.inputContract).toBe(V2_FUNCTION_CONTRACT);
+      expect(ready.prepared.input.candidateProjection).toBe(true);
+    }
+  }));
+
   it.effect("selects the declaration enclosing a verified post-edit hunk", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "interface A { value: string }\ninterface B { value: number }\n"));

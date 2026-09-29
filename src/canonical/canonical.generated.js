@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:5363f5221b1787d37e2f1a22bc1c14ad155ab55e933cfc16183ec530f4e34a35
+// hapsland-bend-source-sha256:8e903f7a44733899c6fae2eaaf9378d83220b9f76ad9def80f09ea4303990c66
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -3823,8 +3823,12 @@ function $RulePolicy$target_compatible$(_target_0) {
     return true;
   } else if (_target_0.$ === "RulePolicy.OtherTypeShape") {
     return false;
-  } else {
+  } else if (_target_0.$ === "RulePolicy.FunctionTarget") {
     return false;
+  } else if (_target_0.$ === "RulePolicy.DirectTypeShapeV2") {
+    return true;
+  } else {
+    return true;
   }
 }
 

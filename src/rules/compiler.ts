@@ -6,6 +6,9 @@ import { matchesAnyGlob } from "../matcher/glob.ts";
 import { BUNDLED_NOUL_PACK, isNoulRuleApplicable } from "./bundled.ts";
 import { applicableRule, includeRule } from "./decision.ts";
 import { V1_DIRECT_TYPE_INPUT_CONTRACT, V1_LEGACY_FILE_INPUT_CONTRACT } from "./contracts.ts";
+import type { ReviewTargetV2, V2Capability } from "./v2-targets.ts";
+import { decodeRulePackV2, V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "./v2-targets.ts";
+import { validateGlobPattern } from "../matcher/glob.ts";
 import {
   DEFAULT_RULE_THRESHOLD,
   digestRuleDefinition,
@@ -42,6 +45,7 @@ export type CompiledRule = {
   readonly source: string;
   /** Native semantic observation; canonical Bend owns the applicability gate. */
   readonly semanticMatches: (source: string) => boolean;
+  readonly reviewTargets?: ReadonlyArray<ReviewTargetV2>;
 };
 
 export type RuleCompilationOptions = {
@@ -64,6 +68,7 @@ export type RuleTargetContext = {
   readonly artifactKind: "typeShape" | "function";
   readonly inputContract: string;
   readonly complete: boolean;
+  readonly capabilities?: ReadonlyArray<V2Capability>;
 };
 
 const currentV1Target: RuleTargetContext = {
@@ -251,10 +256,18 @@ export const selectApplicableRules = (
   source: string,
   path?: string,
   target: RuleTargetContext = currentV1Target,
-): ReadonlyArray<CompiledRule> => rules.filter((rule) => applicableRule({
+): ReadonlyArray<CompiledRule> => rules.filter((rule) => {
+  const authoredTarget = rule.reviewTargets?.find((candidate) =>
+    candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract &&
+    candidate.capabilities.every((capability) => target.capabilities?.includes(capability) === true));
+  if (rule.reviewTargets === undefined ? target.inputContract !== V1_DIRECT_TYPE_INPUT_CONTRACT &&
+    target.inputContract !== V1_LEGACY_FILE_INPUT_CONTRACT : authoredTarget === undefined) return false;
+  return applicableRule({
   consent: true,
   complete: target.complete,
-  target: target.artifactKind === "function" ? "functionTarget"
+  target: target.inputContract === V2_FUNCTION_CONTRACT ? "directFunctionV1"
+    : target.inputContract === V2_TYPE_CONTRACT ? "directTypeShapeV2"
+    : target.artifactKind === "function" ? "functionTarget"
     : target.inputContract === V1_DIRECT_TYPE_INPUT_CONTRACT ? "directTypeShape"
     : target.inputContract === V1_LEGACY_FILE_INPUT_CONTRACT ? "legacyFileTypeShape"
     : "otherTypeShape",
@@ -264,4 +277,42 @@ export const selectApplicableRules = (
   ruleEnabled: rule.enabled,
   ...pathApplicabilityFacts(rule.applicability, path),
   semanticApplicable: rule.semanticMatches(source),
-}));
+  });
+});
+
+/** Prototype compiler for strictly decoded, explicit-target rule-pack/v2 data. */
+export const compileRulePackV2 = (raw: unknown, source: string): ReadonlyArray<CompiledRule> => {
+  const facts = decodeRulePackV2(raw);
+  const document = raw as { readonly rules: ReadonlyArray<{
+    readonly id: string; readonly question: string;
+    readonly criteria: { readonly false: string; readonly true: string };
+    readonly threshold?: number; readonly message: string;
+    readonly applicability?: RuleApplicability;
+  }> };
+  return Object.freeze(document.rules.map((rule, rank) => {
+    for (const pattern of [...rule.applicability?.includes ?? [], ...rule.applicability?.excludes ?? []]) {
+      validateGlobPattern(pattern);
+    }
+    const targetFacts = facts.rules[rank];
+    if (targetFacts === undefined) throw new Error("v2 target facts missing");
+    return Object.freeze({
+      id: RuleId.make(`${facts.id}/${rule.id}`),
+      qualifiedId: `${facts.id}/${rule.id}`,
+      packId: facts.id,
+      packVersion: facts.contentVersion,
+      packDigest: facts.contentDigest,
+      ruleId: rule.id,
+      definitionDigest: targetFacts.definitionDigest,
+      decision: Decision.probability({ instructions: rule.question, criteria: rule.criteria }),
+      threshold: rule.threshold ?? DEFAULT_RULE_THRESHOLD,
+      message: rule.message,
+      rank,
+      ...(rule.applicability === undefined ? {} : { applicability: rule.applicability }),
+      builtIn: false,
+      enabled: true,
+      source,
+      semanticMatches: (_source: string) => true,
+      reviewTargets: targetFacts.reviewTargets,
+    } satisfies CompiledRule);
+  }));
+};

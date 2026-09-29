@@ -4,14 +4,37 @@ import * as Effect from "effect/Effect";
 import { initialImportGraph, permitLocalGraphFacts, projectImportGraph, stepImportGraph, type ImportGraphCommand } from "../canonical/graph-adapter.ts";
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-limits.ts";
 import { inspectGraphFile, type GraphDeclaration, type GraphFile } from "./analyzer.ts";
+import { analyzeFunctionFile } from "./function-analyzer.ts";
 import { captureStable, type CaptureHooks, type StableCapture } from "./capture.ts";
-import type { ArtifactReference, PhysicalRootIdentity, ReviewNode, ReviewUnit } from "./model.ts";
+import type { ArtifactReference, PhysicalRootIdentity, ReviewArtifact, ReviewNode, ReviewUnit } from "./model.ts";
 import { eligibleNamedPath, type DirectFilePolicy } from "./selection.ts";
 
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] };
-type Pending = { readonly owner: MutableNode; readonly index: number; readonly from: string; readonly importPath: string; readonly name: string; readonly depth: number };
+type Pending = { readonly owner: MutableNode; readonly index: number; readonly from: string; readonly importPath: string; readonly name: string; readonly depth: number; readonly expectedKind?: "type" | "function" };
 type Built = { readonly node: ReviewNode; readonly pending: ReadonlyArray<Pending>; readonly complete: boolean };
 type LocalBudget = { readonly limits: GraphLimits; readonly targets: Set<string>; work: number; maxDepth: number };
+type FactReference = { readonly kind: "named" | "unsupported"; readonly name: string; readonly expectedKind?: "type" | "function" };
+type FactFile = {
+  readonly declarations: ReadonlyMap<string, { readonly artifact: ReviewArtifact; readonly references: ReadonlyArray<FactReference>; readonly exported: boolean }>;
+  readonly imports: ReadonlyMap<string, { readonly path: string; readonly name: string; readonly typeOnly?: boolean }>;
+};
+const inspectFunctionGraphFile = (path: string, source: string): FactFile | undefined => {
+  const file = analyzeFunctionFile(path, source);
+  if (file === undefined) return undefined;
+  const declarations = new Map<string, { artifact: ReviewArtifact; references: ReadonlyArray<FactReference>; exported: boolean }>();
+  for (const fact of [...file.types.values(), ...file.functions.values()]) {
+    declarations.set(fact.artifact.name, { artifact: fact.artifact, exported: fact.exported,
+      references: fact.references.map((reference) => ({
+        kind: reference.kind === "unsupported" ? "unsupported" : "named",
+        name: reference.name,
+        ...(reference.kind === "named-function" ? { expectedKind: "function" as const } :
+          reference.kind === "named-type" ? { expectedKind: "type" as const } : {}),
+      })) });
+  }
+  return { declarations, imports: file.imports };
+};
+const correctKind = (artifact: ReviewArtifact, expected: "type" | "function" | undefined): boolean =>
+  expected === undefined || (expected === "function" ? artifact.kind === "function" : artifact.kind !== "function");
 export const GRAPH_ANALYSIS_DEADLINE_MS = 5_000;
 export const MAX_OBSERVATION_GRAPH_FILES = 64;
 export const MAX_OBSERVATION_GRAPH_READ_BYTES = 16 * 1024 * 1024;
@@ -24,7 +47,7 @@ const mayCaptureForObservation = (captures: ReadonlyMap<string, StableCapture>, 
       MAX_OBSERVATION_GRAPH_READ_BYTES);
 
 /** Materialize same-file evidence without turning imported declarations into edited roots. */
-const buildLocal = (file: GraphFile, path: string, name: string, visited: Set<string>, budget: LocalBudget, depth: number): Built | undefined => {
+const buildLocal = (file: FactFile, path: string, name: string, visited: Set<string>, budget: LocalBudget, depth: number): Built | undefined => {
   const declaration = file.declarations.get(name);
   if (declaration === undefined) return undefined;
   const node: MutableNode = {
@@ -44,6 +67,7 @@ const buildLocal = (file: GraphFile, path: string, name: string, visited: Set<st
     budget.targets.add(targetKey);
     if (budget.targets.size > budget.limits.outgoingEdges) { complete = false; break; }
     if (local !== undefined && imported !== undefined) { complete = false; continue; }
+    if (local !== undefined && !correctKind(local.artifact, reference.expectedKind)) { complete = false; continue; }
     if (local !== undefined) {
       budget.work += 1;
       if (budget.work > budget.limits.work) { complete = false; break; }
@@ -58,9 +82,11 @@ const buildLocal = (file: GraphFile, path: string, name: string, visited: Set<st
         complete &&= child.complete;
       }
     } else if (imported !== undefined) {
+      if (reference.expectedKind === "function" && imported.typeOnly === true) { complete = false; continue; }
       const index = node.references.length;
       node.references.push({ kind: "omitted", site: { symbol: reference.name }, target: { kind: "unresolved", symbol: reference.name }, reason: "unresolved" });
-      pending.push({ owner: node, index, from: path, importPath: imported.path, name: imported.name, depth });
+      pending.push({ owner: node, index, from: path, importPath: imported.path, name: imported.name, depth,
+        ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind }) });
     } else {
       complete = false;
       node.references.push({ kind: "omitted", site: { symbol: reference.name }, target: { kind: "unresolved", symbol: reference.name }, reason: "unresolved" });
@@ -70,6 +96,7 @@ const buildLocal = (file: GraphFile, path: string, name: string, visited: Set<st
 };
 
 export type GraphResolveContext = {
+  readonly branch?: "type" | "function";
   readonly root: string;
   readonly rootIdentity: PhysicalRootIdentity;
   readonly policy: DirectFilePolicy;
@@ -89,7 +116,8 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   context: GraphResolveContext,
 ) {
   const limits = context.limits ?? GRAPH_LIMIT_CEILINGS;
-  const rootFile = inspectGraphFile(rootPath, rootCapture.text);
+  const inspect = context.branch === "function" ? inspectFunctionGraphFile : inspectGraphFile;
+  const rootFile = inspect(rootPath, rootCapture.text);
   if (rootFile === undefined) return undefined;
   const rootDeclaration = rootFile.declarations.get(name);
   if (rootDeclaration === undefined) return undefined;
@@ -120,7 +148,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   state = transition.state;
   let command: ImportGraphCommand = transition.command;
   let complete = true;
-  const captured = new Map<string, { readonly file: GraphFile; readonly sourceBytes: number }>([[rootPath, { file: rootFile, sourceBytes: rootCapture.byteLength }]]);
+  const captured = new Map<string, { readonly file: FactFile; readonly sourceBytes: number }>([[rootPath, { file: rootFile, sourceBytes: rootCapture.byteLength }]]);
   for (let step = 0; step < limits.work * 8 + 16; step += 1) {
     if (expired()) {
       transition = stepImportGraph(state, { kind: "deadlineReached" });
@@ -162,7 +190,8 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
         const key = `${selectedPath}\0${targetName}`;
         const targetId = targetIds.get(key) ?? nextTargetId++;
         targetIds.set(key, targetId);
-        if (targetFile !== undefined && !targetFile.declarations.get(targetName)?.exported) {
+        if (targetFile !== undefined && (!targetFile.declarations.get(targetName)?.exported ||
+          !correctKind(targetFile.declarations.get(targetName)!.artifact, edge.expectedKind))) {
           transition = stepImportGraph(state, { kind: "resolved", target: targetId, result: "missing" });
         } else {
           // Bend must issue CheckPath before any new supporting source read.
@@ -197,9 +226,10 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
         if (source === undefined || source.byteLength > limits.sourceBytes) {
           transition = stepImportGraph(state, { kind: "captureFailed" });
         } else {
-          const file = inspectGraphFile(selected.relativePath, source.text);
+          const file = inspect(selected.relativePath, source.text);
           const declaration = file?.declarations.get(target.name);
-          if (file === undefined || declaration === undefined || !declaration.exported) {
+          if (file === undefined || declaration === undefined || !declaration.exported ||
+            !correctKind(declaration.artifact, target.edge.expectedKind)) {
             transition = stepImportGraph(state, { kind: "captureFailed" });
           } else {
             const child = buildLocal(file, selected.relativePath, target.name, visited, budget, target.edge.depth + 1);

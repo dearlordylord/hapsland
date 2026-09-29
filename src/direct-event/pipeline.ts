@@ -15,6 +15,8 @@ import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
 import { selectEditedRootsV2 } from "./attribution-v2.ts";
 import { verifyCodexPostEditHunks } from "./codex-v2-hunks.ts";
 import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
+import { V2_FUNCTION_CONTRACT } from "../rules/v2-targets.ts";
+import { analyzeFunctionFile } from "./function-analyzer.ts";
 import {
   analyzeTypeFile,
   analyzerMaterializationPreflight,
@@ -305,13 +307,22 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     const graphLimits = context.settings.configuration === undefined
       ? GRAPH_LIMIT_CEILINGS
       : effectiveGraphLimits(context.settings.configuration.policy);
-    const graphFile = captured.byteLength <= graphLimits.sourceBytes
+    const contract = currentInputContract(context);
+    const functionFile = contract === V2_FUNCTION_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
+      ? analyzeFunctionFile(eligible.relativePath, captured.text) : undefined;
+    const graphFile = contract !== V2_FUNCTION_CONTRACT && captured.byteLength <= graphLimits.sourceBytes
       ? inspectGraphFile(eligible.relativePath, captured.text)
       : undefined;
     const analysis = analyzeTypeFile(eligible.relativePath, captured.text);
     const legacyV1 = captured.byteLength <= 32 * 1024 && graphFile?.imports.size === 0 &&
-      currentInputContract(context) === DIRECT_EVENT_INPUT_CONTRACT;
-    const analyses: ReadonlyArray<UnitAnalysis> = legacyV1 || graphFile === undefined
+      contract === DIRECT_EVENT_INPUT_CONTRACT;
+    const analyses: ReadonlyArray<UnitAnalysis> = functionFile !== undefined
+      ? [...functionFile.functions.values()].map(({ artifact }) => ({
+          status: "unsupported" as const, root: artifact,
+          unit: { root: { artifact, references: [] } }, reason: "missing-evidence" as const,
+        }))
+      : contract === V2_FUNCTION_CONTRACT ? []
+      : legacyV1 || graphFile === undefined
       ? analysis.status === "analyzed" ? analysis.units : []
       : [...graphFile.declarations.values()].map(({ artifact }) => ({
           status: "unsupported" as const,
@@ -319,8 +330,11 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
           unit: { root: { artifact, references: [] } },
           reason: "missing-evidence" as const,
         }));
-    const v2Selection = frozen === undefined && currentInputContract(context) === V2_TYPE_CONTRACT &&
-      graphFile !== undefined
+    const candidateDeclarations = contract === V2_FUNCTION_CONTRACT
+      ? [...functionFile?.functions.values() ?? []]
+      : [...graphFile?.declarations.values() ?? []];
+    const v2Selection = frozen === undefined && (contract === V2_TYPE_CONTRACT || contract === V2_FUNCTION_CONTRACT) &&
+      candidateDeclarations.length > 0
       ? (() => {
           // Tree-sitter positions are byte-based; this narrow candidate does not
           // convert Unicode columns yet, so attribution fails closed on non-ASCII.
@@ -331,7 +345,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
             ? verifyCodexPostEditHunks(observation.nativePatchCommand, eligible.relativePath, captured.text)
             : candidate.operation === "add" ? [] : undefined;
           if (hunks === undefined) return { selected: [] as UnitAnalysis[], ambiguous: true };
-          const declarations = [...graphFile.declarations.values()].map(({ artifact, location }) => ({
+          const declarations = candidateDeclarations.map(({ artifact, location }) => ({
             path: eligible.relativePath, kind: artifact.kind, name: artifact.name, location,
           }));
           try {
@@ -366,6 +380,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
         rootIdentity: observation.rootIdentity,
         policy: currentPolicy(context),
         limits: graphLimits,
+        ...(contract === V2_FUNCTION_CONTRACT ? { branch: "function" as const } : {}),
         captureCache: supportingCaptures,
         ...(context.graphNow === undefined ? {} : { now: context.graphNow }),
         ...(context.captureHooks === undefined ? {} : { captureHooks: context.captureHooks }),
@@ -380,7 +395,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
       else units.push(unit);
     }
     const failures = [
-      ...(graphFile === undefined ? extractionFailures(analysis) : []),
+      ...(graphFile === undefined && functionFile === undefined ? extractionFailures(analysis) : []),
       ...graphFailures,
       ...(selection.ambiguous
         ? [{ root: undefined, reason: "ambiguous-update" as const }]
@@ -406,21 +421,28 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     }
     for (const unit of units) {
       const declaration = unit.root.artifact;
+      const artifactKind = declaration.kind === "function" ? "function" as const : "typeShape" as const;
+      const capabilities = contract === V2_TYPE_CONTRACT
+        ? ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] as const
+        : contract === V2_FUNCTION_CONTRACT
+          ? ["signature", "body", "resolved-local-calls", "resolved-outbound-types"] as const
+          : undefined;
       const rules = applicableRules(declaration.source, eligible.relativePath, currentRules(context), {
-        artifactKind: "typeShape",
-        inputContract: currentInputContract(context),
+        artifactKind,
+        inputContract: contract,
         complete: true,
+        ...(capabilities === undefined ? {} : { capabilities }),
       });
       if (rules.length === 0) continue;
       const input = freezeInput({
-        contract: currentInputContract(context),
+        contract,
         graphLimits,
         candidateProjection: !legacyV1,
         completeness: "complete",
         path: eligible.relativePath,
         declaration,
         unit,
-        rules: freezeRules(rules),
+        rules: freezeRules(rules, { artifactKind, inputContract: contract }),
         interpretation: "probability-strictly-greater-than-threshold",
       } satisfies ReviewInput);
       outcomes.push({

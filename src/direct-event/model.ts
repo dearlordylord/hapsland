@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { CompiledRule } from "../rules/compiler.ts";
+import type { ReviewTargetV2 } from "../rules/v2-targets.ts";
 import type { GraphLimits } from "../configuration/graph-limits.ts";
 import { V1_DIRECT_TYPE_INPUT_CONTRACT } from "../rules/contracts.ts";
 
@@ -73,6 +74,8 @@ export type TypeDeclaration = {
   readonly sourceHash: string;
 };
 
+export type ReviewArtifact = TypeDeclaration | (Omit<TypeDeclaration, "kind"> & { readonly kind: "function" });
+
 export type ReferenceSite = {
   readonly symbol: string;
 };
@@ -98,7 +101,7 @@ export type ArtifactReference =
     };
 
 export type ReviewNode = {
-  readonly artifact: TypeDeclaration;
+  readonly artifact: ReviewArtifact;
   readonly references: ReadonlyArray<ArtifactReference>;
 };
 
@@ -177,6 +180,7 @@ export type FrozenRule = {
   readonly message: string;
   readonly rank: number;
   readonly decision: CompiledRule["decision"];
+  readonly target?: ReviewTargetV2;
 };
 
 export type ReviewInput = {
@@ -187,7 +191,7 @@ export type ReviewInput = {
   /** Only complete semantic units are eligible for evaluation or reuse. */
   readonly completeness: "complete";
   readonly path: string;
-  readonly declaration: TypeDeclaration;
+  readonly declaration: ReviewArtifact;
   readonly unit: ReviewUnit;
   readonly rules: ReadonlyArray<FrozenRule>;
   readonly interpretation: "probability-strictly-greater-than-threshold";
@@ -227,6 +231,7 @@ export const freezeInput = (value: ReviewInput): ReviewInput => deepFreeze(value
 
 export const freezeRules = (
   rules: ReadonlyArray<CompiledRule>,
+  target?: { readonly artifactKind: "typeShape" | "function"; readonly inputContract: string },
 ): ReadonlyArray<FrozenRule> =>
   deepFreeze(
     rules.map((rule) => ({
@@ -243,5 +248,10 @@ export const freezeRules = (
         ...rule.decision,
         criteria: { ...rule.decision.criteria },
       },
+      ...(() => {
+        const selected = target === undefined ? undefined : rule.reviewTargets?.find((candidate) =>
+          candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract);
+        return selected === undefined ? {} : { target: selected };
+      })(),
     })),
   );
