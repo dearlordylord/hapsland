@@ -12,7 +12,14 @@ import { eligibleNamedPath, type DirectFilePolicy } from "./selection.ts";
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] };
 type Pending = { readonly owner: MutableNode; readonly index: number; readonly from: string; readonly importPath: string; readonly name: string; readonly depth: number; readonly expectedKind?: "type" | "function" };
 type Built = { readonly node: ReviewNode; readonly pending: ReadonlyArray<Pending>; readonly complete: boolean };
-type LocalBudget = { readonly limits: GraphLimits; readonly targets: Set<string>; work: number; maxDepth: number };
+type LocalBudget = {
+  readonly limits: GraphLimits;
+  /** Distinct outbound targets are charged to their source file, not the unit. */
+  readonly targetsByPath: Map<string, Set<string>>;
+  maxTargetsInFile: number;
+  work: number;
+  maxDepth: number;
+};
 type FactReference = { readonly kind: "named" | "unsupported"; readonly name: string; readonly expectedKind?: "type" | "function" };
 type FactFile = {
   readonly declarations: ReadonlyMap<string, { readonly artifact: ReviewArtifact; readonly references: ReadonlyArray<FactReference>; readonly exported: boolean }>;
@@ -61,6 +68,8 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
   };
   const pending: Pending[] = [];
   let complete = true;
+  const fileTargets = budget.targetsByPath.get(path) ?? new Set<string>();
+  budget.targetsByPath.set(path, fileTargets);
   for (const reference of declaration.references) {
     budget.maxDepth = Math.max(budget.maxDepth, depth + 1);
     if (depth >= budget.limits.depth) {
@@ -70,8 +79,11 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
     const local = declarationFor(file, reference.name, reference.expectedKind);
     const imported = file.imports.get(reference.name);
     const targetKey = local?.artifact.id ?? (imported === undefined ? reference.name : `${path}\0${imported.path}\0${imported.name}`);
-    budget.targets.add(targetKey);
-    if (budget.targets.size > budget.limits.outgoingEdges) { complete = false; break; }
+    fileTargets.add(targetKey);
+    budget.maxTargetsInFile = Math.max(budget.maxTargetsInFile, fileTargets.size);
+    if (!permitLocalGraphFacts(budget.limits, budget.work, budget.maxDepth, fileTargets.size, 0)) {
+      complete = false; break;
+    }
     if (local !== undefined && imported !== undefined) { complete = false; continue; }
     if (local !== undefined && !correctKind(local.artifact, reference.expectedKind)) { complete = false; continue; }
     if (local !== undefined) {
@@ -127,15 +139,14 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   if (rootFile === undefined) return undefined;
   const rootDeclaration = declarationFor(rootFile, name, context.branch === "function" ? "function" : undefined);
   if (rootDeclaration === undefined) return undefined;
-  if (rootDeclaration.references.length > limits.outgoingEdges) return undefined;
   const visited = new Set([rootDeclaration.artifact.id]);
-  const budget: LocalBudget = { limits, targets: new Set(), work: 0, maxDepth: 0 };
+  const budget: LocalBudget = { limits, targetsByPath: new Map(), maxTargetsInFile: 0, work: 0, maxDepth: 0 };
   const now = context.now ?? (() => performance.now());
   const started = now();
   const expired = () => now() - started >= GRAPH_ANALYSIS_DEADLINE_MS;
   const built = buildLocal(rootFile, rootPath, name, visited, budget, 0);
   if (built === undefined || !built.complete ||
-    !permitLocalGraphFacts(limits, budget.work, budget.maxDepth, budget.targets.size, 0)) return undefined;
+    !permitLocalGraphFacts(limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 0)) return undefined;
   const unit: ReviewUnit = { root: built.node };
   let nextId = 1;
   const pending = new Map<number, Pending>();
@@ -243,7 +254,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
               target.edge.expectedKind);
             if (child === undefined || !child.complete ||
               !permitLocalGraphFacts(limits, budget.work, budget.maxDepth,
-                budget.targets.size, projectImportGraph(state).work)) {
+                budget.maxTargetsInFile, projectImportGraph(state).work)) {
               transition = stepImportGraph(state, { kind: "captureFailed" });
             } else {
               const previous = bytes(unit);

@@ -6,6 +6,10 @@ import { prepareObservation } from "./pipeline.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { inspectGraphFile } from "./analyzer.ts";
+import { captureStable } from "./capture.ts";
+import { resolveGraphUnit } from "./graph-resolver.ts";
+import { DEFAULT_DIRECT_FILE_POLICY, eligibleNamedPath } from "./selection.ts";
+import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts";
 import { compileRulePackV2 } from "../rules/compiler.ts";
 import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 
@@ -16,6 +20,48 @@ const candidateRules = compileRulePackV2({ schemaVersion: 2, id: "graph", conten
 }] }, "fixture-v2");
 
 describe("cross-file graph preparation", () => {
+  it.effect("applies the outgoing target cap per source file across A to B to C", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "import type { C } from './c'; export interface B { c: C }"));
+    yield* Effect.promise(() => put(root, "c.ts", "export interface C { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity);
+    if (selected === undefined) throw new Error("root path was not eligible");
+    const capture = yield* captureStable(root, selected, {}, observation.rootIdentity);
+    if (capture === undefined) throw new Error("root capture failed");
+    const unit = yield* resolveGraphUnit("a.ts", capture, "A", { root, rootIdentity: observation.rootIdentity,
+      policy: DEFAULT_DIRECT_FILE_POLICY, limits: { ...GRAPH_LIMIT_CEILINGS, outgoingEdges: 1 } });
+    expect(unit?.root.references[0]).toMatchObject({ kind: "expanded", node: { artifact: { id: "b.ts:interface:B" },
+      references: [{ kind: "expanded", node: { artifact: { id: "c.ts:interface:C" } } }] } });
+    for (const tighter of [{ depth: 1 }, { work: 1 }, { treeBytes: 1 }] as const) {
+      const denied = yield* resolveGraphUnit("a.ts", capture, "A", { root, rootIdentity: observation.rootIdentity,
+        policy: DEFAULT_DIRECT_FILE_POLICY, limits: { ...GRAPH_LIMIT_CEILINGS, outgoingEdges: 1, ...tighter } });
+      expect(denied).toBeUndefined();
+    }
+  }));
+
+  it.effect("rejects two distinct outgoing targets from one supporting file", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", "import type { B } from './b'; interface A { b: B }"));
+    yield* Effect.promise(() => put(root, "b.ts", "import type { C } from './c'; import type { D } from './d'; export interface B { c: C; d: D }"));
+    yield* Effect.promise(() => put(root, "c.ts", "export interface C { value: string }"));
+    yield* Effect.promise(() => put(root, "d.ts", "export interface D { value: string }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const selected = yield* eligibleNamedPath(root, "a.ts", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity);
+    if (selected === undefined) throw new Error("root path was not eligible");
+    const capture = yield* captureStable(root, selected, {}, observation.rootIdentity);
+    if (capture === undefined) throw new Error("root capture failed");
+    const reads: string[] = [];
+    const unit = yield* resolveGraphUnit("a.ts", capture, "A", { root, rootIdentity: observation.rootIdentity,
+      policy: DEFAULT_DIRECT_FILE_POLICY, limits: { ...GRAPH_LIMIT_CEILINGS, outgoingEdges: 1 },
+      captureHooks: { sourceRead: (path) => { reads.push(path); } } });
+    expect(unit).toBeUndefined();
+    expect(reads).toEqual(["b.ts", "b.ts"]);
+  }));
+
   it.effect("retains the legacy v1 namespace root behavior below 32 KiB", () => Effect.gen(function* () {
     const root = yield* Effect.promise(makeGitFixture);
     yield* Effect.promise(() => put(root, "a.ts", "namespace N { export interface A { x: string } }"));
