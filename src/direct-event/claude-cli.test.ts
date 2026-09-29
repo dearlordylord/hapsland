@@ -467,7 +467,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(readFileSync(path, "utf8")).toBe(source);
   });
 
-  it("submits six small findings in one encoded Claude response", async () => {
+  it("submits six ready findings in one encoded Claude background response", async () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
@@ -480,22 +480,43 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       tool_input: { file_path: path, content: source },
       tool_response: { filePath: path, content: source, originalFile: null, userModified: false },
     };
+    const backendGate = join(root, "release-backend");
     const env = { ...process.env, REVIEW_STATE_PATH: statePath,
       REVIEW_RESIDENT_DIR: join(root, "runtime"),
+      REVIEW_RESIDENT_BACKEND_GATE_PATH: backendGate,
       REVIEW_CONTROL_JSON: JSON.stringify({ answers: Object.fromEntries(configuredRules.map((rule) => [
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) }),
     };
     expect(preClaudeEdit(event, env).status).toBe(0);
-    const result = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
+    const edit = spawnSync(process.execPath, CLAUDE_EDIT_FLAGS, {
       cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
     });
-    expect(result.status).toBe(0);
-    const output = JSON.parse(result.stdout) as { hookSpecificOutput?: { additionalContext: string } };
+    expect(edit.status).toBe(0);
+    expect(JSON.parse(edit.stdout)).toEqual({});
+    writeFileSync(backendGate, "release\n");
+    const paths = residentPaths(join(root, "runtime"));
+    const owner = await ensureResident(paths);
+    const deadline = Date.now() + 15_000;
+    let ready = false;
+    let lastStats: unknown;
+    while (Date.now() < deadline && !ready) {
+      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      lastStats = stats;
+      ready = stats.status === "stats" && stats.pendingAdvice === 6 && stats.queued === 0 && stats.running === 0;
+      if (!ready) await new Promise<void>((resolve) => setTimeout(resolve, 20));
+    }
+    expect(ready, JSON.stringify(lastStats)).toBe(true);
+    const background = spawnSync(process.execPath,
+      ["src/cli.ts", "--controlled-reviewer", "--composed-background-hook", "--composed-host=claude-code"], {
+        cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
+      });
+    expect(background.status).toBe(0);
+    const output = JSON.parse(background.stdout) as { hookSpecificOutput?: { additionalContext: string } };
     const context = output.hookSpecificOutput?.additionalContext ?? "";
     expect([...context.matchAll(/\[r6_bare_domain_value/g)]).toHaveLength(6);
     for (let index = 0; index < 6; index++) expect(context).toContain(`Count${index}`);
-    expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
+    expect(Buffer.byteLength(background.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(readFileSync(path, "utf8")).toBe(source);
   });
 
