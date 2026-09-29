@@ -159,7 +159,7 @@ law import_graph_full_tree_can_inspect_remaining_edges:
       ImportGraph.ResolveEdge{2n}} : ImportGraph.Step}
 
 law import_graph_no_fit_support_skips_and_keeps_pending:
-  {ImportGraph.captured(graph_limits(), ImportGraph.Edge{2n, 1n}, 2n, 100n, 1000n, Nil{},
+  {ImportGraph.captured(graph_limits(), ImportGraph.Edge{2n, 1n}, 2n, 100n, 1000n, 0n, Nil{},
     ImportGraph.Edge{3n, 1n} <> Nil{}, 1n <> Nil{}, 1n, 100n, 20000n,
     1n, False{}, False{}) ==
     ImportGraph.Step{ImportGraph.Graph{ImportGraph.Ready{},
