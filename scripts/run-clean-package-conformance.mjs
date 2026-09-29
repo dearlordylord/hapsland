@@ -415,13 +415,13 @@ try {
   const artifactSha256 = createHash("sha256").update(await readFile(tarball)).digest("hex");
   if (process.platform === "darwin" && process.env.GITHUB_RUN_ID !== undefined) {
     await mustRun(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", `
-      import { mkdtemp, writeFile, symlink, rm } from 'node:fs/promises';
+      import { mkdtemp, writeFile, symlink, rm, realpath } from 'node:fs/promises';
       import { tmpdir } from 'node:os';
       import { join } from 'node:path';
       import { spawnSync } from 'node:child_process';
       import * as Effect from 'effect/Effect';
       import { captureStable, MAX_SOURCE_BYTES } from './src/direct-event/capture.ts';
-      const root = await mkdtemp(join(tmpdir(), 'hapsland-mac-cap-'));
+      const root = await realpath(await mkdtemp(join(tmpdir(), 'hapsland-mac-cap-')));
       const selected = (name) => ({ relativePath: name, absolutePath: join(root, name) });
       try {
         await writeFile(join(root, 'exact.ts'), 'x'.repeat(80));
