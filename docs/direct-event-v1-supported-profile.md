@@ -14,9 +14,16 @@ reject undeclared versions and other platform profiles rather than inferring sup
 
 The accepted [target review specification](type-function-review-proposal.md)
 now requires checked cross-file supporting evidence, a 256 KiB per-source-file
-ceiling, and a 20 KiB evidence-tree ceiling. Those changes are **not yet
-implemented or established by this v1 conformance record**. Keep this matrix
-as the factual current profile until a new validated support record replaces it.
+ceiling, and a 20 KiB evidence-tree ceiling. Candidate code can capture up to
+256 KiB and prepare bounded cross-file type/function units, but it requires
+distinct v2/function contracts and explicit v2 rule targets. Expanded source
+egress remains disabled by default pending the specification's adoption gates.
+The current v1 Jev path still uses the same-file profile with a 32 KiB file
+ceiling. This matrix is the validated v1 record, not validation of candidate
+cross-file egress. The candidate resident uses 32 MiB per partition and
+256 MiB globally as logical admission limits; those figures do not establish
+an RSS bound or supersede this v1 conformance record. Keep this matrix until a
+new validated support record replaces it.
 File settings now select all otherwise eligible files by default when Jev
 credentials are available. User exclusions can turn review off; old grant files
 remain untouched and are no longer dispatch gates.

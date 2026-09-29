@@ -55,9 +55,10 @@ Hapsland may reuse a Jev result only if the same selected root, complete
 evidence tree, rules, effective file settings, and exact Jev input format
 still apply. Before advice, it checks every source file that contributed
 to the review unit and rebuilds the unit. If a required file is now
-excluded or relevant content changed, it drops the old result. The current
-same-file code does this only for event-named files; cross-file checks
-remain to be implemented.
+excluded or relevant content changed, it drops the old result. The supported
+v1 path remains same-file. Candidate cross-file preparation rebuilds captured
+supporting files and retains their fingerprints in internal identity; expanded
+Jev egress remains disabled pending #93 adoption approval.
 
 ## Acceptance fixtures and remaining decisions
 
