@@ -172,7 +172,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(Buffer.byteLength(result.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
 
     const userConfigPath = await put(root, "user-config.jsonc", '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
-    const blockResult = invoke({ ...event, tool_use_id: "tool-two" }, {
+    const blockResult = invoke({ ...event, session_id: "block-session", tool_use_id: "tool-two" }, {
       ...env,
       REVIEW_USER_CONFIG_PATH: userConfigPath,
     });
@@ -188,7 +188,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(Buffer.byteLength(blockResult.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
 
     await put(root, ".review.jsonc", '{"version":1,"claudeFeedbackMode":"advisory"}');
-    const narrowedResult = invoke({ ...event, tool_use_id: "tool-three" }, {
+    const narrowedResult = invoke({ ...event, session_id: "narrowed-session", tool_use_id: "tool-three" }, {
       ...env, REVIEW_USER_CONFIG_PATH: userConfigPath,
     });
     expect(narrowedResult.status).toBe(0);
