@@ -413,6 +413,21 @@ try {
   if (artifactName === undefined) throw new Error("npm pack did not produce a tarball");
   const tarball = join(artifacts, artifactName);
   const artifactSha256 = createHash("sha256").update(await readFile(tarball)).digest("hex");
+  if (writeEvidence && process.platform === "darwin" && process.env.GITHUB_RUN_ID !== undefined) {
+    const helperPath = join(root, "native/prebuilt/darwin-arm64/capture-open");
+    const helper = await readFile(helperPath);
+    const source = await readFile(join(root, "native/capture-open.c"));
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath.replace(/\.json$/, "-capture-helper.json"), `${JSON.stringify({
+      commit: process.env.GITHUB_SHA,
+      platform: `${process.platform}-${process.arch}`,
+      sourceSha256: createHash("sha256").update(source).digest("hex"),
+      binarySha256: createHash("sha256").update(helper).digest("hex"),
+      binaryBase64: helper.toString("base64"),
+    })}\n`, { mode: 0o600 });
+    await mustRun("npx", ["vitest", "run", "src/direct-event/selection-capture.test.ts", "--maxWorkers=1"], { cwd: root });
+    progress("macOS bounded capture test passed");
+  }
   if (registryArtifact && artifactSha256 !== expectedSha256) {
     throw new Error(`registry archive SHA-256 differs from reviewed artifact: ${artifactSha256}`);
   }
@@ -1329,18 +1344,6 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   if (writeEvidence) {
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(outputPath, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 });
-    if (process.platform === "darwin" && process.env.GITHUB_RUN_ID !== undefined) {
-      const helperPath = join(root, "native/prebuilt/darwin-arm64/capture-open");
-      const helper = await readFile(helperPath);
-      const source = await readFile(join(root, "native/capture-open.c"));
-      await writeFile(outputPath.replace(/\.json$/, "-capture-helper.json"), `${JSON.stringify({
-        commit: process.env.GITHUB_SHA,
-        platform: `${process.platform}-${process.arch}`,
-        sourceSha256: createHash("sha256").update(source).digest("hex"),
-        binarySha256: createHash("sha256").update(helper).digest("hex"),
-        binaryBase64: helper.toString("base64"),
-      })}\n`, { mode: 0o600 });
-    }
   }
   progress("passed");
   process.stdout.write(`${JSON.stringify(evidence, null, 2)}\n`);
