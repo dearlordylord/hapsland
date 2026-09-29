@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as Effect from "effect/Effect";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
@@ -348,44 +348,139 @@ describe("canonical Jev request boundary", () => {
     }
   }, 15_000);
 
-  it("settles a started Jev timeout before reusing its permit", async () => {
+  it("holds eight started permits until one Jev timeout settles, then reuses exactly one", async () => {
     const root = await makeGitFixture();
-    await put(root, "slow.ts", "type SlowCount = number\n");
-    await put(root, "next.ts", "type NextCount = number\n");
+    const paths = Array.from({ length: 11 }, (_, index) => `item-${index}.ts`);
+    for (const [index, path] of paths.entries()) await put(root, path, `type Item${index}Count = number\n`);
     const statePath = join(root, "consent");
     await Effect.runPromise(Effect.gen(function* () {
       const consent = yield* Consent.Service;
       yield* consent.enable(yield* consent.preview(root, "jev", "https://api.typesafe.ai/v1/systemone"));
     }).pipe(Effect.provide(Consent.layer({ statePath }))));
-    const observe = async (path: string) => {
-      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [path])));
+    const observe = async (index: number) => {
+      const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [paths[index]!], {
+        tool_use_id: `timeout-${index}`,
+      })));
       if (observation === undefined) throw new Error("fixture observation missing");
       return observation;
     };
+    const prepared = await Promise.all(paths.map((_path, index) => observe(index)));
+    const firstStarted = deferred();
+    const eightStarted = deferred();
+    const firstTimeout = deferred();
+    const firstUnavailable = deferred();
+    const reusedStarted = deferred();
+    const secondUnavailable = deferred();
+    const release = deferred();
     const observations: JevRequestObservation[] = [];
+    let effectsEntered = 0;
+    let unavailableCount = 0;
     const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
-      jevRequestObserver: (item) => { observations.push(item); },
+      controlledRequestEffect: async () => {
+        effectsEntered += 1;
+        if (effectsEntered === 1) { firstStarted.resolve(); return; }
+        if (effectsEntered === 8) eightStarted.resolve();
+        if (effectsEntered === 9) reusedStarted.resolve();
+        await release.promise;
+      },
+      jevRequestObserver: (item) => {
+        observations.push(item);
+        if (item.stage === "settled" && item.outcome === "timeout") firstTimeout.resolve();
+        if (item.stage === "unavailable") {
+          unavailableCount += 1;
+          if (unavailableCount === 1) firstUnavailable.resolve();
+          if (unavailableCount === 2) secondUnavailable.resolve();
+        }
+      },
     });
-    const dispatch = { statePath, userConfigPath: null, credential: null };
+    const dispatch = { statePath, userConfigPath: null, credential: null,
+      controlled: { delayMs: 16_000 } };
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     try {
-      expect(server.admit(await observe("slow.ts"), { ...dispatch, controlled: { delayMs: 16_000 } }).status)
-        .toBe("accepted");
-      await server.whenIdle();
-      expect(observations.map((item) => [item.stage, item.outcome])).toEqual([
-        ["issued", undefined], ["started", undefined], ["settled", "timeout"],
-      ]);
-      const timedOut = observations[2]!;
+      expect(server.admit(prepared[0]!, dispatch).status).toBe("accepted");
+      await firstStarted.promise;
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
 
-      expect(server.admit(await observe("next.ts"), { ...dispatch, controlled: {} }).status).toBe("accepted");
-      await server.whenIdle();
-      expect(observations.slice(3).map((item) => [item.stage, item.outcome])).toEqual([
-        ["issued", undefined], ["started", undefined], ["settled", "clear"],
-      ]);
-      expect(observations[3]?.request).not.toBe(timedOut.request);
+      for (let index = 1; index < 8; index += 1) {
+        expect(server.admit(prepared[index]!, dispatch).status).toBe("accepted");
+      }
+      await eightStarted.promise;
+      expect(observations.filter((item) => item.stage === "started")).toHaveLength(8);
+      expect(server.admit(prepared[8]!, dispatch).status).toBe("accepted");
+      await firstUnavailable.promise;
+      expect(effectsEntered).toBe(8);
+      expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
+
+      await vi.advanceTimersByTimeAsync(10_000);
+      await firstTimeout.promise;
+      const timeoutIndex = observations.findIndex((item) => item.stage === "settled" &&
+        item.outcome === "timeout");
+      expect(timeoutIndex).toBeGreaterThanOrEqual(0);
+      expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1);
+
+      expect(server.admit(prepared[9]!, dispatch).status).toBe("accepted");
+      await reusedStarted.promise;
+      const startIndices = observations.flatMap((item, index) => item.stage === "started" ? [index] : []);
+      expect(startIndices[8]).toBeGreaterThan(timeoutIndex);
+      expect(effectsEntered).toBe(9);
+      expect(server.admit(prepared[10]!, dispatch).status).toBe("accepted");
+      await secondUnavailable.promise;
+      expect(effectsEntered).toBe(9);
+      expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1);
     } finally {
+      release.resolve();
+      await vi.advanceTimersByTimeAsync(16_000);
+      await server.whenIdle();
       await server.close();
+      vi.useRealTimers();
     }
-  }, 25_000);
+  }, 15_000);
+
+  it("keeps an interrupted canonical Jev permit charged until its settlement", () => {
+    // Resident abort interrupts the controlled Effect promptly. Hold the
+    // canonical interval open here to check the capacity boundary itself.
+    const ledger = new CapacityLedger(undefined, "interruption-barrier");
+    const partition = "review-partition";
+    const facts = { rootValid: true, configurationValid: true,
+      credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
+    const reviewUnit = (owner = partition) => {
+      const observation = ledger.admitObservation(owner);
+      expect(ledger.observation(owner, observation, "startObservation")).toBe(true);
+      const preparation = ledger.beginObservedPreparation(owner, observation, 100);
+      if (preparation === undefined) throw new Error("preparation refused");
+      expect(ledger.observation(owner, observation, "completeObservation")).toBe(true);
+      const unit = ledger.completePreparation(owner, preparation.operation,
+        preparation.reservation, [10])[0];
+      if (unit === undefined) throw new Error("unit refused");
+      expect(ledger.startReview(owner, unit.operation)).toBe(true);
+      return unit;
+    };
+    const held = Array.from({ length: 8 }, () => {
+      const unit = reviewUnit();
+      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts);
+      if (ready.status !== "issued") throw new Error("Jev permit refused before saturation");
+      expect(ledger.startJevRequest(partition, unit.operation, ready.request)).toBe(true);
+      return { unit, request: ready.request };
+    });
+    const interrupted = held[0]!;
+    expect(ledger.interruptJevRequest(partition, interrupted.unit.operation, interrupted.request)).toBe(true);
+    ledger.retireRound(partition);
+    const nextPartition = "next-review-partition";
+    const premature = reviewUnit(nextPartition);
+    expect(ledger.readyJevRequest(nextPartition, premature.operation, premature.reservation, facts).status)
+      .toBe("unavailable");
+    expect(ledger.settleJevRequest(partition, interrupted.unit.operation, interrupted.request,
+      interrupted.unit.reservation, "interrupted", false)).not.toBe("stale");
+    const replacement = reviewUnit(nextPartition);
+    const ready = ledger.readyJevRequest(nextPartition, replacement.operation, replacement.reservation, facts);
+    expect(ready.status).toBe("issued");
+    if (ready.status !== "issued") return;
+    expect(ledger.startJevRequest(nextPartition, replacement.operation, ready.request)).toBe(true);
+    const excess = reviewUnit(nextPartition);
+    expect(ledger.readyJevRequest(nextPartition, excess.operation, excess.reservation, facts).status)
+      .toBe("unavailable");
+  });
 
   it("binds local canonical lifetime 1 to each resident UUID and rotates canonical rounds", () => {
     const first = new CapacityLedger(undefined, "resident-a");
