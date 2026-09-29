@@ -100,6 +100,22 @@ describe("shared Hapsland rounds", () => {
     expect(state.registerEdit("other-agent", "edit", 220, 230)).toBe(true);
   });
 
+  it("never renews a tool occurrence when duplicate prehooks outlive its permit", () => {
+    const state = new ComposedDelivery();
+    expect(state.registerEdit("agent", "failed", 100, 101)).toBe(true);
+    expect(state.registerEdit("agent", "failed", 200, 201)).toBe(false);
+    state.expirePermits(100 + EDIT_PERMIT_EXPIRY_MS);
+    expect(state.closureCounts("agent").editPermits).toBe(0);
+    expect(state.registerEdit("agent", "failed", 101 + EDIT_PERMIT_EXPIRY_MS,
+      102 + EDIT_PERMIT_EXPIRY_MS)).toBe(false);
+    expect(state.admitEdit("agent", "failed", 103 + EDIT_PERMIT_EXPIRY_MS, true)).toBeUndefined();
+    expect(state.isActive("agent")).toBe(false);
+    expect(state.canonical.canonicalProjection().rounds).toHaveLength(0);
+    expect(state.registerEdit("agent", "fresh", 104 + EDIT_PERMIT_EXPIRY_MS,
+      105 + EDIT_PERMIT_EXPIRY_MS)).toBe(true);
+    expect(state.admitEdit("agent", "fresh", 106 + EDIT_PERMIT_EXPIRY_MS, true)).toBe(1);
+  });
+
   it("expires a prospective permit at its exact fractional deadline", () => {
     const state = new ComposedDelivery();
     const startedAt = 100.5;
@@ -151,7 +167,8 @@ describe("shared Hapsland rounds", () => {
     expect(state.beginStop("agent", "stop")).toBe(false);
     const admission = state.canonical.canonicalProjection().admissions.find(
       (item) => item.partition === state.canonical.partitionId("agent"));
-    expect(admission).toMatchObject({ active: false, round: 0, used: [], permits: [] });
+    expect(admission).toMatchObject({ active: false, round: 0, permits: [] });
+    expect(admission?.used).toHaveLength(1);
   });
 
   it("keeps native tool identity across duplicate and cross-advicee callbacks", () => {
