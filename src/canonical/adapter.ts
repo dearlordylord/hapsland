@@ -1,4 +1,4 @@
-import { bendCanonicalInitial, bendCanonicalInventory, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal } from "./canonical.generated.js";
+import { bendCanonicalInitial, bendCanonicalInventory, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal, bendPreparationLimit, bendJevRequestLimit } from "./canonical.generated.js";
 
 const MAX_NAT = 2 ** 48 - 1;
 // Keep reserved + requested bytes within Bend's 48-bit immediate Nat range.
@@ -913,6 +913,7 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
 };
 
 export type CanonicalProjection = {
+  readonly executionLimits: { readonly preparation: number; readonly jevRequests: number };
   readonly global: { readonly items: number; readonly bytes: number };
   readonly limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number };
   readonly partitions: readonly { readonly partition: number; readonly items: number; readonly bytes: number }[];
@@ -1073,7 +1074,8 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       new Set(delivery.submissions.leases.map((item) => `${item.advice}:${item.fingerprint}`)).size !== delivery.submissions.leases.length) {
     throw new TypeError("inconsistent canonical submission state");
   }
-  if (dispatch.running.filter((entry) => entry.preparation).length > 8 || dispatch.requests.length > 8 ||
+  const executionLimits = { preparation: nat(bendPreparationLimit(), true), jevRequests: nat(bendJevRequestLimit(), true) };
+  if (dispatch.running.filter((entry) => entry.preparation).length > executionLimits.preparation || dispatch.requests.length > executionLimits.jevRequests ||
       new Set(dispatch.requests.map((entry) => entry.request)).size !== dispatch.requests.length ||
       new Set(dispatch.requests.map((entry) => entry.operation)).size !== dispatch.requests.length ||
       dispatch.requests.some((entry) => entry.interrupted && !entry.started) ||
@@ -1187,7 +1189,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
         entry.limits.globalBytes !== limits.global_bytes ||
         entry.limits.partitionItems !== limits.partition_items ||
         entry.limits.partitionBytes !== limits.partition_bytes)) throw new TypeError("inconsistent capacity inventory");
-  return { global,
+  return { global, executionLimits,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
     partitions, charges, inventory, rounds, admissions, work, pendingFindings,

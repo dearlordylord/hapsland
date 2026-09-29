@@ -3,3 +3,5 @@ export declare const bendCanonicalStep: (state: unknown, event: unknown) => unkn
 export declare const bendCanonicalTotal: (state: unknown) => unknown;
 export declare const bendCanonicalPartitionUsage: (state: unknown, partition: number) => unknown;
 export declare const bendCanonicalInventory: (state: unknown) => unknown;
+export declare const bendPreparationLimit: () => unknown;
+export declare const bendJevRequestLimit: () => unknown;

@@ -1,4 +1,5 @@
 import fixture from "../../../conformance/canonical-v1.json";
+import requestFixture from "../../../conformance/canonical-jev-request-v1.json";
 import {
   initialCanonical, projectCanonical, stepCanonical,
   type CanonicalCommand, type CanonicalEvent, type CanonicalProjection,
@@ -26,6 +27,11 @@ export const CANONICAL_SCENARIOS = [CAPACITY_SCENARIO, ...fixture.traces.map((tr
   description: "Independent source-free canonical event sequence covering resident work and output decisions.",
   limits: fixture.limits,
   events: trace.events as CanonicalEvent[],
+})), ...requestFixture.traces.map((trace) => ({
+  name: trace.name,
+  description: "Independent #148 Jev request contract trace. Start, response, failure and physical availability are supplied source-free facts.",
+  limits: requestFixture.limits,
+  events: trace.events.map(({ expect: _expect, requestAfter: _requestAfter, requestCount: _requestCount, ...event }) => event as CanonicalEvent),
 }))] as const;
 
 /** Replay only through the checked adapter also used by the resident. */
@@ -47,11 +53,11 @@ export const replayCanonical = (
 
 export const tryAppendCanonical = (
   history: readonly ReplayEvent[], position: number, event: unknown,
-  origin: ReplayEvent["origin"],
+  origin: ReplayEvent["origin"], limits: typeof CAPACITY_SCENARIO.limits = CAPACITY_SCENARIO.limits,
 ): { readonly history: readonly ReplayEvent[]; readonly position: number; readonly error?: string; readonly rejection?: string } => {
   const prior = history.slice(0, position);
   try {
-    const replay = replayCanonical(prior, prior.length);
+    const replay = replayCanonical(prior, prior.length, limits);
     // The adapter validates shape, constructors, and the complete returned state.
     const result = stepCanonical(replay.state, event as CanonicalEvent);
     return { history: [...prior, { event: event as CanonicalEvent, origin }], position: prior.length + 1,

@@ -7,6 +7,7 @@ import { TIMELINE_CASES } from "./timeline";
 import { timelineView } from "./timeline-view";
 import { CAPACITY_INVENTORY } from "./capacity-inventory.generated";
 import { CANONICAL_SCENARIOS, guidedIndex, nextGuidedEvent, replayCanonical, tryAppendCanonical, type ReplayEvent } from "./canonical-replay";
+import { productionFlowView } from "./production-flow-view";
 import type { CapacityPurpose, CanonicalCommand } from "../../../src/canonical/adapter";
 
 export const Model = Schema.Struct({
@@ -46,7 +47,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: {
 } });
 
 const append = (model: Model, event: unknown, origin: ReplayEvent["origin"]): Model => {
-  const next = tryAppendCanonical(model.history as readonly ReplayEvent[], model.position, event, origin);
+  const next = tryAppendCanonical(model.history as readonly ReplayEvent[], model.position, event, origin, CANONICAL_SCENARIOS[model.scenario].limits);
   return { ...model, history: [...next.history], position: next.position, frame: 0,
     feedback: next.error ?? (next.rejection === undefined
       ? "Canonical.step accepted this event." : `Canonical.step rejected this event: ${next.rejection}.`) };
@@ -111,7 +112,7 @@ const commandLabel = (command: CanonicalCommand): string => {
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const history = model.history as readonly ReplayEvent[];
-  const replay = replayCanonical(history, model.position);
+  const replay = replayCanonical(history, model.position, CANONICAL_SCENARIOS[model.scenario].limits);
   const projection = replay.projection;
   const last = replay.steps.at(-1);
   const frames = last?.commands.filter(isCapacityFrame) ?? [];
@@ -134,22 +135,18 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       ]),
       h.section([h.Class("chart-panel production-flow")], [
         h.h2([], ["Production decision flow"]),
-        h.div([h.Class("production-flow-rail")], [
-          h.div([h.Class("flow-stage native")], [h.strong([], ["Agent runtime · native observation"]),
-            h.p([], [last === undefined ? "No example observation yet" : `${last.event.kind} supplied`])]),
-          h.div([h.Class("flow-stage bend")], [h.strong([], ["Hapsland · Canonical.step"]),
-            h.p([], [last === undefined ? "Waiting for an event" : last.rejection === undefined
-              ? `${lastCommands.length} Bend command${lastCommands.length === 1 ? "" : "s"} emitted`
-              : `Bend rejected: ${last.rejection}`])]),
-          h.div([h.Class("flow-stage native")], [h.strong([], ["Native Hapsland effects"]),
-            h.p([], ["Source capture, clock readings, Jev calls, and host writes execute outside Bend state."])]),
-          h.div([h.Class("flow-stage external")], [h.strong([], ["Jev response · external"]),
-            h.p([], [last?.event.kind === "reviewCompleted" ? `Observed ${last.event.outcome} result supplied to Bend.` :
-              "The review backend returns a probability or failure fact; Bend decides finding disposition from supplied facts."])]),
-          h.div([h.Class("flow-stage state")], [h.strong([], ["Canonical retained state"]),
-            h.p([], [`${projection.work.length} work records · ${projection.charges.length} capacity reservations`])]),
-        ]),
+        productionFlowView(h, projection, last),
         h.p([], [activePurpose.length ? `Reserved purposes: ${activePurpose.join(", ")}` : "No active capacity reservations."]),
+        h.details([h.Class("flow-coverage")], [
+          h.summary([], ["Transition-family coverage and source boundaries"]),
+          h.p([], ["The graph maps checked state and commands to places and active routes. Guided examples are independent source-free fixture events. Manual input accepts any checked canonical event; it supplies native facts rather than executing native effects."]),
+          h.ul([], [
+            h.li([], ["Observation, preparation, ordered capacity admission, review outcomes, Stop and round cleanup: guided ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-v1.json")], ["canonical traces"]), "."]),
+            h.li([], ["Jev readiness, command, observed start, unsent/cancelled/late results, clear/finding/failure/timeout and ninth-slot refusal: guided ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-jev-request-v1.json")], ["request traces"]), "."]),
+            h.li([], ["Collection leases, background claims, output authorization, uncertain submission, reoffer, revision and ticket checks: some guided; all available through manual ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/src/canonical/adapter.ts")], ["canonical events"]), "."]),
+            h.li([], ["Source capture, clocks, Jev I/O, host writes and runtime observation: native facts/effects outside Bend. Cross-file import traversal remains a separate model below; production adoption is tracked by ", h.a([h.Href("https://github.com/dearlordylord/hapsland/issues/138")], ["#138"]), "."]),
+          ]),
+        ]),
       ]),
       h.section([h.Id("canonical-replay"), h.Class("card canonical-replay")], [
         h.h2([], ["What uses review capacity"]),
