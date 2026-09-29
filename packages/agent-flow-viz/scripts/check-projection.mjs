@@ -135,6 +135,10 @@ try {
   assert.equal(changed.states[0].limits.treeBytes, 200);
   assert.equal(changed.states[0].phase, "incomplete");
   assert.equal(changed.history[0].command.reason, "TreeLimit");
+  const changedView = imports.importGraphView(inertHtml, 0, 1, () => ({}), () => ({}), changedGraphLimits);
+  const changedText = JSON.stringify(changedView);
+  assert.match(changedText, /Effective tree cap: 200 bytes/);
+  assert.doesNotMatch(changedText, /20 KiB limit/);
   assert.ok(timeline.TIMELINE_CASES.length > 0, "retained native timing evidence remains visible");
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
