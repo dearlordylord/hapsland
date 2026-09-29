@@ -201,13 +201,11 @@ An unavailable credential prevents provider dispatch. Changing effective exclusi
 affects future dispatches and cannot recall a request already sent.
 
 The supported Codex event boundary is documented in the
-[direct-event profile](./docs/direct-event-v1-supported-profile.md). During development, a
-Codex command hook invokes
-`node /absolute/path/to/this/repo/src/cli.ts --codex-hook --controlled-writer`.
-The second flag is an explicit operator assertion that the supported Add event is in the
-controlled-writer envelope; matching source reads alone never establish attribution.
-Without that assertion, supported Add input stays quiet. A packed installation invokes the corresponding installed
-`dist/cli.js` entry and never depends on this source path. Live use reads `TYPESAFE_API_KEY` through
+[direct-event profile](./docs/direct-event-v1-supported-profile.md). The installed Codex
+integration uses a synchronous pre-edit permit and its matching composed post-edit hook.
+An isolated `--codex-hook` call without that lifecycle stays quiet. The installed
+hooks invoke the packed `dist/cli.js` entry and never depend on this source path.
+Live use reads `TYPESAFE_API_KEY` through
 the Effect provider configuration. Run the live integration checks only with explicit
 opt-in via `npm run test:live`.
 The initial direct-event capture profile is Linux-only. It binds the adapted working-tree

@@ -63,22 +63,28 @@ working roots remain separate. A shared-root change of unknown origin has no
 advicee and cannot produce addressed advice. Native turn IDs are event metadata,
 not advicee or virtual-round identity.
 
-The resident assigns an opaque virtual-round ID within that partition. Every
-admitted observation, preparation job, review unit, Jev request, advice item,
-lease, waiter, and output reservation belongs to that round. A fresh attributed
-edit in an active round remains in it, including a repair edit. A prompt, poll,
-finish attempt, subagent notification, or native turn change cannot open a new
-round or reset its continuation count. After closure, only a provably fresh edit
-can open a new virtual round.
+The first accepted attributed edit opens a virtual round and receives an opaque
+round ID within that advicee partition. Repeated notification of the same edit
+does not open another round. Every admitted observation, preparation job, review
+unit, Jev request, advice item, lease, waiter, and output reservation belongs
+to that round. A fresh attributed edit in an active round remains in it,
+including a repair edit. A prompt, poll, finish attempt, subagent notification,
+native turn change, or pre-edit permit alone cannot open a new round or reset
+its continuation count. After closure, only a provably fresh edit can open a
+new virtual round. A round can later have no unfinished work or pending advice;
+its originating edit remains the reason it was opened.
 
 Before an eligible native edit tool runs, a synchronous pre-edit hook obtains a
 source-free permit bound to the advicee, native tool-use identity, resident
-lifetime, virtual round, and original deadline. It does not capture source or
-call Jev. The matching post-edit observation consumes that permit before review
-admission. Missing, expired, used, wrong-agent, or old-round permits mean
-incomplete admission, not review. Tool failure, timeout, and round closure
-release unused permits. Repeated pre- or post-edit notifications cannot renew a
-permit or start a second evaluation of the same edit.
+lifetime, original deadline, and the current closure fence. The permit proves
+which edit attempt may later be accepted; it neither opens nor reserves a
+virtual round. It does not capture source or call Jev. The matching post-edit
+observation consumes that permit before review admission and opens or joins the
+virtual round only when accepted as an attributed edit. Missing, expired, used,
+wrong-agent, or stale permits mean incomplete admission, not review. Tool
+failure, timeout, and round closure release unused permits. Repeated pre- or
+post-edit notifications cannot renew a permit or start a second evaluation of
+the same edit.
 
 An invocation start used to distinguish a new edit from a delayed old hook must
 cover native command startup, be strictly after the closed-round boundary, and

@@ -55,7 +55,16 @@ describe("production resident activity subprocess", { timeout: 30_000 }, () => {
       },
       tool_response: {},
     };
-    const hook = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
+    const before = spawnSync(process.execPath, ["src/cli.ts", "--composed-before-edit-hook", "--composed-host=codex-cli", "--controlled-reviewer"], {
+      cwd: process.cwd(),
+      env: environment,
+      input: JSON.stringify({ ...event, hook_event_name: "PreToolUse" }),
+      encoding: "utf8",
+      timeout: 15_000,
+    });
+    expect(before.status).toBe(0);
+    expect(JSON.parse(before.stdout)).toEqual({});
+    const hook = spawnSync(process.execPath, ["src/cli.ts", "--codex-hook", "--controlled-reviewer", "--controlled-writer", "--composed-edit-hook"], {
       cwd: process.cwd(),
       env: environment,
       input: JSON.stringify(event),
