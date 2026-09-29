@@ -117,6 +117,18 @@ describe("proposed adoption corpus native completeness", () => {
       expect(selected).toEqual(multiRoot ? ["A", "B"] :
         completeCycle || stale || noRule ? [fixture.branch === "type-shape/v2" ? "A" : "run"] : []);
       expect(ready).toHaveLength(multiRoot ? 2 : completeCycle || stale ? 1 : 0);
+      if (completeCycle) {
+        const current = ready[0];
+        if (current?.status !== "ready") throw new Error(`missing cycle unit ${id}`);
+        const rootNode = current.prepared.input.unit.root;
+        expect(rootNode.references).toMatchObject([{
+          kind: "expanded",
+          node: {
+            artifact: { id: `b.ts:${fixture.branch === "type-shape/v2" ? "interface" : "function"}:B` },
+            references: [{ kind: "included", target: rootNode.artifact.id }],
+          },
+        }]);
+      }
       if (noRule) {
         expect(prepared.observation.status).toBe("complete");
       } else if (!completeCycle && !multiRoot && !stale) {
@@ -157,17 +169,26 @@ describe("proposed adoption corpus native completeness", () => {
         yield* Effect.promise(() => put(root, "b.ts", original));
       }
       let calls = 0;
+      let handoffReached = false;
       const review = yield* reviewObservation(observation, {
         ...context,
-        ...(stale ? { beforeDispatch: Effect.promise(async () => {
+        ...(stale ? { beforeHandoff: Effect.promise(async () => {
+          handoffReached = true;
           const after = await readFile(new URL(`offline/${id}/b.after.ts`, corpus), "utf8");
           await put(root, "b.ts", after);
         }) } : {}),
       }).pipe(Effect.provide(controlledDecisionModelLayer({
         onRequest: Effect.sync(() => { calls += 1; }),
+        ...(stale ? { answers: Object.fromEntries(rules.map((rule) => [rule.id,
+          { _tag: "Probability" as const, probability: 0.95 }])) } : {}),
       })));
-      expect(review.status).toBe("no-advice");
-      expect(calls).toBe(completeCycle ? 1 : multiRoot ? 2 : 0);
+      if (stale) {
+        expect(handoffReached).toBe(true);
+        expect(review).toMatchObject({ status: "unavailable", reason: "stale", output: undefined });
+      } else {
+        expect(review.status).toBe("no-advice");
+      }
+      expect(calls).toBe(completeCycle || stale ? 1 : multiRoot ? 2 : 0);
     }));
   }
 });
