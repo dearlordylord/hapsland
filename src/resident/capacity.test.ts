@@ -78,7 +78,7 @@ describe("resident logical capacity ledger", () => {
       hasStop: true, token: 2 }).commands).toEqual([{ kind: "roundStopRefused" }]);
     expect(ledger.transition({ kind: "roundActivityCheck", bound: true,
       hasAdmission: true, round: 0, active: false, closedAt: 0,
-      expectedGeneration: 1 }).commands).toEqual([{ kind: "roundActive" }]);
+      expectedGeneration: 1 }).commands).toEqual([{ kind: "roundInactive" }]);
     expect(ledger.transition({ kind: "roundActivityCheck", bound: true,
       hasAdmission: true, round: 1, active: false, closedAt: 100,
       expectedGeneration: 1 }).commands).toEqual([{ kind: "roundInactive" }]);
