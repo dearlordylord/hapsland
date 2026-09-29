@@ -1,7 +1,7 @@
 # Issue #93: diff-selected type and function review target specification
 
 **Purpose:** Define the direct-edit type and function review behavior.
-**Status:** Accepted target, amended by owner decision on 2026-09-29 to restore rule-level evidence checks.
+**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling.
 **Authority:** Accepted product contract. Implementation and tests are separate evidence.
 **Expected use:** Build and review the supported direct-edit path.
 **Lifecycle:** Maintained as that path changes; review after a new owner decision or a changed runtime boundary.
@@ -10,7 +10,7 @@ The owner approved the bounded cross-file type and function path for users on
 2026-09-29. The one-file named-type input is retired as a production route.
 The owner did not require a comparative study before this change. A later study
 can measure advice quality as a separate task. The file-selection, rule-evidence,
-source-size, request-size, freshness, and Jev-request limits below still apply.
+source-size, freshness, and Jev-request limits below still apply.
 This decision is about product behavior; it is not a claim that live Jev results
 have been measured. Contract identifiers distinguish incompatible backend inputs;
 they are not product release names. Jev is the external review backend.
@@ -142,12 +142,10 @@ candidate with any skipped import retains an omission after its pending edges
 are examined; only rules that do not need that evidence may reach Jev. Keep at most
 64 parsed declarations per file, 16 distinct outbound targets per root, and four
 reference edges in a path as initial ceilings; enforce finite total-file,
-total-read, analysis-work, and deadline ceilings. The complete serialized
-Jev request has a **separate** bound covering the tree, root source, questions,
-options, and provider overhead. The earlier 64 KiB draft value is not a proven
-wire limit; [#140](https://github.com/dearlordylord/hapsland/issues/140)
-owns the later query/provider-aware refinement. Check the
-actual encoded request before egress. The existing 15-second Jev deadline,
+total-read, analysis-work, and deadline ceilings. There is no separate
+total-request byte ceiling. Rule questions, criteria, and provider overhead are
+outside the 20 KiB evidence budget; their encoded size may be measured without
+denying dispatch. The existing 15-second Jev deadline,
 zero automatic retries, queue capacity, and host response limits remain
 independent ceilings. Source and ledger limits must be reconciled so the
 256 KiB target can be admitted without an unbounded parser or resident workspace.
@@ -227,7 +225,7 @@ remain in the one provider-neutral Effect `DecisionModel` call, using
 `Decision.probability` for the active branches. A different typed result form
 requires a separate #96 contract decision. No before-source, raw patch, task transcript, unrelated
 file, or absolute path is sent. The renderer must have a deterministic version and
-digest; UTF-8 request bytes are checked at the final JSON representation before
+digest; rendered evidence input is checked against its 20 KiB budget before
 dispatch. The versioned renderer defines the exact wire shape; changes to it
 require contract review. Internal `ReviewUnit` records are not serialized directly.
 
@@ -301,7 +299,7 @@ delivery policy. Coverage is never reported as a clean semantic judgment.
 - Keep the narrow function scope. Tests must establish the capabilities claimed
   for each maintained rule; a rule can proceed past an omitted edge only when
   that edge is irrelevant to its declared evidence needs.
-- Revisit graph, request, and resident limits only with bounded evidence and
+- Revisit graph and resident limits only with bounded evidence and
   contract review.
 - If a later paired study is run, declare its thresholds and source scope
   before live calls. The final #16 outcome remains prior evidence.

@@ -12,8 +12,6 @@ import { canonicalValue, isCodexHostVersion, type DirectObservation, type Direct
 import {
   evaluatePrepared,
   encodedPreparedProviderInputBytes,
-  encodedPreparedProviderHttpBodyBytes,
-  MAX_FULL_JEV_REQUEST_BYTES,
   prepareObservation,
   preparedUnitStillCurrent,
   revalidateEvaluations,
@@ -2520,9 +2518,6 @@ export class ResidentServer {
           credentialStatus: credential?.status ?? "not-required",
           credentialGeneration: credential?.generation ?? null,
         });
-        if (encodedPreparedProviderHttpBodyBytes(job.prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
-          return { status: "input-limit" as const };
-        }
         const ready = requestReady({
             rootValid: dispatchRootVerified, configurationValid: true,
             credentialReady: !credentialRequired || credential?.status === "present",

@@ -73,13 +73,14 @@ describe("canonical Jev request boundary", () => {
     } finally { await server.close(); }
   });
 
-  it("refuses oversized full input before issuing a Jev permit", async () => {
+  it("issues a Jev request for large rule text when evidence is within the tree limit", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type A = number\n");
-    await put(root, "rules.jsonc", JSON.stringify({ version: 1, id: "team", rules: [{
+    await put(root, "rules.jsonc", JSON.stringify({ schemaVersion: 1, id: "team", contentVersion: "1", rules: [{
       id: "large", question: "x".repeat(140_000),
       criteria: { false: "No", true: "Yes" }, threshold: 0.7,
-      message: "Large", applicability: { includes: ["**/*.ts"] },
+      message: "Large", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
+        capabilities: ["root-declaration"] }],
     }] }));
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, packs: ["rules.jsonc"] }));
     const statePath = join(root, "consent");
@@ -94,8 +95,8 @@ describe("canonical Jev request boundary", () => {
       expect(server.admit(observation, { statePath, userConfigPath: null, credential: null,
         controlled: { capturePath } }).status).toBe("accepted");
       await server.whenIdle();
-      expect(commands).toEqual([]);
-      expect(existsSync(capturePath)).toBe(false);
+      expect(commands.map((item) => item.stage)).toContain("started");
+      expect(existsSync(capturePath)).toBe(true);
       expect(server.accountingMetrics().pendingOperationalNotices).toBe(0);
     } finally { await server.close(); }
   });

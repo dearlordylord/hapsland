@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "./adapter.ts";
-import { encodedFullJevRequestBytes, prepareObservation, preparedProviderInput,
+import { prepareObservation, preparedProviderInput,
   preparedUnitStillCurrent } from "./pipeline.ts";
 import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
@@ -50,7 +50,6 @@ describe("Codex root attribution", () => {
           edges: [{ from: "a.ts:function:run", to: "b.ts:function:helper", kind: "expanded", order: 0 }] },
         inputContract: { id: FUNCTION_INPUT_CONTRACT, completeness: "complete" },
       });
-      expect(encodedFullJevRequestBytes(ready.prepared)).toBeLessThan(131_072);
       yield* Effect.promise(() => put(root, "b.ts", "// changed outside declaration\nexport function helper(): number { return 1 }"));
       expect(yield* preparedUnitStillCurrent(observation, ready.prepared, context)).toBe(false);
     }

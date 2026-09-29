@@ -52,8 +52,6 @@ import {
 } from "./selection.ts";
 
 export const DIRECT_EVENT_DEADLINE_MS = 15_000 as const;
-/** Finite pinned System One HTTP body gate; #140 owns broader transport sizing. */
-export const MAX_FULL_JEV_REQUEST_BYTES = 131_072;
 
 export type DirectReviewContext = {
   /** Explicit operator/fixture authority. Never inferred from matching reads. */
@@ -697,9 +695,6 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
   prepared: PreparedUnit,
   beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
 ) {
-  if (encodedPreparedProviderHttpBodyBytes(prepared) > MAX_FULL_JEV_REQUEST_BYTES) {
-    return { status: "input-limit" } as const;
-  }
   const providerInput = preparedProviderInput(prepared);
   if (providerInput === undefined) return { status: "input-limit" } as const;
   const decisions: Record<string, Decision.Probability> = {};

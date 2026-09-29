@@ -87,8 +87,8 @@ resolution before any new review egress. The total read cap must be at least
 the per-file cap because Bend reserves a full allowed file before requesting a
 read. The root's declared encoded contribution must fit `treeBytes`; Bend
 rejects that root otherwise. Native capture must measure canonical encoded
-contributions and enforce physical read bounds. These graph limits do not
-bound the complete serialized Jev request; #140 owns that separate cap.
+contributions and enforce physical read bounds. These graph limits apply to
+source evidence; rule text and provider overhead have no total-request byte cap.
 
 The graph profile bounds the active direct-edit type and function review path.
 Hapsland follows supported local imports only after each supporting path passes

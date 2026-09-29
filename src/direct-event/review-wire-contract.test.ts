@@ -5,7 +5,7 @@ import { compileRulePack } from "../rules/compiler.ts";
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { canonicalValue, freezeRules, type PreparedUnit, type ReviewArtifact, type ReviewNode } from "./model.ts";
 import {
-  MAX_FULL_JEV_REQUEST_BYTES, candidateReviewInput, encodedFullJevRequestBytes,
+  candidateReviewInput, encodedFullJevRequestBytes,
   encodedPreparedProviderInputBytes, preparedProviderInput,
 } from "./pipeline.ts";
 import { CANDIDATE_RENDERER_DIGEST, CANDIDATE_RENDERER_VERSION, MAX_CANDIDATE_TREE_BYTES,
@@ -74,7 +74,7 @@ const wireRecord = (unit: PreparedUnit) => {
 // An explicit maintenance switch regenerates proposed fixtures after reviewed renderer/rule changes.
 for (const branch of ["type", "function"] as const) {
   describe(`${branch} candidate Jev wire proposal`, () => {
-    it("matches the checked-in golden and the current finite pre-egress gate", async () => {
+    it("matches the checked-in golden and bounded evidence input", async () => {
       const unit = prepared(branch);
       const actual = wireRecord(unit);
       if (process.env.UPDATE_WIRE_GOLDENS === "1") {
@@ -85,7 +85,6 @@ for (const branch of ["type", "function"] as const) {
       expect(Buffer.byteLength(JSON.stringify(actual.providerInput), "utf8")).toBe(actual.providerInputBytes);
       expect(Buffer.byteLength(JSON.stringify(actual.completeRequest), "utf8")).toBe(actual.completeRequestBytes);
       expect(actual.providerInputBytes).toBeLessThanOrEqual(MAX_CANDIDATE_TREE_BYTES);
-      expect(actual.completeRequestBytes).toBeLessThanOrEqual(MAX_FULL_JEV_REQUEST_BYTES);
       expect(actual.providerInput.inputContract).toMatchObject({
         id: unit.input.contract, completeness: "complete",
         rendererVersion: CANDIDATE_RENDERER_VERSION, rendererDigest: CANDIDATE_RENDERER_DIGEST,
