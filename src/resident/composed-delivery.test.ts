@@ -272,23 +272,40 @@ describe("shared Hapsland rounds", () => {
     expect(state.beginStop("agent", "stop")).toBe(true);
     const scopes = ["agent"];
     const round = state.canonical.roundId("agent");
-    expect(state.finishGate("agent", "stop", 0, false, scopes))
+    expect(state.finishGate("agent", "stop", 0, false))
       .toMatchObject({ status: "waiting" });
     expect(state.canonical.observation(scopes[0]!, first, "completeObservation", round)).toBe(false);
     expect(state.canonical.observation(scopes[0]!, first, "startObservation", round)).toBe(true);
     expect(state.canonical.observation(scopes[0]!, first, "completeObservation", round)).toBe(true);
-    expect(state.finishGate("agent", "stop", 0, false, scopes))
+    expect(state.finishGate("agent", "stop", 0, false))
       .toMatchObject({ status: "waiting" });
-    const cutoff = state.finishGate("agent", "stop", 0, true, scopes);
+    const cutoff = state.finishGate("agent", "stop", 0, true);
     expect(cutoff).toMatchObject({ status: "cutoff", cancelledSource: [] });
     expect(state.canonical.canonicalProjection().rounds.filter((item) =>
       scopes.some((scope) => item.partition === state.canonical.partitionId(scope)))
       .every((item) => item.deciding)).toBe(true);
-    expect(state.finishStop("agent", "stop", false, 100, scopes)).toBeUndefined();
+    expect(state.finishStop("agent", "stop", false, 100)).toBeUndefined();
     expect(state.canonical.canonicalProjection().rounds.filter((item) =>
       scopes.some((scope) => item.partition === state.canonical.partitionId(scope)))
       .every((item) => !item.deciding)).toBe(true);
     expect(state.canonical.admitObservation(scopes[0]!)).toBeGreaterThan(second);
+  });
+
+  it("keeps Stop polling bound to its captured canonical round", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 0);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    const original = state.canonical.roundId("agent");
+    state.canonical.retireRound("agent", original);
+    const successor = state.canonical.roundId("agent");
+    const source = state.canonical.admitObservation("agent", successor);
+    expect(state.finishGate("agent", "stop", 0, true)).toBeUndefined();
+    expect(state.canonical.canonicalProjection().work).toEqual([
+      expect.objectContaining({ operation: source, round: successor, kind: "sourceQueued" }),
+    ]);
+    expect(state.canonical.canonicalProjection().rounds).toEqual([
+      expect.objectContaining({ id: successor, deciding: false }),
+    ]);
   });
 
   it("keeps an external Stop owner waiting until deadline", () => {
