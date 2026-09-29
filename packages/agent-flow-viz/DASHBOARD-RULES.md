@@ -11,6 +11,10 @@ Hapsland decision backbone. `Canonical.step` drives the production decision
 replay through the same checked adapter as the resident. `ImportGraph.bend`
 drives the separate import exploration section. Native effects and Jev
 responses remain outside Bend state and are identified as example facts.
+The import section initializes the same versioned limits value passed to
+compiled Bend, and budget labels read the limits projected from Bend state.
+Static captions may describe the default fixture, but must not claim a fixed
+limit for a replay using a changed profile.
 
 ## Allowed in the dashboard
 

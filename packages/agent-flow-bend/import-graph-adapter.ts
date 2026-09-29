@@ -1,4 +1,6 @@
 import { bendImportGraphInitial, bendImportGraphStep } from "./import-graph.generated.js";
+import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../../src/configuration/graph-limits.ts";
+export { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../../src/configuration/graph-limits.ts";
 
 export type ImportGraphEvent =
   | { readonly kind: "root"; readonly target: number; readonly sourceBytes: number; readonly treeBytes: number; readonly edges: readonly number[] }
@@ -22,6 +24,13 @@ type RecordValue = Record<string, unknown>;
 const record = (value: unknown): RecordValue => {
   if (value === null || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid Bend object");
   return value as RecordValue;
+};
+const freezeState = (value: unknown): unknown => {
+  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+    for (const child of Object.values(value)) freezeState(child);
+    Object.freeze(value);
+  }
+  return value;
 };
 const tag = (value: unknown): string => {
   const name = record(value).$;
@@ -92,6 +101,7 @@ const command = (value: unknown): ImportGraphCommand => {
   }
 };
 export type ImportGraphProjection = {
+  readonly limits: GraphLimits;
   readonly phase: "idle" | "ready" | "resolving" | "checking" | "capturing" | "complete" | "incomplete";
   readonly reason?: string;
   readonly pending: readonly number[];
@@ -105,27 +115,45 @@ export type ImportGraphProjection = {
 };
 const phases = { Idle: "idle", Ready: "ready", Resolving: "resolving", Checking: "checking", Capturing: "capturing", Complete: "complete", Incomplete: "incomplete" } as const;
 export const projectImportGraph = (state: unknown): ImportGraphProjection => {
-  const object = record(state);
-  if (kind(state) !== "Graph") throw new TypeError("invalid Bend graph state");
+  const bounded = record(state);
+  if (kind(state) !== "Bounded") throw new TypeError("invalid Bend bounded graph state");
+  const object = record(bounded.graph);
+  if (kind(object) !== "Graph") throw new TypeError("invalid Bend graph state");
   const phaseObject = record(object.phase);
   const name = kind(phaseObject);
   if (!(name in phases)) throw new TypeError(`unknown Bend graph phase ${name}`);
   const phase = phases[name as keyof typeof phases];
-  return { phase, ...(phase === "incomplete" ? { reason: reason(phaseObject.reason) } : {}),
+  const limitObject = record(object.limits);
+  if (kind(limitObject) !== "Limits") throw new TypeError("invalid Bend graph limits");
+  const limits = validateGraphLimits({
+    version: number(limitObject.version) as 1,
+    sourceBytes: number(limitObject.source_bytes), treeBytes: number(limitObject.tree_bytes),
+    files: number(limitObject.files), readBytes: number(limitObject.read_bytes),
+    outgoingEdges: number(limitObject.outgoing_edges), depth: number(limitObject.depth),
+    work: number(limitObject.work),
+  });
+  number(bounded.remaining);
+  return { limits, phase, ...(phase === "incomplete" ? { reason: reason(phaseObject.reason) } : {}),
     pending: readList(object.pending, (edge) => { if (kind(edge) !== "Edge") throw new TypeError("invalid Bend graph edge"); return number(record(edge).id); }),
     visited: readList(object.visited, number), files: number(object.files), readBytes: number(object.read_bytes),
     treeBytes: number(object.tree_bytes), work: number(object.work), skippedTree: bool(object.skipped_tree),
     skippedExcluded: bool(object.skipped_excluded) };
 };
-export const initialImportGraph = (): unknown => {
-  const state = bendImportGraphInitial();
+export const initialImportGraph = (limits: GraphLimits = GRAPH_LIMIT_CEILINGS): unknown => {
+  const effective = validateGraphLimits(limits);
+  const state = bendImportGraphInitial({
+    $: "ImportGraph.Limits", version: nat(effective.version),
+    source_bytes: nat(effective.sourceBytes), tree_bytes: nat(effective.treeBytes),
+    files: nat(effective.files), read_bytes: nat(effective.readBytes),
+    outgoing_edges: nat(effective.outgoingEdges), depth: nat(effective.depth), work: nat(effective.work),
+  });
   projectImportGraph(state);
-  return state;
+  return freezeState(state);
 };
 export const stepImportGraph = (state: unknown, event: ImportGraphEvent): { readonly state: unknown; readonly command: ImportGraphCommand } => {
   projectImportGraph(state);
   const raw = record(bendImportGraphStep(state, encode(event)));
-  if (kind(raw) !== "Step") throw new TypeError("invalid Bend graph step");
+  if (kind(raw) !== "BoundedStep") throw new TypeError("invalid Bend graph step");
   projectImportGraph(raw.state);
-  return { state: raw.state, command: command(raw.command) };
+  return { state: freezeState(raw.state), command: command(raw.command) };
 };

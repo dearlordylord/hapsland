@@ -74,7 +74,6 @@ const projectFileGraphs = (unitCount: number, history: readonly HistoryStep[]): 
   return graphs;
 };
 
-const treeLimitBytes = 20 * 1024;
 const treeSize = (bytes: number) => bytes % 1024 === 0 ? `${bytes / 1024} KiB` : `${bytes} B`;
 
 export const importTreeBudgetView = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
@@ -84,10 +83,11 @@ export const importTreeBudgetView = <Message>(h: HtmlBuilder<Message>, units: re
     const accepted = [...graph.nodes.values()].filter((node) => node.sizeAccepted === true);
     const skipped = [...graph.nodes.values()].filter((node) => node.reason === "TreeLimit" && node.sizeAccepted === false);
     const used = states[unit]!.treeBytes;
+    const treeLimitBytes = states[unit]!.limits.treeBytes;
     const remaining = treeLimitBytes - used;
     const name = (node: FileNode) => names[node.target] ?? `target #${node.target}`;
     const contributions = accepted.map((node) => `${name(node)}: ${treeSize(node.treeBytes!)} accepted; cumulative ${treeSize(node.acceptedTotal!)}`);
-    const summary = `${units[unit]} tree budget: ${treeSize(used)} of 20 KiB accepted; ${treeSize(remaining)} remaining`;
+    const summary = `${units[unit]} tree budget: ${treeSize(used)} of ${treeSize(treeLimitBytes)} accepted; ${treeSize(remaining)} remaining`;
     return h.div([h.Class("import-tree-budget")], [
       h.h3([], [summary]),
       h.div([h.Class("import-tree-bar"), h.Role("img"), h.AriaLabel([summary, ...contributions].join(". "))], [
@@ -191,7 +191,7 @@ const nodes = [
   { id: "resolve", x: 30, y: 50, title: "Next pending edge", owner: "BEND DECISION", detail: "Keep exploring after a skipped import", role: "bend" },
   { id: "gate", x: 330, y: 50, title: "Permission and budgets", owner: "BEND DECISION", detail: "Allow before any source read", role: "bend" },
   { id: "capture", x: 630, y: 50, title: "Capture allowed target", owner: "NATIVE FACT", detail: "Report source and tree bytes", role: "native" },
-  { id: "expand", x: 630, y: 260, title: "Accept or skip import", owner: "BEND DECISION", detail: "20 KiB cap; keep later edges", role: "bend" },
+  { id: "expand", x: 630, y: 260, title: "Accept or skip import", owner: "BEND DECISION", detail: "Use effective cap; keep later edges", role: "bend" },
   { id: "complete", x: 330, y: 260, title: "Complete unit", owner: "BEND DECISION", detail: "Eligible for a Jev request", role: "bend" },
   { id: "incomplete", x: 30, y: 260, title: "Incomplete unit", owner: "BEND DECISION", detail: "No Jev request for this unit", role: "bend" },
 ] as const;
@@ -200,7 +200,7 @@ export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: Imp
   h.div([h.Class("chart-scroll import-graph-diagram")], [
     fileGraph(h, units, names, history, states),
     h.p([h.Class("import-graph-diagram-caption")], [`Import process schematic · highlighted Bend phase for ${unitLabel}`]),
-    h.svg([h.ViewBox("0 0 920 505"), h.Role("img"), h.AriaLabel("Import process schematic. Bend skips denied paths before reading source and continues pending edges. It accepts or skips captured import contributions against the 20 KiB tree bound, then ends a unit with skipped imports incomplete.")], [
+    h.svg([h.ViewBox("0 0 920 505"), h.Role("img"), h.AriaLabel(`Import process schematic. Bend skips denied paths before reading source and continues pending edges. It accepts or skips captured import contributions against the ${states[0]?.limits.treeBytes ?? 0} byte tree bound, then ends a unit with skipped imports incomplete.`)], [
       h.defs([], [h.marker([h.Id("import-arrow"), h.ViewBox("0 0 10 10"), h.RefX("9"), h.RefY("5"), h.MarkerWidth("7"), h.MarkerHeight("7"), h.Orient("auto")], [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])])]),
       ...[
         ["M 280 102 L 330 102", "found", 290, 88],

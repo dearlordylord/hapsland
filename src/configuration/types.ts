@@ -1,5 +1,6 @@
 import * as Schema from "effect/Schema";
 import { RuleIdentitySchema } from "../domain/rule-identity.ts";
+import { GRAPH_LIMIT_CEILINGS, type GraphLimitField } from "./graph-limits.ts";
 
 /** The only configuration format accepted by the product in this phase. */
 export const CONFIGURATION_VERSION = 1 as const;
@@ -111,6 +112,21 @@ export const RuntimeSettings = Schema.Struct({
 });
 export interface RuntimeSettings extends Schema.Schema.Type<typeof RuntimeSettings> {}
 
+const graphBound = (ceiling: number, description: string) =>
+  Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: ceiling })).annotate({ description, default: ceiling });
+
+export const GraphLimitsSettings = Schema.Struct({
+  version: Schema.Literal(1).annotate({ description: "Import graph limits profile version." }),
+  sourceBytes: Schema.optionalKey(graphBound(GRAPH_LIMIT_CEILINGS.sourceBytes, "Maximum source bytes in each graph file.")),
+  treeBytes: Schema.optionalKey(graphBound(GRAPH_LIMIT_CEILINGS.treeBytes, "Maximum accepted encoded evidence-tree bytes.")),
+  files: Schema.optionalKey(graphBound(GRAPH_LIMIT_CEILINGS.files, "Maximum files read, including the root.")),
+  readBytes: Schema.optionalKey(graphBound(GRAPH_LIMIT_CEILINGS.readBytes, "Maximum total source bytes read; must be at least sourceBytes.")),
+  outgoingEdges: Schema.optionalKey(graphBound(GRAPH_LIMIT_CEILINGS.outgoingEdges, "Maximum outgoing edges per accepted file.")),
+  depth: Schema.optionalKey(graphBound(GRAPH_LIMIT_CEILINGS.depth, "Maximum supporting-reference depth.")),
+  work: Schema.optionalKey(graphBound(GRAPH_LIMIT_CEILINGS.work, "Maximum graph edge work steps.")),
+}).annotate({ identifier: "GraphLimitsSettings", description: "Versioned bounded import graph limits; omitted values inherit." });
+export interface GraphLimitsSettings extends Schema.Schema.Type<typeof GraphLimitsSettings> {}
+
 /**
  * Canonical JSONC v1 project/user document.
  *
@@ -137,6 +153,7 @@ export const ConfigurationDocument = Schema.Struct({
   credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
   claudeFeedbackMode: Schema.optionalKey(ClaudeFeedbackMode),
   settings: Schema.optionalKey(RuntimeSettings),
+  graphLimits: Schema.optionalKey(GraphLimitsSettings),
   /** Explicit local pack references. Bundled Noul is loaded independently. */
   packs: Schema.optionalKey(Schema.Array(RulePackReference).annotate({
     description: "Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently.",
@@ -183,6 +200,7 @@ export type ResolvedPolicy = {
     readonly adviceBudget: Originated<number>;
     readonly transientRetries: Originated<number>;
   };
+  readonly graphLimits: Readonly<{ version: 1 } & Record<GraphLimitField, Originated<number>>>;
   readonly layers: ReadonlyArray<{
     readonly name: ConfigurationLayerName;
     readonly source: string;

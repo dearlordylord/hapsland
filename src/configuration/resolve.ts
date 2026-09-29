@@ -15,6 +15,7 @@ import {
 } from "./types.ts";
 import { ConfigurationError } from "./errors.ts";
 import { replaceIncludes } from "./decision.ts";
+import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimitField, type GraphLimits } from "./graph-limits.ts";
 
 export type ConfigurationLayer = {
   readonly name: ConfigurationLayerName;
@@ -119,6 +120,37 @@ const effectiveSetting = (
   return originated(value, owner);
 };
 
+const effectiveGraphLimit = (layers: ReadonlyArray<ConfigurationLayer>, key: GraphLimitField): Originated<number> => {
+  let value: number = GRAPH_LIMIT_CEILINGS[key];
+  let owner: ConfigurationOrigin = { layer: "built-in", source: "built-in", field: `graphLimits.${key}` };
+  for (const layer of layers) {
+    const supplied = layer.document.graphLimits?.[key];
+    if (supplied === undefined) continue;
+    if (layer.name === "project" && owner.layer === "user" && supplied > value) {
+      throw new ConfigurationError({
+        source: layer.source, field: `graphLimits.${key}`,
+        reason: "project graph limit may only lower the user maximum",
+      });
+    }
+    value = supplied;
+    owner = origin(layer, `graphLimits.${key}`);
+  }
+  return originated(value, owner);
+};
+
+/** Convert the resolved, origin-bearing profile into a frozen Bend input. */
+export const effectiveGraphLimits = (policy: ResolvedPolicy): GraphLimits =>
+  validateGraphLimits({
+    version: policy.graphLimits.version,
+    sourceBytes: policy.graphLimits.sourceBytes.value,
+    treeBytes: policy.graphLimits.treeBytes.value,
+    files: policy.graphLimits.files.value,
+    readBytes: policy.graphLimits.readBytes.value,
+    outgoingEdges: policy.graphLimits.outgoingEdges.value,
+    depth: policy.graphLimits.depth.value,
+    work: policy.graphLimits.work.value,
+  });
+
 /**
  * Resolve built-in → user → project policy while retaining every relevant origin.
  * The returned value is immutable-by-convention and can be captured per event.
@@ -206,6 +238,23 @@ export const resolveConfiguration = (
     claudeFeedbackMode = originated(value, origin(layer, "claudeFeedbackMode"));
   }
 
+  const graphLimits = {
+    version: 1 as const,
+    sourceBytes: effectiveGraphLimit(layers, "sourceBytes"),
+    treeBytes: effectiveGraphLimit(layers, "treeBytes"),
+    files: effectiveGraphLimit(layers, "files"),
+    readBytes: effectiveGraphLimit(layers, "readBytes"),
+    outgoingEdges: effectiveGraphLimit(layers, "outgoingEdges"),
+    depth: effectiveGraphLimit(layers, "depth"),
+    work: effectiveGraphLimit(layers, "work"),
+  };
+  if (graphLimits.readBytes.value < graphLimits.sourceBytes.value) {
+    throw new ConfigurationError({
+      source: graphLimits.readBytes.origin.source, field: "graphLimits.readBytes",
+      reason: "total read cap must be at least the per-file source cap for full-file reservation",
+    });
+  }
+
   const policyWithoutDigest = {
     root,
     includes,
@@ -214,6 +263,7 @@ export const resolveConfiguration = (
     protectedExcludes: dedupePatterns(protectedExcludes),
     credentialEnvVar,
     claudeFeedbackMode,
+    graphLimits,
     settings: {
       deadlineMs: effectiveSetting(layers, "deadlineMs", DEFAULT_RUNTIME_SETTINGS.deadlineMs),
       concurrency: effectiveSetting(layers, "concurrency", DEFAULT_RUNTIME_SETTINGS.concurrency),
@@ -252,6 +302,7 @@ export const validateCapturedPolicy = (policy: ResolvedPolicy): void => {
     protectedExcludes: policy.protectedExcludes,
     credentialEnvVar: policy.credentialEnvVar,
     claudeFeedbackMode: policy.claudeFeedbackMode,
+    graphLimits: policy.graphLimits,
     settings: policy.settings,
     layers: policy.layers,
   })) {

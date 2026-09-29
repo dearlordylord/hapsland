@@ -4,82 +4,777 @@
     {
       "name": "A to B to excluded C",
       "events": [
-        { "kind": "root", "target": 1, "sourceBytes": 1000, "treeBytes": 300, "edges": [10] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 2, "result": "found" },
-        { "kind": "pathChecked", "allowed": true },
-        { "kind": "captured", "sourceBytes": 1000, "treeBytes": 300, "edges": [20] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 3, "result": "found" },
-        { "kind": "pathChecked", "allowed": false },
-        { "kind": "next" }
+        {
+          "kind": "root",
+          "target": 1,
+          "sourceBytes": 1000,
+          "treeBytes": 300,
+          "edges": [
+            10
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 2,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 300,
+          "edges": [
+            20
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 3,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": false
+        },
+        {
+          "kind": "next"
+        }
       ],
-      "phases": ["ready", "resolving", "checking", "capturing", "ready", "resolving", "checking", "ready", "incomplete"],
-      "commands": ["none", "resolveEdge:10", "checkPath:2", "readSource:2", "none", "resolveEdge:20", "checkPath:3", "skipImport:3:Excluded", "unitIncomplete:Excluded"],
-      "expected": { "phase": "incomplete", "reason": "Excluded", "files": 2, "visited": [3, 2, 1], "skippedExcluded": true }
+      "phases": [
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "ready",
+        "incomplete"
+      ],
+      "commands": [
+        "none",
+        "resolveEdge:10",
+        "checkPath:2",
+        "readSource:2",
+        "none",
+        "resolveEdge:20",
+        "checkPath:3",
+        "skipImport:3:Excluded",
+        "unitIncomplete:Excluded"
+      ],
+      "expected": {
+        "phase": "incomplete",
+        "reason": "Excluded",
+        "files": 2,
+        "visited": [
+          3,
+          2,
+          1
+        ],
+        "skippedExcluded": true
+      }
     },
     {
       "name": "single root with no imports completes",
       "events": [
-        { "kind": "root", "target": 1, "sourceBytes": 600, "treeBytes": 300, "edges": [] },
-        { "kind": "next" }
+        {
+          "kind": "root",
+          "target": 1,
+          "sourceBytes": 600,
+          "treeBytes": 300,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        }
       ],
-      "phases": ["ready", "complete"],
-      "commands": ["none", "unitComplete"],
-      "expected": { "phase": "complete", "files": 1, "visited": [1] }
+      "phases": [
+        "ready",
+        "complete"
+      ],
+      "commands": [
+        "none",
+        "unitComplete"
+      ],
+      "expected": {
+        "phase": "complete",
+        "files": 1,
+        "visited": [
+          1
+        ]
+      }
     },
     {
       "name": "cycle does not recapture root",
       "events": [
-        { "kind": "root", "target": 1, "sourceBytes": 100, "treeBytes": 100, "edges": [10] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 2, "result": "found" },
-        { "kind": "pathChecked", "allowed": true },
-        { "kind": "captured", "sourceBytes": 100, "treeBytes": 100, "edges": [20] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 1, "result": "found" },
-        { "kind": "next" }
+        {
+          "kind": "root",
+          "target": 1,
+          "sourceBytes": 100,
+          "treeBytes": 100,
+          "edges": [
+            10
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 2,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 100,
+          "treeBytes": 100,
+          "edges": [
+            20
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 1,
+          "result": "found"
+        },
+        {
+          "kind": "next"
+        }
       ],
-      "phases": ["ready", "resolving", "checking", "capturing", "ready", "resolving", "ready", "complete"],
-      "commands": ["none", "resolveEdge:10", "checkPath:2", "readSource:2", "none", "resolveEdge:20", "none", "unitComplete"],
-      "expected": { "phase": "complete", "files": 2, "visited": [2, 1] }
+      "phases": [
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "ready",
+        "complete"
+      ],
+      "commands": [
+        "none",
+        "resolveEdge:10",
+        "checkPath:2",
+        "readSource:2",
+        "none",
+        "resolveEdge:20",
+        "none",
+        "unitComplete"
+      ],
+      "expected": {
+        "phase": "complete",
+        "files": 2,
+        "visited": [
+          2,
+          1
+        ]
+      }
     },
     {
       "name": "branching tree skips denied X, then E and G, and finishes TreeLimit incomplete",
       "events": [
-        { "kind": "root", "target": 1, "sourceBytes": 1000, "treeBytes": 5120, "edges": [10, 20, 70] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 2, "result": "found" },
-        { "kind": "pathChecked", "allowed": true },
-        { "kind": "captured", "sourceBytes": 1000, "treeBytes": 5120, "edges": [30, 40] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 3, "result": "found" },
-        { "kind": "pathChecked", "allowed": true },
-        { "kind": "captured", "sourceBytes": 1000, "treeBytes": 5120, "edges": [50, 60] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 8, "result": "found" },
-        { "kind": "pathChecked", "allowed": false },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 4, "result": "found" },
-        { "kind": "pathChecked", "allowed": true },
-        { "kind": "captured", "sourceBytes": 1000, "treeBytes": 4096, "edges": [] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 5, "result": "found" },
-        { "kind": "pathChecked", "allowed": true },
-        { "kind": "captured", "sourceBytes": 1000, "treeBytes": 2048, "edges": [] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 6, "result": "found" },
-        { "kind": "pathChecked", "allowed": true },
-        { "kind": "captured", "sourceBytes": 1000, "treeBytes": 1024, "edges": [] },
-        { "kind": "next" },
-        { "kind": "resolved", "target": 7, "result": "found" },
-        { "kind": "pathChecked", "allowed": true },
-        { "kind": "captured", "sourceBytes": 1000, "treeBytes": 2048, "edges": [] },
-        { "kind": "next" }
+        {
+          "kind": "root",
+          "target": 1,
+          "sourceBytes": 1000,
+          "treeBytes": 5120,
+          "edges": [
+            10,
+            20,
+            70
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 2,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 5120,
+          "edges": [
+            30,
+            40
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 3,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 5120,
+          "edges": [
+            50,
+            60
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 8,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": false
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 4,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 4096,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 5,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 2048,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 6,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 1024,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 7,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 2048,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        }
       ],
-      "phases": ["ready", "resolving", "checking", "capturing", "ready", "resolving", "checking", "capturing", "ready", "resolving", "checking", "ready", "resolving", "checking", "capturing", "ready", "resolving", "checking", "capturing", "ready", "resolving", "checking", "capturing", "ready", "resolving", "checking", "capturing", "ready", "incomplete"],
-      "commands": ["none", "resolveEdge:10", "checkPath:2", "readSource:2", "none", "resolveEdge:20", "checkPath:3", "readSource:3", "none", "resolveEdge:70", "checkPath:8", "skipImport:8:Excluded", "resolveEdge:30", "checkPath:4", "readSource:4", "none", "resolveEdge:40", "checkPath:5", "readSource:5", "skipImport:5:TreeLimit", "resolveEdge:50", "checkPath:6", "readSource:6", "none", "resolveEdge:60", "checkPath:7", "readSource:7", "skipImport:7:TreeLimit", "unitIncomplete:TreeLimit"],
-      "expected": { "phase": "incomplete", "reason": "TreeLimit", "files": 7, "readBytes": 7000, "treeBytes": 20480, "visited": [7, 6, 5, 4, 8, 3, 2, 1], "skippedTree": true, "skippedExcluded": true }
+      "phases": [
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "incomplete"
+      ],
+      "commands": [
+        "none",
+        "resolveEdge:10",
+        "checkPath:2",
+        "readSource:2",
+        "none",
+        "resolveEdge:20",
+        "checkPath:3",
+        "readSource:3",
+        "none",
+        "resolveEdge:70",
+        "checkPath:8",
+        "skipImport:8:Excluded",
+        "resolveEdge:30",
+        "checkPath:4",
+        "readSource:4",
+        "none",
+        "resolveEdge:40",
+        "checkPath:5",
+        "readSource:5",
+        "skipImport:5:TreeLimit",
+        "resolveEdge:50",
+        "checkPath:6",
+        "readSource:6",
+        "none",
+        "resolveEdge:60",
+        "checkPath:7",
+        "readSource:7",
+        "skipImport:7:TreeLimit",
+        "unitIncomplete:TreeLimit"
+      ],
+      "expected": {
+        "phase": "incomplete",
+        "reason": "TreeLimit",
+        "files": 7,
+        "readBytes": 7000,
+        "treeBytes": 20480,
+        "visited": [
+          7,
+          6,
+          5,
+          4,
+          8,
+          3,
+          2,
+          1
+        ],
+        "skippedTree": true,
+        "skippedExcluded": true
+      }
+    },
+    {
+      "name": "configured exact file read and tree caps",
+      "limits": {
+        "version": 1,
+        "sourceBytes": 100,
+        "treeBytes": 500,
+        "files": 2,
+        "readBytes": 200,
+        "outgoingEdges": 2,
+        "depth": 1,
+        "work": 2
+      },
+      "events": [
+        {
+          "kind": "root",
+          "target": 1,
+          "sourceBytes": 100,
+          "treeBytes": 100,
+          "edges": [
+            10
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 2,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 100,
+          "treeBytes": 400,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        }
+      ],
+      "phases": [
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "complete"
+      ],
+      "commands": [
+        "none",
+        "resolveEdge:10",
+        "checkPath:2",
+        "readSource:2",
+        "none",
+        "unitComplete"
+      ],
+      "expected": {
+        "phase": "complete",
+        "files": 2,
+        "readBytes": 200,
+        "treeBytes": 500
+      }
+    },
+    {
+      "name": "changed tree cap rejects same root",
+      "limits": {
+        "version": 1,
+        "sourceBytes": 100,
+        "treeBytes": 99,
+        "files": 2,
+        "readBytes": 200,
+        "outgoingEdges": 2,
+        "depth": 1,
+        "work": 2
+      },
+      "events": [
+        {
+          "kind": "root",
+          "target": 1,
+          "sourceBytes": 100,
+          "treeBytes": 100,
+          "edges": [
+            10
+          ]
+        }
+      ],
+      "phases": [
+        "incomplete"
+      ],
+      "commands": [
+        "unitIncomplete:TreeLimit"
+      ],
+      "expected": {
+        "phase": "incomplete",
+        "reason": "TreeLimit",
+        "files": 0,
+        "readBytes": 0,
+        "treeBytes": 0
+      }
+    },
+    {
+      "name": "configured work cap terminates zero-byte cycle",
+      "limits": {
+        "version": 1,
+        "sourceBytes": 100,
+        "treeBytes": 500,
+        "files": 2,
+        "readBytes": 200,
+        "outgoingEdges": 2,
+        "depth": 1,
+        "work": 1
+      },
+      "events": [
+        {
+          "kind": "root",
+          "target": 1,
+          "sourceBytes": 0,
+          "treeBytes": 1,
+          "edges": [
+            10,
+            20
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 1,
+          "result": "found"
+        },
+        {
+          "kind": "next"
+        }
+      ],
+      "phases": [
+        "ready",
+        "resolving",
+        "ready",
+        "incomplete"
+      ],
+      "commands": [
+        "none",
+        "resolveEdge:10",
+        "none",
+        "unitIncomplete:WorkLimit"
+      ],
+      "expected": {
+        "phase": "incomplete",
+        "reason": "WorkLimit",
+        "work": 1,
+        "treeBytes": 1
+      }
+    },
+    {
+      "name": "A to B,C; B to D,E; C to F,G cumulative overflow",
+      "events": [
+        {
+          "kind": "root",
+          "target": 1,
+          "sourceBytes": 1000,
+          "treeBytes": 5120,
+          "edges": [
+            10,
+            20
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 2,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 5120,
+          "edges": [
+            30,
+            40
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 3,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 5120,
+          "edges": [
+            50,
+            60
+          ]
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 4,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 4096,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 5,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 2048,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 6,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 1024,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        },
+        {
+          "kind": "resolved",
+          "target": 7,
+          "result": "found"
+        },
+        {
+          "kind": "pathChecked",
+          "allowed": true
+        },
+        {
+          "kind": "captured",
+          "sourceBytes": 1000,
+          "treeBytes": 2048,
+          "edges": []
+        },
+        {
+          "kind": "next"
+        }
+      ],
+      "phases": [
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "resolving",
+        "checking",
+        "capturing",
+        "ready",
+        "incomplete"
+      ],
+      "commands": [
+        "none",
+        "resolveEdge:10",
+        "checkPath:2",
+        "readSource:2",
+        "none",
+        "resolveEdge:20",
+        "checkPath:3",
+        "readSource:3",
+        "none",
+        "resolveEdge:30",
+        "checkPath:4",
+        "readSource:4",
+        "none",
+        "resolveEdge:40",
+        "checkPath:5",
+        "readSource:5",
+        "skipImport:5:TreeLimit",
+        "resolveEdge:50",
+        "checkPath:6",
+        "readSource:6",
+        "none",
+        "resolveEdge:60",
+        "checkPath:7",
+        "readSource:7",
+        "skipImport:7:TreeLimit",
+        "unitIncomplete:TreeLimit"
+      ],
+      "expected": {
+        "phase": "incomplete",
+        "reason": "TreeLimit",
+        "files": 7,
+        "readBytes": 7000,
+        "treeBytes": 20480,
+        "visited": [
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1
+        ],
+        "skippedTree": true,
+        "skippedExcluded": false
+      }
     }
   ]
 }

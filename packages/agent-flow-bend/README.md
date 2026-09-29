@@ -9,11 +9,21 @@
 `ImportGraph.bend` defines source-free supporting-reference traversal for one
 review unit. Its compiled graph and checked TypeScript adapter support the
 visualization's replay. Run `npm run test:import-graph` for its laws and
-independent traces.
+independent traces. `import-graph-proof/LAWS.bend` and
+`import-graph-proof/PROOF.bend` contain the general budget and finite-event
+termination theorems; this command checks their BendTT kernel verdict.
 Supporting tree contributions that do not fit the remaining budget emit `SkipImport(TreeLimit)` while
 later pending edges continue within the file, read, work, depth, and deadline
-limits. The accepted tree remains within 20 KiB, and a unit with any skipped
+limits. The accepted tree remains within its effective configured cap (20 KiB
+by default), and a unit with any skipped
 import finishes incomplete with no Jev request.
+Each unit holds one versioned limits value and an event budget of
+`4 × work + 2`. Each delivered graph event spends one event; exhaustion
+terminates incomplete even when a captured node reports zero bytes. This
+conditional liveness result assumes each `ResolveEdge`, `CheckPath`, and
+`ReadSource` command eventually receives its matching fact or the host
+delivers `DeadlineReached`. A stalled external command supplies no event.
+Terminal phases deliberately self-loop on subsequent events.
 Denied import paths emit `SkipImport(Excluded)` before any source read and also leave
 later edges pending. If both a denied path and a tree-budget skip occur, the final
 incomplete reason is `TreeLimit`; otherwise a denied path finishes `Excluded`.
@@ -70,7 +80,8 @@ Other aggregate events remain tested models.
 
 Run `npm test` in this directory. It rebuilds the import-graph and canonical
 artifacts from Bend, checks the laws in
-`PROOF.bend`, and replays their independent source-free contract traces.
+`PROOF.bend` and the import graph kernel proofs, and replays their independent
+source-free contract traces.
 The existing policy and lifecycle artifacts are
 still checked against their source hashes by the root build. The canonical
 ledger owns reservation limits.

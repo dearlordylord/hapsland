@@ -1,5 +1,6 @@
 import type { HtmlBuilder } from "foldkit/html";
-import { initialImportGraph, projectImportGraph, stepImportGraph } from "../../agent-flow-bend/import-graph-adapter";
+import { GRAPH_LIMIT_CEILINGS, initialImportGraph, projectImportGraph, stepImportGraph } from "../../agent-flow-bend/import-graph-adapter";
+import type { GraphLimits } from "../../agent-flow-bend/import-graph-adapter";
 import { importGraphDiagram, importTreeBudgetView, type ImportGraphStage } from "./import-graph-diagram";
 
 type Input = Parameters<typeof stepImportGraph>[1];
@@ -25,9 +26,9 @@ export const IMPORT_GRAPH_SCENARIOS = [
   ] },
 ] as const;
 
-export const projectImportExample = (scenarioIndex: number, cursor: number) => {
+export const projectImportExample = (scenarioIndex: number, cursor: number, limits: GraphLimits = GRAPH_LIMIT_CEILINGS) => {
   const scenario = IMPORT_GRAPH_SCENARIOS[scenarioIndex] ?? IMPORT_GRAPH_SCENARIOS[0];
-  const states = scenario.units.map(() => initialImportGraph());
+  const states = scenario.units.map(() => initialImportGraph(limits));
   const history = scenario.steps.slice(0, Math.max(0, cursor)).map((entry) => {
     const result = stepImportGraph(states[entry.unit], entry.event);
     states[entry.unit] = result.state;
@@ -60,7 +61,7 @@ export const importGraphView = <Message>(h: HtmlBuilder<Message>, scenarioIndex:
     h.div([h.Class("import-graph-facts")], states.map((state, index) => h.div([], [
       h.strong([], [`${scenario.units[index]} · ${state.phase}${state.reason ? ` (${state.reason})` : ""}`]),
       h.span([], [`Pending edges: ${ids(state.pending)} · visited targets: ${ids(state.visited)}`]),
-      h.span([], [`Files read: ${state.files}/8 · read bytes: ${state.readBytes}/1572864 · accepted tree bytes: ${state.treeBytes}/20480 · work: ${state.work}/128`]),
+      h.span([], [`Files read: ${state.files}/${state.limits.files} · read bytes: ${state.readBytes}/${state.limits.readBytes} · accepted tree bytes: ${state.treeBytes}/${state.limits.treeBytes} · work: ${state.work}/${state.limits.work}`]),
       h.span([], [`Import skipped for remaining tree budget: ${state.skippedTree ? "yes" : "no"}`]),
       h.span([], [`Import skipped for denied permission: ${state.skippedExcluded ? "yes" : "no"}`]),
       h.span([], [state.phase === "complete" ? "Jev: eligible; no request or result simulated" : state.phase === "incomplete" ? "Jev: no request for this unit" : state.skippedTree ? "Jev: waiting for remaining branches; unit will be incomplete" : "Jev: waiting for complete unit"]),

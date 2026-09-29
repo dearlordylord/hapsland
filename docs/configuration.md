@@ -58,6 +58,15 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 | `settings.concurrency` | integer (1–32) | Optional | 4 | Maximum concurrently reviewed files for whole-file JSON requests. |
 | `settings.adviceBudget` | integer (0–100) | Optional | 5 | Maximum findings delivered for a whole-file JSON request event. |
 | `settings.transientRetries` | integer (0–5) | Optional | 2 | Additional retry attempts for transient backend failures in the whole-file JSON request path. |
+| `graphLimits` | object | Optional | — | Versioned bounded import graph limits; omitted values inherit. |
+| `graphLimits.version` | fixed value 1 | Required | — | Import graph limits profile version. |
+| `graphLimits.sourceBytes` | integer (1–262144) | Optional | 262144 | Maximum source bytes in each graph file. |
+| `graphLimits.treeBytes` | integer (1–20480) | Optional | 20480 | Maximum accepted encoded evidence-tree bytes. |
+| `graphLimits.files` | integer (1–8) | Optional | 8 | Maximum files read, including the root. |
+| `graphLimits.readBytes` | integer (1–1572864) | Optional | 1572864 | Maximum total source bytes read; must be at least sourceBytes. |
+| `graphLimits.outgoingEdges` | integer (1–16) | Optional | 16 | Maximum outgoing edges per accepted file. |
+| `graphLimits.depth` | integer (1–4) | Optional | 4 | Maximum supporting-reference depth. |
+| `graphLimits.work` | integer (1–128) | Optional | 128 | Maximum graph edge work steps. |
 | `packs` | array of non-empty string or object with `path` or object with `id` (may be empty) | Optional | — | Local rule-pack path declarations or references to packs inherited from lower-precedence layers. Bundled Noul loads independently. |
 | `packs[]` | non-empty string or object with `path` or object with `id` | Array item (array may be empty) | — | A path declaration or an inherited pack identity; object forms contain exactly one locator. |
 | `packs[].path` | non-empty string | Required (path form) | — | Local rule-pack path; relative paths resolve from the originating configuration file. |
@@ -74,6 +83,22 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 | `ruleOverrides.<key>.message` | non-empty string | Optional | — | Advice text to use for this rule; omission keeps the rule-pack message. |
 
 <!-- configuration-guide:end -->
+
+The optional `graphLimits` profile controls Bend import exploration for a review
+unit. It has its own `version: 1`; omitted fields inherit their built-in values.
+Project values may lower a user's graph limit, but may not raise it. A changed
+profile applies when a new review unit captures configuration; an in-flight
+unit retains its original limits. An invalid profile fails configuration
+resolution before any new review egress. The total read cap must be at least
+the per-file cap because Bend reserves a full allowed file before requesting a
+read. The root's declared encoded contribution must fit `treeBytes`; Bend
+rejects that root otherwise. Native capture must measure canonical encoded
+contributions and enforce physical read bounds. These graph limits do not
+bound the complete serialized Jev request; #140 owns that separate cap.
+
+The graph profile is the model and dashboard input. Production cross-file
+capture is tracked separately in #138; adding graph configuration does not
+enable import resolution in the native review path.
 
 Policy layers are built-in, user, then project. A supplied include list replaces the
 lower-precedence list; exclusions accumulate, and any exclusion wins. Thus a project

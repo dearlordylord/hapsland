@@ -10,8 +10,8 @@ try {
   execFileSync("bend", [join(root, "ImportGraphRuntime.bend"), "-o", compiled], { stdio: "pipe" });
   let source = readFileSync(compiled, "utf8");
   const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/;
-  if (!footer.test(source) || !source.includes("function $ImportGraph$step$(") ||
-      !source.includes("function $ImportGraph$initial$(")) {
+  if (!footer.test(source) || !source.includes("function $ImportGraph$bounded_step$(") ||
+      !source.includes("function $ImportGraph$bounded_initial$(")) {
     throw new Error("Bend import graph JavaScript layout changed; inspect generated runtime");
   }
   const namespacedTags = source.includes('"ImportGraph.Root"');
@@ -39,9 +39,9 @@ const normalize = (value) => {
   }
   return value;
 };
-export const bendImportGraphInitial = () => run_loop($ImportGraph$initial$());
+export const bendImportGraphInitial = (limits) => run_loop($ImportGraph$bounded_initial$(normalize(limits)));
 export const bendImportGraphStep = (state, event) =>
-  run_loop($ImportGraph$step$(state, normalize(event)));
+  run_loop($ImportGraph$bounded_step$(state, normalize(event)));
 `);
   writeFileSync(join(root, "import-graph.generated.js"), source);
 } finally {

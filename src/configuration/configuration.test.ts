@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ConfigurationError } from "./errors.ts";
 import { decodeConfigurationText, serializeConfigurationDocument } from "./decode.ts";
-import { resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
+import { effectiveGraphLimits, resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
 import type { ConfigurationLayer } from "./resolve.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
 import { explainPath } from "../explanation/index.ts";
@@ -67,6 +67,10 @@ describe("configuration v1 decoding", () => {
     ["credential value", '{"version":1,"credentials":{"value":"secret"}}', "credentials"],
     ["invalid pattern array", '{"version":1,"includes":"src/**"}', "includes"],
     ["invalid runtime bound", '{"version":1,"settings":{"deadlineMs":0}}', "settings.deadlineMs"],
+    ["invalid graph version", '{"version":1,"graphLimits":{"version":2}}', "graphLimits.version"],
+    ["zero graph file cap", '{"version":1,"graphLimits":{"version":1,"files":0}}', "graphLimits.files"],
+    ["oversized graph tree cap", '{"version":1,"graphLimits":{"version":1,"treeBytes":20481}}', "graphLimits.treeBytes"],
+    ["fractional graph work cap", '{"version":1,"graphLimits":{"version":1,"work":1.5}}', "graphLimits.work"],
     ["undocumented flat runtime field", '{"version":1,"adviceBudget":101}', "adviceBudget"],
     ["undocumented include alias", '{"version":1,"include":["src/**"]}', "include"],
     ["undocumented exclude alias", '{"version":1,"exclude":["src/**"]}', "exclude"],
@@ -120,6 +124,23 @@ describe("configuration v1 decoding", () => {
 });
 
 describe("layered selection and provenance", () => {
+  it("captures bounded graph limits with field origins and lower-only project policy", () => {
+    const original = effectiveGraphLimits(resolveConfiguration([], "/repo"));
+    expect(original).toMatchObject({ version: 1, sourceBytes: 262144, treeBytes: 20480, readBytes: 1572864 });
+    const user = source("user", '{"version":1,"graphLimits":{"version":1,"sourceBytes":100,"readBytes":200,"treeBytes":1000}}');
+    const captured = resolveConfiguration([user], "/repo");
+    expect(effectiveGraphLimits(captured)).toMatchObject({ sourceBytes: 100, readBytes: 200, treeBytes: 1000 });
+    expect(captured.graphLimits.sourceBytes.origin.layer).toBe("user");
+    const project = source("project", '{"version":1,"graphLimits":{"version":1,"treeBytes":500}}');
+    const changed = resolveConfiguration([user, project], "/repo");
+    expect(effectiveGraphLimits(changed).treeBytes).toBe(500);
+    expect(changed.graphLimits.treeBytes.origin.layer).toBe("project");
+    expect(effectiveGraphLimits(captured).treeBytes).toBe(1000);
+    expect(() => resolveConfiguration([user, source("project", '{"version":1,"graphLimits":{"version":1,"treeBytes":1001}}')], "/repo"))
+      .toThrowError(expect.objectContaining({ field: "graphLimits.treeBytes" }));
+    expect(() => resolveConfiguration([source("user", '{"version":1,"graphLimits":{"version":1,"sourceBytes":100,"readBytes":99}}')], "/repo"))
+      .toThrowError(expect.objectContaining({ field: "graphLimits.readBytes" }));
+  });
   it("requires a user owned Claude opt-in and lets a project restrict it", () => {
     const user = source("user", '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
     expect(resolveConfiguration([], "/repo").claudeFeedbackMode).toMatchObject({ value: "advisory", origin: { layer: "built-in" } });

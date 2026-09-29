@@ -5,7 +5,7 @@ import { initialImportGraph, projectImportGraph, stepImportGraph } from "../impo
 
 const fixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/import-graph-v1.json"), "utf8"));
 for (const trace of fixture.traces) {
-  let state = initialImportGraph();
+  let state = initialImportGraph(trace.limits);
   const commands = [];
   const phases = [];
   for (const event of trace.events) {
@@ -18,6 +18,7 @@ for (const trace of fixture.traces) {
   assert.deepEqual(commands, trace.commands, `${trace.name}: command sequence`);
   assert.deepEqual(phases, trace.phases, `${trace.name}: phase sequence`);
   const projected = projectImportGraph(state);
+  assert.deepEqual(projected.limits, trace.limits ?? projectImportGraph(initialImportGraph()).limits, `${trace.name}: effective limits snapshot`);
   for (const [key, expected] of Object.entries(trace.expected)) {
     assert.deepEqual(projected[key], expected, `${trace.name}: ${key}`);
   }
@@ -35,4 +36,30 @@ assert.equal(deadline.command.kind, "unitIncomplete");
 assert.equal(deadline.command.reason, "Deadline");
 assert.equal(projectImportGraph(deadline.state).phase, "incomplete");
 assert.throws(() => stepImportGraph(initialImportGraph(), { kind: "root", target: -1, sourceBytes: 1, treeBytes: 1, edges: [] }), TypeError);
+assert.throws(() => initialImportGraph({ ...projectImportGraph(initialImportGraph()).limits, sourceBytes: 0 }), /graphLimits.sourceBytes/);
+assert.throws(() => initialImportGraph({ ...projectImportGraph(initialImportGraph()).limits, readBytes: 1 }), /graphLimits.readBytes/);
+const defaults = projectImportGraph(initialImportGraph()).limits;
+const rootAt = (overrides, sourceBytes, treeBytes, edges = []) => {
+  const state = initialImportGraph({ ...defaults, ...overrides });
+  return stepImportGraph(state, { kind: "root", target: 1, sourceBytes, treeBytes, edges });
+};
+assert.equal(projectImportGraph(rootAt({}, defaults.sourceBytes, defaults.treeBytes, Array.from({ length: 16 }, (_, i) => i + 1)).state).phase, "ready");
+assert.equal(rootAt({}, defaults.sourceBytes + 1, 1).command.reason, "ReadLimit");
+assert.equal(rootAt({}, 1, defaults.treeBytes + 1).command.reason, "TreeLimit");
+assert.equal(rootAt({}, 1, 1, Array.from({ length: 17 }, (_, i) => i + 1)).command.reason, "WorkLimit");
+const fileRoot = rootAt({ files: 1 }, 1, 1, [10]).state;
+const fileNext = stepImportGraph(fileRoot, { kind: "next" }).state;
+const fileResolved = stepImportGraph(fileNext, { kind: "resolved", target: 2, result: "found" }).state;
+assert.equal(stepImportGraph(fileResolved, { kind: "pathChecked", allowed: true }).command.reason, "FileLimit");
+const readRoot = rootAt({ sourceBytes: 100, readBytes: 100 }, 100, 1, [10]).state;
+const readNext = stepImportGraph(readRoot, { kind: "next" }).state;
+const readResolved = stepImportGraph(readNext, { kind: "resolved", target: 2, result: "found" }).state;
+assert.equal(stepImportGraph(readResolved, { kind: "pathChecked", allowed: true }).command.reason, "ReadLimit");
+assert.equal(projectImportGraph(readResolved).readBytes, 100);
+const badEvent = stepImportGraph(initialImportGraph(), { kind: "next" });
+assert.equal(badEvent.command.reason, "ProtocolViolation");
+const noFuel = structuredClone(initialImportGraph());
+noFuel.remaining = 0;
+assert.equal(stepImportGraph(noFuel, { kind: "next" }).command.reason, "WorkLimit");
+assert.equal(Object.isFrozen(initialImportGraph()), true);
 console.log(`checked ${fixture.traces.length} independent source-free import graph traces`);

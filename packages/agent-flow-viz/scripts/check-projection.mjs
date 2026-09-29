@@ -130,6 +130,11 @@ try {
   assert.deepEqual(overflow.history.filter((entry) => entry.command.kind === "skipImport")
     .map((entry) => [entry.command.target, entry.command.reason]),
     [[8, "Excluded"], [5, "TreeLimit"], [7, "TreeLimit"]]);
+  const changedGraphLimits = { ...excluded.states[0].limits, treeBytes: 200 };
+  const changed = imports.projectImportExample(0, 1, changedGraphLimits);
+  assert.equal(changed.states[0].limits.treeBytes, 200);
+  assert.equal(changed.states[0].phase, "incomplete");
+  assert.equal(changed.history[0].command.reason, "TreeLimit");
   assert.ok(timeline.TIMELINE_CASES.length > 0, "retained native timing evidence remains visible");
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
