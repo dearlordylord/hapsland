@@ -20,7 +20,8 @@ import {
   type UnitAnalysis,
   inspectGraphFile,
 } from "./analyzer.ts";
-import { resolveGraphUnit } from "./graph-resolver.ts";
+import { MAX_OBSERVATION_GRAPH_FILES, MAX_OBSERVATION_GRAPH_READ_BYTES,
+  MAX_OBSERVATION_GRAPH_UNITS, resolveGraphUnit } from "./graph-resolver.ts";
 import { captureStable, type CaptureHooks } from "./capture.ts";
 import {
   DIRECT_EVENT_INPUT_CONTRACT,
@@ -230,6 +231,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
   const pathOutcomes: Array<PathObservationOutcome> = [];
   const observedUnits: Array<ReviewUnit> = [];
   const supportingCaptures = new Map<string, import("./capture.ts").StableCapture>();
+  let selectedGraphUnits = 0;
   for (const candidate of observation.candidates) {
     if (candidate.operation === "delete" || candidate.operation === "move") {
       pathOutcomes.push({ status: "incomplete", path: candidate.path, reason: "unsupported-operation" });
@@ -262,6 +264,13 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     }
     let captured = supportingCaptures.get(eligible.relativePath);
     if (captured === undefined) {
+      const admittedBytes = [...supportingCaptures.values()].reduce((sum, source) => sum + source.byteLength, 0);
+      if (supportingCaptures.size >= MAX_OBSERVATION_GRAPH_FILES ||
+        admittedBytes + GRAPH_LIMIT_CEILINGS.sourceBytes > MAX_OBSERVATION_GRAPH_READ_BYTES) {
+        pathOutcomes.push({ status: "incomplete", path: eligible.relativePath, reason: "capture-unavailable" });
+        outcomes.push({ status: "skipped", path: eligible.relativePath });
+        continue;
+      }
       captured = yield* (context.captureSource ?? captureStable)(
         observation.root,
         eligible,
@@ -310,6 +319,11 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     const graphFailures: AnalysisFailure[] = [];
     for (const item of selected) {
       const root = analysisRoot(item);
+      if (selectedGraphUnits >= MAX_OBSERVATION_GRAPH_UNITS) {
+        graphFailures.push({ root: root.name, reason: "reference-limit" });
+        continue;
+      }
+      selectedGraphUnits += 1;
       const unit = yield* resolveGraphUnit(eligible.relativePath, captured, root.name, {
         root: observation.root,
         rootIdentity: observation.rootIdentity,

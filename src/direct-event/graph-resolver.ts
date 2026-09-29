@@ -13,8 +13,15 @@ type Pending = { readonly owner: MutableNode; readonly index: number; readonly f
 type Built = { readonly node: ReviewNode; readonly pending: ReadonlyArray<Pending>; readonly complete: boolean };
 type LocalBudget = { readonly limits: GraphLimits; readonly targets: Set<string>; work: number; maxDepth: number };
 export const GRAPH_ANALYSIS_DEADLINE_MS = 5_000;
+export const MAX_OBSERVATION_GRAPH_FILES = 64;
+export const MAX_OBSERVATION_GRAPH_READ_BYTES = 16 * 1024 * 1024;
+export const MAX_OBSERVATION_GRAPH_UNITS = 64;
 const bytes = (value: unknown): number => Buffer.byteLength(JSON.stringify(value), "utf8");
 const sourceExtensions = [".ts", ".tsx", ".mts", ".cts"] as const;
+const mayCaptureForObservation = (captures: ReadonlyMap<string, StableCapture>, path: string): boolean =>
+  captures.has(path) || (captures.size < MAX_OBSERVATION_GRAPH_FILES &&
+    [...captures.values()].reduce((sum, source) => sum + source.byteLength, 0) + GRAPH_LIMIT_CEILINGS.sourceBytes <=
+      MAX_OBSERVATION_GRAPH_READ_BYTES);
 
 /** Materialize same-file evidence without turning imported declarations into edited roots. */
 const buildLocal = (file: GraphFile, path: string, name: string, visited: Set<string>, budget: LocalBudget, depth: number): Built | undefined => {
@@ -178,7 +185,8 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
       const target = pathForTarget.get(command.target);
       if (target === undefined) return undefined;
       const selected = yield* eligibleNamedPath(context.root, target.path, context.policy, context.rootIdentity);
-      if (selected === undefined) {
+      if (selected === undefined || (context.captureCache !== undefined &&
+        !mayCaptureForObservation(context.captureCache, selected.relativePath))) {
         transition = stepImportGraph(state, { kind: "captureFailed" });
       } else {
         let source = context.captureCache?.get(selected.relativePath);

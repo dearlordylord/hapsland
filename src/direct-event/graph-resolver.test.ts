@@ -151,4 +151,19 @@ describe("cross-file graph preparation", () => {
     expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(2);
     expect(reads.filter((path) => path === "b.ts")).toHaveLength(2);
   }));
+  it.effect("caps the whole observation at 64 graph units", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "a.ts", Array.from({ length: 64 }, (_, i) =>
+      `type T${i} = number`).join("\n")));
+    yield* Effect.promise(() => put(root, "b.ts", "type Extra = number"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["a.ts", "b.ts"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: configuredRules,
+    });
+    expect(prepared.outcomes.filter((outcome) => outcome.status === "ready")).toHaveLength(64);
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready" &&
+      outcome.prepared.input.path === "b.ts")).toBe(false);
+  }));
 });
