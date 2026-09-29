@@ -432,7 +432,7 @@ try {
         const normal = await Effect.runPromise(captureStable(root, selected('default.ts')));
         const link = await Effect.runPromise(captureStable(root, selected('link.ts')));
         if (exact?.byteLength !== 80 || over !== undefined || normal?.byteLength !== MAX_SOURCE_BYTES || link !== undefined) {
-          throw new Error('macOS bounded capture smoke failed');
+          throw new Error(JSON.stringify({ exact: exact?.byteLength, over: over?.byteLength, normal: normal?.byteLength, link: link?.byteLength }));
         }
         process.stdout.write('macOS default and lower capture bounds passed\\n');
       } finally { await rm(root, { recursive: true, force: true }); }
