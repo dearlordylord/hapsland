@@ -217,6 +217,31 @@ try {
   await applyManual(backgroundTrace.events[5], 6);
   assert.match(await page.locator(".topology-step").innerText(), /collectionBackgroundClaimed/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "background or Stop select" }).count(), 1);
+
+  const { ALTERNATE_LEDGER_LIMITS_SCENARIO, replayCanonical } = await server.ssrLoadModule("/src/canonical-replay.ts");
+  const alternate = ALTERNATE_LEDGER_LIMITS_SCENARIO;
+  const baseline = replayCanonical([], 0).projection;
+  const alternateInitial = replayCanonical([], 0, alternate.limits).projection;
+  assert.notDeepEqual(alternateInitial.limits, baseline.limits);
+  assert.deepEqual(alternateInitial.limits, alternate.limits);
+  await canonical.getByRole("button", { name: alternate.name, exact: true }).click();
+  await waitForText(".canonical-progress", "Guided step 0 of 2");
+  assert.ok((await page.locator(".topology-capacities").innerText()).includes(
+    `Review capacity ledger: ${alternateInitial.global.items}/${alternateInitial.limits.globalItems} items; ${alternateInitial.global.bytes}/${alternateInitial.limits.globalBytes} bytes`));
+  assert.ok((await canonical.innerText()).includes(
+    `${alternateInitial.global.items}/${alternateInitial.limits.globalItems} work items · ${alternateInitial.global.bytes}/${alternateInitial.limits.globalBytes} reserved review bytes`));
+  for (let step = 1; step <= alternate.events.length; step++) {
+    await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+    await waitForText(".canonical-progress", `Guided step ${step} of ${alternate.events.length}`);
+  }
+  const alternateAfter = replayCanonical(alternate.events.map((event) => ({ event, origin: "guided" })), alternate.events.length, alternate.limits).projection;
+  assert.equal(alternateAfter.global.items, 1);
+  assert.equal(alternateAfter.global.bytes, 20);
+  assert.ok((await page.locator(".topology-capacities").innerText()).includes(
+    `Review capacity ledger: ${alternateAfter.global.items}/${alternateAfter.limits.globalItems} items; ${alternateAfter.global.bytes}/${alternateAfter.limits.globalBytes} bytes`));
+  assert.ok((await canonical.locator(".capacity-rows").innerText()).includes(
+    `Agent 1 · ${alternateAfter.partitions[0].items}/${alternateAfter.limits.partitionItems} work items · ${alternateAfter.partitions[0].bytes}/${alternateAfter.limits.partitionBytes} reserved bytes`));
+  assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 0\/8.*Jev in-flight: 0\/8/s);
   const coverage = page.locator(".flow-coverage");
   await coverage.locator("summary").click();
   assert.match(await coverage.innerText(), /Jev ready, command, attempt and terminal facts · guided:/);
@@ -234,7 +259,7 @@ try {
   assert.doesNotMatch(await imports.locator(".import-graph-facts").innerText(), /D.ts/);
   assert.match(await page.locator("#timing-diagrams").innerText(), /Native timing evidence/);
   assert.deepEqual(errors, []);
-  console.log("Browser controls passed: canonical replay/history, ordered capacity, dispatch queue, collection leases/background claims, stale findings, execution counters, ninth Jev refusal, unsent/interrupted routes, Stop fork, coverage inventory, import graph, and native timing.");
+  console.log("Browser controls passed: canonical replay/history, changed checked ledger limits, ordered capacity, dispatch queue, collection leases/background claims, stale findings, execution counters, ninth Jev refusal, unsent/interrupted routes, Stop fork, coverage inventory, import graph, and native timing.");
 } finally {
   await browser?.close();
   await server.close();

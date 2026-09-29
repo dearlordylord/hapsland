@@ -22,6 +22,15 @@ export const CAPACITY_SCENARIO = {
   limits: fixture.limits,
   events: fixture.capacityTrace.events as CanonicalEvent[],
 };
+export const ALTERNATE_LEDGER_LIMITS_SCENARIO = {
+  name: "Alternate checked ledger limits",
+  description: "The source-free replay starts Bend with a second valid ledger limit set, then reserves one review unit.",
+  limits: { globalItems: 4, globalBytes: 160, partitionItems: 3, partitionBytes: 80 },
+  events: [
+    { kind: "openRound", partition: 1, lifetime: 1 },
+    { kind: "reserveCapacity", partition: 1, bytes: 20, purpose: "reviewUnit" },
+  ] as CanonicalEvent[],
+};
 export const CANONICAL_SCENARIOS = [CAPACITY_SCENARIO, ...fixture.traces.map((trace) => ({
   name: trace.name,
   description: "Independent source-free canonical event sequence covering resident work and output decisions.",
@@ -32,7 +41,7 @@ export const CANONICAL_SCENARIOS = [CAPACITY_SCENARIO, ...fixture.traces.map((tr
   description: "Independent #148 Jev request contract trace. Start, response, failure and physical availability are supplied source-free facts.",
   limits: requestFixture.limits,
   events: trace.events.map(({ expect: _expect, requestAfter: _requestAfter, requestCount: _requestCount, ...event }) => event as CanonicalEvent),
-}))] as const;
+})), ALTERNATE_LEDGER_LIMITS_SCENARIO] as const;
 
 /** Replay only through the checked adapter also used by the resident. */
 export const replayCanonical = (
