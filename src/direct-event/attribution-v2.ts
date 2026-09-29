@@ -88,7 +88,13 @@ export const selectEditedRootsV2 = (
       if (hunk.verified !== true || hunk.path !== snapshot.path) throw new Error("unverified or mismatched patch hunk");
       const bounds = range(hunk.location, starts, snapshot.source);
       if (bounds === undefined) throw new Error("invalid patch hunk range");
-      const enclosing = bounds[0] === bounds[1] ? [] : roots.filter(({ bounds: root }) => root[0] <= bounds[0] && bounds[1] <= root[1]);
+      // A line-based patch span includes the final line break. Tree-sitter's
+      // declaration range ends before that separator, so remove only that
+      // separator when testing containment.
+      const contentEnd = bounds[1] > bounds[0] && snapshot.source[bounds[1] - 1] === "\n"
+        ? bounds[1] - 1 : bounds[1];
+      const enclosing = bounds[0] === contentEnd ? [] : roots.filter(({ bounds: root }) =>
+        root[0] <= bounds[0] && contentEnd <= root[1]);
       enclosing.sort((a, b) => (a.bounds[1] - a.bounds[0]) - (b.bounds[1] - b.bounds[0]));
       const smallest = enclosing[0];
       const unique = smallest !== undefined && identities.get(`${smallest.declaration.kind}:${smallest.declaration.name}`) === 1 &&

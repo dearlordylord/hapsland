@@ -209,6 +209,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
     rootIdentity: rootOption.value.rootIdentity,
     advicee,
     candidates: Object.freeze(normalizedCandidates.map((candidate) => Object.freeze(candidate))),
+    nativePatchCommand: input.command,
   } satisfies DirectObservation);
 });
 

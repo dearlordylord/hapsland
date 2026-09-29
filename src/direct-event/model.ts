@@ -61,6 +61,8 @@ export type DirectObservation = {
   readonly rootIdentity: PhysicalRootIdentity;
   readonly advicee: DirectAdvicee;
   readonly candidates: ReadonlyArray<DirectCandidate>;
+  /** Bounded Codex patch retained only to verify v2 Update coordinates after capture. */
+  readonly nativePatchCommand?: string;
 };
 
 export type TypeDeclaration = {

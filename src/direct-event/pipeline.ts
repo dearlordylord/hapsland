@@ -12,6 +12,9 @@ import { effectiveGraphLimits } from "../configuration/resolve.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
 import { adaptCodexDirectEvent, verifyObservationRoot } from "./adapter.ts";
+import { selectEditedRootsV2 } from "./attribution-v2.ts";
+import { verifyCodexPostEditHunks } from "./codex-v2-hunks.ts";
+import { V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
 import {
   analyzeTypeFile,
   analyzerMaterializationPreflight,
@@ -316,8 +319,34 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
           unit: { root: { artifact, references: [] } },
           reason: "missing-evidence" as const,
         }));
+    const v2Selection = frozen === undefined && currentInputContract(context) === V2_TYPE_CONTRACT &&
+      graphFile !== undefined
+      ? (() => {
+          // Tree-sitter positions are byte-based; this narrow candidate does not
+          // convert Unicode columns yet, so attribution fails closed on non-ASCII.
+          if (Buffer.byteLength(captured.text, "utf8") !== captured.text.length) {
+            return { selected: [] as UnitAnalysis[], ambiguous: true };
+          }
+          const hunks = candidate.operation === "update" && observation.nativePatchCommand !== undefined
+            ? verifyCodexPostEditHunks(observation.nativePatchCommand, eligible.relativePath, captured.text)
+            : candidate.operation === "add" ? [] : undefined;
+          if (hunks === undefined) return { selected: [] as UnitAnalysis[], ambiguous: true };
+          const declarations = [...graphFile.declarations.values()].map(({ artifact, location }) => ({
+            path: eligible.relativePath, kind: artifact.kind, name: artifact.name, location,
+          }));
+          try {
+            const attribution = selectEditedRootsV2({ path: eligible.relativePath,
+              operation: candidate.operation, source: captured.text }, hunks, declarations);
+            const names = new Set(attribution.selected.map((root) => root.name));
+            return { selected: analyses.filter((item) => names.has(analysisRoot(item).name)),
+              ambiguous: attribution.ambiguous.length > 0 };
+          } catch {
+            return { selected: [] as UnitAnalysis[], ambiguous: true };
+          }
+        })()
+      : undefined;
     const selection = frozen === undefined
-      ? selectedAnalyses(analyses, candidate.operation, candidate.addedLines ?? [])
+      ? v2Selection ?? selectedAnalyses(analyses, candidate.operation, candidate.addedLines ?? [])
       : {
           selected: analyses.filter((item) => frozen.has(analysisRoot(item).name)),
           ambiguous: false,

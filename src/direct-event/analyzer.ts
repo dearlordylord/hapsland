@@ -19,6 +19,8 @@ type SyntaxNode = {
   readonly type: string;
   readonly text: string;
   readonly namedChildren: ReadonlyArray<SyntaxNode>;
+  readonly startPosition: { readonly row: number; readonly column: number };
+  readonly endPosition: { readonly row: number; readonly column: number };
   readonly parent?: SyntaxNode | null;
   readonly hasError?: boolean;
 };
@@ -37,6 +39,10 @@ export type GraphDeclaration = {
   readonly artifact: TypeDeclaration;
   readonly references: ParsedDeclaration["references"];
   readonly exported: boolean;
+  readonly location: {
+    readonly start: { readonly line: number; readonly column: number };
+    readonly end: { readonly line: number; readonly column: number };
+  };
 };
 
 export type GraphFile = {
@@ -208,6 +214,12 @@ export const inspectGraphFile = (path: string, source: string): GraphFile | unde
   return {
     declarations: new Map(parsed.map(({ artifact, references, node }) => [artifact.name, {
       artifact, references, exported: node.parent?.type === "export_statement",
+      location: {
+        start: { line: (node.parent?.type === "export_statement" ? node.parent : node).startPosition.row + 1,
+          column: (node.parent?.type === "export_statement" ? node.parent : node).startPosition.column + 1 },
+        end: { line: (node.parent?.type === "export_statement" ? node.parent : node).endPosition.row + 1,
+          column: (node.parent?.type === "export_statement" ? node.parent : node).endPosition.column + 1 },
+      },
     }])),
     imports,
   };
