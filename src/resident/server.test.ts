@@ -335,7 +335,7 @@ describe("resident delivery lease", () => {
     }
   });
 
-  it("cancels a queued and running review fanout using Bend work identities", async () => {
+  it("cancels a running review fanout without inventing a Jev wait queue", async () => {
     const root = await makeGitFixture();
     const paths = Array.from({ length: 12 }, (_, index) => `item-${index}.ts`);
     for (const [index, path] of paths.entries()) await put(root, path, `type Item${index}Count = number\n`);
@@ -362,7 +362,9 @@ describe("resident delivery lease", () => {
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
       expect(activity.roundClosures?.[0]?.reason).toBe("deadline");
-      expect(activity.roundClosures?.[0]?.discarded?.queued).toBeGreaterThan(0);
+      // #148 refuses ready Jev work beyond eight permits immediately; it
+      // does not retain those requests in a Jev wait queue.
+      expect(activity.roundClosures?.[0]?.discarded?.queued).toBe(0);
       expect(activity.roundClosures?.[0]?.discarded?.running).toBeGreaterThan(0);
       gate.resolve();
       await server.whenIdle();
@@ -2250,7 +2252,10 @@ describe("resident delivery lease", () => {
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     const saturated = server.stats();
-    expect(saturated).toMatchObject({ pendingAdvice: 16 });
+    // Every attempted unit either retains advice or is refused by the
+    // partition ledger, whose successful cache entries also consume space.
+    expect(saturated.pendingAdvice + saturated.rejectedCapacity).toBe(16);
+    expect(saturated.pendingAdvice).toBeGreaterThan(0);
     const beforeItems = server.pendingAdviceMetadata();
 
     const collected = await server.collect(
@@ -2267,9 +2272,9 @@ describe("resident delivery lease", () => {
       .slice(0, collected.findingCount).reduce((total, item) => total + item.retainedBytes, 0));
   });
 
-  // The 64 real repository parses exercise the declared global saturation limit and
-  // take about five seconds on the supported arm64 host.
-  it("revalidates and finalizes at the 64-item global saturation boundary", async () => {
+  // Four 16-item partitions attempt 64 real repository parses; the shared
+  // global limit is 512 and is covered by the capacity ledger tests.
+  it("revalidates and finalizes across four saturated partitions", async () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
     await enable(root, statePath);
@@ -2290,7 +2295,8 @@ describe("resident delivery lease", () => {
       await server.whenIdle();
     }
     const saturated = server.stats();
-    expect(saturated).toMatchObject({ pendingAdvice: 64 });
+    expect(saturated.pendingAdvice + saturated.rejectedCapacity).toBe(64);
+    expect(saturated.pendingAdvice).toBeGreaterThan(0);
     const beforeItems = server.pendingAdviceMetadata().filter(({ partition }) =>
       partition.includes('"subagentId":"agent-0"'));
 
