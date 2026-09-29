@@ -16,6 +16,7 @@ export const productionFlowView = <Message>(
 ) => {
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
   const event = last?.rejection === undefined ? last?.event.kind : undefined;
+  const stopEvent = event === "stopPolled" || event === "stopGroupPolled";
   const work = (kind: CanonicalProjection["work"][number]["kind"]) =>
     projection.work.filter((item) => item.kind === kind).map((item) => item.operation);
   const entries = (place: "pending" | "active" | "running") =>
@@ -50,16 +51,29 @@ export const productionFlowView = <Message>(
     { from: "authorization", to: "effect", label: "Jev request commanded", active: has(commands, "jevRequestIssued") },
     { from: "authorization", to: "outcomes", label: "immediate unavailable / command refused", active: has(commands, "jevRequestUnavailable", "reviewRecorded") && event === "jevRequestReady" },
     { from: "effect", to: "jev", label: "attempt observed", active: has(commands, "jevRequestStartRecorded") },
-    { from: "jev", to: "outcomes", label: "response or failure supplied", active: event === "jevRequestSettled" || event === "reviewCompleted" },
+    { from: "authorization", to: "outcomes", label: "command never sent", active: event === "jevRequestSettled" && last?.event.kind === "jevRequestSettled" && last.event.outcome === "neverSent" && has(commands, "jevRequestOutcomeRecorded") },
+    { from: "effect", to: "outcomes", label: "attempt interrupted / cancelled", active: has(commands, "jevInterruptionRecorded", "cancelWork") || (event === "jevRequestSettled" && last?.event.kind === "jevRequestSettled" && last.event.outcome === "interrupted") || (event === "reviewCompleted" && last?.event.kind === "reviewCompleted" && last.event.outcome === "interrupted") },
+    { from: "effect", to: "outcomes", label: "native failure or timeout fact", active: (event === "jevRequestSettled" && last?.event.kind === "jevRequestSettled" && (last.event.outcome === "backendFailure" || last.event.outcome === "timeout")) || (event === "reviewCompleted" && last?.event.kind === "reviewCompleted" && (last.event.outcome === "unavailable" || last.event.outcome === "discarded")) },
+    { from: "jev", to: "outcomes", label: "external finding or clear response supplied", active: (event === "jevRequestSettled" && last?.event.kind === "jevRequestSettled" && (last.event.outcome === "finding" || last.event.outcome === "clear")) || (event === "reviewCompleted" && last?.event.kind === "reviewCompleted" && (last.event.outcome === "finding" || last.event.outcome === "clear")) || event === "reviewObserved" },
     { from: "outcomes", to: "advice", label: "finding retained", active: has(commands, "retainFinding", "collectionFindingRetained") },
     { from: "outcomes", to: "round", label: "clear / stale / unavailable", active: has(commands, "settleClear", "settleStaleClear", "retireStaleFinding", "failureBackend", "reviewRecorded") },
     { from: "advice", to: "collection", label: "background or Stop select", active: has(commands, "collectionEligible", "collectionWaiting", "collectionBackgroundClaimed", "collectionFindingSelected", "finishReserved") },
+    { from: "collection", to: "collection", label: "Stop waits for work or output", active: has(commands, "waitForWork", "waitForOutput") },
+    { from: "collection", to: "preparation", label: "Stop cancels unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
+    { from: "collection", to: "round", label: "Stop decision ready or allow finish", active: has(commands, "finishReady", "finishAllowedNoAdvice", "finishAllowedDeadline", "finishAllowedUnavailable") },
     { from: "collection", to: "delivery", label: "authorize output", active: has(commands, "finishAuthorized", "submissionAuthorized", "writeAuthorized") },
     { from: "delivery", to: "round", label: "terminal fact / reoffer / continue", active: has(commands, "finishRecorded", "writeRecorded", "submissionRecorded", "reofferAtStop", "continuationConsumed", "finishEnded", "finishAllowedDeadline", "finishAllowedNoAdvice") },
   ];
   const activePlaces = new Set(routes.filter((route) => route.active).flatMap((route) => [route.from, route.to]));
+  const finishBranches = [
+    { label: "Wait for work", active: has(commands, "waitForWork", "collectionWaiting") },
+    { label: "Decision ready", active: has(commands, "finishReady", "reofferAtStop") },
+    { label: "Continue with advice", active: has(commands, "finishAuthorized", "continuationConsumed") },
+    { label: "Allow finish", active: has(commands, "finishAllowedNoAdvice", "finishAllowedDeadline", "finishAllowedUnavailable") },
+    { label: "Cancel unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
+  ];
   return h.div([h.Class("production-topology")], [
-    h.p([h.Class("flow-legend")], ["Blue: Bend state or decision · gray: native fact/effect · gold: external Jev fact. Bright borders mark routes from this accepted canonical step."]),
+    h.p([h.Class("flow-legend")], ["Blue: Bend state or decision · gray: native fact/effect · gold: external Jev fact. Orange arrows and borders mark routes from this accepted canonical step."]),
     h.div([h.Class("topology-grid")], nodes.map((node) => h.div([
       h.Class(`topology-node ${activePlaces.has(node.id) ? "active" : ""}`),
     ], [
@@ -67,7 +81,19 @@ export const productionFlowView = <Message>(
     ]))),
     h.div([h.Class("topology-routes")], routes.map((route) => h.div([
       h.Class(`topology-route ${route.active ? "active" : ""}`),
-    ], [`${route.from} → ${route.to} · ${route.label}`]))),
+    ], [
+      h.span([h.Class("route-origin")], [nodes.find((node) => node.id === route.from)?.title ?? route.from]),
+      h.span([h.Class("route-arrow")], ["→"]),
+      h.span([h.Class("route-destination")], [nodes.find((node) => node.id === route.to)?.title ?? route.to]),
+      h.small([], [route.label]),
+    ]))),
+    h.div([h.Class("finish-decision")], [
+      h.strong([], ["Stop finish decision · canonical branches"]),
+      h.p([], ["Bend chooses from supplied deadline, work, collection, and output facts. Host output is a separate native effect."]),
+      h.div([h.Class("finish-branches")], finishBranches.map((branch) => h.div([
+        h.Class(`finish-branch ${branch.active ? "active" : ""}`),
+      ], [h.span([], ["Stop collection"]), h.span([h.Class("route-arrow")], ["→"]), h.strong([], [branch.label])]))),
+    ]),
     h.div([h.Class("topology-capacities")], [
       h.strong([], ["Three separate limits"]),
       h.span([], [`Preparation running: ${projection.dispatch.running.filter((item) => item.preparation).length}/${projection.executionLimits.preparation}`]),

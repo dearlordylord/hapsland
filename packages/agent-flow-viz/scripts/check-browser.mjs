@@ -98,6 +98,39 @@ try {
   await waitForText(".canonical-progress", "Guided step 29 of 34");
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "immediate unavailable" }).count(), 1);
 
+  await canonical.getByRole("button", { name: "neverSent is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  for (let step = 1; step <= 6; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 6 of 7");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "command never sent" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "external finding or clear response" }).count(), 0);
+  assert.equal(await page.locator(".topology-node.active").filter({ hasText: "Jev response" }).count(), 0);
+
+  await canonical.getByRole("button", { name: "interrupted is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  for (let step = 1; step <= 7; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 7 of 9");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "attempt interrupted / cancelled" }).count(), 1);
+  await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 8 of 9");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "attempt interrupted / cancelled" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "external finding or clear response" }).count(), 0);
+
+  await canonical.getByRole("button", { name: "many units admit in order and Stop waits", exact: true }).click();
+  for (let step = 1; step <= 4; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 4 of 7");
+  assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Wait for work" }).count(), 1);
+  assert.match(await page.locator(".finish-decision").innerText(), /Continue with advice.*Allow finish.*Cancel unfinished work/s);
+  await canonical.getByRole("button", { name: "deadline requests exact cancellations", exact: true }).click();
+  for (let step = 1; step <= 3; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 3 of 4");
+  assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Cancel unfinished work" }).count(), 1);
+  assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Decision ready" }).count(), 1);
+  const coverage = page.locator(".flow-coverage");
+  await coverage.locator("summary").click();
+  assert.match(await coverage.innerText(), /Jev ready, command, attempt and terminal facts · guided:/);
+  assert.match(await coverage.innerText(), /Background and Stop collection, leases and expiry · manual replay only/);
+  assert.match(await coverage.innerText(), /Native facts and effects outside Bend/);
+  assert.equal(await coverage.getByRole("link", { name: "Bend source" }).count(), 12);
+
   const imports = page.locator("#import-graph");
   assert.match(await imports.innerText(), /Native: resolution, permission facts, source capture/);
   for (let step = 1; step <= 9; step++) {
@@ -108,7 +141,7 @@ try {
   assert.doesNotMatch(await imports.locator(".import-graph-facts").innerText(), /D.ts/);
   assert.match(await page.locator("#timing-diagrams").innerText(), /Native timing evidence/);
   assert.deepEqual(errors, []);
-  console.log("Browser controls passed: canonical guided/manual replay, command frames, rewind/redo, capacity rows, independent import graph, and native timing.");
+  console.log("Browser controls passed: canonical replay/history, ordered capacity, ninth Jev refusal, unsent/interrupted routes, Stop fork, coverage inventory, import graph, and native timing.");
 } finally {
   await browser?.close();
   await server.close();

@@ -10,8 +10,10 @@ This page replays source-free example events through the same checked
 `src/canonical/adapter.ts` and compiled `Canonical.step` used by the resident.
 The main flow has 13 distinct places from agent-runtime observation through
 preparation, Jev authorization/attempt/response, advice, delivery, and round
-closure. The route list marks active data and control movement from the current
-accepted canonical event and emitted commands. Rejected events leave every
+closure. Connected source → destination route cards mark active data and control
+movement from the current accepted canonical event and emitted commands. The
+Stop fork separately shows waiting, decision readiness, continuation, allowance,
+and cancellation from their respective checked commands. Rejected events leave every
 place and route inactive while showing the Bend reason. The three capacity
 figures come from the checked Bend projection: preparation running places,
 Jev request permits, and the review capacity ledger's item/byte limits.
@@ -53,7 +55,8 @@ operation/request identities and queue order, highlighted routes, outcome
 branches, and a finish/output decision card. Source capture and Jev/host I/O
 remain labeled native boundaries; the import traversal remains a separate
 model pending production integration. The dashboard's coverage disclosure
-links the guided fixtures, manual canonical event interface, and native
+calculates guided event-kind coverage per transition family from the loaded
+fixtures, names manual-only families, and links Bend source and native
 boundaries.
 
 Run `npm run build` for TypeScript, projection, compiled inventory, and Vite
