@@ -586,15 +586,6 @@ def issue_result(state: State, +partition: Nat,
     case _:
       Rejected{state, InconsistentLedger{}}
 
-def consume_result(state: State, +partition: Nat,
-    result: Admission.AdmissionResult) -> Step:
-  match result:
-    case Admission.Accepted{admission, _, Some{round}}:
-      Advanced{with_admission(state, partition, admission), PermitConsumed{round} <> Nil{}}
-    case Admission.Rejected{_, reason}:
-      Rejected{state, PermitDenied{reason}}
-    case _:
-      Rejected{state, InconsistentLedger{}}
 
 def close_permit_result(state: State, +partition: Nat,
     result: Admission.AdmissionResult) -> Step:
@@ -623,10 +614,6 @@ def issue_permit(+state: State, +partition: Nat, +lifetime: Nat,
     Admission.prospective_gate(facts))
 
 
-def consume_permit(+state: State, +partition: Nat, +lifetime: Nat,
-    +token: Nat, +tool: Nat, +now: Nat) -> Step:
-  consume_result(state, partition, Admission.step(current_admission(state, partition, lifetime),
-    partition, lifetime, Admission.Consume{token, tool, now}))
 
 def release_permit(+state: State, +partition: Nat, +lifetime: Nat,
     +token: Nat) -> Step:
@@ -655,27 +642,11 @@ def expire_permit(+state: State, +partition: Nat, +lifetime: Nat,
   expire_permit_checked(state, partition, lifetime, token, deadline_reached,
     current_admission(state, partition, lifetime))
 
-
-def close_prospective_permit(+state: State, +partition: Nat, +at: Nat,
-    admission: Admission.AdmissionState) -> Step:
-  match admission:
-    case Admission.AdmissionState{owner, lifetime, +round, False{}, closed_at,
-        +next_token, Nil{}, used}:
-      Bool.pick(Step,
-        Bool.and(Nat.is_gt(next_token, 1n), Nat.is_ge(at, closed_at)),
-        Advanced{with_admission(state, partition,
-          Admission.AdmissionState{owner, lifetime, (round + 1n : Nat), False{},
-            at, next_token, Nil{}, used}),
-          PermitRoundClosed{(round + 1n : Nat)} <> Nil{}},
-        Rejected{state, PermitDenied{Admission.RoundAlreadyClosed{}}})
-    case _:
-      close_permit_result(state, partition, Admission.close_prospective(admission, at))
-
 def close_permit_apply(+state: State, +partition: Nat, +lifetime: Nat,
     +at: Nat, prospective: Bool, admission: Admission.AdmissionState) -> Step:
   match prospective:
     case True{}:
-      close_prospective_permit(state, partition, at, admission)
+      close_permit_result(state, partition, Admission.close_prospective(admission, at))
     case False{}:
       close_permit_result(state, partition,
         Admission.step(admission, partition, lifetime, Admission.CloseRound{at}))
@@ -895,6 +866,47 @@ def open(+state: State, +partition: Nat, +lifetime: Nat) -> Step:
   match state:
     case State{_, rounds, _, _, _, _, +dispatch, +collection}:
       open_found(state, partition, lifetime, find_round(partition, rounds))
+
+# Commit the accepted edit and its canonical round together. Capacity rejection
+# leaves the permit unconsumed and cannot leave an active admission without a round.
+def consume_opened(original: State, round: Nat, opened: Step) -> Step:
+  match opened:
+    case Advanced{state, commands}:
+      Advanced{state, PermitConsumed{round} <> commands}
+    case Rejected{_, reason}:
+      Rejected{original, reason}
+
+def consume_existing(+original: State, +updated: State, +partition: Nat,
+    +lifetime: Nat, +round: Nat, existing: Maybe<&2, Round>) -> Step:
+  match existing:
+    case None{}:
+      consume_opened(original, round, open(updated, partition, lifetime))
+    case Some{Round{_, owner_lifetime, _, _, _, _, _}}:
+      Bool.pick(Step, Nat.is_eq(lifetime, owner_lifetime),
+        Advanced{updated, PermitConsumed{round} <> Nil{}},
+        Rejected{original, StaleRound{}})
+
+def consume_admitted(+state: State, +partition: Nat, lifetime: Nat,
+    admission: Admission.AdmissionState, round: Nat) -> Step:
+  match state:
+    case State{_, rounds, _, _, _, _, _, _}:
+      consume_existing(state, with_admission(state, partition, admission),
+        partition, lifetime, round, find_round(partition, rounds))
+
+def consume_result(+state: State, +partition: Nat, lifetime: Nat,
+    result: Admission.AdmissionResult) -> Step:
+  match result:
+    case Admission.Accepted{admission, _, Some{round}}:
+      consume_admitted(state, partition, lifetime, admission, round)
+    case Admission.Rejected{_, reason}:
+      Rejected{state, PermitDenied{reason}}
+    case _:
+      Rejected{state, InconsistentLedger{}}
+
+def consume_permit(+state: State, +partition: Nat, +lifetime: Nat,
+    +token: Nat, +tool: Nat, +now: Nat) -> Step:
+  consume_result(state, partition, lifetime, Admission.step(current_admission(state, partition, lifetime),
+    partition, lifetime, Admission.Consume{token, tool, now}))
 
 def is_deciding(current: Round) -> Bool:
   match current:
@@ -2938,8 +2950,7 @@ def step(+state: State, event: CanonicalEvent) -> Step:
     case RoundActivityCheck{bound, has_admission, +round, active, closed_at,
         expected_generation}:
       Advanced{state, Bool.pick(Command, Bool.and(bound, Bool.and(has_admission,
-        Bool.and(Nat.is_eq(expected_generation, Nat.max(1n, round)),
-          Bool.or(Bool.and(Nat.is_eq(round, 0n), Nat.is_eq(closed_at, 0n)), active)))),
+        Bool.and(Nat.is_eq(expected_generation, round), active))),
         RoundActive{}, RoundInactive{}) <> Nil{}}
     case RoundBarrierCheck{has_stop, used_at_start, used_now}:
       Advanced{state, Bool.pick(Command, Bool.and(has_stop,

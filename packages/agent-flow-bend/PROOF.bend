@@ -37,7 +37,7 @@ def Laws.canonical_released_capacity_rejects_duplicate():
 def Laws.canonical_permit_issue_is_partitioned_and_round_bound():
   {==}
 
-def Laws.canonical_expired_prospective_round_closes_once():
+def Laws.canonical_expired_permit_does_not_create_round():
   {==}
 
 def Laws.ledger_resize_changes_purpose_without_new_reservation():
@@ -325,7 +325,7 @@ def Laws.canonical_final_candidate_retires_expired_work():
 def Laws.canonical_stop_begin_requires_active_unowned_round():
   {==}
 
-def Laws.canonical_prospective_first_round_is_active_before_callback():
+def Laws.canonical_permit_only_round_is_inactive():
   {==}
 
 def Laws.canonical_stop_barrier_uses_continuations_since_claim():
@@ -664,7 +664,7 @@ def Laws.uncertain_background_may_reoffer_at_stop():
 def Laws.edit_submission_cannot_reoffer_at_stop():
   {==}
 
-def Laws.unconsumed_prospective_round_can_close():
+def Laws.unconsumed_permit_cannot_close_a_round(state, at):
   {==}
 
 def Laws.finding_enters_pending_advice(item):
@@ -917,4 +917,7 @@ def Laws.probability_precedes_rule_rank():
   {==}
 
 def Laws.advice_budget_is_exclusive():
+  {==}
+
+def Laws.canonical_edit_open_failure_is_atomic(state, provisional, round, reason):
   {==}

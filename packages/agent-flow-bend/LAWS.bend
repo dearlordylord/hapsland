@@ -94,15 +94,15 @@ law canonical_permit_issue_is_partitioned_and_round_bound:
         Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
       Canonical.PermitIssued{1n, 1n} <> Nil{}} : Canonical.Step}
 
-law canonical_expired_prospective_round_closes_once:
+law canonical_expired_permit_does_not_create_round:
   {Canonical.step(Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Nil{}, Nil{}, 1n, 1n,
     Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
     Canonical.ClosePermitRound{1n, 1n, 1n, 200n, True{}}) ==
-    Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.Rejected{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
-      Admission.AdmissionState{1n, 1n, 1n, False{}, 200n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
-      Canonical.PermitRoundClosed{1n} <> Nil{}} : Canonical.Step}
+      Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
+      Canonical.PermitDenied{Admission.RoundAlreadyClosed{}}} : Canonical.Step}
 
 law ledger_resize_changes_purpose_without_new_reservation:
   {Ledger.resize_for(Ledger.Ledger{Ledger.Limits{3n, 100n, 2n, 60n}, 2n,
@@ -523,11 +523,11 @@ law canonical_stop_begin_requires_active_unowned_round:
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Canonical.RoundStopBegun{} <> Nil{}} : Canonical.Step}
 
-law canonical_prospective_first_round_is_active_before_callback:
+law canonical_permit_only_round_is_inactive:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.RoundActivityCheck{True{}, True{}, 0n, False{}, 0n, 1n}) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.RoundActive{} <> Nil{}} : Canonical.Step}
+      Canonical.RoundInactive{} <> Nil{}} : Canonical.Step}
 
 law canonical_stop_barrier_uses_continuations_since_claim:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
@@ -1001,11 +1001,11 @@ law edit_submission_cannot_reoffer_at_stop:
     Handoff.Denied{Handoff.Lease{1n, 1n, False{}, False{},
       Handoff.Submitted{Handoff.Edit{}}}} : Handoff.LeaseResult}
 
-law unconsumed_prospective_round_can_close:
-  {Admission.close_prospective(Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-      Admission.Permit{1n, 2n, 1n, 10n, 20n} <> Nil{}, Nil{}}, 21n) ==
-    Admission.Accepted{Admission.AdmissionState{1n, 1n, 1n, False{}, 21n, 2n,
-      Nil{}, Nil{}}, None{}, Some{1n}} : Admission.AdmissionResult}
+law unconsumed_permit_cannot_close_a_round:
+  for state: Admission.AdmissionState
+  for at: Nat
+  {Admission.close_prospective(state, at) ==
+    Admission.Rejected{state, Admission.RoundAlreadyClosed{}} : Admission.AdmissionResult}
 
 # A Jev finding ends the item's Jeview and produces pending advice for the
 # same item in one transition.
@@ -1506,3 +1506,12 @@ law probability_precedes_rule_rank:
 
 law advice_budget_is_exclusive:
   {RulePolicy.budget(2n, 2n) == RulePolicy.Omit{} : RulePolicy.Gate}
+
+# Failed canonical creation cannot commit the edit's provisional admission.
+law canonical_edit_open_failure_is_atomic:
+  for state: Canonical.State
+  for provisional: Canonical.State
+  for round: Nat
+  for reason: Canonical.Reason
+  {Canonical.consume_opened(state, round, Canonical.Rejected{provisional, reason}) ==
+    Canonical.Rejected{state, reason} : Canonical.Step}

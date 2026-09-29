@@ -122,6 +122,27 @@ for (const trace of permitFixture.traces) {
     permits: entry.permits.length, used: entry.used.length,
   })), trace.rounds, trace.name);
 }
+// Opening a canonical round and consuming its first edit are one transaction.
+let fullRounds = initialCanonical(fixture.limits);
+for (let partition = 1; partition <= 256; partition++) {
+  const opened = stepCanonical(fullRounds, { kind: "openRound", partition, lifetime: 1 });
+  assert.equal(opened.rejection, undefined);
+  fullRounds = opened.state;
+}
+const issuedAtLimit = stepCanonical(fullRounds, {
+  kind: "issuePermit", partition: 257, lifetime: 1, tool: 1,
+  started: 100, now: 101, deadline: 200,
+  facts: { clockValid: true, withinHookWindow: true, startedAfterClosure: true,
+    duplicateEvent: false, permitCount: 0, permitLimit: 1024,
+    roundCount: 0, roundLimit: 64, newRound: true, eventCount: 0, eventLimit: 4096 },
+});
+assert.equal(issuedAtLimit.rejection, undefined);
+const refusedAtLimit = stepCanonical(issuedAtLimit.state, {
+  kind: "consumePermit", partition: 257, lifetime: 1, token: 1, tool: 1, now: 102,
+});
+assert.equal(refusedAtLimit.rejection, "RoundLimit");
+assert.deepEqual(projectCanonical(refusedAtLimit.state), projectCanonical(issuedAtLimit.state),
+  "canonical round limit must preserve the unconsumed, inactive admission");
 const reviewFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-review-v1.json"), "utf8"));
 for (const trace of reviewFixture.traces) {
   let current = initialCanonical(fixture.limits);
