@@ -101,6 +101,28 @@ describe("function native facts", () => {
     expect(resolveFunctionUnit(file, "run")?.references.some((edge) => edge.reference.name === "helper" && edge.target.kind === "local")).toBe(false);
   });
 
+  it("marks object and array assignment patterns uncertain", () => {
+    for (const write of ["({ helper } = value)", "[helper] = value"]) {
+      const file = analyzeFunctionFile("a.ts", `function helper() {} function run(value: any) { ${write}; helper() }`);
+      expect(file).toBeDefined();
+      if (file === undefined) continue;
+      const edges = resolveFunctionUnit(file, "run")?.references ?? [];
+      expect(edges.some((edge) => edge.target.kind === "unsupported")).toBe(true);
+      expect(edges.some((edge) => edge.reference.name === "helper" && edge.target.kind === "local")).toBe(false);
+    }
+  });
+
+  it("marks compound and update writes of a bound function uncertain", () => {
+    for (const write of ["helper += value", "helper &&= value", "++helper", "helper--"]) {
+      const file = analyzeFunctionFile("a.ts", `function helper() {} function run(value: any) { ${write}; helper() }`);
+      expect(file).toBeDefined();
+      if (file === undefined) continue;
+      const edges = resolveFunctionUnit(file, "run")?.references ?? [];
+      expect(edges.some((edge) => edge.target.kind === "unsupported")).toBe(true);
+      expect(edges.some((edge) => edge.reference.name === "helper" && edge.target.kind === "local")).toBe(false);
+    }
+  });
+
   it("rejects inapplicable files, malformed syntax, and nested-only functions", () => {
     expect(analyzeFunctionFile("a.js", "function f() {}" )).toBeUndefined();
     expect(analyzeFunctionFile("a.ts", "function f( {" )).toBeUndefined();

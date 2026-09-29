@@ -126,7 +126,8 @@ const functionReferences = (node: SyntaxNode, name: string, boundTypes: Readonly
     }
     if (child.type === "assignment_expression" || child.type === "augmented_assignment_expression" || child.type === "update_expression") {
       const target = child.namedChildren[0];
-      if (target?.type === "identifier" && boundFunctions.has(target.text)) {
+      if ((target?.type === "identifier" && boundFunctions.has(target.text)) ||
+        target?.type === "object_pattern" || target?.type === "array_pattern") {
         uncertainBinding = true;
         unsupportedBindings.push({ offset: child.startIndex, reference: { kind: "unsupported", name: child.text } });
       }
