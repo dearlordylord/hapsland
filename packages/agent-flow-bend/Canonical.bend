@@ -53,6 +53,14 @@ type Outcome is Data:
   Interrupted{}
   Discarded{}
 
+type RequestOutcome is Data:
+  NeverSent{}
+  RequestFinding{}
+  RequestClear{}
+  RequestBackendFailure{}
+  RequestTimeout{}
+  RequestInterrupted{}
+
 type WriteOutcome is Data:
   Acknowledged{}
   Failed{}
@@ -81,6 +89,15 @@ type CanonicalEvent is Data:
   PreparationCompleted{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, unit_bytes: List<&2, Nat>}
   StartReview{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
+  JevRequestReady{partition: Nat, lifetime: Nat, round: Nat, operation: Nat,
+    root_valid: Bool, configuration_valid: Bool, credential_ready: Bool,
+    selected: Bool, current_work: Bool, physical_available: Bool}
+  JevRequestStarted{partition: Nat, lifetime: Nat, round: Nat,
+    operation: Nat, request: Nat}
+  JevRequestInterrupted{partition: Nat, lifetime: Nat, round: Nat,
+    operation: Nat, request: Nat}
+  JevRequestSettled{partition: Nat, lifetime: Nat, round: Nat,
+    operation: Nat, request: Nat, outcome: RequestOutcome, current_work: Bool}
   ReviewCompleted{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: Outcome}
   RetireReview{partition: Nat, lifetime: Nat, round: Nat, operation: Nat}
@@ -274,6 +291,13 @@ type Command is Data:
     after: CapacityView}
   PreparationReleased{id: Nat, after: CapacityView}
   ReviewStarted{}
+  JevRequestIssued{partition: Nat, lifetime: Nat, round: Nat,
+    operation: Nat, request: Nat}
+  JevRequestUnavailable{}
+  JevRequestStartRecorded{}
+  JevInterruptionRecorded{}
+  JevRequestOutcomeRecorded{outcome: RequestOutcome}
+  JevObservationIgnored{}
   ReservationReleased{id: Nat}
   ReviewRecorded{outcome: Outcome}
   RetainFinding{}
@@ -1114,8 +1138,7 @@ def start_review_found(+state: State, +operation: Nat,
   match state found:
     case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection}
         Some{Work{_, _, _, _, _, Reviewing{}, _}}:
-      Advanced{State{ledger, rounds, replace_work_kind(operation, AtJev{}, work),
-        next_round, next_operation, admissions, dispatch, collection}, ReviewStarted{} <> Nil{}}
+      Advanced{state, ReviewStarted{} <> Nil{}}
     case _ _:
       Rejected{state, WrongStage{}}
 
@@ -1290,6 +1313,152 @@ def review_observed(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +outcome: Outcome, current_work: Bool) -> Step:
   review_observed_choice(state, partition, lifetime, round, operation, outcome,
     WorkPolicy.evaluated_disposition(is_finding(outcome), current_work))
+
+def request_outcome_valid(outcome: RequestOutcome, started: Bool,
+    interrupted: Bool) -> Bool:
+  match outcome:
+    case NeverSent{}: Bool.not(started)
+    case RequestInterrupted{}: Bool.and(started, interrupted)
+    case _: started
+
+def request_settled_outcome(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, +outcome: RequestOutcome,
+    current_work: Bool) -> Step:
+  match outcome:
+    case RequestFinding{}:
+      append_review_disposition(review_observed(state, partition, lifetime,
+        round, operation, Finding{}, current_work),
+        JevRequestOutcomeRecorded{RequestFinding{}})
+    case RequestClear{}:
+      append_review_disposition(review_observed(state, partition, lifetime,
+        round, operation, Clear{}, current_work),
+        JevRequestOutcomeRecorded{RequestClear{}})
+    case RequestInterrupted{}:
+      append_review_disposition(reviewed(state, partition, lifetime, round,
+        operation, Interrupted{}),
+        JevRequestOutcomeRecorded{RequestInterrupted{}})
+    case _:
+      append_review_disposition(reviewed(state, partition, lifetime, round,
+        operation, Unavailable{}), JevRequestOutcomeRecorded{outcome})
+
+def request_settled_work(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, outcome: RequestOutcome, current_work: Bool,
+    found: Maybe<&2, Work>) -> Step:
+  match found:
+    case Some{Work{_, _, _, _, _, AtJev{}, _}}:
+      request_settled_outcome(state, partition, lifetime, round, operation,
+        outcome, current_work)
+    case _:
+      Advanced{state, JevObservationIgnored{} <> Nil{}}
+
+def request_settled_released(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, outcome: RequestOutcome, current_work: Bool,
+    result: Dispatch.RequestResult) -> Step:
+  match state result:
+    case State{ledger, rounds, work, next_round, next_operation, admissions, _, collection}
+        Dispatch.RequestAccepted{dispatch}:
+      request_settled_work(State{ledger, rounds, work, next_round, next_operation,
+        admissions, dispatch, collection}, partition, lifetime, round, operation,
+        outcome, current_work,
+        find_work(partition, lifetime, round, operation, work))
+    case _ Dispatch.RequestDenied{_}:
+      Rejected{state, StaleOperation{}}
+
+def request_settled_found(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, +request: Nat, +outcome: RequestOutcome,
+    current_work: Bool, found: Maybe<&2, Dispatch.Request>) -> Step:
+  match state found:
+    case State{_, _, _, _, _, _, dispatch, _}
+        Some{Dispatch.Request{_, _, _, _, _, started, interrupted}}:
+      Bool.pick(Step, request_outcome_valid(outcome, started, interrupted),
+        request_settled_released(state, partition, lifetime, round, operation,
+          outcome, current_work, Dispatch.request_update(dispatch, partition,
+            lifetime, round, operation, request, False{}, False{}, True{})),
+        Rejected{state, WrongStage{}})
+    case _ _: Rejected{state, StaleOperation{}}
+
+def request_settled(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, +request: Nat, outcome: RequestOutcome,
+    current_work: Bool) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, dispatch, _}:
+      match dispatch:
+        case Dispatch.State{_, _, _, _, _, _, requests}:
+          request_settled_found(state, partition, lifetime, round, operation,
+            request, outcome, current_work,
+            Dispatch.request_phase(requests, partition, lifetime, round,
+              operation, request))
+
+def request_facts_ready(root_valid: Bool, configuration_valid: Bool,
+    credential_ready: Bool, selected: Bool, current_work: Bool,
+    physical_available: Bool) -> Bool:
+  Bool.and(root_valid, Bool.and(configuration_valid,
+    Bool.and(credential_ready, Bool.and(selected,
+      Bool.and(current_work, physical_available)))))
+
+def request_ready_reserved(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, +request: Nat,
+    result: Dispatch.RequestResult) -> Step:
+  match state result:
+    case State{ledger, rounds, work, next_round, next_operation, admissions, _, collection}
+        Dispatch.RequestAccepted{dispatch}:
+      Advanced{State{ledger, rounds, replace_work_kind(operation, AtJev{}, work),
+        next_round, (next_operation + 1n : Nat), admissions, dispatch, collection},
+        JevRequestIssued{partition, lifetime, round, operation, request} <> Nil{}}
+    case _ Dispatch.RequestDenied{_}:
+      append_review_disposition(reviewed(state, partition, lifetime, round,
+        operation, Unavailable{}), JevRequestUnavailable{})
+
+def request_ready_found(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, ready: Bool,
+    found: Maybe<&2, Work>) -> Step:
+  match state found:
+    case State{_, _, _, _, next_operation, _, dispatch, _}
+        Some{Work{_, _, _, _, _, Reviewing{}, _}}:
+      Bool.pick(Step, ready,
+        request_ready_reserved(state, partition, lifetime, round, operation,
+          next_operation, Dispatch.reserve_request(dispatch, partition, lifetime,
+            round, operation, next_operation)),
+        append_review_disposition(reviewed(state, partition, lifetime, round,
+          operation, Unavailable{}), JevRequestUnavailable{}))
+    case _ _: Rejected{state, WrongStage{}}
+
+def request_ready(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, root_valid: Bool,
+    configuration_valid: Bool, credential_ready: Bool, selected: Bool,
+    current_work: Bool, physical_available: Bool) -> Step:
+  match state:
+    case State{_, _, work, _, _, _, _, _}:
+      request_ready_found(state, partition, lifetime, round, operation,
+        request_facts_ready(root_valid, configuration_valid,
+          credential_ready, selected, current_work, physical_available),
+        find_work(partition, lifetime, round, operation, work))
+
+def request_update_result(+state: State, result: Dispatch.RequestResult,
+    command: Command) -> Step:
+  match state result:
+    case State{ledger, rounds, work, next_round, next_operation, admissions, _, collection}
+        Dispatch.RequestAccepted{dispatch}:
+      Advanced{State{ledger, rounds, work, next_round, next_operation,
+        admissions, dispatch, collection}, command <> Nil{}}
+    case _ Dispatch.RequestDenied{_}:
+      Rejected{state, StaleOperation{}}
+
+def request_started(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, +request: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, dispatch, _}:
+      request_update_result(state, Dispatch.request_update(dispatch, partition,
+        lifetime, round, operation, request, True{}, False{}, False{}),
+        JevRequestStartRecorded{})
+
+def request_interrupted(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, +operation: Nat, +request: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, _, dispatch, _}:
+      request_update_result(state, Dispatch.request_update(dispatch, partition,
+        lifetime, round, operation, request, False{}, True{}, False{}),
+        JevInterruptionRecorded{})
 
 def prepared_offer_result(state: State, decision: WorkPolicy.PreparedOffer) -> Step:
   match decision:
@@ -1475,7 +1644,7 @@ def cancel_dispatch_entries(items: List<&2, Dispatch.Entry>, +work: List<&2, Wor
   match items:
     case Nil{}:
       Nil{}
-    case Dispatch.Entry{+partition, +generation, +round, +operation, _, _, cancelled} <> rest:
+    case Dispatch.Entry{+partition, +generation, +round, +operation, _, _, cancelled, _} <> rest:
       cancel_pick(operation, cancel_dispatch_entries(rest, work, lifetime, scopes),
         Bool.and(Bool.not(cancelled), Bool.and(Nat.is_eq(generation, lifetime),
           Bool.and(scope_contains(scopes, partition, round),
@@ -1484,7 +1653,7 @@ def cancel_dispatch_entries(items: List<&2, Dispatch.Entry>, +work: List<&2, Wor
 def cancel_scoped_dispatch(dispatch: Dispatch.State, +work: List<&2, Work>, +lifetime: Nat,
     +scopes: List<&2, StopScope>) -> List<&2, Command>:
   match dispatch:
-    case Dispatch.State{pending, active, running, _, _, _}:
+    case Dispatch.State{pending, active, running, _, _, _, _}:
       List.append(&2, Command, cancel_dispatch_entries(pending, work, lifetime, scopes),
         List.append(&2, Command, cancel_dispatch_entries(active, work, lifetime, scopes),
           cancel_dispatch_entries(running, work, lifetime, scopes)))
@@ -1875,13 +2044,19 @@ def work_dispatchable(found: Maybe<&2, Work>) -> Bool:
     case _:
       False{}
 
+def dispatch_preparation(found: Maybe<&2, Work>) -> Bool:
+  match found:
+    case Some{Work{_, _, _, _, _, SourceQueued{}, _}}: True{}
+    case _: False{}
+
 def queue_dispatch(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat) -> Step:
   match state:
     case State{_, _, work, _, _, _, dispatch, +collection}:
       Bool.pick(Step,
         work_dispatchable(find_work(partition, lifetime, round, operation, work)),
-        dispatch_result(state, Dispatch.enqueue(dispatch, partition, lifetime, round, operation)),
+        dispatch_result(state, Dispatch.enqueue(dispatch, partition, lifetime, round, operation,
+          dispatch_preparation(find_work(partition, lifetime, round, operation, work)))),
         Rejected{state, StaleOperation{}})
 
 def settle_dispatch(+state: State, +partition: Nat, +lifetime: Nat,
@@ -2353,7 +2528,7 @@ def ticket_retention_result(+state: State, result: TicketState.Retention) -> Ste
 def cleanup_state_clean(state: State) -> Bool:
   match state:
     case State{_, _, Nil{}, _, _, _,
-        Dispatch.State{Nil{}, Nil{}, Nil{}, _, _, False{}},
+        Dispatch.State{Nil{}, Nil{}, Nil{}, _, _, False{}, Nil{}},
         CollectionState.State{Nil{}, Nil{}, Nil{},
           DeliveryState.State{Nil{}, _, SubmissionState.State{Nil{}, Nil{}}},
           RevisionState.State{Nil{}, _}, _,
@@ -2575,6 +2750,20 @@ def step(+state: State, event: CanonicalEvent) -> Step:
       prepared(state, partition, lifetime, round, operation, bytes)
     case StartReview{partition, lifetime, round, operation}:
       start_review(state, partition, lifetime, round, operation)
+    case JevRequestReady{partition, lifetime, round, operation, root_valid,
+        configuration_valid, credential_ready, selected, current_work,
+        physical_available}:
+      request_ready(state, partition, lifetime, round, operation, root_valid,
+        configuration_valid, credential_ready, selected, current_work,
+        physical_available)
+    case JevRequestStarted{partition, lifetime, round, operation, request}:
+      request_started(state, partition, lifetime, round, operation, request)
+    case JevRequestInterrupted{partition, lifetime, round, operation, request}:
+      request_interrupted(state, partition, lifetime, round, operation, request)
+    case JevRequestSettled{partition, lifetime, round, operation, request,
+        outcome, current_work}:
+      request_settled(state, partition, lifetime, round, operation, request,
+        outcome, current_work)
     case ReviewCompleted{partition, lifetime, round, operation, outcome}:
       reviewed(state, partition, lifetime, round, operation, outcome)
     case RetireReview{partition, lifetime, round, operation}:

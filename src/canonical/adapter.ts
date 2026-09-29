@@ -6,6 +6,7 @@ export const CANONICAL_MAX_BYTES = 2 ** 47 - 1;
 const MAX_BYTES = CANONICAL_MAX_BYTES;
 export const CANONICAL_MAX_UNITS = 1024;
 const MAX_UNITS = CANONICAL_MAX_UNITS;
+export type JevRequestOutcome = "neverSent" | "finding" | "clear" | "backendFailure" | "timeout" | "interrupted";
 type RecordValue = Record<string, unknown>;
 const object = (value: unknown): RecordValue => {
   if (value === null || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid canonical object");
@@ -108,6 +109,9 @@ export type CanonicalEvent =
   | { readonly kind: "interruptPreparation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
   | { readonly kind: "preparationCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly unitBytes: readonly number[] }
   | { readonly kind: "startReview" | "retireReview"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
+  | { readonly kind: "jevRequestReady"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly rootValid: boolean; readonly configurationValid: boolean; readonly credentialReady: boolean; readonly selected: boolean; readonly currentWork: boolean; readonly physicalAvailable: boolean }
+  | { readonly kind: "jevRequestStarted" | "jevRequestInterrupted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }
+  | { readonly kind: "jevRequestSettled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number; readonly outcome: JevRequestOutcome; readonly currentWork: boolean }
   | { readonly kind: "reviewCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded" }
   | { readonly kind: "reviewObserved"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear"; readonly currentWork: boolean }
   | { readonly kind: "findingCountUpdated"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly count: number }
@@ -236,6 +240,9 @@ export type CanonicalCommand =
   | { readonly kind: "roundStarted"; readonly id: number }
   | { readonly kind: "observationAdmitted"; readonly id: number }
   | { readonly kind: "observationStarted" | "observationCompleted" | "observationInterrupted" | "reviewStarted" }
+  | { readonly kind: "jevRequestIssued"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }
+  | { readonly kind: "jevRequestUnavailable" | "jevRequestStartRecorded" | "jevInterruptionRecorded" | "jevObservationIgnored" }
+  | { readonly kind: "jevRequestOutcomeRecorded"; readonly outcome: JevRequestOutcome }
   | { readonly kind: "prepare"; readonly operation: number; readonly reservation: number }
   | { readonly kind: "preparationRefused" }
   | { readonly kind: "unitAdmitted"; readonly operation: number; readonly reservation: number; readonly position: number; readonly bytes: number; readonly after: CapacityView }
@@ -348,6 +355,24 @@ const ticketJoinedState = (state: TicketJoinedState): unknown => {
   if (name === undefined) throw new TypeError("invalid joined state");
   return { $: `Ticket.${name}` };
 };
+const jevOutcomeTags: Record<JevRequestOutcome, string> = {
+  neverSent: "NeverSent", finding: "RequestFinding", clear: "RequestClear",
+  backendFailure: "RequestBackendFailure", timeout: "RequestTimeout",
+  interrupted: "RequestInterrupted",
+};
+const encodeJevRequestOutcome = (outcome: JevRequestOutcome): unknown => {
+  const name = jevOutcomeTags[outcome];
+  if (name === undefined) throw new TypeError("invalid Jev request outcome");
+  return { $: `Canonical.${name}` };
+};
+const decodeJevRequestOutcome = (value: unknown): JevRequestOutcome => {
+  const name = tag(value);
+  const outcome = (Object.entries(jevOutcomeTags) as [JevRequestOutcome, string][])
+    .find(([, variant]) => name === `Canonical.${variant}`)?.[0];
+  if (outcome === undefined) throw new TypeError("invalid Jev request outcome");
+  fields(value, name, []);
+  return outcome;
+};
 const encode = (event: CanonicalEvent): unknown => {
   switch (event.kind) {
     case "reserveCapacity": inputFields(event, ["kind", "partition", "bytes", "purpose"]); return { $: "Canonical.ReserveCapacity", partition: nat(event.partition, true), bytes: bytes(event.bytes), purpose: encodePurpose(event.purpose) };
@@ -374,6 +399,15 @@ const encode = (event: CanonicalEvent): unknown => {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation"]);
       return { $: event.kind === "startReview" ? "Canonical.StartReview" : "Canonical.RetireReview", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true) };
     }
+    case "jevRequestReady":
+      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "rootValid", "configurationValid", "credentialReady", "selected", "currentWork", "physicalAvailable"]);
+      return { $: "Canonical.JevRequestReady", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), root_valid: bool(event.rootValid), configuration_valid: bool(event.configurationValid), credential_ready: bool(event.credentialReady), selected: bool(event.selected), current_work: bool(event.currentWork), physical_available: bool(event.physicalAvailable) };
+    case "jevRequestStarted": case "jevRequestInterrupted":
+      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "request"]);
+      return { $: event.kind === "jevRequestStarted" ? "Canonical.JevRequestStarted" : "Canonical.JevRequestInterrupted", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), request: nat(event.request, true) };
+    case "jevRequestSettled":
+      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "request", "outcome", "currentWork"]);
+      return { $: "Canonical.JevRequestSettled", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), request: nat(event.request, true), outcome: encodeJevRequestOutcome(event.outcome), current_work: bool(event.currentWork) };
     case "reviewCompleted": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
       const outcome = { finding: "Canonical.Finding", clear: "Canonical.Clear", unavailable: "Canonical.Unavailable", interrupted: "Canonical.Interrupted", discarded: "Canonical.Discarded" }[event.outcome];
@@ -656,6 +690,12 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.UnitRefused": { const x = fields(value, "Canonical.UnitRefused", ["position", "bytes", "reason", "after"]); return { kind: "unitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
     case "Canonical.PreparationReleased": { const x = fields(value, "Canonical.PreparationReleased", ["id", "after"]); return { kind: "preparationReleased", id: nat(x.id, true), after: capacityView(x.after) }; }
     case "Canonical.ReviewStarted": fields(value, "Canonical.ReviewStarted", []); return { kind: "reviewStarted" };
+    case "Canonical.JevRequestIssued": { const x = fields(value, "Canonical.JevRequestIssued", ["partition", "lifetime", "round", "operation", "request"]); return { kind: "jevRequestIssued", partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true), operation: nat(x.operation, true), request: nat(x.request, true) }; }
+    case "Canonical.JevRequestUnavailable": fields(value, "Canonical.JevRequestUnavailable", []); return { kind: "jevRequestUnavailable" };
+    case "Canonical.JevRequestStartRecorded": fields(value, "Canonical.JevRequestStartRecorded", []); return { kind: "jevRequestStartRecorded" };
+    case "Canonical.JevInterruptionRecorded": fields(value, "Canonical.JevInterruptionRecorded", []); return { kind: "jevInterruptionRecorded" };
+    case "Canonical.JevObservationIgnored": fields(value, "Canonical.JevObservationIgnored", []); return { kind: "jevObservationIgnored" };
+    case "Canonical.JevRequestOutcomeRecorded": return { kind: "jevRequestOutcomeRecorded", outcome: decodeJevRequestOutcome(fields(value, "Canonical.JevRequestOutcomeRecorded", ["outcome"]).outcome) };
     case "Canonical.ReservationReleased": return { kind: "reservationReleased", id: nat(fields(value, "Canonical.ReservationReleased", ["id"]).id, true) };
     case "Canonical.ReviewRecorded": return { kind: "reviewRecorded", outcome: outcome(fields(value, "Canonical.ReviewRecorded", ["outcome"]).outcome) };
     case "Canonical.RetainFinding": fields(value, "Canonical.RetainFinding", []); return { kind: "retainFinding" };
@@ -882,7 +922,7 @@ export type CanonicalProjection = {
   readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[]; readonly used: readonly { readonly token: number; readonly tool: number }[] }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
   readonly pendingFindings: readonly { readonly operation: number; readonly count: number }[];
-  readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean };
+  readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean; readonly requests: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number; readonly started: boolean; readonly interrupted: boolean }[] };
   readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
   readonly tickets: readonly { readonly id: number; readonly units: readonly { readonly id: number; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }[] }[];
   readonly notices: readonly { readonly id: number; readonly partition: number; readonly group: number; readonly reservation: number; readonly suppressed: number; readonly pending?: { readonly id: number; readonly count: number; readonly sequence: number; readonly leased: boolean } }[];
@@ -890,21 +930,26 @@ export type CanonicalProjection = {
   readonly revision: { readonly entries: readonly { readonly subject: number; readonly input: number; readonly generation: number; readonly members: number }[]; readonly nextGeneration: number };
   readonly delivery: { readonly slots: readonly { readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly phase: "reserved" | "authorized" | "submitted" | "failed" | "uncertain" }[]; readonly counters: readonly { readonly group: number; readonly round: number; readonly used: number }[]; readonly submissions: { readonly batches: readonly { readonly advice: number; readonly group: number; readonly round: number; readonly token: number; readonly surface: "edit" | "background" | "stop"; readonly phase: "reserved" | "authorized" | "submitted" | "uncertain"; readonly fingerprints: readonly number[]; readonly units: readonly number[] }[]; readonly leases: readonly { readonly advice: number; readonly fingerprint: number; readonly round: number; readonly phase: "available" | "reserved" | "authorized" | "submitted" | "uncertain"; readonly reoffered: boolean }[] } };
 };
-type DispatchEntry = { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly sequence: number; readonly cycle: number; readonly cancelled: boolean };
+type DispatchEntry = { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly sequence: number; readonly cycle: number; readonly cancelled: boolean; readonly preparation: boolean };
 const known = new WeakSet<object>();
 export const projectCanonical = (state: unknown): CanonicalProjection => {
   if (!known.has(object(state))) throw new TypeError("foreign canonical state");
   const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions", "dispatch", "collection"]);
   nat(s.next_round, true); nat(s.next_operation, true);
-  const rawDispatch = fields(s.dispatch, "Dispatch.State", ["pending", "active", "running", "next_sequence", "cycle", "closed"]);
+  const rawDispatch = fields(s.dispatch, "Dispatch.State", ["pending", "active", "running", "next_sequence", "cycle", "closed", "requests"]);
   const dispatchEntry = (value: unknown): DispatchEntry => {
-    const x = fields(value, "Dispatch.Entry", ["partition", "lifetime", "round", "operation", "sequence", "cycle", "cancelled"]);
+    const x = fields(value, "Dispatch.Entry", ["partition", "lifetime", "round", "operation", "sequence", "cycle", "cancelled", "preparation"]);
     return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true),
-      operation: nat(x.operation, true), sequence: nat(x.sequence), cycle: nat(x.cycle), cancelled: bool(x.cancelled) };
+      operation: nat(x.operation, true), sequence: nat(x.sequence), cycle: nat(x.cycle), cancelled: bool(x.cancelled), preparation: bool(x.preparation) };
   };
+  const requests = readList(rawDispatch.requests, (value) => {
+    const x = fields(value, "Dispatch.Request", ["partition", "lifetime", "round", "operation", "request", "started", "interrupted"]);
+    return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true),
+      operation: nat(x.operation, true), request: nat(x.request, true), started: bool(x.started), interrupted: bool(x.interrupted) };
+  });
   const dispatch = { pending: readList(rawDispatch.pending, dispatchEntry), active: readList(rawDispatch.active, dispatchEntry),
     running: readList(rawDispatch.running, dispatchEntry), nextSequence: nat(rawDispatch.next_sequence),
-    cycle: nat(rawDispatch.cycle), closed: bool(rawDispatch.closed) };
+    cycle: nat(rawDispatch.cycle), closed: bool(rawDispatch.closed), requests };
   const dispatchEntries = [...dispatch.pending, ...dispatch.active, ...dispatch.running];
   const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery", "revision", "tickets", "reuse", "notices"]);
   const noticeState = fields(collectionState.notices, "NoticeState.State", ["records"]);
@@ -1028,11 +1073,15 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       new Set(delivery.submissions.leases.map((item) => `${item.advice}:${item.fingerprint}`)).size !== delivery.submissions.leases.length) {
     throw new TypeError("inconsistent canonical submission state");
   }
-  if (dispatch.running.length > 8 || new Set(dispatchEntries.map((x) => x.operation)).size !== dispatchEntries.length ||
+  if (dispatch.running.filter((entry) => entry.preparation).length > 8 || dispatch.requests.length > 8 ||
+      new Set(dispatch.requests.map((entry) => entry.request)).size !== dispatch.requests.length ||
+      new Set(dispatch.requests.map((entry) => entry.operation)).size !== dispatch.requests.length ||
+      dispatch.requests.some((entry) => entry.interrupted && !entry.started) ||
+      new Set(dispatchEntries.map((x) => x.operation)).size !== dispatchEntries.length ||
       new Set(dispatchEntries.map((x) => x.sequence)).size !== dispatchEntries.length ||
       dispatchEntries.some((x) => x.sequence >= dispatch.nextSequence || x.cycle > dispatch.cycle) ||
-      dispatch.pending.some((x) => x.cycle !== 0) ||
-      [...dispatch.active, ...dispatch.running].some((x) => x.cycle !== dispatch.cycle)) {
+      dispatch.pending.some((x) => x.cycle !== 0 || !x.preparation) ||
+      [...dispatch.active, ...dispatch.running].some((x) => x.cycle === 0)) {
     throw new TypeError("inconsistent canonical dispatch state");
   }
   const ledger = fields(s.ledger, "Ledger.Ledger", ["limits", "next_id", "charges"]);

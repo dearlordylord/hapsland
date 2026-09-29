@@ -1,4 +1,4 @@
-import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent, type CapacityPurpose } from "../canonical/adapter.ts";
+import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent, type CapacityPurpose, type JevRequestOutcome } from "../canonical/adapter.ts";
 export type { CapacityPurpose } from "../canonical/adapter.ts";
 
 export const GLOBAL_ITEM_LIMIT = 512;
@@ -33,7 +33,9 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "issuePermit" | "consumePermit" | "releasePermit" | "expirePermit" | "closePermitRound" |
   "openRound" | "admitObservation" | "startObservation" | "completeObservation" |
   "interruptObservation" | "beginObservedPreparation" | "interruptPreparation" |
-  "preparationCompleted" | "startReview" | "reviewCompleted" | "retireReview" |
+  "preparationCompleted" | "startReview" | "jevRequestReady" |
+  "jevRequestStarted" | "jevRequestInterrupted" | "jevRequestSettled" |
+  "reviewCompleted" | "retireReview" |
   "retirePartition" | "reviewObserved" | "findingCountUpdated" | "preparedOfferCheck" |
   "emptyPreparedCheck" | "reviewFailureCheck" | "queueDispatch" |
   "dispatchSettled" | "discardDispatch" | "dispatchScopeCheck" | "closeDispatch" |
@@ -95,6 +97,7 @@ export class CapacityLedger {
   readonly #reservations = new Map<number, CapacityReservation>();
   readonly #partitionIds = new Map<string, number>();
   readonly #roundIds = new Map<string, number>();
+  readonly #requestRounds = new Map<number, { readonly partition: string; readonly round: number }>();
   readonly #collectionTokens = new Map<string, number>();
   #nextCollectionToken = 1;
   #nextPartitionId = 1;
@@ -231,6 +234,68 @@ export class CapacityLedger {
     const result = this.transition({ kind: "startReview", partition: this.partitionId(partition),
       lifetime: 1, round, operation });
     return result.rejection === undefined && result.commands[0]?.kind === "reviewStarted";
+  }
+
+  readyJevRequest(partition: string, operation: number, reservation: CapacityReservation,
+    facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
+      readonly credentialReady: boolean; readonly selected: boolean;
+      readonly currentWork: boolean; readonly physicalAvailable: boolean }):
+    { readonly status: "issued"; readonly request: number } | { readonly status: "unavailable" } | { readonly status: "stale" } {
+    if (this.#reservations.get(reservation.id) !== reservation) return { status: "stale" };
+    const round = this.#roundIds.get(partition);
+    if (round === undefined) return { status: "stale" };
+    const result = this.transition({ kind: "jevRequestReady", partition: this.partitionId(partition),
+      lifetime: 1, round, operation, ...facts });
+    if (result.rejection !== undefined) return { status: "stale" };
+    const issued = result.commands[0];
+    if (issued?.kind === "jevRequestIssued") {
+      this.#requestRounds.set(issued.request, { partition, round });
+      return { status: "issued", request: issued.request };
+    }
+    if (result.commands.at(-1)?.kind !== "jevRequestUnavailable") throw new Error("invalid canonical request readiness");
+    this.#reservations.delete(reservation.id);
+    return { status: "unavailable" };
+  }
+
+  startJevRequest(partition: string, operation: number, request: number): boolean {
+    const identity = this.#requestRounds.get(request);
+    if (identity?.partition !== partition) return false;
+    const result = this.transition({ kind: "jevRequestStarted", partition: this.partitionId(partition),
+      lifetime: 1, round: identity.round, operation, request });
+    return result.rejection === undefined && result.commands[0]?.kind === "jevRequestStartRecorded";
+  }
+
+  interruptJevRequest(partition: string, operation: number, request: number): boolean {
+    const identity = this.#requestRounds.get(request);
+    if (identity?.partition !== partition) return false;
+    const result = this.transition({ kind: "jevRequestInterrupted", partition: this.partitionId(partition),
+      lifetime: 1, round: identity.round, operation, request });
+    return result.rejection === undefined && result.commands[0]?.kind === "jevInterruptionRecorded";
+  }
+
+  settleJevRequest(partition: string, operation: number, request: number,
+    reservation: CapacityReservation, outcome: JevRequestOutcome, currentWork: boolean):
+    "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" | "unavailable" | "ignored" | "stale" {
+    const identity = this.#requestRounds.get(request);
+    if (identity?.partition !== partition) return "stale";
+    const result = this.transition({ kind: "jevRequestSettled", partition: this.partitionId(partition),
+      lifetime: 1, round: identity.round, operation, request, outcome, currentWork });
+    if (result.rejection !== undefined) return "stale";
+    this.#requestRounds.delete(request);
+    const disposition = result.commands.at(-1)?.kind;
+    if (disposition === "jevObservationIgnored") return "ignored";
+    if (disposition !== "jevRequestOutcomeRecorded") throw new Error("invalid canonical request settlement");
+    const choice = result.commands.at(-2)?.kind;
+    if (choice === "retainFinding") {
+      if (this.#reservations.get(reservation.id) === reservation) {
+        (reservation as { purpose: CapacityPurpose }).purpose = "storedResult";
+      }
+      return choice;
+    }
+    if (this.#reservations.get(reservation.id) === reservation) this.#reservations.delete(reservation.id);
+    if (choice === "settleClear" || choice === "settleStaleClear" || choice === "retireStaleFinding") return choice;
+    if (result.commands.some((command) => command.kind === "reviewRecorded")) return "unavailable";
+    throw new Error("invalid canonical request outcome");
   }
 
   completeReview(partition: string, operation: number, reservation: CapacityReservation,
@@ -403,6 +468,7 @@ export class CapacityLedger {
     this.#reservations.clear();
     this.#partitionIds.clear();
     this.#roundIds.clear();
+    this.#requestRounds.clear();
     this.#nextPartitionId = 1;
   }
 

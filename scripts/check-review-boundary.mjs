@@ -12,6 +12,7 @@ if (source.includes("this.#ledger.replace(")) {
   throw new Error("resident review unit fan-out bypasses canonical preparation completion");
 }
 for (const call of ["this.#ledger.admitObservation(", "this.#ledger.completePreparation(",
-  "this.#ledger.observeReview("]) {
+  "this.#ledger.readyJevRequest(", "ledger.startJevRequest(",
+  "this.#ledger.settleJevRequest("]) {
   if (!source.includes(call)) throw new Error(`resident review transition missing: ${call}`);
 }

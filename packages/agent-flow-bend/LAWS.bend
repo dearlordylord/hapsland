@@ -43,14 +43,15 @@ law canonical_source_without_charge_blocks_finish:
     True{} : Bool}
 
 law dispatch_first_item_starts_cycle_one:
-  {Dispatch.enqueue(Dispatch.initial(), 1n, 1n, 1n, 7n) ==
+  {Dispatch.enqueue(Dispatch.initial(), 1n, 1n, 1n, 7n, True{}) ==
     Dispatch.Advanced{Dispatch.State{Nil{}, Nil{},
-      Dispatch.Entry{1n, 1n, 1n, 7n, 0n, 1n, False{}} <> Nil{},
-      1n, 1n, False{}},
+      Dispatch.Entry{1n, 1n, 1n, 7n, 0n, 1n, False{}, True{}} <> Nil{},
+      1n, 1n, False{}, Nil{}},
       Dispatch.Started{7n, 0n, 1n} <> Nil{}} : Dispatch.DispatchResult}
 
 law dispatch_has_eight_shared_slots:
-  {Dispatch.max_running() == 8n : Nat}
+  {Bool.and(Nat.is_eq(Dispatch.max_running(), 8n),
+    Nat.is_eq(Dispatch.max_requests(), 8n)) == True{} : Bool}
 
 law canonical_deadline_releases_exact_charge:
   {Canonical.release_round_charges(

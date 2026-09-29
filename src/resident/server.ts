@@ -242,6 +242,8 @@ type UnitJob = {
   readonly work?: WorkCohort;
   completed?: boolean;
   released?: boolean;
+  requestId?: number;
+  requestStarted?: boolean;
   readonly kind: "unit";
   readonly workUnitId?: number;
   /** The canonical observation admitted before source preparation began. */
@@ -260,6 +262,14 @@ type UnitJob = {
 };
 
 type Job = IngressJob | UnitJob;
+
+export type JevRequestObservation = {
+  readonly stage: "issued" | "unavailable" | "started" | "interrupted" | "settled";
+  readonly partition: string;
+  readonly operation: number;
+  readonly request?: number;
+  readonly outcome?: "neverSent" | "finding" | "clear" | "backendFailure" | "timeout" | "interrupted";
+};
 
 type Advice = Omit<UnitJob, "dispatch" | "kind" | "work" | "completed"> & {
   readonly id: string;
@@ -544,8 +554,10 @@ export class ResidentServer {
   readonly #afterAuthorizeBeforeCredential: (() => Promise<void>) | undefined;
   readonly #afterCredentialBeforeDispatch: (() => Promise<void>) | undefined;
   readonly #dispatchAuthorityObserver: ((observation: DispatchAuthorityObservation) => void) | undefined;
+  readonly #jevRequestObserver: ((observation: JevRequestObservation) => void) | undefined;
   #nextDispatchAuthoritySequence = 1;
   readonly #offlineHttpClient: HttpClient.HttpClient | undefined;
+  readonly #controlledRequestEffect: (() => Promise<void>) | undefined;
   readonly #beforeResponseHandoff: (() => Promise<void>) | undefined;
   readonly paths: ResidentPaths;
 
@@ -567,9 +579,13 @@ export class ResidentServer {
       readonly afterCredentialBeforeDispatch?: () => Promise<void>;
       /** Fixture-only authority observation; never supplied by resident IPC. */
       readonly dispatchAuthorityObserver?: (observation: DispatchAuthorityObservation) => void;
+      /** Fixture-only source-free command/effect witness. */
+      readonly jevRequestObserver?: (observation: JevRequestObservation) => void;
       readonly maximumOperationalNoticeKeys?: number;
       /** Fixture-only HTTP transport; never supplied by resident IPC. */
       readonly offlineHttpClient?: HttpClient.HttpClient;
+      /** Fixture-only gate entered by the controlled DecisionModel call. */
+      readonly controlledRequestEffect?: () => Promise<void>;
       readonly beforeResponseHandoff?: () => Promise<void>;
       readonly maximumTickets?: number;
     } = {},
@@ -601,7 +617,9 @@ export class ResidentServer {
     this.#afterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
     this.#afterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
     this.#dispatchAuthorityObserver = options.dispatchAuthorityObserver;
+    this.#jevRequestObserver = options.jevRequestObserver;
     this.#offlineHttpClient = options.offlineHttpClient;
+    this.#controlledRequestEffect = options.controlledRequestEffect;
     this.#beforeResponseHandoff = options.beforeResponseHandoff;
     this.#reuse = new EvaluationReuse({
       ledger: this.#ledger,
@@ -1900,7 +1918,8 @@ export class ResidentServer {
       if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
       this.#settleJoined(job.evaluationKey, "unavailable", "lost");
       this.#releaseReuseClaim(job.evaluationKey);
-      this.#releaseUnit(job);
+      // An issued Jev permit remains reserved until its native Effect settles.
+      if (job.requestId === undefined) this.#releaseUnit(job);
     } else this.#ledger.release(job.reservation);
     recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
       advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete" });
@@ -1970,6 +1989,12 @@ export class ResidentServer {
       observer(observation);
     } catch {
       // Fixture observation must not change resident dispatch behavior.
+    }
+  }
+
+  #observeJevRequest(observation: JevRequestObservation): void {
+    try { this.#jevRequestObserver?.(observation); } catch {
+      // Fixture observation must not change request execution.
     }
   }
 
@@ -2299,6 +2324,44 @@ export class ResidentServer {
   }
 
   async #evaluateUnit(job: UnitJob, cycle: number, sequence: number): Promise<void> {
+    let issuedRequest: number | undefined;
+    let requestStarted = false;
+    let requestSettled = false;
+    let interruptionReported = false;
+    let readyReported = false;
+    const signal = job.work?.controller.signal;
+    const requestReady = (facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
+      readonly credentialReady: boolean; readonly selected: boolean; readonly currentWork: boolean;
+      readonly physicalAvailable: boolean }) => {
+      readyReported = true;
+      const decision = this.#ledger.readyJevRequest(job.partition,
+        job.canonicalOperationId, job.reservation, facts);
+      if (decision.status === "issued") {
+        issuedRequest = decision.request;
+        job.requestId = decision.request;
+        this.#observeJevRequest({ stage: "issued", partition: job.partition,
+          operation: job.canonicalOperationId, request: decision.request });
+        signal?.addEventListener("abort", reportInterruption, { once: true });
+      } else if (decision.status === "unavailable") {
+        this.#observeJevRequest({ stage: "unavailable", partition: job.partition,
+          operation: job.canonicalOperationId });
+      }
+      return decision;
+    };
+    const denyReady = (reason?: "credential") => {
+      const decision = requestReady({ rootValid: false, configurationValid: false,
+        credentialReady: false, selected: false, currentWork: false,
+        physicalAvailable: false });
+      if (decision.status === "issued") throw new Error("canonical Jev request authorized unverified facts");
+      return { status: "notAuthorized" as const, reason };
+    };
+    const reportInterruption = (): void => {
+      if (issuedRequest === undefined || !requestStarted || interruptionReported) return;
+      interruptionReported = this.#ledger.interruptJevRequest(job.partition,
+        job.canonicalOperationId, issuedRequest);
+      if (interruptionReported) this.#observeJevRequest({ stage: "interrupted",
+        partition: job.partition, operation: job.canonicalOperationId, request: issuedRequest });
+    };
     try {
       if (job.round !== undefined && job.workUnitId !== undefined &&
           !job.round.policyWork.startUnit(job.workUnitId)) {
@@ -2313,6 +2376,7 @@ export class ResidentServer {
       }
       await this.#awaitBackendGate();
       if (!this.#jobActive(job) || !this.#isCurrentWork(job.revision, job.prepared)) {
+        denyReady();
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "stale");
         this.#settleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
@@ -2326,6 +2390,12 @@ export class ResidentServer {
       const afterAuthorizeBeforeCredential = this.#afterAuthorizeBeforeCredential;
       const afterCredentialBeforeDispatch = this.#afterCredentialBeforeDispatch;
       const offlineHttpClient = this.#offlineHttpClient;
+      const controlledRequestEffect = this.#controlledRequestEffect;
+      const ledger = this.#ledger;
+      const isCurrentWork = () => this.#isCurrentWork(job.revision, job.prepared);
+      const isJobActive = () => this.#jobActive(job);
+      const observeJevRequest = (observation: JevRequestObservation) =>
+        this.#observeJevRequest(observation);
       const observeDispatchAuthority = (details: DispatchAuthorityObservationDetails): void =>
         this.#observeDispatchAuthority(job, details);
       const result = await Effect.runPromise(Effect.gen(function* () {
@@ -2333,12 +2403,12 @@ export class ResidentServer {
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
-        if (job.dispatch.controlled !== null && controlled === undefined) return undefined;
+        if (job.dispatch.controlled !== null && controlled === undefined) return denyReady();
         const credentialRequired = controlled === undefined || controlled.requireCredential === true;
-        if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return undefined;
+        if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return denyReady("credential");
         const dispatchCredential = job.dispatch.credential;
-        if (credentialRequired && dispatchCredential === null) return undefined;
-        if (!(yield* verifyObservationRoot(job.observation))) return undefined;
+        if (credentialRequired && dispatchCredential === null) return denyReady("credential");
+        if (!(yield* verifyObservationRoot(job.observation))) return denyReady();
         if (afterAuthorizeBeforeCredential !== undefined) {
           yield* Effect.promise(afterAuthorizeBeforeCredential);
         }
@@ -2352,12 +2422,12 @@ export class ResidentServer {
               statePath: dispatchCredential.statePath,
             }));
         if (credentialRequired && credential?.status !== "present") {
-          return { status: "credential" as const };
+          return denyReady("credential");
         }
         if (credential?.status === "present") {
           const current = readCredentialState(dispatchCredential?.statePath);
           if (current.generation !== credential.generation ||
-              (credential.source === "saved" && current.savedUseSuspended)) return undefined;
+              (credential.source === "saved" && current.savedUseSuspended)) return denyReady("credential");
         }
         if (afterCredentialBeforeDispatch !== undefined) {
           yield* Effect.promise(afterCredentialBeforeDispatch);
@@ -2365,7 +2435,7 @@ export class ResidentServer {
         if (credential?.status === "present") {
           const current = readCredentialState(dispatchCredential?.statePath);
           if (current.generation !== credential.generation ||
-              (credential.source === "saved" && current.savedUseSuspended)) return undefined;
+              (credential.source === "saved" && current.savedUseSuspended)) return denyReady("credential");
         }
         // Prepared source can outlive its admission policy. Read authority again
         // after credential waits, then apply the current file policy before the
@@ -2374,7 +2444,7 @@ export class ResidentServer {
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
-        if (credentialRequired && dispatchCredential?.name !== dispatchConfiguration.policy.credentialEnvVar.value) return undefined;
+        if (credentialRequired && dispatchCredential?.name !== dispatchConfiguration.policy.credentialEnvVar.value) return denyReady("credential");
         const dispatchRootVerified = yield* verifyObservationRoot(job.observation);
         if (!dispatchRootVerified) {
           observeDispatchAuthority({
@@ -2387,7 +2457,7 @@ export class ResidentServer {
             credentialStatus: credential?.status ?? "not-required",
             credentialGeneration: credential?.generation ?? null,
           });
-          return undefined;
+          return denyReady();
         }
         const selected = selectedByDirectFilePolicy(
           job.prepared.input.path,
@@ -2406,7 +2476,13 @@ export class ResidentServer {
           credentialStatus: credential?.status ?? "not-required",
           credentialGeneration: credential?.generation ?? null,
         });
-        if (admission !== "admitReview") return undefined;
+        const ready = requestReady({
+            rootValid: dispatchRootVerified, configurationValid: true,
+            credentialReady: !credentialRequired || credential?.status === "present",
+            selected, currentWork: isCurrentWork(),
+            physicalAvailable: isJobActive(),
+          });
+        if (ready.status !== "issued") return { status: "notAuthorized" as const, reason: undefined };
         const credentialProvider = credential?.status !== "present"
           ? undefined
           : ConfigProvider.layer(ConfigProvider.fromUnknown({
@@ -2419,7 +2495,11 @@ export class ResidentServer {
               credentialEnvVar: settings.credentialEnvVar,
               ...(offlineHttpClient === undefined ? {} : { httpClient: offlineHttpClient }),
             })
-          : controlledDecisionModelLayer(controlled);
+          : controlledDecisionModelLayer({ ...controlled,
+              ...(controlledRequestEffect === undefined ? {} : {
+                onRequest: Effect.promise(controlledRequestEffect),
+              }),
+            });
         const credentialAuthority = credential?.status !== "present"
           ? Effect.void
           : Effect.suspend(() => {
@@ -2436,7 +2516,20 @@ export class ResidentServer {
               job.observation.root,
               encodedPreparedProviderInputBytes(job.prepared),
             ));
-        const beforeDispatch = credentialAuthority.pipe(Effect.andThen(budgetAuthority));
+        const beforeDispatch = credentialAuthority.pipe(
+          Effect.andThen(budgetAuthority),
+          Effect.andThen(Effect.sync(() => {
+            if (!ledger.startJevRequest(job.partition,
+              job.canonicalOperationId, ready.request)) {
+              throw new Error("canonical Jev request start refused");
+            }
+            requestStarted = true;
+            job.requestStarted = true;
+            observeJevRequest({ stage: "started", partition: job.partition,
+              operation: job.canonicalOperationId, request: ready.request });
+            if (signal?.aborted) reportInterruption();
+          })),
+        );
         const evaluation = evaluatePrepared(job.prepared, beforeDispatch).pipe(
           Effect.provide(decisionModel),
         );
@@ -2445,17 +2538,47 @@ export class ResidentServer {
           : evaluation.pipe(Effect.provide(credentialProvider)));
       }),
         { signal: job.work?.controller.signal });
-      if (!this.#jobActive(job)) { this.#releaseReuseClaim(job.evaluationKey); this.#releaseUnit(job); return; }
-      if (result?.status === "evaluated" && this.#lifecycle === "active") {
-        if (job.round !== undefined && job.workUnitId !== undefined &&
+      if (result?.status === "notAuthorized") {
+        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit,
+          result.reason === "credential" ? "credential" : "lost");
+        this.#settleJoined(job.evaluationKey, "unavailable",
+          result.reason === "credential" ? "credential" : "lost");
+        if (result.reason === "credential") this.#recordOperationalFailure(job.observation, "credential");
+        recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
+          advicee: job.observation.advicee, lifetime: this.lifetime,
+          stage: "unavailable", unitIdentity: job.evaluationKey });
+        this.#releaseReuseClaim(job.evaluationKey);
+        this.#releaseUnit(job);
+        return;
+      }
+      if (!this.#jobActive(job) && issuedRequest === undefined) {
+        this.#releaseReuseClaim(job.evaluationKey); this.#releaseUnit(job); return;
+      }
+      if (result?.status === "evaluated") {
+        if (this.#jobActive(job) && this.#lifecycle === "active" &&
+            job.round !== undefined && job.workUnitId !== undefined &&
             !job.round.policyWork.outcome(job.workUnitId, result.findings.length === 0
               ? { $: "Clear" }
               : { $: "Finding", count: result.findings.length, bytes: logicalBytes(result.findings) })) {
           throw new Error("Bend denied review outcome");
         }
-        const disposition = this.#ledger.observeReview(job.partition, job.canonicalOperationId,
-          job.reservation, result.findings.length === 0 ? "clear" : "finding",
-          this.#isCurrentWork(job.revision, job.prepared));
+        const currentWork = this.#lifecycle === "active" && this.#jobActive(job) &&
+          this.#isCurrentWork(job.revision, job.prepared);
+        if (issuedRequest === undefined || !requestStarted) {
+          throw new Error("Jev result without a matching canonical request command and start");
+        }
+        const disposition = this.#ledger.settleJevRequest(job.partition, job.canonicalOperationId,
+          issuedRequest, job.reservation,
+          result.findings.length === 0 ? "clear" : "finding", currentWork);
+        requestSettled = true;
+        this.#observeJevRequest({ stage: "settled", partition: job.partition,
+          operation: job.canonicalOperationId, request: issuedRequest,
+          outcome: result.findings.length === 0 ? "clear" : "finding" });
+        if (disposition === "ignored" || disposition === "stale") {
+          this.#releaseReuseClaim(job.evaluationKey);
+          this.#releaseUnit(job);
+          return;
+        }
         recordDemoTrace(job.dispatch.demoBudgetPath, job.observation.root, job.observation.advicee, {
           kind: "terminal", ...(job.sourceHash === undefined ? {} : { sourceHash: job.sourceHash }),
           state: result.findings.length === 0 ? "clear" : "findings",
@@ -2502,11 +2625,25 @@ export class ResidentServer {
         await recordOutcome();
         return;
       }
-      const failure = this.#ledger.reviewFailure(result?.status === "backend" || result?.status === "timeout",
-        result?.status === "credential", result === undefined);
-      if (!this.#ledger.completeReview(job.partition, job.canonicalOperationId,
-        job.reservation, "unavailable")) {
-        return;
+      if (signal?.aborted) reportInterruption();
+      const observed = issuedRequest === undefined ? undefined
+        : signal?.aborted && requestStarted && interruptionReported ? "interrupted"
+        : !requestStarted ? "neverSent"
+        : result?.status === "timeout" ? "timeout" : "backendFailure";
+      const failure = this.#ledger.reviewFailure(
+        observed === "backendFailure" || observed === "timeout" ||
+          (issuedRequest === undefined && (result?.status === "backend" || result?.status === "timeout")),
+        false, observed === "neverSent" || observed === "interrupted" || result === undefined);
+      if (issuedRequest === undefined) {
+        if (!this.#ledger.completeReview(job.partition, job.canonicalOperationId,
+          job.reservation, "unavailable")) return;
+      } else {
+        this.#ledger.settleJevRequest(job.partition, job.canonicalOperationId,
+          issuedRequest, job.reservation, observed ?? "neverSent", false);
+        requestSettled = true;
+        this.#observeJevRequest({ stage: "settled", partition: job.partition,
+          operation: job.canonicalOperationId, request: issuedRequest,
+          outcome: observed ?? "neverSent" });
       }
       if (failure === "failureBackend") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
@@ -2526,11 +2663,26 @@ export class ResidentServer {
         throw new Error("Bend denied review failure disposition");
       }
     } catch {
+      if (!readyReported && this.#ledger.canonicalProjection().work.some((entry) =>
+        entry.operation === job.canonicalOperationId && entry.kind === "reviewing")) {
+        denyReady();
+      }
+      if (issuedRequest !== undefined && !requestSettled) {
+        if (signal?.aborted) reportInterruption();
+        const observed = signal?.aborted && requestStarted && interruptionReported
+          ? "interrupted" : requestStarted ? "backendFailure" : "neverSent";
+        this.#ledger.settleJevRequest(job.partition, job.canonicalOperationId,
+          issuedRequest, job.reservation, observed, false);
+        requestSettled = true;
+        this.#observeJevRequest({ stage: "settled", partition: job.partition,
+          operation: job.canonicalOperationId, request: issuedRequest, outcome: observed });
+      }
       if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
       this.#settleJoined(job.evaluationKey, "unavailable", "backend");
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident evaluation unavailable");
       recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
     } finally {
+      signal?.removeEventListener("abort", reportInterruption);
     }
     this.#releaseReuseClaim(job.evaluationKey);
     this.#releaseUnit(job);
@@ -3296,8 +3448,10 @@ export class ResidentServer {
     this.#joinedReviews.clear();
     this.#ticketUnits.clear();
     // Running work may be interrupted by process exit or finish later. Clear
-    // its logical ownership now; its eventual terminal release is idempotent.
+    // its logical ownership after native effects settle. Issued Jev permits
+    // remain reserved through an interruption attempt.
     this.#reuse.clear();
+    await this.#dispatcher.whenIdle();
     this.#ledger.clear();
     this.#currentWork.clear();
     this.#revisionIds.clear();
