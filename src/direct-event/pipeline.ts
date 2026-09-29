@@ -275,9 +275,17 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
       outcomes.push({ status: "skipped", path: candidate.path });
       continue;
     }
+    // Claude's verified post-edit span is the source of root attribution. A
+    // replacement can reuse a line already present elsewhere in the file, so
+    // the whole-file line difference can be empty for a real edit. Codex still
+    // needs changed-line evidence before its patch is inspected below.
+    const hasClaudeEditSpan = observation.advicee.host === "claude-code" &&
+      observation.verifiedPostEditHunks?.path === candidate.path &&
+      observation.verifiedPostEditHunks.hunks.length > 0;
     if (
       candidate.operation === "update" &&
-      !candidate.addedLines.some((line) => line.trim().length > 0)
+      !candidate.addedLines.some((line) => line.trim().length > 0) &&
+      !hasClaudeEditSpan
     ) {
       pathOutcomes.push({ status: "incomplete", path: candidate.path, reason: "metadata-only" });
       outcomes.push({ status: "skipped", path: candidate.path });

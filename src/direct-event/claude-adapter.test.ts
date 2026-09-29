@@ -44,6 +44,33 @@ describe("Claude Code 2.1.218 direct adapter", () => {
     expect(prepared.outcomes.filter((item) => item.status === "ready").map((item) =>
       item.status === "ready" ? item.prepared.input.declaration.name : "")).toEqual(["B"]);
   });
+  it.each(["Edit", "Write"])("attributes a %s Update when its replacement line already exists", async (toolName) => {
+    const root = await makeGitFixture();
+    const path = join(root, "types.ts");
+    const original = "interface A {\n  value: string\n}\ninterface B {\n  value: number\n}\n";
+    const expected = "interface A {\n  value: number\n}\ninterface B {\n  value: number\n}\n";
+    await writeFile(path, expected);
+    const event = toolName === "Edit"
+      ? { ...base(root, path),
+          tool_input: { file_path: path, old_string: "value: string", new_string: "value: number", replace_all: false },
+          tool_response: { filePath: path, oldString: "value: string", newString: "value: number",
+            originalFile: original, replaceAll: false, userModified: false },
+        }
+      : { ...base(root, path), tool_name: "Write",
+          tool_input: { file_path: path, content: expected },
+          tool_response: { filePath: path, content: expected, originalFile: original, userModified: false },
+        };
+    const observation = await Effect.runPromise(adaptClaudeDirectEvent(event));
+    expect(observation?.candidates[0]?.addedLines).toEqual([]);
+    expect(observation?.verifiedPostEditHunks?.hunks).toHaveLength(1);
+    if (observation === undefined) throw new Error("fixture observation missing");
+    const prepared = await Effect.runPromise(prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+    }));
+    expect(prepared.outcomes.filter((item) => item.status === "ready").map((item) =>
+      item.status === "ready" ? item.prepared.input.declaration.name : "")).toEqual(["A"]);
+  });
   it("bounds replace_all attribution before materializing frequent-token hunks", async () => {
     const root = await makeGitFixture();
     const path = join(root, "many.ts");
