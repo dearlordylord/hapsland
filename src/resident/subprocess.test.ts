@@ -10,7 +10,7 @@ import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import type { DirectObservation } from "../direct-event/model.ts";
 import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { acknowledgeAdvice, collectReady, ensureResident, residentRequest } from "./client.ts";
+import { acknowledgeAdvice, beginComposedSubmission, collectReady, composedStopBoundary, ensureResident, residentRequest } from "./client.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import { residentPaths } from "./paths.ts";
 import { DELIVERY_LEASE_MS, type ResidentDispatchContext, type ResidentRequest } from "./protocol.ts";
@@ -408,6 +408,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     if (advice === undefined) return;
 
     await writeFile(`${ackGate}.enabled`, "enabled\n");
+    expect(await beginComposedSubmission(advice, "edit")).toBe(true);
     const ackScript = [
       "import {acknowledgeAdvice} from './src/resident/client.ts';",
       `const advice=${JSON.stringify(advice)};`,
@@ -428,8 +429,9 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       dispatch,
       paths,
     );
-    expect(reclaimed).toBeDefined();
-    if (reclaimed !== undefined) expect(await acknowledgeAdvice(reclaimed)).toBe(true);
+    // The killed acknowledgement may have reached output authorization. It
+    // cannot be silently offered again as an ordinary edit response.
+    expect(reclaimed).toBeUndefined();
 
     await put(root, "type.ts", "type ChangedAfterReview = string\n");
     expect(await collectReady(root, advicee({ turnId: "later-2", toolUseId: "bash-2" }), dispatch, paths)).toBeUndefined();
@@ -688,6 +690,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect((await residentRequest(paths, {
       requestRoute: "shared", operation: "cleanup", lifetime: second.lifetime,
     })).status).toBe("busy");
+    expect(await beginComposedSubmission(rootBatch, "edit")).toBe(true);
     expect(await acknowledgeAdvice(rootBatch)).toBe(true);
     const childAdvice = await collectReady(
       root,
@@ -696,13 +699,24 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       paths,
     );
     expect(childAdvice).toBeDefined();
-    if (childAdvice !== undefined) expect(await acknowledgeAdvice(childAdvice)).toBe(true);
+    if (childAdvice !== undefined) {
+      expect(await beginComposedSubmission(childAdvice, "edit")).toBe(true);
+      expect(await acknowledgeAdvice(childAdvice)).toBe(true);
+    }
 
+    const beforeClosure = await residentRequest(paths, {
+      requestRoute: "shared", operation: "stats", lifetime: second.lifetime,
+    });
+    expect(beforeClosure).toMatchObject({ status: "stats", pendingAdvice: 3 });
+    for (const [agent, token] of [[advicee(), "root-stop"], [advicee({ subagentId: "child-2" }), "child-stop"]] as const) {
+      expect(await composedStopBoundary("begin-stop", root, agent, token, false, paths)).toBe(true);
+      expect(await composedStopBoundary("finish-stop", root, agent, token, true, paths)).toBe(true);
+    }
     const beforeCleanup = await residentRequest(paths, {
       requestRoute: "shared", operation: "stats", lifetime: second.lifetime,
     });
     expect(beforeCleanup).toMatchObject({ status: "stats", pendingAdvice: 0 });
-    if (beforeCleanup.status === "stats") expect(beforeCleanup.successfulCacheEntries).toBeGreaterThan(0);
+    if (beforeCleanup.status === "stats") expect(beforeCleanup.successfulCacheEntries).toBe(0);
     await writeFile(`${cleanupGate}.enabled`, "enabled\n");
     const cleanupScript = [
       "import {residentRequest} from './src/resident/client.ts';",
