@@ -164,6 +164,26 @@ export const requiresCandidateEgressAuthorization = (prepared: PreparedUnit): bo
   Buffer.byteLength(prepared.input.declaration.source, "utf8") > 32 * 1024 ||
   hasCrossFileEvidence(prepared);
 
+const unitSourceFingerprints = (
+  unit: ReviewUnit,
+  captures: ReadonlyMap<string, import("./capture.ts").StableCapture>,
+): ReviewInput["sourceFingerprints"] | undefined => {
+  const paths = new Set<string>();
+  const pending = [unit.root];
+  while (pending.length > 0) {
+    const node = pending.pop();
+    if (node === undefined || node.artifact.path === undefined) return undefined;
+    paths.add(node.artifact.path);
+    for (const reference of node.references) if (reference.kind === "expanded") pending.push(reference.node);
+  }
+  const fingerprints = [...paths].sort().map((path) => {
+    const capture = captures.get(path);
+    return capture === undefined ? undefined : { path, contentHash: capture.contentHash, byteLength: capture.byteLength };
+  });
+  return fingerprints.some((item) => item === undefined) ? undefined :
+    fingerprints as NonNullable<ReviewInput["sourceFingerprints"]>;
+};
+
 const preparedBelongsTo = (
   prepared: PreparedUnit,
   observation: DirectObservation,
@@ -421,6 +441,8 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
     }
     for (const unit of units) {
       const declaration = unit.root.artifact;
+      const sourceFingerprints = legacyV1 ? undefined : unitSourceFingerprints(unit, supportingCaptures);
+      if (!legacyV1 && sourceFingerprints === undefined) continue;
       const artifactKind = declaration.kind === "function" ? "function" as const : "typeShape" as const;
       const capabilities = contract === V2_TYPE_CONTRACT
         ? ["root-declaration", "resolved-outbound-types", "selected-source-type-closure"] as const
@@ -438,6 +460,7 @@ export const prepareObservation = Effect.fn("DirectEvent.prepareObservation")(fu
         contract,
         graphLimits,
         candidateProjection: !legacyV1,
+        ...(sourceFingerprints === undefined ? {} : { sourceFingerprints }),
         completeness: "complete",
         path: eligible.relativePath,
         declaration,

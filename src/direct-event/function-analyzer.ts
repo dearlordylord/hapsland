@@ -32,6 +32,7 @@ export type FunctionReference = {
 };
 
 export type FunctionArtifact = {
+  readonly path: string;
   readonly id: string;
   readonly kind: "function" | "interface" | "type-alias";
   readonly name: string;
@@ -81,6 +82,7 @@ const descendants = (node: SyntaxNode): ReadonlyArray<SyntaxNode> => {
 };
 
 const artifact = <K extends FunctionArtifact["kind"]>(path: string, kind: K, name: string, source: string): FunctionArtifact & { readonly kind: K } => ({
+  path,
   id: `${path}:${kind}:${name}`,
   kind,
   name,

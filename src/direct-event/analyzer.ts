@@ -168,6 +168,7 @@ const parsedDeclarations = (path: string, source: string, allowImports = false):
       const sourceNode = node.parent?.type === "export_statement" ? node.parent : node;
       const rendered = sourceNode.text;
       const artifact: TypeDeclaration = {
+        path,
         id: `${path}:${kind}:${nameNode.text}`,
         kind,
         name: nameNode.text,

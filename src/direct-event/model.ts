@@ -67,6 +67,7 @@ export type DirectObservation = {
 };
 
 export type TypeDeclaration = {
+  readonly path?: string;
   readonly id: string;
   readonly kind: "interface" | "type-alias";
   readonly name: string;
@@ -188,6 +189,9 @@ export type ReviewInput = {
   readonly graphLimits?: GraphLimits;
   /** Candidate graph/source profile requires explicit egress authorization. */
   readonly candidateProjection?: boolean;
+  readonly sourceFingerprints?: ReadonlyArray<{
+    readonly path: string; readonly contentHash: string; readonly byteLength: number;
+  }>;
   /** Only complete semantic units are eligible for evaluation or reuse. */
   readonly completeness: "complete";
   readonly path: string;

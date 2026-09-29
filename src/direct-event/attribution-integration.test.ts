@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "./adapter.ts";
-import { prepareObservation } from "./pipeline.ts";
+import { prepareObservation, preparedUnitStillCurrent } from "./pipeline.ts";
 import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts";
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { V2_FUNCTION_CONTRACT, V2_TYPE_CONTRACT } from "../rules/v2-targets.ts";
@@ -14,7 +14,7 @@ describe("v2 Codex root attribution", () => {
     yield* Effect.promise(() => put(root, "b.ts", "export function helper(): number { return 1 }"));
     const observation = yield* adaptCodexDirectEvent(addEvent(root, ["a.ts"]));
     if (observation === undefined) throw new Error("fixture adaptation failed");
-    const prepared = yield* prepareObservation(observation, {
+    const context = {
       controlledWriter: true, advicee: observation.advicee,
       inputContract: V2_FUNCTION_CONTRACT,
       settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
@@ -23,7 +23,8 @@ describe("v2 Codex root attribution", () => {
         message: "Clarify it", reviewTargets: [{ artifactKind: "function",
           inputContract: V2_FUNCTION_CONTRACT, capabilities: ["signature", "body"] }],
       }] }, "fixture-v2"),
-    });
+    } as const;
+    const prepared = yield* prepareObservation(observation, context);
     expect(prepared.observation.outcomes[0]?.status).toBe("observed");
     if (prepared.observation.outcomes[0]?.status !== "observed") return;
     expect(prepared.observation.outcomes[0].units.map((unit) => [unit.root.artifact.kind,
@@ -33,6 +34,9 @@ describe("v2 Codex root attribution", () => {
     if (ready?.status === "ready") {
       expect(ready.prepared.input.rules[0]?.target?.inputContract).toBe(V2_FUNCTION_CONTRACT);
       expect(ready.prepared.input.candidateProjection).toBe(true);
+      expect(ready.prepared.input.sourceFingerprints?.map((item) => item.path)).toEqual(["a.ts", "b.ts"]);
+      yield* Effect.promise(() => put(root, "b.ts", "// changed outside declaration\nexport function helper(): number { return 1 }"));
+      expect(yield* preparedUnitStillCurrent(observation, ready.prepared, context)).toBe(false);
     }
   }));
 
