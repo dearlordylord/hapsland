@@ -124,6 +124,8 @@ try {
   await waitForText(".canonical-progress", "Guided step 3 of 4");
   assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Cancel unfinished work" }).count(), 1);
   assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Decision ready" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "attempt interrupted / cancelled" }).count(), 0);
+  assert.equal(await page.locator(".topology-node.active").filter({ hasText: "Native Jev effect attempt" }).count(), 0);
   const coverage = page.locator(".flow-coverage");
   await coverage.locator("summary").click();
   assert.match(await coverage.innerText(), /Jev ready, command, attempt and terminal facts · guided:/);
