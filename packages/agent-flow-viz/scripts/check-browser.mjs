@@ -80,6 +80,38 @@ try {
   }
   assert.match(await canonical.innerText(), /reviewRecorded · outcome: unavailable/);
   assert.match(await page.locator(".production-flow").innerText(), /reviewCompleted accepted/);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 1);
+
+  await canonical.getByRole("button", { name: "clear is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  for (let step = 1; step <= 7; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 7 of 8");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "finding retained" }).count(), 0);
+
+  await canonical.getByRole("button", { name: "finding is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  for (let step = 1; step <= 7; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
+  await waitForText(".canonical-progress", "Guided step 7 of 8");
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "finding retained" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 0);
+
+  await canonical.getByRole("button", { name: "Reset canonical replay" }).click();
+  const staleEvents = [
+    { kind: "openRound", partition: 1, lifetime: 1 },
+    { kind: "beginPreparation", partition: 1, lifetime: 1, round: 1, bytes: 10 },
+    { kind: "preparationCompleted", partition: 1, lifetime: 1, round: 1, operation: 1, unitBytes: [10] },
+    { kind: "startReview", partition: 1, lifetime: 1, round: 1, operation: 2 },
+    { kind: "reviewObserved", partition: 1, lifetime: 1, round: 1, operation: 2, outcome: "finding", currentWork: false },
+  ];
+  for (const [index, event] of staleEvents.entries()) {
+    await canonical.getByLabel("Manual source-free canonical event (JSON)").fill(JSON.stringify(event));
+    await canonical.getByLabel("Manual source-free canonical event (JSON)").press("Tab");
+    await canonical.getByRole("button", { name: "Apply canonical event" }).click();
+    await waitForText(".canonical-progress", `history ${index + 1}/${index + 1}`);
+  }
+  await waitForText(".canonical-progress", "history 5/5");
+  assert.match(await page.locator(".topology-step").innerText(), /retireStaleFinding/);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "finding retained" }).count(), 0);
 
   await canonical.getByRole("button", { name: "eight active request permits; ninth settles immediately and release permits another", exact: true }).click();
   for (let step = 1; step <= 26; step++) await canonical.getByRole("button", { name: /^Next canonical step:/ }).click();
