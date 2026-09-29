@@ -99,7 +99,7 @@ try {
     controlled: null,
   };
   const admit = await residentRequest(paths, {
-    version: 1, operation: "admit", lifetime: server.lifetime,
+    requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
     observation, controlledWriter: true, dispatch,
   });
   event("admit", { status: admit.status, repoId: "fixture-repo", path, source: "production" });

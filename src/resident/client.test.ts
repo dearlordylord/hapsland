@@ -199,7 +199,7 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
-    await expect(residentRequest(paths, { version: 1, operation: "hello" }, 500)).rejects.toThrow(
+    await expect(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500)).rejects.toThrow(
       "resident response was invalid",
     );
   });
@@ -221,7 +221,7 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o666);
-    await expect(residentRequest(paths, { version: 1, operation: "hello" }, 500)).rejects.toThrow(
+    await expect(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500)).rejects.toThrow(
       "private user-owned socket",
     );
     expect(connections).toBe(0);
@@ -241,7 +241,7 @@ describe("resident client trust boundary", () => {
     });
     await chmod(paths.socket, 0o600);
     await expect(residentRequest(paths, {
-      version: 1,
+      requestRoute: "shared",
       operation: "collect",
       lifetime: "lifetime",
       root: "/tmp/root",
@@ -281,7 +281,7 @@ describe("resident client trust boundary", () => {
     });
     await chmod(paths.socket, 0o600);
     await expect(residentRequest(paths, {
-      version: 1,
+      requestRoute: "shared",
       operation: "collect",
       lifetime: "lifetime",
       root: "/tmp/root",

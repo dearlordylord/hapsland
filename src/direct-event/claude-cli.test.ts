@@ -257,7 +257,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       expect(readFileSync(path, "utf8")).toBe("type RevokedCount = number\n");
       const paths = residentPaths(join(root, "runtime"));
       const owner = await ensureResident(paths);
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       expect(stats).toMatchObject({ status: "stats", pendingAdvice: 1 });
     } finally {
       writeFileSync(`${gate}.release`, "release\n");
@@ -358,7 +358,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       expect(readFileSync(path, "utf8")).toBe("type StaleCount = string\n");
       const paths = residentPaths(join(root, "runtime"));
       const owner = await ensureResident(paths);
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       expect(stats).toMatchObject({ status: "stats", pendingAdvice: 0 });
     } finally {
       writeFileSync(`${gate}.release`, "release\n");
@@ -417,7 +417,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     let pendingAdvice = 0;
     let lastStats: unknown;
     while (Date.now() < deadline && pendingAdvice < 2) {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       lastStats = stats;
       pendingAdvice = stats.status === "stats" ? stats.pendingAdvice : 0;
       if (pendingAdvice < 2) await new Promise<void>((resolve) => setTimeout(resolve, 20));
@@ -501,7 +501,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     let ready = false;
     let lastStats: unknown;
     while (Date.now() < deadline && !ready) {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       lastStats = stats;
       ready = stats.status === "stats" && stats.pendingAdvice === 6 && stats.queued === 0 && stats.running === 0;
       if (!ready) await new Promise<void>((resolve) => setTimeout(resolve, 20));
@@ -595,7 +595,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     process.kill(oldOwner.pid, "SIGKILL");
     const newOwner = await ensureResident(paths);
     expect(newOwner.lifetime).not.toBe(oldOwner.lifetime);
-    const stale = await residentRequest(paths, { version: 1, operation: "stats", lifetime: newOwner.lifetime });
+    const stale = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: newOwner.lifetime });
     expect(stale).toMatchObject({ status: "stats", pendingAdvice: 0 });
     const second = event(await put(root, "second.ts", "type FreshCount = number\n"), "FreshCount", "fresh-tool");
     expect(preClaudeEdit(second, baseEnv).status).toBe(0);
@@ -635,7 +635,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       });
       socket.once("connect", () => socket.write(`${frame}\n`));
     });
-    expect(await raw(encodeCurrentResidentRequest({ version: 1, operation: "hello" })))
+    expect(await raw(encodeCurrentResidentRequest({ requestRoute: "shared", operation: "hello" })))
       .toMatchObject({ version: 3, status: "ready", lifetime: owner.lifetime });
     for (const frame of ['{"version":3,', JSON.stringify({ version: 1, operation: "hello" }),
       JSON.stringify({ version: 2, operation: "collect", lifetime: owner.lifetime })]) {
@@ -916,7 +916,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const paths = residentPaths(join(root, "runtime"));
     const owner = await ensureResident(paths);
     const stats = await residentRequest(paths, {
-      version: 1,
+      requestRoute: "shared",
       operation: "stats",
       lifetime: owner.lifetime,
     });

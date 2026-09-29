@@ -100,7 +100,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const paths = residentPaths(join(temporary, "runtime"));
     const first = await ensureResident(paths, 5_000);
     processes.push(first.pid);
-    expect((await residentRequest(paths, { version: 1, operation: "hello" })).status).toBe("ready");
+    expect((await residentRequest(paths, { requestRoute: "shared", operation: "hello" })).status).toBe("ready");
     await waitFor(async () => {
       try { process.kill(first.pid, 0); return undefined; }
       catch { return true; }
@@ -110,7 +110,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     processes.push(second.pid);
     expect(second.pid).not.toBe(first.pid);
     expect(second.lifetime).not.toBe(first.lifetime);
-    expect((await residentRequest(paths, { version: 1, operation: "hello" })).status).toBe("ready");
+    expect((await residentRequest(paths, { requestRoute: "shared", operation: "hello" })).status).toBe("ready");
   });
 
   it("keeps a live connected client until it disconnects", async () => {
@@ -156,18 +156,18 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const accepted = await residentRequest(paths, { version: 1, operation: "admit",
+    const accepted = await residentRequest(paths, { requestRoute: "shared", operation: "admit",
       lifetime: owner.lifetime, observation, controlledWriter: true, dispatch: dispatchFor(statePath) });
     expect(accepted.status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       return stats.status === "stats" && stats.running > 0 ? true : undefined;
     });
     await new Promise<void>((resolve) => setTimeout(resolve, 5_500));
     expect(() => process.kill(owner.pid, 0)).not.toThrow();
     await writeFile(gate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       return stats.status === "stats" && stats.pendingAdvice > 0 ? true : undefined;
     });
     await new Promise<void>((resolve) => setTimeout(resolve, 5_500));
@@ -196,11 +196,11 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    expect((await residentRequest(paths, { version: 1, operation: "admit",
+    expect((await residentRequest(paths, { requestRoute: "shared", operation: "admit",
       lifetime: owner.lifetime, observation, controlledWriter: true,
       dispatch: dispatchFor(statePath) })).status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       return stats.status === "stats" && stats.running > 0 ? true : undefined;
     });
     expect(existsSync(gate)).toBe(false);
@@ -213,7 +213,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     processes.push(restarted.pid);
     expect(restarted.pid).not.toBe(owner.pid);
     expect(restarted.lifetime).not.toBe(owner.lifetime);
-    expect((await residentRequest(paths, { version: 1, operation: "hello" })).status).toBe("ready");
+    expect((await residentRequest(paths, { requestRoute: "shared", operation: "hello" })).status).toBe("ready");
   });
 
   it("ignores and removes an orphaned pre-portability startup marker", async () => {
@@ -374,7 +374,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     };
     for (let index = 0; index < 2; index++) {
       await expect(residentRequest(paths, {
-        version: 1,
+        requestRoute: "shared",
         operation: "admit",
         lifetime: owner.lifetime,
         observation: { ...observation, advicee: { ...observation.advicee, toolUseId: `extra-${index}` } },
@@ -384,7 +384,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     }
     await writeFile(`${admitGate}.release`, "release\n");
     const gated = await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       // The first prompt lone item is a complete finite cycle. Arrivals after
       // its dispatch wait for the next cycle and cannot extend it.
       return stats.status === "stats" && stats.running === 1 && stats.queued === 2 ? stats : undefined;
@@ -392,7 +392,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect(gated.retainedBytes).toBeLessThanOrEqual(64 * 1024 * 1024);
     await writeFile(gate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       // Event/tool ids do not distinguish complete evaluation identity: the
       // three accepted observations converge on one evaluation and advice.
       return stats.status === "stats" && stats.pendingAdvice === 1 ? stats : undefined;
@@ -485,12 +485,12 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const paths = residentPaths(runtime);
     const dispatch = dispatchFor(statePath, { capturePath });
     expect((await residentRequest(paths, {
-      version: 1, operation: "admit", lifetime: owner.lifetime, observation, controlledWriter: true, dispatch,
+      requestRoute: "shared", operation: "admit", lifetime: owner.lifetime, observation, controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     await put(root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}');
     await writeFile(gate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       return stats.status === "stats" && stats.running === 0 ? stats : undefined;
     });
     expect(existsSync(capturePath)).toBe(false);
@@ -528,12 +528,12 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const paths = residentPaths(runtime);
     const dispatch = dispatchFor(statePath, { capturePath });
     expect((await residentRequest(paths, {
-      version: 1, operation: "admit", lifetime: owner.lifetime, observation, controlledWriter: true, dispatch,
+      requestRoute: "shared", operation: "admit", lifetime: owner.lifetime, observation, controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     await put(root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     await writeFile(gate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       return stats.status === "stats" && stats.running === 0 ? stats : undefined;
     });
     expect(existsSync(capturePath)).toBe(false);
@@ -600,42 +600,42 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     processes.push(first.pid);
     const rootObservation = await observe(root, ["type.ts"]);
     expect((await residentRequest(paths, {
-      version: 1, operation: "admit", lifetime: first.lifetime,
+      requestRoute: "shared", operation: "admit", lifetime: first.lifetime,
       observation: rootObservation, controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: first.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime });
       return stats.status === "stats" && stats.pendingAdvice === 1 && stats.successfulCacheEntries === 1
         ? stats
         : undefined;
     });
     // An equivalent completed input joins the retained advice/cache identity.
     expect((await residentRequest(paths, {
-      version: 1, operation: "admit", lifetime: first.lifetime,
+      requestRoute: "shared", operation: "admit", lifetime: first.lifetime,
       observation: { ...rootObservation, advicee: { ...rootObservation.advicee, toolUseId: "joined" } },
       controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: first.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime });
       return stats.status === "stats" && stats.running === 0 && stats.queued === 0 ? stats : undefined;
     });
 
     const noticeObservation = await observe(root, ["type.ts"], { agent_id: "notice-child" });
     for (const toolUseId of ["notice-1", "notice-2"]) {
       expect((await residentRequest(paths, {
-        version: 1, operation: "admit", lifetime: first.lifetime,
+        requestRoute: "shared", operation: "admit", lifetime: first.lifetime,
         observation: { ...noticeObservation, advicee: { ...noticeObservation.advicee, toolUseId } },
         controlledWriter: true, dispatch: failingDispatch,
       })).status).toBe("accepted");
     }
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: first.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime });
       return stats.status === "stats" && stats.running === 0 && stats.noticeCooldowns === 1
         ? stats
         : undefined;
     });
     expect((await residentRequest(paths, {
-      version: 1, operation: "cleanup", lifetime: first.lifetime,
+      requestRoute: "shared", operation: "cleanup", lifetime: first.lifetime,
     })).status).toBe("busy");
 
     // Accepted work remains resident-owned with no client callback. Cleanup
@@ -643,15 +643,15 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await rm(backendGate, { force: true });
     const blockedObservation = await observe(root, ["second.ts"], { tool_use_id: "blocked-before-kill" });
     expect((await residentRequest(paths, {
-      version: 1, operation: "admit", lifetime: first.lifetime,
+      requestRoute: "shared", operation: "admit", lifetime: first.lifetime,
       observation: blockedObservation, controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: first.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime });
       return stats.status === "stats" && stats.running > 0 ? stats : undefined;
     });
     expect((await residentRequest(paths, {
-      version: 1, operation: "cleanup", lifetime: first.lifetime,
+      requestRoute: "shared", operation: "cleanup", lifetime: first.lifetime,
     })).status).toBe("busy");
     expect((await readdir(runtime)).sort()).toEqual(["owner.json", "owner.lock", "resident.sock"]);
     process.kill(first.pid, "SIGKILL");
@@ -664,11 +664,11 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     processes.push(second.pid);
     expect(second.lifetime).not.toBe(first.lifetime);
     expect((await residentRequest(paths, {
-      version: 1, operation: "admit", lifetime: first.lifetime,
+      requestRoute: "shared", operation: "admit", lifetime: first.lifetime,
       observation: blockedObservation, controlledWriter: true, dispatch,
     })).status).toBe("obsolete-lifetime");
     expect(await residentRequest(paths, {
-      version: 1, operation: "stats", lifetime: second.lifetime,
+      requestRoute: "shared", operation: "stats", lifetime: second.lifetime,
     })).toMatchObject({
       status: "stats",
       queued: 0,
@@ -691,14 +691,14 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await rm(backendGate, { force: true });
     for (const observation of [batch, { ...batch, advicee: { ...batch.advicee, toolUseId: "batch-join" } }, child, other]) {
       expect((await residentRequest(paths, {
-        version: 1, operation: "admit", lifetime: second.lifetime,
+        requestRoute: "shared", operation: "admit", lifetime: second.lifetime,
         observation, controlledWriter: true, dispatch,
       })).status).toBe("accepted");
     }
     await put(otherRoot, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}');
     await writeFile(backendGate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: second.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: second.lifetime });
       return stats.status === "stats" && stats.running === 0 && stats.queued === 0 && stats.pendingAdvice === 3
         ? stats
         : undefined;
@@ -709,11 +709,11 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain("second.ts");
     if (rootBatch === undefined) return;
     expect((await residentRequest(paths, {
-      version: 1, operation: "cleanup", lifetime: second.lifetime,
+      requestRoute: "shared", operation: "cleanup", lifetime: second.lifetime,
     })).status).toBe("busy");
     expect(await acknowledgeAdvice(rootBatch)).toBe(true);
     expect((await residentRequest(paths, {
-      version: 1, operation: "admit", lifetime: second.lifetime,
+      requestRoute: "shared", operation: "admit", lifetime: second.lifetime,
       observation: { ...batch, advicee: { ...batch.advicee, toolUseId: "cache-reuse" } },
       controlledWriter: true, dispatch,
     })).status).toBe("accepted");
@@ -736,7 +736,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     if (childAdvice !== undefined) expect(await acknowledgeAdvice(childAdvice)).toBe(true);
 
     const beforeCleanup = await residentRequest(paths, {
-      version: 1, operation: "stats", lifetime: second.lifetime,
+      requestRoute: "shared", operation: "stats", lifetime: second.lifetime,
     });
     expect(beforeCleanup).toMatchObject({ status: "stats", pendingAdvice: 0 });
     if (beforeCleanup.status === "stats") expect(beforeCleanup.successfulCacheEntries).toBeGreaterThan(0);
@@ -745,7 +745,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       "import {residentRequest} from './src/resident/client.ts';",
       `const paths=${JSON.stringify(paths)};`,
       `const lifetime=${JSON.stringify(second.lifetime)};`,
-      "console.log(JSON.stringify(await residentRequest(paths,{version:1,operation:'cleanup',lifetime})));",
+      "console.log(JSON.stringify(await residentRequest(paths,{requestRoute:'shared',operation:'cleanup',lifetime})));",
     ].join("");
     const cleaning = spawn(process.execPath, ["--input-type=module", "-e", cleanupScript], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
@@ -754,10 +754,10 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await waitFor(async () => existsSync(`${cleanupGate}.entered`) ? true : undefined);
     // The cleanup response is still gated, so these arrive concurrently with
     // the retiring owner still listening. Neither can revive or reserve work.
-    expect(await residentRequest(paths, { version: 1, operation: "hello" }))
+    expect(await residentRequest(paths, { requestRoute: "shared", operation: "hello" }))
       .toEqual({ status: "obsolete-lifetime" });
     expect(await residentRequest(paths, {
-      version: 1, operation: "admit", lifetime: second.lifetime,
+      requestRoute: "shared", operation: "admit", lifetime: second.lifetime,
       observation: batch, controlledWriter: true, dispatch,
     })).toEqual({ status: "obsolete-lifetime" });
     await writeFile(`${cleanupGate}.release`, "release\n");
@@ -770,7 +770,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     processes.push(third.pid);
     expect(third.lifetime).not.toBe(second.lifetime);
     expect(await residentRequest(paths, {
-      version: 1, operation: "stats", lifetime: third.lifetime,
+      requestRoute: "shared", operation: "stats", lifetime: third.lifetime,
     })).toMatchObject({
       status: "stats", queued: 0, running: 0, pendingAdvice: 0,
       retainedBytes: 0, successfulCacheEntries: 0, noticeCooldowns: 0,

@@ -1,8 +1,10 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { ResidentCleanupLimitation, stopScopedResident } from "../../scripts/first-review-resident-cleanup.mjs";
+import { ResidentCleanupLimitation, probeScopedResident, stopScopedResident } from "../../scripts/first-review-resident-cleanup.mjs";
+import { CURRENT_IPC_VERSION } from "../resident/protocol.ts";
 
 const roots: Array<string> = [];
 afterEach(() => {
@@ -21,6 +23,28 @@ const ownerFixture = () => {
 };
 
 describe("first-review scoped resident cleanup", () => {
+  it("probes the current resident wire version", async () => {
+    const stateRoot = ownerFixture();
+    const socketPath = join(stateRoot, "resident", "resident.sock");
+    let observed: unknown;
+    const server = createServer((socket) => {
+      socket.once("data", (chunk) => {
+        observed = JSON.parse(chunk.toString("utf8").trim()) as unknown;
+        socket.end(`${JSON.stringify({ version: CURRENT_IPC_VERSION, status: "ready", pid: 41_000,
+          lifetime: "original-resident-lifetime" })}\n`);
+      });
+    });
+    await new Promise<void>((resolve, reject) => server.listen(socketPath, () => resolve()).once("error", reject));
+    try {
+      await expect(probeScopedResident(join(stateRoot, "resident"))).resolves.toEqual({
+        pid: 41_000, lifetime: "original-resident-lifetime",
+      });
+      expect(observed).toEqual({ version: CURRENT_IPC_VERSION, operation: "hello" });
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
   it("does not signal a recycled pid whose endpoint lifetime differs from the stale owner", async () => {
     const stateRoot = ownerFixture();
     const signals: Array<readonly [number, NodeJS.Signals | 0]> = [];

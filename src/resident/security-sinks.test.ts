@@ -117,11 +117,11 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     expect(JSON.parse(admissionResponse)).toEqual({ version: 3, status: "accepted" });
     await waitFor(async () => {
       if (!existsSync(join(temporary, "called"))) return false;
-      const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime: owner.lifetime });
+      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
       return stats.status === "stats" && stats.running === 0;
     });
     const response = await residentRequest(paths, {
-      version: 1, operation: "collect", lifetime: owner.lifetime,
+      requestRoute: "shared", operation: "collect", lifetime: owner.lifetime,
       root, advicee: observation.advicee, dispatch,
     });
     expect(JSON.stringify(response)).not.toContain(marker);

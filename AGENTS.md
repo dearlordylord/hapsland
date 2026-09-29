@@ -27,6 +27,8 @@ Delete superseded production code, schemas, and maintained documentation;
 do not keep legacy paths, migration shims, or parallel versions. Code review
 must flag leftovers. Keep compatibility only when an accepted product contract
 explicitly requires it.
+Name agent runtimes and behavior variants directly. Reserve version numbers for
+actual format changes, not for Claude, Codex, or future adapter branches.
 
 ## Product identity
 

@@ -41,9 +41,9 @@ describe("Claude advicee scoped resident delivery", () => {
         tool_response: { filePath: path, content: `type ${name}Count = number\n`, originalFile: null, userModified: false },
       }));
       if (observation === undefined) throw new Error("expected Claude observation");
-      expect((await server.handle({ version: 1, operation: "register-edit", lifetime: server.lifetime,
+      expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: observation.advicee, startedAt: monotonicNow() - 1 })).status).toBe("advanced");
-      const accepted = await server.handle({ version: 2, operation: "admit", lifetime: server.lifetime,
+      const accepted = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
         observation, controlledWriter: true, dispatch: name === "first" ? failed : dispatch,
         composed: true });
       if (accepted.status !== "accepted" || !("ticket" in accepted)) throw new Error("expected admission");
@@ -51,9 +51,9 @@ describe("Claude advicee scoped resident delivery", () => {
     }
     await server.whenIdle();
     if (latest === undefined) throw new Error("expected second admission");
-    const result = await server.handle({ version: 2, operation: "collect", lifetime: server.lifetime,
+    const result = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
       ticket: latest.ticket, root, advicee: latest.advicee, dispatch, composed: true });
-    expect(result).toMatchObject({ version: 2, status: "empty" });
+    expect(result).toMatchObject({ requestRoute: "ticketed", status: "empty" });
   });
 
   it("batches eligible findings from two composed admissions in one Claude edit response", async () => {
@@ -76,22 +76,22 @@ describe("Claude advicee scoped resident delivery", () => {
         tool_response: { filePath: path, content: `type ${name} = number\n`, originalFile: null, userModified: false },
       }));
       if (observation === undefined) throw new Error("expected Claude observation");
-      const permit = await server.handle({ version: 1, operation: "register-edit",
+      const permit = await server.handle({ requestRoute: "shared", operation: "register-edit",
         lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() - 1 });
       expect(permit.status).toBe("advanced");
-      const accepted = await server.handle({ version: 2, operation: "admit", lifetime: server.lifetime,
+      const accepted = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
         observation, controlledWriter: true, dispatch, composed: true });
-      if (accepted.status !== "accepted" || !("version" in accepted) || accepted.version !== 2) {
+      if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") {
         throw new Error("expected composed admission");
       }
       admitted.push({ ticket: accepted.ticket, advicee: observation.advicee });
     }
     await server.whenIdle();
     const latest = admitted[1]!;
-    const result = await server.handle({ version: 2, operation: "collect", lifetime: server.lifetime,
+    const result = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
       ticket: latest.ticket, root, advicee: latest.advicee, dispatch, composed: true });
-    expect(result).toMatchObject({ version: 2, status: "advice", findingCount: 2 });
-    if (result.status === "advice" && "version" in result && result.version === 2 &&
+    expect(result).toMatchObject({ requestRoute: "ticketed", status: "advice", findingCount: 2 });
+    if (result.status === "advice" && "requestRoute" in result && result.requestRoute === "ticketed" &&
         "hookSpecificOutput" in result.output) {
       expect(result.output.hookSpecificOutput.additionalContext).toContain("FirstCount");
       expect(result.output.hookSpecificOutput.additionalContext).toContain("SecondCount");
@@ -120,7 +120,7 @@ describe("Claude advicee scoped resident delivery", () => {
     await server.whenIdle();
     expect(server.stats().pendingFindingBatches).toBe(1);
     const collect = (advicee: typeof observation.advicee, composed: true) => server.handle({
-      version: 1, operation: "collect", lifetime: server.lifetime,
+      requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee, dispatch, mode: "turn-end", composed,
     });
     const stopAdvicee = { ...observation.advicee, toolUseId: "stop" };
@@ -181,33 +181,33 @@ describe("Claude advicee scoped resident delivery", () => {
       ])) },
     };
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    const accepted = await server.handle({ version: 2, operation: "admit", lifetime: server.lifetime,
+    const accepted = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
       observation, controlledWriter: true, dispatch });
     expect(accepted.status).toBe("accepted");
-    if (accepted.status !== "accepted" || !("version" in accepted) || accepted.version !== 2) return;
+    if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") return;
     await server.whenIdle();
-    const wrong = await server.handle({ version: 2, operation: "collect", lifetime: server.lifetime,
+    const wrong = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
       ticket: accepted.ticket, root, advicee: { ...observation.advicee, toolUseId: "other" }, dispatch });
-    expect(wrong).toMatchObject({ version: 2, status: "unavailable", reason: "lost" });
-    const delivered = await server.handle({ version: 2, operation: "collect", lifetime: server.lifetime,
+    expect(wrong).toMatchObject({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
+    const delivered = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
       ticket: accepted.ticket, root, advicee: observation.advicee, dispatch });
-    expect(delivered).toMatchObject({ version: 2, status: "advice", findingCount: 1,
+    expect(delivered).toMatchObject({ requestRoute: "ticketed", status: "advice", findingCount: 1,
       output: { decision: "block" } });
-    if (delivered.status !== "advice" || !("version" in delivered) || delivered.version !== 2) return;
+    if (delivered.status !== "advice" || !("requestRoute" in delivered) || delivered.requestRoute !== "ticketed") return;
     expect(Buffer.byteLength(`${JSON.stringify(delivered.output)}\n`, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(delivered.output).not.toHaveProperty("hookSpecificOutput");
     expect(JSON.stringify(delivered.output)).not.toContain(accepted.ticket.nonce);
     server.releaseDelivery(delivered.token);
     writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
     const laterObservation = { ...observation, advicee: { ...observation.advicee, toolUseId: "tool-two" } };
-    const later = await server.handle({ version: 2, operation: "admit", lifetime: server.lifetime,
+    const later = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
       observation: laterObservation, controlledWriter: true, dispatch });
-    if (later.status !== "accepted" || !("version" in later) || later.version !== 2) throw new Error("expected later ticket");
+    if (later.status !== "accepted" || !("requestRoute" in later) || later.requestRoute !== "ticketed") throw new Error("expected later ticket");
     await server.whenIdle();
     writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
-    const laterOutput = await server.handle({ version: 2, operation: "collect", lifetime: server.lifetime,
+    const laterOutput = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
       ticket: later.ticket, root, advicee: laterObservation.advicee, dispatch });
-    expect(laterOutput).toMatchObject({ version: 2, status: "advice",
+    expect(laterOutput).toMatchObject({ requestRoute: "ticketed", status: "advice",
       output: { hookSpecificOutput: { hookEventName: "PostToolUse" } } });
     if (laterOutput.status === "advice") expect(laterOutput.output).not.toHaveProperty("decision");
   });
@@ -237,12 +237,12 @@ describe("Claude advicee scoped resident delivery", () => {
     } });
     await server.listen();
     try {
-      const accepted = await residentRequest(paths, { version: 2, operation: "admit", lifetime: server.lifetime,
+      const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
         observation, controlledWriter: true, dispatch });
-      if (accepted.status !== "accepted" || !("version" in accepted) || accepted.version !== 2) throw new Error("expected ticket");
+      if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
       await server.whenIdle();
       changeAtHandoff = true;
-      const response = await residentRequest(paths, { version: 2, operation: "collect", lifetime: server.lifetime,
+      const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
         ticket: accepted.ticket, root, advicee: observation.advicee, dispatch });
       expect(response.status).not.toBe("advice");
       expect(server.stats().pendingAdvice).toBe(0);
@@ -280,14 +280,14 @@ describe("Claude advicee scoped resident delivery", () => {
     });
     await server.listen();
     try {
-      const accepted = await residentRequest(paths, { version: 2, operation: "admit", lifetime: server.lifetime,
+      const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
         observation, controlledWriter: true, dispatch });
-      if (accepted.status !== "accepted" || !("version" in accepted) || accepted.version !== 2) throw new Error("expected ticket");
+      if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
       await server.whenIdle();
       revoke = true;
-      const response = await residentRequest(paths, { version: 2, operation: "collect", lifetime: server.lifetime,
+      const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
         ticket: accepted.ticket, root, advicee: observation.advicee, dispatch });
-      expect(response).toMatchObject({ version: 2, status: "pending" });
+      expect(response).toMatchObject({ requestRoute: "ticketed", status: "pending" });
       expect(server.stats().pendingAdvice).toBe(1);
     } finally {
       await server.close();

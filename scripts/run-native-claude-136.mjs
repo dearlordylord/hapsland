@@ -188,7 +188,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
   let resident = null;
   try {
     owner = JSON.parse(readFileSync(residentPaths(runtime).owner, "utf8"));
-    const result = await residentRequest(residentPaths(runtime), { version: 1, operation: "stats", lifetime: owner.lifetime });
+    const result = await residentRequest(residentPaths(runtime), { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
     if (result?.status === "stats") resident = { queued: result.queued, running: result.running,
       pendingFindingBatches: result.pendingFindingBatches, pendingOperationalNotices: result.pendingOperationalNotices };
   } catch { /* native path may not start a resident */ }
@@ -220,7 +220,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
 } finally {
   try {
     owner ??= JSON.parse(readFileSync(residentPaths(runtime).owner, "utf8"));
-    await residentRequest(residentPaths(runtime), { version: 1, operation: "cleanup", lifetime: owner.lifetime }).catch(() => {});
+    await residentRequest(residentPaths(runtime), { requestRoute: "shared", operation: "cleanup", lifetime: owner.lifetime }).catch(() => {});
     try { process.kill(owner.pid, "SIGTERM"); } catch {}
   } catch {}
   rmSync(root, { recursive: true, force: true });

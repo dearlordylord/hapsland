@@ -125,7 +125,7 @@ describe("Claude Code 2.1.218 direct adapter", () => {
       candidates: [{ operation: "update", path: "item.ts", addedLines: ["export interface Item { value: number }"] }],
     });
     expect(decodeResidentRequest(JSON.stringify({
-      version: 1, operation: "admit", lifetime: "lifetime", observation, controlledWriter: true,
+      requestRoute: "shared", operation: "admit", lifetime: "lifetime", observation, controlledWriter: true,
       dispatch: { statePath: "/tmp/state", userConfigPath: null, credential: null, controlled: null },
     }))?.operation).toBe("admit");
     expect(await Effect.runPromise(adaptClaudeDirectEvent({ ...event, tool_use_id: "" }))).toBeUndefined();

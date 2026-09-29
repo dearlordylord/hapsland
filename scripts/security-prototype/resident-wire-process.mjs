@@ -60,7 +60,7 @@ try {
     }, controlled: null,
   };
   const admission = {
-    version: 1, operation: "admit", lifetime, observation, controlledWriter: true, dispatch,
+    requestRoute: "shared", operation: "admit", lifetime, observation, controlledWriter: true, dispatch,
   };
   if (decodeResidentRequest(JSON.stringify(admission)) === undefined) {
     throw new Error("fixture admission failed resident protocol validation before send");
@@ -83,7 +83,7 @@ try {
   await writeFile(join(root, "wire-release"), "go\n");
   let settled = false;
   for (let attempt = 0; attempt < 2_000; attempt += 1) {
-    const stats = await residentRequest(paths, { version: 1, operation: "stats", lifetime });
+    const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime });
     if (stats.status === "stats" && stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0) {
       settled = true; break;
     }

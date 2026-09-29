@@ -741,14 +741,14 @@ export class ResidentServer {
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
     this.#pruneNoticeCooldowns(now);
-    if (this.#lifecycle !== "active") return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
+    if (this.#lifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     const group = adviceeGroup(observation.root, observation.advicee);
     const generation = composed ? this.#composedDelivery.admitEdit(group,
       observation.advicee.toolUseId, monotonicNow(), requirePermit) : undefined;
     if (composed && generation === undefined) {
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee,
         lifetime: this.lifetime, stage: "incomplete" });
-      return ticketed ? { version: 2, status: "rejected-stale" } : { status: "rejected-stale" };
+      return ticketed ? { requestRoute: "ticketed", status: "rejected-stale" } : { status: "rejected-stale" };
     }
     let round = composed ? this.#rounds.get(group) : undefined;
     if (generation !== undefined && round?.generation !== generation) {
@@ -766,14 +766,14 @@ export class ResidentServer {
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
-      return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
+      return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
     let canonicalObservationId: number;
     try {
       canonicalObservationId = this.#ledger.admitObservation(partition);
     } catch {
       this.#ledger.release(reservation);
-      return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
+      return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
     const ticket: TicketRecord | undefined = ticketed ? {
       ticket: { nonce: randomUUID(), lifetime: this.lifetime },
@@ -807,7 +807,7 @@ export class ResidentServer {
       this.#ledger.release(reservation);
       this.#rejectedCapacity += 1;
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
-      return ticketed ? { version: 2, status: "rejected-capacity" } : { status: "rejected-capacity" };
+      return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
     if (ticket !== undefined) {
       this.#tickets.set(ticket.ticket.nonce, ticket);
@@ -827,7 +827,7 @@ export class ResidentServer {
       }
     }
     recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "pending" });
-    return ticket === undefined ? { status: "accepted" } : { version: 2, status: "accepted", ticket: ticket.ticket };
+    return ticket === undefined ? { status: "accepted" } : { requestRoute: "ticketed", status: "accepted", ticket: ticket.ticket };
   }
 
   #collectionElapsed(now: number, started: number, limit: number): number {
@@ -946,7 +946,7 @@ export class ResidentServer {
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode?: CollectionMode,
-  ): Promise<Exclude<ResidentResponse, { readonly version: 2 }>>;
+  ): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
   collect(
     root: string,
     advicee: DirectAdvicee,
@@ -954,7 +954,7 @@ export class ResidentServer {
     mode: CollectionMode,
     ticket: undefined,
     composed: true,
-  ): Promise<Exclude<ResidentResponse, { readonly version: 2 }>>;
+  ): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
   collect(
     root: string,
     advicee: DirectAdvicee,
@@ -1247,7 +1247,7 @@ export class ResidentServer {
     return ticket === undefined
       ? { status: "advice", token, findingCount: handoffFindings.length,
           output: combinedReviewOutput(handoffFindings, []) }
-      : { version: 2, status: "advice", token, findingCount: handoffFindings.length,
+      : { requestRoute: "ticketed", status: "advice", token, findingCount: handoffFindings.length,
           output: combinedClaudeOutput(handoffFindings, [], ticket.claudeFeedbackMode) };
   }
 
@@ -2945,9 +2945,9 @@ export class ResidentServer {
         : { status: "obsolete-lifetime" };
     }
     if (request.lifetime !== this.lifetime || this.#lifecycle !== "active") {
-      return request.version === 2
-        ? request.operation === "collect" ? { version: 2, status: "unavailable", reason: "lost" }
-          : { version: 2, status: "obsolete-lifetime" }
+      return request.requestRoute === "ticketed"
+        ? request.operation === "collect" ? { requestRoute: "ticketed", status: "unavailable", reason: "lost" }
+          : { requestRoute: "ticketed", status: "obsolete-lifetime" }
         : { status: "obsolete-lifetime" };
     }
     if (request.operation === "prompt-marker") {
@@ -3011,19 +3011,19 @@ export class ResidentServer {
       return { status: "advanced" };
     }
     if (request.operation === "admit") {
-      return this.admit(request.observation, request.dispatch, request.version === 2,
+      return this.admit(request.observation, request.dispatch, request.requestRoute === "ticketed",
         request.composed === true, request.composed === true);
     }
     if (request.operation === "collect") {
-      if (request.version === 2) {
+      if (request.requestRoute === "ticketed") {
         const ticket = this.#ticketFor(request.ticket, request.root, request.advicee,
           request.composed === true);
-        if (ticket === undefined) return { version: 2, status: "unavailable", reason: "lost" };
+        if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
         const gate = this.#ticketCollectGate(ticket, request.dispatch, this.#now());
         if (gate !== undefined) return gate;
         const collected = await this.collect(request.root, request.advicee, request.dispatch,
           request.mode ?? "ordinary", ticket, request.composed === true);
-        return collected.status === "advice" ? { ...collected, version: 2 }
+        return collected.status === "advice" ? { ...collected, requestRoute: "ticketed" }
           : this.#ticketCollectionStatus(ticket, request.root, request.advicee,
               request.composed === true, this.#now());
       }
@@ -3124,7 +3124,7 @@ export class ResidentServer {
         this.#credentialAuthority(ticket) }).commands[0];
     if (command?.kind === "ticketCollectProceed") return undefined;
     if (command?.kind === "ticketCollectUnavailable") {
-      return { version: 2, status: "unavailable", reason: command.reason };
+      return { requestRoute: "ticketed", status: "unavailable", reason: command.reason };
     }
     throw new Error("canonical ticket collect gate refused");
   }
@@ -3135,7 +3135,7 @@ export class ResidentServer {
     const hasAdvice = this.#advice.some((item) =>
       (composed ? adviceeGroup(item.observation.root, item.observation.advicee) === partition
         : item.partition === partition) && !this.#adviceExpired(item, now));
-    return { version: 2, status: hasAdvice || this.#collectionWorkCount(root, advicee, composed) > 0
+    return { requestRoute: "ticketed", status: hasAdvice || this.#collectionWorkCount(root, advicee, composed) > 0
       ? "pending" : "empty" };
   }
 
@@ -3205,17 +3205,17 @@ export class ResidentServer {
   #responseForHandoff(request: ResidentRequest, response: ResidentResponse,
     sourceCurrent: ReadonlyMap<string, boolean>): ResidentResponse {
     if (response.status !== "advice") {
-      if (request.version === 1 && request.operation === "collect" && request.finish === undefined && request.reportWorkState === true &&
+      if (request.requestRoute === "shared" && request.operation === "collect" && request.finish === undefined && request.reportWorkState === true &&
           (response.status === "empty" || response.status === "pending")) {
         return this.#collectionWorkState(request.root, request.advicee, request.composed === true);
       }
-      if (request.version !== 2 || request.operation !== "collect") return response;
+      if (request.requestRoute !== "ticketed" || request.operation !== "collect") return response;
       const now = this.#now();
       this.#expirePending(now);
       this.#pruneNoticeCooldowns(now);
       const ticket = this.#ticketFor(request.ticket, request.root, request.advicee,
         request.composed === true);
-      if (ticket === undefined) return { version: 2, status: "unavailable", reason: "lost" };
+      if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
       return this.#ticketCollectGate(ticket, request.dispatch, now) ??
         this.#ticketCollectionStatus(ticket, request.root, request.advicee,
           request.composed === true, now);
@@ -3223,7 +3223,7 @@ export class ResidentServer {
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
-    const legacyCollect = request.operation === "collect" && request.version !== 2;
+    const legacyCollect = request.operation === "collect" && request.requestRoute !== "ticketed";
     let invalidCredential = false;
     if (legacyCollect) for (const advice of this.#advice) {
       if (advice.delivery?.token !== response.token || invalidCredential) continue;
@@ -3261,13 +3261,13 @@ export class ResidentServer {
       advice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
       handoff.push(advice);
     }
-    const ticket = request.version === 2 && request.operation === "collect"
+    const ticket = request.requestRoute === "ticketed" && request.operation === "collect"
       ? this.#ticketFor(request.ticket, request.root, request.advicee,
           request.composed === true)
       : undefined;
-    if (request.version === 2 && request.operation === "collect" && ticket === undefined) {
+    if (request.requestRoute === "ticketed" && request.operation === "collect" && ticket === undefined) {
       this.releaseDelivery(response.token);
-      return { version: 2, status: "unavailable", reason: "lost" };
+      return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
     }
     if (request.operation === "collect") {
       const composed = request.composed === true;
@@ -3301,7 +3301,7 @@ export class ResidentServer {
     }
     const findings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
     const notices = this.#noticesForToken(response.token);
-    if (request.operation === "collect" && request.version === 1 && request.composed === true &&
+    if (request.operation === "collect" && request.requestRoute === "shared" && request.composed === true &&
         request.advicee.host === "claude-code") {
       const surface = request.mode === "turn-end" ? "stop" : "background";
       if (encodedComposedClaudeOutputBytes(findings, notices.map((notice) => notice.value), surface) >
@@ -3323,7 +3323,7 @@ export class ResidentServer {
     const admittedBlock = ticket?.claudeFeedbackMode === "block-current-findings";
     const currentBlock = admittedBlock && ticket !== undefined &&
       this.#currentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) === "block-current-findings";
-    if (ticket !== undefined && request.operation === "collect" && request.version === 2 &&
+    if (ticket !== undefined && request.operation === "collect" && request.requestRoute === "ticketed" &&
         this.#ledger.transition({ kind: "ticketFinalAuthorityCheck", admittedBlock,
       currentBlock }).commands[0]?.kind !== "ticketFinalProceed") {
       // A revoked opt-in cannot turn the old selection into an advisory lease.
@@ -3336,11 +3336,11 @@ export class ResidentServer {
       : ticket === undefined
         ? { status: "advice", token: response.token, findingCount: findings.length,
             output: combinedReviewOutput(findings, notices.map((notice) => notice.value)) }
-        : { version: 2, status: "advice", token: response.token, findingCount: findings.length,
+        : { requestRoute: "ticketed", status: "advice", token: response.token, findingCount: findings.length,
             output: combinedClaudeOutput(findings, notices.map((notice) => notice.value), ticket.claudeFeedbackMode) };
-    if (request.version !== 2 || request.operation !== "collect") return selected;
-    if (ticket === undefined) return { version: 2, status: "unavailable", reason: "lost" };
-    return selected.status === "advice" ? { ...selected, version: 2 }
+    if (request.requestRoute !== "ticketed" || request.operation !== "collect") return selected;
+    if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
+    return selected.status === "advice" ? { ...selected, requestRoute: "ticketed" }
       : this.#ticketCollectionStatus(ticket, request.root, request.advicee,
           request.composed === true, now);
   }
@@ -3348,7 +3348,7 @@ export class ResidentServer {
   /** Replace a provisional Stop reservation with the exact final IPC batch. */
   #reconcileFinishHandoff(request: ResidentRequest, provisional: ResidentResponse,
     final: ResidentResponse, canWrite: boolean): ResidentResponse {
-    if (request.operation !== "collect" || request.version === 2 || request.finish === undefined ||
+    if (request.operation !== "collect" || request.requestRoute === "ticketed" || request.finish === undefined ||
         provisional.status !== "advice" || provisional.findingCount === 0) return final;
     const group = adviceeGroup(request.root, request.advicee);
     if (!this.#composedDelivery.revokeProvisionalFinishOutput(group, request.finish.token, provisional.token)) {

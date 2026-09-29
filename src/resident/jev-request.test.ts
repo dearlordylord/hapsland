@@ -347,9 +347,9 @@ describe("canonical Jev request boundary", () => {
       expect(effectsEntered).toBe(8);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
 
-      expect(await server.handle({ version: 1, operation: "begin-stop", lifetime: server.lifetime,
+      expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: first.advicee, token: "interrupt-first" })).toEqual({ status: "advanced" });
-      expect(await server.handle({ version: 1, operation: "finish-stop", lifetime: server.lifetime,
+      expect(await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: first.advicee, token: "interrupt-first", close: true })).toEqual({ status: "advanced" });
 
       expect(server.admit(await observe(9), dispatch, false, true).status).toBe("accepted");

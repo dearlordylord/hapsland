@@ -4,6 +4,8 @@ import { join } from "node:path";
 
 export class ResidentCleanupLimitation extends Error {}
 
+const RESIDENT_WIRE_VERSION = 3;
+
 export const probeScopedResident = (directory, timeoutMs = 1_000) => new Promise((resolve, reject) => {
   const socket = connect(join(directory, "resident.sock"));
   let settled = false;
@@ -21,7 +23,7 @@ export const probeScopedResident = (directory, timeoutMs = 1_000) => new Promise
     timeoutMs,
   );
   socket.setEncoding("utf8");
-  socket.once("connect", () => socket.write(`${JSON.stringify({ version: 1, operation: "hello" })}\n`));
+  socket.once("connect", () => socket.write(`${JSON.stringify({ version: RESIDENT_WIRE_VERSION, operation: "hello" })}\n`));
   socket.on("data", (chunk) => {
     encoded += chunk;
     if (Buffer.byteLength(encoded, "utf8") > 65_536) {
@@ -32,7 +34,7 @@ export const probeScopedResident = (directory, timeoutMs = 1_000) => new Promise
     if (newline < 0) return;
     try {
       const response = JSON.parse(encoded.slice(0, newline));
-      if (response?.status !== "ready" || !Number.isSafeInteger(response.pid) ||
+      if (response?.version !== RESIDENT_WIRE_VERSION || response.status !== "ready" || !Number.isSafeInteger(response.pid) ||
           response.pid <= 0 || typeof response.lifetime !== "string" || response.lifetime.length === 0) {
         throw new Error("invalid identity response");
       }

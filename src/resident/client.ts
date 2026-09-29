@@ -166,7 +166,7 @@ const liveEnsureDependencies: EnsureResidentDependencies = {
     timeoutMs,
     "resident endpoint preparation timed out",
   ),
-  probe: (paths, timeoutMs) => residentRequest(paths, { version: 1, operation: "hello" }, timeoutMs),
+  probe: (paths, timeoutMs) => residentRequest(paths, { requestRoute: "shared", operation: "hello" }, timeoutMs),
   launch: launchResident,
   wait: delay,
 };
@@ -224,7 +224,7 @@ export const inspectResident = async (
   try {
     const response = await residentRequest(
       paths,
-      { version: 1, operation: "hello" },
+      { requestRoute: "shared", operation: "hello" },
       Math.min(250, CLIENT_REQUEST_DEADLINE_MS),
     );
     return response.status === "ready"
@@ -303,7 +303,7 @@ export const admitObservation = async (
   const owner = await ensureResident(paths);
   if (!controlledWriter) return { status: "empty" } as const;
   return residentRequest(paths, {
-    version: 1,
+    requestRoute: "shared",
     operation: "admit",
     lifetime: owner.lifetime,
     observation,
@@ -337,7 +337,7 @@ export const admitTicketedObservation = async (
   if (observation.advicee.host !== "claude-code") return { status: "unsupported" };
   const owner = await ensureResident(paths);
   const response = await residentRequest(paths, {
-    version: 2,
+    requestRoute: "ticketed",
     operation: "admit",
     lifetime: owner.lifetime,
     observation,
@@ -345,7 +345,7 @@ export const admitTicketedObservation = async (
     ...(composed ? { composed: true as const } : {}),
     dispatch,
   });
-  if (!("version" in response) || response.version !== 2 || response.status === "unsupported") return { status: "unsupported" };
+  if (!("requestRoute" in response) || response.requestRoute !== "ticketed" || response.status === "unsupported") return { status: "unsupported" };
   if (response.status === "accepted") {
     if (response.ticket.lifetime !== owner.lifetime) return { status: "obsolete-lifetime" };
     return { status: "accepted", admission: {
@@ -375,7 +375,7 @@ export const collectOutcome = async (
   mode: CollectionMode = "ordinary",
 ): Promise<CollectionOutcome> => {
   const response = await residentRequest(admission.paths, {
-    version: 2,
+    requestRoute: "ticketed",
     operation: "collect",
     lifetime: admission.lifetime,
     ticket: admission.ticket,
@@ -386,7 +386,7 @@ export const collectOutcome = async (
     ...(admission.composed ? { composed: true } : {}),
   }).catch(() => undefined);
   if (response === undefined) return { status: "unavailable", reason: "lost" };
-  if (!("version" in response) || response.version !== 2) return { status: "unavailable", reason: "lost" };
+  if (!("requestRoute" in response) || response.requestRoute !== "ticketed") return { status: "unavailable", reason: "lost" };
   if (response.status === "advice") return { status: "advice", advice: {
     output: response.output,
     token: response.token,
@@ -413,7 +413,7 @@ export const collectReady = async (
 ): Promise<(CollectedAdvice & { readonly output: CodexDirectEventOutput }) | undefined> => {
   const owner = await ensureResident(paths);
   const response = await residentRequest(paths, {
-    version: 1,
+    requestRoute: "shared",
     operation: "collect",
     lifetime: owner.lifetime,
     root,
@@ -421,7 +421,7 @@ export const collectReady = async (
     dispatch,
     mode,
   });
-  return response.status === "advice" && !("version" in response)
+  return response.status === "advice" && !("requestRoute" in response)
     ? {
         output: response.output,
         token: response.token,
@@ -454,7 +454,7 @@ export const collectAdviceeOutcome = async (
   const remaining = deadlineAt - performance.now() - 100;
   if (remaining <= 0) return { status: "empty" };
   const response = await residentRequest(paths, {
-    version: 1,
+    requestRoute: "shared",
     operation: "collect",
     lifetime: owner.lifetime,
     root,
@@ -465,7 +465,7 @@ export const collectAdviceeOutcome = async (
     composed: true,
     ...(finish === undefined ? {} : { finish }),
   }, Math.min(CLIENT_REQUEST_DEADLINE_MS, remaining));
-  if (response.status === "advice" && !("version" in response)) {
+  if (response.status === "advice" && !("requestRoute" in response)) {
     return { status: "advice", advice: {
       output: response.output,
       token: response.token,
@@ -490,7 +490,7 @@ export const markComposedUserPrompt = async (
 ): Promise<boolean> => {
   const owner = await ensureResident(paths, 1_500);
   const response = await residentRequest(paths, {
-    version: 1, operation: "prompt-marker", lifetime: owner.lifetime,
+    requestRoute: "shared", operation: "prompt-marker", lifetime: owner.lifetime,
     root, advicee, marker,
     ...(promptDigest === undefined ? {} : { promptDigest }),
     ...(onlyIfMissing === true ? { onlyIfMissing: true as const } : {}),
@@ -507,7 +507,7 @@ export const reserveComposedVirtualRoundContinuation = async (
   const owner = await inspectResident(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
   const response = await residentRequest(paths, {
-    version: 1, operation: "consume-stop", lifetime: owner.lifetime,
+    requestRoute: "shared", operation: "consume-stop", lifetime: owner.lifetime,
     root, advicee,
     ...(continuationDigest === undefined ? {} : { continuationDigest }),
   });
@@ -520,7 +520,7 @@ export const claimComposedBackground = async (
 ): Promise<boolean> => {
   const owner = await ensureResident(paths, 1_500);
   const response = await residentRequest(paths, {
-    version: 1, operation: "claim-background", lifetime: owner.lifetime,
+    requestRoute: "shared", operation: "claim-background", lifetime: owner.lifetime,
     root, advicee, token,
   });
   return response.status === "background-claimed";
@@ -533,7 +533,7 @@ export const releaseComposedBackground = async (
   const owner = await inspectResident(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
   const response = await residentRequest(paths, {
-    version: 1, operation: "release-background", lifetime: owner.lifetime,
+    requestRoute: "shared", operation: "release-background", lifetime: owner.lifetime,
     root, advicee, token,
   });
   return response.status === "released";
@@ -544,7 +544,7 @@ export const beginComposedSubmission = async (
   surface: "edit" | "background" | "stop",
 ): Promise<boolean> => {
   const response = await residentRequest(advice.paths, {
-    version: 1, operation: "begin-submission", lifetime: advice.lifetime,
+    requestRoute: "shared", operation: "begin-submission", lifetime: advice.lifetime,
     token: advice.token, surface,
   });
   return response.status === "submitting";
@@ -552,7 +552,7 @@ export const beginComposedSubmission = async (
 
 export const releaseComposedSubmission = async (advice: CollectedAdvice): Promise<boolean> => {
   const response = await residentRequest(advice.paths, {
-    version: 1, operation: "release", lifetime: advice.lifetime,
+    requestRoute: "shared", operation: "release", lifetime: advice.lifetime,
     token: advice.token,
   });
   return response.status === "released";
@@ -561,7 +561,7 @@ export const releaseComposedSubmission = async (advice: CollectedAdvice): Promis
 export const acknowledgeAdvice = async (advice: CollectedAdvice): Promise<boolean> => {
   const deadline = performance.now() + CLIENT_REQUEST_DEADLINE_MS;
   const acknowledged = await residentRequest(advice.paths, {
-    version: 1,
+    requestRoute: "shared",
     operation: "acknowledge",
     lifetime: advice.lifetime,
     token: advice.token,
@@ -570,7 +570,7 @@ export const acknowledgeAdvice = async (advice: CollectedAdvice): Promise<boolea
   const remaining = deadline - performance.now();
   if (remaining <= 0) return false;
   const finalized = await residentRequest(advice.paths, {
-    version: 1,
+    requestRoute: "shared",
     operation: "finalize",
     lifetime: advice.lifetime,
     token: advice.token,
@@ -584,7 +584,7 @@ export const composedStopBoundary = async (
 ): Promise<boolean> => {
   const owner = await inspectResident(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
-  const response = await residentRequest(paths, { version: 1, operation,
+  const response = await residentRequest(paths, { requestRoute: "shared", operation,
     lifetime: owner.lifetime, root, advicee, token, close, reason }, 250);
   return response.status === "advanced";
 };
@@ -593,7 +593,7 @@ export const registerComposedEdit = async (
   root: string, advicee: DirectAdvicee, startedAt: number, paths = residentPaths(), activityPath?: string,
 ): Promise<boolean> => {
   const owner = await ensureResident(paths, 1_500);
-  const response = await residentRequest(paths, { version: 1, operation: "register-edit",
+  const response = await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
     lifetime: owner.lifetime, root, advicee, startedAt,
     ...(activityPath === undefined ? {} : { activityPath }) });
   return response.status === "advanced";

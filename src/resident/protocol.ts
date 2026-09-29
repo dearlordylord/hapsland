@@ -40,40 +40,41 @@ export type ResidentDispatchContext = {
 export type ResidentCollectionTicket = { readonly nonce: string; readonly lifetime: string };
 /** The sole on-socket CLI/resident message version. Internal response shapes remain operation-specific. */
 export const CURRENT_IPC_VERSION = 3 as const;
+export type ResidentRequestRoute = "shared" | "ticketed";
 export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired";
 
 export type ResidentRequest =
   | {
-      readonly version: 2; readonly operation: "admit"; readonly lifetime: string;
+      readonly requestRoute: "ticketed"; readonly operation: "admit"; readonly lifetime: string;
       readonly observation: DirectObservation; readonly controlledWriter: true; readonly composed?: true;
       readonly dispatch: ResidentDispatchContext;
     }
   | {
-      readonly version: 2; readonly operation: "collect"; readonly lifetime: string;
+      readonly requestRoute: "ticketed"; readonly operation: "collect"; readonly lifetime: string;
       readonly ticket: ResidentCollectionTicket; readonly root: string;
       readonly advicee: DirectAdvicee; readonly dispatch: ResidentDispatchContext;
       readonly mode?: CollectionMode; readonly composed?: true;
     }
-  | { readonly version: 1; readonly operation: "hello" }
-  | { readonly version: 1; readonly operation: "prompt-marker"; readonly lifetime: string;
+  | { readonly requestRoute: "shared"; readonly operation: "hello" }
+  | { readonly requestRoute: "shared"; readonly operation: "prompt-marker"; readonly lifetime: string;
       readonly root: string; readonly advicee: DirectAdvicee; readonly marker: string;
       readonly promptDigest?: string; readonly onlyIfMissing?: true }
-  | { readonly version: 1; readonly operation: "begin-stop" | "finish-stop"; readonly lifetime: string;
+  | { readonly requestRoute: "shared"; readonly operation: "begin-stop" | "finish-stop"; readonly lifetime: string;
       readonly root: string; readonly advicee: DirectAdvicee; readonly token: string;
       readonly close?: boolean; readonly reason?: RoundCloseReason }
-  | { readonly version: 1; readonly operation: "register-edit"; readonly lifetime: string;
+  | { readonly requestRoute: "shared"; readonly operation: "register-edit"; readonly lifetime: string;
       readonly root: string; readonly advicee: DirectAdvicee; readonly startedAt: number; readonly activityPath?: string }
-  | { readonly version: 1; readonly operation: "consume-stop"; readonly lifetime: string;
+  | { readonly requestRoute: "shared"; readonly operation: "consume-stop"; readonly lifetime: string;
       readonly root: string; readonly advicee: DirectAdvicee; readonly continuationDigest?: string }
-  | { readonly version: 1; readonly operation: "claim-background" | "release-background";
+  | { readonly requestRoute: "shared"; readonly operation: "claim-background" | "release-background";
       readonly lifetime: string; readonly root: string; readonly advicee: DirectAdvicee;
       readonly token: string }
-  | { readonly version: 1; readonly operation: "begin-submission"; readonly lifetime: string;
+  | { readonly requestRoute: "shared"; readonly operation: "begin-submission"; readonly lifetime: string;
       readonly token: string; readonly surface: "edit" | "background" | "stop" }
-  | { readonly version: 1; readonly operation: "release"; readonly lifetime: string;
+  | { readonly requestRoute: "shared"; readonly operation: "release"; readonly lifetime: string;
       readonly token: string }
   | {
-      readonly version: 1;
+      readonly requestRoute: "shared";
       readonly operation: "admit";
       readonly lifetime: string;
       readonly observation: DirectObservation;
@@ -82,7 +83,7 @@ export type ResidentRequest =
       readonly dispatch: ResidentDispatchContext;
     }
   | {
-      readonly version: 1;
+      readonly requestRoute: "shared";
       readonly operation: "collect";
       readonly lifetime: string;
       readonly root: string;
@@ -94,26 +95,26 @@ export type ResidentRequest =
       readonly composed?: true;
     }
   | {
-      readonly version: 1;
+      readonly requestRoute: "shared";
       readonly operation: "acknowledge";
       readonly lifetime: string;
       readonly token: string;
     }
   | {
-      readonly version: 1;
+      readonly requestRoute: "shared";
       readonly operation: "finalize";
       readonly lifetime: string;
       readonly token: string;
     }
-  | { readonly version: 1; readonly operation: "stats"; readonly lifetime: string }
-  | { readonly version: 1; readonly operation: "cleanup"; readonly lifetime: string };
+  | { readonly requestRoute: "shared"; readonly operation: "stats"; readonly lifetime: string }
+  | { readonly requestRoute: "shared"; readonly operation: "cleanup"; readonly lifetime: string };
 
 export type ResidentResponse =
-  | { readonly version: 2; readonly status: "accepted"; readonly ticket: ResidentCollectionTicket }
-  | { readonly version: 2; readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported" }
-  | { readonly version: 2; readonly status: "pending" | "empty" }
-  | { readonly version: 2; readonly status: "unavailable"; readonly reason: ResidentUnavailableReason }
-  | { readonly version: 2; readonly status: "advice"; readonly token: string;
+  | { readonly requestRoute: "ticketed"; readonly status: "accepted"; readonly ticket: ResidentCollectionTicket }
+  | { readonly requestRoute: "ticketed"; readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported" }
+  | { readonly requestRoute: "ticketed"; readonly status: "pending" | "empty" }
+  | { readonly requestRoute: "ticketed"; readonly status: "unavailable"; readonly reason: ResidentUnavailableReason }
+  | { readonly requestRoute: "ticketed"; readonly status: "advice"; readonly token: string;
       readonly findingCount: number; readonly output: ClaudeHostOutput }
   | { readonly status: "ready"; readonly lifetime: string; readonly pid: number }
   | {
@@ -255,12 +256,13 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     return undefined;
   }
   const value = record(unknown);
-  if ((value?.version !== 1 && value?.version !== 2) || typeof value.operation !== "string") return undefined;
-  if (value.version === 2) {
+  if ((value?.requestRoute !== "shared" && value?.requestRoute !== "ticketed") ||
+      value.version !== undefined || typeof value.operation !== "string") return undefined;
+  if (value.requestRoute === "ticketed") {
     if (!string(value.lifetime)) return undefined;
     if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) &&
         value.observation.advicee.host === "claude-code" && dispatch(value.dispatch)) {
-      return { version: 2, operation: "admit", lifetime: value.lifetime,
+      return { requestRoute: "ticketed", operation: "admit", lifetime: value.lifetime,
         observation: value.observation, controlledWriter: true, dispatch: value.dispatch,
         ...(value.composed === true ? { composed: true } : {}) };
     }
@@ -268,7 +270,7 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     if (value.operation === "collect" && string(ticket?.nonce) && string(ticket.lifetime) &&
         string(value.root) && advicee(value.advicee) && value.advicee.host === "claude-code" &&
         dispatch(value.dispatch) && (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end")) {
-      return { version: 2, operation: "collect", lifetime: value.lifetime,
+      return { requestRoute: "ticketed", operation: "collect", lifetime: value.lifetime,
         ticket: { nonce: ticket.nonce, lifetime: ticket.lifetime }, root: value.root,
         advicee: value.advicee, dispatch: value.dispatch,
         ...(value.mode === undefined ? {} : { mode: value.mode }),
@@ -276,13 +278,13 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     }
     return undefined;
   }
-  if (value.operation === "hello") return { version: 1, operation: "hello" };
+  if (value.operation === "hello") return { requestRoute: "shared", operation: "hello" };
   if (!string(value.lifetime)) return undefined;
   if (value.operation === "prompt-marker" && string(value.root) && advicee(value.advicee) &&
       typeof value.marker === "string" && /^[a-f0-9]{64}$/.test(value.marker) &&
       (value.promptDigest === undefined || (typeof value.promptDigest === "string" && /^[a-f0-9]{64}$/.test(value.promptDigest))) &&
       (value.onlyIfMissing === undefined || value.onlyIfMissing === true)) {
-    return { version: 1, operation: "prompt-marker", lifetime: value.lifetime,
+    return { requestRoute: "shared", operation: "prompt-marker", lifetime: value.lifetime,
       root: value.root, advicee: value.advicee, marker: value.marker,
       ...(typeof value.promptDigest === "string" ? { promptDigest: value.promptDigest } : {}),
       ...(value.onlyIfMissing === true ? { onlyIfMissing: true as const } : {}) };
@@ -291,7 +293,7 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
       string(value.root) && advicee(value.advicee) && string(value.token) &&
       (value.close === undefined || typeof value.close === "boolean") &&
       (value.reason === undefined || ROUND_CLOSE_REASONS.includes(value.reason as RoundCloseReason))) {
-    return { version: 1, operation: value.operation, lifetime: value.lifetime,
+    return { requestRoute: "shared", operation: value.operation, lifetime: value.lifetime,
       root: value.root, advicee: value.advicee, token: value.token,
       ...(typeof value.close === "boolean" ? { close: value.close } : {}),
       ...(value.reason === undefined ? {} : { reason: value.reason as RoundCloseReason }) };
@@ -299,33 +301,33 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
   if (value.operation === "register-edit" && string(value.root) && advicee(value.advicee) &&
       typeof value.startedAt === "number" && Number.isFinite(value.startedAt) && value.startedAt > 0 &&
       (value.activityPath === undefined || (string(value.activityPath) && value.activityPath.startsWith("/")))) {
-    return { version: 1, operation: "register-edit", lifetime: value.lifetime,
+    return { requestRoute: "shared", operation: "register-edit", lifetime: value.lifetime,
       root: value.root, advicee: value.advicee, startedAt: value.startedAt,
       ...(typeof value.activityPath === "string" ? { activityPath: value.activityPath } : {}) };
   }
   if (value.operation === "consume-stop" && string(value.root) && advicee(value.advicee) &&
       (value.continuationDigest === undefined ||
         (typeof value.continuationDigest === "string" && /^[a-f0-9]{64}$/.test(value.continuationDigest)))) {
-    return { version: 1, operation: "consume-stop", lifetime: value.lifetime,
+    return { requestRoute: "shared", operation: "consume-stop", lifetime: value.lifetime,
       root: value.root, advicee: value.advicee,
       ...(typeof value.continuationDigest === "string" ? { continuationDigest: value.continuationDigest } : {}) };
   }
   if ((value.operation === "claim-background" || value.operation === "release-background") &&
       string(value.root) && advicee(value.advicee) &&
       typeof value.token === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.token)) {
-    return { version: 1, operation: value.operation, lifetime: value.lifetime,
+    return { requestRoute: "shared", operation: value.operation, lifetime: value.lifetime,
       root: value.root, advicee: value.advicee, token: value.token };
   }
   if (value.operation === "begin-submission" && string(value.token) &&
       (value.surface === "edit" || value.surface === "background" || value.surface === "stop")) {
-    return { version: 1, operation: "begin-submission", lifetime: value.lifetime,
+    return { requestRoute: "shared", operation: "begin-submission", lifetime: value.lifetime,
       token: value.token, surface: value.surface };
   }
   if (value.operation === "release" && string(value.token)) {
-    return { version: 1, operation: "release", lifetime: value.lifetime, token: value.token };
+    return { requestRoute: "shared", operation: "release", lifetime: value.lifetime, token: value.token };
   }
   if (value.operation === "admit" && value.controlledWriter === true && observation(value.observation) && dispatch(value.dispatch)) {
-    return { version: 1, operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch,
+    return { requestRoute: "shared", operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch,
         ...(value.composed === true ? { composed: true } : {}) };
   }
   const finish = record(value.finish);
@@ -340,7 +342,7 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     (value.composed === undefined || value.composed === true)
   ) {
     return {
-      version: 1,
+      requestRoute: "shared",
       operation: "collect",
       lifetime: value.lifetime,
       root: value.root,
@@ -353,10 +355,10 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     };
   }
   if ((value.operation === "acknowledge" || value.operation === "finalize") && string(value.token)) {
-    return { version: 1, operation: value.operation, lifetime: value.lifetime, token: value.token };
+    return { requestRoute: "shared", operation: value.operation, lifetime: value.lifetime, token: value.token };
   }
   if (value.operation === "stats" || value.operation === "cleanup") {
-    return { version: 1, operation: value.operation, lifetime: value.lifetime };
+    return { requestRoute: "shared", operation: value.operation, lifetime: value.lifetime };
   }
   return undefined;
 };
@@ -374,16 +376,16 @@ const ClaudeBlockHostOutput = Schema.Struct({
 });
 
 const ResidentResponseSchema = Schema.Union([
-  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("accepted"),
+  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literal("accepted"),
     ticket: Schema.Struct({ nonce: Schema.NonEmptyString, lifetime: Schema.NonEmptyString }) }),
-  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["rejected-capacity", "rejected-stale", "obsolete-lifetime", "unsupported"])}),
-  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literals(["pending", "empty"]) }),
-  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("unavailable"),
+  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literals(["rejected-capacity", "rejected-stale", "obsolete-lifetime", "unsupported"])}),
+  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literals(["pending", "empty"]) }),
+  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literal("unavailable"),
     reason: Schema.Literals(["backend", "credential", "capacity", "stale", "lost", "expired"]) }),
-  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("advice"),
+  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literal("advice"),
     token: Schema.NonEmptyString, findingCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     output: HostOutput }),
-  Schema.Struct({ version: Schema.Literal(2), status: Schema.Literal("advice"),
+  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literal("advice"),
     token: Schema.NonEmptyString, findingCount: Schema.Int.check(Schema.isGreaterThan(0)),
     output: ClaudeBlockHostOutput }),
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
@@ -420,11 +422,14 @@ export const decodeResidentResponse = (value: unknown): ResidentResponse | undef
   return Option.isSome(decoded) ? decoded.value : undefined;
 };
 
-/** Encode the current wire contract; v1/v2 are implementation-only request variants. */
-export const encodeCurrentResidentRequest = (request: ResidentRequest): string => JSON.stringify({
-  ...request, version: CURRENT_IPC_VERSION,
-  ...(request.operation === "admit" && request.version === 2 ? { ticketed: true } : {}),
-});
+/** Encode the current wire contract; the request route remains internal. */
+export const encodeCurrentResidentRequest = (request: ResidentRequest): string => {
+  const { requestRoute, ...fields } = request;
+  return JSON.stringify({
+    ...fields, version: CURRENT_IPC_VERSION,
+    ...(request.operation === "admit" && requestRoute === "ticketed" ? { ticketed: true } : {}),
+  });
+};
 
 export const decodeCurrentResidentRequest = (encoded: string): ResidentRequest | undefined => {
   let parsed: unknown;
@@ -434,19 +439,23 @@ export const decodeCurrentResidentRequest = (encoded: string): ResidentRequest |
   if (value.ticketed !== undefined && !(value.operation === "admit" && value.ticketed === true)) return undefined;
   if (value.operation === "admit" && value.ticketed === true && value.ticket !== undefined) return undefined;
   if (value.operation !== "collect" && value.ticket !== undefined) return undefined;
-  const internalVersion = value.operation === "admit" ? (value.ticketed === true ? 2 : 1)
-    : value.operation === "collect" && value.ticket !== undefined ? 2 : 1;
-  const { ticketed: _ticketed, ...fields } = value;
-  return decodeResidentRequest(JSON.stringify({ ...fields, version: internalVersion }));
+  if (value.requestRoute !== undefined) return undefined;
+  const requestRoute: ResidentRequestRoute = value.operation === "admit"
+    ? value.ticketed === true ? "ticketed" : "shared"
+    : value.operation === "collect" && value.ticket !== undefined ? "ticketed" : "shared";
+  const { ticketed: _ticketed, version: _version, ...fields } = value;
+  return decodeResidentRequest(JSON.stringify({ ...fields, requestRoute }));
 };
 
-export const encodeCurrentResidentResponse = (response: ResidentResponse): string =>
-  JSON.stringify({ ...response, version: CURRENT_IPC_VERSION });
+export const encodeCurrentResidentResponse = (response: ResidentResponse): string => {
+  const { requestRoute: _authority, ...fields } = response as ResidentResponse & { requestRoute?: ResidentRequestRoute };
+  return JSON.stringify({ ...fields, version: CURRENT_IPC_VERSION });
+};
 
 /** An old resident's response never proves readiness, clear review, or submission. */
 export const decodeCurrentResidentResponse = (value: unknown, request: ResidentRequest): ResidentResponse | undefined => {
   const fields = record(value);
-  if (fields?.version !== CURRENT_IPC_VERSION) return undefined;
+  if (fields?.version !== CURRENT_IPC_VERSION || fields.requestRoute !== undefined) return undefined;
   const { version: _version, ...body } = fields;
-  return decodeResidentResponse(request.version === 2 ? { ...body, version: 2 } : body);
+  return decodeResidentResponse(request.requestRoute === "ticketed" ? { ...body, requestRoute: "ticketed" } : body);
 };

@@ -57,7 +57,7 @@ try {
   const invalid=await run('npm',['test'],{cwd:repo,env});
   const paths=residentPaths(runtime);
   owner=json(await readFile(paths.owner,'utf8').catch(()=>''));
-  const stats=owner?await residentRequest(paths,{version:1,operation:'stats',lifetime:owner.lifetime}).catch(()=>undefined):undefined;
+  const stats=owner?await residentRequest(paths,{requestRoute: "shared",operation:'stats',lifetime:owner.lifetime}).catch(()=>undefined):undefined;
   const finding=history.find(e=>e.kind==='hook'&&e.findings);
   const changedAfterFinding=!!finding&&history.some(e=>e.kind==='hook'&&e.tool==='apply_patch'&&e.at>finding.at&&e.sourceHash!==finding.sourceHash);
   record={schemaVersion:1,recordedAt:new Date().toISOString(),declaration,hostExitCode:host.code,elapsedMs:Date.now()-start,providerRequests:lines(await readFile(calls,'utf8').catch(()=>'')).length,timeline:history.map(e=>({...e,atMs:e.at-start,at:undefined,doneAt:undefined})),checks:{initialDraftObserved:history.some(e=>e.draft),realFindingSubmitted:!!finding,editAfterFinding:changedAfterFinding,validExamplesCompile:test.code===0,invalidStatesRejected:invalid.code===0,agentMentionsReview:messages.some(m=>/review|feedback|advisory/i.test(m)),finalSourceChanged:source.length>0&&!source.includes('receipt: string | null')},resident:stats?.status==='stats'?{queued:stats.queued,running:stats.running,successfulCacheEntries:stats.successfulCacheEntries,pendingFindingBatches:stats.pendingFindingBatches,pendingOperationalNotices:stats.pendingOperationalNotices}:null,rawTranscriptRetained:false,rawBackendMaterialRetained:false};
@@ -67,7 +67,7 @@ try {
   console.log(JSON.stringify(record,null,2));
 } finally {
   owner ??= json(await readFile(residentPaths(runtime).owner, 'utf8').catch(() => ''));
-  if(owner){const paths=residentPaths(runtime);await residentRequest(paths,{version:1,operation:'cleanup',lifetime:owner.lifetime}).catch(()=>{});try{process.kill(owner.pid,'SIGTERM')}catch{}}
+  if(owner){const paths=residentPaths(runtime);await residentRequest(paths,{requestRoute: "shared",operation:'cleanup',lifetime:owner.lifetime}).catch(()=>{});try{process.kill(owner.pid,'SIGTERM')}catch{}}
   await rm(temp,{recursive:true,force:true});
 }
 if(record?.verdict!=='demonstrated')process.exitCode=1;

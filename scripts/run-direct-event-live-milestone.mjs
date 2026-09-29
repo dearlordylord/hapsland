@@ -147,7 +147,7 @@ try {
     let terminalStats;
     for (let attempt = 0; attempt < 100; attempt += 1) {
       const observed = await residentRequest(paths, {
-        version: 1, operation: "stats", lifetime: owner.lifetime,
+        requestRoute: "shared", operation: "stats", lifetime: owner.lifetime,
       }).catch(() => undefined);
       if (observed?.status === "stats" && observed.queued === 0 && observed.running === 0) {
         terminalStats = observed;
@@ -174,7 +174,7 @@ try {
       try { output = JSON.parse(reply.stdout); } catch { output = undefined; }
       hostOutputKind = classifyHookOutput(output ?? {});
       terminalStats = await residentRequest(paths, {
-        version: 1, operation: "stats", lifetime: owner.lifetime,
+        requestRoute: "shared", operation: "stats", lifetime: owner.lifetime,
       }).catch(() => terminalStats);
     }
     ({ contractOutcome, successfulEvaluation } = classifyLiveOutcome({
@@ -183,7 +183,7 @@ try {
       stats: terminalStats,
     }));
     await residentRequest(paths, {
-      version: 1, operation: "cleanup", lifetime: owner.lifetime,
+      requestRoute: "shared", operation: "cleanup", lifetime: owner.lifetime,
     }).catch(() => undefined);
     await new Promise((resolveWait) => setTimeout(resolveWait, 100));
     try { process.kill(owner.pid, 0); process.kill(owner.pid, "SIGTERM"); } catch { /* exited */ }
