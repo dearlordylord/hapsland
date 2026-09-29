@@ -1,7 +1,7 @@
 {
   "traces": [
     {
-      "name": "terminal background finding permits one Stop reoffer after rollback",
+      "name": "uncertain background finding permits one Stop reoffer after rollback",
       "events": [
         {
           "kind": "openRound",
@@ -41,13 +41,13 @@
           "kind": "submissionTerminal",
           "advice": 1,
           "token": 1,
-          "certain": true,
+          "certain": false,
           "expect": "submissionRecorded",
           "afterBatches": [
-            "submitted"
+            "uncertain"
           ],
           "afterLeases": [
-            "submitted:false"
+            "uncertain:false"
           ]
         },
         {
@@ -91,7 +91,7 @@
           ],
           "expect": "submissionBegun",
           "afterBatches": [
-            "submitted",
+            "uncertain",
             "authorized"
           ],
           "afterLeases": [
@@ -113,10 +113,10 @@
           "token": 2,
           "expect": "submissionReleased",
           "afterBatches": [
-            "submitted"
+            "uncertain"
           ],
           "afterLeases": [
-            "submitted:false"
+            "uncertain:false"
           ]
         },
         {

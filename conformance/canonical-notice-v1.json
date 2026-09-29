@@ -287,14 +287,14 @@
         {
           "kind": "collectionNoticeCheck",
           "items": 6,
-          "bytes": 2048,
+          "bytes": 10241,
           "skipUnfitting": false,
           "expect": "collectionNoticeStopped"
         },
         {
           "kind": "collectionNoticeCheck",
           "items": 6,
-          "bytes": 2048,
+          "bytes": 10241,
           "skipUnfitting": true,
           "expect": "collectionNoticeSkipped"
         }

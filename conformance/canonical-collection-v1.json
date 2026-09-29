@@ -39,12 +39,14 @@
         { "kind": "collectionExpiryCheck", "elapsed": 599999, "lifetime": 600000, "expect": "collectionCurrent" },
         { "kind": "collectionExpiryCheck", "elapsed": 600000, "lifetime": 600000, "expect": "collectionExpired" },
         { "kind": "collectionFitCheck", "items": 5, "bytes": 2048, "expect": "collectionFits" },
-        { "kind": "collectionFitCheck", "items": 6, "bytes": 2048, "expect": "collectionLimited" },
+        { "kind": "collectionFitCheck", "items": 6, "bytes": 2048, "expect": "collectionFits" },
+        { "kind": "collectionFitCheck", "items": 7, "bytes": 10240, "expect": "collectionFits" },
+        { "kind": "collectionFitCheck", "items": 7, "bytes": 10241, "expect": "collectionLimited" },
         { "kind": "collectionFindingCheck", "selectionPartition": 1, "selectionRound": 1, "unit": 1, "partition": 1, "round": 1, "snapshot": 1, "currentSnapshot": 1, "credential": 0, "currentCredential": 0, "ageMs": 0, "soloBytes": 100, "collectionReady": true, "selectedCount": 0, "prospectiveBytes": 100, "expect": "collectionFindingSelected" },
         { "kind": "collectionFindingCheck", "selectionPartition": 1, "selectionRound": 1, "unit": 1, "partition": 1, "round": 1, "snapshot": 1, "currentSnapshot": 2, "credential": 0, "currentCredential": 0, "ageMs": 0, "soloBytes": 100, "collectionReady": true, "selectedCount": 0, "prospectiveBytes": 100, "expect": "collectionFindingExpired" },
-        { "kind": "collectionFindingCheck", "selectionPartition": 1, "selectionRound": 1, "unit": 1, "partition": 1, "round": 1, "snapshot": 1, "currentSnapshot": 1, "credential": 0, "currentCredential": 0, "ageMs": 0, "soloBytes": 2049, "collectionReady": true, "selectedCount": 0, "prospectiveBytes": 2049, "expect": "collectionFindingLimited" },
-        { "kind": "collectionNoticeCheck", "items": 6, "bytes": 2048, "skipUnfitting": true, "expect": "collectionNoticeSkipped" },
-        { "kind": "collectionNoticeCheck", "items": 6, "bytes": 2048, "skipUnfitting": false, "expect": "collectionNoticeStopped" }
+        { "kind": "collectionFindingCheck", "selectionPartition": 1, "selectionRound": 1, "unit": 1, "partition": 1, "round": 1, "snapshot": 1, "currentSnapshot": 1, "credential": 0, "currentCredential": 0, "ageMs": 0, "soloBytes": 10241, "collectionReady": true, "selectedCount": 0, "prospectiveBytes": 10241, "expect": "collectionFindingLimited" },
+        { "kind": "collectionNoticeCheck", "items": 6, "bytes": 10241, "skipUnfitting": true, "expect": "collectionNoticeSkipped" },
+        { "kind": "collectionNoticeCheck", "items": 6, "bytes": 10241, "skipUnfitting": false, "expect": "collectionNoticeStopped" }
       ],
       "collection": { "ready": [], "leases": [], "claims": [] }
     }
