@@ -1,0 +1,91 @@
+{
+  "providerInput": {
+    "artifact": {
+      "kind": "interface",
+      "name": "Order",
+      "domain": "src/order.ts",
+      "source": "export interface Order { amount: Amount }"
+    },
+    "evidence": {
+      "rootId": "src/order.ts:interface:Order",
+      "nodes": [
+        {
+          "id": "src/amount.ts:type-alias:Amount",
+          "kind": "type-alias",
+          "name": "Amount",
+          "domain": "src/amount.ts",
+          "source": "export type Amount = number",
+          "order": 0
+        }
+      ],
+      "edges": [
+        {
+          "from": "src/order.ts:interface:Order",
+          "to": "src/amount.ts:type-alias:Amount",
+          "kind": "expanded",
+          "symbol": "Amount",
+          "order": 0
+        }
+      ]
+    },
+    "inputContract": {
+      "id": "direct-event/type-shape/v2",
+      "completeness": "complete",
+      "projectionFingerprint": "5334fbc03c4fd8fd4947c92e362b9adbdf3a5a4e04aead1f0ad893ed5574074b",
+      "rendererVersion": "candidate-semantic-evidence/1",
+      "rendererDigest": "5755d7abe997a57c952111ef2e0ac2e85c3a0e7f84fb39b11bd7a576ae5c01de"
+    }
+  },
+  "completeRequest": {
+    "input": {
+      "artifact": {
+        "kind": "interface",
+        "name": "Order",
+        "domain": "src/order.ts",
+        "source": "export interface Order { amount: Amount }"
+      },
+      "evidence": {
+        "rootId": "src/order.ts:interface:Order",
+        "nodes": [
+          {
+            "id": "src/amount.ts:type-alias:Amount",
+            "kind": "type-alias",
+            "name": "Amount",
+            "domain": "src/amount.ts",
+            "source": "export type Amount = number",
+            "order": 0
+          }
+        ],
+        "edges": [
+          {
+            "from": "src/order.ts:interface:Order",
+            "to": "src/amount.ts:type-alias:Amount",
+            "kind": "expanded",
+            "symbol": "Amount",
+            "order": 0
+          }
+        ]
+      },
+      "inputContract": {
+        "id": "direct-event/type-shape/v2",
+        "completeness": "complete",
+        "projectionFingerprint": "5334fbc03c4fd8fd4947c92e362b9adbdf3a5a4e04aead1f0ad893ed5574074b",
+        "rendererVersion": "candidate-semantic-evidence/1",
+        "rendererDigest": "5755d7abe997a57c952111ef2e0ac2e85c3a0e7f84fb39b11bd7a576ae5c01de"
+      }
+    },
+    "decisions": {
+      "wire-proposal/type": {
+        "_tag": "Probability",
+        "instructions": "Is the selected type closure meaningful?",
+        "criteria": {
+          "false": "No",
+          "true": "Yes"
+        }
+      }
+    }
+  },
+  "canonicalTreeBytes": 474,
+  "providerInputBytes": 777,
+  "completeRequestBytes": 942
+}

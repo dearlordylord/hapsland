@@ -1,0 +1,91 @@
+{
+  "providerInput": {
+    "artifact": {
+      "kind": "function",
+      "name": "checkout",
+      "domain": "src/checkout.ts",
+      "source": "export function checkout(value: number): number { return double(value) }"
+    },
+    "evidence": {
+      "rootId": "src/checkout.ts:function:checkout",
+      "nodes": [
+        {
+          "id": "src/helper.ts:function:double",
+          "kind": "function",
+          "name": "double",
+          "domain": "src/helper.ts",
+          "source": "export function double(value: number): number { return value * 2 }",
+          "order": 0
+        }
+      ],
+      "edges": [
+        {
+          "from": "src/checkout.ts:function:checkout",
+          "to": "src/helper.ts:function:double",
+          "kind": "expanded",
+          "symbol": "double",
+          "order": 0
+        }
+      ]
+    },
+    "inputContract": {
+      "id": "direct-event/function/v1",
+      "completeness": "complete",
+      "projectionFingerprint": "17cbdf6822f42347e8b8b528d0d3a0ed580af09a4fdc23894304b2f7aa8538e3",
+      "rendererVersion": "candidate-semantic-evidence/1",
+      "rendererDigest": "5755d7abe997a57c952111ef2e0ac2e85c3a0e7f84fb39b11bd7a576ae5c01de"
+    }
+  },
+  "completeRequest": {
+    "input": {
+      "artifact": {
+        "kind": "function",
+        "name": "checkout",
+        "domain": "src/checkout.ts",
+        "source": "export function checkout(value: number): number { return double(value) }"
+      },
+      "evidence": {
+        "rootId": "src/checkout.ts:function:checkout",
+        "nodes": [
+          {
+            "id": "src/helper.ts:function:double",
+            "kind": "function",
+            "name": "double",
+            "domain": "src/helper.ts",
+            "source": "export function double(value: number): number { return value * 2 }",
+            "order": 0
+          }
+        ],
+        "edges": [
+          {
+            "from": "src/checkout.ts:function:checkout",
+            "to": "src/helper.ts:function:double",
+            "kind": "expanded",
+            "symbol": "double",
+            "order": 0
+          }
+        ]
+      },
+      "inputContract": {
+        "id": "direct-event/function/v1",
+        "completeness": "complete",
+        "projectionFingerprint": "17cbdf6822f42347e8b8b528d0d3a0ed580af09a4fdc23894304b2f7aa8538e3",
+        "rendererVersion": "candidate-semantic-evidence/1",
+        "rendererDigest": "5755d7abe997a57c952111ef2e0ac2e85c3a0e7f84fb39b11bd7a576ae5c01de"
+      }
+    },
+    "decisions": {
+      "wire-proposal/function": {
+        "_tag": "Probability",
+        "instructions": "Does the selected function call its helper?",
+        "criteria": {
+          "false": "No",
+          "true": "Yes"
+        }
+      }
+    }
+  },
+  "canonicalTreeBytes": 553,
+  "providerInputBytes": 854,
+  "completeRequestBytes": 1026
+}
