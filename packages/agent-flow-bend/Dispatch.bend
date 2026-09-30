@@ -81,19 +81,25 @@ def start_command(entry: Entry) -> Command:
     case Entry{_, _, _, operation, sequence, cycle, _, _}:
       Started{operation, sequence, cycle}
 
+def pump_active(active: List<&2, Entry>, pending: List<&2, Entry>,
+    running: List<&2, Entry>, next_sequence: Nat, +cycle: Nat,
+    closed: Bool, requests: List<&2, Request>) -> DispatchResult:
+  match active:
+    case Entry{_, _, _, _, _, _, True{}, _} <> rest:
+      pump_active(rest, pending, running, next_sequence, cycle, closed, requests)
+    case +entry <> rest:
+      +next = start(entry, cycle)
+      Advanced{State{pending, rest,
+        List.append(&2, Entry, running, next <> Nil{}), next_sequence, cycle, closed, requests},
+        start_command(next) <> Nil{}}
+    case Nil{}:
+      Advanced{State{pending, Nil{}, running, next_sequence, cycle, closed, requests}, Nil{}}
+
+# Recurse on the active list itself so both Bend checkers see the decrease.
 def pump_one(state: State) -> DispatchResult:
   match state:
-    case State{pending, +entry <> active, running, next_sequence, +cycle, closed, requests}:
-      match entry:
-        case Entry{_, _, _, _, _, _, True{}, _}:
-          pump_one(State{pending, active, running, next_sequence, cycle, closed, requests})
-        case _:
-          +next = start(entry, cycle)
-          Advanced{State{pending, active,
-            List.append(&2, Entry, running, next <> Nil{}), next_sequence, cycle, closed, requests},
-            start_command(next) <> Nil{}}
-    case _:
-      Advanced{state, Nil{}}
+    case State{pending, active, running, next_sequence, cycle, closed, requests}:
+      pump_active(active, pending, running, next_sequence, cycle, closed, requests)
 
 def pump_next_result(first: State, commands: List<&2, Command>,
     result: DispatchResult) -> DispatchResult:

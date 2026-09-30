@@ -29,7 +29,7 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:11f4fd080d8152b8cb334a6a667a1fa58d3863de2a5a4da78a89b613928e3b22";
+  "canonical-source-sha256:1d4f6b44d6ca13f1f531d950c22a1aee27e967a613af47664951d7bc23e5c0f8";
 export type RunInput =
   | SessionInput
   | ({ readonly at: number; readonly generation?: number } & (

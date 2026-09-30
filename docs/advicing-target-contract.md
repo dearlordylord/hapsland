@@ -268,6 +268,34 @@ round cannot recall text already in a running hook. The current flow selects no
 additional advice from that closed round. Whether a later virtual round may
 deliberately select earlier advice is a separate, undecided behavior.
 
+## Conditional progress
+
+From every reachable, consistent checked state, admitted review work must
+resolve when its external operations return matching facts or their deadlines
+fire. Resolution records an outcome, releases transient request resources, and
+retains only the resources legitimately owned by eligible advice. Clear results,
+failures, cancellation and retirement are resolutions; they need not produce advice.
+
+A finding that remains eligible must progress to an authorized agent-runtime
+handoff when capacity and a permitted delivery opportunity become available.
+Enabled work must eventually be scheduled, and matching authorization and
+completion facts must eventually be processed. A successful host acknowledgement
+must advance the handoff to recorded submission. This guarantees no agent receipt,
+model visibility or use beyond the acknowledged runtime boundary. Existing
+suppression and the one uncertain-background reoffer at Stop still apply; this
+requirement does not authorize unlimited output retries.
+
+After a finite failure period, restoring these healthy conditions must let fresh
+eligible work progress without a reset. Earlier resolved failures must not leave
+request permits or failure state that permanently blocks fresh admission. A
+closed dispatcher, revoked eligibility, permanent capacity exhaustion, missing
+external responses, or an unavailable delivery opportunity does not satisfy the
+progress assumptions. No fixed wall-clock or 2,000 ms simulator deadline is imposed.
+
+These are product requirements. The [Bend progress checks](../packages/agent-flow-bend/README.md#conditional-progress-proofs)
+state the boundaries currently proved and the host obligations outside those
+proofs; executable evidence does not establish complete native orchestration.
+
 ## Closure, restart, and evidence
 
 Hapsland closes its virtual round when it issues an allow-finish response, even

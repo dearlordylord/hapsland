@@ -123,3 +123,41 @@ when those values cannot affect a product decision. It supplies any
 decision-affecting value as an explicit fact to Bend. TypeScript measures time
 and supplies clock and deadline facts; pure Bend decisions do not read an
 implicit host clock.
+
+## Conditional progress proofs
+
+Run `npm run test:progress` for `progress-proof/LAWS.bend` and
+`progress-proof/PROOF.bend`. The eight general laws support the accepted
+[conditional progress contract](../../docs/advicing-target-contract.md#conditional-progress):
+
+- Matching completions remove exactly one request permit in any order. Every
+  responsive finite completion permutation drains its original cohort, while
+  preserving dispatch metadata. The response premise checks identity against
+  the then-current pool and requires one response per initial permit; it does
+  not assume the terminal conclusion. Request start/interruption facts must
+  satisfy the production outcome predicate.
+- Eligible available advice, existing reserved/authorized writers and the
+  permitted uncertain-background Stop reoffer reach the submitted lease phase
+  under matching authorization and successful completion facts. Closed leases
+  and spent uncertain writes are outside the runnable predicate.
+- After a failure cohort resolves, an open dispatcher accepts a fresh request
+  without resetting its queues, running jobs, sequence or cycle.
+
+`progress-proof/core.bend` contains proof drivers composing the production
+`Dispatch`, `Handoff` and `Canonical` functions. It is not a second production
+scheduler. The proof covers these checked boundaries, not execution of the
+TypeScript resident or simulator, source capture, aggregate ledger admission,
+collector fairness, actual agent receipt, or an infinite trace with continuing
+new admissions. External responsiveness, eventual scheduling, stable eligibility,
+available capacity and delivery opportunities remain host obligations. The
+simulator's bounded recovery/replay tests exercise that orchestration separately.
+
+The gate falsifies literal law instances and their hypotheses before checking the
+BendTT kernel verdict. A planted never-sent bug must be detected. Every law has a
+compiling, false mutant: its literal witness must fail and its isolated proof
+must be refused in the named location. Two additional production mutations fail
+in shared supporting lemmas, which the report distinguishes from a failure in a
+law's own proof. No third-party test dependency is added. Each checker invocation
+has a five-second limit. Review the laws and mutation coverage whenever request
+settlement, handoff/reoffer eligibility, dispatch closure or orchestration
+assumptions change.
