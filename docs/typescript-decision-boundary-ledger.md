@@ -84,11 +84,11 @@ The [Codex and Claude adapter checks](../src/direct-event/adapter.ts), [native e
 
 | Field | Reviewed boundary |
 | --- | --- |
-| Decision | At most 64 virtual rounds may be open in one resident at once. A pre-edit permit does not reserve a round slot. The first accepted edit opens a round if a slot is free; closure releases that slot. Closed advicees do not occupy open-round capacity. |
+| Decision | At most 64 virtual rounds may be open in one resident at once. A pre-edit permit does not reserve a round slot. The first accepted edit opens a round if a slot is free; closure releases that slot. An advicee whose virtual round has closed does not occupy open-round capacity. |
 | TypeScript owner | [Composed delivery](../src/resident/composed-delivery.ts) pairs native edit notifications with pending permits. It no longer supplies a round count, a new-round verdict, or a round-limit value to the permit gate. |
 | Bend boundary | [Canonical Bend](../packages/agent-flow-bend/Canonical.bend) counts open rounds in its own state when the edit consumes its permit and atomically opens or joins a round. A failed opening leaves the permit admission unconsumed. |
 | Why outside Bend | Native event pairing remains TypeScript adapter work. The count and admission limit are entirely reducer decisions. |
-| Review and limits | On 2026-09-29 the owner chose the 64-record limit to apply to **simultaneously open rounds**, rather than advicees ever seen in a resident lifetime. Completed edit identities now have the separate 1,000-entry window. Retention of closed advicee records remains unresolved. |
+| Review and limits | On 2026-09-29 the owner chose the 64-record limit to apply to **simultaneously open rounds**, rather than advicees ever seen in a resident lifetime. Completed edit identities now have the separate 1,000-entry window. Retention of identity records after a virtual round closes remains unresolved. An advicee is not itself closed. |
 
 ## TODO — TypeScript choices awaiting boundary review
 
