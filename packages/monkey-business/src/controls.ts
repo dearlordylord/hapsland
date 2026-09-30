@@ -4,7 +4,10 @@ import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts";
 import type { SessionControl } from "./session.ts";
 export type EnvironmentProfile = { readonly currentWork: boolean; readonly credentialReady: boolean; readonly credentialGeneration?: number; readonly sourceReadable?: boolean };
 export type OutputProfile = { readonly outcome: "certain" | "uncertain" | "failed"; readonly delayMs: number; readonly leaseMs: number };
-export type LiveControl = SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | { readonly kind: "jevProfile"; readonly delayMs: number; readonly outcome?: JevRequestOutcome; readonly outcomeWeights?: OutcomeWeights };
+export type OutcomeChoice =
+  | { readonly outcome: JevRequestOutcome; readonly outcomeWeights?: never }
+  | { readonly outcome?: never; readonly outcomeWeights?: OutcomeWeights };
+export type LiveControl = SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
 /** Bounds protect finite synthetic workload; they are not empirical Jev limits. */
 export const validateLiveControl = (control: LiveControl): LiveControl => {
   if (!control || typeof control !== "object") throw new TypeError("invalid live control");

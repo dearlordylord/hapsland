@@ -1,6 +1,6 @@
 import { DEFAULT_OUTCOME_WEIGHTS, JEV_OUTCOME_ORDER, OUTCOME_RANDOM_ALGORITHM, OUTCOME_RANDOM_STREAM, SeededOutcomeSampler, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
 export * from "./outcomes.ts";
-import { validateLiveControl, type LiveControl, type EnvironmentProfile, type OutputProfile } from "./controls.ts";
+import { validateLiveControl, type LiveControl, type EnvironmentProfile, type OutputProfile, type OutcomeChoice } from "./controls.ts";
 export * from "./controls.ts";
 import {
   SessionGenerator,
@@ -115,11 +115,9 @@ export type RunConfig = {
   readonly environment?: EnvironmentProfile;
   readonly outputProfile?: OutputProfile;
   readonly jevDelay?: number;
-  readonly outcome?: JevRequestOutcome;
-  readonly outcomeWeights?: OutcomeWeights;
   readonly retention?: number;
   readonly session?: SessionConfig;
-};
+} & OutcomeChoice;
 export type Replay = {
   readonly endpoint: { readonly eventCount: number; readonly now: number };
   readonly format: typeof REPLAY_FORMAT;
@@ -219,10 +217,11 @@ export class Run {
     this.outcome = config.outcome;
     this.outcomeWeights = validateOutcomeWeights(config.outcomeWeights ?? DEFAULT_OUTCOME_WEIGHTS);
     this.outcomeSampler = new SeededOutcomeSampler(config.seed ?? 1);
+    const { outcome: _outcome, outcomeWeights: _weights, ...baseConfig } = config;
     this.config = copy({
-      ...config,
+      ...baseConfig,
       seed: config.seed ?? 1,
-      ...(config.outcome === undefined ? { outcomeWeights: this.outcomeWeights } : {}),
+      ...(config.outcome === undefined ? { outcomeWeights: this.outcomeWeights } : { outcome: config.outcome }),
       inputs:
         config.inputs ??
         (config.session

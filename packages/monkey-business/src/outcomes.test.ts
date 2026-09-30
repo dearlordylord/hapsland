@@ -52,7 +52,7 @@ describe("public weighted request profile", () => {
   });
   it("rejects invalid config and controls before altering replay or sampling state", () => {
     expect(() => createRun({ outcomeWeights: weights() })).toThrow("At least one");
-    expect(() => createRun({ outcome: "clear", outcomeWeights: DEFAULT_OUTCOME_WEIGHTS })).toThrow("choose explicit");
+    expect(() => createRun({ outcome: "clear", outcomeWeights: DEFAULT_OUTCOME_WEIGHTS } as never)).toThrow("choose explicit");
     const run = createRun({ seed: 7, inputs });
     const before = run.exportReplay();
     expect(() => run.applyControl({ kind: "jevProfile", delayMs: 1, outcomeWeights: weights() })).toThrow("At least one");
