@@ -126,6 +126,21 @@ describe("ongoing public sessions", () => {
     expect(restored.observations).toHaveLength(1);
   });
 
+  it("pumps burst preparations through the checked eight-job execution bound", () => {
+    const run = createRun({ inputs: Array.from({ length: 16 }, () =>
+      ({ kind: "edit" as const, at: 0, bytes: 10, unitBytes: [5], outcome: "clear" as const })),
+      limits: { globalItems: 100, globalBytes: 10000, partitionItems: 16, partitionBytes: 10000 },
+      preparationDelay: 10, jevDelay: 0, retention: 5000 });
+    run.advance({ maxEvents: 5000 });
+    const starts = run.observations.filter(frame => frame.event.kind === "beginObservedPreparation");
+    expect(starts).toHaveLength(16);
+    expect(starts.filter(frame => frame.time === 0)).toHaveLength(1);
+    expect(starts.filter(frame => frame.time === 10)).toHaveLength(8);
+    expect(Math.max(...run.observations.map(frame => frame.after.dispatch.running.filter(entry => entry.preparation).length))).toBe(8);
+    expect(run.projection.dispatch.running).toEqual([]);
+    expect(run.observations.filter(frame => frame.rejection)).toEqual([]);
+  });
+
   it("rejects invalid control bounds before recording changes", () => {
     const run = createRun(config);
     expect(() => run.applyControl({ kind: "editPace", intervalMs: 0 })).toThrow();

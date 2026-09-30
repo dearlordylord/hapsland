@@ -343,7 +343,8 @@ export class Run {
         return this.step(untilTime);
       }
       if (!round) {
-        this.event({ kind: "openRound", partition: 1, lifetime: 1 });
+        if (!this.queue.some(item => item.input.kind === "canonical" && item.input.event.kind === "openRound"))
+          this.event({ kind: "openRound", partition: 1, lifetime: 1 });
         this.enqueue(
           {
             ...item.input,
@@ -392,24 +393,30 @@ export class Run {
         case "observationAdmitted": {
           if (!scope || !item.job)
             throw new Error("unhandled required command: observationAdmitted");
-          this.event({
-            kind: "startObservation",
-            ...scope,
-            observation: command.id,
-          });
-          this.event(
-            {
-              kind: "beginObservedPreparation",
-              ...scope,
-              observation: command.id,
-              bytes: item.job.bytes,
-            },
-            0,
-            item.job,
-          );
+          this.jobs.set(command.id, item.job);
+          this.event({ kind: "queueDispatch", ...scope, operation: command.id });
           break;
         }
 
+        case "dispatchStarted": {
+          const work = this.projection.work.find(work => work.operation === command.operation);
+          const job = this.jobs.get(command.operation);
+          if (!work || !job || work.kind !== "sourceQueued")
+            throw new Error("unhandled required command: dispatchStarted lacks synthetic source job");
+          const scope = { partition: work.partition, lifetime: work.lifetime, round: work.round };
+          this.event({ kind: "startObservation", ...scope, observation: work.operation });
+          this.event({ kind: "beginObservedPreparation", ...scope,
+            observation: work.operation, bytes: job.bytes }, 0, job);
+          break;
+        }
+        case "preparationRefused": {
+          if (event.kind === "beginObservedPreparation") {
+            this.event({ kind: "completeObservation", ...scope!, observation: event.observation });
+            this.event({ kind: "dispatchSettled", ...scope!, operation: event.observation });
+            this.jobs.delete(event.observation);
+          }
+          break;
+        }
         case "prepare": {
           if (!scope || !item.job)
             throw new Error(
@@ -704,12 +711,15 @@ export class Run {
       const parent = before.work.find(
         (w) => w.operation === event.operation,
       )?.parent;
-      if (parent && scope)
+      if (parent && scope) {
         this.event({
           kind: "completeObservation",
           ...scope,
           observation: parent,
         });
+        this.event({ kind: "dispatchSettled", ...scope, operation: parent });
+        this.jobs.delete(parent);
+      }
     }
     if (
       this.finish?.waiting &&

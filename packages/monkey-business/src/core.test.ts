@@ -23,7 +23,7 @@ describe("deterministic driver and replay", () => {
     const run = createRun({
       inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5] }],
     });
-    expect(run.advance({ maxEvents: 4 }).reason).toBe("eventLimit");
+    expect(run.advance({ maxEvents: 5 }).reason).toBe("eventLimit");
     expect(run.projection.work.some((work) => work.kind === "preparing")).toBe(
       true,
     );
@@ -124,7 +124,7 @@ it("time advancement never crosses a workload metadata boundary", () => {
   expect(run.observations).toEqual([]);
   expect(run.now).toBe(0);
   run.advance({ untilTime: 100, maxEvents: 100 });
-  expect(run.observations.map((x) => x.time)).toEqual([100, 100, 100, 100]);
+  expect(run.observations.map((x) => x.time)).toEqual([100, 100, 100, 100, 100]);
 });
 it("ordinary capacity refusals remain observable successful transitions", () => {
   const run = createRun({
@@ -264,7 +264,7 @@ it("restores controls applied after metadata-only clock advancement at the viewi
   run.advance({ untilTime: 100 });
   run.applyControl({ kind: "suspendArrivals", suspended: false });
   const exported = run.exportReplay();
-  expect(exported.endpoint).toEqual({ eventCount: 10, now: 20 });
+  expect(exported.endpoint).toEqual({ eventCount: 12, now: 20 });
   const restored = restoreReplay(exported);
   expect(restored.observations).toEqual(run.observations);
   expect(restored.now).toBe(20);
