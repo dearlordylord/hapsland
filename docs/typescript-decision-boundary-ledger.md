@@ -101,3 +101,10 @@ These are the remaining choices from the owner-facing “Choice made in TypeScri
 | TS-007 | The resident [measures encoded objects and selects reservation purposes](../src/resident/server.ts) before Bend enforces capacity for the advicee partition. | Review the measurement contract and purpose mapping. The corrected partition identity does not approve a particular numeric limit. Reconcile the numeric limits in [the supported profile](direct-event-v1-supported-profile.md) with the current code separately. |
 | TS-008 | The resident checks credentials, calls Jev, encodes output, and writes to the agent runtime around Bend decisions ([resident](../src/resident/server.ts)). | Keep external effects native, but examine each TypeScript precondition that can deny or change a user-visible result without a Bend decision. |
 | TS-009 | The resident starts an [idle timer and cleanup attempt](../src/resident/server.ts) after connection activity. Its timer is TypeScript; Bend checks supplied idle facts and its canonical cleanup state. The canonical check does not currently require the open-round or admission lists to be empty. | Decide whether five seconds and the retry schedule are native operation settings or product policy, and whether an open round or pending pre-edit permit should prevent lifetime retirement. Do not treat the current timer as a Bend-authored decision. |
+
+For TS-005h, the owner confirmed that an edit with unprovable freshness may be
+rejected after old identity records are removed. This applies to edit admission,
+not to advice already handed to a runtime hook. The installed pre-edit hook is
+synchronous, so a pre-edit hook arriving after the same agent's ordinary Stop is
+not the expected serial path. Host overlap or replay remains a defensive case;
+the current host evidence does not establish it as a routine occurrence.

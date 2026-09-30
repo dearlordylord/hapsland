@@ -30,6 +30,24 @@ Jev to produce delivery output. The resident owns admitted work, pending advice,
 leases, source-free operational failure records, expiry, finish decisions, and virtual-round resources. There is
 one installed delivery behavior, without a legacy/composed mode selector.
 
+### Agent-facing sequence
+
+In an ordinary supported agent-runtime cycle, the user gives an agent work to
+do. Before an eligible edit tool runs, Hapsland's pre-edit hook asks the resident
+to register that edit attempt. After the tool edits a file, the synchronous
+post-edit hook reports the result. The first accepted edit opens the advicee's
+virtual round. Review then runs in the resident; the agent can receive advice
+after an edit, through a background hook, or when it tries to finish.
+
+When the agent tries to finish, its Stop hook gives Hapsland a bounded chance
+to complete admitted reviews. A continue-with-advice response asks the agent
+to work on that advice and keeps the same virtual round open. The agent can edit
+and try to finish again. An allow-finish response closes the virtual round.
+Another runtime Stop invocation cannot reopen it. A later user message or
+runtime turn change does not open a virtual round by itself; a later accepted
+edit does. The runtime can still report an event after Hapsland closes its
+virtual round, because the runtime's own turn boundary is separate.
+
 ### Agent response is controlled by its instructions
 
 Hapsland submits advice and can request a bounded continuation; it does not
