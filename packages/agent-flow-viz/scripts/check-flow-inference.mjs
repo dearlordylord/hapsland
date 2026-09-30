@@ -24,6 +24,10 @@ try {
   assert.deepEqual(steps[2].after.work.map((work) => [work.operation, work.kind]), [[1, "sourceQueued"]]);
   assert.equal(steps[2].after.charges.length, 0,
     "observation admission creates queued source work without a review capacity charge");
+  assert.ok(has(3, "state", "admission", "sourcePending", "work:1"),
+    "checked admission places new work in its own waiting-source stage");
+  assert.ok(has(9, "state", "sourcePending", "preparation", "work:1"),
+    "source work moves from the waiting stage only when reading starts");
   assert.ok(has(8, "state", "admission", "queued", "dispatch:2"),
     "a second queued edit is evidenced by its dispatch ID");
   assert.ok(has(13, "state", "queued", "preparation", "dispatch:2"),

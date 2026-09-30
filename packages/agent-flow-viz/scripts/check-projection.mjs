@@ -79,9 +79,9 @@ try {
       if (frame.after.work.filter((work) => work.kind === "sourceQueued").length === count) { observed = frame.after; break; }
     }
     assert.ok(observed, `checked burst reaches ${count} queued sources`);
-    const facet = presentation.SQUARES.observation.facets(observed).find((item) => item.label === "source queued");
+    const facet = presentation.SQUARES.sourcePending.facets(observed).find((item) => item.label === "source work waiting");
     assert.equal(facet.count, count);
-    assert.match(JSON.stringify(flowView.productionFlowView(inertHtml, observed, undefined, false)), new RegExp(`${count} source queued`));
+    assert.match(JSON.stringify(flowView.productionFlowView(inertHtml, observed, undefined, false)), new RegExp(`${count} source work waiting`));
     assert.equal(presentation.SQUARES.preparation.facets(observed)[0].count, observed.dispatch.running.filter((entry) => entry.preparation).length);
     assert.equal(presentation.SQUARES.units.facets(observed)[2].count, observed.dispatch.running.filter((entry) => !entry.preparation).length);
   }
@@ -89,16 +89,16 @@ try {
     compiled.inventory.map((entry) => entry.purpose));
   assert.deepEqual(inventory.CAPACITY_INVENTORY.map((entry) => entry.limits),
     compiled.inventory.map((entry) => Object.keys(entry.limits)));
-  assert.match(text(initial), /CANONICAL BEND PRODUCTION MODEL/);
-  assert.match(text(initial), /What uses review capacity/);
+  assert.match(text(initial), /From agent edit to Jev and back/);
+  assert.match(text(initial), /Capacity rules/);
   assert.match(text(initial), /Jev request attempt/);
   assert.match(text(initial), /Awaiting Jev result/);
   const descendants = (node) => node == null ? [] : [node, ...(node.children ?? []).flatMap(descendants)];
   const elements = (model, name) => descendants(main.view(model, inertHtml).body)
     .filter((node) => node.data?.class?.[name]);
   const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
-  assert.equal(elements(initial, "topology-node").length, 13);
-  assert.equal(elements(initial, "topology-route").length, 23);
+  assert.equal(elements(initial, "topology-node").length, 14);
+  assert.equal(elements(initial, "topology-route").length, 24);
   assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
   assert.equal(canonical.CANONICAL_SCENARIOS[initial.scenario].name, canonical.SHOWCASE_SCENARIO.name);
   let showcase = initial;
@@ -279,7 +279,7 @@ try {
   assert.equal(changed.history[0].command.reason, "TreeLimit");
   const changedView = imports.importGraphView(inertHtml, 0, 1, () => ({}), () => ({}), changedGraphLimits);
   const changedText = JSON.stringify(changedView);
-  assert.match(changedText, /Effective tree cap: 200 bytes/);
+  assert.match(changedText, /Tree cap: 200 bytes/);
   assert.doesNotMatch(changedText, /20 KiB limit/);
   assert.ok(timeline.TIMELINE_CASES.length > 0, "retained native timing evidence remains visible");
   Scene.scene({ update: main.update, view: main.view },

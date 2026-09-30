@@ -1,7 +1,7 @@
 import type { CanonicalCommand, CanonicalEvent, CanonicalProjection } from "../../../src/canonical/adapter";
 
 /** Stable conceptual stages of the observed review process, independent of a drawing. */
-export const FLOW_STAGES = ["observation", "admission", "queued", "preparation", "units", "authorization", "effect", "jev", "outcomes", "advice", "collection", "delivery", "round"] as const;
+export const FLOW_STAGES = ["observation", "admission", "sourcePending", "queued", "preparation", "units", "authorization", "effect", "jev", "outcomes", "advice", "collection", "delivery", "round"] as const;
 export type FlowStage = typeof FLOW_STAGES[number];
 export type EvidenceSource = "state" | "command" | "native fact" | "external fact";
 /** A semantic transition or decision, with its evidence boundary and a readable account. */
@@ -23,8 +23,9 @@ const locatedDispatch = (state: CanonicalProjection, fields: readonly ("pending"
 /** Only checked fields that this flow assigns to a conceptual stage. */
 const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown => {
   switch (stage) {
-    case "observation": return [state.rounds.map((item) => item.id), state.work.filter((item) => item.kind === "sourceQueued").map((item) => item.operation)];
+    case "observation": return [];
     case "admission": return [state.charges, state.global, state.partitions, state.admissions];
+    case "sourcePending": return state.work.filter((item) => item.kind === "sourceQueued").map((item) => item.operation);
     case "queued": return [state.dispatch.pending, state.dispatch.active];
     case "preparation": return [state.dispatch.running, state.work.filter((item) => item.kind === "sourceReading" || item.kind === "preparing").map((item) => [item.operation, item.kind])];
     case "units": return [state.work.filter((item) => item.kind === "reviewing").map((item) => item.operation), state.charges.filter((item) => item.purpose === "reviewUnit").length];
@@ -40,7 +41,7 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
 };
 /** Locate identified work and records in the conceptual flow. */
 export const locateFlow = (state: CanonicalProjection): readonly Located[] => [
-  ...locatedWork(state, ["sourceQueued"], "observation"),
+  ...locatedWork(state, ["sourceQueued"], "sourcePending"),
   ...locatedDispatch(state, ["pending", "active"], "queued"),
   ...locatedDispatch(state, ["running"], "preparation"),
   ...locatedWork(state, ["sourceReading", "preparing"], "preparation"),
@@ -97,6 +98,15 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
     } else if (next.description !== prior.description) changedStages.add(next.stage);
   }
   for (const [key, next] of after) if (!before.has(key)) changedStages.add(next.stage);
+  const admitted = step.commands.find((command) => command.kind === "observationAdmitted");
+  if (admitted?.kind === "observationAdmitted") for (const next of step.after.work) if (
+    next.operation === admitted.id && next.kind === "sourceQueued" &&
+    !step.before.work.some((prior) => prior.operation === next.operation)) {
+    evidence.push({ from: "admission", to: "sourcePending", source: "state",
+      description: `observation admitted as source work #${next.operation}; source read not started`,
+      identity: `work:${next.operation}` });
+    changedStages.add("admission"); changedStages.add("sourcePending");
+  }
   // New queue entries and child review work provide a checked destination and
   // an identity link to the prior source, without a direct stage link in Bend.
   for (const [field, place] of [["pending", "queued"], ["active", "queued"], ["running", "preparation"]] as const) for (const next of step.after.dispatch[field]) if (

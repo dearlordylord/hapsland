@@ -25,8 +25,8 @@ try {
     }
   };
 
-  assert.match(await page.locator(".page-header").innerText(), /CANONICAL BEND PRODUCTION MODEL/);
-  assert.equal(await page.locator(".topology-node").count(), 13);
+  assert.match(await page.locator(".page-header").innerText(), /From agent edit to Jev and back/);
+  assert.equal(await page.locator(".topology-node").count(), 14);
   assert.match(await page.locator(".production-flow").innerText(), /Jev request attempt/);
   assert.match(await page.locator(".production-flow").innerText(), /Jev in-flight: 0\/8 · no Jev wait queue/);
   const canonical = page.locator("#canonical-replay");
@@ -45,7 +45,10 @@ try {
   await advanceGuided(2, 2, 57);
   assert.match(await page.locator(".flow-provenance").innerText(), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/s);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Admission & capacity" }).textContent(), /0 edit permits/);
-  await advanceGuided(3, 8, 57);
+  await advanceGuided(3, 3, 57);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Awaiting source read" }).textContent(), /1 source work waiting: #1/);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "observation admitted as source work" }).count(), 1);
+  await advanceGuided(4, 8, 57);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).textContent(), /1 pending dispatch:/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "entered pending" }).count(), 1);
   await advanceGuided(9, 13, 57);

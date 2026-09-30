@@ -38,7 +38,7 @@ try {
   await panel.getByRole("button", { name: "Single step", exact: true }).click();
   await status("One checked transition advanced");
   assert.match(await panel.locator(".simulation-status").innerText(), /Paused/);
-  assert.equal(await panel.locator(".topology-node").count(), 13);
+  assert.equal(await panel.locator(".topology-node").count(), 14);
   assert.match(await panel.innerText(), /simulated Jev/i);
   assert.match(
     await panel.locator(".simulation-details").innerText(),
@@ -475,8 +475,8 @@ try {
   await panel.getByLabel("Replay JSON", { exact: true }).fill(JSON.stringify(queuedBurstReplay));
   await panel.getByRole("button", { name: "Load replay", exact: true }).click();
   await status("Replay reconstructed");
-  const observationSquare = panel.locator(".topology-node").filter({ hasText: "Agent edit" });
-  assert.match(await observationSquare.locator(".topology-facet").nth(1).textContent(), /^50 source queued/);
+  const waitingSourceSquare = panel.locator(".topology-node").filter({ hasText: "Awaiting source read" });
+  assert.match(await waitingSourceSquare.locator(".topology-facet").first().textContent(), /^50 source work waiting/);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Source preparation" }).locator(".topology-facet").count(), 3);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).locator(".topology-facet").count(), 3);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Host output" }).locator(".topology-facet").count(), 4);

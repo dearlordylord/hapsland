@@ -22,9 +22,11 @@ export const squareFacetLine = (item: SquareFacet): string => {
 /** The view alone names and positions conceptual flow stages as squares. Counts are checked record facets, never an aggregate of overlapping references. */
 export const SQUARES: Record<Place, Square> = {
   observation: square({ title: "Agent edit", owner: "NATIVE FACT", x: 32, y: 52,
-    facets: (s) => [facet("rounds", ids(s.rounds.map((x) => x.id))), facet("source queued", work(s, "sourceQueued"))] }),
+    facets: () => [] }),
   admission: square({ title: "Admission & capacity", owner: "BEND DECISION", x: 310, y: 52,
     facets: (s) => [facet("edit permits", ids(s.admissions.flatMap((x) => x.permits.map((permit) => permit.token)))), facet("observation charges", ids(s.charges.filter((x) => x.purpose === "observationDispatch").map((x) => x.id)))] }),
+  sourcePending: square({ title: "Awaiting source read", owner: "BEND STATE", x: 32, y: 190,
+    facets: (s) => [facet("source work waiting", work(s, "sourceQueued"))] }),
   queued: square({ title: "Preparation queue", owner: "BEND STATE", x: 588, y: 52,
     facets: (s) => [facet("pending dispatch", dispatch(s, "pending")), facet("active dispatch", dispatch(s, "active"))] }),
   preparation: square({ title: "Source preparation", owner: "NATIVE EFFECT + BEND STATE", x: 866, y: 52,
@@ -57,8 +59,9 @@ export const PLACE_ORDER = FLOW_STAGES;
 /** Fixed edges describe possible presentation connections; they make no reducer decisions. */
 export const CONNECTIONS = [
   { from: "observation", to: "admission", label: "Edit attempt or observation supplied" },
+  { from: "admission", to: "sourcePending", label: "observation admitted as source work" },
   { from: "admission", to: "queued", label: "dispatch queued" },
-  { from: "observation", to: "preparation", label: "source reading begins" },
+  { from: "sourcePending", to: "preparation", label: "source reading begins" },
   { from: "admission", to: "preparation", label: "preparation admitted" },
   { from: "queued", to: "preparation", label: "dispatch starts" },
   { from: "preparation", to: "units", label: "review unit admitted" },

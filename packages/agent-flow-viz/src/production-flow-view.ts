@@ -94,6 +94,15 @@ const routeGeometry = (route: Route, offset: number) => {
     return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L ${startX} 220 L ${endX} 220 L ${endX} ${to.y + NODE_HEIGHT + 9}`,
       badge: { x: 750, y: 220 }, tip: { x: endX, y: to.y + NODE_HEIGHT + 9 }, toward: { x: 0, y: -1 } };
   }
+  if (route.from === "sourcePending" && route.to === "preparation") {
+    const startX = from.x + NODE_WIDTH + 9;
+    const laneX = to.x - 36;
+    const y = from.y + NODE_HEIGHT / 2;
+    const endX = to.x - 9;
+    const endY = to.y + NODE_HEIGHT / 2;
+    return { path: `M ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 540, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
+  }
   if (route.from === "collection" && route.to === "preparation") {
     const y = from.y + NODE_HEIGHT / 2;
     const targetX = to.x + NODE_WIDTH / 2;
@@ -176,7 +185,7 @@ export const productionFlowView = <Message>(
     h.p([h.Class("flow-legend")], ["Blue squares: checked Bend state or decision · gray squares: native fact/effect. Gold arrows mark supplied external Jev facts; orange arrows mark other accepted facts or state movement. Purple dashed arrows mark emitted commands; they do not prove a native effect or stored advice."]),
     h.div([h.Class("topology-scroll")], [
       h.svg([h.ViewBox("0 0 1400 830"), h.Role("img"),
-        h.AriaLabel("Connected production flow from agent observation through Jev review to advice and round decision")], [
+        h.AriaLabel("Connected production flow from agent edit through Jev review to advice and round decision")], [
         ...routes.map((route, index) => {
           const same = routeMultiplicity.get(`${route.from}:${route.to}`) ?? 1;
           const offset = (routeOffsets[index] - (same - 1) / 2) * 18;
