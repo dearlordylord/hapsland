@@ -1,11 +1,11 @@
 import type { CanonicalCommand, CanonicalEvent, CanonicalProjection } from "../../../src/canonical/adapter";
 
 /** Stable conceptual stages of the observed review process, independent of a drawing. */
-export const FLOW_STAGES = ["observation", "admission", "queued", "preparation", "units", "authorization", "effect", "jev", "outcomes", "advice", "collection", "delivery", "round"] as const;
+export const FLOW_STAGES = ["observation", "admission", "sourcePending", "scheduling", "preparation", "units", "authorization", "effect", "jev", "outcomes", "advice", "collection", "delivery", "round"] as const;
 export type FlowStage = typeof FLOW_STAGES[number];
 export type EvidenceSource = "state" | "command" | "native fact" | "external fact";
 /** A semantic transition or decision, with its evidence boundary and a readable account. */
-export type FlowEvidence = Readonly<{ from: FlowStage; to: FlowStage; source: EvidenceSource; description: string; identity?: string }>;
+export type FlowEvidence = Readonly<{ from: FlowStage; to: FlowStage; source: EvidenceSource; description: string; identity?: string; relation?: "linked record" }>;
 export type FlowStepInput = Readonly<{
   event: CanonicalEvent;
   commands: readonly CanonicalCommand[];
@@ -23,10 +23,11 @@ const locatedDispatch = (state: CanonicalProjection, fields: readonly ("pending"
 /** Only checked fields that this flow assigns to a conceptual stage. */
 const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown => {
   switch (stage) {
-    case "observation": return [state.rounds.map((item) => item.id), state.work.filter((item) => item.kind === "sourceQueued").map((item) => item.operation)];
+    case "observation": return [];
     case "admission": return [state.charges, state.global, state.partitions, state.admissions];
-    case "queued": return [state.dispatch.pending, state.dispatch.active];
-    case "preparation": return [state.dispatch.running, state.work.filter((item) => item.kind === "sourceReading" || item.kind === "preparing").map((item) => [item.operation, item.kind])];
+    case "sourcePending": return state.work.filter((item) => item.kind === "awaitingSourceRead").map((item) => item.operation);
+    case "scheduling": return [state.dispatch.pending, state.dispatch.active, state.dispatch.running];
+    case "preparation": return state.work.filter((item) => item.kind === "sourceReading" || item.kind === "preparing").map((item) => [item.operation, item.kind]);
     case "units": return [state.work.filter((item) => item.kind === "reviewing").map((item) => item.operation), state.charges.filter((item) => item.purpose === "reviewUnit").length];
     case "authorization": return state.dispatch.requests.filter((item) => !item.started).map((item) => item.request);
     case "effect": return state.dispatch.requests.filter((item) => item.started).map((item) => [item.request, item.interrupted]);
@@ -40,9 +41,8 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
 };
 /** Locate identified work and records in the conceptual flow. */
 export const locateFlow = (state: CanonicalProjection): readonly Located[] => [
-  ...locatedWork(state, ["sourceQueued"], "observation"),
-  ...locatedDispatch(state, ["pending", "active"], "queued"),
-  ...locatedDispatch(state, ["running"], "preparation"),
+  ...locatedWork(state, ["awaitingSourceRead"], "sourcePending"),
+  ...locatedDispatch(state, ["pending", "active", "running"], "scheduling"),
   ...locatedWork(state, ["sourceReading", "preparing"], "preparation"),
   ...locatedWork(state, ["reviewing"], "units"),
   ...state.dispatch.requests.filter((item) => !item.started).map((item) => ({ key: `request:${item.request}`, stage: "authorization" as const, description: `request #${item.request} (issued)` })),
@@ -61,6 +61,8 @@ const commandKinds = (commands: readonly CanonicalCommand[]) => new Set(commands
 type Rule = Readonly<{ from: FlowStage; to: FlowStage; source: EvidenceSource; description: string; commands?: readonly CanonicalCommand["kind"][]; events?: readonly CanonicalEvent["kind"][] }>;
 /** Links without a shared checked identity require explicit event or command evidence. */
 const FACT_RULES: readonly Rule[] = [
+  { from: "observation", to: "admission", source: "native fact", description: "pre-edit permit requested; no edit admitted yet", events: ["issuePermit"] },
+  { from: "observation", to: "admission", source: "native fact", description: "attributed edit consumed its permit", events: ["consumePermit"] },
   { from: "observation", to: "admission", source: "native fact", description: "observation supplied for admission", events: ["admitObservation", "beginObservedPreparation", "beginPreparation"] },
   { from: "admission", to: "preparation", source: "command", description: "prepare command emitted", commands: ["prepare"] },
   { from: "units", to: "authorization", source: "native fact", description: "Jev readiness facts supplied", events: ["jevRequestReady"] },
@@ -92,17 +94,36 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
     if (next.stage !== prior.stage) {
       evidence.push({ from: prior.stage, to: next.stage, source: "state", description: `${prior.description} → ${next.description}`, identity: key });
       changedStages.add(prior.stage); changedStages.add(next.stage);
-    } else if (next.description !== prior.description) changedStages.add(next.stage);
+    } else if (next.description !== prior.description) {
+      changedStages.add(next.stage);
+      if (next.stage === "scheduling") evidence.push({ from: "scheduling", to: "scheduling", source: "state",
+        description: `${prior.description} → ${next.description}`, identity: key });
+    }
   }
   for (const [key, next] of after) if (!before.has(key)) changedStages.add(next.stage);
-  // New queue entries and child review work provide a checked destination and
-  // an identity link to the prior source, without a direct stage link in Bend.
-  for (const [field, place] of [["pending", "queued"], ["active", "queued"], ["running", "preparation"]] as const) for (const next of step.after.dispatch[field]) if (
+  const admitted = step.commands.find((command) => command.kind === "observationAdmitted");
+  if (admitted?.kind === "observationAdmitted") for (const next of step.after.work) if (
+    next.operation === admitted.id && next.kind === "awaitingSourceRead" &&
+    !step.before.work.some((prior) => prior.operation === next.operation)) {
+    evidence.push({ from: "admission", to: "sourcePending", source: "state",
+      description: `observation admitted as source work #${next.operation}; source read not started`,
+      identity: `work:${next.operation}` });
+    changedStages.add("admission"); changedStages.add("sourcePending");
+  }
+  // QueueDispatch creates a dispatch record for existing work. The work stays
+  // at its stage; the scheduling link denotes shared identity, not movement.
+  for (const field of ["pending", "active", "running"] as const) for (const next of step.after.dispatch[field]) if (
     !step.before.dispatch.pending.some((prior) => prior.operation === next.operation) &&
     !step.before.dispatch.active.some((prior) => prior.operation === next.operation) &&
     !step.before.dispatch.running.some((prior) => prior.operation === next.operation)) {
-    evidence.push({ from: "admission", to: place, source: "state", description: `dispatch #${next.operation} entered ${field}`, identity: `dispatch:${next.operation}` });
-    changedStages.add("admission"); changedStages.add(place);
+    if (step.event.kind !== "queueDispatch" || step.event.operation !== next.operation) continue;
+    const source = before.get(`work:${next.operation}`);
+    if (source?.stage === "sourcePending" || source?.stage === "units") {
+      evidence.push({ from: source.stage, to: "scheduling", source: "state", relation: "linked record",
+        description: `work #${next.operation} scheduled; dispatch entered ${field}; work state unchanged`, identity: `work:${next.operation}` });
+      changedStages.add(source.stage);
+    }
+    changedStages.add("scheduling");
   }
   for (const next of step.after.work) if (next.kind === "reviewing" && !step.before.work.some((prior) => prior.operation === next.operation)) {
     const parent = step.before.work.find((prior) => prior.operation === next.parent);

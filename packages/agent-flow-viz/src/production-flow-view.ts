@@ -2,10 +2,10 @@ import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalCommand, CanonicalProjection } from "../../../src/canonical/adapter";
 import type { ReplayStep } from "./canonical-replay";
 import { projectFlowStep, type FlowEvidence } from "@hapsland/agent-flow-projection";
-import { CONNECTIONS, PLACE_ORDER, SQUARES } from "./production-flow-presentation";
+import { CONNECTIONS, PLACE_ORDER, SQUARES, squareFacetLine } from "./production-flow-presentation";
 
 type ArrowKind = FlowEvidence["source"] | "possible" | "mixed" | "mixed external";
-type Route = (typeof CONNECTIONS)[number] & Readonly<{ active: boolean; kind: ArrowKind; evidence: string }>;
+type Route = (typeof CONNECTIONS)[number] & Readonly<{ active: boolean; kind: ArrowKind; linked: boolean; evidence: string }>;
 const unreachable = (value: never): never => { throw new Error(`unknown arrow kind: ${String(value)}`); };
 const arrowKind = (evidence: readonly FlowEvidence[]): ArrowKind => {
   if (evidence.length === 0) return "possible";
@@ -72,15 +72,21 @@ const routeGeometry = (route: Route, offset: number) => {
   }
   if (route.from === "outcomes" && route.to === "outcomes") {
     const x = from.x + NODE_WIDTH / 2;
-    const y = from.y;
-    return { path: `M ${x - 45} ${y - 9} C ${x - 58} ${y - 90}, ${x + 58} ${y - 90}, ${x + 45} ${y - 9}`,
-      badge: { x, y: y - 64 }, tip: { x: x + 45, y: y - 9 }, toward: { x: -1, y: 1 } };
+    const y = from.y + NODE_HEIGHT;
+    return { path: `M ${x - 45} ${y + 9} C ${x - 58} ${y + 75}, ${x + 58} ${y + 75}, ${x + 45} ${y + 9}`,
+      badge: { x, y: y + 59 }, tip: { x: x + 45, y: y + 9 }, toward: { x: -1, y: -1 } };
   }
   if (route.from === "round" && route.to === "round") {
     const x = from.x + NODE_WIDTH;
     const y = from.y + NODE_HEIGHT / 2;
     return { path: `M ${x + 9} ${y - 35} C ${x + 100} ${y - 70}, ${x + 100} ${y + 70}, ${x + 9} ${y + 35}`,
       badge: { x: x + 85, y }, tip: { x: x + 9, y: y + 35 }, toward: { x: -1, y: 0 } };
+  }
+  if (route.from === "scheduling" && route.to === "scheduling") {
+    const x = from.x + NODE_WIDTH + 9;
+    const y = from.y + NODE_HEIGHT / 2;
+    return { path: `M ${x} ${y - 33} C ${x + 58} ${y - 65}, ${x + 58} ${y + 65}, ${x} ${y + 33}`,
+      badge: { x: x + 31, y }, tip: { x, y: y + 33 }, toward: { x: -1, y: 0 } };
   }
   if (route.from === route.to) {
     const x = from.x + NODE_WIDTH - 18;
@@ -89,10 +95,33 @@ const routeGeometry = (route: Route, offset: number) => {
       badge: { x: x + 7, y: y + 71 }, tip: { x: x + 28, y: y - 9 }, toward: { x: 0, y: -1 } };
   }
   if (route.from === "admission" && route.to === "preparation") {
+    const startX = from.x + NODE_WIDTH + 9;
+    const laneX = startX + 17;
+    const laneY = 177;
+    const endLaneX = to.x - 36;
+    const endX = to.x - 9;
+    const endY = to.y + NODE_HEIGHT / 2;
+    return { path: `M ${startX} ${from.y + NODE_HEIGHT / 2} L ${laneX} ${from.y + NODE_HEIGHT / 2} L ${laneX} ${laneY} L ${endLaneX} ${laneY} L ${endLaneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 750, y: laneY }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
+  }
+  if (route.from === "sourcePending" && route.to === "preparation") {
     const startX = from.x + NODE_WIDTH / 2;
-    const endX = to.x + NODE_WIDTH / 2;
-    return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L ${startX} 220 L ${endX} 220 L ${endX} ${to.y + NODE_HEIGHT + 9}`,
-      badge: { x: 750, y: 220 }, tip: { x: endX, y: to.y + NODE_HEIGHT + 9 }, toward: { x: 0, y: -1 } };
+    const laneX = to.x - 36;
+    const startY = from.y + NODE_HEIGHT + 9;
+    const laneY = 330;
+    const endX = to.x - 9;
+    const endY = to.y + NODE_HEIGHT / 2;
+    return { path: `M ${startX} ${startY} L ${startX} ${laneY} L ${laneX} ${laneY} L ${laneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 775, y: laneY }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
+  }
+  if (route.from === "units" && route.to === "scheduling") {
+    const startX = from.x + NODE_WIDTH / 2;
+    const y = 325;
+    const laneX = to.x + NODE_WIDTH + 36;
+    const endX = to.x + NODE_WIDTH + 9;
+    const endY = to.y + NODE_HEIGHT / 2;
+    return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 1060, y }, tip: { x: endX, y: endY }, toward: { x: -1, y: 0 } };
   }
   if (route.from === "collection" && route.to === "preparation") {
     const y = from.y + NODE_HEIGHT / 2;
@@ -140,9 +169,13 @@ const routeGeometry = (route: Route, offset: number) => {
 export const productionFlowView = <Message>(
   h: HtmlBuilder<Message>, projection: CanonicalProjection, last: ReplayStep | undefined,
   showcase: boolean,
+  inspect?: (place: (typeof PLACE_ORDER)[number]) => Message,
 ) => {
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
   const event = last?.rejection === undefined ? last?.event.kind : undefined;
+  const consumed = commands.find((command) => command.kind === "permitConsumed");
+  const editAccepted = event === "consumePermit" && last?.event.kind === "consumePermit" && consumed?.kind === "permitConsumed"
+    ? { tool: last.event.tool, token: last.event.token } : undefined;
   const stopEvent = event === "stopPolled" || event === "stopGroupPolled";
   const requests = projection.dispatch.requests;
   const flow = projectFlowStep(last);
@@ -151,11 +184,12 @@ export const productionFlowView = <Message>(
   for (const item of flow.evidence) if (!declaredRoutes.has(`${item.from}:${item.to}`)) {
     throw new Error(`undeclared dashboard arrow route: ${item.from}:${item.to}`);
   }
-  const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection) }));
+  const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection), facets: SQUARES[id].facets(projection) }));
   const routes: readonly Route[] = CONNECTIONS.map((connection): Route => {
     const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
     return { ...connection, active: evidence.length > 0, kind: arrowKind(evidence),
-      evidence: evidence.map((item) => `${item.source}: ${item.description}`).join("; ") };
+      linked: "relation" in connection && connection.relation === "linked record",
+      evidence: evidence.map((item) => `${item.relation ?? item.source}: ${item.description}`).join("; ") };
   });
   const routeMultiplicity = new Map<string, number>();
   const routeOffsets = routes.map((route) => {
@@ -172,10 +206,10 @@ export const productionFlowView = <Message>(
     { label: "Cancel unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
   ];
   return h.div([h.Class("production-topology")], [
-    h.p([h.Class("flow-legend")], ["Blue squares: checked Bend state or decision · gray squares: native fact/effect. Gold arrows mark supplied external Jev facts; orange arrows mark other accepted facts or state movement. Purple dashed arrows mark emitted commands; they do not prove a native effect or stored advice."]),
+    h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"]),
     h.div([h.Class("topology-scroll")], [
       h.svg([h.ViewBox("0 0 1400 830"), h.Role("img"),
-        h.AriaLabel("Connected production flow from agent observation through Jev review to advice and round decision")], [
+        h.AriaLabel("Connected production flow from agent edit through Jev review to advice and round decision")], [
         ...routes.map((route, index) => {
           const same = routeMultiplicity.get(`${route.from}:${route.to}`) ?? 1;
           const offset = (routeOffsets[index] - (same - 1) / 2) * 18;
@@ -186,7 +220,7 @@ export const productionFlowView = <Message>(
             h.title([], [`${index + 1}. ${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.active ? route.evidence : `possible: ${route.label}`}`]),
             h.path([h.D(path), h.Fill("none"), h.Stroke(color),
               h.StrokeWidth(route.active ? "4" : "2"),
-              ...(paint.dashed ? [h.StrokeDasharray("7 5")] : [])], []),
+              ...(paint.dashed ? [h.StrokeDasharray("7 5")] : route.linked ? [h.StrokeDasharray("2 6")] : [])], []),
             ...(paint.overlay ? [h.path([h.D(path), h.Fill("none"), h.Stroke("#794aa0"), h.StrokeWidth("2"), h.StrokeDasharray("7 5")], [])] : []),
             h.path([h.D(arrowHead(tip, toward)), h.Fill(color)], []),
             h.circle([h.Cx(String(badge.x)), h.Cy(String(badge.y)), h.R("11"),
@@ -200,7 +234,7 @@ export const productionFlowView = <Message>(
           const point = PLACES[node.id];
           const palette = node.owner.includes("NATIVE") ? { fill: "#edf1f6", stroke: "#7d8da2" }
             : { fill: "#e9f1ff", stroke: "#547dc0" };
-          return h.g([h.Class(`topology-node ${flow.changedStages.includes(node.id) ? "active" : ""}`)], [
+          return h.g([h.Class(`topology-node ${flow.changedStages.includes(node.id) ? "active" : ""}`), ...(inspect ? [h.OnClick(inspect(node.id))] : [])], [
             h.title([], [`${node.title}: ${node.detail}`]),
             h.rect([h.X(String(point.x)), h.Y(String(point.y)), h.Width(String(NODE_WIDTH)),
               h.Height(String(NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
@@ -209,14 +243,20 @@ export const productionFlowView = <Message>(
               h.FontWeight("700"), h.Fill("#52647d")], [node.owner]),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 49)), h.FontSize("14"),
               h.FontWeight("700"), h.Fill("#1e3048")], [node.title]),
-            ...node.detail.split(" · ").slice(0, 2).map((part, index) =>
-              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 77 + index * 18)), h.FontSize("10"),
-                h.Fill("#435670")], [part.length > 33 ? `${part.slice(0, 30)}…` : part])),
+            ...node.facets.map((facet, index) =>
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + index * 13)), h.FontSize("10"), h.FontWeight("600"), h.Class("topology-facet"),
+                h.Fill("#435670")], [squareFacetLine(facet)])),
+            ...(editAccepted === undefined ? [] : node.id === "observation"
+              ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("10"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                [`NOW · edit #${editAccepted.tool} accepted`])]
+              : node.id === "admission"
+                ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + node.facets.length * 13)), h.FontSize("10"),
+                  h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                  [`NOW · permit #${editAccepted.token} used`])]
+                : []),
           ]);
         }),
-        h.text([h.X("32"), h.Y("810"), h.FontSize("12"), h.Fill("#52647d")], [
-          "Numbers match the route key. Gold is an external Jev fact; orange is other accepted evidence; purple dashed is a command. Gray shows possible paths.",
-        ]),
       ]),
     ]),
     h.details([h.Class("topology-route-key")], [
@@ -228,9 +268,7 @@ export const productionFlowView = <Message>(
         ]);
       })),
     ]),
-    h.div([h.Class("finish-decision")], [
-      h.strong([], ["Stop finish decision · canonical branches"]),
-      h.p([], ["Bend chooses from supplied deadline, work, collection, and output facts. Host output is a separate native effect."]),
+    h.details([h.Class("finish-decision")], [h.summary([], ["Finish outcomes"]),
       h.div([h.Class("finish-branches")], finishBranches.map((branch) => h.div([
         h.Class(`finish-branch ${branch.active ? "active" : ""}`),
       ], [h.span([], ["Stop collection"]), h.span([h.Class("route-arrow")], ["→"]), h.strong([], [branch.label])]))),
@@ -241,16 +279,19 @@ export const productionFlowView = <Message>(
       h.span([], [`Jev in-flight: ${requests.length}/${projection.executionLimits.jevRequests} · no Jev wait queue`]),
       h.span([], [`Review capacity ledger: ${projection.global.items}/${projection.limits.globalItems} items; ${projection.global.bytes}/${projection.limits.globalBytes} bytes`]),
     ]),
-    h.div([h.Class("topology-step")], [
-      h.strong([], ["Inspectable decision"]),
-      h.p([], [last === undefined ? "Choose a guided or manual canonical event." : last.rejection !== undefined
-        ? `${last.event.kind} rejected: ${last.rejection}. Canonical state and item locations did not change.`
+    h.details([h.Class("topology-step")], [h.summary([], ["Decision details"]),
+      h.p([], [last === undefined ? "Choose a guided or manual event." : last.rejection !== undefined
+        ? `${last.event.kind} rejected: ${last.rejection}. Bend state and item locations did not change.`
         : `${last.event.kind} accepted · ${commands.length} command(s): ${commands.map((command) => command.kind).join(", ") || "none"}`]),
+      ...(showcase && last?.origin === "guided" && last.event.kind === "issuePermit" ?
+        [h.p([h.Class("flow-provenance")], ["Before the edit: a source-free pre-edit request supplies its timing and identity facts. Bend issued a permit. No virtual round is open yet."])] : []),
+      ...(showcase && last?.origin === "guided" && last.event.kind === "consumePermit" ?
+        [h.p([h.Class("flow-provenance")], [commands.some((command) => command.kind === "roundStarted")
+          ? "Why this round opened: the first accepted attributed edit consumed its permit. Bend opened virtual round #1 in that same transition."
+          : "This accepted attributed edit consumed its permit and joined the already open virtual round."])] : []),
       ...(last?.event.kind === "openRound" ? [h.p([h.Class("flow-provenance")], [last.origin === "manual"
         ? "You supplied this openRound event in the replay."
-        : showcase
-          ? "Why this round opened: the first admitted edit needs a review round. In production, an attributed edit reaches the resident, passes the edit permit check, and observation admission asks the canonical ledger for a round. The ledger supplies openRound when this partition has no round ID yet. This source-free trace starts at openRound; the runtime arrival and permit events are omitted."
-          : "This guided fixture supplies openRound directly. Its native trigger is not represented in the replay."])] : []),
+        : "This guided fixture supplies openRound directly. Its native trigger is not represented in the replay."])] : []),
       h.p([], [last === undefined ? "Choose a reducer event to inspect its checked effects."
         : flow.rejection !== undefined ? `Rejected: ${flow.rejection}. No movement is shown.`
           : flow.evidence.length ? `${flow.evidence.length} connection(s) have checked evidence.`
@@ -258,7 +299,6 @@ export const productionFlowView = <Message>(
               : flow.projectionChanged ? "Checked reducer state changed outside the displayed square details; no displayed movement is established."
                 : commands.length ? `Decision emitted ${commands.map((command) => command.kind).join(", ")}; no displayed item movement is established.`
                   : "Accepted event; no displayed item movement or square change is established."]),
-      h.p([], ["A Jev command authorizes an attempt; only a request-start fact records an attempt. A submitted host output does not establish agent receipt or use."]),
       h.p([], [`Branches at this step: ${commands.filter((command) => /Refused|Unavailable|Interrupted|Ignored|Stale|Cancel|Clear|Finding|Waiting|Allowed|Expired|Lease|Reoffer|Unknown|Recorded|Terminal/.test(command.kind)).map((command) => command.kind).join(", ") || "none"}.`]),
     ]),
   ]);

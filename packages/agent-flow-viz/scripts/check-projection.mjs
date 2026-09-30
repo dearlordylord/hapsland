@@ -55,20 +55,50 @@ try {
       `${source} must use the checked adapter, not a generated JavaScript import`);
   }
   const compiled = canonical.projectCanonical(canonical.initialCanonical(fixture.limits));
+  const presentation = await server.ssrLoadModule("/src/production-flow-presentation.ts");
+  const flowView = await server.ssrLoadModule("/src/production-flow-view.ts");
+  const driver = await server.ssrLoadModule(`/@fs${resolve(import.meta.dirname, "../../monkey-business/src/index.ts")}`);
+  for (const square of Object.values(presentation.SQUARES)) for (const facet of square.facets(compiled)) {
+    assert.equal(facet.count, 0, "initial checked records have explicit zero facets");
+    for (const count of [0, 1, 100]) {
+      // Presentation fixtures exercise magnitude formatting, not admission or capacity claims.
+      const row = presentation.squareFacetLine({ ...facet, count, references: Array.from({ length: count }, (_, index) => `#${Number.MAX_SAFE_INTEGER - index}`) });
+      assert.ok(row.startsWith(`${count} `));
+      if (count === 0) assert.doesNotMatch(row, /none|#|more/);
+      assert.ok(row.length <= 28, "identity samples cannot crowd out exact facet counts");
+    }
+  }
+  for (const count of [1, 50, 100]) {
+    const run = driver.createRun({ outcome: "clear", session: { editIntervalMs: 1000000 } });
+    run.applyControl({ kind: "burst", count });
+    let observed;
+    for (let step = 0; step < 1000; step++) {
+      const frame = run.step(0);
+      if (!frame) break;
+      assert.equal(frame.rejection, undefined);
+      if (frame.after.work.filter((work) => work.kind === "awaitingSourceRead").length === count) { observed = frame.after; break; }
+    }
+    assert.ok(observed, `checked burst reaches ${count} queued sources`);
+    const facet = presentation.SQUARES.sourcePending.facets(observed).find((item) => item.label === "source work waiting");
+    assert.equal(facet.count, count);
+    assert.match(JSON.stringify(flowView.productionFlowView(inertHtml, observed, undefined, false)), new RegExp(`${count} source work waiting`));
+    assert.equal(presentation.SQUARES.scheduling.facets(observed)[2].count, observed.dispatch.running.filter((entry) => entry.preparation).length);
+    assert.equal(presentation.SQUARES.scheduling.facets(observed)[3].count, observed.dispatch.running.filter((entry) => !entry.preparation).length);
+  }
   assert.deepEqual(inventory.CAPACITY_INVENTORY.map((entry) => entry.purpose),
     compiled.inventory.map((entry) => entry.purpose));
   assert.deepEqual(inventory.CAPACITY_INVENTORY.map((entry) => entry.limits),
     compiled.inventory.map((entry) => Object.keys(entry.limits)));
-  assert.match(text(initial), /CANONICAL BEND PRODUCTION MODEL/);
-  assert.match(text(initial), /What uses review capacity/);
+  assert.match(text(initial), /From agent edit to Jev and back/);
+  assert.match(text(initial), /Capacity rules/);
   assert.match(text(initial), /Jev request attempt/);
   assert.match(text(initial), /Awaiting Jev result/);
   const descendants = (node) => node == null ? [] : [node, ...(node.children ?? []).flatMap(descendants)];
   const elements = (model, name) => descendants(main.view(model, inertHtml).body)
     .filter((node) => node.data?.class?.[name]);
   const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
-  assert.equal(elements(initial, "topology-node").length, 13);
-  assert.equal(elements(initial, "topology-route").length, 23);
+  assert.equal(elements(initial, "topology-node").length, 14);
+  assert.equal(elements(initial, "topology-route").length, 25);
   assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
   assert.equal(canonical.CANONICAL_SCENARIOS[initial.scenario].name, canonical.SHOWCASE_SCENARIO.name);
   let showcase = initial;
@@ -80,24 +110,60 @@ try {
     assert.equal(step.rejection, undefined, `showcase step ${index + 1} must be accepted`);
     const active = elements(showcase, "topology-route").filter((node) => node.data.class.active);
     for (const route of active) showcasedRoutes.add(labels(route));
-    if (index === 0) assert.match(labels(main.view(showcase, inertHtml).body), /Why this round opened.*first admitted edit.*edit permit check.*source-free trace starts at openRound/);
-    if (index === 4) {
-      assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
-      assert.ok(active.some((route) => labels(route).includes("dispatch #2 entered pending")));
+    if (index === 0) {
+      assert.equal(step.after.rounds.length, 0, "pre-edit permit alone must not open a round");
+      assert.match(labels(main.view(showcase, inertHtml).body), /1 edit permit: #1/);
+      assert.match(labels(main.view(showcase, inertHtml).body), /Before the edit.*Bend issued a permit.*No virtual round is open yet/);
     }
-    if (index === 9) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running)")));
-    if (index === 17) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
-    if (index === 22) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
-    if (index === 23) assert.ok(active.some((route) => labels(route).includes("retain finding command")));
-    if (index === 24) {
+    if (index === 1) {
+      assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
+      assert.match(labels(main.view(showcase, inertHtml).body), /0 edit permits/);
+      assert.match(labels(main.view(showcase, inertHtml).body), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/);
+    }
+    if (index === 5) {
+      const nodes = elements(showcase, "topology-node");
+      assert.match(labels(nodes.find((node) => labels(node).includes("Agent edit"))), /NOW · edit #2 accepted/);
+      assert.match(labels(nodes.find((node) => labels(node).includes("Admission & capacity"))), /NOW · permit #2 used/);
+      assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
+      assert.equal(step.after.work.length, 1, "the accepted edit has no second source work until admission");
+    }
+    if (index === 7) {
+      assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
+      assert.ok(active.some((route) => labels(route).includes("work #2 scheduled; dispatch entered pending")));
+      showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "scheduling" }));
+      const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
+      assert.match(detail, /waiting next batch: 1.*#2 · agent 1 · round 1 · seq 1 · cycle 0 · preparation/s);
+      assert.match(detail, /running preparation jobs: 1.*#1 · agent 1 · round 1 · seq 0 · cycle 1 · preparation/s);
+      const unselected = send(showcase, main.Message.SelectedFlowStage({ stage: "" }));
+      for (const stage of presentation.PLACE_ORDER) {
+        const selected = send(unselected, main.Message.SelectedFlowStage({ stage }));
+        assert.equal(selected.flowStage, stage);
+        assert.equal(elements(selected, "flow-stage-inspector").length, 1);
+        assert.equal(send(selected, main.Message.SelectedFlowStage({ stage })).flowStage, "",
+          "clicking an inspected square again closes its details");
+        assert.equal(send(selected, main.Message.SelectedFlowStage({ stage: "" })).flowStage, "",
+          "the close button clears the inspected square");
+      }
+    }
+    if (index === 8) {
+      showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "sourcePending" }));
+      const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
+      assert.match(detail, /source work waiting: 1.*#2/s);
+      assert.doesNotMatch(detail, /source work waiting: 2/);
+    }
+    if (index === 12) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running)")));
+    if (index === 20) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
+    if (index === 25) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
+    if (index === 26) assert.ok(active.some((route) => labels(route).includes("retain finding command")));
+    if (index === 27) {
       assert.deepEqual(step.after.collection.ready, [10], "ready advice follows its native storage fact");
       assert.ok(active.some((route) => labels(route).includes("advice #10 supplied ready by native storage")));
     }
-    if (index === 27) assert.deepEqual(step.after.collection.ready, [11, 10]);
-    if (index === 30) assert.ok(active.some((route) => labels(route).includes("advice #10 leased; still ready")));
-    if (index === 35) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
-    if (index === 41) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
-    if (index === 49) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
+    if (index === 30) assert.deepEqual(step.after.collection.ready, [11, 10]);
+    if (index === 33) assert.ok(active.some((route) => labels(route).includes("advice #10 leased; still ready")));
+    if (index === 38) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
+    if (index === 44) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
+    if (index === 52) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
   }
   assert.ok(showcasedRoutes.size >= 12, "the opening replay should expose a broad connected route set");
   const replayAt = (name, count) => {
@@ -240,15 +306,15 @@ try {
   assert.equal(changed.history[0].command.reason, "TreeLimit");
   const changedView = imports.importGraphView(inertHtml, 0, 1, () => ({}), () => ({}), changedGraphLimits);
   const changedText = JSON.stringify(changedView);
-  assert.match(changedText, /Effective tree cap: 200 bytes/);
+  assert.match(changedText, /Tree cap: 200 bytes/);
   assert.doesNotMatch(changedText, /20 KiB limit/);
   assert.ok(timeline.TIMELINE_CASES.length > 0, "retained native timing evidence remains visible");
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
-    Scene.click(Scene.getByRole("button", { name: "Next canonical step: openRound", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 54/)),
-    Scene.click(Scene.getByRole("button", { name: "Previous canonical step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 54/)));
+    Scene.click(Scene.getByRole("button", { name: "Next: issuePermit", exact: true })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 57/)),
+    Scene.click(Scene.getByRole("button", { name: "Previous step", exact: true })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 57/)));
   console.log("Checked the opening connected replay, compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
 } finally {
   await server.close();

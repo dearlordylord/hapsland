@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:11f4fd080d8152b8cb334a6a667a1fa58d3863de2a5a4da78a89b613928e3b22
+// hapsland-bend-source-sha256:0e9a7f2397c60ad13c9e39c664944e6ae0d85e9e34b59b2b579c49b4eccac458
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -2866,7 +2866,7 @@ function $Canonical$admit_observation_found$(_state_0, _partition_0, _lifetime_0
   const _history_0 = _state_0["history"];
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
-    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($Canonical$is_deciding$(_current_0)))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "Canonical.SourceQueued"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationAdmitted", "id": _next_operation_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
+    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($Canonical$is_deciding$(_current_0)))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "Canonical.AwaitingSourceRead"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationAdmitted", "id": _next_operation_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}};
   }
@@ -2887,7 +2887,7 @@ function $Canonical$observation_started_found$(_state_0, _operation_0, _found_0)
     const _t_1 = _t_0["charge"];
     if (_t_1 === 0) {
       const _t_2 = _t_0["kind"];
-      if (_t_2.$ === "Canonical.SourceQueued") {
+      if (_t_2.$ === "Canonical.AwaitingSourceRead") {
         return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$replace_work_kind$(_operation_0, {$: "Canonical.SourceReading"}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationStarted"}, "tail": {$: "Nil"}}};
       } else {
         return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}};
@@ -2953,7 +2953,7 @@ function $Canonical$interrupt_observation_found$(_state_0, _operation_0, _found_
     const _t_1 = _t_0["charge"];
     if (_t_1 === 0) {
       const _t_2 = _t_0["kind"];
-      if (_t_2.$ === "Canonical.SourceQueued") {
+      if (_t_2.$ === "Canonical.AwaitingSourceRead") {
         return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationInterrupted"}, "tail": {$: "Nil"}}};
       } else if (_t_2.$ === "Canonical.SourceReading") {
         return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationInterrupted"}, "tail": {$: "Nil"}}};
@@ -3238,7 +3238,7 @@ function $Canonical$work_dispatchable$(_found_0) {
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
-    if (_t_1.$ === "Canonical.SourceQueued") {
+    if (_t_1.$ === "Canonical.AwaitingSourceRead") {
       return true;
     } else if (_t_1.$ === "Canonical.Reviewing") {
       return true;
@@ -3285,7 +3285,7 @@ function $Canonical$dispatch_preparation$(_found_0) {
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
-    if (_t_1.$ === "Canonical.SourceQueued") {
+    if (_t_1.$ === "Canonical.AwaitingSourceRead") {
       return true;
     } else {
       return false;
@@ -8465,51 +8465,15 @@ function $Dispatch$pump_next_result$(_first_0, _commands_0, _result_0) {
   }
 }
 
-function $Dispatch$pump_one$($0) {
-  for (;;) {
-    {
-      const _state_0 = $0;
-      const _pending_0 = _state_0["pending"];
-      const _t_0 = _state_0["active"];
-      if (_t_0.$ === "Con") {
-        const _t_1 = _t_0["head"];
-        const __0 = _t_1["partition"];
-        const __1 = _t_1["lifetime"];
-        const __2 = _t_1["round"];
-        const __3 = _t_1["operation"];
-        const __4 = _t_1["sequence"];
-        const __5 = _t_1["cycle"];
-        const _t_2 = _t_1["cancelled"];
-        if (_t_2) {
-          const _active_0 = _t_0["tail"];
-          const _running_0 = _state_0["running"];
-          const _next_sequence_0 = _state_0["next_sequence"];
-          const _cycle_0 = _state_0["cycle"];
-          const _closed_0 = _state_0["closed"];
-          const _requests_0 = _state_0["requests"];
-          $0 = {$: "Dispatch.State", "pending": _pending_0, "active": _active_0, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0, "requests": _requests_0};
-          continue;
-        } else {
-          const __7 = _t_1["preparation"];
-          const _active_1 = _t_0["tail"];
-          const _running_1 = _state_0["running"];
-          const _next_sequence_1 = _state_0["next_sequence"];
-          const _cycle_1 = _state_0["cycle"];
-          const _closed_1 = _state_0["closed"];
-          const _requests_1 = _state_0["requests"];
-          const _next_0 = ($Dispatch$start$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cycle": __5, "cancelled": _t_2, "preparation": __7}, _cycle_1));
-          return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _active_1, "running": ($List$append$(_running_1, {$: "Con", "head": _next_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_1, "cycle": _cycle_1, "closed": _closed_1, "requests": _requests_1}, "commands": {$: "Con", "head": ($Dispatch$start_command$(_next_0)), "tail": {$: "Nil"}}};
-        }
-      } else {
-        const _running_2 = _state_0["running"];
-        const _next_sequence_2 = _state_0["next_sequence"];
-        const _cycle_2 = _state_0["cycle"];
-        const _closed_2 = _state_0["closed"];
-        const _requests_2 = _state_0["requests"];
-        return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _t_0, "running": _running_2, "next_sequence": _next_sequence_2, "cycle": _cycle_2, "closed": _closed_2, "requests": _requests_2}, "commands": {$: "Nil"}};
-      }
-    }
-  }
+function $Dispatch$pump_one$(_state_0) {
+  const _pending_0 = _state_0["pending"];
+  const _active_0 = _state_0["active"];
+  const _running_0 = _state_0["running"];
+  const _next_sequence_0 = _state_0["next_sequence"];
+  const _cycle_0 = _state_0["cycle"];
+  const _closed_0 = _state_0["closed"];
+  const _requests_0 = _state_0["requests"];
+  return $Dispatch$pump_active$(_active_0, _pending_0, _running_0, _next_sequence_0, _cycle_0, _closed_0, _requests_0);
 }
 
 function $Dispatch$start$(_entry_0, _cycle_0) {
@@ -8854,11 +8818,46 @@ function $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _roun
   }
 }
 
-function $Dispatch$start_command$(_entry_0) {
-  const _operation_0 = _entry_0["operation"];
-  const _sequence_0 = _entry_0["sequence"];
-  const _cycle_0 = _entry_0["cycle"];
-  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0, "cycle": _cycle_0};
+function $Dispatch$pump_active$($0, $1, $2, $3, $4, $5, $6) {
+  for (;;) {
+    {
+      const _active_0 = $0;
+      const _pending_0 = $1;
+      const _running_0 = $2;
+      const _next_sequence_0 = $3;
+      const _cycle_0 = $4;
+      const _closed_0 = $5;
+      const _requests_0 = $6;
+      if (_active_0.$ === "Con") {
+        const _t_0 = _active_0["head"];
+        const __0 = _t_0["partition"];
+        const __1 = _t_0["lifetime"];
+        const __2 = _t_0["round"];
+        const __3 = _t_0["operation"];
+        const __4 = _t_0["sequence"];
+        const __5 = _t_0["cycle"];
+        const _t_1 = _t_0["cancelled"];
+        if (_t_1) {
+          const _rest_0 = _active_0["tail"];
+          $0 = _rest_0;
+          $1 = _pending_0;
+          $2 = _running_0;
+          $3 = _next_sequence_0;
+          $4 = _cycle_0;
+          $5 = _closed_0;
+          $6 = _requests_0;
+          continue;
+        } else {
+          const __7 = _t_0["preparation"];
+          const _rest_1 = _active_0["tail"];
+          const _next_0 = ($Dispatch$start$({$: "Dispatch.Entry", "partition": __0, "lifetime": __1, "round": __2, "operation": __3, "sequence": __4, "cycle": __5, "cancelled": _t_1, "preparation": __7}, _cycle_0));
+          return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": _rest_1, "running": ($List$append$(_running_0, {$: "Con", "head": _next_0, "tail": {$: "Nil"}})), "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Con", "head": ($Dispatch$start_command$(_next_0)), "tail": {$: "Nil"}}};
+        }
+      } else {
+        return {$: "Dispatch.Advanced", "state": {$: "Dispatch.State", "pending": _pending_0, "active": {$: "Nil"}, "running": _running_0, "next_sequence": _next_sequence_0, "cycle": _cycle_0, "closed": _closed_0, "requests": _requests_0}, "commands": {$: "Nil"}};
+      }
+    }
+  }
 }
 
 function $Canonical$release_unfinished_charges$($0, $1, $2, $3, $4) {
@@ -8995,6 +8994,13 @@ function $Admission$consume$tool$(_state_0, _partition_0, _lifetime_0, _round_0,
   } else {
     return $Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _now_0, _permitted_round_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
   }
+}
+
+function $Dispatch$start_command$(_entry_0) {
+  const _operation_0 = _entry_0["operation"];
+  const _sequence_0 = _entry_0["sequence"];
+  const _cycle_0 = _entry_0["cycle"];
+  return {$: "Dispatch.Started", "operation": _operation_0, "sequence": _sequence_0, "cycle": _cycle_0};
 }
 
 function $SubmissionState$begin_one_result$(_state_0, _advice_0, _fingerprint_0, _result_0) {

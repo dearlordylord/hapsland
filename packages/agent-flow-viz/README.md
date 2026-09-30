@@ -107,7 +107,7 @@ state, stage inference, or possible routes.
 In the default guided example, inspect step 25, `collectionReady` for advice
 `#10`: [before the inferred projection](docs/assets/production-flow-before-inference-step-25.png)
 and [after](docs/assets/production-flow-inferred-step-25.png). The earlier view
-showed `ready #10` but left the Review outcomes → Pending advice connection
+showed `ready #10` but left the Review outcomes → Advice ready / retained connection
 inactive. The current view lights connection 14 from the checked new ready
 advice and labels its source as a supplied native fact. Connection 16 separately
 shows Bend's `collectionEligible` command. [Step 24](docs/assets/production-flow-inferred-step-24.png)
@@ -125,3 +125,127 @@ at collection while the round remains active).
 Run `npm run build` for TypeScript, checked connection evidence, projection, compiled inventory, and Vite
 checks. Run `npm run test:browser` for Chromium controls. The workspace may
 need the Chromium system libraries listed by Playwright.
+
+## Seeded simulation walkthrough
+
+The `Monkey-business · seeded simulation` panel consumes the public
+`monkey-business` run API. It maps checked frames onto the existing 13 places
+and routes. It adds controls without changing diagram layout or product policy.
+All Jev observations are simulated; no credentials or source files are needed.
+The simulation has its own **Review capacity** bar and per-agent item/byte totals,
+using the same presentation as the canonical examples. It follows the displayed
+checked observation, including paused history inspection.
+
+1. Keep seed `7`, edit interval `100`, reservation bytes `100` and Jev delay
+   `50`. Click **Start / reset**, then **Single step**. Inspect the event,
+   ordered commands, checked before/after projections and synthetic effects.
+   **Resume** plays the same virtual engine; playback speed changes observation
+   pace without choosing random values or product policy. Edit the speed field
+   while running, including temporary empty text, dots or decimal values. The
+   **Active speed** remains in use until **Apply playback speed** accepts a finite
+   value from `0.01` to `1000`; `1.` applies as `1`. Invalid Apply preserves playback
+   and active settings, with a persistent validation message. Press Enter in an Apply field to submit its form. Other numeric
+   drafts require their Apply button, except live Jev delay. **Start / reset** applies initial
+   drafts together. Named Normal, Slow Jev, Failure → recovery and Capacity
+   pressure scenarios fill drafts and explain the next action.
+2. Pause and inject a burst of `5`. Step through preparation and overlapping
+   review. History includes transitions without cross-square movement and
+   ordinary Bend refusals, which are product outcomes rather than run errors.
+3. Open **Simulated Jev outcome mix**, set Backend failure or Timeout weight to
+   `100` and the other weights to `0`, then set delay to `500`. New requests use that profile; in-flight completion
+   times stay fixed. Inspect identified request effects and results.
+4. Set No finding (clear) weight to `100`, others to `0`, with delay `50` for
+   recovery, and suspend edit
+   generation. Resume so outstanding work can settle. When suspended work settles, playback waits; **Resume edit generation**
+   schedules fresh edits and running playback processes them without an extra
+   Resume click. An explicitly paused driver stays paused. Playback pause stops the
+   browser driver; edit suspension stops future arrivals. Agent finish attempts
+   appear as `stopPolled`; Hapsland's `finishAllowed*` command is a separate checked
+   outcome. Suspension itself never emits a finish attempt.
+5. Click a history event to pause and inspect its time separately from the live
+   endpoint. Use Previous/Next, the retained-event timeline, Return to latest and
+   Bookmark. Click a diagram square, or use the collapsed keyboard stage picker,
+   to list identified records in the bounded inspector below the diagram. Click
+   the selected square again to deselect it. Click a record to filter history to
+   its lifecycle. Capacity and control timelines sit below the diagram so
+   changing records and control history do not move its position.
+   Pending advice counts exclude submitted records; retained submitted advice
+   stays visible until checked closure or expiry. The outcome summary counts
+   admitted observations, refusals/unavailability, failures and confirmed host submissions
+   across the whole run, including records and display frames later retired.
+6. Pause and export replay. Copy **Replay JSON**, reset (or open a fresh browser),
+   paste JSON and load. Loading reconstructs initial inputs and recorded controls
+   to the recorded endpoint. The final frame is reproduced; identity mismatches
+   show an error. Download/Import replay file supports the same validated JSON
+   and preserves the bookmarked event. **Replay from start** rebuilds initial
+   inputs; Resume or Single step executes recorded controls and stops at the
+   exact saved endpoint, including metadata-only time/control changes. Drafts
+   remain editable while replaying, but new environment controls wait until
+   recorded replay completes. Intermediate branching is unsupported.
+
+Both diagrams display exact checked record counts in each square, including
+zero and singular states. Source preparation keeps running preparation dispatch,
+source reading and preparing counts separate; review dispatch appears with
+review work items. Queue counts describe mixed dispatch entries. Advice keeps
+pending-ready, retained-submitted and leased records separate. Host output shows
+finish slots and pending, submitted and uncertain advice phases. Counts for
+related facets can overlap and are not added into a total. Each fixed-size
+square shows all its facet rows, with at most one complete ID and `+N more` when
+that sample fits. Full IDs remain in tooltips and the live record inspector.
+
+The initial outcome mix has Finding and No finding (clear) weights of `50`
+each; the other four weights are zero. Sliders use relative weights from `0` to
+`100`, not percentages. Each displayed probability is its weight divided by the
+sum; Finding `100` and Clear `100` therefore mean `50%` each. Sliders update the active profile immediately for new requests. Jev delay also updates
+immediately when it is a valid integer. Blank or malformed delay drafts and an
+all-zero mix retain their last valid applied values without pausing playback.
+Delay and mix edits validate independently. Recorded replay reconstruction blocks
+live profile changes until it reaches its endpoint. Native range controls
+support keyboard arrows, Home and End. Named deterministic scenarios set one
+outcome to `100` and the others to zero. Replay restores the recorded raw weights
+and their normalized probabilities.
+
+The freshness, credential and host output controls are also drafts. **Apply environment facts** records current/stale work and ready/unavailable credentials
+at a virtual boundary. A delayed request observes the current freshness when
+it settles; changing credentials affects subsequent authorization checks.
+**Apply host output profile** records certain, uncertain or failed output,
+its delay and lease lifetime for future output authorizations. Already authorized
+output keeps its captured profile. Empty or invalid delay/lease drafts never
+change active values or stop playback.
+
+Use the **Freshness change** scenario to invalidate an in-flight finding, and
+**Credential recovery** to restore readiness after refused request admission.
+**Unreadable final source** exercises candidate revalidation before host handoff;
+it does not simulate filesystem preparation failure. **Credential rotation**
+changes the generation authorizing retained advice. **Uncertain output** exposes delivery uncertainty and recovery; switch to certain
+output for future attempts. **Expired delivery lease** sets output delay longer
+than its lease to exercise revalidation before delivery. These scenarios fill
+drafts; Start / reset applies their initial settings. The active facts display,
+checked event details, item lifecycle filter and recorded control timeline
+separate proposed settings, applied boundaries and observed product outcomes.
+`neverSent` and `interrupted` are additional synthetic Jev outcomes for request
+admission investigation. Unavailable Jev requests are not automatically resent;
+new edits make fresh admission attempts. Confirmed host submissions establish
+simulated handoff, not agent receipt or use. Exported replay preserves these controls and their
+execution boundaries.
+
+Reservation size controls supply reservation/review-unit byte facts for checked
+admission. They do not establish native capture, evidence-tree, encoded-output
+or import traversal enforcement. The package's separate graph scenarios cover
+only their declared boundaries. Defaults are illustrative, not empirical agent
+or Jev measurements. Multi-agent contention is unsupported.
+
+Each playback batch is bounded at 100 checked events. Browser replay loading
+accepts endpoints up to 100,000 events; larger runs require a headless consumer. The package retains the
+last 1000 observations and history buttons display the latest 100. Replay export
+keeps required inputs/controls independently of rendered history. Paused state
+is resumable. Invalid controls and replay identities appear in status. The
+retained timeline covers 1000 frames; the button list covers 100. A bookmark
+outside retained display history can be recovered by replaying from start.
+
+Run `npm run test:simulation-browser` for focused offline browser checks;
+`npm run test:browser` covers existing examples. These validate UI wiring,
+separately from design acceptance, native enforcement and release support. An
+owner review request should link `/#monkey-business`, name the exact control or
+replay case, describe the panel's added behavior and state the requested design
+decision. Existing diagram positions have no visual diff.

@@ -14,32 +14,58 @@ try {
     item.source === source && item.from === from && item.to === to &&
     (identity === undefined || item.identity === identity));
 
-  assert.ok(has(5, "state", "admission", "queued", "dispatch:2"),
-    "a second queued edit is evidenced by its dispatch ID");
-  assert.ok(has(10, "state", "queued", "preparation", "dispatch:2"),
-    "the same dispatch ID crosses from waiting queue to running preparation");
-  assert.ok(has(8, "state", "preparation", "units", "work:4"),
+  assert.ok(has(1, "native fact", "observation", "admission"),
+    "the pre-edit permit request enters the checked admission boundary without opening a round");
+  assert.equal(steps[0].after.rounds.length, 0);
+  assert.ok(has(2, "native fact", "observation", "admission"),
+    "the accepted edit crosses admission while Bend opens the round");
+  assert.ok(steps[1].commands.some((command) => command.kind === "roundStarted"));
+  assert.ok(steps[2].commands.some((command) => command.kind === "observationAdmitted"));
+  assert.deepEqual(steps[2].after.work.map((work) => [work.operation, work.kind]), [[1, "awaitingSourceRead"]]);
+  assert.equal(steps[2].after.charges.length, 0,
+    "observation admission creates queued source work without a review capacity charge");
+  assert.ok(has(3, "state", "admission", "sourcePending", "work:1"),
+    "checked admission places new work in its own waiting-source stage");
+  assert.ok(has(9, "state", "sourcePending", "preparation", "work:1"),
+    "source work moves from the waiting stage only when reading starts");
+  assert.ok(has(4, "state", "sourcePending", "scheduling", "work:1"),
+    "the waiting source work is linked to scheduling without leaving its state");
+  assert.equal(steps[3].after.dispatch.running.filter((entry) => entry.preparation).length, 1,
+    "the first preparation job starts immediately inside scheduling");
+  assert.ok(!evidenceAt(4).some((item) => item.to === "preparation"),
+    "starting a job does not claim that source reading began");
+  assert.ok(!evidenceAt(4).some((item) => item.from === "admission"),
+    "dispatch scheduling does not invent an admission or capacity transition");
+  assert.equal(steps[3].after.work.find((work) => work.operation === 1)?.kind, "awaitingSourceRead",
+    "a running dispatch does not yet mean source reading began");
+  assert.ok(has(8, "state", "sourcePending", "scheduling", "work:2"),
+    "the second source job enters scheduling while the first runs");
+  assert.equal(steps[7].after.dispatch.pending.length, 1);
+  assert.ok(has(19, "state", "units", "scheduling", "work:4"));
+  assert.ok(has(13, "state", "scheduling", "scheduling", "dispatch:2"),
+    "the same dispatch ID changes from pending to running within scheduling");
+  assert.ok(has(11, "state", "preparation", "units", "work:4"),
     "a prepared work item's child review unit has an explicit parent link");
-  assert.ok(has(18, "command", "authorization", "effect"),
+  assert.ok(has(21, "command", "authorization", "effect"),
     "Jev request issue is displayed as permission");
-  assert.ok(!has(18, "native fact", "authorization", "effect"),
+  assert.ok(!has(21, "native fact", "authorization", "effect"),
     "request issue does not claim an observed attempt");
-  assert.ok(has(19, "state", "authorization", "effect", "request:7"),
+  assert.ok(has(22, "state", "authorization", "effect", "request:7"),
     "the observed request start moves its stable request ID");
-  assert.ok(has(24, "command", "outcomes", "advice"),
+  assert.ok(has(27, "command", "outcomes", "advice"),
     "a finding's retain command is visible");
-  assert.ok(!steps[23].after.collection.ready.includes(10),
+  assert.ok(!steps[26].after.collection.ready.includes(10),
     "retain command does not assert stored advice");
-  assert.ok(has(25, "native fact", "outcomes", "advice"),
+  assert.ok(has(28, "native fact", "outcomes", "advice"),
     "later native readiness visibly brings advice to the pending-advice square");
-  assert.ok(steps[24].after.collection.ready.includes(10));
-  assert.ok(!flow.projectFlowStep(steps[7]).changedStages.includes("observation"),
+  assert.ok(steps[27].after.collection.ready.includes(10));
+  assert.ok(!flow.projectFlowStep(steps[10]).changedStages.includes("observation"),
     "preparing one item does not highlight an unrelated queued observation");
-  assert.ok(has(31, "state", "advice", "collection", "advice:10"),
+  assert.ok(has(34, "state", "advice", "collection", "advice:10"),
     "a new lease is linked to its ready advice even while readiness remains visible");
-  assert.ok(steps[30].after.collection.ready.includes(10),
+  assert.ok(steps[33].after.collection.ready.includes(10),
     "lease creation does not invent removal of the ready advice");
-  assert.ok(has(50, "state", "round", "round", "round:1"),
+  assert.ok(has(53, "state", "round", "round", "round:1"),
     "checked retirement marks the round's end");
   assert.ok(steps.every((step) => step.rejection === undefined), "the complete showcase is accepted");
   const settled = steps.at(-1).after;

@@ -1,3 +1,5 @@
+import { reviewCapacityView } from "./review-capacity-view";
+import { SimulationModel, initialSimulation, actSimulation, changeSimulation, tickSimulation, simulationView } from "./simulation";
 import { Schema } from "effect";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
@@ -8,9 +10,11 @@ import { timelineView } from "./timeline-view";
 import { CAPACITY_INVENTORY } from "./capacity-inventory.generated";
 import { CANONICAL_SCENARIOS, guidedIndex, nextGuidedEvent, replayCanonical, tryAppendCanonical, type ReplayEvent } from "./canonical-replay";
 import { productionFlowView } from "./production-flow-view";
+import { PLACE_ORDER, SQUARES } from "./production-flow-presentation";
 import type { CapacityPurpose, CanonicalCommand } from "../../../src/canonical/adapter";
 
 export const Model = Schema.Struct({
+  simulation: SimulationModel,
   importScenario: Schema.Number,
   importCursor: Schema.Number,
   timeline: Schema.Number,
@@ -20,10 +24,14 @@ export const Model = Schema.Struct({
   frame: Schema.Number,
   draft: Schema.String,
   feedback: Schema.String,
+  flowStage: Schema.String,
 });
 export type Model = typeof Model.Type;
 
 export const Message = defineMessageUnion({
+  SimulationAction: { action: Schema.String },
+  SimulationChanged: { field: Schema.String, raw: Schema.String },
+  SimulationTick: { deltaMs: Schema.Number },
   SelectedImportScenario: { index: Schema.Number },
   MovedImportCursor: { cursor: Schema.Number },
   SelectedTimeline: { index: Schema.Number },
@@ -36,31 +44,36 @@ export const Message = defineMessageUnion({
   DraftChanged: { raw: Schema.String },
   Submitted: {},
   Reset: {},
+  SelectedFlowStage: { stage: Schema.String },
 });
 export type Message = typeof Message.Type;
 
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: {
-  importScenario: 0, importCursor: 0, timeline: 0, scenario: 0,
+  simulation: initialSimulation, importScenario: 0, importCursor: 0, timeline: 0, scenario: 0,
   history: [], position: 0, frame: 0,
   draft: '{"kind":"reserveCapacity","partition":3,"bytes":5,"purpose":"reviewUnit"}',
-  feedback: "Source-free events use the same checked canonical adapter as the resident.",
+  feedback: "Replay events use the same checked Bend reducer as the running integration.",
+  flowStage: "",
 } });
 
 const append = (model: Model, event: unknown, origin: ReplayEvent["origin"]): Model => {
   const next = tryAppendCanonical(model.history as readonly ReplayEvent[], model.position, event, origin, CANONICAL_SCENARIOS[model.scenario].limits);
   return { ...model, history: [...next.history], position: next.position, frame: 0,
     feedback: next.error ?? (next.rejection === undefined
-      ? "Canonical.step accepted this event." : `Canonical.step rejected this event: ${next.rejection}.`) };
+      ? "Event accepted by Bend." : `Bend rejected this event: ${next.rejection}.`) };
 };
 
 export const update = (model: Model, message: Message) => Message.match<Update.Return<Model, Message>>(message, {
+  SimulationAction: ({ action }) => ({ model: { ...model, simulation: actSimulation(model.simulation, action) } }),
+  SimulationChanged: ({ field, raw }) => ({ model: { ...model, simulation: changeSimulation(model.simulation, field, raw) } }),
+  SimulationTick: ({ deltaMs }) => ({ model: { ...model, simulation: tickSimulation(model.simulation, deltaMs) } }),
   SelectedImportScenario: ({ index }) => ({ model: { ...model,
     importScenario: index >= 0 && index < IMPORT_GRAPH_SCENARIOS.length ? index : 0, importCursor: 0 } }),
   MovedImportCursor: ({ cursor }) => ({ model: { ...model,
     importCursor: Math.max(0, Math.min(IMPORT_GRAPH_SCENARIOS[model.importScenario].steps.length, cursor)) } }),
   SelectedTimeline: ({ index }) => ({ model: { ...model, timeline: index >= 0 && index < TIMELINE_CASES.length ? index : 0 } }),
   SelectedScenario: ({ index }) => ({ model: { ...model, scenario: index >= 0 && index < CANONICAL_SCENARIOS.length ? index : 0,
-    history: [], position: 0, frame: 0, feedback: "Canonical example selected." } }),
+    history: [], position: 0, frame: 0, feedback: "Scenario selected." } }),
   Advanced: () => {
     const event = nextGuidedEvent(model.history as readonly ReplayEvent[], model.position, model.scenario);
     return { model: event === undefined ? model : append(model, event, "guided") };
@@ -72,9 +85,12 @@ export const update = (model: Model, message: Message) => Message.match<Update.R
   DraftChanged: ({ raw }) => ({ model: { ...model, draft: raw } }),
   Submitted: () => {
     try { return { model: append(model, JSON.parse(model.draft), "manual") }; }
-    catch { return { model: { ...model, feedback: "Enter one valid JSON canonical event." } }; }
+    catch { return { model: { ...model, feedback: "Enter one valid JSON event." } }; }
   },
-  Reset: () => ({ model: { ...model, history: [], position: 0, frame: 0, feedback: "Canonical replay reset." } }),
+  Reset: () => ({ model: { ...model, history: [], position: 0, frame: 0, feedback: "Replay reset." } }),
+  SelectedFlowStage: ({ stage }) => ({ model: { ...model,
+    flowStage: PLACE_ORDER.includes(stage as typeof PLACE_ORDER[number])
+      ? stage === model.flowStage ? "" : stage : "" } }),
 });
 
 const purposeLabels: Record<CapacityPurpose, string> = {
@@ -137,25 +153,64 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const scenario = CANONICAL_SCENARIOS[model.scenario];
   const next = nextGuidedEvent(history, model.position, model.scenario);
   const guided = guidedIndex(history, model.position);
-  const lastCommands = last?.commands ?? [];
-  const activePurpose = projection.charges.map((charge) => purposeLabels[charge.purpose]);
+  const flowStage = PLACE_ORDER.find((stage) => stage === model.flowStage);
   return {
-    title: "Hapsland · canonical production flow",
+    title: "Hapsland · guided replay",
     body: h.main([h.Class("page")], [
       h.header([h.Class("page-header")], [
-        h.p([h.Class("eyebrow")], ["CANONICAL BEND PRODUCTION MODEL · FOLDKIT"]),
+        h.p([h.Class("eyebrow")], ["HAPSLAND"]),
         h.h1([], ["From agent edit to Jev and back"]),
-        h.p([h.Class("intro")], ["Step through the checked Bend transition used by the Hapsland resident. Agent runtimes supply observations; Hapsland executes native source, Jev, and host effects around Bend decisions."]),
-        h.p([h.Class("caveat")], ["This source-free replay is an example, not a live connection to an agent runtime or Jev. Native timing evidence and the separate import graph appear below."]),
+        h.p([h.Class("intro")], ["Run the simulator or step through a guided replay."]),
       ]),
-      h.section([h.Class("chart-panel production-flow")], [
-        h.h2([], ["Production decision flow"]),
-        productionFlowView(h, projection, last, model.scenario === 0),
-        h.p([], [activePurpose.length ? `Reserved purposes: ${activePurpose.join(", ")}` : "No active capacity reservations."]),
+      simulationView(model.simulation, h, action => Message.SimulationAction({ action }), (field, raw) => Message.SimulationChanged({ field, raw })),
+      h.section([h.Id("canonical-replay"), h.Class("card chart-panel production-flow canonical-replay")], [
+        h.h2([], ["Guided replay"]),
+        h.div([h.Class("canonical-controls")], [
+          h.details([], [h.summary([], ["Scenario details"]), h.p([], [scenario.description])]),
+          h.label([], ["Scenario", h.select([h.AriaLabel("Guided scenario"), h.Value(String(model.scenario)), h.Style({ maxWidth: "100%" }), h.OnChange((raw) => Message.SelectedScenario({ index: Number(raw) }))], CANONICAL_SCENARIOS.map((item, index) => h.option([h.Value(String(index))], [item.name])))]),
+          h.div([h.Class("canonical-step-controls")], [
+          h.button([h.OnClick(Message.Rewound()), h.Disabled(model.position === 0)], ["Previous step"]),
+          h.button([h.OnClick(Message.Redid()), h.Disabled(model.position === history.length)], ["Redo step"]),
+          h.button([h.OnClick(Message.Advanced()), h.Disabled(next === undefined)], [
+            next === undefined ? "Replay complete" : `Next: ${next.kind}`,
+          ]),
+          h.button([h.OnClick(Message.Reset())], ["Reset replay"]),
+          ]),
+          h.p([h.Class("canonical-progress")], [`Guided step ${guided} of ${scenario.events.length} · history ${model.position}/${history.length}`]),
+          h.p([h.Class("canonical-feedback")], [model.feedback]),
+          h.details([h.Class("manual-event")], [h.summary([], ["Manual event"]),
+          h.form([h.OnSubmit(Message.Submitted())], [
+          h.label([h.For("canonical-event")], ["Event JSON"]),
+          h.input([h.Id("canonical-event"), h.Type("text"), h.Value(model.draft),
+            h.OnChange((raw) => Message.DraftChanged({ raw }))]),
+          h.button([h.Type("submit")], ["Apply event"]),
+          ]),
+          ]),
+        ]),
+
+        productionFlowView(h, projection, last, model.scenario === 0,
+          (stage) => Message.SelectedFlowStage({ stage })),
+        h.section([h.Class("flow-stage-inspector")], [
+          h.h3([], ["Square details at this step"]),
+          h.label([], ["Square", h.select([h.AriaLabel("Inspect square"), h.Value(flowStage ?? ""),
+            h.OnChange((stage) => Message.SelectedFlowStage({ stage }))], [
+            h.option([h.Value("")], ["Select a square"]),
+            ...PLACE_ORDER.map((stage) => h.option([h.Value(stage)], [SQUARES[stage].title])),
+          ])]),
+          ...(flowStage === undefined ? [h.p([], ["Select a square or click one in the diagram to inspect its records."])]
+            : [h.button([h.Type("button"), h.OnClick(Message.SelectedFlowStage({ stage: "" }))], ["Close square details"]),
+              h.h4([], [SQUARES[flowStage].title]),
+              ...(SQUARES[flowStage].facets(projection).length === 0
+                ? [h.p([], ["This square represents a supplied event; it has no retained state records."])] : []),
+              h.ul([], SQUARES[flowStage].facets(projection).map((facet) => h.li([], [
+                h.strong([], [`${facet.label}: ${facet.count}`]),
+                ...(facet.references.length === 0 ? [] : [h.ul([], facet.references.map((reference) => h.li([], [reference.replaceAll("/", " · ")])))]),
+              ])))]),
+        ]),
         h.details([h.Class("flow-coverage")], [
           h.summary([], ["Transition-family coverage and source boundaries"]),
-          h.p([], ["Guided status below is calculated from the loaded independent source-free fixtures. Manual replay accepts checked canonical events when their predecessor state and facts satisfy Bend's guards. The source link names each decision family."]),
-          h.p([], ["Guided sources: ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-v1.json")], ["canonical trace fixture"]), " and ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-jev-request-v1.json")], ["Jev request trace fixture"]), "."]),
+          h.p([], ["Guided status comes from independent source-free fixtures. Manual replay checks each event against the current Bend state. The source link names each decision family."]),
+          h.p([], ["Guided sources: ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-v1.json")], ["replay fixture"]), " and ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-jev-request-v1.json")], ["Jev request fixture"]), "."]),
           h.ul([h.Class("flow-coverage-list")], coverageFamilies.map((family) => {
             const examples = [...guidedKinds].filter((kind) => family.match.test(kind));
             return h.li([], [
@@ -167,51 +222,14 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           })),
           h.p([], ["Native facts and effects outside Bend: agent-runtime observation, source capture, clocks, Jev I/O, and host writes. ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/src/resident/server.ts")], ["Resident boundary"]), ". Production review uses bounded cross-file evidence. The separate import-graph example below replays source-free facts; it does not read files or call Jev."]),
         ]),
-      ]),
-      h.section([h.Id("canonical-replay"), h.Class("card canonical-replay")], [
-        h.h2([], ["What uses review capacity"]),
-        h.p([], ["Canonical Bend model · the inventory below is generated at build time from compiled Bend admission output. Each reservation uses the shared resident and per-agent item and byte limits."]),
+        h.details([], [h.summary([], ["Capacity rules"]),
         h.ul([h.Class("capacity-inventory")], CAPACITY_INVENTORY.map((entry) => h.li([], [
           h.strong([], [purposeLabels[entry.purpose]]),
           ` · ${entry.limits.map((limit) => limitLabels[limit]).join(" · ")}`,
         ]))),
-        h.h2([], ["Review capacity"]),
-        h.p([], [`All agents in this Hapsland process · ${projection.global.items}/${projection.limits.globalItems} work items · ${projection.global.bytes}/${projection.limits.globalBytes} reserved review bytes`]),
-        h.div([h.Class("capacity-bar"), h.Role("img"), h.AriaLabel(`${projection.global.bytes} of ${projection.limits.globalBytes} reserved review bytes`)], [
-          ...projection.charges.map((charge) => h.span([
-            h.Class(`capacity-segment agent-${charge.partition}`),
-            h.Style({ width: `${charge.bytes / projection.limits.globalBytes * 100}%` }),
-          ], [`Agent ${charge.partition}`])),
-          h.span([h.Class("capacity-free"), h.Style({ width: `${(projection.limits.globalBytes - projection.global.bytes) / projection.limits.globalBytes * 100}%` })], ["Free"]),
         ]),
-        h.div([h.Class("capacity-rows")], projection.partitions.map((partition) => h.p([], [
-          `Agent ${partition.partition} · ${partition.items}/${projection.limits.partitionItems} work items · ${partition.bytes}/${projection.limits.partitionBytes} reserved bytes`,
-        ]))),
-        h.div([h.Class("canonical-controls")], [
-          h.h3([], [scenario.name]),
-          h.p([], [scenario.description]),
-          h.div([h.Class("trace-options canonical-scenarios")], CANONICAL_SCENARIOS.map((item, index) => h.button([
-            h.OnClick(Message.SelectedScenario({ index })), h.Class(index === model.scenario ? "trace selected" : "trace"),
-          ], [item.name]))),
-          h.button([h.OnClick(Message.Rewound()), h.Disabled(model.position === 0)], ["Previous canonical step"]),
-          h.button([h.OnClick(Message.Redid()), h.Disabled(model.position === history.length)], ["Redo canonical step"]),
-          h.button([h.OnClick(Message.Advanced()), h.Disabled(next === undefined)], [
-            next === undefined ? "Canonical trace complete" : `Next canonical step: ${next.kind}`,
-          ]),
-          h.button([h.OnClick(Message.Reset())], ["Reset canonical replay"]),
-          h.p([h.Class("canonical-progress")], [`Guided step ${guided} of ${scenario.events.length} · history ${model.position}/${history.length}`]),
-          h.p([h.Class("canonical-feedback")], [model.feedback]),
-          h.label([h.For("canonical-event")], ["Manual source-free canonical event (JSON)"]),
-          h.input([h.Id("canonical-event"), h.Type("text"), h.Value(model.draft),
-            h.OnChange((raw) => Message.DraftChanged({ raw }))]),
-          h.button([h.OnClick(Message.Submitted())], ["Apply canonical event"]),
-        ]),
-        h.div([h.Class("canonical-commands")], [
-          h.h3([], ["Bend result"]),
-          h.p([], [last === undefined ? "No transition yet." : `${last.event.kind} · ${last.rejection === undefined ? "accepted" : `rejected: ${last.rejection}`}`]),
-          h.ul([], lastCommands.map((command) => h.li([], [commandLabel(command)]))),
-        ]),
-        ...(frames.length > 0 ? [h.div([h.Class("capacity-frames")], [
+        reviewCapacityView(h, projection),
+        ...(frames.length > 0 ? [h.details([h.Class("capacity-frames")], [h.summary([], ["Capacity transition details"]),
           h.h3([], [last?.event.kind === "preparationCompleted" ? "Preparation completion decisions" : "Decisions within this atomic capacity transition"]),
           h.p([], ["These frames explain one atomic Bend transition; they are not extra resident states."]),
           h.p([], [`Before event · ${eventBefore.items} shared items · ${eventBefore.bytes} shared bytes`]),
@@ -224,12 +242,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             frame.after.charges.map((charge) => h.span([h.Class(`capacity-segment agent-${charge.partition}`),
               h.Style({ width: `${charge.bytes / projection.limits.globalBytes * 100}%` })], [`Agent ${charge.partition}`]))),
         ])] : []),
-        h.h3([], ["Replay history"]),
-        h.div([h.Class("history")], [
+        h.details([h.Class("replay-history")], [h.summary([], ["Replay history"]), h.div([h.Class("history")], [
           h.button([h.OnClick(Message.Jumped({ position: 0 }))], ["Start"]),
           ...history.map((entry, index) => h.button([h.OnClick(Message.Jumped({ position: index + 1 })),
             h.Class(index + 1 === model.position ? "selected" : "")], [`${index + 1}. ${entry.event.kind} · ${entry.origin}`])),
-        ]),
+        ])]),
       ]),
       importGraphView(h, model.importScenario, model.importCursor,
         (index) => Message.SelectedImportScenario({ index }), (cursor) => Message.MovedImportCursor({ cursor })),

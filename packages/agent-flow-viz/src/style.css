@@ -135,3 +135,37 @@ p { line-height: 1.5; }
 .canonical-feedback { color: #425570; }
 .capacity-frames .selected { border-color: #c2522c; background: #fff1eb; }
 @media (max-width: 600px) { .capacity-inventory ul { columns: 1; } }
+
+.simulation-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 16px 0; }
+.simulation-controls form.simulation-controls { margin: 0; }
+.simulation-controls label { display: flex; flex-direction: column; gap: 5px; }
+.simulation-controls input { width: 150px; }
+.simulation-panel textarea { width: 100%; min-height: 150px; font-family: monospace; }
+.simulation-details pre { max-height: 320px; overflow: auto; white-space: pre-wrap; }
+.simulation-history { max-height: 180px; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
+.simulation-history button { text-align: left; }
+
+.simulation-history button.selected { background: #dce9ff; border: 2px solid #547dc0; }
+.simulation-panel .topology-node { cursor: pointer; }
+.canonical-replay .topology-node { cursor: pointer; }
+.flow-stage-inspector { max-height: 360px; overflow: auto; padding: 12px; border: 1px solid #bac9dc; border-radius: 8px; margin: 12px 0; }
+.flow-stage-inspector h3, .flow-stage-inspector h4 { margin: 0 0 8px; }
+.flow-stage-inspector select { margin-left: 8px; }
+.flow-stage-inspector ul { margin: 6px 0; padding-left: 22px; }
+.applied-speed { font-weight: 700; }
+
+.simulation-stage-inspector { height: 300px; overflow: auto; padding: 12px; border: 1px solid #bac9dc; margin: 16px 0; }
+.simulation-status, .simulation-inspection, .simulation-outcomes, .simulation-active-controls { height: 3em; overflow: auto; }
+.simulation-control-markers { max-height: 120px; overflow: auto; }
+
+.simulation-outcome-slider { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(120px, 2fr) minmax(140px, 1fr); gap: 12px; align-items: center; margin: 12px 0; }
+@media (max-width: 600px) { .simulation-outcome-slider { grid-template-columns: 1fr; gap: 4px; } }
+
+.simulation-outcome-mix > summary { height: 3em; overflow: auto; }
+
+.topology-facet { font-variant-numeric: tabular-nums; }
+
+.canonical-step-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.canonical-step-controls button { margin: 0; height: 4em; overflow: hidden; overflow-wrap: anywhere; }
+.canonical-feedback { height: 3em; overflow: auto; }
+@media (min-width: 1000px) { .canonical-step-controls { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

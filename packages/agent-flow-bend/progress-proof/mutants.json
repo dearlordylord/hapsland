@@ -1,0 +1,69 @@
+[
+  {
+    "law": "request_cohort_resolves",
+    "file": "core.bend",
+    "from": "operation, request, False{}, False{}, True{}),",
+    "to": "operation, request, False{}, False{}, False{}),",
+    "instance": "nonempty"
+  },
+  {
+    "law": "settled_failures_allow_fresh_request",
+    "file": "core.bend",
+    "from": "Dispatch.reserve_request(state, partition, lifetime, round, operation, request)",
+    "to": "Dispatch.RequestDenied{state}"
+  },
+  {
+    "law": "eligible_advice_reaches_handoff",
+    "file": "core.bend",
+    "from": "Handoff.lease.terminal(state, round, token, True{})",
+    "to": "Handoff.lease.terminal(state, round, token, False{})"
+  },
+  {
+    "law": "uncertain_background_reaches_stop_handoff",
+    "file": "core.bend",
+    "from": "Handoff.lease.offer(lease, round, token, surface, True{})",
+    "to": "Handoff.lease.offer(lease, round, token, surface, False{})"
+  },
+  {
+    "law": "supplied_outcome_has_valid_phase",
+    "file": "core.bend",
+    "from": "case Canonical.NeverSent{}: False{}",
+    "to": "case Canonical.NeverSent{}: True{}"
+  },
+  {
+    "law": "request_cohort_resolves",
+    "file": "../Dispatch.bend",
+    "from": "request_matches(item, partition, lifetime, round, operation, request),\n        rest, item <> request_remove(rest, partition, lifetime, round, operation, request))",
+    "to": "request_matches(item, partition, lifetime, round, operation, request),\n        item <> rest, item <> request_remove(rest, partition, lifetime, round, operation, request))",
+    "instance": "nonempty",
+    "expectedLocation": "request_head_remove"
+  },
+  {
+    "law": "eligible_advice_reaches_handoff",
+    "file": "../Handoff.bend",
+    "from": "Granted{Lease{item, round, closed, reoffered, Submitted{surface}}}",
+    "to": "Granted{Lease{item, round, closed, reoffered, Uncertain{surface}}}",
+    "expectedLocation": "terminal_authorized"
+  },
+  {
+    "law": "runnable_advice_reaches_handoff",
+    "file": "core.bend",
+    "from": "deliver(lease, token, surface)",
+    "to": "Handoff.Denied{lease}"
+  },
+  {
+    "law": "matching_completion_decreases_request_count",
+    "file": "../Dispatch.bend",
+    "from": "request_matches(item, partition, lifetime, round, operation, request),\n        rest, item <> request_remove(rest, partition, lifetime, round, operation, request))",
+    "to": "request_matches(item, partition, lifetime, round, operation, request),\n        item <> rest, item <> request_remove(rest, partition, lifetime, round, operation, request))",
+    "expectedLocation": "remove_decreases_false",
+    "evidence": "law's own helper"
+  },
+  {
+    "law": "every_responsive_completion_order_resolves",
+    "file": "core.bend",
+    "from": "scheduled_requests(rest, Dispatch.request_remove(requests, partition,\n        lifetime, round, operation, request))",
+    "to": "scheduled_requests(rest, requests)",
+    "instance": "nonempty"
+  }
+]
