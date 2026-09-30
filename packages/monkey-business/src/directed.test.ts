@@ -24,7 +24,7 @@ it("a finish attempt waits for both requests, then a deadline cancels their exac
       { at: 0, kind: "edit", bytes: 10, unitBytes: [5] },
       { at: 1, kind: "edit", bytes: 10, unitBytes: [5] },
       { at: 5, kind: "finish" },
-      { at: 6, event: { kind: "stopPolled", partition: 1, lifetime: 1, round: 1, deadline: true } },
+      { at: 6, kind: "canonical", event: { kind: "stopPolled", partition: 1, lifetime: 1, round: 1, deadline: true } },
     ],
     jevDelay: 1000,
   });
@@ -43,12 +43,15 @@ it("a finish attempt waits for both requests, then a deadline cancels their exac
   expect(late.map((item) => item.commands.map((command) => command.kind))).toEqual([
     ["jevObservationIgnored"], ["jevObservationIgnored"],
   ]);
-  expect(late.map((item) => "request" in item.event ? item.event.request : null)).toEqual([4, 6]);
+  const issuedRequests = run.observations.flatMap((item) => item.effects)
+    .filter((effect) => effect.kind === "jev" && effect.phase === "started")
+    .map((effect) => effect.request);
+  expect(late.map((item) => "request" in item.event ? item.event.request : null)).toEqual(issuedRequests);
 });
 
 it("same-time completion and deadline follow recorded insertion order", () => {
   const edit = { at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5] };
-  const deadline = { at: 7, event: { kind: "stopPolled" as const, partition: 1, lifetime: 1, round: 1, deadline: true } };
+  const deadline = { at: 7, kind: "canonical" as const, event: { kind: "stopPolled" as const, partition: 1, lifetime: 1, round: 1, deadline: true } };
   const beforeCompletion = createRun({ inputs: [edit, deadline], jevDelay: 5 });
   beforeCompletion.advance();
   expect(beforeCompletion.observations.filter((item) => item.time === 7).slice(0, 2).map((item) => item.event.kind)).toEqual([
