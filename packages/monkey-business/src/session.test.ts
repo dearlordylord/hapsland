@@ -13,10 +13,10 @@ describe("ongoing public sessions", () => {
     const run = createRun(config);
     run.advance({ untilTime: 80, maxEvents: 500 });
     const events = run.observations.map(observation => observation.event.kind);
-    expect(events.filter(kind => kind === "beginPreparation").length).toBeGreaterThanOrEqual(4);
+    expect(events.filter(kind => kind === "beginObservedPreparation").length).toBeGreaterThanOrEqual(4);
     expect(events).toContain("stopPolled");
     expect(run.observations.find(observation => observation.event.kind === "openRound")?.time).toBe(10);
-    expect(run.observations.some(observation => observation.time >= 60 && observation.event.kind === "beginPreparation")).toBe(true);
+    expect(run.observations.some(observation => observation.time >= 60 && observation.event.kind === "beginObservedPreparation")).toBe(true);
   });
 
   it("records pace, burst, suspension and Jev changes and reproduces ordered checked observations", () => {
@@ -39,7 +39,7 @@ describe("ongoing public sessions", () => {
   it.each(["ignore", "noAction", "promptRepair", "delayedRepair"] as const)("keeps %s advice behavior reproducible without claiming repair success", adviceResponse => {
     const run = createRun({ ...config, session: { ...config.session, editsPerTask: 1, taskPauseMs: 1000, adviceResponse, repairDelayMs: 30 }, outcome: "finding" });
     run.advance({ untilTime: 55, maxEvents: 500 });
-    const preparations = run.observations.filter(observation => observation.event.kind === "beginPreparation");
+    const preparations = run.observations.filter(observation => observation.event.kind === "beginObservedPreparation");
     expect(preparations[0]?.time).toBe(10);
     if (adviceResponse === "ignore" || adviceResponse === "noAction") expect(preparations).toHaveLength(1);
     else if (adviceResponse === "promptRepair") expect(preparations[1]?.time).toBe(18);
@@ -68,7 +68,7 @@ describe("ongoing public sessions", () => {
     run.advance({ untilTime: 13 });
     run.applyControl({ kind: "suspendArrivals", suspended: true });
     run.advance({ untilTime: 100 });
-    expect(run.observations.filter(observation => observation.event.kind === "beginPreparation").map(observation => observation.time)).toEqual([10, 13]);
+    expect(run.observations.filter(observation => observation.event.kind === "beginObservedPreparation").map(observation => observation.time)).toEqual([10, 13]);
     expect(run.observations.filter(observation => observation.event.kind === "stopPolled")).toHaveLength(0);
     run.applyControl({ kind: "suspendArrivals", suspended: false });
     run.advance({ untilTime: run.now + 3 });

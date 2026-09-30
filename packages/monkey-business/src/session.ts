@@ -115,6 +115,12 @@ export class SessionGenerator {
     this.phase = this.pendingPhase; this.edit = this.pendingEdit; this.task = this.pendingTask;
     return this.next(now);
   }
+  onFinish(now: number, continuation: boolean): SessionInput[] {
+    if (typeof continuation !== "boolean") throw new TypeError("continuation must be boolean");
+    if (continuation) { this.phase = "edit"; this.edit = 0; }
+    else this.phase = "task";
+    return this.next(now);
+  }
   onAdvice(now: number): SessionInput[] {
     integer(now, "now", 0, Number.MAX_SAFE_INTEGER);
     if (this.response === "ignore" || this.response === "noAction") return [];
