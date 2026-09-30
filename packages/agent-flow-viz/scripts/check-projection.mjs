@@ -134,10 +134,15 @@ try {
       const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
       assert.match(detail, /waiting next batch: 1.*#2 · agent 1 · round 1 · seq 1 · cycle 0 · preparation/s);
       assert.match(detail, /running preparation jobs: 1.*#1 · agent 1 · round 1 · seq 0 · cycle 1 · preparation/s);
+      const unselected = send(showcase, main.Message.SelectedFlowStage({ stage: "" }));
       for (const stage of presentation.PLACE_ORDER) {
-        const selected = send(showcase, main.Message.SelectedFlowStage({ stage }));
+        const selected = send(unselected, main.Message.SelectedFlowStage({ stage }));
         assert.equal(selected.flowStage, stage);
         assert.equal(elements(selected, "flow-stage-inspector").length, 1);
+        assert.equal(send(selected, main.Message.SelectedFlowStage({ stage })).flowStage, "",
+          "clicking an inspected square again closes its details");
+        assert.equal(send(selected, main.Message.SelectedFlowStage({ stage: "" })).flowStage, "",
+          "the close button clears the inspected square");
       }
     }
     if (index === 8) {

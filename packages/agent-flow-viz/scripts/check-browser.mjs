@@ -64,6 +64,11 @@ try {
   assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /waiting next batch: 1.*#2 · agent 1 · round 1 · seq 1/s);
   await canonical.getByLabel("Inspect square").selectOption("sourcePending");
   assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /source work waiting: 2.*#1.*#2/s);
+  await canonical.getByRole("button", { name: "Close square details" }).click();
+  assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /Select a square or click one/);
+  await canonical.locator(".topology-node").filter({ hasText: "Job scheduling" }).click();
+  await canonical.locator(".topology-node").filter({ hasText: "Job scheduling" }).click();
+  assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /Select a square or click one/);
   await advanceGuided(9, 13, 57);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 1);
   await advanceGuided(14, 34, 57);

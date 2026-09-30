@@ -88,7 +88,9 @@ export const update = (model: Model, message: Message) => Message.match<Update.R
     catch { return { model: { ...model, feedback: "Enter one valid JSON event." } }; }
   },
   Reset: () => ({ model: { ...model, history: [], position: 0, frame: 0, feedback: "Replay reset." } }),
-  SelectedFlowStage: ({ stage }) => ({ model: { ...model, flowStage: PLACE_ORDER.includes(stage as typeof PLACE_ORDER[number]) ? stage : "" } }),
+  SelectedFlowStage: ({ stage }) => ({ model: { ...model,
+    flowStage: PLACE_ORDER.includes(stage as typeof PLACE_ORDER[number])
+      ? stage === model.flowStage ? "" : stage : "" } }),
 });
 
 const purposeLabels: Record<CapacityPurpose, string> = {
@@ -196,7 +198,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             ...PLACE_ORDER.map((stage) => h.option([h.Value(stage)], [SQUARES[stage].title])),
           ])]),
           ...(flowStage === undefined ? [h.p([], ["Select a square or click one in the diagram to inspect its records."])]
-            : [h.h4([], [SQUARES[flowStage].title]),
+            : [h.button([h.Type("button"), h.OnClick(Message.SelectedFlowStage({ stage: "" }))], ["Close square details"]),
+              h.h4([], [SQUARES[flowStage].title]),
               ...(SQUARES[flowStage].facets(projection).length === 0
                 ? [h.p([], ["This square represents a supplied event; it has no retained state records."])] : []),
               h.ul([], SQUARES[flowStage].facets(projection).map((facet) => h.li([], [
