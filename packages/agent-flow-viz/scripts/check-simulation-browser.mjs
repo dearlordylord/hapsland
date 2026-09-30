@@ -135,6 +135,27 @@ try {
       .querySelector("#monkey-business .simulation-details")
       ?.textContent.includes('"sequence": 0'),
   );
+  await panel
+    .getByLabel("Edit interval (virtual ms)", { exact: true })
+    .fill("1000");
+  await panel
+    .getByLabel("Playback speed (virtual ms / wall ms)", { exact: true })
+    .fill("1");
+  await panel
+    .getByRole("button", { name: "Start / reset", exact: true })
+    .click();
+  await status("Seeded session started");
+  await panel.getByRole("button", { name: "Resume", exact: true }).click();
+  await status("Running");
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll("#monkey-business .simulation-history button")
+        .length > 0,
+    undefined,
+    { timeout: 5000 },
+  );
+  await panel.getByRole("button", { name: "Pause", exact: true }).click();
+  await status("Paused");
   assert.deepEqual(errors, []);
   console.log(
     "Simulation browser controls, existing diagram and inspection passed",

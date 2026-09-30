@@ -260,11 +260,17 @@ export const tickSimulation = (
     wallBudget +=
       Math.min(deltaMs, 100) * number(model.speed, "Playback speed", 1, 1000);
     if (wallBudget < 50) return model;
+    const beforeTime = run.now;
     const result = run.advance({
-      untilTime: run.now + Math.floor(wallBudget),
+      untilTime: beforeTime + Math.floor(wallBudget),
       maxEvents: 100,
     });
-    wallBudget = 0;
+    // Empty windows leave the virtual clock at the last event. Carry that
+    // budget forward; an event-limited batch also preserves its unspent time.
+    wallBudget =
+      result.reason === "idle"
+        ? 0
+        : Math.max(0, wallBudget - (result.now - beforeTime));
     return {
       ...model,
       selected: -1,
@@ -297,7 +303,7 @@ export const simulationView = <Message>(
         h.input([
           h.Type("text"),
           h.Value(value),
-          h.OnChange((raw) => changed(field, raw)),
+          h.OnInput((raw) => changed(field, raw)),
         ]),
       ],
     );
@@ -456,7 +462,7 @@ export const simulationView = <Message>(
           h.textarea([
             h.AriaLabel("Replay JSON"),
             h.Value(model.replay),
-            h.OnChange((raw) => changed("replay", raw)),
+            h.OnInput((raw) => changed("replay", raw)),
           ]),
         ],
       ),
