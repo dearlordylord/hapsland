@@ -523,10 +523,22 @@ def Laws.prospective_gate_rejects_new_round_at_limit():
 def Laws.prospective_gate_allows_existing_round_at_table_limit():
   {==}
 
-def Laws.prospective_gate_rejects_duplicate_and_old_closure():
+def Laws.prospective_gate_rejects_duplicate():
   {==}
 
 def Laws.prospective_gate_rejects_late_hook_clock():
+  {==}
+
+def Laws.prospective_gate_accepts_before_hook_window_boundary():
+  {==}
+
+def Laws.prospective_gate_rejects_at_hook_window_boundary():
+  {==}
+
+def Laws.prospective_gate_uses_supplied_hook_window():
+  {==}
+
+def Laws.prospective_gate_rejects_reversed_clock():
   {==}
 
 def Laws.ticket_admission_stores_only_identity_and_units():

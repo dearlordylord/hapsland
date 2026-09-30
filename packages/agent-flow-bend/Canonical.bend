@@ -603,6 +603,10 @@ def issue_permit_gate(+state: State, +partition: Nat, +lifetime: Nat,
   match gate:
     case Admission.PermitDenied{}:
       Rejected{state, ProspectiveDenied{}}
+    case Admission.PermitLate{}:
+      Rejected{state, PermitDenied{Admission.StaleInvocation{}}}
+    case Admission.PermitInvalidClock{}:
+      Rejected{state, PermitDenied{Admission.InvalidClock{}}}
     case Admission.PermitAllowed{}:
       issue_result(state, partition, Admission.step(current_admission(state, partition, lifetime),
         partition, lifetime, Admission.Issue{tool, started, deadline, now}))
@@ -611,7 +615,7 @@ def issue_permit(+state: State, +partition: Nat, +lifetime: Nat,
     +tool: Nat, +started: Nat, +deadline: Nat, +now: Nat,
     facts: Admission.ProspectiveFacts) -> Step:
   issue_permit_gate(state, partition, lifetime, tool, started, deadline, now,
-    Admission.prospective_gate(facts))
+    Admission.prospective_gate(facts, started, now))
 
 
 

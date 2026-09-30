@@ -54,7 +54,7 @@ const consumedTags = matches(adapter, /"((?:Canonical|Ledger|Admission|Work|Disp
 // and for the last arm of a closed Data match. Pin those exact exceptions so a
 // changed compiler layout or new consumed constructor forces a review.
 const compilerElidedTags = new Set([
-  "RulePolicy.Words", "Admission.ProspectiveFacts", "Canonical.StopScope",
+  "RulePolicy.Words", "Canonical.StopScope",
   "Retention.CleanupFacts", "Canonical.RetirePartition", "Ticket.Backend",
   "Ticket.Capacity", "Ticket.Stale", "Ticket.Lost", "Delivery.SubmissionFacts",
 ]);

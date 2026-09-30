@@ -146,8 +146,8 @@ def sample_uncertain_lease() -> Handoff.Lease:
 def main() -> Smoke:
   Smoke{
     Admission.step(Admission.initial(1n, 1n), 1n, 1n, Admission.Issue{1n, 1n, 2n, 1n}),
-    Admission.prospective_gate(Admission.ProspectiveFacts{True{}, True{}, True{}, False{},
-      0n, 1024n, 0n, 64n, True{}, 0n, 4096n}),
+    Admission.prospective_gate(Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n, False{},
+      0n, 1024n, 0n, 64n, True{}, 0n, 4096n}, 100n, 110n),
     Admission.expire(Admission.initial(1n, 1n), 1n, True{}),
     Admission.callback_current(Admission.initial(1n, 1n), 1n, 1n, 0n),
     Work.admit(Work.initial()),

@@ -112,6 +112,10 @@ export class ComposedDelivery {
     return Math.floor(ms * 1000);
   }
 
+  #bendUpperTime(ms: number): number {
+    return Math.ceil(ms * 1000);
+  }
+
   #releaseAdmissionPermit(partition: string, token: number): void {
     this.canonical.transition({ kind: "releasePermit", partition: this.canonical.partitionId(partition),
       lifetime: 1, token });
@@ -133,14 +137,13 @@ export class ComposedDelivery {
     const admission = this.canonical.canonicalProjection().admissions.find(
       (item) => item.partition === this.canonical.partitionId(partition));
     const event = eventId;
-    // A hook that began before closure cannot reopen by arriving late. The
-    // 1ms margin rejects uncertain clock sampling at the boundary.
+    // Bend receives both bounds of each reading. It uses the upper start and
+    // lower now for ordering, then lower start and upper now for the deadline.
     const facts = {
       clockValid: Number.isFinite(now) && Number.isFinite(startedAt) &&
-        startedAt > 0 && startedAt <= now,
-      withinHookWindow: now - startedAt < PRE_EDIT_ADMISSION_DEADLINE_MS,
-      startedAfterClosure: admission === undefined || admission.active ||
-        this.#bendTime(startedAt) > admission.closedAt,
+        startedAt > 0,
+      hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
+      startedUpper: this.#bendUpperTime(startedAt), nowLower: this.#bendTime(now),
       duplicateEvent: round?.events.has(event) ?? false,
       permitCount: this.#permits.size, permitLimit: 1024,
       roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
@@ -153,7 +156,7 @@ export class ComposedDelivery {
       issued = this.canonical.transition({ kind: "issuePermit",
         partition: this.canonical.partitionId(partition), lifetime: 1, tool,
         started: this.#bendTime(startedAt), deadline: this.#bendTime(startedAt + EDIT_PERMIT_EXPIRY_MS),
-        now: this.#bendTime(now), facts,
+        now: this.#bendUpperTime(now), facts,
       });
     } catch {
       return { accepted: false, reason: "InvalidClock" };
@@ -162,8 +165,6 @@ export class ComposedDelivery {
     if (issued.rejection !== undefined || command?.kind !== "permitIssued") {
       const reason = issued.rejection === "ProspectiveDenied"
         ? !facts.clockValid ? "InvalidClock"
-          : !facts.withinHookWindow ? "StaleInvocation"
-          : !facts.startedAfterClosure ? "RoundAlreadyClosed"
           : facts.duplicateEvent ? "DuplicateTool"
           : facts.permitCount >= facts.permitLimit ? "PermitLimit"
           : facts.newRound && facts.roundCount >= facts.roundLimit ? "RoundLimit"
@@ -225,13 +226,14 @@ export class ComposedDelivery {
     }
     // Internal deterministic fixtures and the non-installed API may start a
     // first round; reopening always requires the runtime's prospective permit.
+    if (previous !== undefined && !this.isActive(partition)) return undefined;
     const partitionId = this.canonical.partitionId(partition);
     const tool = this.#toolId(partition, event);
     const syntheticNow = this.#bendTime(Math.max(1, now));
     const issued = this.canonical.transition({ kind: "issuePermit", partition: partitionId,
       lifetime: 1, tool, started: syntheticNow, deadline: syntheticNow + this.#bendTime(EDIT_PERMIT_EXPIRY_MS),
-      now: syntheticNow, facts: { clockValid: true, withinHookWindow: true,
-        startedAfterClosure: previous === undefined || this.isActive(partition),
+      now: syntheticNow, facts: { clockValid: true, hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
+        startedUpper: syntheticNow, nowLower: syntheticNow,
         duplicateEvent: previous?.events.has(event) ?? false,
         permitCount: this.#permits.size, permitLimit: 1024,
         roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,

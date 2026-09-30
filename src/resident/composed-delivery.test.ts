@@ -100,6 +100,31 @@ describe("shared Hapsland rounds", () => {
     expect(state.registerEdit("other-agent", "edit", 220, 230)).toBe(true);
   });
 
+  it("lets Bend enforce the supplied pre-edit window at its exact boundary", () => {
+    const state = new ComposedDelivery();
+    expect(state.registerEditDecision("agent", "just-before-window", 100, 2599.999)).toEqual({ accepted: true });
+    expect(state.registerEditDecision("agent", "at-window", 100, 2600)).toEqual({
+      accepted: false, reason: "StaleInvocation",
+    });
+    expect(state.registerEditDecision("agent", "reversed-submicrosecond", 100.0009, 100.0001)).toEqual({
+      accepted: false, reason: "InvalidClock",
+    });
+    expect(state.registerEditDecision("agent", "fractional-at-window", 100.0009, 2600.0009)).toEqual({
+      accepted: false, reason: "StaleInvocation",
+    });
+    expect(state.registerEditDecision("agent", "fractional-past-window", 100.0001, 2600.0009)).toEqual({
+      accepted: false, reason: "StaleInvocation",
+    });
+  });
+
+  it("does not reopen a closed round through the internal admission seam", () => {
+    const state = new ComposedDelivery();
+    expect(state.admitEdit("agent", "first", 1)).toBe(1);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishStop("agent", "stop", true, 100)).toBe(1);
+    expect(state.admitEdit("agent", "next", 102)).toBeUndefined();
+  });
+
   it("never renews a tool occurrence when duplicate prehooks outlive its permit", () => {
     const state = new ComposedDelivery();
     expect(state.registerEdit("agent", "failed", 100, 101)).toBe(true);

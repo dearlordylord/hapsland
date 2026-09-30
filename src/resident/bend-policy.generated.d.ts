@@ -2,14 +2,15 @@ export type BendList<T> = { readonly $: "Nil" } |
   { readonly $: "Con"; readonly head: T; readonly tail: BendList<T> };
 
 export type BendAdmissionProspectiveFacts = { readonly $: "ProspectiveFacts";
-  readonly clock_valid: boolean; readonly within_hook_window: boolean;
-  readonly started_after_closure: boolean; readonly duplicate_event: boolean;
+  readonly clock_valid: boolean; readonly hook_window: number | bigint;
+  readonly started_upper: number | bigint; readonly now_lower: number | bigint;
+  readonly duplicate_event: boolean;
   readonly permit_count: number | bigint; readonly permit_limit: number | bigint;
   readonly round_count: number | bigint; readonly round_limit: number | bigint;
   readonly new_round: boolean; readonly event_count: number | bigint;
   readonly event_limit: number | bigint };
-export type BendAdmissionProspectiveDecision = { readonly $: "PermitAllowed" | "PermitDenied" };
-export function bendAdmissionProspectiveGate(facts: BendAdmissionProspectiveFacts):
+export type BendAdmissionProspectiveDecision = { readonly $: "PermitAllowed" | "PermitDenied" | "PermitLate" | "PermitInvalidClock" };
+export function bendAdmissionProspectiveGate(facts: BendAdmissionProspectiveFacts, started: number | bigint, now: number | bigint):
   BendAdmissionProspectiveDecision;
 export type BendAdmissionExpiryResult =
   { readonly $: "KeepPermit" | "RemovePermit"; readonly state: BendAdmissionState };

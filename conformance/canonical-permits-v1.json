@@ -28,7 +28,7 @@
         {"kind": "close", "partition": 1, "lifetime": 2, "round": 1, "at": 2300, "expect": "rejected:WrongLifetime"},
         {"kind": "close", "partition": 1, "round": 1, "at": 2300, "expect": "permitRoundClosed:1"},
         {"kind": "consume", "partition": 1, "token": 2, "tool": 12, "now": 2400, "expect": "rejected:UsedPermit"},
-        {"kind": "issue", "partition": 1, "tool": 13, "started": 2200, "now": 2500, "deadline": 32000, "afterClosure": false, "expect": "rejected:ProspectiveDenied"},
+        {"kind": "issue", "partition": 1, "tool": 13, "started": 2200, "now": 2500, "deadline": 32000, "expect": "rejected:StaleInvocation"},
         {"kind": "issue", "partition": 1, "tool": 14, "started": 2400, "now": 2500, "deadline": 32000, "expect": "permitIssued:3:2"},
         {"kind": "consume", "partition": 1, "token": 3, "tool": 14, "now": 2600, "expect": "permitConsumed:2"}
       ],

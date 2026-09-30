@@ -114,8 +114,8 @@ export const bendAdmissionInitial = (partition, lifetime) =>
   run_loop($Admission$initial$(nat(partition), nat(lifetime)));
 export const bendAdmissionStep = (state, partition, lifetime, event) =>
   run_loop($Admission$step$(state, nat(partition), nat(lifetime), normalize(event)));
-export const bendAdmissionProspectiveGate = (facts) =>
-  run_loop($Admission$prospective_gate$(normalize(facts)));
+export const bendAdmissionProspectiveGate = (facts, started, now) =>
+  run_loop($Admission$prospective_gate$(normalize(facts), nat(started), nat(now)));
 export const bendAdmissionExpire = (state, token, deadlineReached) =>
   run_loop($Admission$expire$(state, nat(token), deadlineReached));
 export const bendWorkFinishWait = (unfinished, deadlineReached, continuationBudget) =>
