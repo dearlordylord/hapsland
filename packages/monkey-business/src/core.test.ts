@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createRun, replayRun, restoreReplay } from "./index.ts";
 describe("scripted public run", () => {
   it("follows a synthetic edit through checked Jev finding and advice submission", () => {
-    const run = createRun();
+    const run = createRun({ outcome: "finding" });
     run.advance({ maxEvents: 100 });
     const commands = run.observations.flatMap((x) =>
       x.commands.map((c) => c.kind),
@@ -41,7 +41,7 @@ describe("deterministic driver and replay", () => {
       ],
     };
     const run = createRun(config);
-    run.advance({ maxEvents: 9 });
+    run.advance({ maxEvents: 12 });
     run.applyControl({ kind: "jevProfile", delayMs: 12, outcome: "clear" });
     run.advance();
     const replay = replayRun(run.exportReplay());
@@ -145,6 +145,7 @@ it("ordinary capacity refusals remain observable successful transitions", () => 
 
 it("waits for checked finish allowance before generating a later task", () => {
   const run = createRun({
+    outcome: "finding",
     session: {
       editIntervalMs: 10,
       variationMs: 0,
@@ -264,7 +265,7 @@ it("restores controls applied after metadata-only clock advancement at the viewi
   run.advance({ untilTime: 100 });
   run.applyControl({ kind: "suspendArrivals", suspended: false });
   const exported = run.exportReplay();
-  expect(exported.endpoint).toEqual({ eventCount: 12, now: 20 });
+  expect(exported.endpoint).toEqual({ eventCount: 14, now: 20 });
   const restored = restoreReplay(exported);
   expect(restored.observations).toEqual(run.observations);
   expect(restored.now).toBe(20);

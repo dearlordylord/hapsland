@@ -3,6 +3,7 @@ import { createRun, replayRun, restoreReplay } from "./index.ts";
 
 const config = {
   seed: 7,
+  outcome: "finding" as const,
   session: { editIntervalMs: 10, variationMs: 0, editsPerTask: 2, taskPauseMs: 20, adviceResponse: "ignore" as const },
   inputs: [],
   jevDelay: 5,
@@ -114,7 +115,7 @@ describe("ongoing public sessions", () => {
   });
 
   it("expires at equality with the resident default and streams full replay despite bounded history", () => {
-    const run = createRun({ retention: 1, inputs: [{ kind: "edit", at: 0, bytes: 10, unitBytes: [5] }] });
+    const run = createRun({ retention: 1, outcome: "finding", inputs: [{ kind: "edit", at: 0, bytes: 10, unitBytes: [5] }] });
     run.advance({ untilTime: 600006, maxEvents: 1000 });
     expect(run.projection.pendingFindings).toHaveLength(1);
     run.advance({ untilTime: 600007, maxEvents: 1000 });

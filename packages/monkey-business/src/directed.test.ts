@@ -50,7 +50,7 @@ it("a finish attempt waits for both requests, then a deadline cancels their exac
 });
 
 it("same-time completion and deadline follow recorded insertion order", () => {
-  const edit = { at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5] };
+  const edit = { at: 0, kind: "edit" as const, bytes: 10, unitBytes: [5], outcome: "finding" as const };
   const deadline = { at: 7, kind: "canonical" as const, event: { kind: "stopPolled" as const, partition: 1, lifetime: 1, round: 1, deadline: true } };
   const beforeCompletion = createRun({ inputs: [edit, deadline], jevDelay: 5 });
   beforeCompletion.advance();

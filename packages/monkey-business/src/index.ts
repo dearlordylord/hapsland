@@ -1,4 +1,6 @@
-import { validateLiveControl, type LiveControl } from "./controls.ts";
+import { DEFAULT_OUTCOME_WEIGHTS, JEV_OUTCOME_ORDER, OUTCOME_RANDOM_ALGORITHM, OUTCOME_RANDOM_STREAM, SeededOutcomeSampler, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
+export * from "./outcomes.ts";
+import { validateLiveControl, type LiveControl, type EnvironmentProfile, type OutputProfile } from "./controls.ts";
 export * from "./controls.ts";
 import {
   SessionGenerator,
@@ -27,7 +29,7 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:e869c377cd6bfb8dcc951defe1b82821fffcf3b98ba5101c8eb7a2c75c552d80";
+  "canonical-source-sha256:11f4fd080d8152b8cb334a6a667a1fa58d3863de2a5a4da78a89b613928e3b22";
 export type RunInput =
   | SessionInput
   | ({ readonly at: number; readonly generation?: number } & (
@@ -110,8 +112,11 @@ export type RunConfig = {
   readonly finishDeadline?: number;
   /** Synthetic retention clock; defaults to the resident’s ten-minute pending advice lifetime. */
   readonly adviceLifetime?: number;
+  readonly environment?: EnvironmentProfile;
+  readonly outputProfile?: OutputProfile;
   readonly jevDelay?: number;
   readonly outcome?: JevRequestOutcome;
+  readonly outcomeWeights?: OutcomeWeights;
   readonly retention?: number;
   readonly session?: SessionConfig;
 };
@@ -120,6 +125,7 @@ export type Replay = {
   readonly format: typeof REPLAY_FORMAT;
   readonly randomAlgorithm: typeof RANDOM_ALGORITHM;
   readonly logicIdentity: typeof LOGIC_IDENTITY;
+  readonly outcomeSampling: { readonly algorithm: typeof OUTCOME_RANDOM_ALGORITHM; readonly stream: typeof OUTCOME_RANDOM_STREAM; readonly order: typeof JEV_OUTCOME_ORDER };
   readonly config: RunConfig;
   readonly controls: readonly ControlRecord[];
   readonly scheduledInputs: readonly {
@@ -129,14 +135,18 @@ export type Replay = {
     input: RunInput;
   }[];
 };
+type CandidateContext = { advice: number; round: number; token: number; surface: "edit" | "background" | "stop"; selection?: boolean };
 type Scheduled = {
   at: number;
   order: number;
-  input: RunInput;
   finishAttempt?: number;
   expiryAdvice?: number;
+  generated?: boolean;
   job?: Extract<RunInput, { kind: "edit" }>;
-};
+} & ({ input: RunInput; candidate?: never } | {
+  input: { kind: "canonical"; at: number; event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" }>; generation?: number };
+  candidate: CandidateContext;
+});
 const integer = (n: number, name: string) => {
   if (!Number.isSafeInteger(n) || n < 0 || n > 2 ** 48 - 1)
     throw new RangeError(`invalid ${name}`);
@@ -177,6 +187,7 @@ export class Run {
         recurring: boolean;
         selected: number[];
         waiting: boolean;
+        validating: number;
       }
     | undefined;
   private issuedRequests = new Map<
@@ -187,17 +198,31 @@ export class Run {
   private readonly config: RunConfig;
   private readonly session?: SessionGenerator;
   private jevDelay: number;
-  private outcome: JevRequestOutcome;
+  private outcome: JevRequestOutcome | undefined;
+  private outcomeWeights: OutcomeWeights;
+  private readonly outcomeSampler: SeededOutcomeSampler;
+  private environment: EnvironmentProfile;
+  private adviceCredentials = new Map<number, number>();
+  private requestCredentials = new Map<number, number>();
+  private outputProfile: OutputProfile;
   constructor(config: RunConfig = {}) {
+    this.environment = copy(config.environment ?? { currentWork: true, credentialReady: true });
+    this.outputProfile = copy(config.outputProfile ?? { outcome: "certain", delayMs: 0, leaseMs: 30000 });
+    validateLiveControl({ kind: "environment", ...this.environment });
+    validateLiveControl({ kind: "outputProfile", ...this.outputProfile });
     if (config.session)
       this.session = new SessionGenerator({
         ...config.session,
         seed: config.session.seed ?? config.seed ?? 1,
       });
-    this.outcome = config.outcome ?? "finding";
+    if (config.outcome !== undefined && config.outcomeWeights !== undefined) throw new TypeError("choose explicit outcome or outcome weights");
+    this.outcome = config.outcome;
+    this.outcomeWeights = validateOutcomeWeights(config.outcomeWeights ?? DEFAULT_OUTCOME_WEIGHTS);
+    this.outcomeSampler = new SeededOutcomeSampler(config.seed ?? 1);
     this.config = copy({
       ...config,
       seed: config.seed ?? 1,
+      ...(config.outcome === undefined ? { outcomeWeights: this.outcomeWeights } : {}),
       inputs:
         config.inputs ??
         (config.session
@@ -208,7 +233,6 @@ export class Run {
                 kind: "edit",
                 bytes: 10,
                 unitBytes: [5],
-                outcome: "finding",
               },
               { at: 20, kind: "finish" },
             ]),
@@ -270,12 +294,22 @@ export class Run {
     expiryAdvice?: number,
   ) {
     this.enqueue({ at: this.clock + delay, kind: "canonical", event }, job, expiryAdvice);
+    this.queue.find(item => item.order === this.order - 1)!.generated = true;
   }
   applyControl(control: Control): ControlRecord {
     const value = validateLiveControl(control);
-    if (value.kind === "jevProfile") {
+    if (value.kind === "environment") {
+      this.environment = { currentWork: value.currentWork, credentialReady: value.credentialReady,
+        credentialGeneration: value.credentialGeneration ?? this.environment.credentialGeneration ?? 1,
+        sourceReadable: value.sourceReadable ?? this.environment.sourceReadable ?? true };
+      for (const work of this.projection.work) if (work.kind === "pendingFinding")
+        this.validateAdvice(work.operation, work.round, work.operation, this.session ? "background" : "edit");
+    } else if (value.kind === "outputProfile") {
+      this.outputProfile = { outcome: value.outcome, delayMs: value.delayMs, leaseMs: value.leaseMs };
+    } else if (value.kind === "jevProfile") {
       this.jevDelay = value.delayMs;
       if (value.outcome !== undefined) this.outcome = value.outcome;
+      if (value.outcomeWeights !== undefined) { this.outcome = undefined; this.outcomeWeights = validateOutcomeWeights(value.outcomeWeights); }
     } else if (this.session) {
       for (const input of this.session.apply(value, this.clock))
         this.enqueue(input);
@@ -329,6 +363,7 @@ export class Run {
             recurring: "recurring" in item.input && item.input.recurring,
             selected: [],
             waiting: false,
+            validating: 0,
           };
           this.pollFinish();
           this.pollFinish(this.config.finishDeadline ?? 200);
@@ -362,8 +397,15 @@ export class Run {
       );
       return this.step(untilTime);
     }
-    const event = item.input.event;
+    let event = item.input.event;
+    if (item.generated && event.kind === "jevRequestSettled") event = { ...event, currentWork: this.environment.currentWork };
+    if (item.generated && event.kind === "jevRequestReady") event = { ...event, currentWork: this.environment.currentWork, credentialReady: this.environment.credentialReady };
     const before = this.projection;
+    if (item.generated && item.candidate && event.kind === "finalCandidateCheck") event = { ...event,
+      ownerCurrent: before.pendingFindings.some(finding => finding.operation === item.candidate!.advice),
+      credentialGeneration: (this.adviceCredentials.get(item.candidate.advice) ?? 1) === (this.environment.credentialGeneration ?? 1),
+      credentialAuthorized: this.environment.credentialReady,
+      workCurrent: this.environment.currentWork && (this.environment.sourceReadable ?? true) };
     // Callback identity is checked against issued work, before the product's stale-result fence.
     if (
       event.kind === "jevRequestSettled" &&
@@ -401,9 +443,16 @@ export class Run {
         case "dispatchStarted": {
           const work = this.projection.work.find(work => work.operation === command.operation);
           const job = this.jobs.get(command.operation);
-          if (!work || !job || work.kind !== "sourceQueued")
+          if (!work || !job || !["sourceQueued", "reviewing"].includes(work.kind))
             throw new Error("unhandled required command: dispatchStarted lacks synthetic source job");
           const scope = { partition: work.partition, lifetime: work.lifetime, round: work.round };
+          if (work.kind === "reviewing") {
+            this.event({ kind: "startReview", ...scope, operation: work.operation });
+            this.event({ kind: "jevRequestReady", ...scope, operation: work.operation,
+              rootValid: true, configurationValid: true, credentialReady: this.environment.credentialReady,
+              selected: true, currentWork: this.environment.currentWork, physicalAvailable: true });
+            break;
+          }
           this.event({ kind: "startObservation", ...scope, observation: work.operation });
           this.event({ kind: "beginObservedPreparation", ...scope,
             observation: work.operation, bytes: job.bytes }, 0, job);
@@ -447,26 +496,12 @@ export class Run {
               "unhandled required command: unitAdmitted lacks job",
             );
           this.jobs.set(command.operation, item.job);
-          this.event({
-            kind: "startReview",
-            ...scope,
-            operation: command.operation,
-          });
-          this.event({
-            kind: "jevRequestReady",
-            ...scope,
-            operation: command.operation,
-            rootValid: true,
-            configurationValid: true,
-            credentialReady: true,
-            selected: true,
-            currentWork: true,
-            physicalAvailable: true,
-          });
+          this.event({ kind: "queueDispatch", ...scope, operation: command.operation });
           break;
         }
         case "jevRequestIssued": {
           this.issuedRequests.set(command.request, command);
+          this.requestCredentials.set(command.operation, this.environment.credentialGeneration ?? 1);
           const { kind: _kind, ...binding } = command;
           const job = this.jobs.get(command.operation);
           effects.push({
@@ -481,7 +516,7 @@ export class Run {
             {
               kind: "jevRequestSettled",
               ...binding,
-              outcome: job?.outcome ?? this.outcome,
+              outcome: job?.outcome ?? this.outcome ?? this.outcomeSampler.sample(this.outcomeWeights),
               currentWork: true,
             },
             this.jevDelay,
@@ -492,6 +527,7 @@ export class Run {
           if (!scope || !("operation" in event))
             throw new Error("unhandled required command: retainFinding");
           const advice = event.operation;
+          this.adviceCredentials.set(advice, this.requestCredentials.get(advice) ?? this.environment.credentialGeneration ?? 1);
           effects.push({ kind: "advice", phase: "supplied", advice });
           const lifetime = this.config.adviceLifetime ?? 600_000;
           this.event({ kind: "collectionExpiryCheck", elapsed: lifetime, lifetime },
@@ -506,21 +542,15 @@ export class Run {
             window: 200,
           });
           if (this.finish) break;
-          this.event({ kind: "collectionReserveLease", advice, token: advice });
-          this.event({
-            kind: "submissionBegin",
-            advice,
-            group: 1,
-            round: scope.round,
-            token: advice,
-            surface: this.session ? "background" : "edit",
-            authorizeNow: true,
-            fingerprints: [advice],
-            units: [event.operation],
-          });
+          this.validateAdvice(advice, scope.round, advice, this.session ? "background" : "edit");
           break;
         }
         case "submissionBegun":
+          if (event.kind === "submissionBegin" && this.outputProfile.outcome === "failed") {
+            this.event({ kind: "submissionRelease", advice: event.advice, token: event.token }, this.outputProfile.delayMs);
+            this.event({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, this.outputProfile.delayMs);
+            break;
+          }
           if (event.kind !== "submissionBegin" || !event.authorizeNow) break;
         case "submissionAuthorized": {
           if (
@@ -533,19 +563,77 @@ export class Run {
             phase: "started",
             advice: event.advice,
           });
-          this.event({
-            kind: "submissionTerminal",
-            advice: event.advice,
-            token: event.token,
-            certain: true,
-          });
-          this.event({
-            kind: "collectionReleaseLease",
-            advice: event.advice,
-            token: event.token,
-          });
+          const profile = this.outputProfile;
+          if (profile.outcome === "failed") {
+            this.event({ kind: "submissionRelease", advice: event.advice, token: event.token }, profile.delayMs);
+            this.event({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, profile.delayMs);
+            if (this.finish && event.token === this.finish.token)
+              this.event({ kind: "finishTerminal", group: 1, round: this.finish.round,
+                attempt: this.finish.attempt, token: event.token, selected: this.finish.selected,
+                outcome: "failed" }, profile.delayMs);
+          } else {
+            const due = Math.min(profile.delayMs, profile.leaseMs);
+            if (profile.delayMs > profile.leaseMs)
+              this.event({ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: true }, profile.delayMs);
+            if (profile.delayMs >= profile.leaseMs)
+              this.event({ kind: "submissionExpiryCheck", advice: event.advice, token: event.token,
+                elapsed: profile.leaseMs, lifetime: profile.leaseMs }, due);
+            else this.event({ kind: "submissionTerminal", advice: event.advice, token: event.token,
+              certain: profile.outcome === "certain" }, due);
+            this.event({ kind: "collectionLeaseCheck", advice: event.advice, token: event.token,
+              expired: profile.delayMs >= profile.leaseMs, stopCollector: false, sameGroup: true,
+              reofferable: false }, due);
+            this.event({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, due);
+          }
           break;
         }
+        case "retainCandidate":
+        case "continueCandidate": {
+          if (item.candidate) {
+            this.candidateEvent({ kind: "submissionSuppressCheck", advice: item.candidate.advice,
+              fingerprint: item.candidate.advice, round: item.candidate.round, surface: item.candidate.surface }, item.candidate);
+          }
+          break;
+        }
+        case "submissionExpired":
+          if (event.kind === "submissionExpiryCheck")
+            this.event({ kind: "submissionTerminal", advice: event.advice, token: event.token, certain: false });
+          break;
+        case "submissionUnsuppressed": {
+          if (item.candidate) {
+            const c = item.candidate;
+            if (c.selection && this.finish) {
+              this.finish.selected.push(c.advice);
+              this.finish.validating--;
+              if (this.finish.validating === 0) this.finishBudget();
+              break;
+            }
+            {
+              this.event({ kind: "collectionReserveLease", advice: c.advice, token: c.token });
+              this.event({ kind: "submissionBegin", advice: c.advice, group: 1, round: c.round,
+                token: c.token, surface: c.surface, authorizeNow: c.surface !== "stop" && this.outputProfile.outcome !== "failed",
+                fingerprints: [c.advice], units: [c.advice] });
+            }
+          }
+          break;
+        }
+        case "retireCandidate":
+          if (item.candidate) this.retireAdvice(item.candidate.advice);
+        case "releaseCandidate":
+        case "ignoreCandidate":
+        case "submissionSuppresses":
+          if (item.candidate?.selection && this.finish) {
+            this.finish.validating--;
+            if (this.finish.validating === 0) this.finishBudget();
+          }
+          break;
+        case "jevRequestUnavailable":
+          if (event.kind === "jevRequestReady" && before.dispatch.running.some(entry => entry.operation === event.operation)) {
+            this.event({ kind: "dispatchSettled", partition: event.partition, lifetime: event.lifetime,
+              round: event.round, operation: event.operation });
+            this.jobs.delete(event.operation);
+          }
+          break;
         case "collectionExpired": {
           const advice = item.expiryAdvice;
           if (advice === undefined) break;
@@ -561,26 +649,12 @@ export class Run {
           const f = this.finish;
           if (!f) break;
           f.waiting = false;
-          f.selected =
-            command.kind === "finishLimit"
-              ? []
-              : this.projection.pendingFindings
-                  .filter(
-                    (x) =>
-                      !this.projection.delivery.submissions.batches.some(
-                        (b) =>
-                          b.advice === x.operation && b.phase === "submitted",
-                      ),
-                  )
-                  .map((x) => x.operation);
-          this.event({
-            kind: "roundContinuationBudgetCheck",
-            active: true,
-            count:
-              this.projection.delivery.counters.find(
-                (counter) => counter.group === 1 && counter.round === f.round,
-              )?.used ?? 0,
-          });
+          f.selected = [];
+          const candidates = command.kind === "finishLimit" ? [] : this.projection.work.filter(work =>
+            work.partition === 1 && work.round === f.round && work.kind === "pendingFinding");
+          f.validating = candidates.length;
+          if (!f.validating) this.finishBudget();
+          for (const work of candidates) this.validateAdvice(work.operation, f.round, f.token, "stop", true);
           break;
         }
         case "roundContinuationAvailable":
@@ -630,6 +704,10 @@ export class Run {
               units: [advice],
             });
           }
+          if (this.outputProfile.outcome === "failed") {
+            this.event({ kind: "finishRelease", group: 1, round: f.round, attempt: f.attempt, token: f.token }, this.outputProfile.delayMs);
+            break;
+          }
           this.event({
             kind: "finishAuthorize",
             group: 1,
@@ -658,7 +736,7 @@ export class Run {
                 (b) =>
                   b.advice === advice &&
                   b.token === f.token &&
-                  b.phase === "submitted",
+                  (b.phase === "submitted" || b.phase === "uncertain"),
               ),
             )
           )
@@ -669,7 +747,7 @@ export class Run {
               attempt: f.attempt,
               token: f.token,
               selected: f.selected,
-              outcome: "acknowledged",
+              outcome: event.certain ? "acknowledged" : "unknown",
             });
           break;
         }
@@ -691,6 +769,9 @@ export class Run {
           }
           break;
         }
+        case "finishReleased":
+          this.endFinish(true);
+          break;
         case "finishEnded":
           this.endFinish(true);
           break;
@@ -748,7 +829,10 @@ export class Run {
       });
     }
     if (event.kind === "jevRequestSettled") {
+      if (before.dispatch.running.some(entry => entry.operation === event.operation))
+        this.event({ kind: "dispatchSettled", partition: event.partition, lifetime: event.lifetime, round: event.round, operation: event.operation });
       this.issuedRequests.delete(event.request);
+      this.requestCredentials.delete(event.operation);
       if (!this.projection.pendingFindings.some(finding => finding.operation === event.operation))
         this.jobs.delete(event.operation);
       effects.push({
@@ -784,6 +868,23 @@ export class Run {
     for (const listener of this.listeners) listener(observation);
     return observation;
   }
+  private finishBudget() {
+    const f = this.finish;
+    if (!f) return;
+    this.event({ kind: "roundContinuationBudgetCheck", active: true,
+      count: this.projection.delivery.counters.find(counter => counter.group === 1 && counter.round === f.round)?.used ?? 0 });
+  }
+  private candidateEvent(event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" }>, candidate: CandidateContext) {
+    this.queue.push({ at: this.clock, order: this.order++, generated: true,
+      input: { at: this.clock, kind: "canonical", event }, candidate });
+    this.queue.sort((a, b) => a.at - b.at || a.order - b.order);
+  }
+  private validateAdvice(advice: number, round: number, token: number, surface: "edit" | "background" | "stop", selection = false) {
+    this.candidateEvent({ kind: "finalCandidateCheck", ownerCurrent: true,
+      credentialGeneration: (this.adviceCredentials.get(advice) ?? 1) === (this.environment.credentialGeneration ?? 1),
+      credentialAuthorized: this.environment.credentialReady, expired: false,
+      workCurrent: this.environment.currentWork && (this.environment.sourceReadable ?? true), hasFindings: true }, { advice, round, token, surface, selection });
+  }
   private retireAdvice(advice: number) {
     const retained = this.projection.work.find(work =>
       work.operation === advice && work.kind === "pendingFinding");
@@ -794,6 +895,7 @@ export class Run {
       partition: retained.partition, lifetime: retained.lifetime,
       round: retained.round, operation: advice });
     this.jobs.delete(advice);
+    this.adviceCredentials.delete(advice);
   }
   private pollFinish(delay = 0) {
     const f = this.finish;
@@ -888,6 +990,7 @@ export class Run {
       format: REPLAY_FORMAT,
       randomAlgorithm: RANDOM_ALGORITHM,
       logicIdentity: LOGIC_IDENTITY,
+      outcomeSampling: { algorithm: OUTCOME_RANDOM_ALGORITHM, stream: OUTCOME_RANDOM_STREAM, order: JEV_OUTCOME_ORDER },
       config: this.config,
       controls: this.controls,
       scheduledInputs: this.externalInputs,
@@ -899,7 +1002,10 @@ export const replayRun = (replay: Replay) => {
   if (
     replay.format !== REPLAY_FORMAT ||
     replay.randomAlgorithm !== RANDOM_ALGORITHM ||
-    replay.logicIdentity !== LOGIC_IDENTITY
+    replay.logicIdentity !== LOGIC_IDENTITY ||
+    replay.outcomeSampling?.algorithm !== OUTCOME_RANDOM_ALGORITHM ||
+    replay.outcomeSampling?.stream !== OUTCOME_RANDOM_STREAM ||
+    JSON.stringify(replay.outcomeSampling?.order) !== JSON.stringify(JEV_OUTCOME_ORDER)
   )
     throw new Error("incompatible replay identity");
   const run = createRun(replay.config);
