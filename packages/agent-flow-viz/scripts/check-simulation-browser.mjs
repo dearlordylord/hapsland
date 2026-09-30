@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createServer } from "vite";
 const server = await createServer({ server: { host: "127.0.0.1", port: 0 } });
@@ -156,6 +157,38 @@ try {
   );
   await panel.getByRole("button", { name: "Pause", exact: true }).click();
   await status("Paused");
+  const publicModule = `/@fs${fileURLToPath(new URL("../../monkey-business/src/index.ts", import.meta.url))}`;
+  const metadataReplay = await page.evaluate(async (moduleUrl) => {
+    const { createRun } = await import(moduleUrl);
+    const run = createRun({
+      session: { editIntervalMs: 10, variationMs: 0 },
+      outcome: "clear",
+    });
+    run.advance({ untilTime: 10, maxEvents: 100 });
+    run.applyControl({ kind: "suspendArrivals", suspended: true });
+    run.advance({ untilTime: 100, maxEvents: 100 });
+    run.applyControl({ kind: "suspendArrivals", suspended: false });
+    return run.exportReplay();
+  }, publicModule);
+  assert.equal(metadataReplay.endpoint.now, 20);
+  await panel
+    .getByLabel("Replay JSON", { exact: true })
+    .fill(JSON.stringify(metadataReplay));
+  await panel.getByRole("button", { name: "Load replay", exact: true }).click();
+  await status("Replay reconstructed");
+  await status("virtual time 20 ms");
+  await status("edits enabled");
+  await panel
+    .getByRole("button", { name: "Export replay", exact: true })
+    .click();
+  await status("Replay inputs exported");
+  const loadedMetadataReplay = JSON.parse(
+    await panel.getByLabel("Replay JSON", { exact: true }).inputValue(),
+  );
+  assert.deepEqual(loadedMetadataReplay.endpoint, metadataReplay.endpoint);
+  assert.deepEqual(loadedMetadataReplay.controls, metadataReplay.controls);
+  await panel.getByRole("button", { name: "Single step", exact: true }).click();
+  await status("One checked transition advanced");
   assert.deepEqual(errors, []);
   console.log(
     "Simulation browser controls, existing diagram and inspection passed",

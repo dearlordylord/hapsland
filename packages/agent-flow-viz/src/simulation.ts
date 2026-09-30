@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import type { HtmlBuilder } from "foldkit/html";
 import {
   createRun,
-  replayRun,
+  restoreReplay,
   type Replay,
   type Control,
 } from "../../monkey-business/src/index";
@@ -101,21 +101,19 @@ export const actSimulation = (
         "Seeded session started. Paused playback; edit generation is enabled.";
     } else if (action === "load") {
       const inputs: Replay = JSON.parse(model.replay);
-      const restored = replayRun(inputs);
-      restored.advance({
-        maxEvents: number(
-          String(inputs.endpoint.eventCount),
-          "Replay endpoint events",
-          0,
-          100_000,
-        ),
-        untilTime: number(
-          String(inputs.endpoint.now),
-          "Replay endpoint time",
-          0,
-          Number.MAX_SAFE_INTEGER,
-        ),
-      });
+      number(
+        String(inputs.endpoint.eventCount),
+        "Replay endpoint events",
+        0,
+        100_000,
+      );
+      number(
+        String(inputs.endpoint.now),
+        "Replay endpoint time",
+        0,
+        Number.MAX_SAFE_INTEGER,
+      );
+      const restored = restoreReplay(inputs);
       run = restored;
       playing = false;
       selected = -1;
