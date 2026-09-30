@@ -1,4 +1,4 @@
-import { E0, NOUL_KEYS, measured } from "../questions.ts";
+import { E0, NOUL_KEYS } from "../questions.ts";
 import {
   DEFAULT_RULE_THRESHOLD,
   decodeRulePackDocument,
@@ -22,10 +22,6 @@ const messages: Readonly<Record<string, string>> = {
   r8_name_claims_resource: "A declaration appears to hide a resource named by the operation.",
   r9_body_reaches_undeclared: "A callable appears to reach state or resources absent from its declaration.",
 };
-
-/** Built-in extra applicability remains a function of the source rung. */
-export const isNoulRuleApplicable = (ruleId: string, source: string): boolean =>
-  measured(ruleId, source);
 
 const rules: ReadonlyArray<RuleDefinition> = NOUL_KEYS.map((id) => {
   const decision = E0[id];

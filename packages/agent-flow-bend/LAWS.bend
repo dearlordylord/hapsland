@@ -1550,7 +1550,32 @@ law git_admin_precedes_file_kind_and_ignore:
 
 law incomplete_rule_unit_is_omitted:
   {RulePolicy.applicable(True{}, False{}, RulePolicy.TypeShape{}, True{}, False{},
-    True{}, True{}, True{}, False{}, True{}) ==
+    True{}, True{}, True{}, False{}, True{}, True{}, 2n, 1n) ==
+    RulePolicy.Omit{} : RulePolicy.Gate}
+
+law undeclared_rule_target_is_omitted:
+  {RulePolicy.applicable(True{}, True{}, RulePolicy.TypeShape{}, True{}, False{},
+    True{}, True{}, True{}, False{}, False{}, True{}, 2n, 1n) ==
+    RulePolicy.Omit{} : RulePolicy.Gate}
+
+law missing_rule_capability_is_omitted:
+  {RulePolicy.applicable(True{}, True{}, RulePolicy.TypeShape{}, True{}, False{},
+    True{}, True{}, True{}, False{}, True{}, False{}, 2n, 1n) ==
+    RulePolicy.Omit{} : RulePolicy.Gate}
+
+law source_below_rule_minimum_is_omitted:
+  {RulePolicy.applicable(True{}, True{}, RulePolicy.TypeShape{}, True{}, False{},
+    True{}, True{}, True{}, False{}, True{}, True{}, 1n, 2n) ==
+    RulePolicy.Omit{} : RulePolicy.Gate}
+
+law source_at_rule_minimum_is_admitted:
+  {RulePolicy.applicable(True{}, True{}, RulePolicy.TypeShape{}, True{}, False{},
+    True{}, True{}, True{}, False{}, True{}, True{}, 2n, 2n) ==
+    RulePolicy.Admit{} : RulePolicy.Gate}
+
+law invalid_source_rung_is_omitted:
+  {RulePolicy.applicable(True{}, True{}, RulePolicy.TypeShape{}, True{}, False{},
+    True{}, True{}, True{}, False{}, True{}, True{}, 4n, 2n) ==
     RulePolicy.Omit{} : RulePolicy.Gate}
 
 law exact_threshold_is_not_a_finding:

@@ -23,7 +23,8 @@ export type ClassifierState = {
  *   3 schema  — a declaration plus the refinements it enforces: ranges, non-empty,
  *               literals, the constructors that make a state unreachable.
  *
- * Code computes the rung; nothing upstream supplies it and nothing about it is sent.
+ * Native code computes the rung from source text; the source-free rung number is
+ * sent to Bend for the rule applicability comparison.
  */
 export type Level = 1 | 2 | 3;
 
@@ -440,10 +441,6 @@ export const APPLIES_FROM: Record<string, Level> = {
   r8_name_claims_resource: 2,
   r9_body_reaches_undeclared: 2,
 };
-
-/** True when the text reaches the rung this rule's separation was measured from. */
-export const measured = (key: string, source: string) =>
-  levelOf(source) >= APPLIES_FROM[key]!;
 
 /** Self-consistency cookbook bands. Nothing is calibrated; the middle goes to a person (§4). */
 export const band = (p: number) => (p > 0.7 ? "violation" : p < 0.3 ? "clear" : "unclear");

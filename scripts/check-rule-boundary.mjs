@@ -10,12 +10,16 @@ const resident = source("src/resident/server.ts");
 const adapter = source("src/rules/decision.ts");
 
 if (compiler.includes("isApplicable:") ||
+    compiler.includes("if (authoredTarget === undefined) return false") ||
+    /levelOf\(source\)\s*>=/.test(compiler) ||
     /probability\s*>\s*rule\.threshold/.test(direct + policy) ||
     /rule\.threshold\s*<\s*1\b/.test(resident)) {
   throw new Error("superseded TypeScript rule decision returned");
 }
 if (!compiler.includes("includeRule(packEnabled") ||
     !compiler.includes("applicableRule({") ||
+    !compiler.includes("targetDeclared: declaredTargets.length > 0") ||
+    !compiler.includes("minimumRung: rule.minimumRung") ||
     !policy.includes("findingFromProbability(") ||
     !policy.includes("compareRuleRank(") ||
     !policy.includes("withinAdviceBudget(") ||

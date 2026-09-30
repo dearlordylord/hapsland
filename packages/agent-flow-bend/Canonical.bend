@@ -228,7 +228,8 @@ type CanonicalEvent is Data:
     global_included: Bool, global_excluded: Bool,
     pack_enabled: Bool, rule_enabled: Bool,
     rule_included: Bool, rule_excluded: Bool,
-    semantic_applicable: Bool}
+    target_declared: Bool, capabilities_available: Bool,
+    source_rung: Nat, minimum_rung: Nat}
   RuleFindingCheck{probability: RulePolicy.ProbabilityWords,
     threshold: RulePolicy.ProbabilityWords}
   RuleRankOrderCheck{left: RulePolicy.ProbabilityWords,
@@ -3092,10 +3093,12 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
       Advanced{state, RuleGate{RulePolicy.enabled(pack_enabled, rule_enabled)} <> Nil{}}
     case RuleApplicabilityCheck{consent, complete, target,
         global_included, global_excluded, pack_enabled, rule_enabled,
-        rule_included, rule_excluded, semantic_applicable}:
+        rule_included, rule_excluded, target_declared, capabilities_available,
+        source_rung, minimum_rung}:
       Advanced{state, RuleGate{RulePolicy.applicable(consent, complete, target,
         global_included, global_excluded, pack_enabled, rule_enabled,
-        rule_included, rule_excluded, semantic_applicable)} <> Nil{}}
+        rule_included, rule_excluded, target_declared, capabilities_available,
+        source_rung, minimum_rung)} <> Nil{}}
     case RuleFindingCheck{probability, threshold}:
       Advanced{state, RuleGate{RulePolicy.finding(probability, threshold)} <> Nil{}}
     case RuleRankOrderCheck{left, right, left_rank, right_rank}:

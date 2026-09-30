@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:f67207602c5a1d72bd3bc63400b37841388072b2ab46bf5871c72c2ba94ee5d6
+// hapsland-bend-source-sha256:4ceec70b02722ab7be95d7fb58572a7c2f7fdedfd568c61fc32534f7946d275b
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -812,8 +812,11 @@ function $Canonical$step_unchecked$(_state_0, _event_0) {
     const _rule_enabled_1 = _event_0["rule_enabled"];
     const _rule_included_0 = _event_0["rule_included"];
     const _rule_excluded_0 = _event_0["rule_excluded"];
-    const _semantic_applicable_0 = _event_0["semantic_applicable"];
-    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$applicable$(_consent_0, _complete_0, _target_0, _global_included_0, _global_excluded_0, _pack_enabled_1, _rule_enabled_1, _rule_included_0, _rule_excluded_0, _semantic_applicable_0))}, "tail": {$: "Nil"}}};
+    const _target_declared_0 = _event_0["target_declared"];
+    const _capabilities_available_0 = _event_0["capabilities_available"];
+    const _source_rung_0 = _event_0["source_rung"];
+    const _minimum_rung_0 = _event_0["minimum_rung"];
+    return {$: "Canonical.Advanced", "state": _state_0, "commands": {$: "Con", "head": {$: "Canonical.RuleGate", "gate": ($RulePolicy$applicable$(_consent_0, _complete_0, _target_0, _global_included_0, _global_excluded_0, _pack_enabled_1, _rule_enabled_1, _rule_included_0, _rule_excluded_0, _target_declared_0, _capabilities_available_0, _source_rung_0, _minimum_rung_0))}, "tail": {$: "Nil"}}};
   } else if (_event_0.$ === "Canonical.RuleFindingCheck") {
     const _probability_0 = _event_0["probability"];
     const _threshold_0 = _event_0["threshold"];
@@ -2142,8 +2145,13 @@ function $RulePolicy$enabled$(_pack_enabled_0, _rule_enabled_0) {
   return $Bool$pick$(($Bool$and$(_pack_enabled_0, _rule_enabled_0)), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
 }
 
-function $RulePolicy$applicable$(_consent_0, _complete_0, _target_0, _global_included_0, _global_excluded_0, _pack_enabled_0, _rule_enabled_0, _rule_included_0, _rule_excluded_0, _semantic_applicable_0) {
-  return $Bool$pick$(($Bool$and$(_consent_0, ($Bool$and$(_complete_0, ($Bool$and$(($RulePolicy$target_compatible$(_target_0)), ($Bool$and$(_global_included_0, ($Bool$and$(($Bool$not$(_global_excluded_0)), ($Bool$and$(_pack_enabled_0, ($Bool$and$(_rule_enabled_0, ($Bool$and$(_rule_included_0, ($Bool$and$(($Bool$not$(_rule_excluded_0)), _semantic_applicable_0)))))))))))))))))), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
+function $RulePolicy$applicable$(_consent_0, _complete_0, _target_0, _global_included_0, _global_excluded_0, _pack_enabled_0, _rule_enabled_0, _rule_included_0, _rule_excluded_0, _target_declared_0, _capabilities_available_0, _source_rung_0, _minimum_rung_0) {
+  const _scope_ok_0 = ($Bool$and$(_consent_0, _complete_0));
+  const _target_ok_0 = ($Bool$and$(($RulePolicy$target_compatible$(_target_0)), ($Bool$and$(_target_declared_0, _capabilities_available_0))));
+  const _path_ok_0 = ($Bool$and$(_global_included_0, ($Bool$and$(($Bool$not$(_global_excluded_0)), ($Bool$and$(_rule_included_0, ($Bool$not$(_rule_excluded_0))))))));
+  const _rule_ok_0 = ($Bool$and$(_pack_enabled_0, _rule_enabled_0));
+  const _rung_ok_0 = ($Bool$and$(($Nat$is_ge$(_source_rung_0, 1)), ($Bool$and$(($Nat$is_le$(_source_rung_0, 3)), ($Bool$and$(($Nat$is_ge$(_minimum_rung_0, 1)), ($Bool$and$(($Nat$is_le$(_minimum_rung_0, 3)), ($Nat$is_ge$(_source_rung_0, _minimum_rung_0))))))))));
+  return $Bool$pick$(($Bool$and$(_scope_ok_0, ($Bool$and$(_target_ok_0, ($Bool$and$(_path_ok_0, ($Bool$and$(_rule_ok_0, _rung_ok_0)))))))), {$: "RulePolicy.Admit"}, {$: "RulePolicy.Omit"});
 }
 
 function $RulePolicy$finding$(_probability_0, _threshold_0) {
@@ -3907,6 +3915,10 @@ function $RulePolicy$target_compatible$(_target_0) {
   }
 }
 
+function $Nat$is_le$(_a_0, _b_0) {
+  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
+}
+
 function $RulePolicy$valid_words$(_word_0) {
   const _high_0 = _word_0["high"];
   const _low_0 = _word_0["low"];
@@ -4452,10 +4464,6 @@ function $Admission$prospective_gate_window$(_facts_0, _within_0, _ordered_0) {
   } else {
     return $Admission$prospective_gate_ordered$(_clock_valid_0, _within_0);
   }
-}
-
-function $Nat$is_le$(_a_0, _b_0) {
-  return $Cmp$is_le$(cmp_new(_a_0, _b_0));
 }
 
 function $Canonical$consume_admitted$(_state_0, _partition_0, _lifetime_0, _admission_0, _round_0) {
@@ -5500,6 +5508,14 @@ function $Cmp$is_ge$(_c_0) {
   }
 }
 
+function $Cmp$is_le$(_c_0) {
+  if (_c_0.$ === "GT") {
+    return false;
+  } else {
+    return true;
+  }
+}
+
 function $ReuseState$route_cache$(_state_0, _id_0) {
   const __0 = _state_0["claims"];
   const _cache_0 = _state_0["cache"];
@@ -5965,14 +5981,6 @@ function $Admission$prospective_gate_ordered$(_clock_valid_0, _within_0) {
     return {$: "Admission.PermitLate"};
   } else {
     return $Bool$pick$(_clock_valid_0, {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
-  }
-}
-
-function $Cmp$is_le$(_c_0) {
-  if (_c_0.$ === "GT") {
-    return false;
-  } else {
-    return true;
   }
 }
 

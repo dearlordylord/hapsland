@@ -1,9 +1,10 @@
 import { Decision } from "effect/unstable/ai";
+import { APPLIES_FROM, levelOf, type Level } from "../questions.ts";
 import { RuleId } from "../domain/contracts.ts";
 import { ConfigurationError } from "../configuration/errors.ts";
 import type { ConfigurationLayer } from "../configuration/resolve.ts";
 import { matchesAnyGlob } from "../matcher/glob.ts";
-import { BUNDLED_NOUL_PACK, isNoulRuleApplicable } from "./bundled.ts";
+import { BUNDLED_NOUL_PACK } from "./bundled.ts";
 import { applicableRule, includeRule } from "./decision.ts";
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT, type Capability, type ReviewTarget } from "./targets.ts";
 import { validateGlobPattern } from "../matcher/glob.ts";
@@ -42,8 +43,8 @@ export type CompiledRule = {
   readonly builtIn: boolean;
   readonly enabled: boolean;
   readonly source: string;
-  /** Native semantic observation; canonical Bend owns the applicability gate. */
-  readonly semanticMatches: (source: string) => boolean;
+  /** Rule data; Bend compares it with the native source-rung observation. */
+  readonly minimumRung: Level;
   readonly reviewTargets: ReadonlyArray<ReviewTarget>;
 };
 
@@ -80,7 +81,7 @@ const currentTypeTarget: RuleTargetContext = {
 /** Independent Boolean gate used by conformance tests and future orchestration. */
 export const shouldDispatchRule = (gates: RuleSelectionGates): boolean =>
   applicableRule({ ...gates, complete: true, target: "typeShape",
-    semanticApplicable: true });
+    targetDeclared: true, capabilitiesAvailable: true, sourceRung: 1, minimumRung: 1 });
 
 const qualified = (packId: string, ruleId: string): string => `${packId}/${ruleId}`;
 
@@ -227,6 +228,8 @@ export const compileRules = (
       }
       const runtimeId = pack.id === BUNDLED_NOUL_PACK.id ? rule.id : qualifiedId;
       const builtIn = pack.id === BUNDLED_NOUL_PACK.id;
+      const minimumRung = builtIn ? APPLIES_FROM[rule.id] : 1;
+      if (minimumRung === undefined) throw new Error(`missing bundled Noul rung for ${rule.id}`);
       compiled.push({
         id: RuleId.make(runtimeId),
         qualifiedId,
@@ -243,7 +246,7 @@ export const compileRules = (
         builtIn,
         enabled,
         source: pack.source,
-        semanticMatches: (source) => !builtIn || isNoulRuleApplicable(rule.id, source),
+        minimumRung,
         reviewTargets: rule.reviewTargets,
       });
       rank += 1;
@@ -257,25 +260,31 @@ export const selectApplicableRules = (
   source: string,
   path?: string,
   target: RuleTargetContext = currentTypeTarget,
-): ReadonlyArray<CompiledRule> => rules.filter((rule) => {
-  const authoredTarget = rule.reviewTargets.find((candidate) =>
-    candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract &&
-    candidate.capabilities.every((capability) => target.capabilities?.includes(capability) === true));
-  if (authoredTarget === undefined) return false;
-  return applicableRule({
-  consent: true,
-  complete: target.complete,
-  target: target.inputContract === FUNCTION_INPUT_CONTRACT ? "functionTarget"
-    : target.inputContract === TYPE_INPUT_CONTRACT ? "typeShape"
-    : "unsupportedTarget",
-  globalIncluded: true,
-  globalExcluded: false,
-  packEnabled: true,
-  ruleEnabled: rule.enabled,
-  ...pathApplicabilityFacts(rule.applicability, path),
-  semanticApplicable: rule.semanticMatches(source),
+): ReadonlyArray<CompiledRule> => {
+  const sourceRung = levelOf(source);
+  return rules.filter((rule) => {
+    const declaredTargets = rule.reviewTargets.filter((candidate) =>
+      candidate.artifactKind === target.artifactKind && candidate.inputContract === target.inputContract);
+    const capabilitiesAvailable = declaredTargets.some((candidate) =>
+      candidate.capabilities.every((capability) => target.capabilities?.includes(capability) === true));
+    return applicableRule({
+      consent: true,
+      complete: target.complete,
+      target: target.inputContract === FUNCTION_INPUT_CONTRACT ? "functionTarget"
+        : target.inputContract === TYPE_INPUT_CONTRACT ? "typeShape"
+        : "unsupportedTarget",
+      globalIncluded: true,
+      globalExcluded: false,
+      packEnabled: true,
+      ruleEnabled: rule.enabled,
+      ...pathApplicabilityFacts(rule.applicability, path),
+      targetDeclared: declaredTargets.length > 0,
+      capabilitiesAvailable,
+      sourceRung,
+      minimumRung: rule.minimumRung,
+    });
   });
-});
+};
 
 /** Compile one strict current rule pack for source-free fixtures and tooling. */
 export const compileRulePack = (raw: unknown, source: string): ReadonlyArray<CompiledRule> => {

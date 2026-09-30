@@ -1,7 +1,7 @@
 import Base
 
 # Rule text, source, paths, and Jev responses never enter retained state.
-# Native code reports semantic/path/target observations and exact ordered
+# Native code reports source-rung/path/target observations and exact ordered
 # IEEE-754 words for finite probabilities in [0, 1].
 type Gate is Data:
   Admit{}
@@ -40,13 +40,19 @@ def applicable(consent: Bool, complete: Bool, target: Target,
     global_included: Bool, global_excluded: Bool,
     pack_enabled: Bool, rule_enabled: Bool,
     rule_included: Bool, rule_excluded: Bool,
-    semantic_applicable: Bool) -> Gate:
-  Bool.pick(Gate, Bool.and(consent, Bool.and(complete,
-    Bool.and(target_compatible(target), Bool.and(global_included,
-      Bool.and(Bool.not(global_excluded), Bool.and(pack_enabled,
-        Bool.and(rule_enabled, Bool.and(rule_included,
-          Bool.and(Bool.not(rule_excluded), semantic_applicable))))))))),
-    Admit{}, Omit{})
+    target_declared: Bool, capabilities_available: Bool,
+    +source_rung: Nat, +minimum_rung: Nat) -> Gate:
+  +scope_ok : Bool = Bool.and(consent, complete)
+  +target_ok : Bool = Bool.and(target_compatible(target),
+    Bool.and(target_declared, capabilities_available))
+  +path_ok : Bool = Bool.and(global_included, Bool.and(Bool.not(global_excluded),
+    Bool.and(rule_included, Bool.not(rule_excluded))))
+  +rule_ok : Bool = Bool.and(pack_enabled, rule_enabled)
+  +rung_ok : Bool = Bool.and(Nat.is_ge(source_rung, 1n),
+    Bool.and(Nat.is_le(source_rung, 3n), Bool.and(Nat.is_ge(minimum_rung, 1n),
+      Bool.and(Nat.is_le(minimum_rung, 3n), Nat.is_ge(source_rung, minimum_rung)))))
+  Bool.pick(Gate, Bool.and(scope_ok, Bool.and(target_ok,
+    Bool.and(path_ok, Bool.and(rule_ok, rung_ok)))), Admit{}, Omit{})
 
 def greater_words(left: ProbabilityWords, right: ProbabilityWords) -> Bool:
   match left right:

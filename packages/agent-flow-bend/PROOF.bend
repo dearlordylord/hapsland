@@ -1,6 +1,21 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.undeclared_rule_target_is_omitted():
+  {==}
+
+def Laws.missing_rule_capability_is_omitted():
+  {==}
+
+def Laws.source_below_rule_minimum_is_omitted():
+  {==}
+
+def Laws.source_at_rule_minimum_is_admitted():
+  {==}
+
+def Laws.invalid_source_rung_is_omitted():
+  {==}
+
 def Laws.canonical_cross_advicee_identity_is_distinct():
   {==}
 

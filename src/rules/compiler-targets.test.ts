@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as Effect from "effect/Effect";
 import { loadReviewSettings } from "../runtime/review-config.ts";
-import { compileRulePack, selectApplicableRules } from "./compiler.ts";
+import { BUNDLED_NOUL_PACK } from "./bundled.ts";
+import { compileRulePack, compileRules, selectApplicableRules } from "./compiler.ts";
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "./targets.ts";
 
 const pack = () => ({ schemaVersion: 1, id: "team", contentVersion: "1", rules: [{
@@ -18,6 +19,16 @@ const pack = () => ({ schemaVersion: 1, id: "team", contentVersion: "1", rules: 
 }] });
 
 describe("explicit rule target compilation", () => {
+  it("applies the bundled Noul minimum rung through Bend", () => {
+    const rules = compileRules({ packs: [{ ...BUNDLED_NOUL_PACK,
+      path: "built-in:noul", enabled: true,
+      origin: { layer: "built-in", source: "built-in:noul", field: "bundled.noul" } }] });
+    const raw = selectApplicableRules(rules, '{"value":1}', "a.ts").map((rule) => rule.ruleId);
+    const typed = selectApplicableRules(rules, "type Value = number", "a.ts").map((rule) => rule.ruleId);
+    expect(raw).not.toContain("r3_split_correlations");
+    expect(typed).toContain("r3_split_correlations");
+  });
+
   it("loads an authored pack for both active review branches", async () => {
     const root = mkdtempSync(join(tmpdir(), "hapsland-rule-pack-"));
     try {

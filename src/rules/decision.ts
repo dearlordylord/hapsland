@@ -29,7 +29,10 @@ export const applicableRule = (facts: {
   readonly ruleEnabled: boolean;
   readonly ruleIncluded: boolean;
   readonly ruleExcluded: boolean;
-  readonly semanticApplicable: boolean;
+  readonly targetDeclared: boolean;
+  readonly capabilitiesAvailable: boolean;
+  readonly sourceRung: number;
+  readonly minimumRung: number;
 }): boolean => gate({ kind: "ruleApplicabilityCheck", ...facts });
 
 export const findingFromProbability = (probability: number, threshold: number): boolean => {

@@ -18,7 +18,6 @@ export {
   NOUL_MESSAGES,
   NOUL_PACK_ID,
   NOUL_PACK_VERSION,
-  isNoulRuleApplicable,
 } from "./bundled.ts";
 export {
   loadRulePacks,
