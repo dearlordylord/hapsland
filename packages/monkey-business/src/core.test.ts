@@ -227,3 +227,29 @@ it("a virtual finish deadline cancels unfinished requests and permits later work
   ).toHaveLength(2);
   expect(run.observations.filter((x) => x.rejection)).toEqual([]);
 });
+it("uses checked continuation exhaustion to allow finish instead of inventing another continuation", () => {
+  const run = createRun({
+    session: {
+      editIntervalMs: 10,
+      variationMs: 0,
+      editsPerTask: 1,
+      taskPauseMs: 1,
+    },
+    jevDelay: 30,
+    finishDeadline: 100,
+  });
+  run.advance({ untilTime: 300, maxEvents: 1000 });
+  expect(
+    run.observations.flatMap((frame) =>
+      frame.commands.map((command) => command.kind),
+    ),
+  ).toContain("roundContinuationExhausted");
+  expect(
+    run.observations.flatMap((frame) =>
+      frame.commands.map((command) => command.kind),
+    ),
+  ).not.toContain("continuationRefused");
+  expect(
+    run.observations.filter((frame) => frame.event.kind === "openRound").length,
+  ).toBeGreaterThan(1);
+});
