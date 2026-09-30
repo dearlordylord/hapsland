@@ -68,7 +68,6 @@ import { BendWorkTracker } from "./bend-work.ts";
 import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import {
   ADVICE_COLLECTION_WINDOW_MS,
-  MAX_COMBINED_RESPONSE_BYTES,
   PENDING_ADVICE_EXPIRY_MS,
   combinedClaudeOutput,
   combinedReviewOutput,
@@ -3332,10 +3331,19 @@ export class ResidentServer {
     if (request.operation === "collect" && request.requestRoute === "shared" && request.composed === true &&
         request.advicee.host === "claude-code") {
       const surface = request.mode === "turn-end" ? "stop" : "background";
-      if (encodedComposedClaudeOutputBytes(findings, notices.map((notice) => notice.value), surface) >
-            MAX_COMBINED_RESPONSE_BYTES) {
+      const fit = this.#ledger.transition({ kind: "collectionFitCheck",
+        items: findings.length + notices.length,
+        bytes: encodedComposedClaudeOutputBytes(findings,
+          notices.map((notice) => notice.value), surface) });
+      if (fit.rejection !== undefined || fit.commands.length !== 1) {
+        throw new Error("canonical final response fit refused");
+      }
+      if (fit.commands[0]?.kind === "collectionLimited") {
         this.releaseDelivery(response.token);
         return { status: "empty" };
+      }
+      if (fit.commands[0]?.kind !== "collectionFits") {
+        throw new Error("invalid canonical final response fit");
       }
     }
     for (const notice of notices) {
