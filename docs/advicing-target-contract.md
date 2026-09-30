@@ -227,7 +227,12 @@ explicitly uncertain handoffs enter final selection. An uncertain advice
 submission at Stop consumes the reoffer.
 The resident reserves each item's one reoffer atomically with the finish output
 permit.
-No submitted advice crosses a closed-round boundary.
+Advice already handed to a runtime hook while its virtual round was open may
+reach the advicee shortly after that round closes, even if a new virtual round
+has begun. This is acceptable timely delivery to the same advicee. Closing a
+round cannot recall text already in a running hook. The current flow selects no
+additional advice from that closed round. Whether a later virtual round may
+deliberately select earlier advice is a separate, undecided behavior.
 
 ## Closure, restart, and evidence
 
@@ -241,12 +246,13 @@ Then it resolves waiters, revokes leases and unreleased permits, removes queued
 work, interrupts owned preparation and Jev tasks, and releases captured source,
 pending advice, notices, and submitted/uncertain delivery records. Cancellation
 at Jev is best effort; local late callbacks are rejected. Shared resources
-owned by another round remain intact. Already authorized external output
-cannot be physically recalled; a closure race after the writer's final fence
-check is classified as uncertain. The guarantee is no new authorization after
-closure, not exactly-once external output. Emit `allow` within the original
-hook deadline; cleanup can finish asynchronously after the fence takes effect,
-without producing new review or delivery work.
+owned by another round remain intact. Text already handed to a running runtime
+hook cannot be recalled. If the round closes before that hook reports its write
+result, the delivery result is uncertain. The current cleanup rule prevents new
+work and advice selection from the closed round; it does not require the advicee
+to receive already handed-off text before the instant of closure. Emit `allow`
+within the original hook deadline; cleanup can finish asynchronously after the
+fence takes effect, without producing new review or delivery work.
 
 Retain only a source-free closure marker and identity digests needed to reject old
 events. Derive diagnostic counts and reasons from work and delivery facts rather
