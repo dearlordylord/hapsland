@@ -118,6 +118,7 @@ export class Run {
   private listeners = new Set<(o: Observation) => void>();
   private controls: ControlRecord[] = [];
   private externalInputs: { boundary: number; input: RunInput }[] = [];
+  private issuedRequests = new Map<number, Extract<CanonicalCommand,{kind:"jevRequestIssued"}>>();
   private jobs = new Map<number, Extract<RunInput, { kind: "edit" }>>();
   private readonly config: RunConfig;
   private readonly session?: SessionGenerator;
@@ -307,7 +308,7 @@ export class Run {
     // Callback identity is checked against issued work, before the product's stale-result fence.
     if (
       event.kind === "jevRequestSettled" &&
-      !before.dispatch.requests.some(
+      ![...this.issuedRequests.values()].some(
         (r) =>
           r.request === event.request &&
           r.operation === event.operation &&
@@ -379,6 +380,7 @@ export class Run {
           break;
         }
         case "jevRequestIssued": {
+          this.issuedRequests.set(command.request, command);
           const { kind: _kind, ...binding } = command;
           const job = this.jobs.get(command.operation);
           effects.push({
