@@ -60,6 +60,21 @@ describe("public weighted request profile", () => {
     run.advance({ maxEvents: 1000 });
     expect(settled(run)).toEqual(draws(new SeededOutcomeSampler(7)));
   });
+  it("snapshots supplied weights so caller mutation cannot change outcomes or replay", () => {
+    const profile = { ...weights({ clear: 100 }) };
+    const run = createRun({ inputs: inputs.slice(0, 2), outcomeWeights: profile });
+    profile.clear = 0;
+    profile.finding = 100;
+    while (!run.observations.some(frame => frame.commands.some(command => command.kind === "jevRequestIssued"))) run.step();
+    const live = { ...weights({ interrupted: 100 }) };
+    run.applyControl({ kind: "jevProfile", delayMs: 5, outcomeWeights: live });
+    live.interrupted = 0;
+    live.finding = 100;
+    run.advance({ maxEvents: 1000 });
+    expect(settled(run)).toEqual(["clear", "interrupted"]);
+    expect(run.exportReplay().config.outcomeWeights).toEqual(weights({ clear: 100 }));
+    expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
+  });
 });
 const draws = (sampler: SeededOutcomeSampler, profile = DEFAULT_OUTCOME_WEIGHTS, count = 16) =>
   Array.from({ length: count }, () => sampler.sample(profile));
