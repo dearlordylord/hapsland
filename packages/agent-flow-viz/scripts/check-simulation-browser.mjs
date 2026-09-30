@@ -38,6 +38,7 @@ try {
   await panel.getByRole("button", { name: "Single step", exact: true }).click();
   await status("One checked transition advanced");
   assert.match(await panel.locator(".simulation-status").innerText(), /Paused/);
+  await panel.locator(".simulation-details summary").click();
   assert.equal(await panel.locator(".topology-node").count(), 14);
   assert.match(await panel.innerText(), /simulated Jev/i);
   assert.match(
@@ -49,14 +50,10 @@ try {
     /0\. 105 ms · openRound/,
   );
   await panel.getByLabel("Burst count (1–100)", { exact: true }).fill("0");
-  await panel
-    .getByRole("button", { name: "Inject edit burst", exact: true })
-    .click();
+  await panel.getByLabel("Burst count (1–100)", { exact: true }).press("Enter");
   await status("Burst count must be an integer");
   await panel.getByLabel("Burst count (1–100)", { exact: true }).fill("3");
-  await panel
-    .getByRole("button", { name: "Inject edit burst", exact: true })
-    .click();
+  await panel.getByLabel("Burst count (1–100)", { exact: true }).press("Enter");
   await panel
     .getByLabel("Simulated Jev delay (virtual ms)", { exact: true })
     .fill("500");
@@ -64,9 +61,6 @@ try {
     .getByLabel("Simulated Jev delay (virtual ms)", { exact: true })
     .press("Tab");
   await setOutcome("backendFailure");
-  await panel
-    .getByRole("button", { name: "Apply simulated Jev profile", exact: true })
-    .click();
   await panel
     .getByRole("button", { name: "Suspend edit generation", exact: true })
     .click();
@@ -110,6 +104,7 @@ try {
   await panel
     .getByRole("button", { name: "Start / reset", exact: true })
     .click();
+  await status("Seeded session started");
   await panel.getByLabel("Replay JSON", { exact: true }).fill(exported);
   await panel.getByRole("button", { name: "Load replay", exact: true }).click();
   await status("Replay reconstructed");
@@ -127,16 +122,12 @@ try {
   await panel
     .getByLabel("Edit interval (virtual ms)", { exact: true })
     .fill("200");
-  await panel
-    .getByRole("button", { name: "Apply edit pace", exact: true })
-    .click();
+  await panel.getByLabel("Edit interval (virtual ms)", { exact: true }).press("Enter");
   await status("Future edit pace updated");
   await panel
     .getByLabel("Reservation bytes per edit", { exact: true })
     .fill("250");
-  await panel
-    .getByRole("button", { name: "Apply reservation size", exact: true })
-    .click();
+  await panel.getByLabel("Reservation bytes per edit", { exact: true }).press("Enter");
   await status("Synthetic reservation facts updated");
   await panel
     .getByRole("button", { name: "Resume edit generation", exact: true })
@@ -186,17 +177,17 @@ try {
     assert.equal(await speed.evaluate((element) => element === document.activeElement), true);
     assert.match(await panel.locator(".applied-speed").innerText(), /Active speed: 1×/);
   }
-  await panel.getByRole("button", { name: "Apply playback speed", exact: true }).click();
+  await speed.press("Enter");
   await status("Playback speed must be a number");
   await page.waitForTimeout(250);
   await status("Playback speed must be a number");
   await status("Running");
   await speed.fill(".5");
-  await panel.getByRole("button", { name: "Apply playback speed", exact: true }).click();
+  await speed.press("Enter");
   await page.waitForFunction(() => document.querySelector(".applied-speed")?.textContent.includes("0.5×"));
   await status("Running");
   await panel.getByLabel("Edit interval (virtual ms)", { exact: true }).fill(".");
-  await panel.getByRole("button", { name: "Apply edit pace", exact: true }).click();
+  await panel.getByLabel("Edit interval (virtual ms)", { exact: true }).press("Enter");
   await status("Edit pace must be an integer");
   await status("Running");
   await panel.locator(".simulation-history button").first().click();
@@ -254,8 +245,13 @@ try {
   await panel.getByRole("button", { name: "Replay from start", exact: true }).click();
   await status("Replay reset to initial inputs");
   await status("virtual time 0 ms");
-  const appliedTimeline = panel.getByText("Applied control timeline (draft fields apply only when submitted)", { exact: true }).locator("..").locator("pre");
+  const appliedTimeline = panel.getByText("Control history", { exact: true }).locator("..").locator("pre");
   assert.deepEqual(JSON.parse(await appliedTimeline.textContent()).controls, []);
+  await panel.getByLabel("Simulated Jev delay (virtual ms)", { exact: true }).fill("23");
+  await status("finish recorded replay before changing live Jev settings");
+  await outcomeSlider("finding").press("End");
+  assert.deepEqual(JSON.parse(await appliedTimeline.textContent()).controls, []);
+
   await panel.getByRole("button", { name: "Single step", exact: true }).click();
   await status("One checked transition advanced");
   for (let index = 1; index < JSON.parse(fileReplay).endpoint.eventCount; index++) {
@@ -324,7 +320,7 @@ try {
   await panel.getByRole("button", { name: "Resume", exact: true }).click();
   await status("Running");
   for (let sample = 0; sample < 3; sample++) { await page.waitForTimeout(150); assert.equal(await diagramTop(), stableTop); }
-  await panel.getByRole("button", { name: "Inject edit burst", exact: true }).click();
+  await panel.getByLabel("Burst count (1–100)", { exact: true }).press("Enter");
   await page.waitForTimeout(150);
   assert.equal(await diagramTop(), stableTop);
   await panel.getByRole("button", { name: "Pause", exact: true }).click();
@@ -338,7 +334,6 @@ try {
   await openMix();
   for (const name of Object.keys(outcomeLabels)) await outcomeSlider(name).press("Home");
   await page.waitForFunction(() => document.querySelector(".simulation-mix-total")?.textContent.includes("Choose at least one nonzero weight"));
-  await panel.getByRole("button", { name: "Apply simulated Jev profile", exact: true }).click();
   await status("At least one Jev outcome weight must be greater than zero");
   await page.waitForTimeout(100);
   await status("Running");
@@ -347,14 +342,33 @@ try {
   await outcomeSlider("clear").press("End");
   await page.waitForFunction(() => document.querySelector(".simulation-mix-total")?.textContent.includes("Total relative weight: 200"));
   assert.match(await panel.locator(".simulation-outcome-mix").innerText(), /weight 100 · 50.0%/);
-  assert.match(await panel.locator(".simulation-active-controls").innerText(), /active mix Finding 100.0%/);
-  await panel.getByRole("button", { name: "Apply simulated Jev profile", exact: true }).click();
+  assert.match(await panel.locator(".simulation-active-controls").innerText(), /active mix Finding 50.0% · No finding \(clear\) 50.0%/);
   await page.waitForFunction(() => document.querySelector(".simulation-active-controls")?.textContent.includes("active mix Finding 50.0% · No finding (clear) 50.0%"));
   await status("Running");
+  const liveDelay = panel.getByLabel("Simulated Jev delay (virtual ms)", { exact: true });
+  for (const draft of ["", ".", "1..5"]) {
+    await liveDelay.focus();
+    await liveDelay.press("ControlOrMeta+A");
+    await liveDelay.press("Backspace");
+    await liveDelay.pressSequentially(draft, { delay: 70 });
+    await page.waitForTimeout(120);
+    assert.equal(await liveDelay.inputValue(), draft);
+    assert.equal(await liveDelay.evaluate((element) => element === document.activeElement), true);
+    await status("Running");
+    assert.match(await panel.locator(".simulation-active-controls").innerText(), /Jev delay (50|1) ms/);
+  }
+  await outcomeSlider("finding").press("Home");
+  await page.waitForFunction(() => document.querySelector(".simulation-active-controls")?.textContent.includes("active mix No finding (clear) 100.0%"));
+  await outcomeSlider("clear").press("Home");
+  await liveDelay.fill("17");
+  await page.waitForFunction(() => document.querySelector(".simulation-active-controls")?.textContent.includes("Jev delay 17 ms"));
+  assert.match(await panel.locator(".simulation-active-controls").innerText(), /active mix No finding \(clear\) 100.0%/);
+  await outcomeSlider("finding").press("End");
+  await outcomeSlider("clear").press("End");
   await panel.getByLabel("Work freshness", { exact: true }).selectOption("stale");
   await panel.getByLabel("Credential availability", { exact: true }).selectOption("unavailable");
   await panel.getByLabel("Credential generation", { exact: true }).fill(".");
-  await panel.getByRole("button", { name: "Apply environment facts", exact: true }).click();
+  await panel.getByLabel("Credential generation", { exact: true }).press("Enter");
   await status("Credential generation must be an integer");
   await page.waitForTimeout(100);
   await status("Running");
@@ -362,20 +376,20 @@ try {
   await panel.getByLabel("Credential generation", { exact: true }).fill("2");
   await panel.getByLabel("Source readability", { exact: true }).selectOption("unreadable");
   assert.match(await panel.locator(".simulation-active-effects").innerText(), /work current · credential ready.*generation 1.*source readable/);
-  await panel.getByRole("button", { name: "Apply environment facts", exact: true }).click();
+  await panel.getByLabel("Credential generation", { exact: true }).press("Enter");
   await page.waitForFunction(() => document.querySelector(".simulation-active-effects")?.textContent.includes("work stale · credential unavailable (generation 2) · source unreadable"));
   await status("Running");
   await panel.getByLabel("Host output outcome", { exact: true }).selectOption("uncertain");
   const hostDelay = panel.getByLabel("Host output delay (virtual ms)", { exact: true });
   await hostDelay.fill(".");
-  await panel.getByRole("button", { name: "Apply host output profile", exact: true }).click();
+  await panel.getByLabel("Host output delay (virtual ms)", { exact: true }).press("Enter");
   await status("Host output delay must be an integer");
   await page.waitForTimeout(100);
   await status("Running");
   assert.match(await panel.locator(".simulation-active-effects").innerText(), /Future host output: certain · delay 1 ms · lease 1000 ms/);
   await hostDelay.fill("50");
   await panel.getByLabel("Delivery lease lifetime (virtual ms)", { exact: true }).fill("500");
-  await panel.getByRole("button", { name: "Apply host output profile", exact: true }).click();
+  await panel.getByLabel("Host output delay (virtual ms)", { exact: true }).press("Enter");
   await page.waitForFunction(() => document.querySelector(".simulation-active-effects")?.textContent.includes("Future host output: uncertain · delay 50 ms · lease 500 ms"));
   await status("Running");
   await panel.getByRole("button", { name: "Pause", exact: true }).click();
@@ -384,7 +398,9 @@ try {
   await status("Replay inputs exported");
   const lifecycleReplayText = await panel.getByLabel("Replay JSON", { exact: true }).inputValue();
   const lifecycleReplay = JSON.parse(lifecycleReplayText);
-  assert.deepEqual(lifecycleReplay.controls.find((entry) => entry.control.kind === "jevProfile").control.outcomeWeights, { neverSent: 0, finding: 100, clear: 100, backendFailure: 0, timeout: 0, interrupted: 0 });
+  assert.equal(lifecycleReplay.controls.filter((entry) => entry.control.kind === "environment").length, 1);
+  assert.equal(lifecycleReplay.controls.filter((entry) => entry.control.kind === "outputProfile").length, 1);
+  assert.deepEqual([...lifecycleReplay.controls].reverse().find((entry) => entry.control.kind === "jevProfile").control.outcomeWeights, { neverSent: 0, finding: 100, clear: 100, backendFailure: 0, timeout: 0, interrupted: 0 });
   assert.deepEqual(lifecycleReplay.controls.find((entry) => entry.control.kind === "environment").control, { kind: "environment", currentWork: false, credentialReady: false, credentialGeneration: 2, sourceReadable: false });
   assert.deepEqual(lifecycleReplay.controls.find((entry) => entry.control.kind === "outputProfile").control, { kind: "outputProfile", outcome: "uncertain", delayMs: 50, leaseMs: 500 });
   const lifecycleDetails = await panel.locator(".simulation-details").innerText();
@@ -398,11 +414,11 @@ try {
   await panel.getByLabel("Work freshness", { exact: true }).selectOption("current");
   await panel.getByLabel("Credential availability", { exact: true }).selectOption("ready");
   await panel.getByLabel("Source readability", { exact: true }).selectOption("readable");
-  await panel.getByRole("button", { name: "Apply environment facts", exact: true }).click();
+  await panel.getByLabel("Credential generation", { exact: true }).press("Enter");
   await panel.getByLabel("Host output outcome", { exact: true }).selectOption("certain");
   await hostDelay.fill("1");
   await panel.getByLabel("Delivery lease lifetime (virtual ms)", { exact: true }).fill("1000");
-  await panel.getByRole("button", { name: "Apply host output profile", exact: true }).click();
+  await panel.getByLabel("Host output delay (virtual ms)", { exact: true }).press("Enter");
   await page.waitForFunction(() => document.querySelector(".simulation-active-effects")?.textContent.includes("Future host output: certain · delay 1 ms · lease 1000 ms"));
   assert.match(await panel.locator(".simulation-active-effects").innerText(), /work current · credential ready.*generation 2.*source readable/);
   await panel.getByRole("button", { name: "Uncertain output scenario", exact: true }).click();
@@ -415,7 +431,7 @@ try {
   await panel.getByLabel("Host output outcome", { exact: true }).selectOption("certain");
   await hostDelay.fill("1");
   await panel.getByLabel("Delivery lease lifetime (virtual ms)", { exact: true }).fill("1000");
-  await panel.getByRole("button", { name: "Apply host output profile", exact: true }).click();
+  await panel.getByLabel("Host output delay (virtual ms)", { exact: true }).press("Enter");
   await page.waitForFunction(() => document.querySelector(".simulation-active-effects")?.textContent.includes("Future host output: certain · delay 1 ms"));
   await panel.getByRole("button", { name: "Resume", exact: true }).click();
   await page.waitForFunction(() => /[1-9]\d* confirmed host submissions/.test(document.querySelector(".simulation-outcomes")?.textContent ?? ""));

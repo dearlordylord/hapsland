@@ -30,13 +30,17 @@ try {
   assert.match(await page.locator(".production-flow").innerText(), /Jev request attempt/);
   assert.match(await page.locator(".production-flow").innerText(), /Jev in-flight: 0\/8 · no Jev wait queue/);
   const canonical = page.locator("#canonical-replay");
+  for (const selector of [".topology-step", ".finish-decision", ".manual-event", ".replay-history"]) {
+    await page.locator(selector + " summary").first().click();
+  }
   const applyManual = async ({ expect: _expect, ...event }, position) => {
     await canonical.getByLabel("Event JSON").fill(JSON.stringify(event));
     await canonical.getByLabel("Event JSON").press("Tab");
-    await canonical.getByRole("button", { name: "Apply event" }).click();
+    if (position === 1) await canonical.locator(".manual-event button[type=submit]").press("Enter");
+    else await canonical.getByRole("button", { name: "Apply event" }).click();
     await waitForText(".canonical-progress", `history ${position}/${position}`);
   };
-  assert.match(await canonical.innerText(), /What uses review capacity/);
+  assert.match(await canonical.innerText(), /Capacity rules/);
   assert.match(await canonical.innerText(), /All agents in this Hapsland process · 0\/3 work items/);
   assert.match(await canonical.innerText(), /Two edits through a queue, Jev findings, and Stop output/);
   await advanceGuided(1, 1, 57);
@@ -63,7 +67,7 @@ try {
   assert.match(await page.locator(".topology-node").filter({ hasText: "Review outcomes" }).textContent(), /0 finding work/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Host output" }).textContent(), /0 finish slots.*0 submitted advice/s);
   assert.match(await page.locator(".topology-capacities").innerText(), /Review capacity ledger: 0\/3 items; 0\/100 bytes/);
-  await canonical.getByRole("button", { name: "Shared review capacity and partial unit admission", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "Shared review capacity and partial unit admission" });
   await waitForText(".canonical-progress", "Guided step 0 of 11");
   for (let step = 1; step <= 3; step++) {
     await canonical.getByRole("button", { name: /^Next:/ }).click();
@@ -79,6 +83,7 @@ try {
   assert.match(await page.locator(".topology-step").innerText(), /rejected: StaleOperation/);
   await canonical.getByRole("button", { name: "Previous step" }).click();
   await waitForText(".canonical-progress", "Guided step 3 of 11");
+  await canonical.locator(".capacity-frames").evaluate((element) => element.open = true);
   await canonical.getByRole("button", { name: /Unit 2: no capacity/ }).click();
   await waitForText(".capacity-frames", "Frame 3 of 4");
   assert.match(await canonical.innerText(), /Frame 3 of 4 · 2 shared items · 50 shared bytes/);
@@ -99,20 +104,21 @@ try {
   assert.match(await canonical.locator(".capacity-rows").innerText(), /Agent 3/);
   await canonical.getByRole("button", { name: "Reset replay" }).click();
   await waitForText(".canonical-progress", "history 0/0");
-  await canonical.getByRole("button", { name: "unknown output is reoffered at Stop", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "unknown output is reoffered at Stop" });
   await waitForText(".canonical-progress", "Guided step 0 of 6");
   for (let step = 1; step <= 6; step++) {
     await canonical.getByRole("button", { name: /^Next:/ }).click();
     await waitForText(".canonical-progress", `Guided step ${step} of 6`);
   }
   assert.match(await canonical.innerText(), /reofferAtStop/);
-  await canonical.getByRole("button", { name: "many units admit in order and Stop waits", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "many units admit in order and Stop waits" });
   await waitForText(".canonical-progress", "Guided step 0 of 7");
   for (let step = 1; step <= 3; step++) {
     await canonical.getByRole("button", { name: /^Next:/ }).click();
     await waitForText(".canonical-progress", `Guided step ${step} of 7`);
   }
   assert.match(await canonical.innerText(), /Preparation completion decisions.*Before event.*Unit 1: accepted.*Unit 2: no capacity.*Unit 3: accepted.*After event/s);
+  await canonical.locator(".capacity-frames").evaluate((element) => element.open = true);
   await canonical.getByRole("button", { name: /Unit 2: no capacity/ }).click();
   await waitForText(".capacity-frames", "Frame 3 of 4");
   assert.match(await canonical.innerText(), /Frame 3 of 4 · 1 shared items · 10 shared bytes/);
@@ -120,11 +126,11 @@ try {
     await canonical.getByRole("button", { name: /^Next:/ }).click();
     await waitForText(".canonical-progress", `Guided step ${step} of 7`);
   }
-  assert.match(await canonical.innerText(), /reviewRecorded · outcome: unavailable/);
+  assert.match(await canonical.innerText(), /reviewCompleted accepted · 2 command\(s\): reservationReleased, reviewRecorded/);
   assert.match(await page.locator(".production-flow").innerText(), /reviewCompleted accepted/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "nonfinding review outcome recorded" }).count(), 1);
 
-  await canonical.getByRole("button", { name: "clear is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "clear is a distinct observed request result and duplicate is rejected" });
   await waitForText(".canonical-progress", "Guided step 0 of 8");
   await advanceGuided(1, 6, 8);
   await waitForText(".canonical-progress", "Guided step 6 of 8");
@@ -139,7 +145,7 @@ try {
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "nonfinding review outcome recorded" }).count(), 1);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "retain finding command" }).count(), 0);
 
-  await canonical.getByRole("button", { name: "finding is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "finding is a distinct observed request result and duplicate is rejected" });
   await waitForText(".canonical-progress", "Guided step 0 of 8");
   await advanceGuided(1, 7, 8);
   await waitForText(".canonical-progress", "Guided step 7 of 8");
@@ -160,12 +166,12 @@ try {
   assert.match(await page.locator(".topology-step").innerText(), /rejected: StaleOperation/);
   assert.equal(await page.locator(".topology-route.active").count(), 0);
 
-  await canonical.getByRole("button", { name: "eight active request permits; ninth settles immediately and release permits another", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "eight active request permits; ninth settles immediately and release permits another" });
   await waitForText(".canonical-progress", "Guided step 0 of 34");
   await advanceGuided(1, 26, 34);
   await waitForText(".canonical-progress", "Guided step 26 of 34");
   assert.match(await page.locator(".topology-capacities").innerText(), /Jev in-flight: 8\/8 · no Jev wait queue/);
-  assert.match(await page.locator(".topology-node").nth(6).textContent(), /7 started requests/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Jev request attempt" }).textContent(), /7 started requests/);
   await advanceGuided(27, 29, 34);
   await waitForText(".canonical-progress", "Guided step 29 of 34");
   assert.match(await page.locator(".topology-step").innerText(), /jevRequestReady accepted.*jevRequestUnavailable/);
@@ -178,7 +184,7 @@ try {
   await waitForText(".canonical-progress", "Guided step 29 of 34");
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "request unavailable or refused" }).count(), 1);
 
-  await canonical.getByRole("button", { name: "neverSent is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "neverSent is a distinct observed request result and duplicate is rejected" });
   await waitForText(".canonical-progress", "Guided step 0 of 7");
   await advanceGuided(1, 6, 7);
   await waitForText(".canonical-progress", "Guided step 6 of 7");
@@ -191,7 +197,7 @@ try {
   assert.equal(await externalResultRoute.count(), 1);
   assert.equal(await externalResultRoute.evaluate((node) => node.classList.contains("active")), false);
 
-  await canonical.getByRole("button", { name: "interrupted is a distinct observed request result and duplicate is rejected", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "interrupted is a distinct observed request result and duplicate is rejected" });
   await waitForText(".canonical-progress", "Guided step 0 of 9");
   await advanceGuided(1, 7, 9);
   await waitForText(".canonical-progress", "Guided step 7 of 9");
@@ -201,13 +207,13 @@ try {
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "Jev result supplied: interrupted" }).count(), 1);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "Jev result supplied: finding" }).count(), 0);
 
-  await canonical.getByRole("button", { name: "many units admit in order and Stop waits", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "many units admit in order and Stop waits" });
   await waitForText(".canonical-progress", "Guided step 0 of 7");
   await advanceGuided(1, 4, 7);
   await waitForText(".canonical-progress", "Guided step 4 of 7");
   assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Wait for work" }).count(), 1);
   assert.match(await page.locator(".finish-decision").innerText(), /Continue with advice.*Allow finish.*Cancel unfinished work/s);
-  await canonical.getByRole("button", { name: "deadline requests exact cancellations", exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "deadline requests exact cancellations" });
   await waitForText(".canonical-progress", "Guided step 0 of 4");
   await advanceGuided(1, 3, 4);
   await waitForText(".canonical-progress", "Guided step 3 of 4");
@@ -273,7 +279,7 @@ try {
   const alternateInitial = replayCanonical([], 0, alternate.limits).projection;
   assert.notDeepEqual(alternateInitial.limits, baseline.limits);
   assert.deepEqual(alternateInitial.limits, alternate.limits);
-  await canonical.getByRole("button", { name: alternate.name, exact: true }).click();
+  await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: alternate.name });
   await waitForText(".canonical-progress", "Guided step 0 of 2");
   assert.ok((await page.locator(".topology-capacities").innerText()).includes(
     `Review capacity ledger: ${alternateInitial.global.items}/${alternateInitial.limits.globalItems} items; ${alternateInitial.global.bytes}/${alternateInitial.limits.globalBytes} bytes`));
@@ -327,7 +333,7 @@ try {
   }
   assert.match(await imports.locator(".import-graph-facts").innerText(), /A.ts · incomplete/);
   assert.doesNotMatch(await imports.locator(".import-graph-facts").innerText(), /D.ts/);
-  assert.match(await page.locator("#timing-diagrams").innerText(), /Native timing evidence/);
+  assert.match(await page.locator("#timing-diagrams").innerText(), /When advice can reach the agent/);
   assert.deepEqual(errors, []);
   console.log("Browser controls passed: canonical replay/history, changed checked ledger limits, ordered capacity, dispatch queue, collection leases/background claims, stale findings, execution counters, ninth Jev refusal, unsent/interrupted routes, Stop fork, coverage inventory, import graph, and native timing.");
 } finally {

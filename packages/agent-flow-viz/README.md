@@ -144,19 +144,18 @@ checked observation, including paused history inspection.
    while running, including temporary empty text, dots or decimal values. The
    **Active speed** remains in use until **Apply playback speed** accepts a finite
    value from `0.01` to `1000`; `1.` applies as `1`. Invalid Apply preserves playback
-   and active settings, with a persistent validation message. Other numeric
-   drafts likewise require their Apply button. **Start / reset** applies initial
+   and active settings, with a persistent validation message. Press Enter in an Apply field to submit its form. Other numeric
+   drafts require their Apply button, except live Jev delay. **Start / reset** applies initial
    drafts together. Named Normal, Slow Jev, Failure → recovery and Capacity
    pressure scenarios fill drafts and explain the next action.
 2. Pause and inject a burst of `5`. Step through preparation and overlapping
    review. History includes transitions without cross-square movement and
    ordinary Bend refusals, which are product outcomes rather than run errors.
 3. Open **Simulated Jev outcome mix**, set Backend failure or Timeout weight to
-   `100` and the other weights to `0`, then set delay to `500` and apply the
-   profile. New requests use that profile; in-flight completion
+   `100` and the other weights to `0`, then set delay to `500`. New requests use that profile; in-flight completion
    times stay fixed. Inspect identified request effects and results.
 4. Set No finding (clear) weight to `100`, others to `0`, with delay `50` for
-   recovery, apply it, and suspend edit
+   recovery, and suspend edit
    generation. Resume so outstanding work can settle. When suspended work settles, playback waits; **Resume edit generation**
    schedules fresh edits and running playback processes them without an extra
    Resume click. An explicitly paused driver stays paused. Playback pause stops the
@@ -197,10 +196,11 @@ that sample fits. Full IDs remain in tooltips and the live record inspector.
 The initial outcome mix has Finding and No finding (clear) weights of `50`
 each; the other four weights are zero. Sliders use relative weights from `0` to
 `100`, not percentages. Each displayed probability is its weight divided by the
-sum; Finding `100` and Clear `100` therefore mean `50%` each. Sliders are drafts
-and never change the active profile until **Apply simulated Jev profile** applies
-the mix and delay together. All-zero drafts show an inline message and failed
-Apply preserves playback and the previous active profile. Native range controls
+sum; Finding `100` and Clear `100` therefore mean `50%` each. Sliders update the active profile immediately for new requests. Jev delay also updates
+immediately when it is a valid integer. Blank or malformed delay drafts and an
+all-zero mix retain their last valid applied values without pausing playback.
+Delay and mix edits validate independently. Recorded replay reconstruction blocks
+live profile changes until it reaches its endpoint. Native range controls
 support keyboard arrows, Home and End. Named deterministic scenarios set one
 outcome to `100` and the others to zero. Replay restores the recorded raw weights
 and their normalized probabilities.

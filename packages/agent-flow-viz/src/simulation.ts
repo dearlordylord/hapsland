@@ -200,7 +200,18 @@ export const changeSimulation = (
     ].includes(field)
   )
     return model;
-  return { ...model, [field]: raw };
+  const draft = { ...model, [field]: raw };
+  if (!run || field !== "delay" && !JEV_OUTCOME_ORDER.some((outcome) => weightField(outcome) === field)) return draft;
+  if (replaySource) return { ...draft, feedback: "Cannot update: finish recorded replay before changing live Jev settings." };
+  try {
+    const active = run.exportReplay();
+    const profile = [...active.controls].reverse().find((entry) => entry.control.kind === "jevProfile")?.control;
+    run.applyControl({ kind: "jevProfile", delayMs: field === "delay" ? number(raw, "Jev delay", 0, 1_000_000) : profile?.kind === "jevProfile" ? profile.delayMs : active.config.jevDelay ?? 5,
+      outcomeWeights: field === "delay" ? appliedWeights(active) : draftWeights(draft) });
+    return { ...draft, revision: model.revision + 1, feedback: "Jev settings updated for new requests." };
+  } catch (error) {
+    return { ...draft, playing: error instanceof InputError ? model.playing : false, feedback: `${error instanceof InputError ? "Cannot update" : "Run error"}: ${error instanceof Error ? error.message : String(error)}` };
+  }
 };
 export const actSimulation = (
   model: SimulationModel,
@@ -244,14 +255,14 @@ export const actSimulation = (
       picker.click();
       return { ...model, feedback: "Choose a replay file, then Load replay to validate and reconstruct it." };
     }
-    if (replaySource && ["pace", "burst", "jev", "suspend", "sizes", "environment", "output"].includes(action)) {
+    if (replaySource && ["pace", "burst", "suspend", "sizes", "environment", "output"].includes(action)) {
       return { ...model, feedback: "Cannot apply: finish recorded replay before applying new environment controls. Draft fields remain editable." };
     }
     if (action.startsWith("preset:")) {
       const presets: Record<string, Partial<SimulationModel> & { outcome: keyof OutcomeWeights }> = {
         normal: { pace: "100", delay: "50", outcome: "finding", bytes: "100", feedback: "Normal findings drafted. Start / reset, then Resume to watch advice delivery." },
         slow: { pace: "100", delay: "5000", outcome: "finding", bytes: "100", feedback: "Slow Jev drafted. Start / reset, then Resume to inspect requests waiting for results." },
-        failure: { pace: "50", delay: "500", outcome: "backendFailure", bytes: "100", feedback: "Failure → recovery drafted. Start / reset and Resume; set Finding weight to 100 and the other weights to zero, then Apply simulated Jev profile to recover future requests." },
+        failure: { pace: "50", delay: "500", outcome: "backendFailure", bytes: "100", feedback: "Failure → recovery drafted. Start / reset and Resume; set Finding weight to 100 and the other weights to zero to recover future requests." },
         stale: { pace: "100", delay: "5000", outcome: "finding", bytes: "100", feedback: "Freshness change drafted. Start / reset and Resume until Jev is waiting; choose stale and Apply environment facts, then inspect settlement without retained advice." },
         credential: { pace: "100", delay: "50", outcome: "finding", bytes: "100", credentialReady: "unavailable", feedback: "Credential unavailable drafted. Start / reset, Resume and inspect refused requests; choose ready and Apply environment facts to recover future requests." },
         uncertain: { pace: "100", delay: "50", outcome: "finding", bytes: "100", outputOutcome: "uncertain", outputDelay: "50", outputLease: "500", feedback: "Uncertain host output drafted. Start / reset and Resume; inspect uncertain delivery and lease recovery. Choose certain and Apply host output profile for future output attempts." },
@@ -392,12 +403,6 @@ export const actSimulation = (
           });
           feedback = "Bounded edit burst recorded.";
           break;
-        case "jev": {
-          run.applyControl({ kind: "jevProfile", delayMs: number(model.delay, "Jev delay", 0, 1_000_000), outcomeWeights: draftWeights(model) });
-          feedback =
-            "Simulated Jev profile updated for new requests; existing completion times stay fixed.";
-          break;
-        }
         case "environment":
           run.applyControl({ kind: "environment", ...environmentFacts(model) });
           feedback = "Environment facts applied. Pending requests recheck freshness at settlement; new checks use the current credential fact.";
@@ -490,7 +495,7 @@ export const tickSimulation = (
       suspended: (run.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals")?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined)?.suspended ?? model.suspended,
       revision: model.revision + 1,
       playing: !completed && (result.reason !== "idle" || model.suspended) && (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
-      feedback: completed ? "Replay reached its exact recorded endpoint." : /^(Cannot apply:|Could not read replay file:)/.test(model.feedback) ? model.feedback :
+      feedback: completed ? "Replay reached its exact recorded endpoint." : /^(Cannot apply:|Cannot update:|Could not read replay file:)/.test(model.feedback) ? model.feedback :
         result.reason === "idle"
           ? model.suspended ? "Existing work settled; waiting for edit generation to resume." : "No pending events; playback paused."
           : `Playback advanced (${result.reason}).`,
@@ -523,6 +528,8 @@ export const simulationView = <Message>(
     );
   const button = (label: string, name: string) =>
     h.button([h.Type("button"), h.OnClick(action(name))], [label]);
+  const submit = (label: string) => h.button([h.Type("submit")], [label]);
+  const controlForm = (name: string, children: Parameters<typeof h.form>[1]) => h.form([h.Class("simulation-controls"), h.OnSubmit(action(name))], children);
   const select = (field: string, label: string, value: string, choices: readonly string[]) => h.label([], [label, h.select([h.AriaLabel(label), h.Value(value), h.OnChange((raw) => changed(field, raw))], choices.map((choice) => h.option([h.Value(choice)], [choice])))]);
   const weights = rawWeights(model);
   const weightTotal = JEV_OUTCOME_ORDER.reduce((total, outcome) => total + weights[outcome], 0);
@@ -552,7 +559,7 @@ export const simulationView = <Message>(
       h.p(
         [],
         [
-          "One source-free synthetic agent; simulated Jev observations and effects. Playback pause, suspended future edits, agent finish attempts and Hapsland finish allowance are separate events.",
+          "Run, adjust settings, and select a square to inspect its work.",
         ],
       ),
       h.div(
@@ -568,22 +575,18 @@ export const simulationView = <Message>(
           button("Expired delivery lease scenario", "preset:expired"),
           button("Unreadable final source scenario", "preset:source"),
           button("Credential rotation scenario", "preset:rotation"),
-          input("seed", "Seed", model.seed),
-          button("Start / reset", "start"),
+          controlForm("start", [input("seed", "Seed", model.seed), submit("Start / reset")]),
           button(model.playing ? "Pause" : "Resume", "play"),
           button("Single step", "step"),
-          input("speed", "Playback speed (virtual ms / wall ms)", model.speed),
-          button("Apply playback speed", "speed"),
+          controlForm("speed", [input("speed", "Playback speed (virtual ms / wall ms)", model.speed), submit("Apply playback speed")]),
           h.span([h.Class("applied-speed")], [`Active speed: ${model.appliedSpeed}×`]),
         ],
       ),
       h.div(
         [h.Class("simulation-controls")],
         [
-          input("pace", "Edit interval (virtual ms)", model.pace),
-          button("Apply edit pace", "pace"),
-          input("burst", "Burst count (1–100)", model.burst),
-          button("Inject edit burst", "burst"),
+          controlForm("pace", [input("pace", "Edit interval (virtual ms)", model.pace), submit("Apply edit pace")]),
+          controlForm("burst", [input("burst", "Burst count (1–100)", model.burst), submit("Inject edit burst")]),
           button(
             model.suspended
               ? "Resume edit generation"
@@ -596,39 +599,30 @@ export const simulationView = <Message>(
         [h.Class("simulation-controls")],
         [
           input("delay", "Simulated Jev delay (virtual ms)", model.delay),
-          input("bytes", "Reservation bytes per edit", model.bytes),
-          button("Apply reservation size", "sizes"),
+          controlForm("sizes", [input("bytes", "Reservation bytes per edit", model.bytes), submit("Apply reservation size")]),
         ],
       ),
       h.details([h.Class("simulation-outcome-mix")], [
-        h.summary([], ["Simulated Jev outcome mix · draft: " + draftMix]),
-        h.p([], ["Relative weights range from 0 to 100; they need not total 100. Probabilities are each weight divided by the total. Apply simulated Jev profile submits this mix and delay together." ]),
+        h.summary([], ["Simulated Jev outcome mix · " + draftMix]),
+        h.p([], ["Changes affect new requests. Relative weights determine the displayed probabilities." ]),
         ...JEV_OUTCOME_ORDER.map((outcome) => h.label([h.Class("simulation-outcome-slider")], [
           outcomeNames[outcome],
           h.input([h.Type("range"), h.Min("0"), h.Max("100"), h.Step("1"), h.AriaLabel(outcomeNames[outcome]), h.Value(String(weights[outcome])), h.OnInput((raw) => changed(weightField(outcome), raw))]),
           h.span([], [`weight ${weights[outcome]} · ${weightTotal > 0 ? (weights[outcome] / weightTotal * 100).toFixed(1) + "%" : "probability unavailable"}`]),
         ])),
         h.p([h.Class("simulation-mix-total")], [`Total relative weight: ${weightTotal}. ${weightTotal > 0 ? "Normalized probability total: 100%." : "Choose at least one nonzero weight; active mix remains unchanged."}`]),
-        h.p([], ["Finding retains relevant advice; clear yields no finding. Backend failure and timeout are observed failures. Never sent supplies a synthetic never-sent outcome after request admission; inspect request-attempt facts separately. Interrupted means an attempted request was interrupted." ]),
-        button("Apply simulated Jev profile", "jev"),
       ]),
       h.div([h.Class("simulation-controls")], [
-        select("currentWork", "Work freshness", model.currentWork, ["current", "stale"]),
+        controlForm("environment", [select("currentWork", "Work freshness", model.currentWork, ["current", "stale"]),
         select("credentialReady", "Credential availability", model.credentialReady, ["ready", "unavailable"]),
         input("credentialGeneration", "Credential generation", model.credentialGeneration),
         select("sourceReadable", "Source readability", model.sourceReadable, ["readable", "unreadable"]),
-        button("Apply environment facts", "environment"),
-        select("outputOutcome", "Host output outcome", model.outputOutcome, ["certain", "uncertain", "failed"]),
+        submit("Apply environment facts")]),
+        controlForm("output", [select("outputOutcome", "Host output outcome", model.outputOutcome, ["certain", "uncertain", "failed"]),
         input("outputDelay", "Host output delay (virtual ms)", model.outputDelay),
         input("outputLease", "Delivery lease lifetime (virtual ms)", model.outputLease),
-        button("Apply host output profile", "output"),
+        submit("Apply host output profile")]),
       ]),
-      h.p(
-        [h.Class("caveat")],
-        [
-          "Reservation bytes exercise checked capacity admission; they do not measure source capture, evidence trees or encoded output. Native filesystem capture and multi-agent contention are unsupported. Synthetic delay changes affect new requests only. Confirmed host submissions describe simulated handoff, without establishing agent receipt or use. Unavailable Jev requests are not automatically resent; new edits make fresh admission attempts.",
-        ],
-      ),
       h.p(
         [h.Class("simulation-status"), h.Role("status")],
         [
@@ -638,21 +632,20 @@ export const simulationView = <Message>(
       h.p([h.Class("simulation-inspection")], [model.selected < 0 ? "Viewing latest observation" : `Inspecting event ${current?.sequence ?? "unavailable"} at ${current?.time ?? 0} ms; run endpoint ${run?.now ?? 0} ms. Playback paused. Applied controls affect the run endpoint, not this historical event.`]),
       h.div([h.Class("simulation-controls")], [button("Previous event", "previous"), button("Next event", "next"), button("Return to latest", "latest"), button("Replay from start", "replay-start"), button("Inspect oldest retained event", "from-start"), button("Bookmark event", "bookmark"), button("Go to bookmark", "go-bookmark")]),
       h.p([h.Class("simulation-outcomes")], [`Run outcomes: ${totals.checked} checked events · ${totals.admitted} observations admitted · ${totals.refused} refusals · ${totals.failed} failures/timeouts · ${totals.advice} confirmed host submissions · ${totals.uncertain} uncertain advice submissions · ${totals.released} released output attempts. ${run && model.suspended && !run.projection.work.some((work) => work.kind !== "pendingFinding") && run.projection.dispatch.requests.length === 0 && run.projection.collection.leases.length === 0 && !run.projection.delivery.slots.some((slot) => ["reserved", "authorized", "uncertain"].includes(slot.phase)) && !run.projection.delivery.submissions.batches.some((batch) => ["reserved", "authorized", "uncertain"].includes(batch.phase)) ? `Transient work settled; ${run.projection.collection.ready.length} retained advice records; arrivals suspended.` : "Work or future arrivals remain."}`]),
-      h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · active mix ${mixSummary(appliedWeights(activeReplay))} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.session?.bytes ?? 100} bytes. Draft fields require Apply.` : "Start a run to apply environment settings."]),
+      h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · active mix ${mixSummary(appliedWeights(activeReplay))} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.session?.bytes ?? 100} bytes.` : "Start a run to apply environment settings."]),
       ...(run
         ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`))]
         : []),
       ...(run ? [reviewCapacityView(h, current?.after ?? run.projection)] : []),
       h.p([h.Class("simulation-active-effects")], [activeReplay ? `Active facts: work ${(latestControl("environment")?.currentWork ?? activeReplay.config.environment?.currentWork ?? true) ? "current" : "stale"} · credential ${(latestControl("environment")?.credentialReady ?? activeReplay.config.environment?.credentialReady ?? true) ? "ready" : "unavailable"} (generation ${latestControl("environment")?.credentialGeneration ?? activeReplay.config.environment?.credentialGeneration ?? 1}) · source ${(latestControl("environment")?.sourceReadable ?? activeReplay.config.environment?.sourceReadable ?? true) ? "readable" : "unreadable"}. Future host output: ${latestControl("outputProfile")?.outcome ?? activeReplay.config.outputProfile?.outcome ?? "certain"} · delay ${latestControl("outputProfile")?.delayMs ?? activeReplay.config.outputProfile?.delayMs ?? 0} ms · lease ${latestControl("outputProfile")?.leaseMs ?? activeReplay.config.outputProfile?.leaseMs ?? 30000} ms. In-flight output keeps its captured profile.` : "No active synthetic environment."]),
-      h.ul([h.Class("simulation-control-markers")], (activeReplay?.controls ?? []).slice(-20).map((entry) => h.li([], [`Control at ${entry.time} ms / event boundary ${entry.boundary}: ${JSON.stringify(entry.control)}`]))),
-      h.details([], [h.summary([], ["Applied control timeline (draft fields apply only when submitted)"]), h.pre([], [activeReplay ? JSON.stringify({ initial: activeReplay.config, controls: activeReplay.controls.map((entry) => ({ time: entry.time, ...entry.control })) }, null, 2) : "No run started."])]),
+      h.details([], [h.summary([], ["Control history"]), h.pre([], [activeReplay ? JSON.stringify({ initial: activeReplay.config, controls: activeReplay.controls.map((entry) => ({ time: entry.time, ...entry.control })) }, null, 2) : "No run started."])]),
       h.div([h.Class("simulation-stage-inspector")], [
       h.details([], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
       ...(model.focus ? [button("Clear lifecycle filter", "focus:")] : []),
       ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after) ?? ""]), h.ul([], locateFlow(current.after).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
       ]),
       h.details(
-        [h.Class("simulation-details"), h.Open(true)],
+        [h.Class("simulation-details")],
         [
           h.summary(
             [],
@@ -680,12 +673,7 @@ export const simulationView = <Message>(
           ),
         ],
       ),
-      h.p(
-        [],
-        [
-          "Diagram and details follow the selected observation. Last 1000 observations are retained; discarded display history does not remove replay inputs or change simulation outcomes. Transitions without diagram movement remain inspectable. Loading reproduces the recorded endpoint; intermediate branching is unsupported.",
-        ],
-      ),
+      h.p([], ["Recent 100 events"]),
       button(model.filter === "all" ? "Show refusals and delivery problems" : "Show all events", "filter"),
       h.div(
         [h.Class("simulation-history")],
@@ -701,12 +689,6 @@ export const simulationView = <Message>(
           ),
       ),
       h.label([], ["Retained event timeline", h.input([h.Type("range"), h.AriaLabel("Retained event timeline"), h.Min(String(observations[0]?.sequence ?? 0)), h.Max(String(observations.at(-1)?.sequence ?? 0)), h.Value(String(current?.sequence ?? 0)), h.OnInput((raw) => action(`inspect:${raw}`))])]),
-      h.p(
-        [],
-        [
-          "History buttons show the most recent 100 transitions; exported replay retains the full required input/control timeline.",
-        ],
-      ),
       h.div(
         [h.Class("simulation-controls")],
         [button("Export replay", "export"), button("Download replay file", "download"), button("Import replay file", "import-file"), button("Load replay", "load")],
