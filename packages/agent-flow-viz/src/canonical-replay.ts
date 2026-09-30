@@ -17,16 +17,25 @@ export type ReplayStep = Readonly<{
 }>;
 
 const showcaseScope = { partition: 1, lifetime: 1, round: 1 } as const;
+const showcasePermitFacts = { clockValid: true, hookWindow: 2_500,
+  adviceePermitLimit: 32, residentPermitLimit: 4_096 } as const;
 const showcaseReady = { ...showcaseScope, rootValid: true, configurationValid: true,
   credentialReady: true, selected: true, currentWork: true, physicalAvailable: true } as const;
 export const SHOWCASE_SCENARIO = {
   name: "Two edits through a queue, Jev findings, and Stop output",
-  description: "Two edits share one review round. The second waits in the dispatch queue, both reach Jev at once, findings become ready advice, and an acknowledged Stop response is finalized before the round releases its work and advice.",
+  description: "Two accepted edits share one review round. Each has a pre-edit permit; the first opens the round when accepted. The second waits in the dispatch queue, both reach Jev at once, findings become ready advice, and an acknowledged Stop response is finalized before the round releases its work and advice.",
   limits: fixture.limits,
   events: [
-    { kind: "openRound", partition: 1, lifetime: 1 },
+    { kind: "issuePermit", partition: 1, lifetime: 1, tool: 1,
+      started: 1_000, deadline: 31_000, now: 1_100, minimumStarted: 0,
+      facts: { ...showcasePermitFacts, startedUpper: 1_000, nowLower: 1_100 } },
+    { kind: "consumePermit", partition: 1, lifetime: 1, token: 1, tool: 1, now: 1_200 },
     { kind: "admitObservation", ...showcaseScope },
     { kind: "queueDispatch", ...showcaseScope, operation: 1 },
+    { kind: "issuePermit", partition: 1, lifetime: 1, tool: 2,
+      started: 2_000, deadline: 32_000, now: 2_100, minimumStarted: 0,
+      facts: { ...showcasePermitFacts, startedUpper: 2_000, nowLower: 2_100 } },
+    { kind: "consumePermit", partition: 1, lifetime: 1, token: 2, tool: 2, now: 2_200 },
     { kind: "admitObservation", ...showcaseScope },
     { kind: "queueDispatch", ...showcaseScope, operation: 2 },
     { kind: "startObservation", ...showcaseScope, observation: 1 },

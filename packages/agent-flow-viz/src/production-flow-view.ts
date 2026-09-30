@@ -247,11 +247,15 @@ export const productionFlowView = <Message>(
       h.p([], [last === undefined ? "Choose a guided or manual canonical event." : last.rejection !== undefined
         ? `${last.event.kind} rejected: ${last.rejection}. Canonical state and item locations did not change.`
         : `${last.event.kind} accepted · ${commands.length} command(s): ${commands.map((command) => command.kind).join(", ") || "none"}`]),
+      ...(showcase && last?.origin === "guided" && last.event.kind === "issuePermit" ?
+        [h.p([h.Class("flow-provenance")], ["Before the edit: a source-free pre-edit request supplies its timing and identity facts. Bend issued a permit. No virtual round is open yet."])] : []),
+      ...(showcase && last?.origin === "guided" && last.event.kind === "consumePermit" ?
+        [h.p([h.Class("flow-provenance")], [commands.some((command) => command.kind === "roundStarted")
+          ? "Why this round opened: the first accepted attributed edit consumed its permit. Bend opened virtual round #1 in that same transition."
+          : "This accepted attributed edit consumed its permit and joined the already open virtual round."])] : []),
       ...(last?.event.kind === "openRound" ? [h.p([h.Class("flow-provenance")], [last.origin === "manual"
         ? "You supplied this openRound event in the replay."
-        : showcase
-          ? "Why this round opened: the first admitted edit needs a review round. In production, an attributed edit reaches the resident, passes the edit permit check, and observation admission asks the canonical ledger for a round. The ledger supplies openRound when this partition has no round ID yet. This source-free trace starts at openRound; the runtime arrival and permit events are omitted."
-          : "This guided fixture supplies openRound directly. Its native trigger is not represented in the replay."])] : []),
+        : "This guided fixture supplies openRound directly. Its native trigger is not represented in the replay."])] : []),
       h.p([], [last === undefined ? "Choose a reducer event to inspect its checked effects."
         : flow.rejection !== undefined ? `Rejected: ${flow.rejection}. No movement is shown.`
           : flow.evidence.length ? `${flow.evidence.length} connection(s) have checked evidence.`

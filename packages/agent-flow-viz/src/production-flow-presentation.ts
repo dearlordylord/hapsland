@@ -14,7 +14,7 @@ export const SQUARES: Record<Place, Square> = {
   observation: { title: "Agent observation", owner: "NATIVE FACT", x: 32, y: 52,
     detail: (s) => `rounds ${ids(s.rounds.map((x) => x.id))} · source queued ${ids(work(s, "sourceQueued"))}` },
   admission: { title: "Capacity check", owner: "BEND DECISION", x: 310, y: 52,
-    detail: (s) => `observation charges ${s.charges.filter((x) => x.purpose === "observationDispatch").length}` },
+    detail: (s) => `edit permits ${ids(s.admissions.flatMap((x) => x.permits.map((permit) => permit.token)))} · observation charges ${s.charges.filter((x) => x.purpose === "observationDispatch").length}` },
   queued: { title: "Preparation queue", owner: "BEND STATE", x: 588, y: 52,
     detail: (s) => `pending ${dispatchDetail(s, "pending")} · active ${dispatchDetail(s, "active")}` },
   preparation: { title: "Source preparation", owner: "NATIVE EFFECT + BEND STATE", x: 866, y: 52,
@@ -46,7 +46,7 @@ export const PLACE_ORDER = FLOW_STAGES;
 
 /** Fixed edges describe possible presentation connections; they make no reducer decisions. */
 export const CONNECTIONS = [
-  { from: "observation", to: "admission", label: "observation supplied" },
+  { from: "observation", to: "admission", label: "edit permit or observation supplied" },
   { from: "admission", to: "queued", label: "dispatch queued" },
   { from: "observation", to: "preparation", label: "source reading begins" },
   { from: "admission", to: "preparation", label: "preparation admitted" },

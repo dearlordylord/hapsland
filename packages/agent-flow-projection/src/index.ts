@@ -61,6 +61,8 @@ const commandKinds = (commands: readonly CanonicalCommand[]) => new Set(commands
 type Rule = Readonly<{ from: FlowStage; to: FlowStage; source: EvidenceSource; description: string; commands?: readonly CanonicalCommand["kind"][]; events?: readonly CanonicalEvent["kind"][] }>;
 /** Links without a shared checked identity require explicit event or command evidence. */
 const FACT_RULES: readonly Rule[] = [
+  { from: "observation", to: "admission", source: "native fact", description: "pre-edit permit requested; no edit admitted yet", events: ["issuePermit"] },
+  { from: "observation", to: "admission", source: "native fact", description: "attributed edit consumed its permit", events: ["consumePermit"] },
   { from: "observation", to: "admission", source: "native fact", description: "observation supplied for admission", events: ["admitObservation", "beginObservedPreparation", "beginPreparation"] },
   { from: "admission", to: "preparation", source: "command", description: "prepare command emitted", commands: ["prepare"] },
   { from: "units", to: "authorization", source: "native fact", description: "Jev readiness facts supplied", events: ["jevRequestReady"] },

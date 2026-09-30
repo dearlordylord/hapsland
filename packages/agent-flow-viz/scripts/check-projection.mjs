@@ -80,24 +80,33 @@ try {
     assert.equal(step.rejection, undefined, `showcase step ${index + 1} must be accepted`);
     const active = elements(showcase, "topology-route").filter((node) => node.data.class.active);
     for (const route of active) showcasedRoutes.add(labels(route));
-    if (index === 0) assert.match(labels(main.view(showcase, inertHtml).body), /Why this round opened.*first admitted edit.*edit permit check.*source-free trace starts at openRound/);
-    if (index === 4) {
+    if (index === 0) {
+      assert.equal(step.after.rounds.length, 0, "pre-edit permit alone must not open a round");
+      assert.match(labels(main.view(showcase, inertHtml).body), /edit permits #1/);
+      assert.match(labels(main.view(showcase, inertHtml).body), /Before the edit.*Bend issued a permit.*No virtual round is open yet/);
+    }
+    if (index === 1) {
+      assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
+      assert.match(labels(main.view(showcase, inertHtml).body), /edit permits none/);
+      assert.match(labels(main.view(showcase, inertHtml).body), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/);
+    }
+    if (index === 7) {
       assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
       assert.ok(active.some((route) => labels(route).includes("dispatch #2 entered pending")));
     }
-    if (index === 9) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running)")));
-    if (index === 17) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
-    if (index === 22) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
-    if (index === 23) assert.ok(active.some((route) => labels(route).includes("retain finding command")));
-    if (index === 24) {
+    if (index === 12) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running)")));
+    if (index === 20) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
+    if (index === 25) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
+    if (index === 26) assert.ok(active.some((route) => labels(route).includes("retain finding command")));
+    if (index === 27) {
       assert.deepEqual(step.after.collection.ready, [10], "ready advice follows its native storage fact");
       assert.ok(active.some((route) => labels(route).includes("advice #10 supplied ready by native storage")));
     }
-    if (index === 27) assert.deepEqual(step.after.collection.ready, [11, 10]);
-    if (index === 30) assert.ok(active.some((route) => labels(route).includes("advice #10 leased; still ready")));
-    if (index === 35) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
-    if (index === 41) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
-    if (index === 49) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
+    if (index === 30) assert.deepEqual(step.after.collection.ready, [11, 10]);
+    if (index === 33) assert.ok(active.some((route) => labels(route).includes("advice #10 leased; still ready")));
+    if (index === 38) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
+    if (index === 44) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
+    if (index === 52) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
   }
   assert.ok(showcasedRoutes.size >= 12, "the opening replay should expose a broad connected route set");
   const replayAt = (name, count) => {
@@ -245,10 +254,10 @@ try {
   assert.ok(timeline.TIMELINE_CASES.length > 0, "retained native timing evidence remains visible");
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
-    Scene.click(Scene.getByRole("button", { name: "Next canonical step: openRound", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 54/)),
+    Scene.click(Scene.getByRole("button", { name: "Next canonical step: issuePermit", exact: true })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 57/)),
     Scene.click(Scene.getByRole("button", { name: "Previous canonical step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 54/)));
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 57/)));
   console.log("Checked the opening connected replay, compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
 } finally {
   await server.close();
