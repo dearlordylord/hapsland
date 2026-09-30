@@ -94,6 +94,13 @@ its continuation count. After closure, only a provably fresh edit can open a
 new virtual round. A round can later have no unfinished work or pending advice;
 its originating edit remains the reason it was opened.
 
+Automatic resident retirement must not discard an open virtual round or an
+outstanding pre-edit permit, even when no review work or advice remains.
+Resident process inactivity is not evidence that the advicee's virtual round
+has ended. A separate inactivity closure rule for virtual rounds is under
+review in [#158](https://github.com/dearlordylord/hapsland/issues/158);
+the resident's current process-idle check does not supply that rule.
+
 Before an eligible native edit tool runs, a synchronous pre-edit hook obtains a
 source-free permit bound to the advicee, native tool-use identity, resident
 lifetime, original deadline, and the current closure fence. The permit proves
