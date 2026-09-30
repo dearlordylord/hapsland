@@ -547,6 +547,21 @@ export class Run {
                   )
                   .map((x) => x.operation);
           this.event({
+            kind: "roundContinuationBudgetCheck",
+            active: true,
+            count:
+              this.projection.delivery.counters.find(
+                (counter) => counter.group === 1 && counter.round === f.round,
+              )?.used ?? 0,
+          });
+          break;
+        }
+        case "roundContinuationAvailable":
+        case "roundContinuationExhausted": {
+          const f = this.finish;
+          if (!f) break;
+          if (command.kind === "roundContinuationExhausted") f.selected = [];
+          this.event({
             kind: "finishReserve",
             group: 1,
             lifetime: 1,
