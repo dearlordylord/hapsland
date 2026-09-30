@@ -140,6 +140,7 @@ const integer = (n: number, name: string) => {
   return n;
 };
 const copy = <T>(x: T): T => structuredClone(x);
+const restoreEndpoint = Symbol("restore replay endpoint");
 const defaults = {
   globalItems: 32,
   globalBytes: 100000,
@@ -149,6 +150,7 @@ const defaults = {
 /** Equal-time items follow insertion order; effects appended by a transition follow already queued items. */
 export class Run {
   private state: unknown;
+  private canonicalAllowed = true;
   private queue: Scheduled[] = [];
   private order = 0;
   private count = 0;
@@ -286,6 +288,8 @@ export class Run {
       this.queue[0] &&
       this.queue[0].at > untilTime
     )
+      return;
+    if (!this.canonicalAllowed && this.queue[0]?.input.kind === "canonical")
       return;
     const item = this.queue.shift();
     if (!item) return;
@@ -816,6 +820,21 @@ export class Run {
       now: this.clock,
     };
   }
+  [restoreEndpoint](endpoint: Replay["endpoint"]) {
+    integer(endpoint.eventCount, "replay event count");
+    integer(endpoint.now, "replay endpoint time");
+    if (this.count !== endpoint.eventCount || this.clock > endpoint.now)
+      throw new Error("incompatible replay endpoint");
+    if (this.clock === endpoint.now) return;
+    this.canonicalAllowed = false;
+    try {
+      this.step(endpoint.now);
+    } finally {
+      this.canonicalAllowed = true;
+    }
+    if (this.clock !== endpoint.now)
+      throw new Error("unreconstructable replay endpoint");
+  }
   exportReplay(): Replay {
     return copy({
       endpoint: { eventCount: this.count, now: this.clock },
@@ -862,5 +881,18 @@ export const replayRun = (replay: Replay) => {
     return observation;
   };
   flush();
+  return run;
+};
+
+/** Reconstruct the recorded viewing boundary, including metadata and boundary controls, without another canonical transition. */
+export const restoreReplay = (replay: Replay): Run => {
+  integer(replay.endpoint.eventCount, "replay event count");
+  integer(replay.endpoint.now, "replay endpoint time");
+  const run = replayRun(replay);
+  run.advance({
+    maxEvents: replay.endpoint.eventCount,
+    untilTime: replay.endpoint.now,
+  });
+  run[restoreEndpoint](replay.endpoint);
   return run;
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRun, replayRun } from "./index.ts";
+import { createRun, replayRun, restoreReplay } from "./index.ts";
 describe("scripted public run", () => {
   it("follows a synthetic edit through checked Jev finding and advice submission", () => {
     const run = createRun();
@@ -252,4 +252,24 @@ it("uses checked continuation exhaustion to allow finish instead of inventing an
   expect(
     run.observations.filter((frame) => frame.event.kind === "openRound").length,
   ).toBeGreaterThan(1);
+});
+
+it("restores controls applied after metadata-only clock advancement at the viewing endpoint", () => {
+  const run = createRun({
+    session: { editIntervalMs: 10, variationMs: 0 },
+    outcome: "clear",
+  });
+  run.advance({ untilTime: 10 });
+  run.applyControl({ kind: "suspendArrivals", suspended: true });
+  run.advance({ untilTime: 100 });
+  run.applyControl({ kind: "suspendArrivals", suspended: false });
+  const exported = run.exportReplay();
+  expect(exported.endpoint).toEqual({ eventCount: 10, now: 20 });
+  const restored = restoreReplay(exported);
+  expect(restored.observations).toEqual(run.observations);
+  expect(restored.now).toBe(20);
+  expect(restored.exportReplay().controls).toEqual(exported.controls);
+  run.advance({ untilTime: 60 });
+  restored.advance({ untilTime: 60 });
+  expect(restored.observations).toEqual(run.observations);
 });
