@@ -21,6 +21,7 @@ export const DEFAULT_EDIT_PERMIT_LIMITS = {
   perAdvicee: 32,
   resident: 4096,
 } as const;
+export const DEFAULT_VIRTUAL_ROUND_QUIET_MS = 5 * 60_000;
 
 export const EditPermitLimitsSettings = Schema.Struct({
   perAdvicee: Schema.optionalKey(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 65536 })).annotate({
@@ -142,6 +143,12 @@ export const ConfigurationDocument = Schema.Struct({
   credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
   claudeFeedbackMode: Schema.optionalKey(ClaudeFeedbackMode),
   editPermitLimits: Schema.optionalKey(EditPermitLimitsSettings),
+  virtualRoundQuietMs: Schema.optionalKey(Schema.Int.check(
+    Schema.isBetween({ minimum: 10_000, maximum: 3_600_000 }),
+  ).annotate({
+    description: "Continuous fully quiet time before an open virtual round closes without Stop, in milliseconds. User configuration only; captured when the round opens.",
+    default: DEFAULT_VIRTUAL_ROUND_QUIET_MS,
+  })),
   graphLimits: Schema.optionalKey(GraphLimitsSettings),
   /** Explicit local pack references. Bundled Noul is loaded independently. */
   packs: Schema.optionalKey(Schema.Array(RulePackReference).annotate({

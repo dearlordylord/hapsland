@@ -58,6 +58,13 @@
     "editPermitLimits": {
       "$ref": "#/$defs/EditPermitLimitsSettings"
     },
+    "virtualRoundQuietMs": {
+      "type": "integer",
+      "minimum": 10000,
+      "maximum": 3600000,
+      "description": "Continuous fully quiet time before an open virtual round closes without Stop, in milliseconds. User configuration only; captured when the round opens.",
+      "default": 300000
+    },
     "graphLimits": {
       "$ref": "#/$defs/GraphLimitsSettings"
     },

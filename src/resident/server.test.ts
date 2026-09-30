@@ -21,6 +21,7 @@ import {
 } from "./protocol.ts";
 import { ResidentServer } from "./server.ts";
 import { PARTITION_BYTE_LIMIT } from "./capacity.ts";
+import { VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
 import {
   ADVICE_COLLECTION_WINDOW_MS,
   MAX_COMBINED_RESPONSE_BYTES,
@@ -59,6 +60,33 @@ const allFindingsDispatch = (statePath: string): ResidentDispatchContext => ({
 });
 
 const singleFindingDispatch = findingDispatch;
+
+describe("virtual round quiescence", () => {
+  it("retires a settled advice-free round without Stop", async () => {
+    const root = await makeGitFixture();
+    await put(root, "quiet.ts", "type QuietCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["quiet.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const activityPath = join(root, "activity");
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now());
+    const dispatch = { ...findingDispatch(join(root, "consent")), activityPath,
+      controlled: { answers: Object.fromEntries(configuredRules.map((rule) =>
+        [rule.id, { _tag: "Probability" as const, probability: 0 }])) } };
+    try {
+      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+      await server.whenIdle();
+      expect(server.pendingAdviceMetadata()).toEqual([]);
+      expect(server.sweepQuietRounds(1_000)).toBe(0);
+      expect(server.sweepQuietRounds(1_000 + VIRTUAL_ROUND_QUIET_MS - 1)).toBe(0);
+      expect(server.sweepQuietRounds(1_000 + VIRTUAL_ROUND_QUIET_MS)).toBe(1);
+      const activity = readActivity({ statePath: activityPath, root,
+        sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
+      expect(activity.roundClosures?.[0]?.reason).toBe("quiescent");
+    } finally {
+      await server.close();
+    }
+  });
+});
 
 // Darwin's PATH_MAX requires shorter real paths. Linux keeps the original
 // long path for revalidation workspace pressure.

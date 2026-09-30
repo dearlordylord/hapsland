@@ -1,12 +1,14 @@
 # TypeScript decisions outside Bend
 
-**Purpose:** Account for reviewed product decisions that Hapsland deliberately makes in TypeScript before or around the canonical Bend reducer, and track candidate boundaries until each is resolved.
+**Purpose:** Account for reviewed product decisions that Hapsland deliberately makes in TypeScript before or around the canonical Bend reducer.
 **Status:** Active maintained boundary ledger.
 **Authority:** Maintained architecture guidance and a record of owner review. Accepted product contracts remain in their named specification owners; this ledger does not grant new runtime support.
-**Expected use:** Record reviewed decisions as entries and keep unresolved candidates in the TODO table below. Use source links to check the current implementation and Bend boundary; a TODO is not an approved boundary.
-**Lifecycle:** Keep each reviewed entry current with its TypeScript owner, reducer input, and reason for its placement. Work through TODOs one by one: promote an approved TypeScript boundary to a reviewed entry, or record its resolution in the accepted contract and remove the TODO. Review entries when native adapters, canonical events, or accepted product boundaries change. Consolidate superseded entries or delete them after transferring current decisions to their contract owners.
+**Expected use:** Use reviewed entries and source links to check the current implementation and Bend boundary. New unresolved candidates may be tracked separately until reviewed.
+**Lifecycle:** Keep each reviewed entry current with its TypeScript owner, reducer input, and reason for its placement. Review entries when native adapters, canonical events, or accepted product boundaries change. Consolidate superseded entries or delete them after transferring current decisions to their contract owners.
 
 This ledger records **decisions**, not every measurement or external effect. Each entry must name the concrete choice, its TypeScript owner, what Bend receives, why the choice stays outside Bend, and the scope of its review. A new runtime adapter or a move into Bend requires review of the affected entry.
+
+The separate [temporary diagram walkthrough](issue-147-default-replay-walkthrough.md) remains available for later visual review.
 
 ## TS-001 — Recognize a runtime event as a direct edit
 
@@ -138,12 +140,14 @@ The [Codex and Claude adapter checks](../src/direct-event/adapter.ts), [native e
 | TypeScript owner | The [resident](../src/resident/server.ts) owns the native timer, counts IPC connections, expires timed records, and closes the process after a successful cleanup transition. |
 | Bend boundary | [Canonical cleanup](../packages/agent-flow-bend/Canonical.bend) checks its open-round and pending-permit state along with the supplied idle facts. Both its readiness check and final commit refuse retirement while either remains. |
 | Why outside Bend | Scheduling a process timer and observing IPC connections are native operations. Whether the recorded work and round state are safe to discard is a reducer decision. |
-| Review and limits | On 2026-09-30 the owner agreed that active rounds and permits prevent automatic retirement; the [accepted contract](advicing-target-contract.md) records this product rule. The owner suggested extending the former five-second check to ten or twenty seconds; twenty seconds is the current operational value. A missing Stop can leave a round open indefinitely, subject to the existing 64-open-round ceiling. The abandonment rule remains TS-009b below. The [direct-event v1 profile](direct-event-v1-supported-profile.md) records the earlier five-second behavior as historical validation evidence. |
+| Review and limits | On 2026-09-30 the owner agreed that active rounds and permits prevent automatic retirement; the [accepted contract](advicing-target-contract.md) records this product rule. The owner suggested extending the former five-second check to ten or twenty seconds; twenty seconds is the current operational value. An open round without Stop follows the separate full-quiescence rule in TS-009b. The [direct-event v1 profile](direct-event-v1-supported-profile.md) records the earlier five-second behavior as historical validation evidence. |
 
-## TODO — TypeScript choices awaiting boundary review
+## TS-009b — Close a fully quiescent virtual round
 
-These are the remaining choices from the owner-facing “Choice made in TypeScript” table. They describe current implementation and unresolved placement, **not owner approval of each TypeScript boundary**. Review them in order; keep the replay walkthrough in the separate [temporary table](issue-147-default-replay-walkthrough.md) for later diagram review. The former per-edit capacity and round split was corrected before this boundary review; it is not a supported alternative.
-
-| ID | Choice currently made in TypeScript | What needs review |
-| --- | --- | --- |
-| [TS-009b](https://github.com/dearlordylord/hapsland/issues/158) | An advicee's virtual round remains open until its Stop flow closes it. If Stop never arrives, that round can continue occupying one of the 64 open-round slots while the resident is alive. The owner proposed a separate virtual-round inactivity limit reset by accepted edits and suspended during the bounded Stop hold. An initial expiry may discard computed but undelivered advice; this is a delivery-reliability limitation to measure and improve, not a claim based on a permanent twenty-second limit. | Decide the virtual-round duration, how still-running Jev work affects expiry, and event ordering at the deadline. The resident's twenty-second process inactivity timer is separate; the virtual-round proposal is not yet an accepted product contract. |
+| Field | Reviewed boundary |
+| --- | --- |
+| Decision | A virtual round without Stop closes after five minutes of continuous full quiescence by default. User configuration can set the duration, captured at round opening. Unfinished work, pending advice, a pending edit permit, an active delivery, or a Stop hold prevents the quiet interval from advancing. An accepted edit or renewed activity breaks the interval. A fresh edit after closure can open another virtual round within the same runtime turn. |
+| TypeScript owner | The [resident](../src/resident/server.ts) schedules an independent periodic check, expires native timed records, and measures work, advice, and delivery facts. [Composed delivery](../src/resident/composed-delivery.ts) supplies those facts and the captured duration to Bend, then performs cleanup when Bend decides to close. |
+| Bend boundary | [Canonical Bend](../packages/agent-flow-bend/Canonical.bend) stores the quiet start, checks recorded work and permits against supplied native facts, compares the elapsed monotonic time with the duration, and decides whether the round has expired. It clears the quiet interval when a permit is issued, an edit is accepted, or Stop begins. TypeScript does not decide the elapsed-time threshold or close the round on process idleness alone. |
+| Why outside Bend | Timer scheduling, clock readings, user configuration, and observing native in-flight effects require TypeScript. The quiescence and elapsed-time decision is product logic and belongs in Bend. |
+| Review and limits | On 2026-09-30 the owner approved full quiescence and the five-minute configurable default, separately from process retirement in TS-009a. The timer checks periodically, so closure can happen later than the nominal duration. Pending advice follows its normal relevance expiry; this rule does not discard it solely because no Stop arrives. The accepted behavior is in the [advicee contract](advicing-target-contract.md), and implementation is tracked in [#158](https://github.com/dearlordylord/hapsland/issues/158). |

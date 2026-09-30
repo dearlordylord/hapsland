@@ -3,6 +3,7 @@ import ./Advicing.bend as Advicing
 import ./Flow.bend as Flow
 import ./Admission.bend as Admission
 import ./EditHistory.bend as EditHistory
+import ./Quiescence.bend as Quiescence
 import ./Work.bend as Work
 import ./Handoff.bend as Handoff
 import ./Lifecycle.bend as Lifecycle
@@ -50,6 +51,21 @@ law completed_edit_history_threshold_branch_evicts_oldest:
     EditHistory.Recorded{EditHistory.State{
       EditHistory.Completed{2n, EditHistory.Released{}, False{}} <>
         EditHistory.Completed{9n, EditHistory.Closed{}, False{}} <> Nil{}}, Some{1n}} : EditHistory.Record}
+
+law quiet_round_begins_only_when_quiet:
+  {Quiescence.decide(None{}, 100n, 300n, False{}) == Quiescence.Busy{} : Quiescence.Decision}
+
+law quiet_round_starts_at_first_quiet_observation:
+  {Quiescence.decide(None{}, 100n, 300n, True{}) == Quiescence.Waiting{100n} : Quiescence.Decision}
+
+law quiet_round_waits_before_deadline:
+  {Quiescence.decide(Some{100n}, 399n, 300n, True{}) == Quiescence.Waiting{100n} : Quiescence.Decision}
+
+law quiet_round_expires_at_deadline:
+  {Quiescence.decide(Some{100n}, 400n, 300n, True{}) == Quiescence.Expired{100n} : Quiescence.Decision}
+
+law quiet_round_activity_breaks_interval:
+  {Quiescence.decide(Some{100n}, 400n, 300n, False{}) == Quiescence.Busy{} : Quiescence.Decision}
 
 law canonical_cross_advicee_identity_is_distinct:
   {Canonical.same_ids(1n, 1n, 1n, 2n, 1n, 1n) == False{} : Bool}
@@ -1669,8 +1685,9 @@ law canonical_edit_joins_existing_round_without_insertion:
   for round: Nat
   for existing_round: Nat
   {Canonical.consume_existing(original, updated, partition, 1n, round,
-    Some{Canonical.Round{partition, 1n, existing_round, False{}, False{}, None{}, False{}}}) ==
-    Canonical.Advanced{updated, Canonical.PermitConsumed{round} <> Nil{}} : Canonical.Step}
+    Some{Canonical.Round{partition, 1n, existing_round, False{}, False{}, None{}, False{}, None{}}}) ==
+    Canonical.Advanced{Canonical.with_quiet_round(updated, partition, None{}),
+      Canonical.PermitConsumed{round} <> Nil{}} : Canonical.Step}
 
 law canonical_round_invariant_failure_rolls_back:
   for original: Canonical.State
@@ -1681,16 +1698,16 @@ law canonical_round_invariant_failure_rolls_back:
 
 law canonical_duplicate_partitions_fail_even_across_lifetimes:
   {Canonical.unique_rounds(
-    Canonical.Round{1n, 1n, 1n, False{}, False{}, None{}, False{}} <>
-    Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}} <> Nil{}) == False{} : Bool}
+    Canonical.Round{1n, 1n, 1n, False{}, False{}, None{}, False{}, None{}} <>
+    Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}, None{}} <> Nil{}) == False{} : Bool}
 
 law canonical_post_state_duplicates_roll_back:
   for original: Canonical.State
   for commands: List<&2, Canonical.Command>
   {Canonical.check_step(original, Canonical.Advanced{
     Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-      Canonical.Round{1n, 1n, 1n, False{}, False{}, None{}, False{}} <>
-      Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}} <> Nil{},
+      Canonical.Round{1n, 1n, 1n, False{}, False{}, None{}, False{}, None{}} <>
+      Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}, None{}} <> Nil{},
       Nil{}, 3n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, commands}) ==
     Canonical.Rejected{original, Canonical.InconsistentLedger{}} : Canonical.Step}
 

@@ -42,7 +42,9 @@ after an edit, through a background hook, or when it tries to finish.
 When the agent tries to finish, its Stop hook gives Hapsland a bounded chance
 to complete admitted reviews. A continue-with-advice response asks the agent
 to work on that advice and keeps the same virtual round open. The agent can edit
-and try to finish again. An allow-finish response closes the virtual round.
+and try to finish again. An allow-finish response closes the virtual round. A
+round without a Stop also closes after its configured period of full
+quiescence. This needs no agent runtime response.
 Another runtime Stop invocation cannot reopen it. A later user message or
 runtime turn change does not open a virtual round by itself; a later accepted
 edit does. The runtime can still report an event after Hapsland closes its
@@ -95,11 +97,17 @@ new virtual round. A round can later have no unfinished work or pending advice;
 its originating edit remains the reason it was opened.
 
 Automatic resident retirement must not discard an open virtual round or an
-outstanding pre-edit permit, even when no review work or advice remains.
-Resident process inactivity is not evidence that the advicee's virtual round
-has ended. A separate inactivity closure rule for virtual rounds is under
-review in [#158](https://github.com/dearlordylord/hapsland/issues/158);
-the resident's current process-idle check does not supply that rule.
+outstanding pre-edit permit. Resident process inactivity is not evidence that
+the advicee's virtual round has ended. An open round closes without Stop only
+after continuous full quiescence: no unfinished review work, pending advice,
+pending edit permit, active delivery, or Stop hold. The default is five minutes;
+the user can configure the duration, which is captured when the round opens.
+An accepted edit or renewed activity interrupts the quiet interval. Advice
+already pending keeps the round open until it is delivered or reaches its
+normal relevance expiry. The quiescence check runs independently of resident
+IPC connections. A later fresh edit may begin another virtual round within the
+same runtime turn. At the boundary, a late edit is admitted only after the old
+round has closed and only if its own start is provably fresh.
 
 Before an eligible native edit tool runs, a synchronous pre-edit hook obtains a
 source-free permit bound to the advicee, native tool-use identity, resident
@@ -279,6 +287,13 @@ work and advice selection from the closed round; it does not require the advicee
 to receive already handed-off text before the instant of closure. Emit `allow`
 within the original hook deadline; cleanup can finish asynchronously after the
 fence takes effect, without producing new review or delivery work.
+
+After full quiescence for the configured duration, Hapsland closes the round
+without waiting for a Stop response. This uses the same admission fence and
+cleanup, and records `quiescent` as the source-free closure reason. A Stop
+already in progress follows its own bounded hold instead. The timeout begins
+when the round is observed fully quiet, so a periodic check can close it later
+than the configured duration. A late Stop for a closed round cannot reopen it.
 
 Retain only a source-free closure marker and identity digests needed to reject old
 events. Derive diagnostic counts and reasons from work and delivery facts rather

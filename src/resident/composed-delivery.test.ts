@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MAX_PARTITION_IDENTITIES } from "./capacity.ts";
-import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS } from "./composed-delivery.ts";
+import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS, VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
 const RECENT_EDIT_IDENTITIES = 1_000;
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
@@ -33,6 +33,95 @@ const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number 
 };
 
 describe("shared Hapsland rounds", () => {
+  it("closes only after five continuous quiet minutes and opens a fresh virtual round on a later edit", () => {
+    const state = new ComposedDelivery();
+    expect(state.admitEdit("agent", "first", 1)).toBe(1);
+    const quiet = { nativeWorkIdle: true, adviceEmpty: true };
+    expect(state.tickQuietRound("agent", 100, quiet)).toBeUndefined();
+    expect(state.tickQuietRound("agent", 100 + VIRTUAL_ROUND_QUIET_MS - 1, quiet)).toBeUndefined();
+    expect(state.isActive("agent")).toBe(true);
+    expect(state.tickQuietRound("agent", 100 + VIRTUAL_ROUND_QUIET_MS, quiet)).toBe(1);
+    expect(state.isActive("agent")).toBe(false);
+    expect(state.beginStop("agent", "late-stop")).toBe(false);
+    expect(state.registerEditDecision("agent", "late-edit", 99, 100 + VIRTUAL_ROUND_QUIET_MS + 1).accepted)
+      .toBe(false);
+    expect(state.registerEditDecision("agent", "second", 100 + VIRTUAL_ROUND_QUIET_MS + 2,
+      100 + VIRTUAL_ROUND_QUIET_MS + 3)).toEqual({ accepted: true });
+    expect(state.admitEdit("agent", "second", 100 + VIRTUAL_ROUND_QUIET_MS + 4, true)).toBe(2);
+  });
+
+  it("restarts the quiet interval after edit activity and after pending advice clears", () => {
+    const state = new ComposedDelivery();
+    const quiet = { nativeWorkIdle: true, adviceEmpty: true };
+    expect(state.admitEdit("agent", "first", 1)).toBe(1);
+    state.tickQuietRound("agent", 100, quiet);
+    expect(state.admitEdit("agent", "second", VIRTUAL_ROUND_QUIET_MS - 10)).toBe(1);
+    expect(state.tickQuietRound("agent", VIRTUAL_ROUND_QUIET_MS + 100, quiet)).toBeUndefined();
+    expect(state.tickQuietRound("agent", 2 * VIRTUAL_ROUND_QUIET_MS + 100,
+      { nativeWorkIdle: true, adviceEmpty: false })).toBeUndefined();
+    expect(state.tickQuietRound("agent", 2 * VIRTUAL_ROUND_QUIET_MS + 101, quiet)).toBeUndefined();
+    expect(state.tickQuietRound("agent", 3 * VIRTUAL_ROUND_QUIET_MS + 101, quiet)).toBe(1);
+  });
+
+  it("uses the quiet duration captured by the first admitted edit", () => {
+    const state = new ComposedDelivery();
+    const limits = { perAdvicee: 32, resident: 4096 };
+    expect(state.registerEditDecision("agent", "first", 100, 101, limits, 10_000)).toEqual({ accepted: true });
+    expect(state.admitEdit("agent", "first", 102, true)).toBe(1);
+    const quiet = { nativeWorkIdle: true, adviceEmpty: true };
+    state.tickQuietRound("agent", 200, quiet);
+    expect(state.registerEditDecision("agent", "second", 300, 301, limits, 20_000)).toEqual({ accepted: true });
+    expect(state.admitEdit("agent", "second", 302, true)).toBe(1);
+    state.tickQuietRound("agent", 400, quiet);
+    expect(state.tickQuietRound("agent", 10_399, quiet)).toBeUndefined();
+    expect(state.tickQuietRound("agent", 10_400, quiet)).toBe(1);
+  });
+
+  it("breaks quiescence for a permit even when the permit expires between checks", () => {
+    const state = new ComposedDelivery();
+    const quiet = { nativeWorkIdle: true, adviceEmpty: true };
+    expect(state.admitEdit("agent", "first", 1)).toBe(1);
+    state.tickQuietRound("agent", 100, quiet);
+    expect(state.registerEditDecision("agent", "unused", 200, 201)).toEqual({ accepted: true });
+    state.expirePermits(200 + EDIT_PERMIT_EXPIRY_MS);
+    expect(state.tickQuietRound("agent", 100 + VIRTUAL_ROUND_QUIET_MS, quiet)).toBeUndefined();
+    expect(state.tickQuietRound("agent", 2 * VIRTUAL_ROUND_QUIET_MS + 100, quiet)).toBe(1);
+  });
+
+  it("holds the virtual round through Stop even after the quiet deadline", () => {
+    const state = new ComposedDelivery();
+    const quiet = { nativeWorkIdle: true, adviceEmpty: true };
+    expect(state.admitEdit("agent", "first", 1)).toBe(1);
+    state.tickQuietRound("agent", 100, quiet);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.tickQuietRound("agent", 100 + VIRTUAL_ROUND_QUIET_MS, quiet)).toBeUndefined();
+    expect(state.isActive("agent")).toBe(true);
+  });
+
+  it("starts a new quiet interval after Stop continues the advicee", () => {
+    const state = new ComposedDelivery();
+    const quiet = { nativeWorkIdle: true, adviceEmpty: true };
+    expect(state.admitEdit("agent", "first", 1)).toBe(1);
+    state.tickQuietRound("agent", 100, quiet);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishStop("agent", "stop", false, 101)).toBeUndefined();
+    expect(state.tickQuietRound("agent", 100 + VIRTUAL_ROUND_QUIET_MS, quiet)).toBeUndefined();
+    expect(state.tickQuietRound("agent", 100 + 2 * VIRTUAL_ROUND_QUIET_MS, quiet)).toBe(1);
+  });
+
+  it("frees one of 64 open slots without changing another advicee's round", () => {
+    const state = new ComposedDelivery();
+    const quiet = { nativeWorkIdle: true, adviceEmpty: true };
+    for (let index = 0; index < 64; index++) {
+      expect(state.admitEdit(`agent-${index}`, `edit-${index}`, 1)).toBe(1);
+    }
+    expect(state.admitEdit("next", "edit", 2)).toBeUndefined();
+    state.tickQuietRound("agent-0", 100, quiet);
+    expect(state.tickQuietRound("agent-0", 100 + VIRTUAL_ROUND_QUIET_MS, quiet)).toBe(1);
+    expect(state.isActive("agent-1")).toBe(true);
+    expect(state.admitEdit("next", "fresh-edit", 100 + VIRTUAL_ROUND_QUIET_MS + 1)).toBe(1);
+  });
+
   it("does not retain an advicee identity for a rejected first edit", () => {
     const state = new ComposedDelivery();
     expect(state.registerEditDecision("late-advicee", "edit", 100, 2600)).toEqual({

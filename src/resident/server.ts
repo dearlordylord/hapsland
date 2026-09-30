@@ -33,7 +33,7 @@ import { admitReview } from "../configuration/decision.ts";
 import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { loadConfiguration } from "../configuration/load.ts";
-import { effectiveEditPermitLimits } from "../configuration/resolve.ts";
+import { effectiveEditPermitLimits, effectiveVirtualRoundQuietMs } from "../configuration/resolve.ts";
 import { readCurrentClaudeFeedbackAuthority } from "../configuration/current-claude-authority.ts";
 import {
   controlledDecisionModelLayer,
@@ -98,6 +98,7 @@ import { recordDemoTrace } from "../onboarding/demo-trace.ts";
 const RESERVATION_OVERHEAD_BYTES = 1024;
 const MAX_PROBABILITY_ENCODING_BYTES = 24;
 const RESIDENT_IDLE_CHECK_MS = 20_000;
+const VIRTUAL_ROUND_QUIET_CHECK_MS = 20_000;
 export const OPERATIONAL_NOTICE_COOLDOWN_MS = 60_000;
 export const MAX_OPERATIONAL_NOTICE_KEYS = 64;
 /** Covers bounded dual capture buffers/text plus declaration-count preflight payload. */
@@ -561,6 +562,7 @@ export class ResidentServer {
   #lifecycle: "active" | "retiring" | "closed" = "active";
   #retirementScheduled = false;
   #idleTimer: ReturnType<typeof setTimeout> | undefined;
+  #quietTimer: ReturnType<typeof setTimeout> | undefined;
   readonly #lifetimeController = new AbortController();
   #rejectedCapacity = 0;
   #peakLedgerBytes = 0;
@@ -1909,6 +1911,27 @@ export class ResidentServer {
     }
   }
 
+  sweepQuietRounds(now = this.#now()): number {
+    if (this.#lifecycle !== "active") return 0;
+    this.#expirePending(now);
+    this.#pruneNoticeCooldowns(now);
+    let closedCount = 0;
+    for (const [group, round] of [...this.#rounds]) {
+      const work = this.#dispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed);
+      const counts = this.#composedDelivery.closureCounts(group);
+      const closed = this.#composedDelivery.tickQuietRound(group, now, {
+        nativeWorkIdle: work.queued === 0 && work.running === 0,
+        adviceEmpty: !this.#advice.some((advice) => advice.round === round) &&
+          ![...this.#noticeCooldowns.values()].some((notice) => notice.partition === group),
+      });
+      if (closed !== undefined) {
+        this.#closeRound(group, closed, "quiescent", counts);
+        closedCount += 1;
+      }
+    }
+    return closedCount;
+  }
+
   #roundActive(round: RoundWork | undefined): boolean {
     return round === undefined || (!round.controller.signal.aborted &&
       this.#composedDelivery.isActive(round.group, round.generation));
@@ -2979,6 +3002,8 @@ export class ResidentServer {
           : { requestRoute: "ticketed", status: "obsolete-lifetime" }
         : { status: "obsolete-lifetime" };
     }
+    if (request.operation === "register-edit" || request.operation === "admit" ||
+        request.operation === "begin-stop") this.sweepQuietRounds();
     if (("advicee" in request && request.advicee.host === "opencode") ||
         (request.operation === "admit" && request.observation.advicee.host === "opencode")) return { status: "unsupported" };
     if (request.operation === "prompt-marker") {
@@ -3034,7 +3059,8 @@ export class ResidentServer {
         .catch(() => undefined);
       if (capture === undefined) return { status: "rejected-stale", reason: "InvalidConfiguration" };
       const decision = this.#composedDelivery.registerEditDecision(group, request.advicee.toolUseId,
-        request.startedAt, monotonicNow(), effectiveEditPermitLimits(capture.policy));
+        request.startedAt, monotonicNow(), effectiveEditPermitLimits(capture.policy),
+        effectiveVirtualRoundQuietMs(capture.policy));
       if (!decision.accepted) return { status: "rejected-stale", reason: decision.reason };
       return { status: "advanced" };
     }
@@ -3503,6 +3529,17 @@ export class ResidentServer {
     }, RESIDENT_IDLE_CHECK_MS);
   }
 
+  #scheduleQuietCheck(): void {
+    if (this.#quietTimer !== undefined) clearTimeout(this.#quietTimer);
+    if (this.#lifecycle !== "active") return;
+    this.#quietTimer = setTimeout(() => {
+      this.#quietTimer = undefined;
+      this.sweepQuietRounds();
+      this.#scheduleQuietCheck();
+    }, VIRTUAL_ROUND_QUIET_CHECK_MS);
+    this.#quietTimer.unref();
+  }
+
   async listen(): Promise<void> {
     if (process.platform !== "linux" && process.platform !== "darwin") {
       throw new Error(`resident IPC is unsupported on ${process.platform}; use Linux or macOS`);
@@ -3526,11 +3563,14 @@ export class ResidentServer {
       { encoding: "utf8", mode: 0o600 },
     );
     this.#scheduleIdleCheck();
+    this.#scheduleQuietCheck();
   }
 
   async close(): Promise<void> {
     if (this.#idleTimer !== undefined) clearTimeout(this.#idleTimer);
     this.#idleTimer = undefined;
+    if (this.#quietTimer !== undefined) clearTimeout(this.#quietTimer);
+    this.#quietTimer = undefined;
     this.#lifetimeController.abort();
     for (const timer of this.#stopTimers.values()) clearTimeout(timer);
     this.#stopTimers.clear();

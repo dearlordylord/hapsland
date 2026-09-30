@@ -4,14 +4,16 @@ import { canonicalValue } from "../direct-event/model.ts";
 import { CapacityLedger } from "./capacity.ts";
 import type { CompletedEditReason } from "../canonical/adapter.ts";
 import { DEFAULT_EDIT_PERMIT_LIMITS } from "../configuration/types.ts";
+import { DEFAULT_VIRTUAL_ROUND_QUIET_MS } from "../configuration/types.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
 /** Shared round and source-free handoff state for every agent runtime. */
 export const MAX_BACKGROUND_WAITERS = 64;
 export const EDIT_PERMIT_EXPIRY_MS = 30_000;
 export const BACKGROUND_WAITER_EXPIRY_MS = 20_000;
+export const VIRTUAL_ROUND_QUIET_MS = DEFAULT_VIRTUAL_ROUND_QUIET_MS;
 
-type Round = Record<string, never>;
+type Round = { readonly quietMs: number };
 export type RepeatEditDiagnostic = { readonly kind: "repeat-edit-id"; readonly phase: "pending" | "completed";
   readonly completedReason?: CompletedEditReason; readonly identityDigest: string };
 
@@ -42,7 +44,8 @@ export class ComposedDelivery {
   }
   readonly #rounds = new Map<string, Round>();
   readonly #permits = new Map<string, { readonly partition: string; readonly generation: number;
-    readonly expiresAt: number; readonly token: number; readonly tool: number; logged: boolean }>();
+    readonly expiresAt: number; readonly token: number; readonly tool: number;
+    readonly quietMs: number; logged: boolean }>();
   readonly #toolIds = new Map<string, number>();
   readonly #toolKeys = new Map<number, string>();
   #nextToolId = 1;
@@ -98,8 +101,8 @@ export class ComposedDelivery {
     return true;
   }
 
-  #startRound(partition: string): Round {
-    const round: Round = {};
+  #startRound(partition: string, quietMs: number): Round {
+    const round: Round = { quietMs };
     this.#rounds.set(partition, round);
     return round;
   }
@@ -215,7 +218,8 @@ export class ComposedDelivery {
   }
 
   registerEditDecision(partition: string, eventId: string, startedAt: number,
-    now = monotonicNow(), limits: { readonly perAdvicee: number; readonly resident: number } = DEFAULT_EDIT_PERMIT_LIMITS):
+    now = monotonicNow(), limits: { readonly perAdvicee: number; readonly resident: number } = DEFAULT_EDIT_PERMIT_LIMITS,
+    quietMs = DEFAULT_VIRTUAL_ROUND_QUIET_MS):
     { readonly accepted: true } | { readonly accepted: false; readonly reason: string } {
     this.expirePermits(now);
     const toolKey = `${partition}\0${eventId}`;
@@ -270,7 +274,7 @@ export class ComposedDelivery {
     }
     this.#permits.set(`${partition}\0${event}`, { partition,
       generation: command.round, expiresAt: startedAt + EDIT_PERMIT_EXPIRY_MS,
-      token: command.token, tool, logged: false });
+      token: command.token, tool, quietMs, logged: false });
     return { accepted: true };
   }
 
@@ -311,7 +315,7 @@ export class ComposedDelivery {
       }
       this.#finishPermit(key, "consumed");
       if (previous === undefined) {
-        previous = this.#startRound(partition);
+        previous = this.#startRound(partition, permit.quietMs);
       }
       return this.generation(partition);
     }
@@ -346,7 +350,7 @@ export class ComposedDelivery {
       return undefined;
     }
     if (previous === undefined) {
-      previous = this.#startRound(partition);
+      previous = this.#startRound(partition, DEFAULT_VIRTUAL_ROUND_QUIET_MS);
     }
     if (consumed.commands[0].round !== this.generation(partition)) {
       this.#finishPermit(key, "consumed");
@@ -389,6 +393,12 @@ export class ComposedDelivery {
     const decision = this.canonical.transition({ kind: "roundBeginStopCheck",
       active: this.isActive(partition), hasStop: this.#stops.has(partition), token: id });
     if (decision.rejection !== undefined || decision.commands[0]?.kind !== "roundStopBegun") return false;
+    const reset = this.canonical.transition({ kind: "quietRoundReset",
+      partition: this.canonical.partitionId(partition), lifetime: 1,
+      round: this.canonical.currentRoundId(partition)! });
+    if (reset.rejection !== undefined || reset.commands[0]?.kind !== "quietRoundResetRecorded") {
+      throw new Error("canonical quiet reset refused at Stop");
+    }
     this.#stops.set(partition, { token, id, generation: this.generation(partition), canonicalRound: this.canonical.roundId(partition),
       continuationsAtStart: this.#continuationCount(partition) });
     this.canonical.roundId(partition);
@@ -631,12 +641,17 @@ export class ComposedDelivery {
           closed.commands[0].round !== stop.generation) throw new Error("canonical permit closure disagrees with round");
     }
     this.#stops.delete(partition);
-    if (close) this.canonical.retireRound(partition, stop.canonicalRound);
     if (stop.outputToken !== undefined) {
       const permit = this.#finishPermits.get(stop.outputToken);
       if (permit !== undefined) permit.revoked = true;
     }
     if (!close) return undefined;
+    this.#retireClosedRound(partition, stop.canonicalRound);
+    return stop.generation;
+  }
+
+  #retireClosedRound(partition: string, canonicalRound: number): void {
+    this.canonical.retireRound(partition, canonicalRound);
     for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#finishPermit(key, "closed");
     const waiter = this.#backgroundWaiters.get(partition);
     if (waiter !== undefined) this.releaseBackground(partition, waiter.token);
@@ -645,7 +660,35 @@ export class ComposedDelivery {
       if (submission.partition === partition) this.forget(id);
     }
     this.#rounds.delete(partition);
-    return stop.generation;
+  }
+
+  tickQuietRound(partition: string, now: number,
+    facts: { readonly nativeWorkIdle: boolean; readonly adviceEmpty: boolean }): number | undefined {
+    const round = this.#rounds.get(partition);
+    if (round === undefined) return undefined;
+    const canonicalRound = this.canonical.currentRoundId(partition);
+    if (canonicalRound === undefined) throw new Error("active virtual round lacks canonical identity");
+    const handoffIdle = !this.#backgroundWaiters.has(partition) &&
+      ![...this.#finishPermits.values()].some((item) => item.partition === partition) &&
+      ![...this.#submissions.values()].some((item) => item.partition === partition &&
+        [...item.batches.values()].some((batch) => batch.status !== "submitted"));
+    const tick = this.canonical.transition({ kind: "quietRoundTick",
+      partition: this.canonical.partitionId(partition), lifetime: 1, round: canonicalRound,
+      now: this.#bendTime(now), window: this.#bendTime(round.quietMs),
+      facts: { ...facts, handoffIdle, stopAbsent: !this.#stops.has(partition) } });
+    if (tick.rejection !== undefined || tick.commands.length !== 1) throw new Error("canonical quiet tick refused");
+    if (tick.commands[0]?.kind !== "quietRoundExpired") return undefined;
+    const admission = this.canonical.canonicalProjection().admissions.find(
+      (item) => item.partition === this.canonical.partitionId(partition));
+    if (admission === undefined) throw new Error("canonical admission missing at quiet closure");
+    const closed = this.canonical.transition({ kind: "closePermitRound",
+      partition: admission.partition, lifetime: admission.lifetime,
+      round: admission.round, at: Math.max(this.#bendTime(now + 1), admission.closedAt) });
+    if (closed.rejection !== undefined || closed.commands[0]?.kind !== "permitRoundClosed") {
+      throw new Error("canonical quiet closure refused");
+    }
+    this.#retireClosedRound(partition, canonicalRound);
+    return admission.round;
   }
 
   closureCounts(partition: string): { reservedContinuations: number; submitted: number; uncertain: number; editPermits: number } {

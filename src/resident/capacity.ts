@@ -37,7 +37,7 @@ export type CapacitySnapshot = {
 };
 
 type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
-  "issuePermit" | "checkCompletedEdit" | "rememberCompletedEdit" | "consumePermit" | "releasePermit" | "expirePermit" | "closePermitRound" | "forgetAdmission" |
+  "issuePermit" | "checkCompletedEdit" | "rememberCompletedEdit" | "quietRoundTick" | "quietRoundReset" | "consumePermit" | "releasePermit" | "expirePermit" | "closePermitRound" | "forgetAdmission" |
   "openRound" | "admitObservation" | "startObservation" | "completeObservation" |
   "interruptObservation" | "beginObservedPreparation" | "interruptPreparation" |
   "preparationCompleted" | "startReview" | "jevRequestReady" |
