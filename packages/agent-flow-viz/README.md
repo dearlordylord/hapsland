@@ -168,7 +168,7 @@ checked observation, including paused history inspection.
    changing records and control history do not move its position.
    Pending advice counts exclude submitted records; retained submitted advice
    stays visible until checked closure or expiry. The outcome summary counts
-   admitted observations, refusals/unavailability, failures and delivered advice
+   admitted observations, refusals/unavailability, failures and confirmed host submissions
    across the whole run, including records and display frames later retired.
 6. Pause and export replay. Copy **Replay JSON**, reset (or open a fresh browser),
    paste JSON and load. Loading reconstructs initial inputs and recorded controls
@@ -179,6 +179,30 @@ checked observation, including paused history inspection.
    exact saved endpoint, including metadata-only time/control changes. Drafts
    remain editable while replaying, but new environment controls wait until
    recorded replay completes. Intermediate branching is unsupported.
+
+The freshness, credential and host output controls are also drafts. **Apply environment facts** records current/stale work and ready/unavailable credentials
+at a virtual boundary. A delayed request observes the current freshness when
+it settles; changing credentials affects subsequent authorization checks.
+**Apply host output profile** records certain, uncertain or failed output,
+its delay and lease lifetime for future output authorizations. Already authorized
+output keeps its captured profile. Empty or invalid delay/lease drafts never
+change active values or stop playback.
+
+Use the **Freshness change** scenario to invalidate an in-flight finding, and
+**Credential recovery** to restore readiness after refused request admission.
+**Unreadable final source** exercises candidate revalidation before host handoff;
+it does not simulate filesystem preparation failure. **Credential rotation**
+changes the generation authorizing retained advice. **Uncertain output** exposes delivery uncertainty and recovery; switch to certain
+output for future attempts. **Expired delivery lease** sets output delay longer
+than its lease to exercise revalidation before delivery. These scenarios fill
+drafts; Start / reset applies their initial settings. The active facts display,
+checked event details, item lifecycle filter and recorded control timeline
+separate proposed settings, applied boundaries and observed product outcomes.
+`neverSent` and `interrupted` are additional synthetic Jev outcomes for request
+admission investigation. Unavailable Jev requests are not automatically resent;
+new edits make fresh admission attempts. Confirmed host submissions establish
+simulated handoff, not agent receipt or use. Exported replay preserves these controls and their
+execution boundaries.
 
 Reservation size controls supply reservation/review-unit byte facts for checked
 admission. They do not establish native capture, evidence-tree, encoded-output
