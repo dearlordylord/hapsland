@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:981563dc54002d837b56d58fa58d0383683a6817da60281f8a1ba0abfb7a66a4
+// hapsland-bend-source-sha256:6a4f7a58c28175c8c0a9dfed1d0effa12b6ad1e4afdad6389ad09f17707981b5
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -1031,7 +1031,18 @@ function $Canonical$capacity_replace$(_state_0, _id_0, _sizes_0) {
 }
 
 function $Canonical$issue_permit$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _facts_0) {
-  return $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, ($Admission$prospective_gate$(_facts_0, _started_0, _now_0)));
+  const _clock_valid_0 = _facts_0["clock_valid"];
+  const _hook_window_0 = _facts_0["hook_window"];
+  const _started_upper_0 = _facts_0["started_upper"];
+  const _now_lower_0 = _facts_0["now_lower"];
+  const _advicee_limit_0 = _facts_0["advicee_permit_limit"];
+  const _resident_limit_0 = _facts_0["resident_permit_limit"];
+  const _round_count_0 = _facts_0["round_count"];
+  const _round_limit_0 = _facts_0["round_limit"];
+  const _new_round_0 = _facts_0["new_round"];
+  const _event_count_0 = _facts_0["event_count"];
+  const _event_limit_0 = _facts_0["event_limit"];
+  return $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0, ($Admission$prospective_gate$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_limit_0, "resident_permit_limit": _resident_limit_0, "round_count": _round_count_0, "round_limit": _round_limit_0, "new_round": _new_round_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, _started_0, _now_0)));
 }
 
 function $Canonical$consume_permit$(_state_0, _partition_0, _lifetime_0, _token_0, _tool_0, _now_0) {
@@ -2549,7 +2560,7 @@ function $Canonical$capacity_replace_found$(_state_0, _id_0, _sizes_0, _found_0)
   }
 }
 
-function $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _gate_0) {
+function $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0, _gate_0) {
   if (_gate_0.$ === "Admission.PermitDenied") {
     return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.ProspectiveDenied"}};
   } else if (_gate_0.$ === "Admission.PermitLate") {
@@ -2557,7 +2568,7 @@ function $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _too
   } else if (_gate_0.$ === "Admission.PermitInvalidClock") {
     return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": {$: "Admission.InvalidClock"}}};
   } else {
-    return $Canonical$issue_result$(_state_0, _partition_0, ($Admission$step$(($Canonical$current_admission$(_state_0, _partition_0, _lifetime_0)), _partition_0, _lifetime_0, {$: "Admission.Issue", "tool": _tool_0, "started": _started_0, "deadline": _deadline_0, "now": _now_0})));
+    return $Canonical$issue_permit_capacity$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0);
   }
 }
 
@@ -2566,15 +2577,15 @@ function $Admission$prospective_gate$(_facts_0, _started_0, _now_0) {
   const _hook_window_0 = _facts_0["hook_window"];
   const _started_upper_0 = _facts_0["started_upper"];
   const _now_lower_0 = _facts_0["now_lower"];
-  const _permit_count_0 = _facts_0["permit_count"];
-  const _permit_limit_0 = _facts_0["permit_limit"];
+  const _advicee_permit_limit_0 = _facts_0["advicee_permit_limit"];
+  const _resident_permit_limit_0 = _facts_0["resident_permit_limit"];
   const _round_count_0 = _facts_0["round_count"];
   const _round_limit_0 = _facts_0["round_limit"];
   const _new_round_0 = _facts_0["new_round"];
   const _event_count_0 = _facts_0["event_count"];
   const _event_limit_0 = _facts_0["event_limit"];
   const _x_0 = nat_chk(_started_0 + _hook_window_0);
-  return $Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "permit_count": _permit_count_0, "permit_limit": _permit_limit_0, "round_count": _round_count_0, "round_limit": _round_limit_0, "new_round": _new_round_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
+  return $Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_permit_limit_0, "resident_permit_limit": _resident_permit_limit_0, "round_count": _round_count_0, "round_limit": _round_limit_0, "new_round": _new_round_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
 }
 
 function $Canonical$consume_result$(_state_0, _partition_0, _lifetime_0, _result_0) {
@@ -4385,32 +4396,22 @@ function $Canonical$capacity_replace_released$(_state_0, _id_0, _partition_0, _s
   }
 }
 
-function $Canonical$issue_result$(_state_0, _partition_0, _result_0) {
-  if (_result_0.$ === "Admission.Accepted") {
-    const _admission_0 = _result_0["state"];
-    const _t_0 = _result_0["token"];
-    if (_t_0.$ === "Some") {
-      const _token_0 = _t_0["value"];
-      const _t_1 = _result_0["round"];
-      if (_t_1.$ === "Some") {
-        const _round_0 = _t_1["value"];
-        return {$: "Canonical.Advanced", "state": ($Canonical$with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": {$: "Canonical.PermitIssued", "token": _token_0, "round": _round_0}, "tail": {$: "Nil"}}};
-      } else {
-        return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
-      }
-    } else {
-      return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
-    }
-  } else {
-    const _reason_0 = _result_0["reason"];
-    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": _reason_0}};
-  }
+function $Canonical$issue_permit_capacity$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  const _dispatch_0 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  const _x_0 = ($Canonical$pending_advicee_permits$(_partition_0, _admissions_0));
+  const _x_1 = ($Canonical$pending_resident_permits$(_admissions_0));
+  return $Canonical$issue_permit_capacity_checked$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, (_x_0 < _advicee_limit_0), (_x_1 < _resident_limit_0));
 }
 
 function $Admission$prospective_gate_window$(_facts_0, _within_0, _ordered_0) {
   const _clock_valid_0 = _facts_0["clock_valid"];
-  const _permit_count_0 = _facts_0["permit_count"];
-  const _permit_limit_0 = _facts_0["permit_limit"];
   const _round_count_0 = _facts_0["round_count"];
   const _round_limit_0 = _facts_0["round_limit"];
   const _new_round_0 = _facts_0["new_round"];
@@ -4419,7 +4420,7 @@ function $Admission$prospective_gate_window$(_facts_0, _within_0, _ordered_0) {
   if (!_ordered_0) {
     return {$: "Admission.PermitInvalidClock"};
   } else {
-    return $Admission$prospective_gate_ordered$(_clock_valid_0, _permit_count_0, _permit_limit_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0);
+    return $Admission$prospective_gate_ordered$(_clock_valid_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0);
   }
 }
 
@@ -5864,13 +5865,41 @@ function $Canonical$capacity_replace_units$($0, $1, $2, $3) {
   }
 }
 
-function $Admission$prospective_gate_ordered$(_clock_valid_0, _permit_count_0, _permit_limit_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0) {
+function $Canonical$issue_permit_capacity_checked$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_available_0, _resident_available_0) {
+  if (!_advicee_available_0) {
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.AdviceePermitLimit"}};
+  } else {
+    if (!_resident_available_0) {
+      return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.ResidentPermitLimit"}};
+    } else {
+      return $Canonical$issue_result$(_state_0, _partition_0, ($Admission$step$(($Canonical$current_admission$(_state_0, _partition_0, _lifetime_0)), _partition_0, _lifetime_0, {$: "Admission.Issue", "tool": _tool_0, "started": _started_0, "deadline": _deadline_0, "now": _now_0})));
+    }
+  }
+}
+
+function $Canonical$pending_advicee_permits$(_partition_0, _admissions_0) {
+  return $Canonical$pending_advicee_permits_found$(($Canonical$find_admission$(_partition_0, _admissions_0)));
+}
+
+function $Canonical$pending_resident_permits$(_admissions_0) {
+  if (_admissions_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _admission_0 = _admissions_0["head"];
+    const _rest_0 = _admissions_0["tail"];
+    const _x_0 = ($Admission$pending_count$(_admission_0));
+    const _x_1 = ($Canonical$pending_resident_permits$(_rest_0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
+function $Admission$prospective_gate_ordered$(_clock_valid_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0) {
   if (!_within_0) {
     return {$: "Admission.PermitLate"};
   } else {
     const _x_0 = ($Bool$not$(_new_round_0));
     const _x_1 = (_round_count_0 < _round_limit_0);
-    return $Bool$pick$(($Bool$and$(_clock_valid_0, ($Bool$and$((_permit_count_0 < _permit_limit_0), ($Bool$and$((_x_0 || _x_1), (_event_count_0 < _event_limit_0))))))), {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
+    return $Bool$pick$(($Bool$and$(_clock_valid_0, ($Bool$and$((_x_0 || _x_1), (_event_count_0 < _event_limit_0))))), {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
   }
 }
 
@@ -7144,6 +7173,42 @@ function $Canonical$capacity_replace_one$(_partition_0, _position_0, _bytes_0, _
     const _ledger_1 = _result_0["state"];
     return {$: "Canonical.CapacityBatch", "ledger": _ledger_1, "commands": ($List$append$(_commands_0, {$: "Con", "head": {$: "Canonical.CapacityUnitRefused", "position": _position_0, "bytes": _bytes_0, "reason": ($Ledger$admission$(_ledger_1, _partition_0, _bytes_0)), "after": ($Canonical$capacity_view$(_ledger_1, _partition_0))}, "tail": {$: "Nil"}}))};
   }
+}
+
+function $Canonical$issue_result$(_state_0, _partition_0, _result_0) {
+  if (_result_0.$ === "Admission.Accepted") {
+    const _admission_0 = _result_0["state"];
+    const _t_0 = _result_0["token"];
+    if (_t_0.$ === "Some") {
+      const _token_0 = _t_0["value"];
+      const _t_1 = _result_0["round"];
+      if (_t_1.$ === "Some") {
+        const _round_0 = _t_1["value"];
+        return {$: "Canonical.Advanced", "state": ($Canonical$with_admission$(_state_0, _partition_0, _admission_0)), "commands": {$: "Con", "head": {$: "Canonical.PermitIssued", "token": _token_0, "round": _round_0}, "tail": {$: "Nil"}}};
+      } else {
+        return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
+      }
+    } else {
+      return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.InconsistentLedger"}};
+    }
+  } else {
+    const _reason_0 = _result_0["reason"];
+    return {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": _reason_0}};
+  }
+}
+
+function $Canonical$pending_advicee_permits_found$(_found_0) {
+  if (_found_0.$ === "None") {
+    return 0;
+  } else {
+    const _admission_0 = _found_0["value"];
+    return $Admission$pending_count$(_admission_0);
+  }
+}
+
+function $Admission$pending_count$(_state_0) {
+  const _permits_0 = _state_0["permits"];
+  return $List$length$(_permits_0);
 }
 
 function $Canonical$consume_opened$(_original_0, _round_0, _opened_0) {

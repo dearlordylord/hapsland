@@ -32,6 +32,7 @@ import { admitReview } from "../configuration/decision.ts";
 import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
 import { loadReviewSettings } from "../runtime/review-config.ts";
 import { loadConfiguration } from "../configuration/load.ts";
+import { effectiveEditPermitLimits } from "../configuration/resolve.ts";
 import { readCurrentClaudeFeedbackAuthority } from "../configuration/current-claude-authority.ts";
 import {
   controlledDecisionModelLayer,
@@ -2999,7 +3000,12 @@ export class ResidentServer {
     if (request.operation === "release") return this.releaseComposedSubmission(request.token);
     if (request.operation === "register-edit") {
       const group = adviceePartition(request.root, request.advicee);
-      const decision = this.#composedDelivery.registerEditDecision(group, request.advicee.toolUseId, request.startedAt);
+      const capture = await Effect.runPromise(loadConfiguration(request.root,
+        request.userConfigPath === undefined ? {} : { userConfigPath: request.userConfigPath }))
+        .catch(() => undefined);
+      if (capture === undefined) return { status: "rejected-stale", reason: "InvalidConfiguration" };
+      const decision = this.#composedDelivery.registerEditDecision(group, request.advicee.toolUseId,
+        request.startedAt, monotonicNow(), effectiveEditPermitLimits(capture.policy));
       if (!decision.accepted) return { status: "rejected-stale", reason: decision.reason };
       return { status: "advanced" };
     }

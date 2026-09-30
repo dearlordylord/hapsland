@@ -63,7 +63,8 @@ export type ResidentRequest =
       readonly root: string; readonly advicee: DirectAdvicee; readonly token: string;
       readonly close?: boolean; readonly reason?: RoundCloseReason }
   | { readonly requestRoute: "shared"; readonly operation: "register-edit"; readonly lifetime: string;
-      readonly root: string; readonly advicee: DirectAdvicee; readonly startedAt: number; readonly activityPath?: string }
+      readonly root: string; readonly advicee: DirectAdvicee; readonly startedAt: number;
+      readonly activityPath?: string; readonly userConfigPath?: string }
   | { readonly requestRoute: "shared"; readonly operation: "claim-background" | "release-background";
       readonly lifetime: string; readonly root: string; readonly advicee: DirectAdvicee;
       readonly token: string }
@@ -294,10 +295,12 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
   }
   if (value.operation === "register-edit" && string(value.root) && advicee(value.advicee) &&
       typeof value.startedAt === "number" && Number.isFinite(value.startedAt) && value.startedAt > 0 &&
-      (value.activityPath === undefined || (string(value.activityPath) && value.activityPath.startsWith("/")))) {
+      (value.activityPath === undefined || (string(value.activityPath) && value.activityPath.startsWith("/"))) &&
+      (value.userConfigPath === undefined || (string(value.userConfigPath) && value.userConfigPath.startsWith("/")))) {
     return { requestRoute: "shared", operation: "register-edit", lifetime: value.lifetime,
       root: value.root, advicee: value.advicee, startedAt: value.startedAt,
-      ...(typeof value.activityPath === "string" ? { activityPath: value.activityPath } : {}) };
+      ...(typeof value.activityPath === "string" ? { activityPath: value.activityPath } : {}),
+      ...(typeof value.userConfigPath === "string" ? { userConfigPath: value.userConfigPath } : {}) };
   }
   if ((value.operation === "claim-background" || value.operation === "release-background") &&
       string(value.root) && advicee(value.advicee) &&

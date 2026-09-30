@@ -37,6 +37,9 @@ def Laws.canonical_released_capacity_rejects_duplicate():
 def Laws.canonical_permit_issue_is_partitioned_and_round_bound():
   {==}
 
+def Laws.canonical_pending_permit_counts_use_reducer_state():
+  {==}
+
 def Laws.canonical_expired_permit_does_not_create_round():
   {==}
 
@@ -509,12 +512,6 @@ def Laws.oversized_notice_skips_in_claude():
   {==}
 
 def Laws.oversized_notice_stops_codex_prefix():
-  {==}
-
-def Laws.prospective_gate_accepts_exact_last_capacity_slot():
-  {==}
-
-def Laws.prospective_gate_rejects_full_permit_table():
   {==}
 
 def Laws.prospective_gate_rejects_new_round_at_limit():

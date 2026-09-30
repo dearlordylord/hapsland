@@ -3,6 +3,7 @@ import {
   BUILT_IN_INCLUDES,
   BUILT_IN_PROTECTED_EXCLUDES,
   DEFAULT_CREDENTIAL_ENV_VAR,
+  DEFAULT_EDIT_PERMIT_LIMITS,
   type ConfigurationDocument,
   type ConfigurationLayerName,
   type ConfigurationOrigin,
@@ -129,6 +130,16 @@ export const effectiveGraphLimits = (policy: ResolvedPolicy): GraphLimits =>
     work: policy.graphLimits.work.value,
   });
 
+export const effectiveEditPermitLimits = (policy: ResolvedPolicy): {
+  readonly perAdvicee: number; readonly resident: number;
+} => {
+  const user = policy.layers.find((layer) => layer.name === "user")?.document.editPermitLimits;
+  return {
+    perAdvicee: user?.perAdvicee ?? DEFAULT_EDIT_PERMIT_LIMITS.perAdvicee,
+    resident: user?.resident ?? DEFAULT_EDIT_PERMIT_LIMITS.resident,
+  };
+};
+
 /**
  * Resolve built-in → user → project policy while retaining every relevant origin.
  * The returned value is immutable-by-convention and can be captured per event.
@@ -138,6 +149,18 @@ export const resolveConfiguration = (
   root = ".",
 ): ResolvedPolicy => {
   const layers = allLayers(suppliedLayers);
+  for (const layer of layers) if (layer.name === "project" && layer.document.editPermitLimits !== undefined) {
+    throw new ConfigurationError({ source: layer.source, field: "editPermitLimits",
+      reason: "only user configuration may set shared resident edit permit limits" });
+  }
+  const userPermitLimits = layers.find((layer) => layer.name === "user")?.document.editPermitLimits;
+  if ((userPermitLimits?.perAdvicee ?? DEFAULT_EDIT_PERMIT_LIMITS.perAdvicee) >
+      (userPermitLimits?.resident ?? DEFAULT_EDIT_PERMIT_LIMITS.resident)) {
+    throw new ConfigurationError({
+      source: layers.find((layer) => layer.name === "user")?.source ?? "built-in",
+      field: "editPermitLimits", reason: "perAdvicee limit cannot exceed resident limit",
+    });
+  }
   let includes: ReadonlyArray<PatternOrigin> = patternsFor(
     layers[0] ?? { name: "built-in", source: "built-in", document: { version: 1 } },
     "includes",

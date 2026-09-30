@@ -105,7 +105,8 @@ export const runComposedHook = async (input: {
   const paths = residentPaths();
 
   if (input.kind === "before-edit") {
-    await registerComposedEdit(root, advicee, hookProcessStartedAt, paths, input.activityPath).catch(() => false);
+    await registerComposedEdit(root, advicee, hookProcessStartedAt, paths, input.activityPath,
+      input.userConfigPath ?? undefined).catch(() => false);
     return quiet();
   }
   if (input.kind === "prompt") {

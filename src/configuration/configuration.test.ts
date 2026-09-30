@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ConfigurationError } from "./errors.ts";
 import { decodeConfigurationText, serializeConfigurationDocument } from "./decode.ts";
-import { effectiveGraphLimits, resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
+import { effectiveEditPermitLimits, effectiveGraphLimits, resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
 import type { ConfigurationLayer } from "./resolve.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
 import { explainPath } from "../explanation/index.ts";
@@ -24,6 +24,21 @@ const builtIn = (): ConfigurationLayer => ({
 });
 
 describe("configuration v1 decoding", () => {
+  it("keeps shared edit permit limits in user configuration", () => {
+    expect(effectiveEditPermitLimits(resolveConfiguration([], "/repo")))
+      .toEqual({ perAdvicee: 32, resident: 4096 });
+    expect(effectiveEditPermitLimits(resolveConfiguration([
+      source("user", '{"version":1,"editPermitLimits":{"perAdvicee":4,"resident":20}}'),
+    ], "/repo"))).toEqual({ perAdvicee: 4, resident: 20 });
+    expect(() => resolveConfiguration([
+      source("project", '{"version":1,"editPermitLimits":{"resident":10}}'),
+    ], "/repo")).toThrowError(expect.objectContaining({ field: "editPermitLimits" }));
+    expect(() => resolveConfiguration([
+      source("user", '{"version":1,"editPermitLimits":{"perAdvicee":5,"resident":4}}'),
+    ], "/repo")).toThrowError(expect.objectContaining({ field: "editPermitLimits" }));
+    expect(() => source("user", '{"version":1,"editPermitLimits":{"perAdvicee":0}}'))
+      .toThrowError(expect.objectContaining({ field: "editPermitLimits.perAdvicee" }));
+  });
   it("keeps old layered documents valid while rejecting undeclared branch and form controls", () => {
     const user = source("user", '{"version":1,"includes":["src/**"],"privacyExcludes":["src/private/**"],"ruleOverrides":{"team/check":{"threshold":0.5}}}');
     const project = source("project", '{"version":1,"excludes":["src/generated/**"],"packs":[{"id":"team","enabled":false}]}');

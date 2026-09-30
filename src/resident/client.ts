@@ -567,10 +567,12 @@ export const composedStopBoundary = async (
 
 export const registerComposedEdit = async (
   root: string, advicee: DirectAdvicee, startedAt: number, paths = residentPaths(), activityPath?: string,
+  userConfigPath?: string,
 ): Promise<boolean> => {
   const owner = await ensureResident(paths, 1_500);
   const response = await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
     lifetime: owner.lifetime, root, advicee, startedAt,
-    ...(activityPath === undefined ? {} : { activityPath }) });
+    ...(activityPath === undefined ? {} : { activityPath }),
+    ...(userConfigPath === undefined ? {} : { userConfigPath }) });
   return response.status === "advanced";
 };

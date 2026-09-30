@@ -134,6 +134,20 @@ describe("shared Hapsland rounds", () => {
     });
   });
 
+  it("counts pending permits per advicee and across the resident, then frees consumed capacity", () => {
+    const state = new ComposedDelivery();
+    const limits = { perAdvicee: 2, resident: 3 };
+    const issue = (partition: string, event: string) =>
+      state.registerEditDecision(partition, event, 100, 110, limits);
+    expect(issue("agent-a", "a1")).toEqual({ accepted: true });
+    expect(issue("agent-a", "a2")).toEqual({ accepted: true });
+    expect(issue("agent-a", "a3")).toEqual({ accepted: false, reason: "AdviceePermitLimit" });
+    expect(issue("agent-b", "b1")).toEqual({ accepted: true });
+    expect(issue("agent-b", "b2")).toEqual({ accepted: false, reason: "ResidentPermitLimit" });
+    expect(state.admitEdit("agent-a", "a1", 120, true)).toBe(1);
+    expect(issue("agent-b", "b2")).toEqual({ accepted: true });
+  });
+
   it("does not reopen a closed round through the internal admission seam", () => {
     const state = new ComposedDelivery();
     expect(state.admitEdit("agent", "first", 1)).toBe(1);

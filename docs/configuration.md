@@ -52,6 +52,9 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 | `privacyExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
 | `claudeFeedbackMode` | string | Optional | "advisory" | Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory. |
+| `editPermitLimits` | object | Optional | — | User-owned shared resident admission limits. Omitted values use built-in defaults. |
+| `editPermitLimits.perAdvicee` | integer (1–65536) | Optional | 32 | Maximum simultaneously pending edit permits for one advicee in the shared resident. |
+| `editPermitLimits.resident` | integer (1–65536) | Optional | 4096 | Maximum simultaneously pending edit permits across the shared resident. |
 | `graphLimits` | object | Optional | — | Versioned bounded import graph limits; omitted values inherit. |
 | `graphLimits.version` | fixed value 1 | Required | — | Import graph limits profile version. |
 | `graphLimits.sourceBytes` | integer (1–262144) | Optional | 262144 | Maximum source bytes in each graph file. |
@@ -258,7 +261,9 @@ files, symlink containment, and the 256 KiB snapshot limit.
 The resident dispatches eligible semantic units after final source and policy
 currentness checks. The old whole-file JSON review command and its `settings`
 configuration were retired under issue #148. The configuration parser rejects
-`settings`; request capacity and deadlines are resident policy, not JSONC controls.
+`settings`; Jev request capacity and deadlines are resident policy, not JSONC controls.
+`editPermitLimits` controls only simultaneously pending pre-edit permits and belongs in
+the user configuration because the resident is shared across projects.
 
 Credentials are references only. The value is read from the named environment
 variable at dispatch and is never persisted, printed, or included in diagnostics.

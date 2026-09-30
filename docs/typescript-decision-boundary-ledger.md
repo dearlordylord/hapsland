@@ -70,13 +70,23 @@ The [Codex and Claude adapter checks](../src/direct-event/adapter.ts), [native e
 | Why outside Bend | Reading and pairing native runtime identities is adapter work. Whether an already-seen identity may receive another permit is a reducer decision. |
 | Review and limits | On 2026-09-29 the owner approved this identity boundary. It applies to the current resident lifetime; it does not specify how a different runtime must form its occurrence ID or settle the remaining TS-005 count and capacity choices. |
 
+## TS-005c — Bound pending edit permits in Bend
+
+| Field | Reviewed boundary |
+| --- | --- |
+| Decision | A pending pre-edit permit occupies one slot for its advicee and one slot in the shared resident. Admission requires room under both limits. The starting defaults are 32 per advicee and 4096 across the resident; these are configurable values, not permanent product constants. A consumed, released, expired, or round-closed permit no longer occupies a pending slot. |
+| TypeScript owner | The [resident](../src/resident/server.ts) loads user configuration and passes the two limit values through [composed delivery](../src/resident/composed-delivery.ts). The hook passes the path to the user's configuration, when explicitly supplied. Project configuration cannot set shared resident limits. |
+| Bend boundary | [Canonical Bend admission](../packages/agent-flow-bend/Canonical.bend) counts pending permits in its own admission state, checks the advicee and resident limits, and reports which limit denied an attempt. TypeScript supplies no current count and makes no capacity verdict. |
+| Why outside Bend | Reading the user's configuration is a filesystem effect. The occupancy count and permission to issue a permit are reducer decisions. The limit values are inputs so a user can tune capacity without changing the reducer. |
+| Review and limits | On 2026-09-29 the owner chose two configurable limits and the starting values 32 and 4096. This entry covers simultaneous **pending edit permits**, not IPC connections, accepted edits, active rounds, or review capacity. The round and event count inputs remain for separate review in TS-005. |
+
 ## TODO — TypeScript choices awaiting boundary review
 
 These are the remaining choices from the owner-facing “Choice made in TypeScript” table. They describe current implementation and unresolved placement, **not owner approval of each TypeScript boundary**. Review them in order; keep the replay walkthrough in the separate [temporary table](issue-147-default-replay-walkthrough.md) for later diagram review. The former per-edit capacity and round split was corrected before this boundary review; it is not a supported alternative.
 
 | ID | Choice currently made in TypeScript | What needs review |
 | --- | --- | --- |
-| TS-005 | [`ComposedDelivery.registerEditDecision`](../src/resident/composed-delivery.ts) supplies round/permit counts to Bend's permit decision. Time is resolved in TS-005a and repeated identity in TS-005b. | Decide which remaining count and capacity predicates belong in Bend, one at a time. |
+| TS-005 | [`ComposedDelivery.registerEditDecision`](../src/resident/composed-delivery.ts) still supplies round and event counts to Bend's permit decision. Time, repeated identity, and pending permit capacity are resolved in TS-005a, TS-005b, and TS-005c. | Decide the remaining round and event count predicates one at a time. |
 | TS-006 | Native [file selection](../src/direct-event/selection.ts), source capture, parsing, and [rule compilation](../src/rules/compiler.ts) establish what code and rules can enter review. | Separate facts that require filesystem/runtime access from product choices about eligible files and applicable rules; verify which choices Bend already owns. |
 | TS-007 | The resident [measures encoded objects and selects reservation purposes](../src/resident/server.ts) before Bend enforces capacity for the advicee partition. | Review the measurement contract and purpose mapping. The corrected partition identity does not approve a particular numeric limit. Reconcile the numeric limits in [the supported profile](direct-event-v1-supported-profile.md) with the current code separately. |
 | TS-008 | The resident checks credentials, calls Jev, encodes output, and writes to the agent runtime around Bend decisions ([resident](../src/resident/server.ts)). | Keep external effects native, but examine each TypeScript precondition that can deny or change a user-visible result without a Bend decision. |

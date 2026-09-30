@@ -497,6 +497,8 @@ type Reason is Data:
   WrongStage{}
   InconsistentLedger{}
   ProspectiveDenied{}
+  AdviceePermitLimit{}
+  ResidentPermitLimit{}
   PermitDenied{reason: Admission.AdmissionRejection}
 
 type Step is Data:
@@ -568,6 +570,24 @@ def current_admission(state: State, +partition: Nat, +lifetime: Nat) -> Admissio
     case State{_, _, _, _, _, admissions, +dispatch, +collection}:
       current_admission_found(partition, lifetime, find_admission(partition, admissions))
 
+def pending_advicee_permits_found(found: Maybe<&2, Admission.AdmissionState>) -> Nat:
+  match found:
+    case None{}:
+      0n
+    case Some{admission}:
+      Admission.pending_count(admission)
+
+def pending_advicee_permits(partition: Nat,
+    admissions: List<&2, Admission.AdmissionState>) -> Nat:
+  pending_advicee_permits_found(find_admission(partition, admissions))
+
+def pending_resident_permits(admissions: List<&2, Admission.AdmissionState>) -> Nat:
+  match admissions:
+    case Nil{}:
+      0n
+    case admission <> rest:
+      (Admission.pending_count(admission) + pending_resident_permits(rest) : Nat)
+
 def permit_result(state: State, +partition: Nat,
     result: Admission.AdmissionResult, command: Command) -> Step:
   match result:
@@ -597,9 +617,30 @@ def close_permit_result(state: State, +partition: Nat,
     case _:
       Rejected{state, InconsistentLedger{}}
 
+def issue_permit_capacity_checked(+state: State, +partition: Nat, +lifetime: Nat,
+    +tool: Nat, +started: Nat, +deadline: Nat, +now: Nat,
+    advicee_available: Bool, resident_available: Bool) -> Step:
+  match advicee_available resident_available:
+    case False{} _:
+      Rejected{state, AdviceePermitLimit{}}
+    case True{} False{}:
+      Rejected{state, ResidentPermitLimit{}}
+    case True{} True{}:
+      issue_result(state, partition, Admission.step(current_admission(state, partition, lifetime),
+        partition, lifetime, Admission.Issue{tool, started, deadline, now}))
+
+def issue_permit_capacity(+state: State, +partition: Nat, +lifetime: Nat,
+    +tool: Nat, +started: Nat, +deadline: Nat, +now: Nat,
+    advicee_limit: Nat, resident_limit: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, +admissions, +dispatch, +collection}:
+      issue_permit_capacity_checked(state, partition, lifetime, tool, started, deadline, now,
+        Nat.is_lt(pending_advicee_permits(partition, admissions), advicee_limit),
+        Nat.is_lt(pending_resident_permits(admissions), resident_limit))
+
 def issue_permit_gate(+state: State, +partition: Nat, +lifetime: Nat,
     +tool: Nat, +started: Nat, +deadline: Nat, +now: Nat,
-    gate: Admission.ProspectiveDecision) -> Step:
+    advicee_limit: Nat, resident_limit: Nat, gate: Admission.ProspectiveDecision) -> Step:
   match gate:
     case Admission.PermitDenied{}:
       Rejected{state, ProspectiveDenied{}}
@@ -608,14 +649,21 @@ def issue_permit_gate(+state: State, +partition: Nat, +lifetime: Nat,
     case Admission.PermitInvalidClock{}:
       Rejected{state, PermitDenied{Admission.InvalidClock{}}}
     case Admission.PermitAllowed{}:
-      issue_result(state, partition, Admission.step(current_admission(state, partition, lifetime),
-        partition, lifetime, Admission.Issue{tool, started, deadline, now}))
+      issue_permit_capacity(state, partition, lifetime, tool, started, deadline, now,
+        advicee_limit, resident_limit)
 
 def issue_permit(+state: State, +partition: Nat, +lifetime: Nat,
     +tool: Nat, +started: Nat, +deadline: Nat, +now: Nat,
     facts: Admission.ProspectiveFacts) -> Step:
-  issue_permit_gate(state, partition, lifetime, tool, started, deadline, now,
-    Admission.prospective_gate(facts, started, now))
+  match facts:
+    case Admission.ProspectiveFacts{clock_valid, hook_window, started_upper,
+        now_lower, +advicee_limit, +resident_limit, round_count, round_limit,
+        new_round, event_count, event_limit}:
+      issue_permit_gate(state, partition, lifetime, tool, started, deadline, now,
+        advicee_limit, resident_limit,
+        Admission.prospective_gate(Admission.ProspectiveFacts{clock_valid, hook_window,
+          started_upper, now_lower, advicee_limit, resident_limit, round_count,
+          round_limit, new_round, event_count, event_limit}, started, now))
 
 
 

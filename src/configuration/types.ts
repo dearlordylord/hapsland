@@ -17,6 +17,26 @@ export const DEFAULT_RUNTIME_SETTINGS = {
   transientRetries: 2,
 } as const;
 
+export const DEFAULT_EDIT_PERMIT_LIMITS = {
+  perAdvicee: 32,
+  resident: 4096,
+} as const;
+
+export const EditPermitLimitsSettings = Schema.Struct({
+  perAdvicee: Schema.optionalKey(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 65536 })).annotate({
+    description: "Maximum simultaneously pending edit permits for one advicee in the shared resident.",
+    default: DEFAULT_EDIT_PERMIT_LIMITS.perAdvicee,
+  })),
+  resident: Schema.optionalKey(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 65536 })).annotate({
+    description: "Maximum simultaneously pending edit permits across the shared resident.",
+    default: DEFAULT_EDIT_PERMIT_LIMITS.resident,
+  })),
+}).annotate({
+  identifier: "EditPermitLimitsSettings",
+  description: "User-owned shared resident admission limits. Omitted values use built-in defaults.",
+});
+export interface EditPermitLimitsSettings extends Schema.Schema.Type<typeof EditPermitLimitsSettings> {}
+
 const Pattern = Schema.String.check(Schema.isMinLength(1)).annotate({
   description: "A non-empty repository-relative glob pattern using forward slashes.",
 });
@@ -121,6 +141,7 @@ export const ConfigurationDocument = Schema.Struct({
   })),
   credentialEnvVar: Schema.optionalKey(EnvironmentVariableName),
   claudeFeedbackMode: Schema.optionalKey(ClaudeFeedbackMode),
+  editPermitLimits: Schema.optionalKey(EditPermitLimitsSettings),
   graphLimits: Schema.optionalKey(GraphLimitsSettings),
   /** Explicit local pack references. Bundled Noul is loaded independently. */
   packs: Schema.optionalKey(Schema.Array(RulePackReference).annotate({

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { monotonicNow, PRE_EDIT_ADMISSION_DEADLINE_MS } from "./hook-clock.ts";
 import { canonicalValue } from "../direct-event/model.ts";
 import { CapacityLedger } from "./capacity.ts";
+import { DEFAULT_EDIT_PERMIT_LIMITS } from "../configuration/types.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
 /** Shared round and source-free handoff state for every agent runtime. */
@@ -131,7 +132,8 @@ export class ComposedDelivery {
   }
 
   registerEditDecision(partition: string, eventId: string, startedAt: number,
-    now = monotonicNow()): { readonly accepted: true } | { readonly accepted: false; readonly reason: string } {
+    now = monotonicNow(), limits: { readonly perAdvicee: number; readonly resident: number } = DEFAULT_EDIT_PERMIT_LIMITS):
+    { readonly accepted: true } | { readonly accepted: false; readonly reason: string } {
     this.expirePermits(now);
     const round = this.#rounds.get(partition);
     const admission = this.canonical.canonicalProjection().admissions.find(
@@ -144,7 +146,7 @@ export class ComposedDelivery {
         startedAt > 0,
       hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
       startedUpper: this.#bendUpperTime(startedAt), nowLower: this.#bendTime(now),
-      permitCount: this.#permits.size, permitLimit: 1024,
+      adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident,
       roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
       newRound: round === undefined,
       eventCount: round?.events.size ?? 0, eventLimit: 4096,
@@ -164,7 +166,6 @@ export class ComposedDelivery {
     if (issued.rejection !== undefined || command?.kind !== "permitIssued") {
       const reason = issued.rejection === "ProspectiveDenied"
         ? !facts.clockValid ? "InvalidClock"
-          : facts.permitCount >= facts.permitLimit ? "PermitLimit"
           : facts.newRound && facts.roundCount >= facts.roundLimit ? "RoundLimit"
           : facts.eventCount >= facts.eventLimit ? "EventLimit" : "ProspectiveDenied"
         : issued.rejection ?? "InconsistentLedger";
@@ -182,7 +183,8 @@ export class ComposedDelivery {
     return { accepted: true };
   }
 
-  admitEdit(partition: string, eventId: string, now: number, requirePermit = false): number | undefined {
+  admitEdit(partition: string, eventId: string, now: number, requirePermit = false,
+    limits: { readonly perAdvicee: number; readonly resident: number } = DEFAULT_EDIT_PERMIT_LIMITS): number | undefined {
     let previous = this.#rounds.get(partition);
     const event = eventId;
     const key = `${partition}\0${event}`;
@@ -232,7 +234,7 @@ export class ComposedDelivery {
       lifetime: 1, tool, started: syntheticNow, deadline: syntheticNow + this.#bendTime(EDIT_PERMIT_EXPIRY_MS),
       now: syntheticNow, facts: { clockValid: true, hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
         startedUpper: syntheticNow, nowLower: syntheticNow,
-        permitCount: this.#permits.size, permitLimit: 1024,
+        adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident,
         roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
         newRound: previous === undefined, eventCount: previous?.events.size ?? 0, eventLimit: 4096 } });
     const permit = issued.commands[0];

@@ -302,16 +302,16 @@ export type CanonicalCommand =
 export type ProspectiveFacts = {
   readonly clockValid: boolean; readonly hookWindow: number;
   readonly startedUpper: number; readonly nowLower: number;
-  readonly permitCount: number; readonly permitLimit: number;
+  readonly adviceePermitLimit: number; readonly residentPermitLimit: number;
   readonly roundCount: number; readonly roundLimit: number; readonly newRound: boolean;
   readonly eventCount: number; readonly eventLimit: number;
 };
 
 const encodeFacts = (facts: ProspectiveFacts): unknown => {
-  inputFields(facts, ["clockValid", "hookWindow", "startedUpper", "nowLower", "permitCount", "permitLimit", "roundCount", "roundLimit", "newRound", "eventCount", "eventLimit"]);
+  inputFields(facts, ["clockValid", "hookWindow", "startedUpper", "nowLower", "adviceePermitLimit", "residentPermitLimit", "roundCount", "roundLimit", "newRound", "eventCount", "eventLimit"]);
   return { $: "Admission.ProspectiveFacts", clock_valid: bool(facts.clockValid), hook_window: nat(facts.hookWindow, true),
     started_upper: nat(facts.startedUpper), now_lower: nat(facts.nowLower),
-    permit_count: nat(facts.permitCount), permit_limit: nat(facts.permitLimit, true),
+    advicee_permit_limit: nat(facts.adviceePermitLimit, true), resident_permit_limit: nat(facts.residentPermitLimit, true),
     round_count: nat(facts.roundCount), round_limit: nat(facts.roundLimit, true), new_round: bool(facts.newRound),
     event_count: nat(facts.eventCount), event_limit: nat(facts.eventLimit, true) };
 };
@@ -1223,7 +1223,7 @@ export const stepCanonical = (state: unknown, event: CanonicalEvent): { readonly
         if (!/^Admission\.(WrongPartition|WrongLifetime|StaleInvocation|Expired|DuplicateTool|NoPermit|UsedPermit|WrongTool|OldRound|InvalidClock|RoundAlreadyClosed|LifetimeNotFresh)$/.test(detail)) throw new TypeError("unknown permit refusal");
         return { state: x.state, commands: [], rejection: detail.slice("Admission.".length) };
       }
-      if (!/^Canonical\.(InvalidIdentity|RoundLimit|StaleRound|StaleOperation|WrongStage|InconsistentLedger|ProspectiveDenied)$/.test(reason)) throw new TypeError("unknown rejection");
+      if (!/^Canonical\.(InvalidIdentity|RoundLimit|StaleRound|StaleOperation|WrongStage|InconsistentLedger|ProspectiveDenied|AdviceePermitLimit|ResidentPermitLimit)$/.test(reason)) throw new TypeError("unknown rejection");
       return { state: x.state, commands: [], rejection: reason.slice("Canonical.".length) };
     }
     default: throw new TypeError("unknown canonical step");

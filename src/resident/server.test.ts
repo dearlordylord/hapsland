@@ -688,6 +688,26 @@ describe("resident delivery lease", () => {
     await server.close();
   });
 
+  it("applies user-configured pending edit limits at the resident boundary", async () => {
+    const root = await makeGitFixture();
+    const userConfigPath = join(root, "user-config.jsonc");
+    await put(root, "user-config.jsonc", '{"version":1,"editPermitLimits":{"perAdvicee":1,"resident":2}}');
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const register = (subagentId: string, toolUseId: string) => server.handle({
+      requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+      root, advicee: { ...observation.advicee, subagentId, toolUseId },
+      startedAt: monotonicNow(), userConfigPath,
+    });
+    try {
+      expect((await register("a", "a1")).status).toBe("advanced");
+      expect(await register("a", "a2")).toMatchObject({ status: "rejected-stale", reason: "AdviceePermitLimit" });
+      expect((await register("b", "b1")).status).toBe("advanced");
+      expect(await register("c", "c1")).toMatchObject({ status: "rejected-stale", reason: "ResidentPermitLimit" });
+    } finally { await server.close(); }
+  });
+
   it("closes a composed round, cancels queued work and fences late results", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
