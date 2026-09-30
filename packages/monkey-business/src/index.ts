@@ -108,6 +108,8 @@ export type RunConfig = {
   readonly inputs?: readonly RunInput[];
   readonly preparationDelay?: number;
   readonly finishDeadline?: number;
+  /** Synthetic retention clock; defaults to the resident’s ten-minute pending advice lifetime. */
+  readonly adviceLifetime?: number;
   readonly jevDelay?: number;
   readonly outcome?: JevRequestOutcome;
   readonly retention?: number;
@@ -132,6 +134,7 @@ type Scheduled = {
   order: number;
   input: RunInput;
   finishAttempt?: number;
+  expiryAdvice?: number;
   job?: Extract<RunInput, { kind: "edit" }>;
 };
 const integer = (n: number, name: string) => {
@@ -214,6 +217,8 @@ export class Run {
     this.jevDelay = integer(config.jevDelay ?? 5, "Jev delay");
     integer(config.preparationDelay ?? 2, "preparation delay");
     integer(config.finishDeadline ?? 200, "finish deadline");
+    if (integer(config.adviceLifetime ?? 600_000, "advice lifetime") === 0)
+      throw new RangeError("advice lifetime must be positive");
     integer(config.retention ?? 1000, "retention");
     this.state = initialCanonical(config.limits ?? defaults);
     if (this.session)
@@ -245,7 +250,7 @@ export class Run {
       input: copy(input),
     });
   }
-  private enqueue(input: RunInput, job?: Extract<RunInput, { kind: "edit" }>) {
+  private enqueue(input: RunInput, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number) {
     integer(input.at, "virtual time");
     if (input.at < this.clock)
       throw new RangeError("cannot schedule in the past");
@@ -254,6 +259,7 @@ export class Run {
       order: this.order++,
       input: copy(input),
       ...(job ? { job } : {}),
+      ...(expiryAdvice !== undefined ? { expiryAdvice } : {}),
     });
     this.queue.sort((a, b) => a.at - b.at || a.order - b.order);
   }
@@ -261,8 +267,9 @@ export class Run {
     event: CanonicalEvent,
     delay = 0,
     job?: Extract<RunInput, { kind: "edit" }>,
+    expiryAdvice?: number,
   ) {
-    this.enqueue({ at: this.clock + delay, kind: "canonical", event }, job);
+    this.enqueue({ at: this.clock + delay, kind: "canonical", event }, job, expiryAdvice);
   }
   applyControl(control: Control): ControlRecord {
     const value = validateLiveControl(control);
@@ -479,6 +486,9 @@ export class Run {
             throw new Error("unhandled required command: retainFinding");
           const advice = event.operation;
           effects.push({ kind: "advice", phase: "supplied", advice });
+          const lifetime = this.config.adviceLifetime ?? 600_000;
+          this.event({ kind: "collectionExpiryCheck", elapsed: lifetime, lifetime },
+            lifetime, undefined, advice);
           this.event({
             kind: "collectionReady",
             advice,
@@ -527,6 +537,12 @@ export class Run {
             advice: event.advice,
             token: event.token,
           });
+          break;
+        }
+        case "collectionExpired": {
+          const advice = item.expiryAdvice;
+          if (advice === undefined) break;
+          this.retireAdvice(advice);
           break;
         }
         case "waitForWork":
@@ -713,19 +729,25 @@ export class Run {
     )
       for (const input of this.session.onAdvice(this.clock))
         this.enqueue(input);
-    if (event.kind === "preparationCompleted")
+    if (event.kind === "preparationCompleted") {
+      this.jobs.delete(event.operation);
       effects.push({
         kind: "preparation",
         phase: "supplied",
         operation: event.operation,
       });
-    if (event.kind === "jevRequestSettled")
+    }
+    if (event.kind === "jevRequestSettled") {
+      this.issuedRequests.delete(event.request);
+      if (!this.projection.pendingFindings.some(finding => finding.operation === event.operation))
+        this.jobs.delete(event.operation);
       effects.push({
         kind: "jev",
         phase: "supplied",
         operation: event.operation,
         request: event.request,
       });
+    }
     const observation: Observation = {
       sequence: this.count++,
       time: this.clock,
@@ -751,6 +773,17 @@ export class Run {
       this.history.splice(0, this.history.length - retention);
     for (const listener of this.listeners) listener(observation);
     return observation;
+  }
+  private retireAdvice(advice: number) {
+    const retained = this.projection.work.find(work =>
+      work.operation === advice && work.kind === "pendingFinding");
+    this.queue = this.queue.filter(item => item.expiryAdvice !== advice);
+    this.event({ kind: "collectionRetireAdvice", advice });
+    this.event({ kind: "submissionForget", advice });
+    if (retained) this.event({ kind: "retireReview",
+      partition: retained.partition, lifetime: retained.lifetime,
+      round: retained.round, operation: advice });
+    this.jobs.delete(advice);
   }
   private pollFinish(delay = 0) {
     const f = this.finish;
@@ -783,13 +816,17 @@ export class Run {
       round: f.round,
       scopes: [{ partition: 1, round: f.round }],
     });
-    if (!continuation)
+    if (!continuation) {
+      for (const work of this.projection.work)
+        if (work.partition === 1 && work.round === f.round && work.kind === "pendingFinding")
+          this.retireAdvice(work.operation);
       this.event({
         kind: "retirePartition",
         partition: 1,
         lifetime: 1,
         round: f.round,
       });
+    }
     this.queue = this.queue.filter((item) => item.finishAttempt !== f.attempt);
     this.finish = undefined;
     if (f.recurring && this.session)
@@ -885,10 +922,11 @@ export const replayRun = (replay: Replay) => {
 };
 
 /** Reconstruct the recorded viewing boundary, including metadata and boundary controls, without another canonical transition. */
-export const restoreReplay = (replay: Replay): Run => {
+export const restoreReplay = (replay: Replay, listener?: (frame: Observation) => void): Run => {
   integer(replay.endpoint.eventCount, "replay event count");
   integer(replay.endpoint.now, "replay endpoint time");
   const run = replayRun(replay);
+  if (listener) run.subscribe(listener);
   run.advance({
     maxEvents: replay.endpoint.eventCount,
     untilTime: replay.endpoint.now,

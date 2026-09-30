@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRun, replayRun } from "./index.ts";
+import { createRun, replayRun, restoreReplay } from "./index.ts";
 
 const config = {
   seed: 7,
@@ -82,6 +82,48 @@ describe("ongoing public sessions", () => {
     expect(run.advance({ maxEvents: 1000 }).reason).toBe("idle");
     expect(run.projection.dispatch.requests.length === 0).toBe(true);
     expect(run.observations.some(observation => observation.event.kind === "jevRequestSettled")).toBe(true);
+  });
+
+  it("keeps submitted composed advice reofferable until checked expiry, then drains retained records", () => {
+    const run = createRun({ ...config, adviceLifetime: 100, retention: 5000 });
+    run.advance({ untilTime: 18, maxEvents: 1000 });
+    expect(run.projection.delivery.submissions.batches.some(batch => batch.phase === "submitted")).toBe(true);
+    expect(run.observations.some(frame => frame.event.kind === "collectionRetireAdvice")).toBe(false);
+    run.applyControl({ kind: "suspendArrivals", suspended: true });
+    expect(run.advance({ maxEvents: 5000 }).reason).toBe("idle");
+    expect(run.projection.delivery.submissions.batches).toEqual([]);
+    expect(run.projection.pendingFindings).toEqual([]);
+    expect(run.observations.some(frame => frame.event.kind === "collectionExpiryCheck" &&
+      frame.commands.some(command => command.kind === "collectionExpired"))).toBe(true);
+    expect(run.observations.some(frame => frame.event.kind === "collectionRetireAdvice")).toBe(true);
+    expect(run.observations.some(frame => frame.event.kind === "retireReview" && frame.rejection)).toBe(false);
+    const replay = replayRun(run.exportReplay());
+    replay.advance({ maxEvents: 5000 });
+    expect(replay.observations).toEqual(run.observations);
+  });
+
+  it("retires a closed round’s advice and cancels obsolete expiry timers", () => {
+    const run = createRun({ ...config, adviceLifetime: 600000 });
+    run.advance({ untilTime: 55, maxEvents: 1000 });
+    expect(run.observations.some(frame => frame.event.kind === "collectionRetireAdvice")).toBe(true);
+    run.applyControl({ kind: "suspendArrivals", suspended: true });
+    run.advance({ maxEvents: 1000 });
+    expect(run.projection.collection.ready).toEqual([]);
+    expect(run.projection.pendingFindings).toEqual([]);
+    expect(run.now).toBeLessThan(600000);
+  });
+
+  it("expires at equality with the resident default and streams full replay despite bounded history", () => {
+    const run = createRun({ retention: 1, inputs: [{ kind: "edit", at: 0, bytes: 10, unitBytes: [5] }] });
+    run.advance({ untilTime: 600006, maxEvents: 1000 });
+    expect(run.projection.pendingFindings).toHaveLength(1);
+    run.advance({ untilTime: 600007, maxEvents: 1000 });
+    expect(run.projection.pendingFindings).toEqual([]);
+    const frames: string[] = [];
+    const restored = restoreReplay(run.exportReplay(), frame => frames.push(frame.event.kind));
+    expect(frames).toHaveLength(run.eventCount);
+    expect(restored.projection).toEqual(run.projection);
+    expect(restored.observations).toHaveLength(1);
   });
 
   it("rejects invalid control bounds before recording changes", () => {
