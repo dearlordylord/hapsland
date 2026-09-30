@@ -1,4 +1,4 @@
-import { validateLiveControl } from "./controls.ts";
+import { validateLiveControl, type LiveControl } from "./controls.ts";
 export * from "./controls.ts";
 import {
   SessionGenerator,
@@ -31,7 +31,7 @@ export const LOGIC_IDENTITY =
 export type RunInput =
   | SessionInput
   | ({ readonly at: number; readonly generation?: number } & (
-      | { readonly event: CanonicalEvent }
+      | { readonly kind: "canonical"; readonly event: CanonicalEvent }
       | {
           readonly kind: "edit";
           readonly bytes: number;
@@ -40,21 +40,53 @@ export type RunInput =
         }
       | { readonly kind: "finish" }
     ));
-export type Control = Readonly<{ kind: string; [key: string]: unknown }>;
+export type Control = LiveControl;
 export type ControlRecord = {
   readonly control: Control;
   readonly time: number;
   readonly sequence: number;
   readonly boundary: number;
 };
-export type EffectObservation = {
-  readonly kind: "preparation" | "jev" | "advice" | "output" | "cancellation";
-  readonly phase: "started" | "supplied";
-  readonly operation?: number;
-  readonly request?: number;
-  readonly advice?: number;
-  readonly due?: number;
-};
+export type EffectObservation =
+  | {
+      readonly kind: "preparation";
+      readonly phase: "started";
+      readonly operation: number;
+      readonly due: number;
+    }
+  | {
+      readonly kind: "preparation";
+      readonly phase: "supplied";
+      readonly operation: number;
+    }
+  | {
+      readonly kind: "jev";
+      readonly phase: "started";
+      readonly operation: number;
+      readonly request: number;
+      readonly due: number;
+    }
+  | {
+      readonly kind: "jev";
+      readonly phase: "supplied";
+      readonly operation: number;
+      readonly request: number;
+    }
+  | {
+      readonly kind: "advice";
+      readonly phase: "supplied";
+      readonly advice: number;
+    }
+  | {
+      readonly kind: "output";
+      readonly phase: "started";
+      readonly advice: number;
+    }
+  | {
+      readonly kind: "cancellation";
+      readonly phase: "supplied";
+      readonly operation: number;
+    };
 export type Observation = {
   readonly sequence: number;
   readonly time: number;
@@ -75,6 +107,7 @@ export type RunConfig = {
   readonly limits?: Parameters<typeof initialCanonical>[0];
   readonly inputs?: readonly RunInput[];
   readonly preparationDelay?: number;
+  readonly finishDeadline?: number;
   readonly jevDelay?: number;
   readonly outcome?: JevRequestOutcome;
   readonly retention?: number;
@@ -87,12 +120,18 @@ export type Replay = {
   readonly logicIdentity: typeof LOGIC_IDENTITY;
   readonly config: RunConfig;
   readonly controls: readonly ControlRecord[];
-  readonly scheduledInputs: readonly { boundary: number; input: RunInput }[];
+  readonly scheduledInputs: readonly {
+    boundary: number;
+    time: number;
+    sequence: number;
+    input: RunInput;
+  }[];
 };
 type Scheduled = {
   at: number;
   order: number;
   input: RunInput;
+  finishAttempt?: number;
   job?: Extract<RunInput, { kind: "edit" }>;
 };
 const integer = (n: number, name: string) => {
@@ -117,8 +156,28 @@ export class Run {
   private history: Observation[] = [];
   private listeners = new Set<(o: Observation) => void>();
   private controls: ControlRecord[] = [];
-  private externalInputs: { boundary: number; input: RunInput }[] = [];
-  private issuedRequests = new Map<number, Extract<CanonicalCommand,{kind:"jevRequestIssued"}>>();
+  private externalInputs: {
+    boundary: number;
+    time: number;
+    sequence: number;
+    input: RunInput;
+  }[] = [];
+  private timelineOrder = 0;
+  private finish:
+    | {
+        round: number;
+        attempt: number;
+        token: number;
+        deadline: number;
+        recurring: boolean;
+        selected: number[];
+        waiting: boolean;
+      }
+    | undefined;
+  private issuedRequests = new Map<
+    number,
+    Extract<CanonicalCommand, { kind: "jevRequestIssued" }>
+  >();
   private jobs = new Map<number, Extract<RunInput, { kind: "edit" }>>();
   private readonly config: RunConfig;
   private readonly session?: SessionGenerator;
@@ -152,6 +211,7 @@ export class Run {
     integer(this.config.seed!, "seed");
     this.jevDelay = integer(config.jevDelay ?? 5, "Jev delay");
     integer(config.preparationDelay ?? 2, "preparation delay");
+    integer(config.finishDeadline ?? 200, "finish deadline");
     integer(config.retention ?? 1000, "retention");
     this.state = initialCanonical(config.limits ?? defaults);
     if (this.session)
@@ -176,7 +236,12 @@ export class Run {
   }
   schedule(input: RunInput) {
     this.enqueue(copy(input));
-    this.externalInputs.push({ boundary: this.count, input: copy(input) });
+    this.externalInputs.push({
+      boundary: this.count,
+      time: this.clock,
+      sequence: this.timelineOrder++,
+      input: copy(input),
+    });
   }
   private enqueue(input: RunInput, job?: Extract<RunInput, { kind: "edit" }>) {
     integer(input.at, "virtual time");
@@ -195,55 +260,21 @@ export class Run {
     delay = 0,
     job?: Extract<RunInput, { kind: "edit" }>,
   ) {
-    this.enqueue({ at: this.clock + delay, event }, job);
+    this.enqueue({ at: this.clock + delay, kind: "canonical", event }, job);
   }
   applyControl(control: Control): ControlRecord {
-    const value = copy(control);
-    if (
-      [
-        "editPace",
-        "burst",
-        "suspendArrivals",
-        "sizes",
-        "sizes",
-        "jevProfile",
-      ].includes(value.kind)
-    )
-      validateLiveControl(value as never);
-    if (value.kind === "jevDelay") {
-      integer(value.delay as number, "Jev delay");
-      this.jevDelay = value.delay as number;
-    } else if (value.kind === "jevProfile") {
-      integer(value.delayMs as number, "Jev delay");
-      if (
-        value.outcome !== undefined &&
-        ![
-          "neverSent",
-          "finding",
-          "clear",
-          "backendFailure",
-          "timeout",
-          "interrupted",
-        ].includes(value.outcome as string)
-      )
-        throw new RangeError("invalid outcome");
-      this.jevDelay = value.delayMs as number;
-      if (value.outcome !== undefined)
-        this.outcome = value.outcome as JevRequestOutcome;
-    } else if (
-      ["editPace", "burst", "suspendArrivals", "sizes"].includes(value.kind) &&
-      this.session
-    ) {
-      for (const input of this.session.apply(
-        value as SessionControl,
-        this.clock,
-      ))
+    const value = validateLiveControl(control);
+    if (value.kind === "jevProfile") {
+      this.jevDelay = value.delayMs;
+      if (value.outcome !== undefined) this.outcome = value.outcome;
+    } else if (this.session) {
+      for (const input of this.session.apply(value, this.clock))
         this.enqueue(input);
     } else throw new Error(`unsupported control: ${value.kind}`);
     const record = {
       control: value,
       time: this.clock,
-      sequence: this.controls.length,
+      sequence: this.timelineOrder++,
       boundary: this.count,
     };
     this.controls.push(record);
@@ -261,21 +292,43 @@ export class Run {
     this.clock = item.at;
     if (this.session && !this.session.valid(item.input))
       return this.step(untilTime);
-    if (!("event" in item.input)) {
-      if ("recurring" in item.input && item.input.recurring && this.session)
+    if (
+      item.finishAttempt !== undefined &&
+      item.finishAttempt !== this.finish?.attempt
+    )
+      return this.step(untilTime);
+    if (item.input.kind !== "canonical") {
+      if (
+        "recurring" in item.input &&
+        item.input.recurring &&
+        item.input.kind !== "finish" &&
+        this.session
+      )
         for (const input of this.session.next(this.clock)) this.enqueue(input);
       if (item.input.kind === "task") return this.step(untilTime);
       const scope = this.projection.rounds.find((r) => r.partition === 1);
       const round = scope?.id;
       if (item.input.kind === "finish") {
-        if (round)
-          this.event({
-            kind: "stopPolled",
-            partition: 1,
-            lifetime: 1,
+        if (round && !this.finish) {
+          this.finish = {
             round,
-            deadline: false,
-          });
+            attempt: 100000 + this.count,
+            token: 100000 + this.count,
+            deadline: this.clock + (this.config.finishDeadline ?? 200),
+            recurring: "recurring" in item.input && item.input.recurring,
+            selected: [],
+            waiting: false,
+          };
+          this.pollFinish();
+          this.pollFinish(this.config.finishDeadline ?? 200);
+        } else if (
+          !round &&
+          "recurring" in item.input &&
+          item.input.recurring &&
+          this.session
+        )
+          for (const input of this.session.next(this.clock))
+            this.enqueue(input);
         return this.step(untilTime);
       }
       if (!round) {
@@ -291,13 +344,7 @@ export class Run {
         return this.step(untilTime);
       }
       this.event(
-        {
-          kind: "beginPreparation",
-          partition: 1,
-          lifetime: 1,
-          round,
-          bytes: item.input.bytes,
-        },
+        { kind: "admitObservation", partition: 1, lifetime: 1, round },
         0,
         item.input,
       );
@@ -331,6 +378,27 @@ export class Run {
         : undefined;
     for (const command of result.commands) {
       switch (command.kind) {
+        case "observationAdmitted": {
+          if (!scope || !item.job)
+            throw new Error("unhandled required command: observationAdmitted");
+          this.event({
+            kind: "startObservation",
+            ...scope,
+            observation: command.id,
+          });
+          this.event(
+            {
+              kind: "beginObservedPreparation",
+              ...scope,
+              observation: command.id,
+              bytes: item.job.bytes,
+            },
+            0,
+            item.job,
+          );
+          break;
+        }
+
         case "prepare": {
           if (!scope || !item.job)
             throw new Error(
@@ -416,6 +484,7 @@ export class Run {
             elapsed: 0,
             window: 200,
           });
+          if (this.finish) break;
           this.event({ kind: "collectionReserveLease", advice, token: advice });
           this.event({
             kind: "submissionBegin",
@@ -456,6 +525,137 @@ export class Run {
           });
           break;
         }
+        case "waitForWork":
+        case "waitForOutput":
+          if (this.finish) this.finish.waiting = true;
+          break;
+        case "finishReady":
+        case "finishLimit": {
+          const f = this.finish;
+          if (!f) break;
+          f.waiting = false;
+          f.selected =
+            command.kind === "finishLimit"
+              ? []
+              : this.projection.pendingFindings
+                  .filter(
+                    (x) =>
+                      !this.projection.delivery.submissions.batches.some(
+                        (b) =>
+                          b.advice === x.operation && b.phase === "submitted",
+                      ),
+                  )
+                  .map((x) => x.operation);
+          this.event({
+            kind: "finishReserve",
+            group: 1,
+            lifetime: 1,
+            round: f.round,
+            attempt: f.attempt,
+            token: f.token,
+            selected: f.selected,
+            hasNotice: false,
+            passNotices: true,
+            canWrite: true,
+            bindingValid: true,
+            deadlineReached: this.clock >= f.deadline,
+          });
+          break;
+        }
+        case "finishAllowedNoAdvice":
+        case "finishAllowedDeadline":
+        case "finishAllowedUnavailable":
+          this.endFinish(false);
+          break;
+        case "finishReserved": {
+          const f = this.finish;
+          if (!f) break;
+          for (const advice of f.selected) {
+            this.event({
+              kind: "collectionReserveLease",
+              advice,
+              token: f.token,
+            });
+            this.event({
+              kind: "submissionBegin",
+              advice,
+              group: 1,
+              round: f.round,
+              token: f.token,
+              surface: "stop",
+              authorizeNow: false,
+              fingerprints: [advice],
+              units: [advice],
+            });
+          }
+          this.event({
+            kind: "finishAuthorize",
+            group: 1,
+            round: f.round,
+            attempt: f.attempt,
+            token: f.token,
+            selected: f.selected,
+          });
+          break;
+        }
+        case "finishAuthorized": {
+          const f = this.finish;
+          if (!f) break;
+          for (const advice of f.selected)
+            this.event({ kind: "submissionAuthorize", advice, token: f.token });
+          break;
+        }
+        case "submissionRecorded": {
+          const f = this.finish;
+          if (
+            f &&
+            event.kind === "submissionTerminal" &&
+            event.token === f.token &&
+            f.selected.every((advice) =>
+              this.projection.delivery.submissions.batches.some(
+                (b) =>
+                  b.advice === advice &&
+                  b.token === f.token &&
+                  b.phase === "submitted",
+              ),
+            )
+          )
+            this.event({
+              kind: "finishTerminal",
+              group: 1,
+              round: f.round,
+              attempt: f.attempt,
+              token: f.token,
+              selected: f.selected,
+              outcome: "acknowledged",
+            });
+          break;
+        }
+        case "finishRecorded": {
+          const f = this.finish;
+          if (f) {
+            this.event({
+              kind: "continuationConsume",
+              group: 1,
+              round: f.round,
+            });
+            this.event({
+              kind: "finishEnd",
+              group: 1,
+              round: f.round,
+              attempt: f.attempt,
+              token: f.token,
+            });
+          }
+          break;
+        }
+        case "finishEnded":
+          this.endFinish(true);
+          break;
+        case "finishRefused":
+          // A product refusal grants no finish or continuation permission.
+          if (this.finish) this.finish.waiting = false;
+          break;
         case "cancelWork":
           effects.push({
             kind: "cancellation",
@@ -465,6 +665,27 @@ export class Run {
           break;
       }
     }
+    if (event.kind === "preparationCompleted" && item.job) {
+      const parent = before.work.find(
+        (w) => w.operation === event.operation,
+      )?.parent;
+      if (parent && scope)
+        this.event({
+          kind: "completeObservation",
+          ...scope,
+          observation: parent,
+        });
+    }
+    if (
+      this.finish?.waiting &&
+      [
+        "preparationCompleted",
+        "jevRequestSettled",
+        "submissionTerminal",
+        "collectionReleaseLease",
+      ].includes(event.kind)
+    )
+      this.pollFinish();
     if (
       event.kind === "submissionTerminal" &&
       !result.rejection &&
@@ -512,6 +733,50 @@ export class Run {
     for (const listener of this.listeners) listener(observation);
     return observation;
   }
+  private pollFinish(delay = 0) {
+    const f = this.finish;
+    if (!f) return;
+    this.queue.push({
+      at: this.clock + delay,
+      order: this.order++,
+      finishAttempt: f.attempt,
+      input: {
+        at: this.clock + delay,
+        kind: "canonical",
+        event: {
+          kind: "stopPolled",
+          partition: 1,
+          lifetime: 1,
+          round: f.round,
+          deadline: this.clock + delay >= f.deadline,
+        },
+      },
+    });
+    this.queue.sort((a, b) => a.at - b.at || a.order - b.order);
+  }
+  private endFinish(continuation: boolean) {
+    const f = this.finish;
+    if (!f) return;
+    this.event({
+      kind: "stopGroupEnded",
+      group: 1,
+      lifetime: 1,
+      round: f.round,
+      scopes: [{ partition: 1, round: f.round }],
+    });
+    if (!continuation)
+      this.event({
+        kind: "retirePartition",
+        partition: 1,
+        lifetime: 1,
+        round: f.round,
+      });
+    this.queue = this.queue.filter((item) => item.finishAttempt !== f.attempt);
+    this.finish = undefined;
+    if (f.recurring && this.session)
+      for (const input of this.session.onFinish(this.clock, continuation))
+        this.enqueue(input);
+  }
   advance({
     untilTime,
     maxEvents = 1000,
@@ -557,14 +822,23 @@ export const replayRun = (replay: Replay) => {
   )
     throw new Error("incompatible replay identity");
   const run = createRun(replay.config);
-  const controls = [...replay.controls];
-  const inputs = [...replay.scheduledInputs];
+  const timeline = [
+    ...replay.controls.map((record) => ({ kind: "control" as const, record })),
+    ...replay.scheduledInputs.map((record) => ({
+      kind: "input" as const,
+      record,
+    })),
+  ].sort((a, b) => a.record.sequence - b.record.sequence);
   const step = run.step.bind(run);
   const flush = () => {
-    while (inputs[0]?.boundary === run.eventCount)
-      run.schedule(inputs.shift()!.input);
-    while (controls[0]?.boundary === run.eventCount && controls[0].time <= run.now)
-      run.applyControl(controls.shift()!.control);
+    while (
+      timeline[0]?.record.boundary === run.eventCount &&
+      timeline[0].record.time <= run.now
+    ) {
+      const item = timeline.shift()!;
+      if (item.kind === "control") run.applyControl(item.record.control);
+      else run.schedule(item.record.input);
+    }
   };
   run.step = (untilTime?: number) => {
     flush();

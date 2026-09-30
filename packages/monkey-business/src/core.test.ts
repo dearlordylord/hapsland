@@ -23,8 +23,10 @@ describe("deterministic driver and replay", () => {
     const run = createRun({
       inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5] }],
     });
-    expect(run.advance({ maxEvents: 2 }).reason).toBe("eventLimit");
-    expect(run.projection.work[0]?.kind).toBe("preparing");
+    expect(run.advance({ maxEvents: 4 }).reason).toBe("eventLimit");
+    expect(run.projection.work.some((work) => work.kind === "preparing")).toBe(
+      true,
+    );
     expect(run.observations.some((x) => x.event.kind === "stopPolled")).toBe(
       false,
     );
@@ -39,7 +41,7 @@ describe("deterministic driver and replay", () => {
       ],
     };
     const run = createRun(config);
-    run.advance({ maxEvents: 6 });
+    run.advance({ maxEvents: 9 });
     run.applyControl({ kind: "jevProfile", delayMs: 12, outcome: "clear" });
     run.advance();
     const replay = replayRun(run.exportReplay());
@@ -72,6 +74,7 @@ describe("deterministic driver and replay", () => {
       inputs: [
         {
           at: 0,
+          kind: "canonical",
           event: {
             kind: "jevRequestSettled",
             partition: 1,
@@ -88,9 +91,14 @@ describe("deterministic driver and replay", () => {
     expect(() => wrong.step()).toThrow("mismatched completion identity");
     const unhandled = createRun({
       inputs: [
-        { at: 0, event: { kind: "openRound", partition: 1, lifetime: 1 } },
+        {
+          at: 0,
+          kind: "canonical",
+          event: { kind: "openRound", partition: 1, lifetime: 1 },
+        },
         {
           at: 1,
+          kind: "canonical",
           event: {
             kind: "beginPreparation",
             partition: 1,
@@ -116,7 +124,7 @@ it("time advancement never crosses a workload metadata boundary", () => {
   expect(run.observations).toEqual([]);
   expect(run.now).toBe(0);
   run.advance({ untilTime: 100, maxEvents: 100 });
-  expect(run.observations.map((x) => x.time)).toEqual([100, 100]);
+  expect(run.observations.map((x) => x.time)).toEqual([100, 100, 100, 100]);
 });
 it("ordinary capacity refusals remain observable successful transitions", () => {
   const run = createRun({
@@ -132,5 +140,90 @@ it("ordinary capacity refusals remain observable successful transitions", () => 
   expect(
     run.observations.flatMap((x) => x.commands.map((c) => c.kind)),
   ).toContain("preparationRefused");
+  expect(run.observations.filter((x) => x.rejection)).toEqual([]);
+});
+
+it("waits for checked finish allowance before generating a later task", () => {
+  const run = createRun({
+    session: {
+      editIntervalMs: 10,
+      variationMs: 0,
+      editsPerTask: 1,
+      taskPauseMs: 1,
+    },
+    jevDelay: 100,
+    finishDeadline: 500,
+  });
+  run.advance({ untilTime: 50, maxEvents: 100 });
+  expect(
+    run.observations.flatMap((x) => x.commands.map((c) => c.kind)),
+  ).toContain("waitForWork");
+  expect(
+    run.observations.filter((x) => x.event.kind === "beginObservedPreparation"),
+  ).toHaveLength(1);
+  run.advance({ untilTime: 140, maxEvents: 100 });
+  const commands = run.observations.flatMap((x) =>
+    x.commands.map((c) => c.kind),
+  );
+  expect(commands).toContain("finishReserved");
+  expect(commands).toContain("finishAuthorized");
+  expect(commands).toContain("finishRecorded");
+  expect(commands).toContain("continuationConsumed");
+  expect(commands).toContain("finishEnded");
+  expect(run.observations.filter((x) => x.rejection)).toEqual([]);
+  expect(
+    run.observations.filter((x) => x.event.kind === "beginObservedPreparation")
+      .length,
+  ).toBeGreaterThan(1);
+});
+it("ends an allowed finish and opens a fresh round for later generated work", () => {
+  const run = createRun({
+    session: {
+      editIntervalMs: 10,
+      variationMs: 0,
+      editsPerTask: 1,
+      taskPauseMs: 1,
+    },
+    outcome: "clear",
+  });
+  run.advance({ untilTime: 45, maxEvents: 100 });
+  const commands = run.observations.flatMap((x) =>
+    x.commands.map((c) => c.kind),
+  );
+  expect(commands).toContain("finishAllowedNoAdvice");
+  expect(
+    run.observations.filter((x) => x.event.kind === "openRound"),
+  ).toHaveLength(2);
+  expect(run.observations.filter((x) => x.rejection)).toEqual([]);
+});
+it("preserves global ordering between controls and explicit scheduled inputs in replay", () => {
+  const run = createRun({ session: { bytes: 100 } });
+  run.applyControl({ kind: "burst", count: 1 });
+  run.schedule({ at: 0, kind: "edit", bytes: 9, unitBytes: [9] });
+  run.advance({ maxEvents: 20 });
+  const replay = replayRun(run.exportReplay());
+  replay.advance({ maxEvents: 20 });
+  expect(replay.observations).toEqual(run.observations);
+});
+it("a virtual finish deadline cancels unfinished requests and permits later work", () => {
+  const run = createRun({
+    session: {
+      editIntervalMs: 10,
+      variationMs: 0,
+      editsPerTask: 1,
+      taskPauseMs: 1,
+    },
+    jevDelay: 1000,
+    finishDeadline: 5,
+  });
+  run.advance({ untilTime: 60, maxEvents: 100 });
+  const commands = run.observations.flatMap((x) =>
+    x.commands.map((c) => c.kind),
+  );
+  expect(commands).toContain("cancelWork");
+  expect(commands).toContain("finishAllowedDeadline");
+  expect(
+    run.observations.filter((x) => x.event.kind === "openRound"),
+  ).toHaveLength(2);
   expect(run.observations.filter((x) => x.rejection)).toEqual([]);
 });
