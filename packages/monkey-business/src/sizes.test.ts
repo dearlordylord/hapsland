@@ -69,8 +69,8 @@ describe("checked size capacity through the public run", () => {
   });
   it("checks explicit encoded output facts independently of reservation bytes", () => {
     const run = createRun({ inputs: [
-      { at: 0, event: { kind: "collectionFitCheck", items: 1, bytes: 1 } },
-      { at: 1, event: { kind: "collectionFitCheck", items: 1, bytes: 100_000_000 } },
+      { at: 0, kind: "canonical", event: { kind: "collectionFitCheck", items: 1, bytes: 1 } },
+      { at: 1, kind: "canonical", event: { kind: "collectionFitCheck", items: 1, bytes: 100_000_000 } },
     ] });
     run.advance({ maxEvents: 10 });
     expect(run.observations.flatMap(frame => frame.commands)).toEqual([
@@ -85,8 +85,8 @@ it("applies live reservation sizes only to future generated edits and replays th
   run.step(); // First edit is observed; the second is already queued with original facts.
   run.applyControl({ kind: "sizes", reservationBytes: 30, reviewUnitBytes: [7, 9] });
   run.advance({ maxEvents: 50, untilTime: 35 });
-  const edits = run.observations.filter(frame => frame.event.kind === "beginPreparation");
-  expect(edits.map(frame => frame.event.kind === "beginPreparation" ? frame.event.bytes : -1)).toEqual([10, 10, 30]);
+  const edits = run.observations.filter(frame => frame.event.kind === "beginObservedPreparation");
+  expect(edits.map(frame => frame.event.kind === "beginObservedPreparation" ? frame.event.bytes : -1)).toEqual([10, 10, 30]);
   const replay = replayRun(run.exportReplay());
   replay.advance({ maxEvents: run.eventCount });
   expect(replay.observations).toEqual(run.observations);
