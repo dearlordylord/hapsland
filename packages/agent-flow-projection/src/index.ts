@@ -1,11 +1,11 @@
 import type { CanonicalCommand, CanonicalEvent, CanonicalProjection } from "../../../src/canonical/adapter";
 
 /** Stable conceptual stages of the observed review process, independent of a drawing. */
-export const FLOW_STAGES = ["observation", "admission", "sourcePending", "dispatchScheduling", "queued", "preparation", "units", "authorization", "effect", "jev", "outcomes", "advice", "collection", "delivery", "round"] as const;
+export const FLOW_STAGES = ["observation", "admission", "sourcePending", "scheduling", "preparation", "units", "authorization", "effect", "jev", "outcomes", "advice", "collection", "delivery", "round"] as const;
 export type FlowStage = typeof FLOW_STAGES[number];
 export type EvidenceSource = "state" | "command" | "native fact" | "external fact";
 /** A semantic transition or decision, with its evidence boundary and a readable account. */
-export type FlowEvidence = Readonly<{ from: FlowStage; to: FlowStage; source: EvidenceSource; description: string; identity?: string }>;
+export type FlowEvidence = Readonly<{ from: FlowStage; to: FlowStage; source: EvidenceSource; description: string; identity?: string; relation?: "linked record" }>;
 export type FlowStepInput = Readonly<{
   event: CanonicalEvent;
   commands: readonly CanonicalCommand[];
@@ -25,11 +25,10 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
   switch (stage) {
     case "observation": return [];
     case "admission": return [state.charges, state.global, state.partitions, state.admissions];
-    case "sourcePending": return state.work.filter((item) => item.kind === "sourceQueued").map((item) => item.operation);
-    case "dispatchScheduling": return [];
-    case "queued": return [state.dispatch.pending, state.dispatch.active];
-    case "preparation": return [state.dispatch.running.filter((item) => item.preparation), state.work.filter((item) => item.kind === "sourceReading" || item.kind === "preparing").map((item) => [item.operation, item.kind])];
-    case "units": return [state.dispatch.running.filter((item) => !item.preparation), state.work.filter((item) => item.kind === "reviewing").map((item) => item.operation), state.charges.filter((item) => item.purpose === "reviewUnit").length];
+    case "sourcePending": return state.work.filter((item) => item.kind === "awaitingSourceRead").map((item) => item.operation);
+    case "scheduling": return [state.dispatch.pending, state.dispatch.active, state.dispatch.running];
+    case "preparation": return state.work.filter((item) => item.kind === "sourceReading" || item.kind === "preparing").map((item) => [item.operation, item.kind]);
+    case "units": return [state.work.filter((item) => item.kind === "reviewing").map((item) => item.operation), state.charges.filter((item) => item.purpose === "reviewUnit").length];
     case "authorization": return state.dispatch.requests.filter((item) => !item.started).map((item) => item.request);
     case "effect": return state.dispatch.requests.filter((item) => item.started).map((item) => [item.request, item.interrupted]);
     case "jev": return [state.work.filter((item) => item.kind === "atJev").map((item) => item.operation), state.dispatch.requests.map((item) => item.request)];
@@ -42,10 +41,8 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
 };
 /** Locate identified work and records in the conceptual flow. */
 export const locateFlow = (state: CanonicalProjection): readonly Located[] => [
-  ...locatedWork(state, ["sourceQueued"], "sourcePending"),
-  ...locatedDispatch(state, ["pending", "active"], "queued"),
-  ...state.dispatch.running.map((item) => ({ key: `dispatch:${item.operation}`, stage: item.preparation ? "preparation" as const : "units" as const,
-    description: `dispatch #${item.operation} (running ${item.preparation ? "preparation" : "review"})` })),
+  ...locatedWork(state, ["awaitingSourceRead"], "sourcePending"),
+  ...locatedDispatch(state, ["pending", "active", "running"], "scheduling"),
   ...locatedWork(state, ["sourceReading", "preparing"], "preparation"),
   ...locatedWork(state, ["reviewing"], "units"),
   ...state.dispatch.requests.filter((item) => !item.started).map((item) => ({ key: `request:${item.request}`, stage: "authorization" as const, description: `request #${item.request} (issued)` })),
@@ -97,12 +94,16 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
     if (next.stage !== prior.stage) {
       evidence.push({ from: prior.stage, to: next.stage, source: "state", description: `${prior.description} → ${next.description}`, identity: key });
       changedStages.add(prior.stage); changedStages.add(next.stage);
-    } else if (next.description !== prior.description) changedStages.add(next.stage);
+    } else if (next.description !== prior.description) {
+      changedStages.add(next.stage);
+      if (next.stage === "scheduling") evidence.push({ from: "scheduling", to: "scheduling", source: "state",
+        description: `${prior.description} → ${next.description}`, identity: key });
+    }
   }
   for (const [key, next] of after) if (!before.has(key)) changedStages.add(next.stage);
   const admitted = step.commands.find((command) => command.kind === "observationAdmitted");
   if (admitted?.kind === "observationAdmitted") for (const next of step.after.work) if (
-    next.operation === admitted.id && next.kind === "sourceQueued" &&
+    next.operation === admitted.id && next.kind === "awaitingSourceRead" &&
     !step.before.work.some((prior) => prior.operation === next.operation)) {
     evidence.push({ from: "admission", to: "sourcePending", source: "state",
       description: `observation admitted as source work #${next.operation}; source read not started`,
@@ -118,14 +119,11 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
     if (step.event.kind !== "queueDispatch" || step.event.operation !== next.operation) continue;
     const source = before.get(`work:${next.operation}`);
     if (source?.stage === "sourcePending" || source?.stage === "units") {
-      evidence.push({ from: source.stage, to: "dispatchScheduling", source: "state",
-        description: `work #${next.operation} scheduled; work state unchanged`, identity: `work:${next.operation}` });
+      evidence.push({ from: source.stage, to: "scheduling", source: "state", relation: "linked record",
+        description: `work #${next.operation} scheduled; dispatch entered ${field}; work state unchanged`, identity: `work:${next.operation}` });
       changedStages.add(source.stage);
     }
-    const place = field === "running" ? next.preparation ? "preparation" : "units" : "queued";
-    evidence.push({ from: "dispatchScheduling", to: place, source: "state",
-      description: `dispatch #${next.operation} entered ${field}`, identity: `dispatch:${next.operation}` });
-    changedStages.add("dispatchScheduling"); changedStages.add(place);
+    changedStages.add("scheduling");
   }
   for (const next of step.after.work) if (next.kind === "reviewing" && !step.before.work.some((prior) => prior.operation === next.operation)) {
     const parent = step.before.work.find((prior) => prior.operation === next.parent);

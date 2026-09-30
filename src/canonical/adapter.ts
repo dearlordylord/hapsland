@@ -958,7 +958,7 @@ export type CanonicalProjection = {
   readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean; readonly quietSince?: number }[];
   readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[] }[];
   readonly completedEdits: readonly { readonly tool: number; readonly reason: CompletedEditReason; readonly reported: boolean }[];
-  readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
+  readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "awaitingSourceRead" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
   readonly pendingFindings: readonly { readonly operation: number; readonly count: number }[];
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean; readonly requests: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number; readonly started: boolean; readonly interrupted: boolean }[] };
   readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
@@ -1159,7 +1159,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   const work = readList(s.work, (value) => {
     const x = fields(value, "Canonical.Work", ["partition", "lifetime", "round", "operation", "charge", "kind", "parent"]);
     const kind = tag(x.kind);
-    const names = { "Canonical.SourceQueued": "sourceQueued", "Canonical.SourceReading": "sourceReading",
+    const names = { "Canonical.AwaitingSourceRead": "awaitingSourceRead", "Canonical.SourceReading": "sourceReading",
       "Canonical.Preparing": "preparing", "Canonical.Reviewing": "reviewing",
       "Canonical.AtJev": "atJev", "Canonical.PendingFinding": "pendingFinding" } as const;
     const stage = names[kind as keyof typeof names];
@@ -1187,7 +1187,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       new Set(admissions.map((x) => x.partition)).size !== admissions.length ||
       rounds.some((x) => x.id >= (s.next_round as number) || (x.write !== undefined && x.write >= (s.next_operation as number))) ||
       work.some((x) => (x.reservation === 0
-          ? x.kind !== "sourceQueued" && x.kind !== "sourceReading"
+          ? x.kind !== "awaitingSourceRead" && x.kind !== "sourceReading"
           : chargesById.get(x.reservation)?.partition !== x.partition ||
             (x.kind === "pendingFinding"
               ? chargesById.get(x.reservation)?.purpose !== "storedResult" &&

@@ -29,7 +29,7 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:1d4f6b44d6ca13f1f531d950c22a1aee27e967a613af47664951d7bc23e5c0f8";
+  "canonical-source-sha256:0e9a7f2397c60ad13c9e39c664944e6ae0d85e9e34b59b2b579c49b4eccac458";
 export type RunInput =
   | SessionInput
   | ({ readonly at: number; readonly generation?: number } & (
@@ -442,7 +442,7 @@ export class Run {
         case "dispatchStarted": {
           const work = this.projection.work.find(work => work.operation === command.operation);
           const job = this.jobs.get(command.operation);
-          if (!work || !job || !["sourceQueued", "reviewing"].includes(work.kind))
+          if (!work || !job || !["awaitingSourceRead", "reviewing"].includes(work.kind))
             throw new Error("unhandled required command: dispatchStarted lacks synthetic source job");
           const scope = { partition: work.partition, lifetime: work.lifetime, round: work.round };
           if (work.kind === "reviewing") {

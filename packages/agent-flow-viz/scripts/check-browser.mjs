@@ -26,7 +26,7 @@ try {
   };
 
   assert.match(await page.locator(".page-header").innerText(), /From agent edit to Jev and back/);
-  assert.equal(await page.locator(".topology-node").count(), 15);
+  assert.equal(await page.locator(".topology-node").count(), 14);
   assert.match(await page.locator(".production-flow").innerText(), /Jev request attempt/);
   assert.match(await page.locator(".production-flow").innerText(), /Jev in-flight: 0\/8 · no Jev wait queue/);
   const canonical = page.locator("#canonical-replay");
@@ -54,12 +54,16 @@ try {
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "observation admitted as source work" }).count(), 1);
   await advanceGuided(4, 4, 57);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Awaiting source read" }).textContent(), /1 source work waiting: #1/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Source preparation" }).textContent(), /1 running prep:/);
-  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "dispatch #1 entered running" }).count(), 1);
-  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "Admission & capacity → Source preparation" }).count(), 0);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /1 running preparation jobs:/);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "dispatch entered running" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "→ Read & prepare source" }).count(), 0);
   await advanceGuided(5, 8, 57);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Dispatch queue" }).textContent(), /1 pending dispatch:/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /1 waiting next batch:/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "entered pending" }).count(), 1);
+  await canonical.locator(".topology-node").filter({ hasText: "Job scheduling" }).click();
+  assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /waiting next batch: 1.*#2 · agent 1 · round 1 · seq 1/s);
+  await canonical.getByLabel("Inspect square").selectOption("sourcePending");
+  assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /source work waiting: 2.*#1.*#2/s);
   await advanceGuided(9, 13, 57);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 1);
   await advanceGuided(14, 34, 57);
@@ -233,11 +237,11 @@ try {
   assert.ok(dispatchTrace);
   for (let index = 0; index < 5; index++) await applyManual(dispatchTrace.events[index], index + 1);
   assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 1\/8/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Dispatch queue" }).textContent(), /1 pending dispatch: #2\/agent 1\/seq 1/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /1 waiting next batch: #2\/agent 1\/seq 1/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 0);
   for (let index = 5; index < 10; index++) await applyManual(dispatchTrace.events[index], index + 1);
   await waitForText(".topology-step", "dispatchStarted");
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Source preparation" }).textContent(), /2 running prep: #2\/agent 1\/seq 1\/preparation, #3\/agent 1\/seq 2\/preparation/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /2 running preparation jobs: #2\/agent 1\/seq 1\/preparation, #3\/agent 1\/seq 2\/preparation/);
   assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 2\/8/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 1);
 

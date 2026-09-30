@@ -10,6 +10,7 @@ import { timelineView } from "./timeline-view";
 import { CAPACITY_INVENTORY } from "./capacity-inventory.generated";
 import { CANONICAL_SCENARIOS, guidedIndex, nextGuidedEvent, replayCanonical, tryAppendCanonical, type ReplayEvent } from "./canonical-replay";
 import { productionFlowView } from "./production-flow-view";
+import { PLACE_ORDER, SQUARES } from "./production-flow-presentation";
 import type { CapacityPurpose, CanonicalCommand } from "../../../src/canonical/adapter";
 
 export const Model = Schema.Struct({
@@ -23,6 +24,7 @@ export const Model = Schema.Struct({
   frame: Schema.Number,
   draft: Schema.String,
   feedback: Schema.String,
+  flowStage: Schema.String,
 });
 export type Model = typeof Model.Type;
 
@@ -42,6 +44,7 @@ export const Message = defineMessageUnion({
   DraftChanged: { raw: Schema.String },
   Submitted: {},
   Reset: {},
+  SelectedFlowStage: { stage: Schema.String },
 });
 export type Message = typeof Message.Type;
 
@@ -50,6 +53,7 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: {
   history: [], position: 0, frame: 0,
   draft: '{"kind":"reserveCapacity","partition":3,"bytes":5,"purpose":"reviewUnit"}',
   feedback: "Replay events use the same checked Bend reducer as the running integration.",
+  flowStage: "",
 } });
 
 const append = (model: Model, event: unknown, origin: ReplayEvent["origin"]): Model => {
@@ -84,6 +88,7 @@ export const update = (model: Model, message: Message) => Message.match<Update.R
     catch { return { model: { ...model, feedback: "Enter one valid JSON event." } }; }
   },
   Reset: () => ({ model: { ...model, history: [], position: 0, frame: 0, feedback: "Replay reset." } }),
+  SelectedFlowStage: ({ stage }) => ({ model: { ...model, flowStage: PLACE_ORDER.includes(stage as typeof PLACE_ORDER[number]) ? stage : "" } }),
 });
 
 const purposeLabels: Record<CapacityPurpose, string> = {
@@ -146,6 +151,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const scenario = CANONICAL_SCENARIOS[model.scenario];
   const next = nextGuidedEvent(history, model.position, model.scenario);
   const guided = guidedIndex(history, model.position);
+  const flowStage = PLACE_ORDER.find((stage) => stage === model.flowStage);
   return {
     title: "Hapsland · guided replay",
     body: h.main([h.Class("page")], [
@@ -180,7 +186,24 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           ]),
         ]),
 
-        productionFlowView(h, projection, last, model.scenario === 0),
+        productionFlowView(h, projection, last, model.scenario === 0,
+          (stage) => Message.SelectedFlowStage({ stage })),
+        h.section([h.Class("flow-stage-inspector")], [
+          h.h3([], ["Square details at this step"]),
+          h.label([], ["Square", h.select([h.AriaLabel("Inspect square"), h.Value(flowStage ?? ""),
+            h.OnChange((stage) => Message.SelectedFlowStage({ stage }))], [
+            h.option([h.Value("")], ["Select a square"]),
+            ...PLACE_ORDER.map((stage) => h.option([h.Value(stage)], [SQUARES[stage].title])),
+          ])]),
+          ...(flowStage === undefined ? [h.p([], ["Select a square or click one in the diagram to inspect its records."])]
+            : [h.h4([], [SQUARES[flowStage].title]),
+              ...(SQUARES[flowStage].facets(projection).length === 0
+                ? [h.p([], ["This square represents a supplied event; it has no retained state records."])] : []),
+              h.ul([], SQUARES[flowStage].facets(projection).map((facet) => h.li([], [
+                h.strong([], [`${facet.label}: ${facet.count}`]),
+                ...(facet.references.length === 0 ? [] : [h.ul([], facet.references.map((reference) => h.li([], [reference.replaceAll("/", " · ")])))]),
+              ])))]),
+        ]),
         h.details([h.Class("flow-coverage")], [
           h.summary([], ["Transition-family coverage and source boundaries"]),
           h.p([], ["Guided status comes from independent source-free fixtures. Manual replay checks each event against the current Bend state. The source link names each decision family."]),

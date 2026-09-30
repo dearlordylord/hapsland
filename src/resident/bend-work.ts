@@ -18,7 +18,7 @@ export class BendWorkTracker {
   }
 
   admit(observation: number): number {
-    if (this.#work(observation)?.kind !== "sourceQueued") throw new Error("canonical source admission missing");
+    if (this.#work(observation)?.kind !== "awaitingSourceRead") throw new Error("canonical source admission missing");
     return observation;
   }
 
@@ -32,7 +32,7 @@ export class BendWorkTracker {
     return work?.parent === observation && work.kind === "pendingFinding" ? operation : undefined;
   }
 
-  startSource(observation: number): boolean { return this.#work(observation)?.kind === "sourceQueued"; }
+  startSource(observation: number): boolean { return this.#work(observation)?.kind === "awaitingSourceRead"; }
   completeSource(observation: number): boolean { return this.#work(observation)?.kind === "sourceReading"; }
   startUnit(operation: number): boolean { return this.#work(operation)?.kind === "reviewing"; }
   outcome(operation: number, _outcome: unknown): boolean { return this.#work(operation)?.kind === "atJev"; }

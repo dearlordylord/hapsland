@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:1d4f6b44d6ca13f1f531d950c22a1aee27e967a613af47664951d7bc23e5c0f8
+// hapsland-bend-source-sha256:0e9a7f2397c60ad13c9e39c664944e6ae0d85e9e34b59b2b579c49b4eccac458
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -2866,7 +2866,7 @@ function $Canonical$admit_observation_found$(_state_0, _partition_0, _lifetime_0
   const _history_0 = _state_0["history"];
   if (_found_0.$ === "Some") {
     const _current_0 = _found_0["value"];
-    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($Canonical$is_deciding$(_current_0)))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "Canonical.SourceQueued"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationAdmitted", "id": _next_operation_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
+    return $Bool$pick$(($Bool$and$(($Canonical$same_round$(_partition_0, _lifetime_0, _round_0, _current_0)), ($Bool$not$(($Canonical$is_deciding$(_current_0)))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": {$: "Con", "head": {$: "Canonical.Work", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _next_operation_0, "charge": 0, "kind": {$: "Canonical.AwaitingSourceRead"}, "parent": 0}, "tail": _work_0}, "next_round": _next_round_0, "next_operation": nat_chk(_next_operation_0 + 1), "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationAdmitted", "id": _next_operation_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}});
   } else {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.StaleRound"}};
   }
@@ -2887,7 +2887,7 @@ function $Canonical$observation_started_found$(_state_0, _operation_0, _found_0)
     const _t_1 = _t_0["charge"];
     if (_t_1 === 0) {
       const _t_2 = _t_0["kind"];
-      if (_t_2.$ === "Canonical.SourceQueued") {
+      if (_t_2.$ === "Canonical.AwaitingSourceRead") {
         return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$replace_work_kind$(_operation_0, {$: "Canonical.SourceReading"}, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationStarted"}, "tail": {$: "Nil"}}};
       } else {
         return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}};
@@ -2953,7 +2953,7 @@ function $Canonical$interrupt_observation_found$(_state_0, _operation_0, _found_
     const _t_1 = _t_0["charge"];
     if (_t_1 === 0) {
       const _t_2 = _t_0["kind"];
-      if (_t_2.$ === "Canonical.SourceQueued") {
+      if (_t_2.$ === "Canonical.AwaitingSourceRead") {
         return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationInterrupted"}, "tail": {$: "Nil"}}};
       } else if (_t_2.$ === "Canonical.SourceReading") {
         return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": ($Canonical$remove_work$(_operation_0, _work_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": {$: "Canonical.ObservationInterrupted"}, "tail": {$: "Nil"}}};
@@ -3238,7 +3238,7 @@ function $Canonical$work_dispatchable$(_found_0) {
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
-    if (_t_1.$ === "Canonical.SourceQueued") {
+    if (_t_1.$ === "Canonical.AwaitingSourceRead") {
       return true;
     } else if (_t_1.$ === "Canonical.Reviewing") {
       return true;
@@ -3285,7 +3285,7 @@ function $Canonical$dispatch_preparation$(_found_0) {
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
     const _t_1 = _t_0["kind"];
-    if (_t_1.$ === "Canonical.SourceQueued") {
+    if (_t_1.$ === "Canonical.AwaitingSourceRead") {
       return true;
     } else {
       return false;

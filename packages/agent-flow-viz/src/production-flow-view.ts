@@ -5,7 +5,7 @@ import { projectFlowStep, type FlowEvidence } from "@hapsland/agent-flow-project
 import { CONNECTIONS, PLACE_ORDER, SQUARES, squareFacetLine } from "./production-flow-presentation";
 
 type ArrowKind = FlowEvidence["source"] | "possible" | "mixed" | "mixed external";
-type Route = (typeof CONNECTIONS)[number] & Readonly<{ active: boolean; kind: ArrowKind; evidence: string }>;
+type Route = (typeof CONNECTIONS)[number] & Readonly<{ active: boolean; kind: ArrowKind; linked: boolean; evidence: string }>;
 const unreachable = (value: never): never => { throw new Error(`unknown arrow kind: ${String(value)}`); };
 const arrowKind = (evidence: readonly FlowEvidence[]): ArrowKind => {
   if (evidence.length === 0) return "possible";
@@ -82,6 +82,12 @@ const routeGeometry = (route: Route, offset: number) => {
     return { path: `M ${x + 9} ${y - 35} C ${x + 100} ${y - 70}, ${x + 100} ${y + 70}, ${x + 9} ${y + 35}`,
       badge: { x: x + 85, y }, tip: { x: x + 9, y: y + 35 }, toward: { x: -1, y: 0 } };
   }
+  if (route.from === "scheduling" && route.to === "scheduling") {
+    const x = from.x + NODE_WIDTH + 9;
+    const y = from.y + NODE_HEIGHT / 2;
+    return { path: `M ${x} ${y - 33} C ${x + 58} ${y - 65}, ${x + 58} ${y + 65}, ${x} ${y + 33}`,
+      badge: { x: x + 31, y }, tip: { x, y: y + 33 }, toward: { x: -1, y: 0 } };
+  }
   if (route.from === route.to) {
     const x = from.x + NODE_WIDTH - 18;
     const y = from.y + NODE_HEIGHT;
@@ -91,7 +97,7 @@ const routeGeometry = (route: Route, offset: number) => {
   if (route.from === "admission" && route.to === "preparation") {
     const startX = from.x + NODE_WIDTH + 9;
     const laneX = startX + 17;
-    const laneY = 185;
+    const laneY = 177;
     const endLaneX = to.x - 36;
     const endX = to.x - 9;
     const endY = to.y + NODE_HEIGHT / 2;
@@ -101,47 +107,21 @@ const routeGeometry = (route: Route, offset: number) => {
   if (route.from === "sourcePending" && route.to === "preparation") {
     const startX = from.x + NODE_WIDTH / 2;
     const laneX = to.x - 36;
-    const y = from.y + NODE_HEIGHT + 9;
+    const startY = from.y + NODE_HEIGHT + 9;
+    const laneY = 330;
     const endX = to.x - 9;
     const endY = to.y + NODE_HEIGHT / 2;
-    return { path: `M ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
-      badge: { x: 775, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
+    return { path: `M ${startX} ${startY} L ${startX} ${laneY} L ${laneX} ${laneY} L ${laneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 775, y: laneY }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
   }
-  if (route.from === "dispatchScheduling" && route.to === "preparation") {
-    const startX = from.x + NODE_WIDTH + 9;
-    const laneX = to.x - 36;
-    const y = from.y + NODE_HEIGHT / 2;
-    const endX = to.x - 9;
-    const endY = to.y + NODE_HEIGHT / 2;
-    return { path: `M ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
-      badge: { x: 700, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
-  }
-  if (route.from === "dispatchScheduling" && route.to === "units") {
-    const startX = from.x + NODE_WIDTH + 9;
-    const laneX = to.x - 34;
-    const y = from.y + NODE_HEIGHT / 2 + 30;
-    const endX = to.x - 9;
-    const endY = to.y + NODE_HEIGHT / 2;
-    return { path: `M ${startX} ${from.y + NODE_HEIGHT / 2} L ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
-      badge: { x: 985, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
-  }
-  if (route.from === "units" && route.to === "dispatchScheduling") {
+  if (route.from === "units" && route.to === "scheduling") {
     const startX = from.x + NODE_WIDTH / 2;
-    const y = 300;
+    const y = 325;
     const laneX = to.x + NODE_WIDTH + 36;
     const endX = to.x + NODE_WIDTH + 9;
     const endY = to.y + NODE_HEIGHT / 2;
     return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
       badge: { x: 1060, y }, tip: { x: endX, y: endY }, toward: { x: -1, y: 0 } };
-  }
-  if (route.from === "queued" && route.to === "units") {
-    const startX = from.x + NODE_WIDTH / 2;
-    const y = 206;
-    const laneX = to.x - 34;
-    const endX = to.x - 9;
-    const endY = to.y + NODE_HEIGHT / 2;
-    return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
-      badge: { x: 932, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
   }
   if (route.from === "collection" && route.to === "preparation") {
     const y = from.y + NODE_HEIGHT / 2;
@@ -193,6 +173,9 @@ export const productionFlowView = <Message>(
 ) => {
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
   const event = last?.rejection === undefined ? last?.event.kind : undefined;
+  const consumed = commands.find((command) => command.kind === "permitConsumed");
+  const editAccepted = event === "consumePermit" && last?.event.kind === "consumePermit" && consumed?.kind === "permitConsumed"
+    ? { tool: last.event.tool, token: last.event.token } : undefined;
   const stopEvent = event === "stopPolled" || event === "stopGroupPolled";
   const requests = projection.dispatch.requests;
   const flow = projectFlowStep(last);
@@ -205,7 +188,8 @@ export const productionFlowView = <Message>(
   const routes: readonly Route[] = CONNECTIONS.map((connection): Route => {
     const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
     return { ...connection, active: evidence.length > 0, kind: arrowKind(evidence),
-      evidence: evidence.map((item) => `${item.source}: ${item.description}`).join("; ") };
+      linked: "relation" in connection && connection.relation === "linked record",
+      evidence: evidence.map((item) => `${item.relation ?? item.source}: ${item.description}`).join("; ") };
   });
   const routeMultiplicity = new Map<string, number>();
   const routeOffsets = routes.map((route) => {
@@ -222,7 +206,7 @@ export const productionFlowView = <Message>(
     { label: "Cancel unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
   ];
   return h.div([h.Class("production-topology")], [
-    h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Purple dashed: command"]),
+    h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"]),
     h.div([h.Class("topology-scroll")], [
       h.svg([h.ViewBox("0 0 1400 830"), h.Role("img"),
         h.AriaLabel("Connected production flow from agent edit through Jev review to advice and round decision")], [
@@ -236,7 +220,7 @@ export const productionFlowView = <Message>(
             h.title([], [`${index + 1}. ${nodes.find((node) => node.id === route.from)?.title} → ${nodes.find((node) => node.id === route.to)?.title}: ${route.active ? route.evidence : `possible: ${route.label}`}`]),
             h.path([h.D(path), h.Fill("none"), h.Stroke(color),
               h.StrokeWidth(route.active ? "4" : "2"),
-              ...(paint.dashed ? [h.StrokeDasharray("7 5")] : [])], []),
+              ...(paint.dashed ? [h.StrokeDasharray("7 5")] : route.linked ? [h.StrokeDasharray("2 6")] : [])], []),
             ...(paint.overlay ? [h.path([h.D(path), h.Fill("none"), h.Stroke("#794aa0"), h.StrokeWidth("2"), h.StrokeDasharray("7 5")], [])] : []),
             h.path([h.D(arrowHead(tip, toward)), h.Fill(color)], []),
             h.circle([h.Cx(String(badge.x)), h.Cy(String(badge.y)), h.R("11"),
@@ -262,6 +246,15 @@ export const productionFlowView = <Message>(
             ...node.facets.map((facet, index) =>
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + index * 13)), h.FontSize("10"), h.FontWeight("600"), h.Class("topology-facet"),
                 h.Fill("#435670")], [squareFacetLine(facet)])),
+            ...(editAccepted === undefined ? [] : node.id === "observation"
+              ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("10"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                [`NOW · edit #${editAccepted.tool} accepted`])]
+              : node.id === "admission"
+                ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + node.facets.length * 13)), h.FontSize("10"),
+                  h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                  [`NOW · permit #${editAccepted.token} used`])]
+                : []),
           ]);
         }),
       ]),

@@ -76,14 +76,14 @@ try {
       const frame = run.step(0);
       if (!frame) break;
       assert.equal(frame.rejection, undefined);
-      if (frame.after.work.filter((work) => work.kind === "sourceQueued").length === count) { observed = frame.after; break; }
+      if (frame.after.work.filter((work) => work.kind === "awaitingSourceRead").length === count) { observed = frame.after; break; }
     }
     assert.ok(observed, `checked burst reaches ${count} queued sources`);
     const facet = presentation.SQUARES.sourcePending.facets(observed).find((item) => item.label === "source work waiting");
     assert.equal(facet.count, count);
     assert.match(JSON.stringify(flowView.productionFlowView(inertHtml, observed, undefined, false)), new RegExp(`${count} source work waiting`));
-    assert.equal(presentation.SQUARES.preparation.facets(observed)[0].count, observed.dispatch.running.filter((entry) => entry.preparation).length);
-    assert.equal(presentation.SQUARES.units.facets(observed)[2].count, observed.dispatch.running.filter((entry) => !entry.preparation).length);
+    assert.equal(presentation.SQUARES.scheduling.facets(observed)[2].count, observed.dispatch.running.filter((entry) => entry.preparation).length);
+    assert.equal(presentation.SQUARES.scheduling.facets(observed)[3].count, observed.dispatch.running.filter((entry) => !entry.preparation).length);
   }
   assert.deepEqual(inventory.CAPACITY_INVENTORY.map((entry) => entry.purpose),
     compiled.inventory.map((entry) => entry.purpose));
@@ -97,8 +97,8 @@ try {
   const elements = (model, name) => descendants(main.view(model, inertHtml).body)
     .filter((node) => node.data?.class?.[name]);
   const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
-  assert.equal(elements(initial, "topology-node").length, 15);
-  assert.equal(elements(initial, "topology-route").length, 29);
+  assert.equal(elements(initial, "topology-node").length, 14);
+  assert.equal(elements(initial, "topology-route").length, 25);
   assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
   assert.equal(canonical.CANONICAL_SCENARIOS[initial.scenario].name, canonical.SHOWCASE_SCENARIO.name);
   let showcase = initial;
@@ -120,11 +120,33 @@ try {
       assert.match(labels(main.view(showcase, inertHtml).body), /0 edit permits/);
       assert.match(labels(main.view(showcase, inertHtml).body), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/);
     }
+    if (index === 5) {
+      const nodes = elements(showcase, "topology-node");
+      assert.match(labels(nodes.find((node) => labels(node).includes("Agent edit"))), /NOW · edit #2 accepted/);
+      assert.match(labels(nodes.find((node) => labels(node).includes("Admission & capacity"))), /NOW · permit #2 used/);
+      assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
+      assert.equal(step.after.work.length, 1, "the accepted edit has no second source work until admission");
+    }
     if (index === 7) {
       assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
-      assert.ok(active.some((route) => labels(route).includes("dispatch #2 entered pending")));
+      assert.ok(active.some((route) => labels(route).includes("work #2 scheduled; dispatch entered pending")));
+      showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "scheduling" }));
+      const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
+      assert.match(detail, /waiting next batch: 1.*#2 · agent 1 · round 1 · seq 1 · cycle 0 · preparation/s);
+      assert.match(detail, /running preparation jobs: 1.*#1 · agent 1 · round 1 · seq 0 · cycle 1 · preparation/s);
+      for (const stage of presentation.PLACE_ORDER) {
+        const selected = send(showcase, main.Message.SelectedFlowStage({ stage }));
+        assert.equal(selected.flowStage, stage);
+        assert.equal(elements(selected, "flow-stage-inspector").length, 1);
+      }
     }
-    if (index === 12) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running preparation)")));
+    if (index === 8) {
+      showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "sourcePending" }));
+      const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
+      assert.match(detail, /source work waiting: 1.*#2/s);
+      assert.doesNotMatch(detail, /source work waiting: 2/);
+    }
+    if (index === 12) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running)")));
     if (index === 20) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
     if (index === 25) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
     if (index === 26) assert.ok(active.some((route) => labels(route).includes("retain finding command")));

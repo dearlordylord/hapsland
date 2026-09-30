@@ -595,7 +595,7 @@ describe("shared Hapsland rounds", () => {
     const source = state.canonical.admitObservation("agent", successor);
     expect(state.finishGate("agent", "stop", 0, true)).toBeUndefined();
     expect(state.canonical.canonicalProjection().work).toEqual([
-      expect.objectContaining({ operation: source, round: successor, kind: "sourceQueued" }),
+      expect.objectContaining({ operation: source, round: successor, kind: "awaitingSourceRead" }),
     ]);
     expect(state.canonical.canonicalProjection().rounds).toEqual([
       expect.objectContaining({ id: successor, deciding: false }),

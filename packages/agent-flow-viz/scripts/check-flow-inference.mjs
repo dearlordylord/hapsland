@@ -21,27 +21,29 @@ try {
     "the accepted edit crosses admission while Bend opens the round");
   assert.ok(steps[1].commands.some((command) => command.kind === "roundStarted"));
   assert.ok(steps[2].commands.some((command) => command.kind === "observationAdmitted"));
-  assert.deepEqual(steps[2].after.work.map((work) => [work.operation, work.kind]), [[1, "sourceQueued"]]);
+  assert.deepEqual(steps[2].after.work.map((work) => [work.operation, work.kind]), [[1, "awaitingSourceRead"]]);
   assert.equal(steps[2].after.charges.length, 0,
     "observation admission creates queued source work without a review capacity charge");
   assert.ok(has(3, "state", "admission", "sourcePending", "work:1"),
     "checked admission places new work in its own waiting-source stage");
   assert.ok(has(9, "state", "sourcePending", "preparation", "work:1"),
     "source work moves from the waiting stage only when reading starts");
-  assert.ok(has(4, "state", "sourcePending", "dispatchScheduling", "work:1"),
+  assert.ok(has(4, "state", "sourcePending", "scheduling", "work:1"),
     "the waiting source work is linked to scheduling without leaving its state");
-  assert.ok(has(4, "state", "dispatchScheduling", "preparation", "dispatch:1"),
-    "Bend immediately starts the first preparation dispatch");
+  assert.equal(steps[3].after.dispatch.running.filter((entry) => entry.preparation).length, 1,
+    "the first preparation job starts immediately inside scheduling");
+  assert.ok(!evidenceAt(4).some((item) => item.to === "preparation"),
+    "starting a job does not claim that source reading began");
   assert.ok(!evidenceAt(4).some((item) => item.from === "admission"),
     "dispatch scheduling does not invent an admission or capacity transition");
-  assert.equal(steps[3].after.work.find((work) => work.operation === 1)?.kind, "sourceQueued",
+  assert.equal(steps[3].after.work.find((work) => work.operation === 1)?.kind, "awaitingSourceRead",
     "a running dispatch does not yet mean source reading began");
-  assert.ok(has(8, "state", "dispatchScheduling", "queued", "dispatch:2"),
-    "a second queued edit is evidenced by its dispatch ID");
-  assert.ok(has(19, "state", "units", "dispatchScheduling", "work:4"));
-  assert.ok(has(19, "state", "dispatchScheduling", "units", "dispatch:4"));
-  assert.ok(has(13, "state", "queued", "preparation", "dispatch:2"),
-    "the same dispatch ID crosses from waiting queue to running preparation");
+  assert.ok(has(8, "state", "sourcePending", "scheduling", "work:2"),
+    "the second source job enters scheduling while the first runs");
+  assert.equal(steps[7].after.dispatch.pending.length, 1);
+  assert.ok(has(19, "state", "units", "scheduling", "work:4"));
+  assert.ok(has(13, "state", "scheduling", "scheduling", "dispatch:2"),
+    "the same dispatch ID changes from pending to running within scheduling");
   assert.ok(has(11, "state", "preparation", "units", "work:4"),
     "a prepared work item's child review unit has an explicit parent link");
   assert.ok(has(21, "command", "authorization", "effect"),

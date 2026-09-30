@@ -435,7 +435,7 @@ export class ComposedDelivery {
     const terminal = cutoff.commands.at(-1)?.kind;
     if (terminal !== "finishReady" && terminal !== "finishLimit") throw new Error("invalid canonical Stop command");
     const source = new Set(projection.work.filter((item) => item.partition === owner && item.round === canonicalRound &&
-      (item.kind === "sourceQueued" || item.kind === "sourceReading")).map((item) => item.operation));
+      (item.kind === "awaitingSourceRead" || item.kind === "sourceReading")).map((item) => item.operation));
     const cancelled = cutoff.commands.filter((item) => item.kind === "cancelWork").map((item) => item.operation);
     for (const command of cutoff.commands) if (command.kind === "reservationReleased") {
       this.canonical.acknowledgeStopRelease(command.id);

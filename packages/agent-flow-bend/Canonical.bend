@@ -32,7 +32,7 @@ type Work is Data:
     charge: Nat, kind: WorkKind, parent: Nat}
 
 type WorkKind is Data:
-  SourceQueued{}
+  AwaitingSourceRead{}
   SourceReading{}
   Preparing{}
   Reviewing{}
@@ -1143,7 +1143,7 @@ def admit_observation_found(+state: State, +partition: Nat, +lifetime: Nat,
       Bool.pick(Step, Bool.and(same_round(partition, lifetime, round, current),
           Bool.not(is_deciding(current))),
         Advanced{State{ledger, rounds,
-          Work{partition, lifetime, round, next_operation, 0n, SourceQueued{}, 0n} <> work,
+          Work{partition, lifetime, round, next_operation, 0n, AwaitingSourceRead{}, 0n} <> work,
           next_round, (next_operation + 1n : Nat), admissions, dispatch, collection, history},
           ObservationAdmitted{next_operation} <> Nil{}},
         Rejected{state, StaleRound{}})
@@ -1178,7 +1178,7 @@ def observation_started_found(+state: State, +operation: Nat,
     found: Maybe<&2, Work>) -> Step:
   match state found:
     case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection, +history}
-        Some{Work{_, _, _, _, 0n, SourceQueued{}, _}}:
+        Some{Work{_, _, _, _, 0n, AwaitingSourceRead{}, _}}:
       Advanced{State{ledger, rounds, replace_work_kind(operation, SourceReading{}, work),
         next_round, next_operation, admissions, dispatch, collection, history}, ObservationStarted{} <> Nil{}}
     case _ _:
@@ -1194,6 +1194,9 @@ def observation_completed_found(+state: State, +operation: Nat,
     case _ _:
       Rejected{state, WrongStage{}}
 
+# TODO: StartObservation accepts AwaitingSourceRead work without checking for a matching
+# running dispatch. The resident emits this event from a started dispatch job.
+# Decide whether Bend must enforce that link or admit and schedule atomically.
 def start_observation(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +observation: Nat) -> Step:
   match state:
@@ -1212,7 +1215,7 @@ def interrupt_observation_found(+state: State, +operation: Nat,
     found: Maybe<&2, Work>) -> Step:
   match state found:
     case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection, +history}
-        Some{Work{_, _, _, _, 0n, SourceQueued{}, _}}:
+        Some{Work{_, _, _, _, 0n, AwaitingSourceRead{}, _}}:
       Advanced{State{ledger, rounds, remove_work(operation, work),
         next_round, next_operation, admissions, dispatch, collection, history}, ObservationInterrupted{} <> Nil{}}
     case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection, +history}
@@ -2273,7 +2276,7 @@ def dispatch_result(state: State, result: Dispatch.DispatchResult) -> Step:
 
 def work_dispatchable(found: Maybe<&2, Work>) -> Bool:
   match found:
-    case Some{Work{_, _, _, _, _, SourceQueued{}, _}}:
+    case Some{Work{_, _, _, _, _, AwaitingSourceRead{}, _}}:
       True{}
     case Some{Work{_, _, _, _, _, Reviewing{}, _}}:
       True{}
@@ -2282,7 +2285,7 @@ def work_dispatchable(found: Maybe<&2, Work>) -> Bool:
 
 def dispatch_preparation(found: Maybe<&2, Work>) -> Bool:
   match found:
-    case Some{Work{_, _, _, _, _, SourceQueued{}, _}}: True{}
+    case Some{Work{_, _, _, _, _, AwaitingSourceRead{}, _}}: True{}
     case _: False{}
 
 def queue_dispatch(+state: State, +partition: Nat, +lifetime: Nat,

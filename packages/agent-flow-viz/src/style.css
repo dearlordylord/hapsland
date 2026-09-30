@@ -147,6 +147,11 @@ p { line-height: 1.5; }
 
 .simulation-history button.selected { background: #dce9ff; border: 2px solid #547dc0; }
 .simulation-panel .topology-node { cursor: pointer; }
+.canonical-replay .topology-node { cursor: pointer; }
+.flow-stage-inspector { max-height: 360px; overflow: auto; padding: 12px; border: 1px solid #bac9dc; border-radius: 8px; margin: 12px 0; }
+.flow-stage-inspector h3, .flow-stage-inspector h4 { margin: 0 0 8px; }
+.flow-stage-inspector select { margin-left: 8px; }
+.flow-stage-inspector ul { margin: 6px 0; padding-left: 22px; }
 .applied-speed { font-weight: 700; }
 
 .simulation-stage-inspector { height: 300px; overflow: auto; padding: 12px; border: 1px solid #bac9dc; margin: 16px 0; }

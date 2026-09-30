@@ -39,7 +39,7 @@ try {
   await status("One checked transition advanced");
   assert.match(await panel.locator(".simulation-status").innerText(), /Paused/);
   await panel.locator(".simulation-details summary").click();
-  assert.equal(await panel.locator(".topology-node").count(), 15);
+  assert.equal(await panel.locator(".topology-node").count(), 14);
   assert.match(await panel.innerText(), /simulated Jev/i);
   assert.match(
     await panel.locator(".simulation-details").innerText(),
@@ -484,7 +484,7 @@ try {
     for (let index = 0; index < 1000; index++) {
       const frame = run.step(0);
       if (!frame) break;
-      if (frame.after.work.filter((work) => work.kind === "sourceQueued").length === 50) return run.exportReplay();
+      if (frame.after.work.filter((work) => work.kind === "awaitingSourceRead").length === 50) return run.exportReplay();
     }
     throw new Error("Checked burst did not reach 50 queued sources");
   }, publicModule);
@@ -493,7 +493,7 @@ try {
   await status("Replay reconstructed");
   const waitingSourceSquare = panel.locator(".topology-node").filter({ hasText: "Awaiting source read" });
   assert.match(await waitingSourceSquare.locator(".topology-facet").first().textContent(), /^50 source work waiting/);
-  assert.equal(await panel.locator(".topology-node").filter({ hasText: "Source preparation" }).locator(".topology-facet").count(), 3);
+  assert.equal(await panel.locator(".topology-node").filter({ hasText: "Read & prepare source" }).locator(".topology-facet").count(), 2);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).locator(".topology-facet").count(), 3);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Host output" }).locator(".topology-facet").count(), 4);
   const presentationModule = `/@fs${fileURLToPath(new URL("../src/production-flow-presentation.ts", import.meta.url))}`;

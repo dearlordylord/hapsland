@@ -6,7 +6,7 @@ type Square = Readonly<{ title: string; owner: string; x: number; y: number; fac
 const facet = (label: string, references: readonly string[]): SquareFacet => ({ label, count: references.length, references });
 const ids = (items: readonly number[]) => items.map((id) => `#${id}`);
 const work = (state: CanonicalProjection, kind: CanonicalProjection["work"][number]["kind"]) => ids(state.work.filter((item) => item.kind === kind).map((item) => item.operation));
-const dispatch = (state: CanonicalProjection, place: "pending" | "active" | "running", preparation?: boolean) => state.dispatch[place].filter((item) => preparation === undefined || item.preparation === preparation).map((item) => `#${item.operation}/agent ${item.partition}/seq ${item.sequence}/${item.preparation ? "preparation" : "review"}`);
+const dispatch = (state: CanonicalProjection, place: "pending" | "active" | "running", preparation?: boolean) => state.dispatch[place].filter((item) => preparation === undefined || item.preparation === preparation).map((item) => `#${item.operation}/agent ${item.partition}/round ${item.round}/seq ${item.sequence}/cycle ${item.cycle}/${item.preparation ? "preparation" : "review"}${item.cancelled ? "/cancelled" : ""}`);
 const facetCount = (item: SquareFacet) => `${item.count} ${item.count === 1 ? item.label.replace(/\b(rounds|permits|charges|requests|units|leases|claims|slots)\b/g, (word) => word.slice(0, -1)) : item.label}`;
 const square = (definition: Omit<Square, "detail">): Square => ({ ...definition, detail: (state) => definition.facets(state).map((item) => `${facetCount(item)}${item.references.length ? `: ${item.references.join(", ")}` : ""}`).join(" · ") });
 /** Count and facet name always remain visible; only the identity sample is bounded. */
@@ -26,15 +26,14 @@ export const SQUARES: Record<Place, Square> = {
   admission: square({ title: "Admission & capacity", owner: "BEND DECISION", x: 310, y: 52,
     facets: (s) => [facet("edit permits", ids(s.admissions.flatMap((x) => x.permits.map((permit) => permit.token)))), facet("observation charges", ids(s.charges.filter((x) => x.purpose === "observationDispatch").map((x) => x.id)))] }),
   sourcePending: square({ title: "Awaiting source read", owner: "BEND STATE", x: 32, y: 190,
-    facets: (s) => [facet("source work waiting", work(s, "sourceQueued"))] }),
-  dispatchScheduling: square({ title: "Dispatch scheduling", owner: "BEND DECISION", x: 310, y: 190,
-    facets: () => [] }),
-  queued: square({ title: "Dispatch queue", owner: "BEND STATE", x: 588, y: 52,
-    facets: (s) => [facet("pending dispatch", dispatch(s, "pending")), facet("active dispatch", dispatch(s, "active"))] }),
-  preparation: square({ title: "Source preparation", owner: "NATIVE EFFECT + BEND STATE", x: 866, y: 52,
-    facets: (s) => [facet("running prep", dispatch(s, "running", true)), facet("source reading", work(s, "sourceReading")), facet("preparing", work(s, "preparing"))] }),
+    facets: (s) => [facet("source work waiting", work(s, "awaitingSourceRead"))] }),
+  scheduling: square({ title: "Job scheduling", owner: "BEND DECISION + STATE", x: 588, y: 190,
+    facets: (s) => [facet("waiting next batch", dispatch(s, "pending")), facet("waiting current batch", dispatch(s, "active")),
+      facet("running preparation jobs", dispatch(s, "running", true)), facet("running review jobs", dispatch(s, "running", false))] }),
+  preparation: square({ title: "Read & prepare source", owner: "NATIVE EFFECT + BEND STATE", x: 866, y: 52,
+    facets: (s) => [facet("source reading", work(s, "sourceReading")), facet("preparing", work(s, "preparing"))] }),
   units: square({ title: "Review work items", owner: "BEND STATE", x: 1144, y: 52,
-    facets: (s) => [facet("reviewing", work(s, "reviewing")), facet("unit charges", ids(s.charges.filter((x) => x.purpose === "reviewUnit").map((x) => x.id))), facet("review dispatch", dispatch(s, "running", false))] }),
+    facets: (s) => [facet("reviewing", work(s, "reviewing")), facet("unit charges", ids(s.charges.filter((x) => x.purpose === "reviewUnit").map((x) => x.id)))] }),
   authorization: square({ title: "Jev ready check", owner: "BEND DECISION", x: 1144, y: 350,
     facets: (s) => [facet("unstarted requests", ids(s.dispatch.requests.filter((x) => !x.started).map((x) => x.request)))] }),
   effect: square({ title: "Jev request attempt", owner: "NATIVE FACT", x: 866, y: 350,
@@ -62,15 +61,11 @@ export const PLACE_ORDER = FLOW_STAGES;
 export const CONNECTIONS = [
   { from: "observation", to: "admission", label: "Edit attempt or observation supplied" },
   { from: "admission", to: "sourcePending", label: "observation admitted as source work" },
-  { from: "sourcePending", to: "dispatchScheduling", label: "source work scheduled" },
-  { from: "units", to: "dispatchScheduling", label: "review work scheduled" },
-  { from: "dispatchScheduling", to: "queued", label: "dispatch waits" },
-  { from: "dispatchScheduling", to: "preparation", label: "preparation dispatch starts" },
-  { from: "dispatchScheduling", to: "units", label: "review dispatch starts" },
+  { from: "sourcePending", to: "scheduling", label: "source job scheduled", relation: "linked record" },
+  { from: "units", to: "scheduling", label: "review job scheduled", relation: "linked record" },
+  { from: "scheduling", to: "scheduling", label: "job scheduling status changes" },
   { from: "sourcePending", to: "preparation", label: "source reading begins" },
   { from: "admission", to: "preparation", label: "preparation admitted" },
-  { from: "queued", to: "preparation", label: "dispatch starts" },
-  { from: "queued", to: "units", label: "review dispatch starts" },
   { from: "preparation", to: "units", label: "review unit admitted" },
   { from: "units", to: "authorization", label: "ready facts supplied" },
   { from: "units", to: "jev", label: "work enters Jev phase" },
@@ -89,4 +84,4 @@ export const CONNECTIONS = [
   { from: "delivery", to: "delivery", label: "delivery phase recorded" },
   { from: "delivery", to: "round", label: "output fact changes round" },
   { from: "round", to: "round", label: "round retirement and release" },
-] as const satisfies readonly Readonly<{ from: Place; to: Place; label: string }>[];
+] as const satisfies readonly Readonly<{ from: Place; to: Place; label: string; relation?: "linked record" }>[];
