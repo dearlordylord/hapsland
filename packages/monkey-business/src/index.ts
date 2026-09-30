@@ -27,7 +27,7 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:215e651c3ec3c961eb1d781e5e52276164cd62d53ab903794f85802eabb7c45f";
+  "canonical-source-sha256:e869c377cd6bfb8dcc951defe1b82821fffcf3b98ba5101c8eb7a2c75c552d80";
 export type RunInput =
   | SessionInput
   | ({ readonly at: number; readonly generation?: number } & (
