@@ -184,6 +184,16 @@ checked observation, including paused history inspection.
    remain editable while replaying, but new environment controls wait until
    recorded replay completes. Intermediate branching is unsupported.
 
+Both diagrams display exact checked record counts in each square, including
+zero and singular states. Source preparation keeps running preparation dispatch,
+source reading and preparing counts separate; review dispatch appears with
+review work items. Queue counts describe mixed dispatch entries. Advice keeps
+pending-ready, retained-submitted and leased records separate. Host output shows
+finish slots and pending, submitted and uncertain advice phases. Counts for
+related facets can overlap and are not added into a total. Each fixed-size
+square shows all its facet rows, with at most one complete ID and `+N more` when
+that sample fits. Full IDs remain in tooltips and the live record inspector.
+
 The initial outcome mix has Finding and No finding (clear) weights of `50`
 each; the other four weights are zero. Sliders use relative weights from `0` to
 `100`, not percentages. Each displayed probability is its weight divided by the

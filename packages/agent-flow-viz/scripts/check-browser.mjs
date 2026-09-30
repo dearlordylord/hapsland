@@ -41,12 +41,12 @@ try {
   assert.match(await canonical.innerText(), /Two edits through a queue, Jev findings, and Stop output/);
   await advanceGuided(1, 1, 57);
   assert.match(await page.locator(".flow-provenance").innerText(), /Before the edit.*Bend issued a permit.*No virtual round is open yet/s);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Capacity check" }).textContent(), /edit permits #1/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Admission & capacity" }).textContent(), /1 edit permit: #1/);
   await advanceGuided(2, 2, 57);
   assert.match(await page.locator(".flow-provenance").innerText(), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/s);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Capacity check" }).textContent(), /edit permits none/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Admission & capacity" }).textContent(), /0 edit permits/);
   await advanceGuided(3, 8, 57);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).textContent(), /pending 1:/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).textContent(), /1 pending dispatch:/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "entered pending" }).count(), 1);
   await advanceGuided(9, 13, 57);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 1);
@@ -54,11 +54,11 @@ try {
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "advice #10 leased; still ready" }).count(), 1);
   await advanceGuided(35, 53, 57);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "round #1 retired" }).count(), 1);
-  await advanceGuided(51, 54, 54);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Round state" }).textContent(), /active none/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /ready IDs none/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Review outcomes" }).textContent(), /pending finding operations none/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Host output" }).textContent(), /finish none.*advice none/s);
+  await advanceGuided(54, 57, 57);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Round state" }).textContent(), /0 active rounds/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /0 pending ready/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Review outcomes" }).textContent(), /0 finding work/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Host output" }).textContent(), /0 finish slots.*0 submitted advice/s);
   assert.match(await page.locator(".topology-capacities").innerText(), /Review capacity ledger: 0\/3 items; 0\/100 bytes/);
   await canonical.getByRole("button", { name: "Shared review capacity and partial unit admission", exact: true }).click();
   await waitForText(".canonical-progress", "Guided step 0 of 11");
@@ -162,7 +162,7 @@ try {
   await advanceGuided(1, 26, 34);
   await waitForText(".canonical-progress", "Guided step 26 of 34");
   assert.match(await page.locator(".topology-capacities").innerText(), /Jev in-flight: 8\/8 · no Jev wait queue/);
-  assert.match(await page.locator(".topology-node").nth(6).textContent(), /observed started requests/);
+  assert.match(await page.locator(".topology-node").nth(6).textContent(), /7 started requests/);
   await advanceGuided(27, 29, 34);
   await waitForText(".canonical-progress", "Guided step 29 of 34");
   assert.match(await page.locator(".topology-step").innerText(), /jevRequestReady accepted.*jevRequestUnavailable/);
@@ -219,11 +219,11 @@ try {
   assert.ok(dispatchTrace);
   for (let index = 0; index < 5; index++) await applyManual(dispatchTrace.events[index], index + 1);
   assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 1\/8/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).textContent(), /pending 1:#2\/agent 1\/seq 1/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).textContent(), /1 pending dispatch: #2\/agent 1\/seq 1/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 0);
   for (let index = 5; index < 10; index++) await applyManual(dispatchTrace.events[index], index + 1);
   await waitForText(".topology-step", "dispatchStarted");
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Source preparation" }).textContent(), /running 1:#2\/agent 1\/seq 1, 2:#3\/agent 1\/seq 2/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Source preparation" }).textContent(), /2 running prep: #2\/agent 1\/seq 1\/preparation, #3\/agent 1\/seq 2\/preparation/);
   assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 2\/8/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 1);
 
@@ -239,17 +239,17 @@ try {
       assert.equal(await page.locator(".topology-route.active").filter({ hasText: "advice eligible or selected" }).count(), 1);
     }
   }
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /leases #9/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /1 lease: #9/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "advice eligible or selected" }).count(), 0);
   await applyManual(leaseTrace.events[4], 5);
   assert.match(await page.locator(".topology-step").innerText(), /collectionLeaseRefused/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /leases #9/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /1 lease: #9/);
   for (let index = 5; index < 10; index++) {
     await applyManual(leaseTrace.events[index], index + 1);
-    if (index === 8) assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /leases none/);
+    if (index === 8) assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /0 leases/);
   }
   assert.match(await page.locator(".topology-step").innerText(), /collectionLeaseReserved/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /leases #9/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /1 lease: #9/);
 
   await canonical.getByRole("button", { name: "Reset canonical replay" }).click();
   await waitForText(".canonical-progress", "history 0/0");

@@ -156,3 +156,5 @@ p { line-height: 1.5; }
 @media (max-width: 600px) { .simulation-outcome-slider { grid-template-columns: 1fr; gap: 4px; } }
 
 .simulation-outcome-mix > summary { height: 3em; overflow: auto; }
+
+.topology-facet { font-variant-numeric: tabular-nums; }

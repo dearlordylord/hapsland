@@ -461,6 +461,61 @@ try {
   assert.ok(suspension.resumed.events > suspension.waiting.events);
   assert.match(suspension.resumed.feedback, /Playback advanced/);
   assert.equal(suspension.manuallyPaused, true);
+  const queuedBurstReplay = await page.evaluate(async (core) => {
+    const { createRun } = await import(core);
+    const run = createRun({ outcome: "clear", session: { editIntervalMs: 1000000 } });
+    run.applyControl({ kind: "burst", count: 50 });
+    for (let index = 0; index < 1000; index++) {
+      const frame = run.step(0);
+      if (!frame) break;
+      if (frame.after.work.filter((work) => work.kind === "sourceQueued").length === 50) return run.exportReplay();
+    }
+    throw new Error("Checked burst did not reach 50 queued sources");
+  }, publicModule);
+  await panel.getByLabel("Replay JSON", { exact: true }).fill(JSON.stringify(queuedBurstReplay));
+  await panel.getByRole("button", { name: "Load replay", exact: true }).click();
+  await status("Replay reconstructed");
+  const observationSquare = panel.locator(".topology-node").filter({ hasText: "Agent edit" });
+  assert.match(await observationSquare.locator(".topology-facet").nth(1).textContent(), /^50 source queued/);
+  assert.equal(await panel.locator(".topology-node").filter({ hasText: "Source preparation" }).locator(".topology-facet").count(), 3);
+  assert.equal(await panel.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).locator(".topology-facet").count(), 3);
+  assert.equal(await panel.locator(".topology-node").filter({ hasText: "Host output" }).locator(".topology-facet").count(), 4);
+  const presentationModule = `/@fs${fileURLToPath(new URL("../src/production-flow-presentation.ts", import.meta.url))}`;
+  const metrics = await page.evaluate(async ({ core, presentation }) => {
+    const { createRun } = await import(core);
+    const { SQUARES, squareFacetLine } = await import(presentation);
+    const initial = createRun().projection;
+    const facets = Object.values(SQUARES).flatMap((square) => square.facets(initial));
+    let measured = 0;
+    let widest = 0;
+    const contexts = [...document.querySelectorAll(".production-topology svg")];
+    for (const svg of contexts) {
+      const scratch = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      scratch.setAttribute("opacity", "0");
+      svg.appendChild(scratch);
+      for (const facet of facets) for (const count of [0, 1, 100]) for (const longId of [false, true]) {
+        // These are presentation fixtures, independent of capacity/admission behavior.
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("class", "topology-facet");
+        text.setAttribute("font-size", "10");
+        text.setAttribute("font-weight", "600");
+        const line = squareFacetLine({ ...facet, count, references: Array.from({ length: count }, (_, index) => `#${longId ? Number.MAX_SAFE_INTEGER - index : index + 1}`) });
+        if (!line.startsWith(`${count} `)) throw new Error("Facet count lost from visible row");
+        text.textContent = line;
+        scratch.appendChild(text);
+        widest = Math.max(widest, text.getBBox().width);
+        measured++;
+        text.remove();
+      }
+      scratch.remove();
+      for (const text of svg.querySelectorAll(".topology-facet")) widest = Math.max(widest, text.getBBox().width);
+    }
+    return { measured, widest, contexts: contexts.length };
+  }, { core: publicModule, presentation: presentationModule });
+  assert.equal(metrics.contexts, 2, "static and live diagrams use the shared magnitude presentation");
+  assert.ok(metrics.measured >= 300);
+  assert.ok(metrics.widest <= 198, `Facet text exceeds square inner width: ${metrics.widest}`);
+  await panel.screenshot({ path: "/tmp/astra-ux-square-magnitudes.png" });
   assert.deepEqual(errors, []);
   console.log(
     "Simulation browser controls, existing diagram and inspection passed",

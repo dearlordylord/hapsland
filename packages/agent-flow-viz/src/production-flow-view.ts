@@ -2,7 +2,7 @@ import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalCommand, CanonicalProjection } from "../../../src/canonical/adapter";
 import type { ReplayStep } from "./canonical-replay";
 import { projectFlowStep, type FlowEvidence } from "@hapsland/agent-flow-projection";
-import { CONNECTIONS, PLACE_ORDER, SQUARES } from "./production-flow-presentation";
+import { CONNECTIONS, PLACE_ORDER, SQUARES, squareFacetLine } from "./production-flow-presentation";
 
 type ArrowKind = FlowEvidence["source"] | "possible" | "mixed" | "mixed external";
 type Route = (typeof CONNECTIONS)[number] & Readonly<{ active: boolean; kind: ArrowKind; evidence: string }>;
@@ -152,7 +152,7 @@ export const productionFlowView = <Message>(
   for (const item of flow.evidence) if (!declaredRoutes.has(`${item.from}:${item.to}`)) {
     throw new Error(`undeclared dashboard arrow route: ${item.from}:${item.to}`);
   }
-  const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection) }));
+  const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection), facets: SQUARES[id].facets(projection) }));
   const routes: readonly Route[] = CONNECTIONS.map((connection): Route => {
     const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
     return { ...connection, active: evidence.length > 0, kind: arrowKind(evidence),
@@ -210,9 +210,9 @@ export const productionFlowView = <Message>(
               h.FontWeight("700"), h.Fill("#52647d")], [node.owner]),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 49)), h.FontSize("14"),
               h.FontWeight("700"), h.Fill("#1e3048")], [node.title]),
-            ...node.detail.split(" · ").slice(0, 2).map((part, index) =>
-              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 77 + index * 18)), h.FontSize("10"),
-                h.Fill("#435670")], [part.length > 33 ? `${part.slice(0, 30)}…` : part])),
+            ...node.facets.map((facet, index) =>
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + index * 13)), h.FontSize("10"), h.FontWeight("600"), h.Class("topology-facet"),
+                h.Fill("#435670")], [squareFacetLine(facet)])),
           ]);
         }),
         h.text([h.X("32"), h.Y("810"), h.FontSize("12"), h.Fill("#52647d")], [
