@@ -253,8 +253,8 @@ export const productionFlowView = <Message>(
     ]),
     h.div([h.Class("topology-step")], [
       h.strong([], ["Inspectable decision"]),
-      h.p([], [last === undefined ? "Choose a guided or manual canonical event." : last.rejection !== undefined
-        ? `${last.event.kind} rejected: ${last.rejection}. Canonical state and item locations did not change.`
+      h.p([], [last === undefined ? "Choose a guided or manual event." : last.rejection !== undefined
+        ? `${last.event.kind} rejected: ${last.rejection}. Bend state and item locations did not change.`
         : `${last.event.kind} accepted · ${commands.length} command(s): ${commands.map((command) => command.kind).join(", ") || "none"}`]),
       ...(showcase && last?.origin === "guided" && last.event.kind === "issuePermit" ?
         [h.p([h.Class("flow-provenance")], ["Before the edit: a source-free pre-edit request supplies its timing and identity facts. Bend issued a permit. No virtual round is open yet."])] : []),

@@ -113,7 +113,7 @@ export const ALTERNATE_LEDGER_LIMITS_SCENARIO = {
 };
 export const CANONICAL_SCENARIOS = [SHOWCASE_SCENARIO, CAPACITY_SCENARIO, ...fixture.traces.map((trace) => ({
   name: trace.name,
-  description: "Independent source-free canonical event sequence covering resident work and output decisions.",
+  description: "Independent source-free event sequence covering resident work and output decisions.",
   limits: fixture.limits,
   events: trace.events as CanonicalEvent[],
 })), ...requestFixture.traces.map((trace) => ({
@@ -156,7 +156,7 @@ export const tryAppendCanonical = (
     return { history: [...prior, { event: event as CanonicalEvent, origin }], position: prior.length + 1,
       ...(result.rejection === undefined ? {} : { rejection: result.rejection }) };
   } catch (cause) {
-    return { history, position, error: cause instanceof Error ? cause.message : "invalid canonical event" };
+    return { history, position, error: cause instanceof Error ? cause.message : "invalid event" };
   }
 };
 

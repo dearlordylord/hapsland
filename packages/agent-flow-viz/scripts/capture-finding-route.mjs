@@ -22,7 +22,7 @@ try {
   const replay = page.locator("#canonical-replay");
   await replay.getByRole("button", { name: "finding is a distinct observed request result and duplicate is rejected", exact: true }).click();
   for (let step = 1; step <= 7; step++) {
-    await replay.getByRole("button", { name: /^Next canonical step:/ }).click();
+    await replay.getByRole("button", { name: /^Next:/ }).click();
     await page.waitForFunction((expected) =>
       document.querySelector(".canonical-progress")?.textContent?.includes(expected), `Guided step ${step} of 8`);
   }
@@ -33,7 +33,7 @@ try {
   await page.locator(".topology-scroll").screenshot({ path: routesOutput });
   await replay.getByRole("button", { name: "eight active request permits; ninth settles immediately and release permits another", exact: true }).click();
   for (let step = 1; step <= 29; step++) {
-    await replay.getByRole("button", { name: /^Next canonical step:/ }).click();
+    await replay.getByRole("button", { name: /^Next:/ }).click();
     await page.waitForFunction((expected) =>
       document.querySelector(".canonical-progress")?.textContent?.includes(expected), `Guided step ${step} of 34`);
   }
@@ -41,7 +41,7 @@ try {
   await page.locator(".production-flow").screenshot({ path: refusalOutput });
   await replay.getByRole("button", { name: "many units admit in order and Stop waits", exact: true }).click();
   for (let step = 1; step <= 4; step++) {
-    await replay.getByRole("button", { name: /^Next canonical step:/ }).click();
+    await replay.getByRole("button", { name: /^Next:/ }).click();
     await page.waitForFunction((expected) =>
       document.querySelector(".canonical-progress")?.textContent?.includes(expected), `Guided step ${step} of 7`);
   }
@@ -49,17 +49,17 @@ try {
   await page.locator(".production-flow").screenshot({ path: stopWaitOutput });
   await replay.getByRole("button", { name: "deadline requests exact cancellations", exact: true }).click();
   for (let step = 1; step <= 3; step++) {
-    await replay.getByRole("button", { name: /^Next canonical step:/ }).click();
+    await replay.getByRole("button", { name: /^Next:/ }).click();
     await page.waitForFunction((expected) =>
       document.querySelector(".canonical-progress")?.textContent?.includes(expected), `Guided step ${step} of 4`);
   }
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "cancel unfinished work command" }).count(), 1);
   await page.locator(".production-flow").screenshot({ path: cancellationOutput });
   const applyManual = async (event) => {
-    await replay.getByRole("button", { name: "Reset canonical replay" }).click();
-    await replay.getByLabel("Manual source-free canonical event (JSON)").fill(JSON.stringify(event));
-    await replay.getByLabel("Manual source-free canonical event (JSON)").press("Tab");
-    await replay.getByRole("button", { name: "Apply canonical event" }).click();
+    await replay.getByRole("button", { name: "Reset replay" }).click();
+    await replay.getByLabel("Event JSON").fill(JSON.stringify(event));
+    await replay.getByLabel("Event JSON").press("Tab");
+    await replay.getByRole("button", { name: "Apply event" }).click();
     await page.waitForFunction(() =>
       document.querySelector(".canonical-progress")?.textContent?.includes("history 1/1"));
   };

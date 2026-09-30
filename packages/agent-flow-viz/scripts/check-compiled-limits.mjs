@@ -61,7 +61,7 @@ try {
   assert.ok(clear);
   await page.locator("#canonical-replay").getByRole("button", { name: clear.name, exact: true }).click();
   for (let step = 1; step <= 6; step++) {
-    await page.locator("#canonical-replay").getByRole("button", { name: /^Next canonical step:/ }).click();
+    await page.locator("#canonical-replay").getByRole("button", { name: /^Next:/ }).click();
     await page.waitForFunction((expected) =>
       document.querySelector(".canonical-progress")?.textContent?.includes(expected), `Guided step ${step} of 8`);
   }

@@ -284,9 +284,9 @@ try {
   assert.ok(timeline.TIMELINE_CASES.length > 0, "retained native timing evidence remains visible");
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
-    Scene.click(Scene.getByRole("button", { name: "Next canonical step: issuePermit", exact: true })),
+    Scene.click(Scene.getByRole("button", { name: "Next: issuePermit", exact: true })),
     Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 57/)),
-    Scene.click(Scene.getByRole("button", { name: "Previous canonical step", exact: true })),
+    Scene.click(Scene.getByRole("button", { name: "Previous step", exact: true })),
     Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 57/)));
   console.log("Checked the opening connected replay, compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
 } finally {

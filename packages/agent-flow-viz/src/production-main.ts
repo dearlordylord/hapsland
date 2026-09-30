@@ -49,14 +49,14 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: {
   simulation: initialSimulation, importScenario: 0, importCursor: 0, timeline: 0, scenario: 0,
   history: [], position: 0, frame: 0,
   draft: '{"kind":"reserveCapacity","partition":3,"bytes":5,"purpose":"reviewUnit"}',
-  feedback: "Source-free events use the same checked canonical adapter as the resident.",
+  feedback: "Replay events use the same checked Bend reducer as the running integration.",
 } });
 
 const append = (model: Model, event: unknown, origin: ReplayEvent["origin"]): Model => {
   const next = tryAppendCanonical(model.history as readonly ReplayEvent[], model.position, event, origin, CANONICAL_SCENARIOS[model.scenario].limits);
   return { ...model, history: [...next.history], position: next.position, frame: 0,
     feedback: next.error ?? (next.rejection === undefined
-      ? "Canonical.step accepted this event." : `Canonical.step rejected this event: ${next.rejection}.`) };
+      ? "Event accepted by Bend." : `Bend rejected this event: ${next.rejection}.`) };
 };
 
 export const update = (model: Model, message: Message) => Message.match<Update.Return<Model, Message>>(message, {
@@ -69,7 +69,7 @@ export const update = (model: Model, message: Message) => Message.match<Update.R
     importCursor: Math.max(0, Math.min(IMPORT_GRAPH_SCENARIOS[model.importScenario].steps.length, cursor)) } }),
   SelectedTimeline: ({ index }) => ({ model: { ...model, timeline: index >= 0 && index < TIMELINE_CASES.length ? index : 0 } }),
   SelectedScenario: ({ index }) => ({ model: { ...model, scenario: index >= 0 && index < CANONICAL_SCENARIOS.length ? index : 0,
-    history: [], position: 0, frame: 0, feedback: "Canonical example selected." } }),
+    history: [], position: 0, frame: 0, feedback: "Scenario selected." } }),
   Advanced: () => {
     const event = nextGuidedEvent(model.history as readonly ReplayEvent[], model.position, model.scenario);
     return { model: event === undefined ? model : append(model, event, "guided") };
@@ -81,9 +81,9 @@ export const update = (model: Model, message: Message) => Message.match<Update.R
   DraftChanged: ({ raw }) => ({ model: { ...model, draft: raw } }),
   Submitted: () => {
     try { return { model: append(model, JSON.parse(model.draft), "manual") }; }
-    catch { return { model: { ...model, feedback: "Enter one valid JSON canonical event." } }; }
+    catch { return { model: { ...model, feedback: "Enter one valid JSON event." } }; }
   },
-  Reset: () => ({ model: { ...model, history: [], position: 0, frame: 0, feedback: "Canonical replay reset." } }),
+  Reset: () => ({ model: { ...model, history: [], position: 0, frame: 0, feedback: "Replay reset." } }),
 });
 
 const purposeLabels: Record<CapacityPurpose, string> = {
@@ -149,10 +149,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const lastCommands = last?.commands ?? [];
   const activePurpose = projection.charges.map((charge) => purposeLabels[charge.purpose]);
   return {
-    title: "Hapsland · canonical production flow",
+    title: "Hapsland · guided replay",
     body: h.main([h.Class("page")], [
       h.header([h.Class("page-header")], [
-        h.p([h.Class("eyebrow")], ["CANONICAL BEND PRODUCTION MODEL · FOLDKIT"]),
+        h.p([h.Class("eyebrow")], ["HAPSLAND"]),
         h.h1([], ["From agent edit to Jev and back"]),
         h.p([h.Class("intro")], ["Step through the checked Bend transition used by the Hapsland resident. Agent runtimes supply observations; Hapsland executes native source, Jev, and host effects around Bend decisions."]),
         h.p([h.Class("caveat")], ["This source-free replay is an example, not a live connection to an agent runtime or Jev. Native timing evidence and the separate import graph appear below."]),
@@ -164,8 +164,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.p([], [activePurpose.length ? `Reserved purposes: ${activePurpose.join(", ")}` : "No active capacity reservations."]),
         h.details([h.Class("flow-coverage")], [
           h.summary([], ["Transition-family coverage and source boundaries"]),
-          h.p([], ["Guided status below is calculated from the loaded independent source-free fixtures. Manual replay accepts checked canonical events when their predecessor state and facts satisfy Bend's guards. The source link names each decision family."]),
-          h.p([], ["Guided sources: ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-v1.json")], ["canonical trace fixture"]), " and ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-jev-request-v1.json")], ["Jev request trace fixture"]), "."]),
+          h.p([], ["Guided status comes from independent source-free fixtures. Manual replay checks each event against the current Bend state. The source link names each decision family."]),
+          h.p([], ["Guided sources: ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-v1.json")], ["replay fixture"]), " and ", h.a([h.Href("https://github.com/dearlordylord/hapsland/blob/master/conformance/canonical-jev-request-v1.json")], ["Jev request fixture"]), "."]),
           h.ul([h.Class("flow-coverage-list")], coverageFamilies.map((family) => {
             const examples = [...guidedKinds].filter((kind) => family.match.test(kind));
             return h.li([], [
@@ -180,7 +180,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       ]),
       h.section([h.Id("canonical-replay"), h.Class("card canonical-replay")], [
         h.h2([], ["What uses review capacity"]),
-        h.p([], ["Canonical Bend model · the inventory below is generated at build time from compiled Bend admission output. Each reservation uses the shared resident and per-agent item and byte limits."]),
+        h.p([], ["The inventory below comes from compiled Bend admission output. Each reservation uses the shared resident and per-agent item and byte limits."]),
         h.ul([h.Class("capacity-inventory")], CAPACITY_INVENTORY.map((entry) => h.li([], [
           h.strong([], [purposeLabels[entry.purpose]]),
           ` · ${entry.limits.map((limit) => limitLabels[limit]).join(" · ")}`,
@@ -192,18 +192,18 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.div([h.Class("trace-options canonical-scenarios")], CANONICAL_SCENARIOS.map((item, index) => h.button([
             h.OnClick(Message.SelectedScenario({ index })), h.Class(index === model.scenario ? "trace selected" : "trace"),
           ], [item.name]))),
-          h.button([h.OnClick(Message.Rewound()), h.Disabled(model.position === 0)], ["Previous canonical step"]),
-          h.button([h.OnClick(Message.Redid()), h.Disabled(model.position === history.length)], ["Redo canonical step"]),
+          h.button([h.OnClick(Message.Rewound()), h.Disabled(model.position === 0)], ["Previous step"]),
+          h.button([h.OnClick(Message.Redid()), h.Disabled(model.position === history.length)], ["Redo step"]),
           h.button([h.OnClick(Message.Advanced()), h.Disabled(next === undefined)], [
-            next === undefined ? "Canonical trace complete" : `Next canonical step: ${next.kind}`,
+            next === undefined ? "Replay complete" : `Next: ${next.kind}`,
           ]),
-          h.button([h.OnClick(Message.Reset())], ["Reset canonical replay"]),
+          h.button([h.OnClick(Message.Reset())], ["Reset replay"]),
           h.p([h.Class("canonical-progress")], [`Guided step ${guided} of ${scenario.events.length} · history ${model.position}/${history.length}`]),
           h.p([h.Class("canonical-feedback")], [model.feedback]),
-          h.label([h.For("canonical-event")], ["Manual source-free canonical event (JSON)"]),
+          h.label([h.For("canonical-event")], ["Event JSON"]),
           h.input([h.Id("canonical-event"), h.Type("text"), h.Value(model.draft),
             h.OnChange((raw) => Message.DraftChanged({ raw }))]),
-          h.button([h.OnClick(Message.Submitted())], ["Apply canonical event"]),
+          h.button([h.OnClick(Message.Submitted())], ["Apply event"]),
         ]),
         h.div([h.Class("canonical-commands")], [
           h.h3([], ["Bend result"]),
