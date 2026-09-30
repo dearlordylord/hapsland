@@ -20,6 +20,10 @@ try {
   assert.ok(has(2, "native fact", "observation", "admission"),
     "the accepted edit crosses admission while Bend opens the round");
   assert.ok(steps[1].commands.some((command) => command.kind === "roundStarted"));
+  assert.ok(steps[2].commands.some((command) => command.kind === "observationAdmitted"));
+  assert.deepEqual(steps[2].after.work.map((work) => [work.operation, work.kind]), [[1, "sourceQueued"]]);
+  assert.equal(steps[2].after.charges.length, 0,
+    "observation admission creates queued source work without a review capacity charge");
   assert.ok(has(8, "state", "admission", "queued", "dispatch:2"),
     "a second queued edit is evidenced by its dispatch ID");
   assert.ok(has(13, "state", "queued", "preparation", "dispatch:2"),
