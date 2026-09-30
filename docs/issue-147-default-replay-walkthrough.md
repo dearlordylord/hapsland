@@ -1,7 +1,7 @@
 # Default diagram replay: step-by-step walkthrough
 
 **Purpose:** Preserve a human-readable walkthrough of the default connected diagram for owner review.
-**Status:** Temporary snapshot of the 54-step default guided replay on the #147 integration branch.
+**Status:** Temporary snapshot of the 54-step default guided replay on `master`, awaiting #147 diagram review.
 **Authority:** Implementation and validation evidence. The checked reducer and its adapter determine behavior; this walkthrough is not a product contract or a live runtime trace.
 **Expected use:** Open the Hapsland dashboard's default guided case, advance one canonical step at a time, and compare the highlighted squares and connections with this table.
 **Lifecycle:** At #147 diagram acceptance or closure, consolidate any still-useful explanation into the maintained diagram/package guide or the accepted specification owner, update inbound links, and **delete** this snapshot. Review it if the default replay, square mapping, or connection projection changes before that trigger.
