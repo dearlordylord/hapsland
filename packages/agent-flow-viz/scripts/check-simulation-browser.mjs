@@ -21,7 +21,7 @@ try {
       text,
     );
   const outcomeLabels = { neverSent: "Never sent", finding: "Finding", clear: "No finding (clear)", backendFailure: "Backend failure", timeout: "Timeout", interrupted: "Interrupted" };
-  const outcomeSlider = (outcome) => panel.getByLabel(outcomeLabels[outcome] + " relative weight", { exact: true });
+  const outcomeSlider = (outcome) => panel.getByLabel(outcomeLabels[outcome], { exact: true });
   const openMix = async () => { if (!(await outcomeSlider("finding").isVisible())) await panel.locator(".simulation-outcome-mix summary").click(); };
   const setOutcome = async (outcome) => {
     await openMix();

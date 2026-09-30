@@ -604,8 +604,8 @@ export const simulationView = <Message>(
         h.summary([], ["Simulated Jev outcome mix · draft: " + draftMix]),
         h.p([], ["Relative weights range from 0 to 100; they need not total 100. Probabilities are each weight divided by the total. Apply simulated Jev profile submits this mix and delay together." ]),
         ...JEV_OUTCOME_ORDER.map((outcome) => h.label([h.Class("simulation-outcome-slider")], [
-          outcomeNames[outcome] + " relative weight",
-          h.input([h.Type("range"), h.Min("0"), h.Max("100"), h.Step("1"), h.AriaLabel(outcomeNames[outcome] + " relative weight"), h.Value(String(weights[outcome])), h.OnInput((raw) => changed(weightField(outcome), raw))]),
+          outcomeNames[outcome],
+          h.input([h.Type("range"), h.Min("0"), h.Max("100"), h.Step("1"), h.AriaLabel(outcomeNames[outcome]), h.Value(String(weights[outcome])), h.OnInput((raw) => changed(weightField(outcome), raw))]),
           h.span([], [`weight ${weights[outcome]} · ${weightTotal > 0 ? (weights[outcome] / weightTotal * 100).toFixed(1) + "%" : "probability unavailable"}`]),
         ])),
         h.p([h.Class("simulation-mix-total")], [`Total relative weight: ${weightTotal}. ${weightTotal > 0 ? "Normalized probability total: 100%." : "Choose at least one nonzero weight; active mix remains unchanged."}`]),
