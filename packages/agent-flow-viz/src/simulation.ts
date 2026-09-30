@@ -74,6 +74,10 @@ const completeReplay = () => {
   return false;
 };
 class InputError extends Error {}
+const recordIdentity = (key: string) => {
+  const [kind, id] = key.split(":");
+  return `${["ready-advice", "lease-advice", "batch"].includes(kind) ? "advice" : ["work", "dispatch"].includes(kind) ? "operation" : kind}:${id}`;
+};
 let totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0 };
 const countFrame = (item: Observation) => {
   totals.checked++;
@@ -158,7 +162,7 @@ export const actSimulation = (
       return { ...model, feedback: "Choose a replay file, then Load replay to validate and reconstruct it." };
     }
     if (replaySource && ["pace", "burst", "jev", "suspend", "sizes"].includes(action)) {
-      return { ...model, feedback: "Finish recorded replay before applying new environment controls. Draft fields remain editable." };
+      return { ...model, feedback: "Cannot apply: finish recorded replay before applying new environment controls. Draft fields remain editable." };
     }
     if (action.startsWith("preset:")) {
       const presets: Record<string, { pace: string; delay: string; outcome: string; bytes: string; feedback: string }> = {
@@ -265,7 +269,7 @@ export const actSimulation = (
       switch (action) {
         case "step": {
           playing = false;
-          const observation = run.step();
+          const observation = replayEndpoint && run.eventCount >= replayEndpoint.eventCount ? undefined : run.step();
           const completed = completeReplay();
           feedback = completed ? "Replay reached its exact recorded endpoint." : observation
             ? "One checked transition advanced."
@@ -400,7 +404,7 @@ export const tickSimulation = (
       suspended: (run.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals")?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined)?.suspended ?? model.suspended,
       revision: model.revision + 1,
       playing: !completed && result.reason !== "idle" && (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
-      feedback: completed ? "Replay reached its exact recorded endpoint." : model.feedback.startsWith("Cannot apply:") ? model.feedback :
+      feedback: completed ? "Replay reached its exact recorded endpoint." : /^(Cannot apply:|Could not read replay file:)/.test(model.feedback) ? model.feedback :
         result.reason === "idle"
           ? "No pending events; playback paused."
           : `Playback advanced (${result.reason}).`,
@@ -536,7 +540,7 @@ export const simulationView = <Message>(
       h.details([], [h.summary([], ["Applied control timeline (draft fields apply only when submitted)"]), h.pre([], [model.applied])]),
       h.details([], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
       ...(model.focus ? [button("Clear lifecycle filter", "focus:")] : []),
-      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after) ?? ""]), h.ul([], locateFlow(current.after).filter((record) => record.stage === model.focus).map((record) => h.li([], [button(record.description, `item:${record.key}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
+      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after) ?? ""]), h.ul([], locateFlow(current.after).filter((record) => record.stage === model.focus).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
       ...(run
         ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`))]
         : []),
@@ -579,7 +583,7 @@ export const simulationView = <Message>(
       h.div(
         [h.Class("simulation-history")],
         observations
-          .filter((item) => !model.item || [...locateFlow(item.before), ...locateFlow(item.after)].some((record) => record.key === model.item))
+          .filter((item) => !model.item || [...locateFlow(item.before), ...locateFlow(item.after)].some((record) => recordIdentity(record.key) === model.item))
           .filter((item) => !model.focus || model.item || projectFlowStep({ event: item.event, commands: item.commands, before: item.before, after: item.after, rejection: item.rejection }).changedStages.includes(model.focus as (typeof PLACE_ORDER)[number]))
           .filter((item) => model.filter === "all" || item.rejection || item.commands.some((command) => /Refused$|Denied$|Unavailable$/.test(command.kind)) || /fail|timeout/i.test(JSON.stringify(item.event)))
           .slice(-100)

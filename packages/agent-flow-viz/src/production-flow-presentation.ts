@@ -32,7 +32,7 @@ export const SQUARES: Record<Place, Square> = {
   advice: { title: "Advice ready / retained", owner: "BEND STATE", x: 32, y: 322,
     detail: (s) => {
       const submitted = new Set(s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map((x) => x.advice));
-      return `pending ${s.collection.ready.filter((id) => !submitted.has(id)).length} · retained submitted ${s.collection.ready.filter((id) => submitted.has(id)).length} · ready IDs ${ids(s.collection.ready)} · leases ${s.collection.leases.length}`;
+      return `pending ${s.collection.ready.filter((id) => !submitted.has(id)).length} · retained submitted ${s.collection.ready.filter((id) => submitted.has(id)).length} · ready IDs ${ids(s.collection.ready)} · leases ${ids(s.collection.leases.map((x) => x.advice))}`;
     } },
   collection: { title: "Advice collection", owner: "BEND DECISION", x: 32, y: 592,
     detail: (s) => `waiting rounds ${ids(s.rounds.filter((x) => x.waiting).map((x) => x.id))}` },

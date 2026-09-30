@@ -52,7 +52,7 @@ try {
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "round #1 retired" }).count(), 1);
   await advanceGuided(51, 54, 54);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Round state" }).textContent(), /active none/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /ready none/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /ready IDs none/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Review outcomes" }).textContent(), /pending finding operations none/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Host output" }).textContent(), /finish none.*advice none/s);
   assert.match(await page.locator(".topology-capacities").innerText(), /Review capacity ledger: 0\/3 items; 0\/100 bytes/);
@@ -235,17 +235,17 @@ try {
       assert.equal(await page.locator(".topology-route.active").filter({ hasText: "advice eligible or selected" }).count(), 1);
     }
   }
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /leases #9/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /leases #9/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "advice eligible or selected" }).count(), 0);
   await applyManual(leaseTrace.events[4], 5);
   assert.match(await page.locator(".topology-step").innerText(), /collectionLeaseRefused/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /leases #9/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /leases #9/);
   for (let index = 5; index < 10; index++) {
     await applyManual(leaseTrace.events[index], index + 1);
-    if (index === 8) assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /leases none/);
+    if (index === 8) assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /leases none/);
   }
   assert.match(await page.locator(".topology-step").innerText(), /collectionLeaseReserved/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Pending advice" }).textContent(), /leases #9/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /leases #9/);
 
   await canonical.getByRole("button", { name: "Reset canonical replay" }).click();
   await waitForText(".canonical-progress", "history 0/0");
