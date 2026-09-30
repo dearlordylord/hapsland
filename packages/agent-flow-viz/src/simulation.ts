@@ -4,6 +4,7 @@ import {
   createRun,
   replayRun,
   type Replay,
+  type Control,
 } from "../../monkey-business/src/index";
 import type { ReplayStep } from "./canonical-replay";
 import { productionFlowView } from "./production-flow-view";
@@ -118,13 +119,14 @@ export const actSimulation = (
       run = restored;
       playing = false;
       selected = -1;
-      suspended =
+      const latest = <Kind extends Control["kind"]>(kind: Kind) =>
         inputs.controls
-          .filter((entry) => entry.control.kind === "suspendArrivals")
-          .at(-1)?.control.suspended === true;
-      const latest = (kind: string) =>
-        inputs.controls.filter((entry) => entry.control.kind === kind).at(-1)
-          ?.control;
+          .map((entry) => entry.control)
+          .findLast(
+            (control): control is Extract<Control, { kind: Kind }> =>
+              control.kind === kind,
+          );
+      suspended = latest("suspendArrivals")?.suspended === true;
       loadedFields = {
         seed: String(inputs.config.seed ?? 1),
         pace: String(
