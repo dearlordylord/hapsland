@@ -23,7 +23,9 @@ try {
   await panel
     .getByRole("button", { name: "Start / reset", exact: true })
     .click();
+  await status("Seeded session started");
   await panel.getByRole("button", { name: "Single step", exact: true }).click();
+  await status("One checked transition advanced");
   assert.match(await panel.locator(".simulation-status").innerText(), /Paused/);
   assert.equal(await panel.locator(".topology-node").count(), 13);
   assert.match(await panel.innerText(), /simulated Jev/i);
