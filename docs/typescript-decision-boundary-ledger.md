@@ -110,12 +110,21 @@ The [Codex and Claude adapter checks](../src/direct-event/adapter.ts), [native e
 | Why outside Bend | Tree-sitter, filesystem access, Git queries, source-bearing syntax trees, pattern matching, and rule-pack decoding are native effects and data interpretation. Bend receives bounded, source-free facts and owns the decisions about admission and budget. |
 | Review and limits | On 2026-09-30 the owner approved moving the two remaining rule-selection gates into Bend. Rule-pack target declarations and Noul minimum rungs remain authored or bundled data; TypeScript reports matches and measured rungs. This review does not move source parsing into Bend or change the supported file and rule contracts. |
 
+## TS-007 — Measure native data before Bend capacity admission
+
+| Field | Reviewed boundary |
+| --- | --- |
+| Decision | TypeScript measures the bytes needed to retain an observation, preparation workspace, review unit, result, notice, or advice recheck, and labels that reservation by its work stage. Bend counts reserved items and bytes for the resident and advicee, then grants, resizes, replaces, or refuses the charge. A label does not independently authorize work. |
+| TypeScript owner | The [resident](../src/resident/server.ts) measures encoded values and conservative workspace or worst-case output sizes. [CapacityLedger](../src/resident/capacity.ts) maps the native advicee and measured request to a source-free Bend capacity event and retains the returned reservation handle. |
+| Bend boundary | [Ledger.bend](../packages/agent-flow-bend/Ledger.bend) owns the global and per-advicee item and byte counts and the fit decision. All current reservation purposes use the same limits; their labels distinguish the resource being accounted for. |
+| Why outside Bend | Measuring source-bearing objects and native workspace needs requires TypeScript. Bend receives only the measured byte count, purpose label, advicee ID, and limit values; it owns the capacity transition. If a purpose later changes which limit applies, review this boundary again. |
+| Review and limits | On 2026-09-30 the owner approved native measurement with the fit decision in Bend. This does not approve today's numeric defaults as permanent product rules or assert an RSS bound. The [direct-event v1 profile](direct-event-v1-supported-profile.md) is historical validation evidence with older limits; its table is not the current capacity contract. |
+
 ## TODO — TypeScript choices awaiting boundary review
 
 These are the remaining choices from the owner-facing “Choice made in TypeScript” table. They describe current implementation and unresolved placement, **not owner approval of each TypeScript boundary**. Review them in order; keep the replay walkthrough in the separate [temporary table](issue-147-default-replay-walkthrough.md) for later diagram review. The former per-edit capacity and round split was corrected before this boundary review; it is not a supported alternative.
 
 | ID | Choice currently made in TypeScript | What needs review |
 | --- | --- | --- |
-| TS-007 | The resident [measures encoded objects and selects reservation purposes](../src/resident/server.ts) before Bend enforces capacity for the advicee partition. | Review the measurement contract and purpose mapping. The corrected partition identity does not approve a particular numeric limit. Reconcile the numeric limits in [the supported profile](direct-event-v1-supported-profile.md) with the current code separately. |
 | TS-008 | The resident checks credentials, calls Jev, encodes output, and writes to the agent runtime around Bend decisions ([resident](../src/resident/server.ts)). | Keep external effects native, but examine each TypeScript precondition that can deny or change a user-visible result without a Bend decision. |
 | TS-009 | The resident starts an [idle timer and cleanup attempt](../src/resident/server.ts) after connection activity. Its timer is TypeScript; Bend checks supplied idle facts and its canonical cleanup state. The canonical check does not currently require the open-round or admission lists to be empty. | Decide whether five seconds and the retry schedule are native operation settings or product policy, and whether an open round or pending pre-edit permit should prevent lifetime retirement. Do not treat the current timer as a Bend-authored decision. |
