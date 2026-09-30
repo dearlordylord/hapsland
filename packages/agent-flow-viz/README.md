@@ -132,6 +132,9 @@ The `Monkey-business · seeded simulation` panel consumes the public
 `monkey-business` run API. It maps checked frames onto the existing 13 places
 and routes. It adds controls without changing diagram layout or product policy.
 All Jev observations are simulated; no credentials or source files are needed.
+The simulation has its own **Review capacity** bar and per-agent item/byte totals,
+using the same presentation as the canonical examples. It follows the displayed
+checked observation, including paused history inspection.
 
 1. Keep seed `7`, edit interval `100`, reservation bytes `100` and Jev delay
    `50`. Click **Start / reset**, then **Single step**. Inspect the event,
@@ -159,7 +162,10 @@ All Jev observations are simulated; no credentials or source files are needed.
 5. Click a history event to pause and inspect its time separately from the live
    endpoint. Use Previous/Next, the retained-event timeline, Return to latest and
    Bookmark. Click a diagram square, or use the collapsed keyboard stage picker,
-   to list identified records. Click a record to filter history to its lifecycle.
+   to list identified records in the bounded inspector below the diagram. Click
+   the selected square again to deselect it. Click a record to filter history to
+   its lifecycle. Capacity and control timelines sit below the diagram so
+   changing records and control history do not move its position.
    Pending advice counts exclude submitted records; retained submitted advice
    stays visible until checked closure or expiry. The outcome summary counts
    admitted observations, refusals/unavailability, failures and delivered advice

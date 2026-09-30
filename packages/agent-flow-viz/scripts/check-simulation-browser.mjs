@@ -85,6 +85,19 @@ try {
     ).control.delayMs,
     500,
   );
+  const assertCapacity = async () => {
+    const projection = JSON.parse(await panel.locator(".simulation-details pre").textContent()).after;
+    assert.equal(await panel.locator(".review-capacity [role=img]").getAttribute("aria-label"), `${projection.global.bytes} of ${projection.limits.globalBytes} reserved review bytes`);
+    assert.match(await panel.locator(".review-capacity").innerText(), new RegExp(`${projection.global.items}/${projection.limits.globalItems} work items`));
+    assert.equal(await panel.locator(".review-capacity .capacity-segment").count(), projection.charges.length);
+  };
+  await assertCapacity();
+  await panel.getByRole("button", { name: "Previous event", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector(".simulation-inspection")?.textContent.includes("Inspecting event"));
+  await assertCapacity();
+  await panel.getByRole("button", { name: "Return to latest", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector(".simulation-inspection")?.textContent.includes("Viewing latest"));
+  await assertCapacity();
   const before = await panel.locator(".simulation-details").innerText();
   await panel
     .getByRole("button", { name: "Start / reset", exact: true })
@@ -288,6 +301,27 @@ try {
   await page.waitForFunction(() => [...document.querySelectorAll("#monkey-business button")].some((button) => /^request #/.test(button.textContent ?? "")));
   await panel.getByRole("button", { name: /^request #/ }).first().click();
   await page.waitForFunction(() => document.querySelector("#monkey-business")?.textContent.includes("Following request:"));
+  const diagramTop = () => panel.locator(".production-topology").evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
+  const stableTop = await diagramTop();
+  const awaitingSquare = panel.locator(".topology-node").filter({ hasText: "Awaiting Jev result" });
+  await awaitingSquare.click();
+  await page.waitForFunction(() => !document.querySelector("#monkey-business .simulation-stage-inspector")?.textContent.includes("Focused lifecycle"));
+  assert.equal(await diagramTop(), stableTop);
+  await awaitingSquare.click();
+  await page.waitForFunction(() => document.querySelector("#monkey-business .simulation-stage-inspector")?.textContent.includes("Focused lifecycle and state: Awaiting Jev result"));
+  assert.equal(await diagramTop(), stableTop);
+  await panel.getByRole("button", { name: "Previous event", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector(".simulation-inspection")?.textContent.includes("Inspecting event"));
+  assert.equal(await diagramTop(), stableTop);
+  await panel.getByRole("button", { name: "Resume", exact: true }).click();
+  await status("Running");
+  for (let sample = 0; sample < 3; sample++) { await page.waitForTimeout(150); assert.equal(await diagramTop(), stableTop); }
+  await panel.getByRole("button", { name: "Inject edit burst", exact: true }).click();
+  await page.waitForTimeout(150);
+  assert.equal(await diagramTop(), stableTop);
+  await panel.getByRole("button", { name: "Pause", exact: true }).click();
+  await status("Paused");
+  await panel.screenshot({ path: "/tmp/astra-ux-stable-layout.png" });
   assert.deepEqual(errors, []);
   console.log(
     "Simulation browser controls, existing diagram and inspection passed",

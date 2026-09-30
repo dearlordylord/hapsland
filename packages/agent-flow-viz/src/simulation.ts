@@ -1,3 +1,4 @@
+import { reviewCapacityView } from "./review-capacity-view";
 import { locateFlow, projectFlowStep } from "@hapsland/agent-flow-projection";
 import { Schema } from "effect";
 import type { HtmlBuilder } from "foldkit/html";
@@ -142,7 +143,7 @@ export const actSimulation = (
       return { ...model, selected: -1, playing: false, suspended: false, revision: model.revision + 1, feedback: "Replay reset to initial inputs. Resume or Single step to replay recorded controls to its endpoint." };
     }
     if (action.startsWith("item:")) return { ...model, item: action.slice(5) };
-    if (action === "focus-stage") return { ...model, focus: model.stage, item: "" };
+    if (action === "focus-stage") return { ...model, focus: model.focus === model.stage ? "" : model.stage, item: "" };
     if (action === "download" && run) {
       const link = document.createElement("a");
       const url = URL.createObjectURL(new Blob([JSON.stringify(exported(), null, 2)], { type: "application/json" }));
@@ -182,7 +183,7 @@ export const actSimulation = (
     }
     if (action === "speed") return { ...model, appliedSpeed: speedValue(model.speed), feedback: "Playback speed applied. Draft edits do not change playback." };
     if (action === "filter") return { ...model, filter: model.filter === "all" ? "failures" : "all" };
-    if (action.startsWith("focus:")) return { ...model, focus: action.slice(6), item: "" };
+    if (action.startsWith("focus:")) return { ...model, focus: model.focus === action.slice(6) ? "" : action.slice(6), item: "" };
     if (action === "bookmark") return { ...model, bookmark: model.selected < 0 ? run?.observations.at(-1)?.sequence ?? -1 : model.selected, feedback: "Observation bookmarked for this run." };
     let feedback = model.feedback;
     let playing = model.playing;
@@ -541,14 +542,17 @@ export const simulationView = <Message>(
       h.div([h.Class("simulation-controls")], [button("Previous event", "previous"), button("Next event", "next"), button("Return to latest", "latest"), button("Replay from start", "replay-start"), button("Inspect oldest retained event", "from-start"), button("Bookmark event", "bookmark"), button("Go to bookmark", "go-bookmark")]),
       h.p([h.Class("simulation-outcomes")], [`Run outcomes: ${totals.checked} checked events · ${totals.admitted} observations admitted · ${totals.refused} refusals · ${totals.failed} failures/timeouts · ${totals.advice} delivered advice batches. ${run && model.suspended && !run.projection.work.some((work) => work.kind !== "pendingFinding") && run.projection.dispatch.requests.length === 0 && run.projection.collection.leases.length === 0 && !run.projection.delivery.slots.some((slot) => ["reserved", "authorized", "uncertain"].includes(slot.phase)) && !run.projection.delivery.submissions.batches.some((batch) => ["reserved", "authorized", "uncertain"].includes(batch.phase)) ? `Transient work settled; ${run.projection.collection.ready.length} retained advice records; arrivals suspended.` : "Work or future arrivals remain."}`]),
       h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · outcome ${latestControl("jevProfile")?.outcome ?? activeReplay.config.outcome ?? "finding"} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.session?.bytes ?? 100} bytes. Draft fields require Apply.` : "Start a run to apply environment settings."]),
-      h.ul([h.Class("simulation-control-markers")], (activeReplay?.controls ?? []).slice(-20).map((entry) => h.li([], [`Control at ${entry.time} ms / event boundary ${entry.boundary}: ${JSON.stringify(entry.control)}`]))),
-      h.details([], [h.summary([], ["Applied control timeline (draft fields apply only when submitted)"]), h.pre([], [activeReplay ? JSON.stringify({ initial: activeReplay.config, controls: activeReplay.controls.map((entry) => ({ time: entry.time, ...entry.control })) }, null, 2) : "No run started."])]),
-      h.details([], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
-      ...(model.focus ? [button("Clear lifecycle filter", "focus:")] : []),
-      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after) ?? ""]), h.ul([], locateFlow(current.after).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
       ...(run
         ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`))]
         : []),
+      ...(run ? [reviewCapacityView(h, current?.after ?? run.projection)] : []),
+      h.ul([h.Class("simulation-control-markers")], (activeReplay?.controls ?? []).slice(-20).map((entry) => h.li([], [`Control at ${entry.time} ms / event boundary ${entry.boundary}: ${JSON.stringify(entry.control)}`]))),
+      h.details([], [h.summary([], ["Applied control timeline (draft fields apply only when submitted)"]), h.pre([], [activeReplay ? JSON.stringify({ initial: activeReplay.config, controls: activeReplay.controls.map((entry) => ({ time: entry.time, ...entry.control })) }, null, 2) : "No run started."])]),
+      h.div([h.Class("simulation-stage-inspector")], [
+      h.details([], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
+      ...(model.focus ? [button("Clear lifecycle filter", "focus:")] : []),
+      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after) ?? ""]), h.ul([], locateFlow(current.after).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
+      ]),
       h.details(
         [h.Class("simulation-details"), h.Open(true)],
         [
