@@ -288,6 +288,8 @@ export const actSimulation = (
     if (action === "start") {
       const validSpeed = speedValue(model.speed);
       run = createRun({
+        // Keep ordinary reservations and bursts visible in this single-agent demo.
+        limits: { globalItems: 32, partitionItems: 16, globalBytes: 2000, partitionBytes: 2000 },
         environment: environmentFacts(model),
         outputProfile: outputProfile(model),
         seed: number(model.seed, "Seed", 0, 0xffffffff),
