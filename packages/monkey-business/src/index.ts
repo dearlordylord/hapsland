@@ -503,19 +503,22 @@ export class Run {
           this.requestCredentials.set(command.operation, this.environment.credentialGeneration ?? 1);
           const { kind: _kind, ...binding } = command;
           const job = this.jobs.get(command.operation);
-          effects.push({
+          const outcome = job?.outcome ?? this.outcome ?? this.outcomeSampler.sample(this.outcomeWeights);
+          if (outcome !== "neverSent") effects.push({
             kind: "jev",
             phase: "started",
             operation: command.operation,
             request: command.request,
             due: this.clock + this.jevDelay,
           });
-          this.event({ kind: "jevRequestStarted", ...binding });
+          // Synthetic outcomes supply the same lifecycle facts required by native callbacks.
+          if (outcome !== "neverSent") this.event({ kind: "jevRequestStarted", ...binding });
+          if (outcome === "interrupted") this.event({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
           this.event(
             {
               kind: "jevRequestSettled",
               ...binding,
-              outcome: job?.outcome ?? this.outcome ?? this.outcomeSampler.sample(this.outcomeWeights),
+              outcome,
               currentWork: true,
             },
             this.jevDelay,
