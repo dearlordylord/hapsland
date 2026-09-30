@@ -5,9 +5,10 @@ import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import type * as HttpClient from "effect/unstable/http/HttpClient";
 import { createHash, randomUUID } from "node:crypto";
+import { appendFileSync, statSync, writeFileSync } from "node:fs";
 import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises";
 import { createServer, type Server, type Socket } from "node:net";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { canonicalValue, isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts";
 import {
   evaluatePrepared,
@@ -537,7 +538,21 @@ export class ResidentServer {
   readonly #roundActivity = new Map<string, { root: string; advicee: DirectAdvicee; activityPath: string | undefined }>();
   readonly #stopTimers = new Map<string, ReturnType<typeof setTimeout>>();
   readonly #rounds = new Map<string, RoundWork>();
-  readonly #composedDelivery = new ComposedDelivery(this.#ledger);
+  readonly #composedDelivery = new ComposedDelivery(this.#ledger, (diagnostic) => {
+    // Keep diagnostics source-free and bounded even for an indefinitely running resident.
+    const path = join(this.paths.directory, "repeat-edits.log");
+    const line = `${JSON.stringify({ at: Date.now(), ...diagnostic })}\n`;
+    const limit = 256 * 1024;
+    try { writeFileSync(join(this.paths.directory, "repeat-edits-observed"), "1\n", { flag: "wx", mode: 0o600 }); }
+    catch { /* The marker is already present or diagnostics are unavailable. */ }
+    try {
+      const size = statSync(path).size;
+      if (size + Buffer.byteLength(line) > limit) writeFileSync(path, line, { mode: 0o600 });
+      else appendFileSync(path, line, { mode: 0o600 });
+    } catch {
+      try { writeFileSync(path, line, { mode: 0o600 }); } catch { /* logging cannot block admission */ }
+    }
+  });
   readonly #now: () => number;
   readonly #maximumOperationalNoticeKeys: number;
   readonly #maximumTickets: number;

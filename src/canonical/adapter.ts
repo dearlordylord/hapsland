@@ -303,15 +303,13 @@ export type ProspectiveFacts = {
   readonly clockValid: boolean; readonly hookWindow: number;
   readonly startedUpper: number; readonly nowLower: number;
   readonly adviceePermitLimit: number; readonly residentPermitLimit: number;
-  readonly eventCount: number; readonly eventLimit: number;
 };
 
 const encodeFacts = (facts: ProspectiveFacts): unknown => {
-  inputFields(facts, ["clockValid", "hookWindow", "startedUpper", "nowLower", "adviceePermitLimit", "residentPermitLimit", "eventCount", "eventLimit"]);
+  inputFields(facts, ["clockValid", "hookWindow", "startedUpper", "nowLower", "adviceePermitLimit", "residentPermitLimit"]);
   return { $: "Admission.ProspectiveFacts", clock_valid: bool(facts.clockValid), hook_window: nat(facts.hookWindow, true),
     started_upper: nat(facts.startedUpper), now_lower: nat(facts.nowLower),
-    advicee_permit_limit: nat(facts.adviceePermitLimit, true), resident_permit_limit: nat(facts.residentPermitLimit, true),
-    event_count: nat(facts.eventCount), event_limit: nat(facts.eventLimit, true) };
+    advicee_permit_limit: nat(facts.adviceePermitLimit, true), resident_permit_limit: nat(facts.residentPermitLimit, true) };
 };
 
 const encodePurpose = (value: CapacityPurpose): unknown => {
@@ -918,7 +916,7 @@ export type CanonicalProjection = {
   readonly charges: readonly CapacityCharge[];
   readonly inventory: readonly { readonly purpose: CapacityPurpose; readonly limits: CanonicalProjection["limits"] }[];
   readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean }[];
-  readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[]; readonly used: readonly { readonly token: number; readonly tool: number }[] }[];
+  readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[] }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
   readonly pendingFindings: readonly { readonly operation: number; readonly count: number }[];
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean; readonly requests: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number; readonly started: boolean; readonly interrupted: boolean }[] };
@@ -1096,22 +1094,18 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), id: nat(x.id, true), waiting: bool(x.waiting), deciding: bool(x.deciding), ...(write === undefined ? {} : { write }), uncertain: bool(x.uncertain) };
   });
   const admissions = readList(s.admissions, (value) => {
-    const x = fields(value, "Admission.AdmissionState", ["partition", "lifetime", "round", "active", "closed_at", "next_token", "permits", "used"]);
+    const x = fields(value, "Admission.AdmissionState", ["partition", "lifetime", "round", "active", "closed_at", "next_token", "permits"]);
     const permits = readList(x.permits, (entry) => {
       const permit = fields(entry, "Admission.Permit", ["token", "tool", "round", "started", "deadline"]);
       const started = nat(permit.started); const deadline = nat(permit.deadline);
       if (deadline < started) throw new TypeError("invalid permit deadline");
       return { token: nat(permit.token, true), tool: nat(permit.tool, true), round: nat(permit.round, true), deadline };
     });
-    const used = readList(x.used, (entry) => {
-      const item = fields(entry, "Admission.Used", ["token", "tool"]);
-      return { token: nat(item.token, true), tool: nat(item.tool, true) };
-    }, 65_536);
     const next = nat(x.next_token, true);
-    if (permits.some((item) => item.token >= next) || used.some((item) => item.token >= next) ||
-        new Set([...permits, ...used].map((item) => item.token)).size !== permits.length + used.length ||
-        new Set([...permits, ...used].map((item) => item.tool)).size !== permits.length + used.length) throw new TypeError("invalid admission tokens");
-    return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round), active: bool(x.active), closedAt: nat(x.closed_at), permits, used };
+    if (permits.some((item) => item.token >= next) ||
+        new Set(permits.map((item) => item.token)).size !== permits.length ||
+        new Set(permits.map((item) => item.tool)).size !== permits.length) throw new TypeError("invalid admission tokens");
+    return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round), active: bool(x.active), closedAt: nat(x.closed_at), permits };
   });
   const work = readList(s.work, (value) => {
     const x = fields(value, "Canonical.Work", ["partition", "lifetime", "round", "operation", "charge", "kind", "parent"]);
@@ -1218,7 +1212,7 @@ export const stepCanonical = (state: unknown, event: CanonicalEvent): { readonly
       const reason = tag(x.reason);
       if (reason === "Canonical.PermitDenied") {
         const detail = tag(fields(x.reason, "Canonical.PermitDenied", ["reason"]).reason);
-        if (!/^Admission\.(WrongPartition|WrongLifetime|StaleInvocation|Expired|DuplicateTool|NoPermit|UsedPermit|WrongTool|OldRound|InvalidClock|RoundAlreadyClosed|LifetimeNotFresh)$/.test(detail)) throw new TypeError("unknown permit refusal");
+        if (!/^Admission\.(WrongPartition|WrongLifetime|StaleInvocation|Expired|DuplicateTool|NoPermit|WrongTool|OldRound|InvalidClock|RoundAlreadyClosed|LifetimeNotFresh)$/.test(detail)) throw new TypeError("unknown permit refusal");
         return { state: x.state, commands: [], rejection: detail.slice("Admission.".length) };
       }
       if (!/^Canonical\.(InvalidIdentity|RoundLimit|StaleRound|StaleOperation|WrongStage|InconsistentLedger|ProspectiveDenied|AdviceePermitLimit|ResidentPermitLimit)$/.test(reason)) throw new TypeError("unknown rejection");

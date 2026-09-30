@@ -115,8 +115,7 @@ for (const trace of permitFixture.traces) {
     if (kind === "issue") event = { kind: "issuePermit", partition, lifetime,
       tool: input.tool, started: input.started, now: input.now, deadline: input.deadline,
       facts: { clockValid: true, hookWindow: 2500, startedUpper: input.started, nowLower: input.now,
-        adviceePermitLimit: 32, residentPermitLimit: 4096,
-        eventCount: 0, eventLimit: 4096 } };
+        adviceePermitLimit: 32, residentPermitLimit: 4096 } };
     else if (kind === "consume") event = { kind: "consumePermit", partition, lifetime,
       token: input.token, tool: input.tool, now: input.now };
     else if (kind === "release") event = { kind: "releasePermit", partition, lifetime, token: input.token };
@@ -137,7 +136,7 @@ for (const trace of permitFixture.traces) {
   }
   assert.deepEqual(projectCanonical(current).admissions.map((entry) => ({
     partition: entry.partition, round: entry.round, active: entry.active,
-    permits: entry.permits.length, retiredTokens: entry.used.length,
+    permits: entry.permits.length,
   })), trace.rounds, trace.name);
   assert.equal(consumedEdits, trace.consumedEdits, `${trace.name}: accepted edits`);
 }
@@ -170,8 +169,7 @@ for (let generation = 1; generation <= 3; generation++) {
       applyUnique({ kind: "issuePermit", partition, lifetime: 1, tool: token,
         started, now: started + edit, deadline: started + 50,
         facts: { clockValid: true, hookWindow: 2500, startedUpper: started, nowLower: started + edit,
-          adviceePermitLimit: 32, residentPermitLimit: 4096,
-          eventCount: 0, eventLimit: 4096 } },
+          adviceePermitLimit: 32, residentPermitLimit: 4096 } },
         ["permitIssued"]);
       const before = projectCanonical(uniqueRounds).rounds;
       applyUnique({ kind: "consumePermit", partition, lifetime: 1, token,
@@ -206,8 +204,7 @@ const issuedAtLimit = stepCanonical(fullRounds, {
   kind: "issuePermit", partition: 65, lifetime: 1, tool: 1,
   started: 100, now: 101, deadline: 200,
   facts: { clockValid: true, hookWindow: 2500, startedUpper: 100, nowLower: 101,
-    adviceePermitLimit: 32, residentPermitLimit: 4096,
-    eventCount: 0, eventLimit: 4096 },
+    adviceePermitLimit: 32, residentPermitLimit: 4096 },
 });
 assert.equal(issuedAtLimit.rejection, undefined);
 const refusedAtLimit = stepCanonical(issuedAtLimit.state, {

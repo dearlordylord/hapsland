@@ -9,12 +9,12 @@ import { DELIVERY_LEASE_MS } from "./protocol.ts";
 export const MAX_BACKGROUND_WAITERS = 64;
 export const EDIT_PERMIT_EXPIRY_MS = 30_000;
 export const BACKGROUND_WAITER_EXPIRY_MS = 20_000;
+export const RECENT_EDIT_IDENTITIES = 1_000;
 
-type Round = {
-  // Native event identities prevent one host callback from claiming two permits.
-  // Admission, Stop phase, and continuation authority remain canonical.
-  readonly events: ReadonlySet<string>;
-};
+type Round = Record<string, never>;
+type CompletedEditReason = "consumed" | "released" | "expired" | "closed";
+export type RepeatEditDiagnostic = { readonly kind: "repeat-edit-id"; readonly phase: "pending" | "completed";
+  readonly completedReason?: CompletedEditReason; readonly identityDigest: string };
 
 export type DeliverySurface = "edit" | "background" | "stop";
 type SubmissionBatch = {
@@ -35,13 +35,17 @@ const fingerprint = (finding: unknown): string =>
 
 export class ComposedDelivery {
   readonly canonical: CapacityLedger;
-  constructor(canonical = new CapacityLedger()) {
+  readonly #reportRepeat: (diagnostic: RepeatEditDiagnostic) => void;
+  constructor(canonical = new CapacityLedger(), reportRepeat: (diagnostic: RepeatEditDiagnostic) => void =
+    () => {}) {
     this.canonical = canonical;
+    this.#reportRepeat = reportRepeat;
   }
   readonly #rounds = new Map<string, Round>();
   readonly #permits = new Map<string, { readonly partition: string; readonly generation: number;
-    readonly expiresAt: number; readonly token: number; readonly tool: number }>();
+    readonly expiresAt: number; readonly token: number; readonly tool: number; logged: boolean }>();
   readonly #toolIds = new Map<string, number>();
+  readonly #recentEdits = new Map<string, { reason: CompletedEditReason; logged: boolean }>();
   #nextToolId = 1;
   readonly #stops = new Map<string, { token: string; id: number; generation: number; canonicalRound: number;
     continuationsAtStart: number; outputToken?: string }>();
@@ -93,10 +97,46 @@ export class ComposedDelivery {
   }
 
   #startRound(partition: string): Round {
-    const round: Round = { events: new Set() };
+    const round: Round = {};
     this.#rounds.set(partition, round);
     return round;
   }
+
+  #editDigest(key: string): string {
+    return createHash("sha256").update(key).digest("hex");
+  }
+
+  #repeat(key: string, phase: "pending" | "completed"): boolean {
+    const identityDigest = this.#editDigest(key);
+    const completed = this.#recentEdits.get(identityDigest);
+    if (phase === "completed" && completed === undefined) return false;
+    const pending = phase === "pending" ? this.#permits.get(key) : undefined;
+    if (pending !== undefined && pending.logged) return true;
+    if (phase === "pending" || !completed!.logged) {
+      try {
+        this.#reportRepeat({ kind: "repeat-edit-id", phase, identityDigest,
+          ...(completed === undefined ? {} : { completedReason: completed.reason }) });
+      } catch {
+        // Diagnostics cannot decide whether an edit is admitted.
+      }
+      if (completed !== undefined) completed.logged = true;
+      if (pending !== undefined) pending.logged = true;
+    }
+    return true;
+  }
+
+  #finishPermit(key: string, reason: CompletedEditReason): void {
+    this.#permits.delete(key);
+    this.#toolIds.delete(key);
+    const digest = this.#editDigest(key);
+    this.#recentEdits.delete(digest);
+    this.#recentEdits.set(digest, { reason, logged: false });
+    if (this.#recentEdits.size > RECENT_EDIT_IDENTITIES) {
+      this.#recentEdits.delete(this.#recentEdits.keys().next().value!);
+    }
+  }
+
+  recentEditCount(): number { return this.#recentEdits.size; }
 
   #toolId(partition: string, event: string): number {
     const key = `${partition}\0${event}`;
@@ -134,10 +174,14 @@ export class ComposedDelivery {
     now = monotonicNow(), limits: { readonly perAdvicee: number; readonly resident: number } = DEFAULT_EDIT_PERMIT_LIMITS):
     { readonly accepted: true } | { readonly accepted: false; readonly reason: string } {
     this.expirePermits(now);
-    const round = this.#rounds.get(partition);
+    const toolKey = `${partition}\0${eventId}`;
+    if (this.#permits.has(toolKey)) {
+      this.#repeat(toolKey, "pending");
+      return { accepted: true };
+    }
+    if (this.#repeat(toolKey, "completed")) return { accepted: false, reason: "DuplicateTool" };
     const admission = this.canonical.canonicalProjection().admissions.find(
       (item) => item.partition === this.canonical.partitionId(partition));
-    const event = eventId;
     // Bend receives both bounds of each reading. It uses the upper start and
     // lower now for ordering, then lower start and upper now for the deadline.
     const facts = {
@@ -146,10 +190,8 @@ export class ComposedDelivery {
       hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
       startedUpper: this.#bendUpperTime(startedAt), nowLower: this.#bendTime(now),
       adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident,
-      eventCount: round?.events.size ?? 0, eventLimit: 4096,
     };
-    const toolKey = `${partition}\0${event}`;
-    const knownTool = this.#toolIds.has(toolKey);
+    const event = eventId;
     const tool = this.#toolId(partition, event);
     let issued;
     try {
@@ -159,15 +201,15 @@ export class ComposedDelivery {
         now: this.#bendUpperTime(now), facts,
       });
     } catch {
-      if (!knownTool) this.#toolIds.delete(toolKey);
+      this.#toolIds.delete(toolKey);
       return { accepted: false, reason: "InvalidClock" };
     }
     const command = issued.commands[0];
     if (issued.rejection !== undefined || command?.kind !== "permitIssued") {
-      if (!knownTool) this.#toolIds.delete(toolKey);
+      this.#toolIds.delete(toolKey);
       const reason = issued.rejection === "ProspectiveDenied"
         ? !facts.clockValid ? "InvalidClock"
-          : facts.eventCount >= facts.eventLimit ? "EventLimit" : "ProspectiveDenied"
+          : "ProspectiveDenied"
         : issued.rejection ?? "InconsistentLedger";
       return { accepted: false, reason };
     }
@@ -175,11 +217,12 @@ export class ComposedDelivery {
       admission.round + (admission.active ? 0 : 1);
     if (command.round !== expectedGeneration) {
       this.#releaseAdmissionPermit(partition, command.token);
+      this.#finishPermit(toolKey, "released");
       return { accepted: false, reason: "StaleRound" };
     }
     this.#permits.set(`${partition}\0${event}`, { partition,
       generation: command.round, expiresAt: startedAt + EDIT_PERMIT_EXPIRY_MS,
-      token: command.token, tool });
+      token: command.token, tool, logged: false });
     return { accepted: true };
   }
 
@@ -191,12 +234,15 @@ export class ComposedDelivery {
     if (requirePermit) {
       this.expirePermits(now);
       const permit = this.#permits.get(key);
-      this.#permits.delete(key);
-      if (permit === undefined) return undefined;
+      if (permit === undefined) {
+        this.#repeat(key, "completed");
+        return undefined;
+      }
       const admission = this.canonical.canonicalProjection().admissions.find(
         (item) => item.partition === this.canonical.partitionId(partition));
       if (admission === undefined || permit.generation !== admission.round + (admission.active ? 0 : 1)) {
         this.#releaseAdmissionPermit(partition, permit.token);
+        this.#finishPermit(key, "released");
         return undefined;
       }
       let consumed;
@@ -206,44 +252,48 @@ export class ComposedDelivery {
           token: permit.token, tool: permit.tool, now: this.#bendTime(now) });
       } catch {
         this.#releaseAdmissionPermit(partition, permit.token);
+        this.#finishPermit(key, "released");
         return undefined;
       }
       if (consumed.rejection !== undefined || consumed.commands[0]?.kind !== "permitConsumed" ||
           consumed.commands[0].round !== permit.generation) {
         this.#releaseAdmissionPermit(partition, permit.token);
+        this.#finishPermit(key, "released");
         return undefined;
       }
+      this.#finishPermit(key, "consumed");
       if (previous === undefined) {
         previous = this.#startRound(partition);
       }
-      this.#rounds.set(partition, { ...previous, events: new Set([...previous.events, event]) });
       return this.generation(partition);
     }
     // Internal deterministic fixtures and the non-installed API may start a
     // first round; reopening always requires the runtime's prospective permit.
     if (previous !== undefined && !this.isActive(partition)) return undefined;
+    if (this.#permits.has(key)) return undefined;
     const partitionId = this.canonical.partitionId(partition);
-    const tool = this.#toolId(partition, event);
+    if (this.#repeat(key, "completed")) return undefined;
+    const tool = this.#nextToolId++;
     const syntheticNow = this.#bendTime(Math.max(1, now));
     const issued = this.canonical.transition({ kind: "issuePermit", partition: partitionId,
       lifetime: 1, tool, started: syntheticNow, deadline: syntheticNow + this.#bendTime(EDIT_PERMIT_EXPIRY_MS),
       now: syntheticNow, facts: { clockValid: true, hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
         startedUpper: syntheticNow, nowLower: syntheticNow,
-        adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident,
-        eventCount: previous?.events.size ?? 0, eventLimit: 4096 } });
+        adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident } });
     const permit = issued.commands[0];
     if (permit?.kind !== "permitIssued") return undefined;
     const consumed = this.canonical.consumeEditPermit(partition, { kind: "consumePermit", partition: partitionId,
       lifetime: 1, token: permit.token, tool, now: syntheticNow });
     if (consumed.commands[0]?.kind !== "permitConsumed") {
       this.#releaseAdmissionPermit(partition, permit.token);
+      this.#finishPermit(key, "released");
       return undefined;
     }
     if (previous === undefined) {
       previous = this.#startRound(partition);
     }
     if (consumed.commands[0].round !== this.generation(partition)) return undefined;
-    this.#rounds.set(partition, { ...previous, events: new Set([...previous.events, event]) });
+    this.#finishPermit(key, "consumed");
     return this.generation(partition);
   }
 
@@ -254,7 +304,7 @@ export class ComposedDelivery {
         token: permit.token, deadlineReached: permit.expiresAt <= now });
       if (result.commands[0]?.kind === "permitKept") continue;
       if (result.rejection !== undefined || result.commands[0]?.kind !== "permitExpired") throw new Error("invalid Bend permit expiry");
-      this.#permits.delete(key);
+      this.#finishPermit(key, "expired");
     }
   }
 
@@ -327,7 +377,7 @@ export class ComposedDelivery {
       if (released.rejection !== undefined || released.commands[0]?.kind !== "permitReleased") {
         throw new Error("canonical permit cutoff disagrees with resident");
       }
-      this.#permits.delete(key);
+      this.#finishPermit(key, "released");
     }
     return { status: "cutoff", cancelledSource: cancelled.filter((id) => source.has(id)),
       cancelledJev: cancelled.filter((id) => !source.has(id)), limited: terminal === "finishLimit" };
@@ -528,7 +578,7 @@ export class ComposedDelivery {
       if (permit !== undefined) permit.revoked = true;
     }
     if (!close) return undefined;
-    for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#permits.delete(key);
+    for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#finishPermit(key, "closed");
     const waiter = this.#backgroundWaiters.get(partition);
     if (waiter !== undefined) this.releaseBackground(partition, waiter.token);
     for (const [token, permit] of this.#finishPermits) if (permit.partition === partition) this.#finishPermits.delete(token);

@@ -308,7 +308,7 @@ def commit(state: Lifecycle, partition: Nat, lifetime: Nat, permit: Nat, tool: N
   match state:
     case Lifecycle{+admission, work, finish}:
       match admission:
-        case Admission.AdmissionState{_, _, _, active, _, _, _, _}:
+        case Admission.AdmissionState{_, _, _, active, _, _, _}:
           commit.accept(work, finish, active, Admission.step(admission, partition, lifetime,
             Admission.Consume{permit, tool, now}))
 

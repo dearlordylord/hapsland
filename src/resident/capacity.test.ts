@@ -111,8 +111,7 @@ describe("resident logical capacity ledger", () => {
     const issued = ledger.transition({ kind: "issuePermit", partition, lifetime: 1,
       tool: 7, started: 100, deadline: 300, now: 110,
       facts: { clockValid: true, hookWindow: 2500, startedUpper: 100, nowLower: 101,
-        adviceePermitLimit: 32, residentPermitLimit: 4096,
-        eventCount: 0, eventLimit: 4096 } });
+        adviceePermitLimit: 32, residentPermitLimit: 4096 } });
     expect(issued.commands[0]).toEqual({ kind: "permitIssued", token: 1, round: 1 });
     const charge = ledger.reserve("agent", 10, "observationDispatch");
     expect(charge).toBeDefined();
@@ -124,7 +123,7 @@ describe("resident logical capacity ledger", () => {
       token: 1, tool: 7, now: 120 }).commands[0]).toEqual({ kind: "permitConsumed", round: 1 });
     if (charge !== undefined) expect(ledger.release(charge)).toBe(true);
     expect(ledger.canonicalProjection()).toMatchObject({
-      global: { items: 0, bytes: 0 }, admissions: [{ partition, active: true, used: [{ token: 1, tool: 7 }] }],
+      global: { items: 0, bytes: 0 }, admissions: [{ partition, active: true, permits: [] }],
     });
   });
 

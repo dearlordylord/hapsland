@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:354ece8ddc3ce8c9d026d7ee325b3ffc066834e044802f3825b346ec1371b921
+// hapsland-bend-source-sha256:31429e14ac3b236930581df640eb8433942ee0962afbd21e98f9019dd5479a87
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -1037,9 +1037,7 @@ function $Canonical$issue_permit$(_state_0, _partition_0, _lifetime_0, _tool_0, 
   const _now_lower_0 = _facts_0["now_lower"];
   const _advicee_limit_0 = _facts_0["advicee_permit_limit"];
   const _resident_limit_0 = _facts_0["resident_permit_limit"];
-  const _event_count_0 = _facts_0["event_count"];
-  const _event_limit_0 = _facts_0["event_limit"];
-  return $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0, ($Admission$prospective_gate$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_limit_0, "resident_permit_limit": _resident_limit_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, _started_0, _now_0)));
+  return $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0, ($Admission$prospective_gate$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_limit_0, "resident_permit_limit": _resident_limit_0}, _started_0, _now_0)));
 }
 
 function $Canonical$consume_permit$(_state_0, _partition_0, _lifetime_0, _token_0, _tool_0, _now_0) {
@@ -2576,10 +2574,8 @@ function $Admission$prospective_gate$(_facts_0, _started_0, _now_0) {
   const _now_lower_0 = _facts_0["now_lower"];
   const _advicee_permit_limit_0 = _facts_0["advicee_permit_limit"];
   const _resident_permit_limit_0 = _facts_0["resident_permit_limit"];
-  const _event_count_0 = _facts_0["event_count"];
-  const _event_limit_0 = _facts_0["event_limit"];
   const _x_0 = nat_chk(_started_0 + _hook_window_0);
-  return $Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_permit_limit_0, "resident_permit_limit": _resident_permit_limit_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
+  return $Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_permit_limit_0, "resident_permit_limit": _resident_permit_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
 }
 
 function $Canonical$consume_result$(_state_0, _partition_0, _lifetime_0, _result_0) {
@@ -2606,8 +2602,7 @@ function $Admission$step$(_state_0, _partition_0, _lifetime_0, _event_0) {
   const __2 = _state_0["closed_at"];
   const __3 = _state_0["next_token"];
   const __4 = _state_0["permits"];
-  const __5 = _state_0["used"];
-  return $Admission$step$partition$({$: "Admission.AdmissionState", "partition": _owner_0, "lifetime": _live_0, "round": __0, "active": __1, "closed_at": __2, "next_token": __3, "permits": __4, "used": __5}, _partition_0, _lifetime_0, _event_0, ($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_live_0, _lifetime_0)));
+  return $Admission$step$partition$({$: "Admission.AdmissionState", "partition": _owner_0, "lifetime": _live_0, "round": __0, "active": __1, "closed_at": __2, "next_token": __3, "permits": __4}, _partition_0, _lifetime_0, _event_0, ($Nat$is_eq$(_owner_0, _partition_0)), ($Nat$is_eq$(_live_0, _lifetime_0)));
 }
 
 function $Canonical$current_admission$(_state_0, _partition_0, _lifetime_0) {
@@ -2633,8 +2628,7 @@ function $Canonical$expire_permit_checked$(_state_0, _partition_0, _lifetime_0, 
   const __3 = _admission_0["closed_at"];
   const __4 = _admission_0["next_token"];
   const __5 = _admission_0["permits"];
-  const __6 = _admission_0["used"];
-  return $Bool$pick$(($Nat$is_eq$(_owner_lifetime_0, _lifetime_0)), ($Canonical$expire_permit_result$(_state_0, _partition_0, ($Admission$expire$({$: "Admission.AdmissionState", "partition": __0, "lifetime": _owner_lifetime_0, "round": __1, "active": __2, "closed_at": __3, "next_token": __4, "permits": __5, "used": __6}, _token_0, _deadline_reached_0)))), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": {$: "Admission.WrongLifetime"}}});
+  return $Bool$pick$(($Nat$is_eq$(_owner_lifetime_0, _lifetime_0)), ($Canonical$expire_permit_result$(_state_0, _partition_0, ($Admission$expire$({$: "Admission.AdmissionState", "partition": __0, "lifetime": _owner_lifetime_0, "round": __1, "active": __2, "closed_at": __3, "next_token": __4, "permits": __5}, _token_0, _deadline_reached_0)))), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": {$: "Admission.WrongLifetime"}}});
 }
 
 function $Canonical$close_permit_checked$(_state_0, _partition_0, _lifetime_0, _expected_0, _at_0, _admission_0) {
@@ -2645,8 +2639,7 @@ function $Canonical$close_permit_checked$(_state_0, _partition_0, _lifetime_0, _
   const __1 = _admission_0["closed_at"];
   const __2 = _admission_0["next_token"];
   const __3 = _admission_0["permits"];
-  const __4 = _admission_0["used"];
-  return $Bool$pick$(($Nat$is_eq$(_owner_lifetime_0, _lifetime_0)), ($Bool$pick$(($Nat$is_eq$(_expected_0, ($Admission$candidate_round$(_round_0, _active_0)))), ($Canonical$close_permit_result$(_state_0, _partition_0, ($Admission$step$({$: "Admission.AdmissionState", "partition": __0, "lifetime": _owner_lifetime_0, "round": _round_0, "active": _active_0, "closed_at": __1, "next_token": __2, "permits": __3, "used": __4}, _partition_0, _lifetime_0, {$: "Admission.CloseRound", "at": _at_0})))), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}})), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": {$: "Admission.WrongLifetime"}}});
+  return $Bool$pick$(($Nat$is_eq$(_owner_lifetime_0, _lifetime_0)), ($Bool$pick$(($Nat$is_eq$(_expected_0, ($Admission$candidate_round$(_round_0, _active_0)))), ($Canonical$close_permit_result$(_state_0, _partition_0, ($Admission$step$({$: "Admission.AdmissionState", "partition": __0, "lifetime": _owner_lifetime_0, "round": _round_0, "active": _active_0, "closed_at": __1, "next_token": __2, "permits": __3}, _partition_0, _lifetime_0, {$: "Admission.CloseRound", "at": _at_0})))), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.StaleRound"}})), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": {$: "Admission.WrongLifetime"}}});
 }
 
 function $Canonical$open_found$(_state_0, _partition_0, _lifetime_0, _found_0) {
@@ -4406,12 +4399,10 @@ function $Canonical$issue_permit_capacity$(_state_0, _partition_0, _lifetime_0, 
 
 function $Admission$prospective_gate_window$(_facts_0, _within_0, _ordered_0) {
   const _clock_valid_0 = _facts_0["clock_valid"];
-  const _event_count_0 = _facts_0["event_count"];
-  const _event_limit_0 = _facts_0["event_limit"];
   if (!_ordered_0) {
     return {$: "Admission.PermitInvalidClock"};
   } else {
-    return $Admission$prospective_gate_ordered$(_clock_valid_0, _event_count_0, _event_limit_0, _within_0);
+    return $Admission$prospective_gate_ordered$(_clock_valid_0, _within_0);
   }
 }
 
@@ -5884,11 +5875,11 @@ function $Canonical$pending_resident_permits$(_admissions_0) {
   }
 }
 
-function $Admission$prospective_gate_ordered$(_clock_valid_0, _event_count_0, _event_limit_0, _within_0) {
+function $Admission$prospective_gate_ordered$(_clock_valid_0, _within_0) {
   if (!_within_0) {
     return {$: "Admission.PermitLate"};
   } else {
-    return $Bool$pick$(($Bool$and$(_clock_valid_0, (_event_count_0 < _event_limit_0))), {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
+    return $Bool$pick$(_clock_valid_0, {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
   }
 }
 
@@ -5936,7 +5927,7 @@ function $Admission$apply_event$(_state_0, _event_0) {
 }
 
 function $Admission$initial$(_partition_0, _lifetime_0) {
-  return {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": 0, "active": false, "closed_at": 0, "next_token": 1, "permits": {$: "Nil"}, "used": {$: "Nil"}};
+  return {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": 0, "active": false, "closed_at": 0, "next_token": 1, "permits": {$: "Nil"}};
 }
 
 function $Canonical$admission_matches$(_partition_0, _item_0) {
@@ -5962,8 +5953,7 @@ function $Admission$expire$due$(_state_0, _token_0) {
   const _closed_at_0 = _state_0["closed_at"];
   const _next_token_0 = _state_0["next_token"];
   const _permits_0 = _state_0["permits"];
-  const _used_0 = _state_0["used"];
-  return {$: "Admission.RemovePermit", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($Admission$remove_permit$(_token_0, _permits_0)), "used": ($Admission$record_used$(_token_0, _permits_0, _used_0))}};
+  return {$: "Admission.RemovePermit", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($Admission$remove_permit$(_token_0, _permits_0))}};
 }
 
 function $Canonical$replace_work_kind_pick$(_item_0, _next_0, _tail_0, _hit_0) {
@@ -7219,8 +7209,7 @@ function $Admission$issue$(_state_0, _tool_0, _started_0, _deadline_0, _now_0) {
   const _closed_at_0 = _state_0["closed_at"];
   const _next_token_0 = _state_0["next_token"];
   const _permits_0 = _state_0["permits"];
-  const _used_0 = _state_0["used"];
-  return $Admission$issue$guard$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, _now_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
+  return $Admission$issue$guard$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, _now_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
 }
 
 function $Admission$consume$(_state_0, _token_0, _tool_0, _now_0) {
@@ -7231,8 +7220,7 @@ function $Admission$consume$(_state_0, _token_0, _tool_0, _now_0) {
   const __4 = _state_0["closed_at"];
   const __5 = _state_0["next_token"];
   const _permits_0 = _state_0["permits"];
-  const _used_0 = _state_0["used"];
-  return $Admission$consume$used$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0, "used": _used_0}, _token_0, _tool_0, _now_0, ($Admission$has_token$(_token_0, _used_0)), ($Admission$find_permit$(_token_0, _permits_0)));
+  return $Admission$consume$found$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0}, _token_0, _tool_0, _now_0, ($Admission$find_permit$(_token_0, _permits_0)));
 }
 
 function $Admission$release$(_state_0, _token_0) {
@@ -7243,8 +7231,7 @@ function $Admission$release$(_state_0, _token_0) {
   const __4 = _state_0["closed_at"];
   const __5 = _state_0["next_token"];
   const _permits_0 = _state_0["permits"];
-  const _used_0 = _state_0["used"];
-  return $Admission$release$used$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0, "used": _used_0}, _token_0, ($Admission$has_token$(_token_0, _used_0)), ($Admission$find_permit$(_token_0, _permits_0)));
+  return $Admission$release$found$({$: "Admission.AdmissionState", "partition": __0, "lifetime": __1, "round": __2, "active": __3, "closed_at": __4, "next_token": __5, "permits": _permits_0}, _token_0, ($Admission$find_permit$(_token_0, _permits_0)));
 }
 
 function $Admission$close_round$(_state_0, _at_0) {
@@ -7255,8 +7242,7 @@ function $Admission$close_round$(_state_0, _at_0) {
   const _closed_at_0 = _state_0["closed_at"];
   const _next_token_0 = _state_0["next_token"];
   const _permits_0 = _state_0["permits"];
-  const _used_0 = _state_0["used"];
-  return $Admission$close_round$active$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, ($Admission$record_all_used$(_permits_0, _used_0)), _at_0);
+  return $Admission$close_round$active$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _at_0);
 }
 
 function $Admission$restart$(_state_0, _new_lifetime_0, _at_0) {
@@ -7267,8 +7253,7 @@ function $Admission$restart$(_state_0, _new_lifetime_0, _at_0) {
   const _closed_at_0 = _state_0["closed_at"];
   const __2 = _state_0["next_token"];
   const __3 = _state_0["permits"];
-  const __4 = _state_0["used"];
-  return $Admission$restart$fresh$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": __0, "active": __1, "closed_at": _closed_at_0, "next_token": __2, "permits": __3, "used": __4}, _partition_0, _lifetime_0, _closed_at_0, _new_lifetime_0, _at_0, ($Bool$and$(($Nat$is_gt$(_new_lifetime_0, _lifetime_0)), ($Nat$is_ge$(_at_0, _closed_at_0)))));
+  return $Admission$restart$fresh$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": __0, "active": __1, "closed_at": _closed_at_0, "next_token": __2, "permits": __3}, _partition_0, _lifetime_0, _closed_at_0, _new_lifetime_0, _at_0, ($Bool$and$(($Nat$is_gt$(_new_lifetime_0, _lifetime_0)), ($Nat$is_ge$(_at_0, _closed_at_0)))));
 }
 
 function $Canonical$retain_admission$(_item_0, _tail_0, _match_owner_0) {
@@ -7292,10 +7277,6 @@ function $Admission$remove_permit$(_token_0, _permits_0) {
     const _rest_0 = _permits_0["tail"];
     return $Admission$remove_permit$pick$({$: "Admission.Permit", "token": _current_0, "tool": __0, "round": __1, "started": __2, "deadline": __3}, ($Admission$remove_permit$(_token_0, _rest_0)), ($Nat$is_eq$(_current_0, _token_0)));
   }
-}
-
-function $Admission$record_used$(_token_0, _permits_0, _used_0) {
-  return $Admission$record_used$found$(($Admission$find_permit$(_token_0, _permits_0)), _used_0);
 }
 
 function $Canonical$prepared_batch$(_state_0, _operation_0, _charge_0, _partition_0, _released_0, _batch_0) {
@@ -7869,34 +7850,24 @@ function $Ledger$replace_for$(_id_0, _bytes_0, _purpose_0, _charges_0) {
   }
 }
 
-function $Admission$issue$guard$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, _now_0, _clock_valid_0) {
+function $Admission$issue$guard$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, _now_0, _clock_valid_0) {
   if (!_clock_valid_0) {
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.StaleInvocation"}};
   } else {
-    const _x_0 = ($Admission$has_tool$(_tool_0, _permits_0));
-    const _x_1 = ($Admission$has_used_tool$(_tool_0, _used_0));
-    return $Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, (_x_0 || _x_1));
+    return $Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, ($Admission$has_tool$(_tool_0, _permits_0)));
   }
 }
 
-function $Admission$consume$used$(_state_0, _token_0, _tool_0, _now_0, _was_used_0, _permit_0) {
-  if (_was_used_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.UsedPermit"}};
+function $Admission$consume$found$(_state_0, _token_0, _tool_0, _now_0, _permit_0) {
+  if (_permit_0.$ === "None") {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.NoPermit"}};
   } else {
-    return $Admission$consume$found$(_state_0, _token_0, _tool_0, _now_0, _permit_0);
-  }
-}
-
-function $Admission$has_token$(_token_0, _used_0) {
-  if (_used_0.$ === "Nil") {
-    return false;
-  } else {
-    const _t_0 = _used_0["head"];
-    const _current_0 = _t_0["token"];
-    const _rest_0 = _used_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_token_0, _current_0));
-    const _x_1 = ($Admission$has_token$(_token_0, _rest_0));
-    return (_x_0 || _x_1);
+    const _t_0 = _permit_0["value"];
+    const _permitted_tool_0 = _t_0["tool"];
+    const _permitted_round_0 = _t_0["round"];
+    const _started_0 = _t_0["started"];
+    const _deadline_0 = _t_0["deadline"];
+    return $Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0);
   }
 }
 
@@ -7915,39 +7886,26 @@ function $Admission$find_permit$(_token_0, _permits_0) {
   }
 }
 
-function $Admission$release$used$(_state_0, _token_0, _used_0, _found_0) {
-  if (_used_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.UsedPermit"}};
+function $Admission$release$found$(_state_0, _token_0, _found_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  if (_found_0.$ === "None") {
+    return {$: "Admission.Rejected", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, "reason": {$: "Admission.NoPermit"}};
   } else {
-    return $Admission$release$found$(_state_0, _token_0, _found_0);
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($Admission$remove_permit$(_token_0, _permits_0))}, "token": {$: "None"}, "round": {$: "None"}};
   }
 }
 
-function $Admission$close_round$active$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _used_0, _at_0) {
+function $Admission$close_round$active$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _at_0) {
   if (!_active_0) {
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.RoundAlreadyClosed"}};
   } else {
-    return $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _used_0, _at_0, ($Nat$is_ge$(_at_0, _closed_at_0)));
-  }
-}
-
-function $Admission$record_all_used$($0, $1) {
-  for (;;) {
-    {
-      const _permits_0 = $0;
-      const _used_0 = $1;
-      if (_permits_0.$ === "Nil") {
-        return _used_0;
-      } else {
-        const _t_0 = _permits_0["head"];
-        const _token_0 = _t_0["token"];
-        const _tool_0 = _t_0["tool"];
-        const _rest_0 = _permits_0["tail"];
-        $0 = _rest_0;
-        $1 = {$: "Con", "head": {$: "Admission.Used", "token": _token_0, "tool": _tool_0}, "tail": _used_0};
-        continue;
-      }
-    }
+    return $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _at_0, ($Nat$is_ge$(_at_0, _closed_at_0)));
   }
 }
 
@@ -7955,7 +7913,7 @@ function $Admission$restart$fresh$(_state_0, _partition_0, _lifetime_0, _closed_
   if (!_valid_0) {
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.LifetimeNotFresh"}};
   } else {
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _new_lifetime_0, "round": 0, "active": false, "closed_at": _at_0, "next_token": 1, "permits": {$: "Nil"}, "used": {$: "Nil"}}, "token": {$: "None"}, "round": {$: "None"}};
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _new_lifetime_0, "round": 0, "active": false, "closed_at": _at_0, "next_token": 1, "permits": {$: "Nil"}}, "token": {$: "None"}, "round": {$: "None"}};
   }
 }
 
@@ -7964,17 +7922,6 @@ function $Admission$remove_permit$pick$(_permit_0, _tail_0, _hit_0) {
     return _tail_0;
   } else {
     return {$: "Con", "head": _permit_0, "tail": _tail_0};
-  }
-}
-
-function $Admission$record_used$found$(_permit_0, _used_0) {
-  if (_permit_0.$ === "None") {
-    return _used_0;
-  } else {
-    const _t_0 = _permit_0["value"];
-    const _found_0 = _t_0["token"];
-    const _tool_0 = _t_0["tool"];
-    return {$: "Con", "head": {$: "Admission.Used", "token": _found_0, "tool": _tool_0}, "tail": _used_0};
   }
 }
 
@@ -8358,12 +8305,12 @@ function $Ledger$replace$pick$(_charge_0, _replacement_0, _tail_0, _hit_0) {
   }
 }
 
-function $Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _tool_0, _started_0, _deadline_0, _duplicate_0) {
+function $Admission$issue$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _tool_0, _started_0, _deadline_0, _duplicate_0) {
   if (_duplicate_0) {
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.DuplicateTool"}};
   } else {
     const _expected_round_0 = ($Admission$candidate_round$(_round_0, _active_0));
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": nat_chk(_next_token_0 + 1), "permits": ($List$append$(_permits_0, {$: "Con", "head": {$: "Admission.Permit", "token": _next_token_0, "tool": _tool_0, "round": _expected_round_0, "started": _started_0, "deadline": _deadline_0}, "tail": {$: "Nil"}})), "used": _used_0}, "token": {$: "Some", "value": _next_token_0}, "round": {$: "Some", "value": _expected_round_0}};
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": nat_chk(_next_token_0 + 1), "permits": ($List$append$(_permits_0, {$: "Con", "head": {$: "Admission.Permit", "token": _next_token_0, "tool": _tool_0, "round": _expected_round_0, "started": _started_0, "deadline": _deadline_0}, "tail": {$: "Nil"}}))}, "token": {$: "Some", "value": _next_token_0}, "round": {$: "Some", "value": _expected_round_0}};
   }
 }
 
@@ -8380,30 +8327,15 @@ function $Admission$has_tool$(_tool_0, _permits_0) {
   }
 }
 
-function $Admission$has_used_tool$(_tool_0, _used_0) {
-  if (_used_0.$ === "Nil") {
-    return false;
-  } else {
-    const _t_0 = _used_0["head"];
-    const _current_0 = _t_0["tool"];
-    const _rest_0 = _used_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_tool_0, _current_0));
-    const _x_1 = ($Admission$has_used_tool$(_tool_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $Admission$consume$found$(_state_0, _token_0, _tool_0, _now_0, _permit_0) {
-  if (_permit_0.$ === "None") {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.NoPermit"}};
-  } else {
-    const _t_0 = _permit_0["value"];
-    const _permitted_tool_0 = _t_0["tool"];
-    const _permitted_round_0 = _t_0["round"];
-    const _started_0 = _t_0["started"];
-    const _deadline_0 = _t_0["deadline"];
-    return $Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0);
-  }
+function $Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0) {
+  const _partition_0 = _state_0["partition"];
+  const _lifetime_0 = _state_0["lifetime"];
+  const _round_0 = _state_0["round"];
+  const _active_0 = _state_0["active"];
+  const _closed_at_0 = _state_0["closed_at"];
+  const _next_token_0 = _state_0["next_token"];
+  const _permits_0 = _state_0["permits"];
+  return $Admission$consume$tool$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, ($Nat$is_eq$(_tool_0, _permitted_tool_0)));
 }
 
 function $Admission$find_permit$pick$(_permit_0, _fallback_0, _hit_0) {
@@ -8414,27 +8346,11 @@ function $Admission$find_permit$pick$(_permit_0, _fallback_0, _hit_0) {
   }
 }
 
-function $Admission$release$found$(_state_0, _token_0, _found_0) {
-  const _partition_0 = _state_0["partition"];
-  const _lifetime_0 = _state_0["lifetime"];
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_at_0 = _state_0["closed_at"];
-  const _next_token_0 = _state_0["next_token"];
-  const _permits_0 = _state_0["permits"];
-  const _used_0 = _state_0["used"];
-  if (_found_0.$ === "None") {
-    return {$: "Admission.Rejected", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, "reason": {$: "Admission.NoPermit"}};
-  } else {
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($Admission$remove_permit$(_token_0, _permits_0)), "used": ($Admission$record_used$(_token_0, _permits_0, _used_0))}, "token": {$: "None"}, "round": {$: "None"}};
-  }
-}
-
-function $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _used_0, _at_0, _valid_0) {
+function $Admission$close_round$time$(_state_0, _partition_0, _lifetime_0, _round_0, _next_token_0, _at_0, _valid_0) {
   if (!_valid_0) {
     return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.InvalidClock"}};
   } else {
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": false, "closed_at": _at_0, "next_token": _next_token_0, "permits": {$: "Nil"}, "used": _used_0}, "token": {$: "None"}, "round": {$: "Some", "value": _round_0}};
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": false, "closed_at": _at_0, "next_token": _next_token_0, "permits": {$: "Nil"}}, "token": {$: "None"}, "round": {$: "Some", "value": _round_0}};
   }
 }
 
@@ -8573,16 +8489,12 @@ function $TicketState$replace_unit_choice$(_item_0, _tail_0, _replacement_0, _ma
   }
 }
 
-function $Admission$consume$check$(_state_0, _token_0, _tool_0, _now_0, _permitted_tool_0, _permitted_round_0, _started_0, _deadline_0) {
-  const _partition_0 = _state_0["partition"];
-  const _lifetime_0 = _state_0["lifetime"];
-  const _round_0 = _state_0["round"];
-  const _active_0 = _state_0["active"];
-  const _closed_at_0 = _state_0["closed_at"];
-  const _next_token_0 = _state_0["next_token"];
-  const _permits_0 = _state_0["permits"];
-  const _used_0 = _state_0["used"];
-  return $Admission$consume$tool$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "active": _active_0, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": _permits_0, "used": _used_0}, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, ($Nat$is_eq$(_tool_0, _permitted_tool_0)));
+function $Admission$consume$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, _correct_tool_0) {
+  if (!_correct_tool_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongTool"}};
+  } else {
+    return $Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _now_0, _permitted_round_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
+  }
 }
 
 function $SubmissionState$begin_one_result$(_state_0, _advice_0, _fingerprint_0, _result_0) {
@@ -8669,11 +8581,11 @@ function $Handoff$lease$suppress_surface$(_own_0, _requested_0) {
   }
 }
 
-function $Admission$consume$tool$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _tool_0, _now_0, _permitted_round_0, _started_0, _deadline_0, _correct_tool_0) {
-  if (!_correct_tool_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.WrongTool"}};
+function $Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _now_0, _permitted_round_0, _valid_0) {
+  if (!_valid_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.Expired"}};
   } else {
-    return $Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _now_0, _permitted_round_0, ($Bool$and$(($Nat$is_gt$(_started_0, _closed_at_0)), ($Bool$and$(($Nat$is_le$(_started_0, _now_0)), ($Nat$is_le$(_now_0, _deadline_0)))))));
+    return $Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _permitted_round_0, ($Nat$is_eq$(_permitted_round_0, ($Admission$candidate_round$(_round_0, _active_0)))));
   }
 }
 
@@ -8729,11 +8641,11 @@ function $SubmissionState$restore_found$(_state_0, _advice_0, _fingerprint_0, _f
   }
 }
 
-function $Admission$consume$time$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _now_0, _permitted_round_0, _valid_0) {
-  if (!_valid_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.Expired"}};
+function $Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _token_0, _permitted_round_0, _correct_round_0) {
+  if (!_correct_round_0) {
+    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.OldRound"}};
   } else {
-    return $Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _permitted_round_0, ($Nat$is_eq$(_permitted_round_0, ($Admission$candidate_round$(_round_0, _active_0)))));
+    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _permitted_round_0, "active": true, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($Admission$remove_permit$(_token_0, _permits_0))}, "token": {$: "Some", "value": _token_0}, "round": {$: "Some", "value": _permitted_round_0}};
   }
 }
 
@@ -8790,14 +8702,6 @@ function $SubmissionState$restore_record$(_record_0) {
   } else {
     const _current_0 = _t_0["value"];
     return {$: "Some", "value": {$: "SubmissionState.LeaseRecord", "advice": _advice_0, "fingerprint": _fingerprint_0, "current": _current_0, "previous": {$: "None"}}};
-  }
-}
-
-function $Admission$consume$round$(_state_0, _partition_0, _lifetime_0, _round_0, _active_0, _closed_at_0, _next_token_0, _permits_0, _used_0, _token_0, _permitted_round_0, _correct_round_0) {
-  if (!_correct_round_0) {
-    return {$: "Admission.Rejected", "state": _state_0, "reason": {$: "Admission.OldRound"}};
-  } else {
-    return {$: "Admission.Accepted", "state": {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": _permitted_round_0, "active": true, "closed_at": _closed_at_0, "next_token": _next_token_0, "permits": ($Admission$remove_permit$(_token_0, _permits_0)), "used": ($Admission$record_used$(_token_0, _permits_0, _used_0))}, "token": {$: "Some", "value": _token_0}, "round": {$: "Some", "value": _permitted_round_0}};
   }
 }
 

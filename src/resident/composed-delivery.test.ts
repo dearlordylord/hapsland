@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS } from "./composed-delivery.ts";
+import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS, RECENT_EDIT_IDENTITIES } from "./composed-delivery.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
 const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number => {
@@ -116,12 +116,12 @@ describe("shared Hapsland rounds", () => {
     });
   });
 
-  it("lets Bend reject a repeated edit ID while pending, consumed, and closed", () => {
-    const state = new ComposedDelivery();
+  it("reuses a pending permit and rejects a recently completed edit ID", () => {
+    const diagnostics: unknown[] = [];
+    const state = new ComposedDelivery(undefined, (diagnostic) => diagnostics.push(diagnostic));
     expect(state.registerEditDecision("agent", "same-edit", 100, 110)).toEqual({ accepted: true });
-    expect(state.registerEditDecision("agent", "same-edit", 111, 120)).toEqual({
-      accepted: false, reason: "DuplicateTool",
-    });
+    expect(state.registerEditDecision("agent", "same-edit", 111, 120)).toEqual({ accepted: true });
+    expect(state.closureCounts("agent").editPermits).toBe(1);
     expect(state.admitEdit("agent", "same-edit", 130, true)).toBe(1);
     expect(state.registerEditDecision("agent", "same-edit", 131, 140)).toEqual({
       accepted: false, reason: "DuplicateTool",
@@ -131,6 +131,22 @@ describe("shared Hapsland rounds", () => {
     expect(state.registerEditDecision("agent", "same-edit", 220, 230)).toEqual({
       accepted: false, reason: "DuplicateTool",
     });
+    expect(diagnostics).toMatchObject([{ phase: "pending" }, { phase: "completed", completedReason: "consumed" }]);
+    expect(state.recentEditCount()).toBe(1);
+  });
+
+  it("retains at most 1000 completed identities across the resident", () => {
+    const diagnostics: unknown[] = [];
+    const state = new ComposedDelivery(undefined, (diagnostic) => diagnostics.push(diagnostic));
+    for (let index = 0; index < RECENT_EDIT_IDENTITIES; index += 1) {
+      expect(state.admitEdit(`agent-${index % 2}`, `edit-${index}`, index + 1)).toBe(1);
+    }
+    expect(state.recentEditCount()).toBe(RECENT_EDIT_IDENTITIES);
+    expect(state.registerEditDecision("agent-0", "edit-0", 1002, 1003)).toEqual({ accepted: false, reason: "DuplicateTool" });
+    expect(diagnostics).toHaveLength(1);
+    expect(state.admitEdit("agent-0", `edit-${RECENT_EDIT_IDENTITIES}`, 1001)).toBe(1);
+    expect(state.recentEditCount()).toBe(RECENT_EDIT_IDENTITIES);
+    expect(state.registerEditDecision("agent-0", "edit-0", 1004, 1005)).toEqual({ accepted: true });
   });
 
   it("counts pending permits per advicee and across the resident, then frees consumed capacity", () => {
@@ -158,7 +174,7 @@ describe("shared Hapsland rounds", () => {
   it("never renews a tool occurrence when duplicate prehooks outlive its permit", () => {
     const state = new ComposedDelivery();
     expect(state.registerEdit("agent", "failed", 100, 101)).toBe(true);
-    expect(state.registerEdit("agent", "failed", 200, 201)).toBe(false);
+    expect(state.registerEdit("agent", "failed", 200, 201)).toBe(true);
     state.expirePermits(100 + EDIT_PERMIT_EXPIRY_MS);
     expect(state.closureCounts("agent").editPermits).toBe(0);
     expect(state.registerEdit("agent", "failed", 101 + EDIT_PERMIT_EXPIRY_MS,
@@ -223,19 +239,19 @@ describe("shared Hapsland rounds", () => {
     const admission = state.canonical.canonicalProjection().admissions.find(
       (item) => item.partition === state.canonical.partitionId("agent"));
     expect(admission).toMatchObject({ active: false, round: 0, permits: [] });
-    expect(admission?.used).toHaveLength(1);
+    expect(state.recentEditCount()).toBe(1);
   });
 
   it("keeps native tool identity across duplicate and cross-advicee callbacks", () => {
     const state = new ComposedDelivery();
     expect(state.registerEdit("child", "tool-use-original", 100, 110)).toBe(true);
-    expect(state.registerEdit("child", "tool-use-original", 100, 111)).toBe(false);
+    expect(state.registerEdit("child", "tool-use-original", 100, 111)).toBe(true);
     expect(state.admitEdit("parent", "tool-use-original", 115, true)).toBeUndefined();
     expect(state.admitEdit("child", "other-tool", 116, true)).toBeUndefined();
     expect(state.admitEdit("child", "tool-use-original", 117, true)).toBe(1);
     expect(state.admitEdit("child", "tool-use-original", 118, true)).toBeUndefined();
     const child = state.canonical.canonicalProjection().admissions[0];
-    expect(child?.used).toHaveLength(1);
+    expect(state.recentEditCount()).toBe(1);
     expect(child?.permits).toHaveLength(0);
   });
 

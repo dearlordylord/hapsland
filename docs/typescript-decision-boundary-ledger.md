@@ -60,15 +60,15 @@ The [Codex and Claude adapter checks](../src/direct-event/adapter.ts), [native e
 | Why outside Bend | Reading the runtime's monotonic clock and converting units are native measurements. The deadline rule belongs in the reducer. |
 | Review and limits | On 2026-09-29 the owner approved moving the time decision into Bend and using today's fixed value while preparing for configuration. Integer-microsecond bounds can conservatively reject a valid attempt near a boundary; they cannot admit an expired or reversed one. This does not approve the particular duration as a permanent product rule or resolve duplicate identities, counts, and capacity limits in the rest of TS-005. |
 
-## TS-005b — Decide repeated edit identity in Bend
+## TS-005b — Pair pending edit identity and bound completed idempotency
 
 | Field | Reviewed boundary |
 | --- | --- |
-| Decision | One edit occurrence cannot receive another permit in the same resident lifetime after its identity is pending, consumed, released, expired, or retired by round closure. |
-| TypeScript owner | [Composed delivery](../src/resident/composed-delivery.ts) turns the runtime's opaque edit occurrence ID into a stable numeric tool ID scoped to the advicee. It retains native IDs for matching pre-edit and post-edit notifications and counting resident events. It no longer sends a duplicate verdict to Bend. |
-| Bend boundary | [Admission](../packages/agent-flow-bend/Admission.bend) checks its pending permits and used identities when issuing a permit. The canonical result returns `DuplicateTool` for a repeat. |
-| Why outside Bend | Reading and pairing native runtime identities is adapter work. Whether an already-seen identity may receive another permit is a reducer decision. |
-| Review and limits | On 2026-09-29 the owner approved this identity boundary. It applies to the current resident lifetime; it does not specify how a different runtime must form its occurrence ID or settle the remaining TS-005 count and capacity choices. |
+| Decision | A repeated pre-edit notification while its permit is pending reuses that permit. After settlement, the last 1,000 completed edit identities across the resident cannot receive a new permit; repeats in this window produce a source-free diagnostic. The oldest completed identity is evicted on overflow. A repeat after eviction may be admitted as a new attempt. A repeated post-edit notification without a permit starts no second review. |
+| TypeScript owner | [Composed delivery](../src/resident/composed-delivery.ts) pairs the runtime's opaque edit ID with one pending Bend permit. It removes that pairing on consumption, release, expiry, or closure. A resident-wide FIFO of at most 1,000 fixed-size identity digests supplies temporary idempotency and diagnostic detection. The resident writes source-free repeats to a diagnostic file reset at 256 KiB and keeps a fixed-size marker showing that at least one repeat occurred. |
+| Bend boundary | [Admission](../packages/agent-flow-bend/Admission.bend) rejects a second permit while the same tool identity is pending, consumes a permit once, and retains no completed tool list. The FIFO decision is currently in TypeScript; moving it into Bend with a bounded global state and proof remains required. |
+| Why outside Bend | Reading and pairing native runtime identities is adapter work. The temporary idempotency window remains a TypeScript product decision until Bend owns it; this is explicit debt, not an adapter fact. |
+| Review and limits | On 2026-09-29 the owner replaced the earlier resident-lifetime deduplication rule with a bounded 1,000-entry window. This limits completed edit history, not pending permits, open virtual rounds, or retained advicee records. The process-wide memory ceiling requires separate work on those records. |
 
 ## TS-005c — Bound pending edit permits in Bend
 
@@ -78,17 +78,17 @@ The [Codex and Claude adapter checks](../src/direct-event/adapter.ts), [native e
 | TypeScript owner | The [resident](../src/resident/server.ts) loads user configuration and passes the two limit values through [composed delivery](../src/resident/composed-delivery.ts). The hook passes the path to the user's configuration, when explicitly supplied. Project configuration cannot set shared resident limits. |
 | Bend boundary | [Canonical Bend admission](../packages/agent-flow-bend/Canonical.bend) counts pending permits in its own admission state, checks the advicee and resident limits, and reports which limit denied an attempt. TypeScript supplies no current count and makes no capacity verdict. |
 | Why outside Bend | Reading the user's configuration is a filesystem effect. The occupancy count and permission to issue a permit are reducer decisions. The limit values are inputs so a user can tune capacity without changing the reducer. |
-| Review and limits | On 2026-09-29 the owner chose two configurable limits and the starting values 32 and 4096. This entry covers simultaneous **pending edit permits**, not IPC connections, accepted edits, active rounds, or review capacity. The event count input remains for separate review in TS-005. |
+| Review and limits | On 2026-09-29 the owner chose two configurable limits and the starting values 32 and 4096. This entry covers simultaneous **pending edit permits**, not IPC connections, accepted edits, active rounds, or review capacity. The former accepted-edit event count and its 4096 gate were removed with the lifetime identity history. |
 
 ## TS-005d — Count open virtual rounds in Bend
 
 | Field | Reviewed boundary |
 | --- | --- |
 | Decision | At most 64 virtual rounds may be open in one resident at once. A pre-edit permit does not reserve a round slot. The first accepted edit opens a round if a slot is free; closure releases that slot. Closed advicees do not occupy open-round capacity. |
-| TypeScript owner | [Composed delivery](../src/resident/composed-delivery.ts) pairs native edit notifications with permits and keeps native event identities for the still-unresolved event-count check. It no longer supplies a round count, a new-round verdict, or a round-limit value to the permit gate. |
+| TypeScript owner | [Composed delivery](../src/resident/composed-delivery.ts) pairs native edit notifications with pending permits. It no longer supplies a round count, a new-round verdict, or a round-limit value to the permit gate. |
 | Bend boundary | [Canonical Bend](../packages/agent-flow-bend/Canonical.bend) counts open rounds in its own state when the edit consumes its permit and atomically opens or joins a round. A failed opening leaves the permit admission unconsumed. |
 | Why outside Bend | Native event pairing remains TypeScript adapter work. The count and admission limit are entirely reducer decisions. |
-| Review and limits | On 2026-09-29 the owner chose the 64-record limit to apply to **simultaneously open rounds**, rather than advicees ever seen in a resident lifetime. The lifetime retention and possible size bound of old edit identities remain separate, unresolved choices; this decision does not specify resident restart or history eviction. |
+| Review and limits | On 2026-09-29 the owner chose the 64-record limit to apply to **simultaneously open rounds**, rather than advicees ever seen in a resident lifetime. Completed edit identities now have the separate 1,000-entry window. Retention of closed advicee records remains unresolved. |
 
 ## TODO — TypeScript choices awaiting boundary review
 
@@ -96,8 +96,7 @@ These are the remaining choices from the owner-facing “Choice made in TypeScri
 
 | ID | Choice currently made in TypeScript | What needs review |
 | --- | --- | --- |
-| TS-005 | [`ComposedDelivery.registerEditDecision`](../src/resident/composed-delivery.ts) still supplies the count of accepted native edit IDs retained for one advicee. Time, repeated identity, pending permit capacity, and open-round capacity are resolved in TS-005a through TS-005d. | Decide whether the event count should be derived from Bend's identity history, and what its 4096 limit means. |
-| TS-005h | Bend and TypeScript retain edit identities and closure fences for the resident lifetime. The former 64-record gate incidentally bounded distinct advicees; removing it makes the lifetime size question explicit. | Decide if history needs a measured capacity bound or a narrower retention promise. Do not evict old IDs or force resident rotation without reviewing duplicate and late-hook behavior. |
+| TS-005h | Completed edit IDs now have a global 1,000-entry FIFO, but [`ComposedDelivery.#rounds`](../src/resident/composed-delivery.ts), [`CapacityLedger.#partitionIds` and `#collectionTokens`](../src/resident/capacity.ts), [`ResidentServer.#bendPartitions`](../src/resident/server.ts), and Bend's admission records can retain identities after their work ends. The old 64-record gate no longer bounds distinct advicees over process lifetime. | Audit every retained resident collection, design safe reclamation of closed advicee and token state while accounting for delayed hooks, and establish a strict process-wide memory ceiling even if the process runs indefinitely. Move the bounded idempotency decision and ceiling invariant into Bend and prove them. |
 | TS-006 | Native [file selection](../src/direct-event/selection.ts), source capture, parsing, and [rule compilation](../src/rules/compiler.ts) establish what code and rules can enter review. | Separate facts that require filesystem/runtime access from product choices about eligible files and applicable rules; verify which choices Bend already owns. |
 | TS-007 | The resident [measures encoded objects and selects reservation purposes](../src/resident/server.ts) before Bend enforces capacity for the advicee partition. | Review the measurement contract and purpose mapping. The corrected partition identity does not approve a particular numeric limit. Reconcile the numeric limits in [the supported profile](direct-event-v1-supported-profile.md) with the current code separately. |
 | TS-008 | The resident checks credentials, calls Jev, encodes output, and writes to the agent runtime around Bend decisions ([resident](../src/resident/server.ts)). | Keep external effects native, but examine each TypeScript precondition that can deny or change a user-visible result without a Bend decision. |

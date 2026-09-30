@@ -87,18 +87,18 @@ law canonical_permit_issue_is_partitioned_and_round_bound:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.IssuePermit{1n, 1n, 11n, 100n, 300n, 110n,
       Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n,
-        32n, 4096n, 0n, 4096n}}) ==
+        32n, 4096n}}) ==
     Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
       Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
+        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
       Canonical.PermitIssued{1n, 1n} <> Nil{}} : Canonical.Step}
 
 def two_pending_advicees() -> List<&2, Admission.AdmissionState>:
   Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-    Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}, Nil{}} <>
+    Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <>
   Admission.AdmissionState{2n, 1n, 0n, False{}, 0n, 2n,
-    Admission.Permit{1n, 21n, 1n, 100n, 300n} <> Nil{}, Nil{}} <> Nil{}
+    Admission.Permit{1n, 21n, 1n, 100n, 300n} <> Nil{}} <> Nil{}
 
 law canonical_pending_permit_counts_use_reducer_state:
   {Bool.and(Nat.is_eq(Canonical.pending_advicee_permits(1n, two_pending_advicees()), 1n),
@@ -107,11 +107,11 @@ law canonical_pending_permit_counts_use_reducer_state:
 law canonical_expired_permit_does_not_create_round:
   {Canonical.step(Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Nil{}, Nil{}, 1n, 1n,
-    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
+    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
     Canonical.ClosePermitRound{1n, 1n, 1n, 200n}) ==
     Canonical.Rejected{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
-      Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
+      Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
       Canonical.PermitDenied{Admission.RoundAlreadyClosed{}}} : Canonical.Step}
 
 law ledger_resize_changes_purpose_without_new_reservation:
@@ -737,7 +737,7 @@ law available_lease_uses_ordinary_reservation:
 
 def expirable_permit() -> Admission.AdmissionState:
   Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-    Admission.Permit{1n, 1n, 1n, 100n, 200n} <> Nil{}, Nil{}}
+    Admission.Permit{1n, 1n, 1n, 100n, 200n} <> Nil{}}
 
 law permit_before_deadline_is_retained:
   {Admission.expire(expirable_permit(), 1n, False{}) ==
@@ -746,7 +746,7 @@ law permit_before_deadline_is_retained:
 law permit_at_deadline_is_removed:
   {Admission.expire(expirable_permit(), 1n, True{}) ==
     Admission.RemovePermit{Admission.AdmissionState{1n, 1n, 0n, False{}, 0n,
-      2n, Nil{}, Admission.Used{1n, 1n} <> Nil{}}} : Admission.ExpiryResult}
+      2n, Nil{}}} : Admission.ExpiryResult}
 
 law expiry_does_not_remove_another_token:
   {Admission.expire(expirable_permit(), 2n, True{}) ==
@@ -818,30 +818,30 @@ law oversized_notice_stops_codex_prefix:
   {Handoff.notice_offer(2n, 10241n, False{}) ==
     Handoff.StopNotices{} : Handoff.NoticeOffer}
 
-def permit_facts(event_count: Nat) -> Admission.ProspectiveFacts:
+def permit_facts() -> Admission.ProspectiveFacts:
   Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n,
-    32n, 4096n, event_count, 4096n}
+    32n, 4096n}
 
 law prospective_gate_rejects_late_hook_clock:
-  {Admission.prospective_gate(permit_facts(0n), 100n, 2601n) ==
+  {Admission.prospective_gate(permit_facts(), 100n, 2601n) ==
     Admission.PermitLate{} : Admission.ProspectiveDecision}
 
 law prospective_gate_accepts_before_hook_window_boundary:
-  {Admission.prospective_gate(permit_facts(0n), 100n, 2599n) ==
+  {Admission.prospective_gate(permit_facts(), 100n, 2599n) ==
     Admission.PermitAllowed{} : Admission.ProspectiveDecision}
 
 law prospective_gate_rejects_at_hook_window_boundary:
-  {Admission.prospective_gate(permit_facts(0n), 100n, 2600n) ==
+  {Admission.prospective_gate(permit_facts(), 100n, 2600n) ==
     Admission.PermitLate{} : Admission.ProspectiveDecision}
 
 law prospective_gate_uses_supplied_hook_window:
   {Admission.prospective_gate(Admission.ProspectiveFacts{True{}, 100n, 100n, 199n,
-      32n, 4096n, 0n, 4096n}, 100n, 199n) ==
+      32n, 4096n}, 100n, 199n) ==
     Admission.PermitAllowed{} : Admission.ProspectiveDecision}
 
 law prospective_gate_rejects_reversed_clock:
   {Admission.prospective_gate(Admission.ProspectiveFacts{True{}, 2500n, 200n, 100n,
-      32n, 4096n, 0n, 4096n}, 200n, 100n) ==
+      32n, 4096n}, 200n, 100n) ==
     Admission.PermitInvalidClock{} : Admission.ProspectiveDecision}
 
 law ticket_admission_stores_only_identity_and_units:
@@ -1031,16 +1031,20 @@ law finding_preserves_second_value:
 
 def permit_issued() -> Admission.AdmissionState:
   Admission.AdmissionState{7n, 3n, 0n, False{}, 0n, 2n,
-    Admission.Permit{1n, 42n, 1n, 10n, 20n} <> Nil{}, Nil{}}
+    Admission.Permit{1n, 42n, 1n, 10n, 20n} <> Nil{}}
 
 def permit_consumed() -> Admission.AdmissionState:
   Admission.AdmissionState{7n, 3n, 1n, True{}, 0n, 2n,
-    Nil{}, Admission.Used{1n, 42n} <> Nil{}}
+    Nil{}}
 
 law permit_bound_to_first_round:
   {Admission.step(Admission.initial(7n, 3n), 7n, 3n,
     Admission.Issue{42n, 10n, 20n, 11n}) ==
     Admission.Accepted{permit_issued(), Some{1n}, Some{1n}} : Admission.AdmissionResult}
+
+law pending_tool_cannot_get_second_permit:
+  {Admission.step(permit_issued(), 7n, 3n, Admission.Issue{42n, 11n, 20n, 12n}) ==
+    Admission.Rejected{permit_issued(), Admission.DuplicateTool{}} : Admission.AdmissionResult}
 
 law permit_consumption_opens_round_once:
   {Admission.step(permit_issued(), 7n, 3n, Admission.Consume{1n, 42n, 12n}) ==
@@ -1048,11 +1052,11 @@ law permit_consumption_opens_round_once:
 
 law consumed_permit_cannot_repeat:
   {Admission.step(permit_consumed(), 7n, 3n, Admission.Consume{1n, 42n, 13n}) ==
-    Admission.Rejected{permit_consumed(), Admission.UsedPermit{}} : Admission.AdmissionResult}
+    Admission.Rejected{permit_consumed(), Admission.NoPermit{}} : Admission.AdmissionResult}
 
 def permit_retired() -> Admission.AdmissionState:
   Admission.AdmissionState{7n, 3n, 0n, False{}, 0n, 2n,
-    Nil{}, Admission.Used{1n, 42n} <> Nil{}}
+    Nil{}}
 
 law released_permit_does_not_open_round:
   {Admission.release(permit_issued(), 1n) ==
@@ -1062,15 +1066,15 @@ law expired_permit_does_not_open_round:
   {Admission.expire(permit_issued(), 1n, True{}) ==
     Admission.RemovePermit{permit_retired()} : Admission.ExpiryResult}
 
-law retired_tool_cannot_get_second_permit:
+law retired_tool_can_receive_new_permit_after_history_eviction:
   {Admission.issue(permit_retired(), 42n, 21n, 30n, 22n) ==
-    Admission.Rejected{permit_retired(), Admission.DuplicateTool{}} : Admission.AdmissionResult}
+    Admission.Accepted{Admission.AdmissionState{7n, 3n, 0n, False{}, 0n, 3n,
+      Admission.Permit{2n, 42n, 1n, 21n, 30n} <> Nil{}}, Some{2n}, Some{1n}} : Admission.AdmissionResult}
 
 law retired_permit_does_not_prevent_fresh_tool:
   {Admission.issue(permit_retired(), 43n, 21n, 30n, 22n) ==
     Admission.Accepted{Admission.AdmissionState{7n, 3n, 0n, False{}, 0n, 3n,
-      Admission.Permit{2n, 43n, 1n, 21n, 30n} <> Nil{},
-      Admission.Used{1n, 42n} <> Nil{}}, Some{2n}, Some{1n}} : Admission.AdmissionResult}
+      Admission.Permit{2n, 43n, 1n, 21n, 30n} <> Nil{}}, Some{2n}, Some{1n}} : Admission.AdmissionResult}
 
 law unknown_permit_cannot_be_released:
   {Admission.step(permit_issued(), 7n, 3n, Admission.Release{2n}) ==
@@ -1078,24 +1082,25 @@ law unknown_permit_cannot_be_released:
 
 law consumed_permit_cannot_be_released:
   {Admission.step(permit_consumed(), 7n, 3n, Admission.Release{1n}) ==
-    Admission.Rejected{permit_consumed(), Admission.UsedPermit{}} : Admission.AdmissionResult}
+    Admission.Rejected{permit_consumed(), Admission.NoPermit{}} : Admission.AdmissionResult}
 
-law consumed_tool_cannot_get_second_permit:
+law consumed_tool_can_receive_new_permit_after_history_eviction:
   {Admission.step(permit_consumed(), 7n, 3n, Admission.Issue{42n, 13n, 20n, 13n}) ==
-    Admission.Rejected{permit_consumed(), Admission.DuplicateTool{}} : Admission.AdmissionResult}
+    Admission.Accepted{Admission.AdmissionState{7n, 3n, 1n, True{}, 0n, 3n,
+      Admission.Permit{2n, 42n, 1n, 13n, 20n} <> Nil{}}, Some{2n}, Some{1n}} : Admission.AdmissionResult}
 
 law closure_fences_old_invocation:
   {Admission.step(
-    Admission.AdmissionState{7n, 3n, 1n, False{}, 30n, 2n, Nil{}, Nil{}},
+    Admission.AdmissionState{7n, 3n, 1n, False{}, 30n, 2n, Nil{}},
     7n, 3n, Admission.Issue{43n, 29n, 40n, 31n}) ==
     Admission.Rejected{
-      Admission.AdmissionState{7n, 3n, 1n, False{}, 30n, 2n, Nil{}, Nil{}},
+      Admission.AdmissionState{7n, 3n, 1n, False{}, 30n, 2n, Nil{}},
       Admission.StaleInvocation{}
     } : Admission.AdmissionResult}
 
 law closed_round_rejects_callback:
   {Admission.callback_current(
-    Admission.AdmissionState{7n, 3n, 1n, False{}, 30n, 2n, Nil{}, Nil{}},
+    Admission.AdmissionState{7n, 3n, 1n, False{}, 30n, 2n, Nil{}},
     7n, 3n, 1n) == False{} : Bool}
 
 def one_reading() -> Work.Work:
@@ -1445,7 +1450,7 @@ law closed_round_denies_late_writer:
 
 def closed_lifecycle() -> Lifecycle.Lifecycle:
   Lifecycle.Lifecycle{
-    Admission.AdmissionState{9n, 2n, 1n, False{}, 40n, 2n, Nil{}, Nil{}},
+    Admission.AdmissionState{9n, 2n, 1n, False{}, 40n, 2n, Nil{}},
     Work.initial(), Handoff.Finish{1n, False{}, True{}, 1n, False{}, 1n, 7n, 10n}}
 
 law closed_lifecycle_rejects_late_review:
@@ -1458,10 +1463,10 @@ law closed_lifecycle_rejects_late_preparation:
 
 law finish_cannot_invent_actionable_finding:
   {Lifecycle.finish_check(Lifecycle.Lifecycle{
-      Admission.AdmissionState{9n, 2n, 1n, True{}, 0n, 2n, Nil{}, Nil{}},
+      Admission.AdmissionState{9n, 2n, 1n, True{}, 0n, 2n, Nil{}},
       Work.initial(), Handoff.finish.initial(1n)}, 9n, 2n, 1n, 80n, 1n, 50n, 7n) ==
     Lifecycle.Denied{Lifecycle.Lifecycle{
-      Admission.AdmissionState{9n, 2n, 1n, True{}, 0n, 2n, Nil{}, Nil{}},
+      Admission.AdmissionState{9n, 2n, 1n, True{}, 0n, 2n, Nil{}},
       Work.initial(), Handoff.finish.initial(1n)}} : Lifecycle.LifecycleResult}
 
 law closing_work_names_active_cancellations:
@@ -1544,20 +1549,19 @@ law canonical_edit_open_failure_is_atomic:
 
 def round_with_pending_permit() -> Admission.AdmissionState:
   Admission.AdmissionState{7n, 3n, 1n, True{}, 0n, 3n,
-    Admission.Permit{2n, 43n, 1n, 11n, 30n} <> Nil{},
-    Admission.Used{1n, 42n} <> Nil{}}
+    Admission.Permit{2n, 43n, 1n, 11n, 30n} <> Nil{}}
 
 def closed_round_with_retired_permit() -> Admission.AdmissionState:
-  Admission.AdmissionState{7n, 3n, 1n, False{}, 20n, 3n, Nil{},
-    Admission.Used{2n, 43n} <> Admission.Used{1n, 42n} <> Nil{}}
+  Admission.AdmissionState{7n, 3n, 1n, False{}, 20n, 3n, Nil{}}
 
 law closure_retires_pending_permits:
   {Admission.close_round(round_with_pending_permit(), 20n) ==
     Admission.Accepted{closed_round_with_retired_permit(), None{}, Some{1n}} : Admission.AdmissionResult}
 
-law closure_prevents_pending_tool_reissue:
+law closure_allows_fresh_reissue_after_history_eviction:
   {Admission.issue(closed_round_with_retired_permit(), 43n, 21n, 30n, 22n) ==
-    Admission.Rejected{closed_round_with_retired_permit(), Admission.DuplicateTool{}} : Admission.AdmissionResult}
+    Admission.Accepted{Admission.AdmissionState{7n, 3n, 1n, False{}, 20n, 4n,
+      Admission.Permit{3n, 43n, 2n, 21n, 30n} <> Nil{}}, Some{3n}, Some{2n}} : Admission.AdmissionResult}
 
 # The insertion guard is universal over the existing round and whole state.
 # Trace checks separately exercise lookup and complete lifecycle transitions.

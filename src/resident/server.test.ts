@@ -1,7 +1,7 @@
 import { monotonicNow } from "./hook-clock.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
@@ -666,17 +666,22 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const paths = residentPaths(join(root, "runtime"));
+    mkdirSync(paths.directory, { recursive: true, mode: 0o700 });
+    const server = new ResidentServer(paths);
     const dispatch = findingDispatch(statePath);
     const admission = { requestRoute: "shared" as const, operation: "admit" as const, lifetime: server.lifetime,
       observation, dispatch, controlledWriter: true as const, composed: true as const };
     expect((await server.handle(admission)).status).toBe("rejected-stale");
     expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
       root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-    expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-      root, advicee: observation.advicee, startedAt: monotonicNow() })).toMatchObject({
-      status: "rejected-stale", reason: "DuplicateTool",
-    });
+    writeFileSync(join(paths.directory, "repeat-edits.log"), "x".repeat(256 * 1024), { mode: 0o600 });
+    expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+      root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
+    const repeatLog = join(paths.directory, "repeat-edits.log");
+    expect(JSON.parse(readFileSync(repeatLog, "utf8").trim())).toMatchObject({ kind: "repeat-edit-id", phase: "pending" });
+    expect(readFileSync(repeatLog, "utf8")).not.toContain(observation.advicee.toolUseId);
+    expect(readFileSync(join(paths.directory, "repeat-edits-observed"), "utf8")).toBe("1\n");
     expect((await server.handle({ ...admission,
       observation: { ...observation, advicee: { ...observation.advicee, subagentId: "child" } } })).status)
       .toBe("rejected-stale");
@@ -684,6 +689,7 @@ describe("resident delivery lease", () => {
       root, advicee: observation.advicee, token: "permit-only" })).toEqual({ status: "busy" });
     expect((await server.handle(admission)).status).toBe("accepted");
     expect((await server.handle(admission)).status).toBe("rejected-stale");
+    expect(readFileSync(repeatLog, "utf8").trim().split("\n")).toHaveLength(2);
     await server.whenIdle();
     await server.close();
   });

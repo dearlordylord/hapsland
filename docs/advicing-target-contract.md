@@ -84,9 +84,17 @@ virtual round. It does not capture source or call Jev. The matching post-edit
 observation consumes that permit before review admission and opens or joins the
 virtual round only when accepted as an attributed edit. Missing, expired, used,
 wrong-agent, or stale permits mean incomplete admission, not review. Tool
-failure, timeout, and round closure release unused permits. Repeated pre- or
-post-edit notifications cannot renew a permit or start a second evaluation of
-the same edit.
+failure, timeout, and round closure release unused permits. A repeated pre-edit
+notification while its permit is pending returns the existing admission result
+without creating another permit. A repeated post-edit notification has no
+permit to consume and starts no second evaluation. The resident retains the
+last 1,000 completed native edit identities across all advicees. A pre-edit
+notification matching one of those identities cannot start new work and is
+recorded as a source-free diagnostic. The oldest identity is evicted when a
+new one exceeds that bound. After eviction, identity alone does not establish
+that a new pre-edit notification repeats a completed edit; a fresh invocation
+may be admitted. The 1,000-identity window is an idempotency bound, not a
+limit on accepted edits.
 
 An invocation start used to distinguish a new edit from a delayed old hook must
 cover native command startup, be strictly after the closed-round boundary, and

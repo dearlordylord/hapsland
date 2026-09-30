@@ -521,7 +521,7 @@ def same_partition(+partition: Nat, round: Round) -> Bool:
 
 def admission_matches(+partition: Nat, item: Admission.AdmissionState) -> Bool:
   match item:
-    case Admission.AdmissionState{owner, _, _, _, _, _, _, _}:
+    case Admission.AdmissionState{owner, _, _, _, _, _, _}:
       Nat.is_eq(owner, partition)
 
 def find_admission(+partition: Nat,
@@ -657,12 +657,11 @@ def issue_permit(+state: State, +partition: Nat, +lifetime: Nat,
     facts: Admission.ProspectiveFacts) -> Step:
   match facts:
     case Admission.ProspectiveFacts{clock_valid, hook_window, started_upper,
-        now_lower, +advicee_limit, +resident_limit, event_count, event_limit}:
+        now_lower, +advicee_limit, +resident_limit}:
       issue_permit_gate(state, partition, lifetime, tool, started, deadline, now,
         advicee_limit, resident_limit,
         Admission.prospective_gate(Admission.ProspectiveFacts{clock_valid, hook_window,
-          started_upper, now_lower, advicee_limit, resident_limit,
-          event_count, event_limit}, started, now))
+          started_upper, now_lower, advicee_limit, resident_limit}, started, now))
 
 
 
@@ -682,7 +681,7 @@ def expire_permit_result(state: State, +partition: Nat,
 def expire_permit_checked(+state: State, +partition: Nat, +lifetime: Nat,
     +token: Nat, deadline_reached: Bool, admission: Admission.AdmissionState) -> Step:
   match admission:
-    case Admission.AdmissionState{_, +owner_lifetime, _, _, _, _, _, _}:
+    case Admission.AdmissionState{_, +owner_lifetime, _, _, _, _, _}:
       Bool.pick(Step, Nat.is_eq(owner_lifetime, lifetime),
         expire_permit_result(state, partition,
           Admission.expire(admission, token, deadline_reached)),
@@ -697,7 +696,7 @@ def close_permit_checked(+state: State, +partition: Nat, +lifetime: Nat,
     +expected: Nat, +at: Nat,
     admission: Admission.AdmissionState) -> Step:
   match admission:
-    case Admission.AdmissionState{_, +owner_lifetime, +round, +active, _, _, _, _}:
+    case Admission.AdmissionState{_, +owner_lifetime, +round, +active, _, _, _}:
       Bool.pick(Step, Nat.is_eq(owner_lifetime, lifetime),
         Bool.pick(Step, Nat.is_eq(expected, Admission.candidate_round(round, active)),
           close_permit_result(state, partition,

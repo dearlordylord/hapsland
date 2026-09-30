@@ -676,6 +676,9 @@ def Laws.finding_preserves_second_value(item, second_item):
 def Laws.permit_bound_to_first_round():
   {==}
 
+def Laws.pending_tool_cannot_get_second_permit():
+  {==}
+
 def Laws.permit_consumption_opens_round_once():
   {==}
 
@@ -688,7 +691,7 @@ def Laws.unknown_permit_cannot_be_released():
 def Laws.consumed_permit_cannot_be_released():
   {==}
 
-def Laws.consumed_tool_cannot_get_second_permit():
+def Laws.consumed_tool_can_receive_new_permit_after_history_eviction():
   {==}
 
 def Laws.closure_fences_old_invocation():
@@ -928,7 +931,7 @@ def Laws.released_permit_does_not_open_round():
 def Laws.expired_permit_does_not_open_round():
   {==}
 
-def Laws.retired_tool_cannot_get_second_permit():
+def Laws.retired_tool_can_receive_new_permit_after_history_eviction():
   {==}
 
 def Laws.retired_permit_does_not_prevent_fresh_tool():
@@ -937,7 +940,7 @@ def Laws.retired_permit_does_not_prevent_fresh_tool():
 def Laws.closure_retires_pending_permits():
   {==}
 
-def Laws.closure_prevents_pending_tool_reissue():
+def Laws.closure_allows_fresh_reissue_after_history_eviction():
   {==}
 
 def Laws.canonical_open_rejects_existing_partition(state, partition, lifetime, existing):

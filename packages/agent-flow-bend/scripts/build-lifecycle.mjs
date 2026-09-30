@@ -9,7 +9,7 @@ try {
   const compiled = join(temporary, "lifecycle.js");
   execFileSync("bend", [join(root, "LifecycleRuntime.bend"), "-o", compiled], { stdio: "pipe" });
   let source = readFileSync(compiled, "utf8");
-  const footer = /\ncli\(process\.argv\.slice\(2\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/;
+  const footer = /\ncli\(process\.argv\.slice\(\d+\)\);\nio_exit\(\$main\$, [\s\S]*\);\s*$/;
   if (!footer.test(source) || !source.includes("function $Lifecycle$apply$(") ||
       !source.includes("function $Lifecycle$initial$(")) {
     throw new Error("Bend lifecycle JavaScript layout changed; inspect generated runtime");
@@ -23,7 +23,7 @@ const nat = (value) => {
   if (integer === null || integer < 0n || integer > MAX_NAT) {
     throw new TypeError("expected Bend Nat within the immediate range");
   }
-  return integer;
+  return Number(integer);
 };
 const normalize = (value) => {
   if (typeof value === "number" || typeof value === "bigint") return nat(value);
@@ -35,8 +35,21 @@ const normalize = (value) => {
 };
 export const bendLifecycleInitial = (partition, lifetime) =>
   run_loop($Lifecycle$initial$(nat(partition), nat(lifetime)));
+const shortTag = (value) => value.split(".").at(-1);
+const publicCommand = (value) => {
+  if (typeof value === "number") return BigInt(value);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) =>
+      [key, key === "$" ? shortTag(item) : publicCommand(item)]));
+  }
+  return value;
+};
+const resultForCaller = (value) => ({ ...value, $: shortTag(value.$),
+  ...(value.command === undefined ? {} : { command: publicCommand(value.command) }) });
+const lifecycleEvent = (event) => normalize({ ...event, $: "Lifecycle." + event.$,
+  ...(event.outcome === undefined ? {} : { outcome: { ...event.outcome, $: "Work." + event.outcome.$ } }) });
 export const bendLifecycleApply = (state, partition, lifetime, round, event) =>
-  run_loop($Lifecycle$apply$(state, nat(partition), nat(lifetime), nat(round), normalize(event)));
+  resultForCaller(run_loop($Lifecycle$apply$(state, nat(partition), nat(lifetime), nat(round), lifecycleEvent(event))));
 `);
   writeFileSync(join(root, "lifecycle.generated.js"), source);
 } finally {
