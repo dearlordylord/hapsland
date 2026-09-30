@@ -31,6 +31,11 @@ def cleanup_gate(facts: CleanupFacts) -> CleanupGate:
 def cleanup_commit(ledger_empty: Bool) -> CleanupGate:
   Bool.pick(CleanupGate, ledger_empty, CleanupReady{}, CleanupBusy{})
 
+# Native inactivity cannot retire a lifetime that still owns a virtual round
+# or an edit attempt waiting for its post-edit observation.
+def cleanup_live_state(rounds_empty: Bool, pending_permits_empty: Bool) -> Bool:
+  Bool.and(rounds_empty, pending_permits_empty)
+
 def ticket_retention(count: Nat, limit: Nat, has_oldest: Bool) -> TicketRetention:
   Bool.pick(TicketRetention, Bool.and(Nat.is_gt(count, limit), has_oldest),
     EvictOldest{}, KeepTickets{})

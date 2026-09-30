@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:4ceec70b02722ab7be95d7fb58572a7c2f7fdedfd568c61fc32534f7946d275b
+// hapsland-bend-source-sha256:215e651c3ec3c961eb1d781e5e52276164cd62d53ab903794f85802eabb7c45f
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -3741,44 +3741,50 @@ function $TicketState$oldest$(_records_0) {
 }
 
 function $Canonical$cleanup_state_clean$(_state_0) {
-  const _t_0 = _state_0["work"];
+  const _t_0 = _state_0["rounds"];
   if (_t_0.$ === "Nil") {
-    const _t_1 = _state_0["dispatch"];
-    const _t_2 = _t_1["pending"];
-    if (_t_2.$ === "Nil") {
-      const _t_3 = _t_1["active"];
+    const _t_1 = _state_0["work"];
+    if (_t_1.$ === "Nil") {
+      const _admissions_0 = _state_0["admissions"];
+      const _t_2 = _state_0["dispatch"];
+      const _t_3 = _t_2["pending"];
       if (_t_3.$ === "Nil") {
-        const _t_4 = _t_1["running"];
+        const _t_4 = _t_2["active"];
         if (_t_4.$ === "Nil") {
-          const _t_5 = _t_1["closed"];
-          if (!_t_5) {
-            const _t_6 = _t_1["requests"];
-            if (_t_6.$ === "Nil") {
-              const _t_7 = _state_0["collection"];
-              const _t_8 = _t_7["ready"];
-              if (_t_8.$ === "Nil") {
-                const _t_9 = _t_7["leases"];
+          const _t_5 = _t_2["running"];
+          if (_t_5.$ === "Nil") {
+            const _t_6 = _t_2["closed"];
+            if (!_t_6) {
+              const _t_7 = _t_2["requests"];
+              if (_t_7.$ === "Nil") {
+                const _t_8 = _state_0["collection"];
+                const _t_9 = _t_8["ready"];
                 if (_t_9.$ === "Nil") {
-                  const _t_10 = _t_7["claims"];
+                  const _t_10 = _t_8["leases"];
                   if (_t_10.$ === "Nil") {
-                    const _t_11 = _t_7["delivery"];
-                    const _t_12 = _t_11["slots"];
-                    if (_t_12.$ === "Nil") {
-                      const _t_13 = _t_11["submissions"];
-                      const _t_14 = _t_13["leases"];
-                      if (_t_14.$ === "Nil") {
-                        const _t_15 = _t_13["batches"];
+                    const _t_11 = _t_8["claims"];
+                    if (_t_11.$ === "Nil") {
+                      const _t_12 = _t_8["delivery"];
+                      const _t_13 = _t_12["slots"];
+                      if (_t_13.$ === "Nil") {
+                        const _t_14 = _t_12["submissions"];
+                        const _t_15 = _t_14["leases"];
                         if (_t_15.$ === "Nil") {
-                          const _t_16 = _t_7["revision"];
-                          const _t_17 = _t_16["entries"];
-                          if (_t_17.$ === "Nil") {
-                            const _t_18 = _t_7["reuse"];
-                            const _t_19 = _t_18["claims"];
-                            if (_t_19.$ === "Nil") {
-                              const _t_20 = _t_7["notices"];
-                              const _t_21 = _t_20["records"];
-                              if (_t_21.$ === "Nil") {
-                                return true;
+                          const _t_16 = _t_14["batches"];
+                          if (_t_16.$ === "Nil") {
+                            const _t_17 = _t_8["revision"];
+                            const _t_18 = _t_17["entries"];
+                            if (_t_18.$ === "Nil") {
+                              const _t_19 = _t_8["reuse"];
+                              const _t_20 = _t_19["claims"];
+                              if (_t_20.$ === "Nil") {
+                                const _t_21 = _t_8["notices"];
+                                const _t_22 = _t_21["records"];
+                                if (_t_22.$ === "Nil") {
+                                  return $Retention$cleanup_live_state$(true, ($Nat$is_eq$(($Canonical$pending_resident_permits$(_admissions_0)), 0)));
+                                } else {
+                                  return false;
+                                }
                               } else {
                                 return false;
                               }
@@ -5478,6 +5484,22 @@ function $TicketState$record_id$(_record_0) {
   return _id_0;
 }
 
+function $Retention$cleanup_live_state$(_rounds_empty_0, _pending_permits_empty_0) {
+  return $Bool$and$(_rounds_empty_0, _pending_permits_empty_0);
+}
+
+function $Canonical$pending_resident_permits$(_admissions_0) {
+  if (_admissions_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _admission_0 = _admissions_0["head"];
+    const _rest_0 = _admissions_0["tail"];
+    const _x_0 = ($Admission$pending_count$(_admission_0));
+    const _x_1 = ($Canonical$pending_resident_permits$(_rest_0));
+    return nat_chk(_x_0 + _x_1);
+  }
+}
+
 function $Canonical$cleanup_closed$(_state_0, _result_0) {
   const _ledger_0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -5962,18 +5984,6 @@ function $Canonical$issue_permit_capacity_checked$(_state_0, _partition_0, _life
 
 function $Canonical$pending_advicee_permits$(_partition_0, _admissions_0) {
   return $Canonical$pending_advicee_permits_found$(($Canonical$find_admission$(_partition_0, _admissions_0)));
-}
-
-function $Canonical$pending_resident_permits$(_admissions_0) {
-  if (_admissions_0.$ === "Nil") {
-    return 0;
-  } else {
-    const _admission_0 = _admissions_0["head"];
-    const _rest_0 = _admissions_0["tail"];
-    const _x_0 = ($Admission$pending_count$(_admission_0));
-    const _x_1 = ($Canonical$pending_resident_permits$(_rest_0));
-    return nat_chk(_x_0 + _x_1);
-  }
 }
 
 function $Admission$prospective_gate_ordered$(_clock_valid_0, _within_0) {
@@ -6977,6 +6987,11 @@ function $TicketState$keep_unit$(_unit_0, _tail_0, _remove_0) {
   }
 }
 
+function $Admission$pending_count$(_state_0) {
+  const _permits_0 = _state_0["permits"];
+  return $List$length$(_permits_0);
+}
+
 function $ReuseState$route_cache_found$(_state_0, _id_0, _found_0) {
   const _claims_0 = _state_0["claims"];
   const _cache_0 = _state_0["cache"];
@@ -7281,11 +7296,6 @@ function $Canonical$pending_advicee_permits_found$(_found_0) {
     const _admission_0 = _found_0["value"];
     return $Admission$pending_count$(_admission_0);
   }
-}
-
-function $Admission$pending_count$(_state_0) {
-  const _permits_0 = _state_0["permits"];
-  return $List$length$(_permits_0);
 }
 
 function $Canonical$consume_opened$(_original_0, _round_0, _opened_0) {

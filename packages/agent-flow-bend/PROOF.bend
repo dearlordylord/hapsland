@@ -205,6 +205,15 @@ def Laws.skipped_only_ticket_has_no_failure():
 def Laws.idle_cleanup_is_ready():
   {==}
 
+def Laws.open_virtual_round_blocks_idle_cleanup():
+  {==}
+
+def Laws.pending_edit_permit_blocks_idle_cleanup():
+  {==}
+
+def Laws.empty_round_and_permit_state_allows_idle_cleanup():
+  {==}
+
 def Laws.pending_notice_blocks_cleanup():
   {==}
 

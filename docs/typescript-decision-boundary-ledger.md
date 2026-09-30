@@ -130,10 +130,20 @@ The [Codex and Claude adapter checks](../src/direct-event/adapter.ts), [native e
 | Why outside Bend | Credentials, filesystem checks, paid-call budget files, Jev requests, source-bearing output, and runtime writes are external effects. Their observed results and byte measurements can be passed to Bend; the reducer cannot execute those effects. The live-demo budget is a separate spending authority for that explicit mode, not a second rule for ordinary review eligibility. |
 | Review and limits | On 2026-09-30 the owner approved this division and replacing the resident's independent final size refusal with Bend's fit decision. The current 10 KiB response limit is implemented in Bend; this review does not declare that number permanent. The code path for leased operational notices is presently unused in ordinary composed delivery, so the final fit check also protects a possible future combined response. |
 
+## TS-009a — Check for safe resident retirement after inactivity
+
+| Field | Reviewed boundary |
+| --- | --- |
+| Decision | After a connection opens or closes, TypeScript starts a twenty-second inactivity timer. When it fires with no connection, it asks Bend whether this resident lifetime can retire. A busy result schedules another check after twenty seconds. An open virtual round or pending pre-edit permit prevents retirement even when there is no current review work or advice. The timer does not close a virtual round. |
+| TypeScript owner | The [resident](../src/resident/server.ts) owns the native timer, counts IPC connections, expires timed records, and closes the process after a successful cleanup transition. |
+| Bend boundary | [Canonical cleanup](../packages/agent-flow-bend/Canonical.bend) checks its open-round and pending-permit state along with the supplied idle facts. Both its readiness check and final commit refuse retirement while either remains. |
+| Why outside Bend | Scheduling a process timer and observing IPC connections are native operations. Whether the recorded work and round state are safe to discard is a reducer decision. |
+| Review and limits | On 2026-09-30 the owner agreed that active rounds and permits prevent automatic retirement and suggested extending the former five-second check to ten or twenty seconds; twenty seconds is the current operational value. A missing Stop can leave a round open indefinitely, subject to the existing 64-open-round ceiling. The abandonment rule remains TS-009b below. The [direct-event v1 profile](direct-event-v1-supported-profile.md) records the earlier five-second behavior as historical validation evidence. |
+
 ## TODO — TypeScript choices awaiting boundary review
 
 These are the remaining choices from the owner-facing “Choice made in TypeScript” table. They describe current implementation and unresolved placement, **not owner approval of each TypeScript boundary**. Review them in order; keep the replay walkthrough in the separate [temporary table](issue-147-default-replay-walkthrough.md) for later diagram review. The former per-edit capacity and round split was corrected before this boundary review; it is not a supported alternative.
 
 | ID | Choice currently made in TypeScript | What needs review |
 | --- | --- | --- |
-| TS-009 | The resident starts an [idle timer and cleanup attempt](../src/resident/server.ts) after connection activity. Its timer is TypeScript; Bend checks supplied idle facts and its canonical cleanup state. The canonical check does not currently require the open-round or admission lists to be empty. | Decide whether five seconds and the retry schedule are native operation settings or product policy, and whether an open round or pending pre-edit permit should prevent lifetime retirement. Do not treat the current timer as a Bend-authored decision. |
+| TS-009b | An advicee's virtual round remains open until its Stop flow closes it. If Stop never arrives, that round can continue occupying one of the 64 open-round slots while the resident is alive. | Decide whether and on what evidence Hapsland may declare a round abandoned without Stop. A process inactivity timer alone is insufficient evidence because an agent may still be working between hooks. |

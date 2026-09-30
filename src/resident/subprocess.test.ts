@@ -114,7 +114,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await waitFor(async () => {
       try { process.kill(first.pid, 0); return undefined; }
       catch { return true; }
-    }, 8_000);
+    }, 26_000);
     expect(existsSync(paths.owner)).toBe(false);
     const second = await ensureResident(paths, 5_000);
     processes.push(second.pid);
@@ -708,9 +708,11 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       requestRoute: "shared", operation: "stats", lifetime: second.lifetime,
     });
     expect(beforeClosure).toMatchObject({ status: "stats", pendingAdvice: 3 });
-    for (const [agent, token] of [[advicee(), "root-stop"], [advicee({ subagentId: "child-2" }), "child-stop"]] as const) {
-      expect(await composedStopBoundary("begin-stop", root, agent, token, false, paths)).toBe(true);
-      expect(await composedStopBoundary("finish-stop", root, agent, token, true, paths)).toBe(true);
+    for (const [roundRoot, agent, token] of [[root, advicee(), "root-stop"],
+      [root, advicee({ subagentId: "child-2" }), "child-stop"],
+      [otherRoot, advicee(), "other-stop"]] as const) {
+      expect(await composedStopBoundary("begin-stop", roundRoot, agent, token, false, paths)).toBe(true);
+      expect(await composedStopBoundary("finish-stop", roundRoot, agent, token, true, paths)).toBe(true);
     }
     const beforeCleanup = await residentRequest(paths, {
       requestRoute: "shared", operation: "stats", lifetime: second.lifetime,

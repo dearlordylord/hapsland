@@ -2626,12 +2626,14 @@ def ticket_retention_result(+state: State, result: TicketState.Retention) -> Ste
 
 def cleanup_state_clean(state: State) -> Bool:
   match state:
-    case State{_, _, Nil{}, _, _, _,
+    case State{_, Nil{}, Nil{}, _, _, admissions,
         Dispatch.State{Nil{}, Nil{}, Nil{}, _, _, False{}, Nil{}},
         CollectionState.State{Nil{}, Nil{}, Nil{},
           DeliveryState.State{Nil{}, _, SubmissionState.State{Nil{}, Nil{}}},
           RevisionState.State{Nil{}, _}, _,
-          ReuseState.State{Nil{}, _}, NoticeState.State{Nil{}}}}: True{}
+          ReuseState.State{Nil{}, _}, NoticeState.State{Nil{}}}}:
+      Retention.cleanup_live_state(True{},
+        Nat.is_eq(pending_resident_permits(admissions), 0n))
     case _: False{}
 
 def cleanup_check_result(+state: State, result: Retention.CleanupGate) -> Step:

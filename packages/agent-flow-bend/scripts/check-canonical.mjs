@@ -54,6 +54,25 @@ for (const trace of fixture.traces) {
   }
 }
 const state = initialCanonical(fixture.limits);
+const idleFacts = { active: true, dispatcherIdle: true, noAdvice: true,
+  noNotices: true, noPendingEvaluations: true, noCurrentWork: true,
+  noCooldowns: true, connectionCountOk: true, cacheMatchesLedger: true };
+const cleanupDecision = (canonical, kind) => stepCanonical(canonical,
+  kind === "cleanupCheck" ? { kind, facts: idleFacts } : { kind })
+  .commands.map((command) => command.kind);
+assert.deepEqual(cleanupDecision(state, "cleanupCheck"), ["cleanupReady"]);
+const roundHeld = stepCanonical(state, { kind: "openRound", partition: 1, lifetime: 1 }).state;
+assert.deepEqual(cleanupDecision(roundHeld, "cleanupCheck"), ["cleanupBusy"]);
+assert.deepEqual(cleanupDecision(roundHeld, "cleanupCommit"), ["cleanupBusy"]);
+const permitHeld = stepCanonical(state, { kind: "issuePermit", partition: 1, lifetime: 1,
+  tool: 1, started: 100, now: 101, deadline: 200, minimumStarted: 0,
+  facts: { clockValid: true, hookWindow: 2500, startedUpper: 100, nowLower: 101,
+    adviceePermitLimit: 32, residentPermitLimit: 4096 } }).state;
+assert.deepEqual(cleanupDecision(permitHeld, "cleanupCheck"), ["cleanupBusy"]);
+assert.deepEqual(cleanupDecision(permitHeld, "cleanupCommit"), ["cleanupBusy"]);
+const permitReleased = stepCanonical(permitHeld, { kind: "releasePermit", partition: 1,
+  lifetime: 1, token: 1 }).state;
+assert.deepEqual(cleanupDecision(permitReleased, "cleanupCheck"), ["cleanupReady"]);
 assert.throws(() => stepCanonical(state, { kind: "unknownTransition" }), TypeError);
 assert.deepEqual(projectCanonical(state).inventory, [
   "observationDispatch", "preparation", "reviewUnit", "storedResult", "operationalNotice", "adviceRecheck",

@@ -367,6 +367,15 @@ law idle_cleanup_is_ready:
     True{}, True{}, True{}, True{}, True{}}) ==
     Retention.CleanupReady{} : Retention.CleanupGate}
 
+law open_virtual_round_blocks_idle_cleanup:
+  {Retention.cleanup_live_state(False{}, True{}) == False{} : Bool}
+
+law pending_edit_permit_blocks_idle_cleanup:
+  {Retention.cleanup_live_state(True{}, False{}) == False{} : Bool}
+
+law empty_round_and_permit_state_allows_idle_cleanup:
+  {Retention.cleanup_live_state(True{}, True{}) == True{} : Bool}
+
 law pending_notice_blocks_cleanup:
   {Retention.cleanup_gate(Retention.CleanupFacts{True{}, True{}, True{}, False{},
     True{}, True{}, True{}, True{}, True{}}) ==

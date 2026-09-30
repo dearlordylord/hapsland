@@ -97,6 +97,7 @@ import { recordDemoTrace } from "../onboarding/demo-trace.ts";
 
 const RESERVATION_OVERHEAD_BYTES = 1024;
 const MAX_PROBABILITY_ENCODING_BYTES = 24;
+const RESIDENT_IDLE_CHECK_MS = 20_000;
 export const OPERATIONAL_NOTICE_COOLDOWN_MS = 60_000;
 export const MAX_OPERATIONAL_NOTICE_KEYS = 64;
 /** Covers bounded dual capture buffers/text plus declaration-count preflight payload. */
@@ -3499,7 +3500,7 @@ export class ResidentServer {
       } else {
         this.#scheduleIdleCheck();
       }
-    }, 5_000);
+    }, RESIDENT_IDLE_CHECK_MS);
   }
 
   async listen(): Promise<void> {
