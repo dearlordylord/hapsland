@@ -16,6 +16,21 @@ def Laws.completed_edit_history_records_source_free_id():
 def Laws.completed_edit_history_threshold_branch_evicts_oldest():
   {==}
 
+def Laws.quiet_round_begins_only_when_quiet():
+  {==}
+
+def Laws.quiet_round_starts_at_first_quiet_observation():
+  {==}
+
+def Laws.quiet_round_waits_before_deadline():
+  {==}
+
+def Laws.quiet_round_expires_at_deadline():
+  {==}
+
+def Laws.quiet_round_activity_breaks_interval():
+  {==}
+
 def Laws.undeclared_rule_target_is_omitted():
   {==}
 

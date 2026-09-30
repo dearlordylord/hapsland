@@ -8,6 +8,8 @@ export const CANONICAL_MAX_UNITS = 1024;
 const MAX_UNITS = CANONICAL_MAX_UNITS;
 export type JevRequestOutcome = "neverSent" | "finding" | "clear" | "backendFailure" | "timeout" | "interrupted";
 export type CompletedEditReason = "consumed" | "released" | "expired" | "closed";
+export type QuietRoundFacts = Readonly<{ nativeWorkIdle: boolean; adviceEmpty: boolean;
+  handoffIdle: boolean; stopAbsent: boolean }>;
 const completedEditTags: Record<CompletedEditReason, string> = {
   consumed: "Consumed", released: "Released", expired: "Expired", closed: "Closed",
 };
@@ -112,6 +114,9 @@ export type CanonicalEvent =
   | { readonly kind: "issuePermit"; readonly partition: number; readonly lifetime: number; readonly tool: number; readonly started: number; readonly deadline: number; readonly now: number; readonly minimumStarted: number; readonly facts: ProspectiveFacts }
   | { readonly kind: "checkCompletedEdit"; readonly tool: number }
   | { readonly kind: "rememberCompletedEdit"; readonly tool: number; readonly reason: CompletedEditReason }
+  | { readonly kind: "quietRoundTick"; readonly partition: number; readonly lifetime: number; readonly round: number;
+      readonly now: number; readonly window: number; readonly facts: QuietRoundFacts }
+  | { readonly kind: "quietRoundReset"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "consumePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly tool: number; readonly now: number }
   | { readonly kind: "releasePermit"; readonly partition: number; readonly lifetime: number; readonly token: number }
   | { readonly kind: "expirePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly deadlineReached: boolean }
@@ -253,6 +258,8 @@ export type CanonicalCommand =
   | { readonly kind: "completedEditAbsent" }
   | { readonly kind: "completedEditSeen"; readonly reason: CompletedEditReason; readonly report: boolean }
   | { readonly kind: "completedEditRemembered"; readonly evicted?: number }
+  | { readonly kind: "quietRoundBusy" | "quietRoundResetRecorded" }
+  | { readonly kind: "quietRoundWaiting" | "quietRoundExpired"; readonly since: number }
   | { readonly kind: "permitConsumed"; readonly round: number }
   | { readonly kind: "permitReleased" | "permitExpired" | "permitKept" }
   | { readonly kind: "permitRoundClosed"; readonly round: number }
@@ -398,6 +405,8 @@ const encode = (event: CanonicalEvent): unknown => {
     case "issuePermit": inputFields(event, ["kind", "partition", "lifetime", "tool", "started", "deadline", "now", "minimumStarted", "facts"]); return { $: "Canonical.IssuePermit", ...identity(event), tool: nat(event.tool, true), started: nat(event.started), deadline: nat(event.deadline), now: nat(event.now), minimum_started: nat(event.minimumStarted), facts: encodeFacts(event.facts) };
     case "checkCompletedEdit": inputFields(event, ["kind", "tool"]); return { $: "Canonical.CheckCompletedEdit", tool: nat(event.tool, true) };
     case "rememberCompletedEdit": inputFields(event, ["kind", "tool", "reason"]); return { $: "Canonical.RememberCompletedEdit", tool: nat(event.tool, true), reason: encodeCompletedEditReason(event.reason) };
+    case "quietRoundTick": inputFields(event, ["kind", "partition", "lifetime", "round", "now", "window", "facts"]); inputFields(event.facts, ["nativeWorkIdle", "adviceEmpty", "handoffIdle", "stopAbsent"]); return { $: "Canonical.QuietRoundTick", ...identity(event), round: nat(event.round, true), now: nat(event.now), window: nat(event.window, true), facts: { $: "Quiescence.Facts", native_work_idle: bool(event.facts.nativeWorkIdle), advice_empty: bool(event.facts.adviceEmpty), handoff_idle: bool(event.facts.handoffIdle), stop_absent: bool(event.facts.stopAbsent) } };
+    case "quietRoundReset": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.QuietRoundReset", ...identity(event), round: nat(event.round, true) };
     case "consumePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "tool", "now"]); return { $: "Canonical.ConsumePermit", ...identity(event), token: nat(event.token, true), tool: nat(event.tool, true), now: nat(event.now) };
     case "releasePermit": inputFields(event, ["kind", "partition", "lifetime", "token"]); return { $: "Canonical.ReleasePermit", ...identity(event), token: nat(event.token, true) };
     case "expirePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "deadlineReached"]); return { $: "Canonical.ExpirePermit", ...identity(event), token: nat(event.token, true), deadline_reached: bool(event.deadlineReached) };
@@ -696,6 +705,10 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.CompletedEditAbsent": fields(value, "Canonical.CompletedEditAbsent", []); return { kind: "completedEditAbsent" };
     case "Canonical.CompletedEditSeen": { const x = fields(value, "Canonical.CompletedEditSeen", ["reason", "report"]); return { kind: "completedEditSeen", reason: decodeCompletedEditReason(x.reason), report: bool(x.report) }; }
     case "Canonical.CompletedEditRemembered": { const x = fields(value, "Canonical.CompletedEditRemembered", ["evicted"]); const evicted = tag(x.evicted) === "Some" ? nat(fields(x.evicted, "Some", ["value"]).value, true) : undefined; if (evicted === undefined) fields(x.evicted, "None", []); return { kind: "completedEditRemembered", ...(evicted === undefined ? {} : { evicted }) }; }
+    case "Canonical.QuietRoundBusy": fields(value, "Canonical.QuietRoundBusy", []); return { kind: "quietRoundBusy" };
+    case "Canonical.QuietRoundResetRecorded": fields(value, "Canonical.QuietRoundResetRecorded", []); return { kind: "quietRoundResetRecorded" };
+    case "Canonical.QuietRoundWaiting": return { kind: "quietRoundWaiting", since: nat(fields(value, "Canonical.QuietRoundWaiting", ["since"]).since) };
+    case "Canonical.QuietRoundExpired": return { kind: "quietRoundExpired", since: nat(fields(value, "Canonical.QuietRoundExpired", ["since"]).since) };
     case "Canonical.PermitConsumed": return { kind: "permitConsumed", round: nat(fields(value, "Canonical.PermitConsumed", ["round"]).round, true) };
     case "Canonical.PermitReleased": fields(value, "Canonical.PermitReleased", []); return { kind: "permitReleased" };
     case "Canonical.PermitExpired": fields(value, "Canonical.PermitExpired", []); return { kind: "permitExpired" };
@@ -942,7 +955,7 @@ export type CanonicalProjection = {
   readonly partitions: readonly { readonly partition: number; readonly items: number; readonly bytes: number }[];
   readonly charges: readonly CapacityCharge[];
   readonly inventory: readonly { readonly purpose: CapacityPurpose; readonly limits: CanonicalProjection["limits"] }[];
-  readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean }[];
+  readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean; readonly quietSince?: number }[];
   readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[] }[];
   readonly completedEdits: readonly { readonly tool: number; readonly reason: CompletedEditReason; readonly reported: boolean }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
@@ -1122,10 +1135,12 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   for (const value of Object.values(limits).slice(1)) nat(value, true);
   const charges = readList(ledger.charges, charge);
   const rounds = readList(s.rounds, (value) => {
-    const x = fields(value, "Canonical.Round", ["partition", "lifetime", "id", "waiting", "deciding", "write", "uncertain"]);
+    const x = fields(value, "Canonical.Round", ["partition", "lifetime", "id", "waiting", "deciding", "write", "uncertain", "quiet_since"]);
     const write = tag(x.write) === "Some" ? nat(fields(x.write, "Some", ["value"]).value, true) : undefined;
     if (write === undefined) fields(x.write, "None", []);
-    return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), id: nat(x.id, true), waiting: bool(x.waiting), deciding: bool(x.deciding), ...(write === undefined ? {} : { write }), uncertain: bool(x.uncertain) };
+    const quietSince = tag(x.quiet_since) === "Some" ? nat(fields(x.quiet_since, "Some", ["value"]).value) : undefined;
+    if (quietSince === undefined) fields(x.quiet_since, "None", []);
+    return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), id: nat(x.id, true), waiting: bool(x.waiting), deciding: bool(x.deciding), ...(write === undefined ? {} : { write }), uncertain: bool(x.uncertain), ...(quietSince === undefined ? {} : { quietSince }) };
   });
   const admissions = readList(s.admissions, (value) => {
     const x = fields(value, "Admission.AdmissionState", ["partition", "lifetime", "round", "active", "closed_at", "next_token", "permits"]);

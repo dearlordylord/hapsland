@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ConfigurationError } from "./errors.ts";
 import { decodeConfigurationText, serializeConfigurationDocument } from "./decode.ts";
-import { effectiveEditPermitLimits, effectiveGraphLimits, resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
+import { effectiveEditPermitLimits, effectiveGraphLimits, effectiveVirtualRoundQuietMs, resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
 import type { ConfigurationLayer } from "./resolve.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
 import { explainPath } from "../explanation/index.ts";
@@ -24,6 +24,17 @@ const builtIn = (): ConfigurationLayer => ({
 });
 
 describe("configuration v1 decoding", () => {
+  it("captures the user-owned virtual round quiet duration", () => {
+    expect(effectiveVirtualRoundQuietMs(resolveConfiguration([], "/repo"))).toBe(300_000);
+    expect(effectiveVirtualRoundQuietMs(resolveConfiguration([
+      source("user", '{"version":1,"virtualRoundQuietMs":120000}'),
+    ], "/repo"))).toBe(120_000);
+    expect(() => resolveConfiguration([
+      source("project", '{"version":1,"virtualRoundQuietMs":120000}'),
+    ], "/repo")).toThrowError(expect.objectContaining({ field: "virtualRoundQuietMs" }));
+    expect(() => source("user", '{"version":1,"virtualRoundQuietMs":0}'))
+      .toThrowError(expect.objectContaining({ field: "virtualRoundQuietMs" }));
+  });
   it("keeps shared edit permit limits in user configuration", () => {
     expect(effectiveEditPermitLimits(resolveConfiguration([], "/repo")))
       .toEqual({ perAdvicee: 32, resident: 4096 });

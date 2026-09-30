@@ -2,6 +2,7 @@ import Base
 import ./Ledger.bend as Ledger
 import ./Admission.bend as Admission
 import ./EditHistory.bend as EditHistory
+import ./Quiescence.bend as Quiescence
 import ./Work.bend as WorkPolicy
 import ./Dispatch.bend as Dispatch
 import ./Retention.bend as Retention
@@ -24,7 +25,7 @@ import ./RulePolicy.bend as RulePolicy
 # Native IDs are bijectively mapped to positive Nat values before entry.
 type Round is Data:
   Round{partition: Nat, lifetime: Nat, id: Nat, waiting: Bool, deciding: Bool,
-    write: Maybe<&2, Nat>, uncertain: Bool}
+    write: Maybe<&2, Nat>, uncertain: Bool, quiet_since: Maybe<&2, Nat>}
 
 type Work is Data:
   Work{partition: Nat, lifetime: Nat, round: Nat, operation: Nat,
@@ -77,6 +78,9 @@ type CanonicalEvent is Data:
     facts: Admission.ProspectiveFacts}
   CheckCompletedEdit{tool: Nat}
   RememberCompletedEdit{tool: Nat, reason: EditHistory.Reason}
+  QuietRoundTick{partition: Nat, lifetime: Nat, round: Nat, now: Nat,
+    window: Nat, facts: Quiescence.Facts}
+  QuietRoundReset{partition: Nat, lifetime: Nat, round: Nat}
   ConsumePermit{partition: Nat, lifetime: Nat, token: Nat, tool: Nat, now: Nat}
   ReleasePermit{partition: Nat, lifetime: Nat, token: Nat}
   ExpirePermit{partition: Nat, lifetime: Nat, token: Nat, deadline_reached: Bool}
@@ -282,6 +286,10 @@ type Command is Data:
   CompletedEditAbsent{}
   CompletedEditSeen{reason: EditHistory.Reason, report: Bool}
   CompletedEditRemembered{evicted: Maybe<&2, Nat>}
+  QuietRoundBusy{}
+  QuietRoundWaiting{since: Nat}
+  QuietRoundExpired{since: Nat}
+  QuietRoundResetRecorded{}
   PermitConsumed{round: Nat}
   PermitReleased{}
   PermitExpired{}
@@ -559,13 +567,13 @@ def remember_completed_edit(+state: State, +tool: Nat, reason: EditHistory.Reaso
 
 def same_round(+partition: Nat, +lifetime: Nat, +id: Nat, round: Round) -> Bool:
   match round:
-    case Round{owner, generation, current, _, _, _, _}:
+    case Round{owner, generation, current, _, _, _, _, +quiet_since}:
       Bool.and(Nat.is_eq(owner, partition),
         Bool.and(Nat.is_eq(generation, lifetime), Nat.is_eq(current, id)))
 
 def same_partition(+partition: Nat, round: Round) -> Bool:
   match round:
-    case Round{owner, _, _, _, _, _, _}:
+    case Round{owner, _, _, _, _, _, _, +quiet_since}:
       Nat.is_eq(owner, partition)
 
 def admission_matches(+partition: Nat, item: Admission.AdmissionState) -> Bool:
@@ -615,7 +623,7 @@ def has_partition_work(+partition: Nat, work: List<&2, Work>) -> Bool:
 def no_round_for_partition(+partition: Nat, rounds: List<&2, Round>) -> Bool:
   match rounds:
     case Nil{}: True{}
-    case Round{owner, _, _, _, _, _, _} <> rest:
+    case Round{owner, _, _, _, _, _, _, +quiet_since} <> rest:
       Bool.and(Bool.not(Nat.is_eq(partition, owner)),
         no_round_for_partition(partition, rest))
 
@@ -683,11 +691,28 @@ def permit_result(state: State, +partition: Nat,
     case Admission.Rejected{_, reason}:
       Rejected{state, PermitDenied{reason}}
 
+def replace_quiet_round(+partition: Nat, +since: Maybe<&2, Nat>,
+    rounds: List<&2, Round>) -> List<&2, Round>:
+  match rounds:
+    case Nil{}: Nil{}
+    case Round{+owner, lifetime, id, waiting, deciding, write, uncertain, previous} <> rest:
+      Round{owner, lifetime, id, waiting, deciding, write, uncertain,
+        Bool.pick(Maybe<&2, Nat>, Nat.is_eq(partition, owner), since, previous)} <>
+        replace_quiet_round(partition, since, rest)
+
+def with_quiet_round(state: State, partition: Nat, since: Maybe<&2, Nat>) -> State:
+  match state:
+    case State{ledger, rounds, work, next_round, next_operation, admissions,
+        dispatch, collection, history}:
+      State{ledger, replace_quiet_round(partition, since, rounds), work,
+        next_round, next_operation, admissions, dispatch, collection, history}
+
 def issue_result(state: State, +partition: Nat,
     result: Admission.AdmissionResult) -> Step:
   match result:
     case Admission.Accepted{admission, Some{token}, Some{round}}:
-      Advanced{with_admission(state, partition, admission), PermitIssued{token, round} <> Nil{}}
+      Advanced{with_quiet_round(with_admission(state, partition, admission), partition, None{}),
+        PermitIssued{token, round} <> Nil{}}
     case Admission.Rejected{_, reason}:
       Rejected{state, PermitDenied{reason}}
     case _:
@@ -872,6 +897,73 @@ def pending(+partition: Nat, +lifetime: Nat, +round: Nat, items: List<&2, Work>)
           unfinished(kind)),
         pending(partition, lifetime, round, rest))
 
+def quiet_admission_state(admission: Admission.AdmissionState) -> Bool:
+  match admission:
+    case Admission.AdmissionState{_, _, _, active, _, _, permits}:
+      Bool.and(active, List.is_empty(&2, Admission.Permit, permits))
+
+def quiet_admission(state: State, +partition: Nat, +lifetime: Nat) -> Bool:
+  quiet_admission_state(current_admission(state, partition, lifetime))
+
+def quiet_round_decision(+state: State, partition: Nat,
+    decision: Quiescence.Decision) -> Step:
+  match decision:
+    case Quiescence.Busy{}:
+      Advanced{with_quiet_round(state, partition, None{}), QuietRoundBusy{} <> Nil{}}
+    case Quiescence.Waiting{+since}:
+      Advanced{with_quiet_round(state, partition, Some{since}),
+        QuietRoundWaiting{since} <> Nil{}}
+    case Quiescence.Expired{since}:
+      Advanced{state, QuietRoundExpired{since} <> Nil{}}
+
+def quiet_round_current(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, now: Nat, window: Nat, facts: Quiescence.Facts,
+    current: Round) -> Step:
+  match state current:
+    case State{_, _, work, _, _, _, +dispatch, +collection, +history}
+        Round{_, _, _, waiting, deciding, write, _, quiet_since}:
+      quiet = Bool.and(Quiescence.facts_quiet(facts),
+        Bool.and(quiet_admission(state, partition, lifetime),
+        Bool.and(Bool.not(pending(partition, lifetime, round, work)),
+        Bool.and(Bool.not(waiting), Bool.and(Bool.not(deciding),
+          Maybe.is_none(&2, Nat, write))))))
+      quiet_round_decision(state, partition,
+        Quiescence.decide(quiet_since, now, window, quiet))
+
+def quiet_round_found(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, now: Nat, window: Nat, facts: Quiescence.Facts,
+    found: Maybe<&2, Round>) -> Step:
+  match found:
+    case None{}: Rejected{state, StaleRound{}}
+    case Some{+current}:
+      Bool.pick(Step, same_round(partition, lifetime, round, current),
+        quiet_round_current(state, partition, lifetime, round, now, window, facts, current),
+        Rejected{state, StaleRound{}})
+
+def quiet_round_tick(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, now: Nat, window: Nat, facts: Quiescence.Facts) -> Step:
+  match state:
+    case State{_, rounds, _, _, _, _, +dispatch, +collection, +history}:
+      quiet_round_found(state, partition, lifetime, round, now, window, facts,
+        find_round(partition, rounds))
+
+def quiet_round_reset_found(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat, found: Maybe<&2, Round>) -> Step:
+  match found:
+    case None{}: Rejected{state, StaleRound{}}
+    case Some{+current}:
+      Bool.pick(Step, same_round(partition, lifetime, round, current),
+        Advanced{with_quiet_round(state, partition, None{}),
+          QuietRoundResetRecorded{} <> Nil{}},
+        Rejected{state, StaleRound{}})
+
+def quiet_round_reset(+state: State, +partition: Nat, +lifetime: Nat,
+    +round: Nat) -> Step:
+  match state:
+    case State{_, rounds, _, _, _, _, +dispatch, +collection, +history}:
+      quiet_round_reset_found(state, partition, lifetime, round,
+        find_round(partition, rounds))
+
 def cancel_pick(+operation: Nat, tail: List<&2, Command>, hit: Bool) -> List<&2, Command>:
   match hit:
     case True{}:
@@ -987,7 +1079,7 @@ def open_found(+state: State, +partition: Nat, +lifetime: Nat,
       Bool.pick(Step, Bool.and(Nat.is_gt(partition, 0n),
           Bool.and(Nat.is_gt(lifetime, 0n),
             Nat.is_lt(List.length(&2, Round, rounds), 64n))),
-        Advanced{State{ledger, Round{partition, lifetime, next_round, False{}, False{}, None{}, False{}} <> rounds,
+        Advanced{State{ledger, Round{partition, lifetime, next_round, False{}, False{}, None{}, False{}, None{}} <> rounds,
           work, (next_round + 1n : Nat), next_operation, admissions, dispatch, collection, history}, RoundStarted{next_round} <> Nil{}},
         Rejected{state, Bool.pick(Reason,
           Bool.and(Nat.is_gt(partition, 0n), Nat.is_gt(lifetime, 0n)),
@@ -1012,9 +1104,9 @@ def consume_existing(+original: State, +updated: State, +partition: Nat,
   match existing:
     case None{}:
       consume_opened(original, round, open(updated, partition, lifetime))
-    case Some{Round{_, owner_lifetime, _, _, _, _, _}}:
+    case Some{Round{_, owner_lifetime, _, _, _, _, _, +quiet_since}}:
       Bool.pick(Step, Nat.is_eq(lifetime, owner_lifetime),
-        Advanced{updated, PermitConsumed{round} <> Nil{}},
+        Advanced{with_quiet_round(updated, partition, None{}), PermitConsumed{round} <> Nil{}},
         Rejected{original, StaleRound{}})
 
 def consume_admitted(+state: State, +partition: Nat, lifetime: Nat,
@@ -1041,7 +1133,7 @@ def consume_permit(+state: State, +partition: Nat, +lifetime: Nat,
 
 def is_deciding(current: Round) -> Bool:
   match current:
-    case Round{_, _, _, _, deciding, _, _}:
+    case Round{_, _, _, _, deciding, _, _, +quiet_since}:
       deciding
 
 def admit_observation_found(+state: State, +partition: Nat, +lifetime: Nat,
@@ -1713,8 +1805,8 @@ def scoped_pending(items: List<&2, Work>, +lifetime: Nat,
 def mark_stop_rounds_hit(item: Round, tail: List<&2, Round>,
     waiting: Bool, deciding: Bool) -> List<&2, Round>:
   match item:
-    case Round{partition, generation, current, _, _, write, uncertain}:
-      Round{partition, generation, current, waiting, deciding, write, uncertain} <> tail
+    case Round{partition, generation, current, _, _, write, uncertain, +quiet_since}:
+      Round{partition, generation, current, waiting, deciding, write, uncertain, quiet_since} <> tail
 
 def mark_stop_rounds_one(item: Round, tail: List<&2, Round>, hit: Bool,
     waiting: Bool, deciding: Bool) -> List<&2, Round>:
@@ -1732,7 +1824,7 @@ def mark_stop_rounds(items: List<&2, Round>, +group: Nat,
       Nil{}
     case +item <> rest:
       match item:
-        case Round{partition, generation, current, _, _, _, _}:
+        case Round{partition, generation, current, _, _, _, _, +quiet_since}:
           mark_stop_rounds_one(item,
             mark_stop_rounds(rest, group, lifetime, round, scopes, waiting, deciding),
             Bool.and(Nat.is_eq(generation, lifetime),
@@ -1883,7 +1975,7 @@ def stop_ready(+state: State, +partition: Nat, +lifetime: Nat,
   match state:
     case State{ledger, rounds, +work, next_round, next_operation, +admissions, +dispatch, +collection, +history}:
       Advanced{State{release_unfinished_charges(work, ledger, partition, lifetime, round),
-        Round{partition, lifetime, round, False{}, True{}, None{}, uncertain} <>
+        Round{partition, lifetime, round, False{}, True{}, None{}, uncertain, None{}} <>
           remove_round(partition, rounds),
         retain_after_stop(work, partition, lifetime, round),
         next_round, next_operation, admissions, dispatch, collection, history},
@@ -1907,7 +1999,7 @@ def stop_current(+state: State, +partition: Nat, +lifetime: Nat, +round: Nat,
     case State{ledger, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history}:
       Bool.pick(Step, Bool.and(has_pending, Bool.not(deadline)),
         Advanced{State{ledger,
-          Round{partition, lifetime, round, True{}, False{}, write, uncertain} <>
+          Round{partition, lifetime, round, True{}, False{}, write, uncertain, None{}} <>
             remove_round(partition, rounds), work, next_round, next_operation, admissions, dispatch, collection, history},
           WaitForWork{} <> Nil{}},
         stop_output(state, partition, lifetime, round, deadline, write, uncertain))
@@ -1917,7 +2009,7 @@ def match_pending(+state: State, +partition: Nat, +lifetime: Nat,
   match state:
     case State{_, _, work, _, _, _, +dispatch, +collection, +history}:
       match current:
-        case Round{_, _, _, _, _, write, uncertain}:
+        case Round{_, _, _, _, _, write, uncertain, +quiet_since}:
           stop_current(state, partition, lifetime, round, deadline,
             pending(partition, lifetime, round, work), write, uncertain)
 
@@ -1947,12 +2039,12 @@ def output_start_found(+state: State, +partition: Nat, +lifetime: Nat,
   match state found:
     case State{ledger, rounds, work, next_round, +next_operation, +admissions, +dispatch, +collection, +history} Some{+current}:
       match current:
-        case Round{_, _, _, waiting, deciding, None{}, uncertain}:
+        case Round{_, _, _, waiting, deciding, None{}, uncertain, +quiet_since}:
           Bool.pick(Step, Bool.and(same_round(partition, lifetime, round, current),
               Bool.not(deciding)),
             Advanced{State{ledger,
               Round{partition, lifetime, round, waiting, False{},
-                Some{next_operation}, uncertain} <> remove_round(partition, rounds),
+                Some{next_operation}, uncertain, quiet_since} <> remove_round(partition, rounds),
               work, next_round, (next_operation + 1n : Nat), admissions, dispatch, collection, history},
               WriteAuthorized{next_operation} <> Nil{}},
             Rejected{state, StaleRound{}})
@@ -1978,12 +2070,12 @@ def output_terminal_current(+state: State, +partition: Nat, +lifetime: Nat,
     +round: Nat, +operation: Nat, +outcome: WriteOutcome,
     current: Round) -> Step:
   match state current:
-    case State{ledger, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history} Round{_, _, _, +waiting, +deciding, Some{+token}, _}:
+    case State{ledger, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection, +history} Round{_, _, _, +waiting, +deciding, Some{+token}, _, +quiet_since}:
       Bool.pick(Step,
         Bool.and(same_round(partition, lifetime, round, current), Nat.is_eq(token, operation)),
         Advanced{State{ledger,
           Round{partition, lifetime, round, waiting, deciding, None{},
-            write_is_unknown(outcome)} <> remove_round(partition, rounds),
+            write_is_unknown(outcome), quiet_since} <> remove_round(partition, rounds),
           work, next_round, next_operation, admissions, dispatch, collection, history},
           WriteRecorded{outcome} <> Nil{}},
         Rejected{state, StaleOperation{}})
@@ -2413,7 +2505,7 @@ def deciding_round(found: Maybe<&2, Round>, group: Nat,
   match found:
     case Some{+current}:
       match current:
-        case Round{_, _, _, _, deciding, _, _}:
+        case Round{_, _, _, _, deciding, _, _, +quiet_since}:
           Bool.and(deciding, same_round(group, lifetime, round, current))
     case None{}:
       False{}
@@ -2511,7 +2603,7 @@ def continuation_consume(+state: State, group: Nat, round: Nat) -> Step:
 def submission_round_found(group: Nat, round: Nat, found: Maybe<&2, Round>) -> Bool:
   match found:
     case None{}: False{}
-    case Some{Round{owner, _, current, _, _, _, _}}:
+    case Some{Round{owner, _, current, _, _, _, _, +quiet_since}}:
       Bool.and(Nat.is_eq(group, owner), Nat.is_eq(round, current))
 
 def submission_stop_reservation(surface: Handoff.Surface,
@@ -2874,6 +2966,10 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
       check_completed_edit(state, tool)
     case RememberCompletedEdit{tool, reason}:
       remember_completed_edit(state, tool, reason)
+    case QuietRoundTick{partition, lifetime, round, now, window, facts}:
+      quiet_round_tick(state, partition, lifetime, round, now, window, facts)
+    case QuietRoundReset{partition, lifetime, round}:
+      quiet_round_reset(state, partition, lifetime, round)
     case ConsumePermit{partition, lifetime, token, tool, now}:
       consume_permit(state, partition, lifetime, token, tool, now)
     case ReleasePermit{partition, lifetime, token}:
@@ -3232,7 +3328,7 @@ def unique_rounds(rounds: List<&2, Round>) -> Bool:
   match rounds:
     case Nil{}:
       True{}
-    case Round{partition, _, _, _, _, _, _} <> +rest:
+    case Round{partition, _, _, _, _, _, _, +quiet_since} <> +rest:
       Bool.and(round_not_found(find_round(partition, rest)), unique_rounds(rest))
 
 def check_round_invariant(original: State, updated: State,

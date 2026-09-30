@@ -4,6 +4,7 @@ import {
   BUILT_IN_PROTECTED_EXCLUDES,
   DEFAULT_CREDENTIAL_ENV_VAR,
   DEFAULT_EDIT_PERMIT_LIMITS,
+  DEFAULT_VIRTUAL_ROUND_QUIET_MS,
   type ConfigurationDocument,
   type ConfigurationLayerName,
   type ConfigurationOrigin,
@@ -140,6 +141,10 @@ export const effectiveEditPermitLimits = (policy: ResolvedPolicy): {
   };
 };
 
+export const effectiveVirtualRoundQuietMs = (policy: ResolvedPolicy): number =>
+  policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ??
+    DEFAULT_VIRTUAL_ROUND_QUIET_MS;
+
 /**
  * Resolve built-in → user → project policy while retaining every relevant origin.
  * The returned value is immutable-by-convention and can be captured per event.
@@ -152,6 +157,10 @@ export const resolveConfiguration = (
   for (const layer of layers) if (layer.name === "project" && layer.document.editPermitLimits !== undefined) {
     throw new ConfigurationError({ source: layer.source, field: "editPermitLimits",
       reason: "only user configuration may set shared resident edit permit limits" });
+  }
+  for (const layer of layers) if (layer.name === "project" && layer.document.virtualRoundQuietMs !== undefined) {
+    throw new ConfigurationError({ source: layer.source, field: "virtualRoundQuietMs",
+      reason: "only user configuration may set the shared resident virtual round timeout" });
   }
   const userPermitLimits = layers.find((layer) => layer.name === "user")?.document.editPermitLimits;
   if ((userPermitLimits?.perAdvicee ?? DEFAULT_EDIT_PERMIT_LIMITS.perAdvicee) >

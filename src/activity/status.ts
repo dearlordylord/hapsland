@@ -26,7 +26,7 @@ type ActivityMarker = BaseMarker & {
   readonly expectedUnitKeys?: ReadonlyArray<string>;
 };
 type SubmissionMarker = BaseMarker & { readonly kind: "submission"; readonly findings: number };
-export const ROUND_CLOSE_REASONS = ["no-advice", "deadline", "limit", "unavailable", "output-failed", "abandoned-stop"] as const;
+export const ROUND_CLOSE_REASONS = ["no-advice", "deadline", "limit", "unavailable", "output-failed", "abandoned-stop", "quiescent"] as const;
 export type RoundCloseReason = typeof ROUND_CLOSE_REASONS[number];
 export type RoundClosureSummary = {
   readonly roundKey: string; readonly reason: RoundCloseReason; readonly reservedContinuations: number;
