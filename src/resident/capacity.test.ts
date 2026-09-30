@@ -112,7 +112,7 @@ describe("resident logical capacity ledger", () => {
       tool: 7, started: 100, deadline: 300, now: 110,
       facts: { clockValid: true, hookWindow: 2500, startedUpper: 100, nowLower: 101,
         adviceePermitLimit: 32, residentPermitLimit: 4096,
-        roundCount: 0, roundLimit: 64, newRound: true, eventCount: 0, eventLimit: 4096 } });
+        eventCount: 0, eventLimit: 4096 } });
     expect(issued.commands[0]).toEqual({ kind: "permitIssued", token: 1, round: 1 });
     const charge = ledger.reserve("agent", 10, "observationDispatch");
     expect(charge).toBeDefined();

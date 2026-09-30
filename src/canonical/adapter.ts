@@ -303,16 +303,14 @@ export type ProspectiveFacts = {
   readonly clockValid: boolean; readonly hookWindow: number;
   readonly startedUpper: number; readonly nowLower: number;
   readonly adviceePermitLimit: number; readonly residentPermitLimit: number;
-  readonly roundCount: number; readonly roundLimit: number; readonly newRound: boolean;
   readonly eventCount: number; readonly eventLimit: number;
 };
 
 const encodeFacts = (facts: ProspectiveFacts): unknown => {
-  inputFields(facts, ["clockValid", "hookWindow", "startedUpper", "nowLower", "adviceePermitLimit", "residentPermitLimit", "roundCount", "roundLimit", "newRound", "eventCount", "eventLimit"]);
+  inputFields(facts, ["clockValid", "hookWindow", "startedUpper", "nowLower", "adviceePermitLimit", "residentPermitLimit", "eventCount", "eventLimit"]);
   return { $: "Admission.ProspectiveFacts", clock_valid: bool(facts.clockValid), hook_window: nat(facts.hookWindow, true),
     started_upper: nat(facts.startedUpper), now_lower: nat(facts.nowLower),
     advicee_permit_limit: nat(facts.adviceePermitLimit, true), resident_permit_limit: nat(facts.residentPermitLimit, true),
-    round_count: nat(facts.roundCount), round_limit: nat(facts.roundLimit, true), new_round: bool(facts.newRound),
     event_count: nat(facts.eventCount), event_limit: nat(facts.eventLimit, true) };
 };
 

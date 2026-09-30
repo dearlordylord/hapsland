@@ -116,7 +116,7 @@ for (const trace of permitFixture.traces) {
       tool: input.tool, started: input.started, now: input.now, deadline: input.deadline,
       facts: { clockValid: true, hookWindow: 2500, startedUpper: input.started, nowLower: input.now,
         adviceePermitLimit: 32, residentPermitLimit: 4096,
-        roundCount: 0, roundLimit: 64, newRound: true, eventCount: 0, eventLimit: 4096 } };
+        eventCount: 0, eventLimit: 4096 } };
     else if (kind === "consume") event = { kind: "consumePermit", partition, lifetime,
       token: input.token, tool: input.tool, now: input.now };
     else if (kind === "release") event = { kind: "releasePermit", partition, lifetime, token: input.token };
@@ -171,7 +171,7 @@ for (let generation = 1; generation <= 3; generation++) {
         started, now: started + edit, deadline: started + 50,
         facts: { clockValid: true, hookWindow: 2500, startedUpper: started, nowLower: started + edit,
           adviceePermitLimit: 32, residentPermitLimit: 4096,
-          roundCount: 0, roundLimit: 64, newRound: edit === 1, eventCount: 0, eventLimit: 4096 } },
+          eventCount: 0, eventLimit: 4096 } },
         ["permitIssued"]);
       const before = projectCanonical(uniqueRounds).rounds;
       applyUnique({ kind: "consumePermit", partition, lifetime: 1, token,
@@ -197,25 +197,32 @@ for (let generation = 1; generation <= 3; generation++) {
 }
 // Opening a canonical round and consuming its first edit are one transaction.
 let fullRounds = initialCanonical(fixture.limits);
-for (let partition = 1; partition <= 256; partition++) {
+for (let partition = 1; partition <= 64; partition++) {
   const opened = stepCanonical(fullRounds, { kind: "openRound", partition, lifetime: 1 });
   assert.equal(opened.rejection, undefined);
   fullRounds = opened.state;
 }
 const issuedAtLimit = stepCanonical(fullRounds, {
-  kind: "issuePermit", partition: 257, lifetime: 1, tool: 1,
+  kind: "issuePermit", partition: 65, lifetime: 1, tool: 1,
   started: 100, now: 101, deadline: 200,
   facts: { clockValid: true, hookWindow: 2500, startedUpper: 100, nowLower: 101,
     adviceePermitLimit: 32, residentPermitLimit: 4096,
-    roundCount: 0, roundLimit: 64, newRound: true, eventCount: 0, eventLimit: 4096 },
+    eventCount: 0, eventLimit: 4096 },
 });
 assert.equal(issuedAtLimit.rejection, undefined);
 const refusedAtLimit = stepCanonical(issuedAtLimit.state, {
-  kind: "consumePermit", partition: 257, lifetime: 1, token: 1, tool: 1, now: 102,
+  kind: "consumePermit", partition: 65, lifetime: 1, token: 1, tool: 1, now: 102,
 });
 assert.equal(refusedAtLimit.rejection, "RoundLimit");
 assert.deepEqual(projectCanonical(refusedAtLimit.state), projectCanonical(issuedAtLimit.state),
   "canonical round limit must preserve the unconsumed, inactive admission");
+const retiredRound = projectCanonical(fullRounds).rounds.find((round) => round.partition === 1);
+assert.ok(retiredRound);
+const afterRetirement = stepCanonical(fullRounds, { kind: "retirePartition", partition: 1,
+  lifetime: 1, round: retiredRound.id });
+assert.equal(afterRetirement.rejection, undefined);
+assert.equal(stepCanonical(afterRetirement.state, { kind: "openRound", partition: 65,
+  lifetime: 1 }).rejection, undefined, "retiring a round frees an active slot");
 const reviewFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-review-v1.json"), "utf8"));
 for (const trace of reviewFixture.traces) {
   let current = initialCanonical(fixture.limits);

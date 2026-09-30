@@ -514,12 +514,6 @@ def Laws.oversized_notice_skips_in_claude():
 def Laws.oversized_notice_stops_codex_prefix():
   {==}
 
-def Laws.prospective_gate_rejects_new_round_at_limit():
-  {==}
-
-def Laws.prospective_gate_allows_existing_round_at_table_limit():
-  {==}
-
 def Laws.prospective_gate_rejects_late_hook_clock():
   {==}
 

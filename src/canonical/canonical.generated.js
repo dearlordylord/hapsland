@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:6a4f7a58c28175c8c0a9dfed1d0effa12b6ad1e4afdad6389ad09f17707981b5
+// hapsland-bend-source-sha256:354ece8ddc3ce8c9d026d7ee325b3ffc066834e044802f3825b346ec1371b921
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -1037,12 +1037,9 @@ function $Canonical$issue_permit$(_state_0, _partition_0, _lifetime_0, _tool_0, 
   const _now_lower_0 = _facts_0["now_lower"];
   const _advicee_limit_0 = _facts_0["advicee_permit_limit"];
   const _resident_limit_0 = _facts_0["resident_permit_limit"];
-  const _round_count_0 = _facts_0["round_count"];
-  const _round_limit_0 = _facts_0["round_limit"];
-  const _new_round_0 = _facts_0["new_round"];
   const _event_count_0 = _facts_0["event_count"];
   const _event_limit_0 = _facts_0["event_limit"];
-  return $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0, ($Admission$prospective_gate$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_limit_0, "resident_permit_limit": _resident_limit_0, "round_count": _round_count_0, "round_limit": _round_limit_0, "new_round": _new_round_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, _started_0, _now_0)));
+  return $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0, ($Admission$prospective_gate$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_limit_0, "resident_permit_limit": _resident_limit_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, _started_0, _now_0)));
 }
 
 function $Canonical$consume_permit$(_state_0, _partition_0, _lifetime_0, _token_0, _tool_0, _now_0) {
@@ -2579,13 +2576,10 @@ function $Admission$prospective_gate$(_facts_0, _started_0, _now_0) {
   const _now_lower_0 = _facts_0["now_lower"];
   const _advicee_permit_limit_0 = _facts_0["advicee_permit_limit"];
   const _resident_permit_limit_0 = _facts_0["resident_permit_limit"];
-  const _round_count_0 = _facts_0["round_count"];
-  const _round_limit_0 = _facts_0["round_limit"];
-  const _new_round_0 = _facts_0["new_round"];
   const _event_count_0 = _facts_0["event_count"];
   const _event_limit_0 = _facts_0["event_limit"];
   const _x_0 = nat_chk(_started_0 + _hook_window_0);
-  return $Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_permit_limit_0, "resident_permit_limit": _resident_permit_limit_0, "round_count": _round_count_0, "round_limit": _round_limit_0, "new_round": _new_round_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
+  return $Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_permit_limit_0, "resident_permit_limit": _resident_permit_limit_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
 }
 
 function $Canonical$consume_result$(_state_0, _partition_0, _lifetime_0, _result_0) {
@@ -2668,7 +2662,7 @@ function $Canonical$open_found$(_state_0, _partition_0, _lifetime_0, _found_0) {
     return {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "reason": {$: "Canonical.StaleRound"}};
   } else {
     const _x_0 = ($List$length$(_rounds_0));
-    return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Bool$and$(($Nat$is_gt$(_lifetime_0, 0)), (_x_0 < 256))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _next_round_0, "waiting": false, "deciding": false, "write": {$: "None"}, "uncertain": false}, "tail": _rounds_0}, "work": _work_0, "next_round": nat_chk(_next_round_0 + 1), "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.RoundStarted", "id": _next_round_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "reason": ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Nat$is_gt$(_lifetime_0, 0)))), {$: "Canonical.RoundLimit"}, {$: "Canonical.InvalidIdentity"}))});
+    return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Bool$and$(($Nat$is_gt$(_lifetime_0, 0)), (_x_0 < 64))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": {$: "Con", "head": {$: "Canonical.Round", "partition": _partition_0, "lifetime": _lifetime_0, "id": _next_round_0, "waiting": false, "deciding": false, "write": {$: "None"}, "uncertain": false}, "tail": _rounds_0}, "work": _work_0, "next_round": nat_chk(_next_round_0 + 1), "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.RoundStarted", "id": _next_round_0}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "reason": ($Bool$pick$(($Bool$and$(($Nat$is_gt$(_partition_0, 0)), ($Nat$is_gt$(_lifetime_0, 0)))), {$: "Canonical.RoundLimit"}, {$: "Canonical.InvalidIdentity"}))});
   }
 }
 
@@ -4412,15 +4406,12 @@ function $Canonical$issue_permit_capacity$(_state_0, _partition_0, _lifetime_0, 
 
 function $Admission$prospective_gate_window$(_facts_0, _within_0, _ordered_0) {
   const _clock_valid_0 = _facts_0["clock_valid"];
-  const _round_count_0 = _facts_0["round_count"];
-  const _round_limit_0 = _facts_0["round_limit"];
-  const _new_round_0 = _facts_0["new_round"];
   const _event_count_0 = _facts_0["event_count"];
   const _event_limit_0 = _facts_0["event_limit"];
   if (!_ordered_0) {
     return {$: "Admission.PermitInvalidClock"};
   } else {
-    return $Admission$prospective_gate_ordered$(_clock_valid_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0);
+    return $Admission$prospective_gate_ordered$(_clock_valid_0, _event_count_0, _event_limit_0, _within_0);
   }
 }
 
@@ -5893,13 +5884,11 @@ function $Canonical$pending_resident_permits$(_admissions_0) {
   }
 }
 
-function $Admission$prospective_gate_ordered$(_clock_valid_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0) {
+function $Admission$prospective_gate_ordered$(_clock_valid_0, _event_count_0, _event_limit_0, _within_0) {
   if (!_within_0) {
     return {$: "Admission.PermitLate"};
   } else {
-    const _x_0 = ($Bool$not$(_new_round_0));
-    const _x_1 = (_round_count_0 < _round_limit_0);
-    return $Bool$pick$(($Bool$and$(_clock_valid_0, ($Bool$and$((_x_0 || _x_1), (_event_count_0 < _event_limit_0))))), {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
+    return $Bool$pick$(($Bool$and$(_clock_valid_0, (_event_count_0 < _event_limit_0))), {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
   }
 }
 

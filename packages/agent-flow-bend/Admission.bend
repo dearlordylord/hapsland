@@ -50,7 +50,6 @@ type ProspectiveFacts is Data:
   ProspectiveFacts{clock_valid: Bool, hook_window: Nat,
     started_upper: Nat, now_lower: Nat,
     advicee_permit_limit: Nat, resident_permit_limit: Nat,
-    round_count: Nat, round_limit: Nat, new_round: Bool,
     event_count: Nat, event_limit: Nat}
 
 type ProspectiveDecision is Data:
@@ -62,38 +61,31 @@ type ProspectiveDecision is Data:
 # Native identity and monotonic clock readings are measured by the adapter.
 # Bend owns the elapsed-time and bounded-retention decisions.
 def prospective_gate_ordered(clock_valid: Bool,
-    round_count: Nat, round_limit: Nat,
-    new_round: Bool, event_count: Nat, event_limit: Nat, within: Bool) -> ProspectiveDecision:
+    event_count: Nat, event_limit: Nat, within: Bool) -> ProspectiveDecision:
   match within:
     case False{}:
       PermitLate{}
     case True{}:
       Bool.pick(ProspectiveDecision,
-        Bool.and(clock_valid,
-          Bool.and(Bool.or(Bool.not(new_round), Nat.is_lt(round_count, round_limit)),
-            Nat.is_lt(event_count, event_limit))),
+        Bool.and(clock_valid, Nat.is_lt(event_count, event_limit)),
         PermitAllowed{}, PermitDenied{})
 
 def prospective_gate_window(facts: ProspectiveFacts, within: Bool, ordered: Bool) -> ProspectiveDecision:
   match facts:
     case ProspectiveFacts{clock_valid, hook_window, started_upper, now_lower,
-        advicee_permit_limit, resident_permit_limit, round_count, round_limit,
-        new_round, event_count, event_limit}:
+        advicee_permit_limit, resident_permit_limit, event_count, event_limit}:
       match ordered:
         case False{}:
           PermitInvalidClock{}
         case True{}:
-          prospective_gate_ordered(clock_valid,
-            round_count, round_limit, new_round, event_count,
-            event_limit, within)
+          prospective_gate_ordered(clock_valid, event_count, event_limit, within)
 
 def prospective_gate(facts: ProspectiveFacts, +started: Nat, +now: Nat) -> ProspectiveDecision:
   match facts:
     case ProspectiveFacts{clock_valid, +hook_window, +started_upper, +now_lower,
-        advicee_permit_limit, resident_permit_limit, round_count, round_limit,
-        new_round, event_count, event_limit}:
+        advicee_permit_limit, resident_permit_limit, event_count, event_limit}:
       prospective_gate_window(ProspectiveFacts{clock_valid, hook_window, started_upper, now_lower,
-        advicee_permit_limit, resident_permit_limit, round_count, round_limit, new_round,
+        advicee_permit_limit, resident_permit_limit,
         event_count, event_limit}, Nat.is_lt(now, (started + hook_window : Nat)),
         Nat.is_le(started_upper, now_lower))
 

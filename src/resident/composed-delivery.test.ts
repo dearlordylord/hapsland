@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS,
-  MAX_COMPOSED_ROUNDS } from "./composed-delivery.ts";
+import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS } from "./composed-delivery.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
 const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number => {
@@ -215,7 +214,7 @@ describe("shared Hapsland rounds", () => {
 
   it("does not consume or activate an edit when canonical round capacity is exhausted", () => {
     const state = new ComposedDelivery();
-    for (let i = 0; i < 256; i++) state.canonical.roundId(`occupied-${i}`);
+    for (let i = 0; i < 64; i++) state.canonical.roundId(`occupied-${i}`);
     expect(state.registerEdit("agent", "edit", 100, 101)).toBe(true);
     expect(state.admitEdit("agent", "edit", 102, true)).toBeUndefined();
     expect(state.generation("agent")).toBe(0);
@@ -328,14 +327,17 @@ describe("shared Hapsland rounds", () => {
     expect(state.revokeProvisionalFinishOutput("agent", "attempt", "output")).toBe(false);
   });
 
-  it("retains source-free fences at capacity instead of resetting through expiry", () => {
+  it("frees active round capacity without forgetting a closed advicee", () => {
     const state = new ComposedDelivery();
-    for (let i = 0; i < MAX_COMPOSED_ROUNDS; i++) {
+    for (let i = 0; i < 64; i++) {
       expect(state.registerEdit(`agent-${i}`, "edit", 1, 2)).toBe(true);
       expect(state.admitEdit(`agent-${i}`, "edit", 3, true)).toBe(1);
+      expect(state.beginStop(`agent-${i}`, "stop")).toBe(true);
+      expect(state.finishStop(`agent-${i}`, "stop", true, 4)).toBe(1);
     }
     state.expire(600_000);
-    expect(state.registerEdit("overflow", "edit", 600_001, 600_002)).toBe(false);
+    expect(state.registerEdit("next-agent", "edit", 600_001, 600_002)).toBe(true);
+    expect(state.admitEdit("next-agent", "edit", 600_003, true)).toBe(1);
   });
 
   it("does not create a round from prompt or Stop alone", () => {

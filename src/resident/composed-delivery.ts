@@ -6,7 +6,7 @@ import { DEFAULT_EDIT_PERMIT_LIMITS } from "../configuration/types.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
 /** Shared round and source-free handoff state for every agent runtime. */
-export const MAX_COMPOSED_ROUNDS = 64;
+export const MAX_BACKGROUND_WAITERS = 64;
 export const EDIT_PERMIT_EXPIRY_MS = 30_000;
 export const BACKGROUND_WAITER_EXPIRY_MS = 20_000;
 
@@ -60,7 +60,7 @@ export class ComposedDelivery {
     const id = this.canonical.collectionTokenId(token);
     const claimed = this.canonical.transition({ kind: "collectionClaimBackground",
       group: this.canonical.partitionId(partition), token: id,
-      active: this.isActive(partition), capacity: MAX_COMPOSED_ROUNDS });
+      active: this.isActive(partition), capacity: MAX_BACKGROUND_WAITERS });
     if (claimed.rejection !== undefined || claimed.commands[0]?.kind !== "collectionBackgroundClaimed") return false;
     this.#backgroundWaiters.set(partition, { token, id, at: now });
     return true;
@@ -92,8 +92,7 @@ export class ComposedDelivery {
     return true;
   }
 
-  #startRound(partition: string): Round | undefined {
-    if (this.#rounds.size >= MAX_COMPOSED_ROUNDS) return undefined;
+  #startRound(partition: string): Round {
     const round: Round = { events: new Set() };
     this.#rounds.set(partition, round);
     return round;
@@ -147,10 +146,10 @@ export class ComposedDelivery {
       hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
       startedUpper: this.#bendUpperTime(startedAt), nowLower: this.#bendTime(now),
       adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident,
-      roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
-      newRound: round === undefined,
       eventCount: round?.events.size ?? 0, eventLimit: 4096,
     };
+    const toolKey = `${partition}\0${event}`;
+    const knownTool = this.#toolIds.has(toolKey);
     const tool = this.#toolId(partition, event);
     let issued;
     try {
@@ -160,13 +159,14 @@ export class ComposedDelivery {
         now: this.#bendUpperTime(now), facts,
       });
     } catch {
+      if (!knownTool) this.#toolIds.delete(toolKey);
       return { accepted: false, reason: "InvalidClock" };
     }
     const command = issued.commands[0];
     if (issued.rejection !== undefined || command?.kind !== "permitIssued") {
+      if (!knownTool) this.#toolIds.delete(toolKey);
       const reason = issued.rejection === "ProspectiveDenied"
         ? !facts.clockValid ? "InvalidClock"
-          : facts.newRound && facts.roundCount >= facts.roundLimit ? "RoundLimit"
           : facts.eventCount >= facts.eventLimit ? "EventLimit" : "ProspectiveDenied"
         : issued.rejection ?? "InconsistentLedger";
       return { accepted: false, reason };
@@ -193,10 +193,6 @@ export class ComposedDelivery {
       const permit = this.#permits.get(key);
       this.#permits.delete(key);
       if (permit === undefined) return undefined;
-      if (previous === undefined && this.#rounds.size >= MAX_COMPOSED_ROUNDS) {
-        this.#releaseAdmissionPermit(partition, permit.token);
-        return undefined;
-      }
       const admission = this.canonical.canonicalProjection().admissions.find(
         (item) => item.partition === this.canonical.partitionId(partition));
       if (admission === undefined || permit.generation !== admission.round + (admission.active ? 0 : 1)) {
@@ -219,7 +215,6 @@ export class ComposedDelivery {
       }
       if (previous === undefined) {
         previous = this.#startRound(partition);
-        if (previous === undefined) return undefined;
       }
       this.#rounds.set(partition, { ...previous, events: new Set([...previous.events, event]) });
       return this.generation(partition);
@@ -235,8 +230,7 @@ export class ComposedDelivery {
       now: syntheticNow, facts: { clockValid: true, hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
         startedUpper: syntheticNow, nowLower: syntheticNow,
         adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident,
-        roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
-        newRound: previous === undefined, eventCount: previous?.events.size ?? 0, eventLimit: 4096 } });
+        eventCount: previous?.events.size ?? 0, eventLimit: 4096 } });
     const permit = issued.commands[0];
     if (permit?.kind !== "permitIssued") return undefined;
     const consumed = this.canonical.consumeEditPermit(partition, { kind: "consumePermit", partition: partitionId,
@@ -247,7 +241,6 @@ export class ComposedDelivery {
     }
     if (previous === undefined) {
       previous = this.#startRound(partition);
-      if (previous === undefined) return undefined;
     }
     if (consumed.commands[0].round !== this.generation(partition)) return undefined;
     this.#rounds.set(partition, { ...previous, events: new Set([...previous.events, event]) });

@@ -657,13 +657,12 @@ def issue_permit(+state: State, +partition: Nat, +lifetime: Nat,
     facts: Admission.ProspectiveFacts) -> Step:
   match facts:
     case Admission.ProspectiveFacts{clock_valid, hook_window, started_upper,
-        now_lower, +advicee_limit, +resident_limit, round_count, round_limit,
-        new_round, event_count, event_limit}:
+        now_lower, +advicee_limit, +resident_limit, event_count, event_limit}:
       issue_permit_gate(state, partition, lifetime, tool, started, deadline, now,
         advicee_limit, resident_limit,
         Admission.prospective_gate(Admission.ProspectiveFacts{clock_valid, hook_window,
-          started_upper, now_lower, advicee_limit, resident_limit, round_count,
-          round_limit, new_round, event_count, event_limit}, started, now))
+          started_upper, now_lower, advicee_limit, resident_limit,
+          event_count, event_limit}, started, now))
 
 
 
@@ -898,7 +897,7 @@ def open_found(+state: State, +partition: Nat, +lifetime: Nat,
     case State{ledger, rounds, work, next_round, next_operation, +admissions, +dispatch, +collection} None{}:
       Bool.pick(Step, Bool.and(Nat.is_gt(partition, 0n),
           Bool.and(Nat.is_gt(lifetime, 0n),
-            Nat.is_lt(List.length(&2, Round, rounds), 256n))),
+            Nat.is_lt(List.length(&2, Round, rounds), 64n))),
         Advanced{State{ledger, Round{partition, lifetime, next_round, False{}, False{}, None{}, False{}} <> rounds,
           work, (next_round + 1n : Nat), next_operation, admissions, dispatch, collection}, RoundStarted{next_round} <> Nil{}},
         Rejected{state, Bool.pick(Reason,

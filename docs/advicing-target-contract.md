@@ -65,7 +65,8 @@ not advicee or virtual-round identity.
 
 The first accepted attributed edit opens a virtual round and receives an opaque
 round ID within that advicee partition. At most one virtual round is open for
-an advicee at a time. Repeated notification of the same edit
+an advicee at a time, and at most 64 virtual rounds are open in one resident
+at once. Closing a round frees its slot. Repeated notification of the same edit
 does not open another round. Every admitted observation, preparation job, review
 unit, Jev request, advice item, lease, waiter, and output reservation belongs
 to that round. A fresh attributed edit in an active round remains in it,
