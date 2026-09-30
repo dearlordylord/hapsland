@@ -536,15 +536,6 @@ export class Run {
           const lifetime = this.config.adviceLifetime ?? 600_000;
           this.event({ kind: "collectionExpiryCheck", elapsed: lifetime, lifetime },
             lifetime, undefined, advice);
-          this.event({
-            kind: "collectionReady",
-            advice,
-            partition: scope.partition,
-            lifetime: scope.lifetime,
-            round: scope.round,
-            observation: work.parent,
-            joinedPending: false,
-          });
           break;
         }
         case "collectionEligible": {
@@ -810,7 +801,7 @@ export class Run {
       }
     }
     if (["completeObservation", "jevRequestSettled", "reviewCompleted", "interruptObservation",
-      "interruptPreparation"].includes(event.kind)) this.refreshAdviceReadiness();
+      "interruptPreparation", "stopPolled"].includes(event.kind)) this.refreshAdviceReadiness();
     if (
       this.finish?.waiting &&
       [
