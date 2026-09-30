@@ -436,6 +436,31 @@ try {
   await status("Replay reconstructed");
   assert.equal(await panel.locator(".simulation-outcomes").innerText(), recoveryOutcomes);
   await panel.screenshot({ path: "/tmp/astra-ux-lifecycle-controls.png" });
+  const suspension = await page.evaluate(async (view) => {
+    const { initialSimulation, actSimulation, tickSimulation } = await import(view);
+    let model = actSimulation({ ...initialSimulation, appliedSpeed: 1000 }, "start");
+    model = actSimulation(model, "play");
+    model = tickSimulation(model, 100);
+    model = actSimulation(model, "suspend");
+    let drainTicks = 0;
+    while (!model.feedback.includes("waiting for edit generation") && drainTicks++ < 100) model = tickSimulation(model, 100);
+    const waiting = { playing: model.playing, suspended: model.suspended, feedback: model.feedback, events: JSON.parse(actSimulation(model, "export").replay).endpoint.eventCount };
+    model = actSimulation(model, "suspend");
+    model = tickSimulation(model, 100);
+    const resumed = { playing: model.playing, suspended: model.suspended, feedback: model.feedback, events: JSON.parse(actSimulation(model, "export").replay).endpoint.eventCount };
+    model = actSimulation(model, "play");
+    model = actSimulation(model, "suspend");
+    model = actSimulation(model, "suspend");
+    return { waiting, resumed, manuallyPaused: !model.playing };
+  }, simulationModule);
+  assert.equal(suspension.waiting.playing, true);
+  assert.equal(suspension.waiting.suspended, true);
+  assert.match(suspension.waiting.feedback, /waiting for edit generation/);
+  assert.equal(suspension.resumed.playing, true);
+  assert.equal(suspension.resumed.suspended, false);
+  assert.ok(suspension.resumed.events > suspension.waiting.events);
+  assert.match(suspension.resumed.feedback, /Playback advanced/);
+  assert.equal(suspension.manuallyPaused, true);
   assert.deepEqual(errors, []);
   console.log(
     "Simulation browser controls, existing diagram and inspection passed",

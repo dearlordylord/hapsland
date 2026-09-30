@@ -157,7 +157,9 @@ checked observation, including paused history inspection.
    times stay fixed. Inspect identified request effects and results.
 4. Set No finding (clear) weight to `100`, others to `0`, with delay `50` for
    recovery, apply it, and suspend edit
-   generation. Resume so outstanding work can settle. Playback pause stops the
+   generation. Resume so outstanding work can settle. When suspended work settles, playback waits; **Resume edit generation**
+   schedules fresh edits and running playback processes them without an extra
+   Resume click. An explicitly paused driver stays paused. Playback pause stops the
    browser driver; edit suspension stops future arrivals. Agent finish attempts
    appear as `stopPolled`; Hapsland's `finishAllowed*` command is a separate checked
    outcome. Suspension itself never emits a finish attempt.

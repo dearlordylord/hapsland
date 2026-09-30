@@ -410,7 +410,7 @@ export const actSimulation = (
           suspended = !suspended;
           run.applyControl({ kind: "suspendArrivals", suspended });
           feedback = suspended
-            ? "Future edits suspended. Existing synthetic work can settle."
+            ? "Future edits suspended. Existing synthetic work continues; playback will wait when settled."
             : "Future edit generation resumed.";
           break;
         case "sizes":
@@ -489,10 +489,10 @@ export const tickSimulation = (
       selected: -1,
       suspended: (run.exportReplay().controls.findLast((entry) => entry.control.kind === "suspendArrivals")?.control as Extract<Control, { kind: "suspendArrivals" }> | undefined)?.suspended ?? model.suspended,
       revision: model.revision + 1,
-      playing: !completed && result.reason !== "idle" && (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
+      playing: !completed && (result.reason !== "idle" || model.suspended) && (!replayEndpoint || run.eventCount < replayEndpoint.eventCount),
       feedback: completed ? "Replay reached its exact recorded endpoint." : /^(Cannot apply:|Could not read replay file:)/.test(model.feedback) ? model.feedback :
         result.reason === "idle"
-          ? "No pending events; playback paused."
+          ? model.suspended ? "Existing work settled; waiting for edit generation to resume." : "No pending events; playback paused."
           : `Playback advanced (${result.reason}).`,
     };
   } catch (error) {
