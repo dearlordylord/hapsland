@@ -5,6 +5,7 @@ import { Message, Model, init, update, view } from "./production-main";
 import "./style.css";
 
 const subscriptions = Subscription.make<Model, Message>()((entry) => ({
+  simulationPlayback: Subscription.animationFrame<Model, Message>({ isActive: model => model.simulation.playing, toMessage: deltaMs => Message.SimulationTick({ deltaMs }) }),
   traceKeys: entry(
     { canRewind: Schema.Boolean, canAdvance: Schema.Boolean },
     {

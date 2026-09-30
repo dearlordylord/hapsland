@@ -135,3 +135,11 @@ p { line-height: 1.5; }
 .canonical-feedback { color: #425570; }
 .capacity-frames .selected { border-color: #c2522c; background: #fff1eb; }
 @media (max-width: 600px) { .capacity-inventory ul { columns: 1; } }
+
+.simulation-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 16px 0; }
+.simulation-controls label { display: flex; flex-direction: column; gap: 5px; }
+.simulation-controls input { width: 150px; }
+.simulation-panel textarea { width: 100%; min-height: 150px; font-family: monospace; }
+.simulation-details pre { max-height: 320px; overflow: auto; white-space: pre-wrap; }
+.simulation-history { max-height: 180px; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
+.simulation-history button { text-align: left; }

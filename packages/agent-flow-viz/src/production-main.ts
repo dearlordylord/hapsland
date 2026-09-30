@@ -1,3 +1,4 @@
+import { SimulationModel, initialSimulation, actSimulation, changeSimulation, tickSimulation, simulationView } from "./simulation";
 import { Schema } from "effect";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
@@ -11,6 +12,7 @@ import { productionFlowView } from "./production-flow-view";
 import type { CapacityPurpose, CanonicalCommand } from "../../../src/canonical/adapter";
 
 export const Model = Schema.Struct({
+  simulation: SimulationModel,
   importScenario: Schema.Number,
   importCursor: Schema.Number,
   timeline: Schema.Number,
@@ -24,6 +26,9 @@ export const Model = Schema.Struct({
 export type Model = typeof Model.Type;
 
 export const Message = defineMessageUnion({
+  SimulationAction: { action: Schema.String },
+  SimulationChanged: { field: Schema.String, raw: Schema.String },
+  SimulationTick: { deltaMs: Schema.Number },
   SelectedImportScenario: { index: Schema.Number },
   MovedImportCursor: { cursor: Schema.Number },
   SelectedTimeline: { index: Schema.Number },
@@ -40,7 +45,7 @@ export const Message = defineMessageUnion({
 export type Message = typeof Message.Type;
 
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({ model: {
-  importScenario: 0, importCursor: 0, timeline: 0, scenario: 0,
+  simulation: initialSimulation, importScenario: 0, importCursor: 0, timeline: 0, scenario: 0,
   history: [], position: 0, frame: 0,
   draft: '{"kind":"reserveCapacity","partition":3,"bytes":5,"purpose":"reviewUnit"}',
   feedback: "Source-free events use the same checked canonical adapter as the resident.",
@@ -54,6 +59,9 @@ const append = (model: Model, event: unknown, origin: ReplayEvent["origin"]): Mo
 };
 
 export const update = (model: Model, message: Message) => Message.match<Update.Return<Model, Message>>(message, {
+  SimulationAction: ({ action }) => ({ model: { ...model, simulation: actSimulation(model.simulation, action) } }),
+  SimulationChanged: ({ field, raw }) => ({ model: { ...model, simulation: changeSimulation(model.simulation, field, raw) } }),
+  SimulationTick: ({ deltaMs }) => ({ model: { ...model, simulation: tickSimulation(model.simulation, deltaMs) } }),
   SelectedImportScenario: ({ index }) => ({ model: { ...model,
     importScenario: index >= 0 && index < IMPORT_GRAPH_SCENARIOS.length ? index : 0, importCursor: 0 } }),
   MovedImportCursor: ({ cursor }) => ({ model: { ...model,
@@ -148,6 +156,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.p([h.Class("intro")], ["Step through the checked Bend transition used by the Hapsland resident. Agent runtimes supply observations; Hapsland executes native source, Jev, and host effects around Bend decisions."]),
         h.p([h.Class("caveat")], ["This source-free replay is an example, not a live connection to an agent runtime or Jev. Native timing evidence and the separate import graph appear below."]),
       ]),
+      simulationView(model.simulation, h, action => Message.SimulationAction({ action }), (field, raw) => Message.SimulationChanged({ field, raw })),
       h.section([h.Class("chart-panel production-flow")], [
         h.h2([], ["Production decision flow"]),
         productionFlowView(h, projection, last, model.scenario === 0),

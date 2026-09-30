@@ -125,3 +125,50 @@ at collection while the round remains active).
 Run `npm run build` for TypeScript, checked connection evidence, projection, compiled inventory, and Vite
 checks. Run `npm run test:browser` for Chromium controls. The workspace may
 need the Chromium system libraries listed by Playwright.
+
+## Seeded simulation walkthrough
+
+The `Monkey-business · seeded simulation` panel consumes the public
+`monkey-business` run API. It maps checked frames onto the existing 13 places
+and routes. It adds controls without changing diagram layout or product policy.
+All Jev observations are simulated; no credentials or source files are needed.
+
+1. Keep seed `7`, edit interval `100`, reservation bytes `100` and Jev delay
+   `50`. Click **Start / reset**, then **Single step**. Inspect the event,
+   ordered commands, checked before/after projections and synthetic effects.
+   **Resume** plays the same virtual engine; playback speed changes observation
+   pace without choosing random values or product policy.
+2. Pause and inject a burst of `5`. Step through preparation and overlapping
+   review. History includes transitions without cross-square movement and
+   ordinary Bend refusals, which are product outcomes rather than run errors.
+3. Set simulated Jev delay to `500` and outcome to `backendFailure` or `timeout`,
+   then apply the profile. New requests use that profile; in-flight completion
+   times stay fixed. Inspect identified request effects and results.
+4. Select `clear` with delay `50` for recovery, apply it, and suspend edit
+   generation. Resume so outstanding work can settle. Playback pause stops the
+   browser driver; edit suspension stops future arrivals. Agent finish attempts
+   appear as `stopPolled`; Hapsland's `finishAllowed*` command is a separate checked
+   outcome. Suspension itself never emits a finish attempt.
+5. Pause and export replay. Copy **Replay JSON**, reset (or open a fresh browser),
+   paste JSON and load. Loading reconstructs initial inputs and recorded controls
+   to the recorded endpoint. The final frame is reproduced; identity mismatches
+   show an error. Intermediate branching is unsupported.
+
+Reservation size controls supply reservation/review-unit byte facts for checked
+admission. They do not establish native capture, evidence-tree, encoded-output
+or import traversal enforcement. The package's separate graph scenarios cover
+only their declared boundaries. Defaults are illustrative, not empirical agent
+or Jev measurements. Multi-agent contention is unsupported.
+
+Each playback batch is bounded at 100 checked events. Browser replay loading
+accepts endpoints up to 100,000 events; larger runs require a headless consumer. The package retains the
+last 1000 observations and history buttons display the latest 100. Replay export
+keeps required inputs/controls independently of rendered history. Paused state
+is resumable. Invalid controls and replay identities appear in status.
+
+Run `npm run test:simulation-browser` for focused offline browser checks;
+`npm run test:browser` covers existing examples. These validate UI wiring,
+separately from design acceptance, native enforcement and release support. An
+owner review request should link `/#monkey-business`, name the exact control or
+replay case, describe the panel's added behavior and state the requested design
+decision. Existing diagram positions have no visual diff.
