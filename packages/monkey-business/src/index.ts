@@ -29,7 +29,7 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:0e9a7f2397c60ad13c9e39c664944e6ae0d85e9e34b59b2b579c49b4eccac458";
+  "canonical-source-sha256:f089c4c09a281cb6f046ece5ef6fe34a60e23fe029c193f94cdfe9133cd9fe77";
 export type RunInput =
   | SessionInput
   | ({ readonly at: number; readonly generation?: number } & (
@@ -529,6 +529,8 @@ export class Run {
           if (!scope || !("operation" in event))
             throw new Error("unhandled required command: retainFinding");
           const advice = event.operation;
+          const work = this.projection.work.find((entry) => entry.operation === advice);
+          if (!work || work.parent === 0) throw new Error("retained finding lacks its edit observation");
           this.adviceCredentials.set(advice, this.requestCredentials.get(advice) ?? this.environment.credentialGeneration ?? 1);
           effects.push({ kind: "advice", phase: "supplied", advice });
           const lifetime = this.config.adviceLifetime ?? 600_000;
@@ -537,14 +539,17 @@ export class Run {
           this.event({
             kind: "collectionReady",
             advice,
-            already: false,
-            turnEnd: false,
-            cycleComplete: true,
-            elapsed: 0,
-            window: 200,
+            partition: scope.partition,
+            lifetime: scope.lifetime,
+            round: scope.round,
+            observation: work.parent,
+            joinedPending: false,
           });
-          if (this.finish) break;
-          this.validateAdvice(advice, scope.round, advice, this.session ? "background" : "edit");
+          break;
+        }
+        case "collectionEligible": {
+          if (event.kind === "collectionReady" && !this.finish)
+            this.validateAdvice(event.advice, event.round, event.advice, this.session ? "background" : "edit");
           break;
         }
         case "submissionBegun":
@@ -804,6 +809,8 @@ export class Run {
         this.jobs.delete(parent);
       }
     }
+    if (["completeObservation", "jevRequestSettled", "reviewCompleted", "interruptObservation",
+      "interruptPreparation"].includes(event.kind)) this.refreshAdviceReadiness();
     if (
       this.finish?.waiting &&
       [
@@ -875,6 +882,17 @@ export class Run {
     if (!f) return;
     this.event({ kind: "roundContinuationBudgetCheck", active: true,
       count: this.projection.delivery.counters.find(counter => counter.group === 1 && counter.round === f.round)?.used ?? 0 });
+  }
+  private refreshAdviceReadiness() {
+    const projection = this.projection;
+    for (const finding of projection.pendingFindings) {
+      if (projection.collection.ready.includes(finding.operation)) continue;
+      const work = projection.work.find((entry) => entry.operation === finding.operation);
+      if (!work || work.parent === 0) continue;
+      this.event({ kind: "collectionReady", advice: work.operation,
+        partition: work.partition, lifetime: work.lifetime, round: work.round,
+        observation: work.parent, joinedPending: false });
+    }
   }
   private candidateEvent(event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" }>, candidate: CandidateContext) {
     this.queue.push({ at: this.clock, order: this.order++, generated: true,

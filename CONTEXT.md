@@ -46,7 +46,6 @@ material only beside the plain-language meaning it represents.
 | Observation result | The completion, skip, or incompleteness outcome of processing one change observation before semantic review work exists. |
 | Review unit | One root artifact together with the supporting evidence evaluated independently in one review-backend request. |
 | Review work item | One review unit together with the frozen observation, rule-set, and input-contract context needed to schedule its evaluation. |
-| Review dispatch cycle | A finite group of review work items selected together for evaluation; work arriving after selection belongs to a later cycle. |
 | Review result | The operational result of evaluating one actual review work item. |
 | Advicee | The agent that Hapsland can advise about an attributed edit. A working root or the latest caller does not identify that agent by itself. |
 | Advicee partition | The resident's separate review and advice scope for one identified agent, in one session and one physical working root. A supplied subagent ID distinguishes a child from its parent. A missing ID currently maps to the main-agent scope; it does not prove that an event came from the main agent. Hapsland must not give child-specific advice without reliable child attribution. |

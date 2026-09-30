@@ -140,8 +140,8 @@ Run `npm run test:progress` for `progress-proof/LAWS.bend` and
   permitted uncertain-background Stop reoffer reach the submitted lease phase
   under matching authorization and successful completion facts. Closed leases
   and spent uncertain writes are outside the runnable predicate.
-- After a failure cohort resolves, an open dispatcher accepts a fresh request
-  without resetting its queues, running jobs, sequence or cycle.
+- After a finite set of failed requests resolves, an open dispatcher accepts a
+  fresh request without resetting queued work, running jobs, or sequence.
 
 `progress-proof/core.bend` contains proof drivers composing the production
 `Dispatch`, `Handoff` and `Canonical` functions. It is not a second production

@@ -128,12 +128,10 @@ try {
       assert.equal(step.after.work.length, 1, "the accepted edit has no second source work until admission");
     }
     if (index === 7) {
-      assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
-      assert.ok(active.some((route) => labels(route).includes("work #2 scheduled; dispatch entered pending")));
+      assert.equal(step.after.dispatch.queued.length, 0, "the second edit starts while a preparation slot is free");
       showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "scheduling" }));
       const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
-      assert.match(detail, /waiting next batch: 1.*#2 · agent 1 · round 1 · seq 1 · cycle 0 · preparation/s);
-      assert.match(detail, /running preparation jobs: 1.*#1 · agent 1 · round 1 · seq 0 · cycle 1 · preparation/s);
+      assert.match(detail, /running preparation jobs: 2.*#1 · agent 1 · round 1 · seq 0 · preparation.*#2 · agent 1 · round 1 · seq 1 · preparation/s);
       const unselected = send(showcase, main.Message.SelectedFlowStage({ stage: "" }));
       for (const stage of presentation.PLACE_ORDER) {
         const selected = send(unselected, main.Message.SelectedFlowStage({ stage }));
@@ -151,16 +149,16 @@ try {
       assert.match(detail, /source work waiting: 1.*#2/s);
       assert.doesNotMatch(detail, /source work waiting: 2/);
     }
-    if (index === 12) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running)")));
+    if (index === 12) assert.equal(step.after.dispatch.running.length, 1, "the second preparation remains active after the first settles");
     if (index === 20) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
     if (index === 25) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
     if (index === 26) assert.ok(active.some((route) => labels(route).includes("retain finding command")));
     if (index === 27) {
-      assert.deepEqual(step.after.collection.ready, [10], "ready advice follows its native storage fact");
-      assert.ok(active.some((route) => labels(route).includes("advice #10 supplied ready by native storage")));
+      assert.deepEqual(step.after.collection.ready, [4], "ready advice follows its native storage fact");
+      assert.ok(active.some((route) => labels(route).includes("Bend marked advice #4 ready from finding work #4")));
     }
-    if (index === 30) assert.deepEqual(step.after.collection.ready, [11, 10]);
-    if (index === 33) assert.ok(active.some((route) => labels(route).includes("advice #10 leased; still ready")));
+    if (index === 30) assert.deepEqual(step.after.collection.ready, [6, 4]);
+    if (index === 33) assert.ok(active.some((route) => labels(route).includes("advice #4 leased; still ready")));
     if (index === 38) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
     if (index === 44) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
     if (index === 52) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));

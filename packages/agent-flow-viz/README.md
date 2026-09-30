@@ -104,18 +104,14 @@ orange to gold when the external clear result is supplied. A `neverSent` result
 does not light that gold connection. This color change does not alter reducer
 state, stage inference, or possible routes.
 
-In the default guided example, inspect step 25, `collectionReady` for advice
-`#10`: [before the inferred projection](docs/assets/production-flow-before-inference-step-25.png)
-and [after](docs/assets/production-flow-inferred-step-25.png). The earlier view
-showed `ready #10` but left the Review outcomes → Advice ready / retained connection
-inactive. The current view lights connection 14 from the checked new ready
-advice and labels its source as a supplied native fact. Connection 16 separately
-shows Bend's `collectionEligible` command. [Step 24](docs/assets/production-flow-inferred-step-24.png)
-shows the preceding `retainFinding` command as purple while Pending advice
-still says `ready none`; it does not claim storage happened yet. The exact
-producing work ID for advice `#10` is not projected, so that relationship is
-disclosed rather than inferred. These images document this code change; #147
-design acceptance still requires owner inspection of the interactive cases.
+In the default guided example, inspect step 28, `collectionReady` for advice
+`#4`. The Review outcomes → Advice ready / retained connection identifies
+finding work #4 and its originating edit #1. Bend checks that relationship and
+the edit's remaining work before marking advice ready; the resident supplies
+whether joined native work is still pending. Step 27's `retainFinding` command
+alone does not mark advice ready. Connection 16 separately shows Bend's
+`collectionEligible` command. #147 design acceptance still requires owner
+inspection of the interactive case.
 The other named owner-review panels are [ninth Jev request refusal](docs/assets/production-flow-inferred-jev-refusal.png)
 (guided step 29/34: eight in flight, immediate unavailable command, no Jev
 queue) and [Stop wait](docs/assets/production-flow-inferred-stop-wait.png)

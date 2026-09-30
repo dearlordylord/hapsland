@@ -1,14 +1,14 @@
 # #123 canonical dispatch evidence
 
 **Purpose:** Record the implementation boundary and validation evidence for #123.
-**Status:** Integrated #123 implementation checkpoint; evidence is scoped to the runs and fixtures recorded below.
+**Status:** Historical #123 implementation checkpoint, superseded by the 2026-09-30 dispatch and advice-collection amendment; evidence is scoped to the runs and fixtures recorded below.
 **Authority:** Implementation or validation evidence; this report does not amend accepted product behavior.
 **Expected use:** Support #123 acceptance and the #137 source-linked authority review.
 **Lifecycle:** Temporary. Review at #123 acceptance and again during #137. Once #137 incorporates the necessary boundary conclusions, exceptions, and validation limitations into its final authority report, consolidate those conclusions there, move any accepted product decision to its contract owner, update inbound links, and delete this snapshot. Keep executable traces and checks in their native artifacts.
 
-`Canonical.step` now owns the resident dispatch queue, finite cycle counter,
+At the #123 checkpoint, `Canonical.step` owned the resident dispatch queue, finite cycle counter,
 FIFO sequence, two-slot concurrency ceiling, and queued versus running discard
-decisions. `DispatchCycles` retains native job handles and invokes promises only
+decisions. The then-current native dispatcher retained job handles and invoked promises only
 for `DispatchStarted` commands. It reports exact operation, partition, lifetime,
 and round on enqueue and completion; a late or duplicate completion is denied.
 Duplicate and closed admissions reach Bend before the native handle map changes;

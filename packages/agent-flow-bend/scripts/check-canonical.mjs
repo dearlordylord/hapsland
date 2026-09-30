@@ -284,15 +284,14 @@ for (const trace of dispatchFixture.traces) {
     current = result.state;
     const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
       if (command.kind === "roundStarted" || command.kind === "observationAdmitted") return `${command.kind}:${command.id}`;
-      if (command.kind === "dispatchStarted") return `${command.kind}:${command.operation}:${command.sequence}:${command.cycle}`;
-      if (command.kind === "dispatchCycleCompleted") return `${command.kind}:${command.cycle}`;
+      if (command.kind === "dispatchStarted") return `${command.kind}:${command.operation}:${command.sequence}`;
       if (command.kind === "dispatchDiscarded") return `${command.kind}:${command.operation}:${command.running}`;
       throw new Error(`unexpected dispatch trace command ${command.kind}`);
     }).join(",");
     assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
   }
-  const { pending, active, running, nextSequence, cycle, closed } = projectCanonical(current).dispatch;
-  assert.deepEqual({ pending, active, running, nextSequence, cycle, closed }, trace.dispatch, trace.name);
+  const { queued, running, nextSequence, closed } = projectCanonical(current).dispatch;
+  assert.deepEqual({ queued, running, nextSequence, closed }, trace.dispatch, trace.name);
 }
 const stopFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-stop-v1.json"), "utf8"));
 for (const trace of stopFixture.traces) {
@@ -305,7 +304,6 @@ for (const trace of stopFixture.traces) {
       if (command.kind === "preparationReleased") return `${command.kind}:${command.id}`;
       if (command.kind === "prepare" || command.kind === "unitAdmitted") return `${command.kind}:${command.operation}:${command.reservation}`;
       if (command.kind === "dispatchStarted" || command.kind === "cancelWork") return `${command.kind}:${command.operation}`;
-      if (command.kind === "dispatchCycleCompleted") return `${command.kind}:${command.cycle}`;
       return command.kind;
     }).join(",");
     assert.equal(actual, expected, `${trace.name}: ${event.kind}`);

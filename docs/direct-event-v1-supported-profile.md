@@ -9,6 +9,10 @@
 The matrix below records the earlier one-file input. Hapsland now selects the
 bounded cross-file type/function path in production code. The new path has not
 yet inherited the matrix's host or live Jev validation claims.
+The historical #7 dispatch evidence measured finite cycles and a 50 ms
+collection window. The active conformance mapping and row below now track
+available preparation slots and per-edit completion, with a bounded Stop
+exception; they do not retroactively validate the earlier host run.
 
 This document records the previously measured support boundary. Jev is the external
 review backend. The measured v1 adapter profile was **Codex CLI 0.155.1 / Linux arm64 /
@@ -51,7 +55,7 @@ secret- or source-bearing fields in the new evidence records.
 | 4 | TypeScript analyzer and `DecisionModel` | `.ts/.tsx/.mts/.cts` applicability; unique interface/type roots; 64 declarations inclusive; exactly 16 referenced names excluding root; finite same-file evidence; imports, merging, schema-only and unresolved shapes unsupported; one request per unit | 3 obligations |
 | 5 | Join and reuse identity | Complete partition/path/evidence/rules/contract input; event ID excluded; pending join independent of cache; success-only 8-entry/128 KiB LRU reuse; failure/malformed non-reuse; A→B→A restoration | 3 obligations |
 | 6 | Revalidation and publication authority | Relevant root/reference/rule/contract changes stale; unrelated comments/siblings remain current; no whole-file fallback; late/superseded work and uncertain writer attribution do not publish | 3 obligations |
-| 7 | Resident dispatch and collection | Prompt lone dispatch; finite cycles; 8 concurrent preparation/evaluation jobs; completion or 50 ms collection; deterministic 10 KiB response with no separate finding-count cap; overflow retained; expiry at 600,000 ms equality | 4 obligations |
+| 7 | Resident dispatch and collection | FIFO preparation fills up to 8 slots; review jobs use the separate Jev gate; ordinary advice waits for its edit's work to settle; Stop may use ready partial findings at its deadline; deterministic 10 KiB response with no separate finding-count cap; overflow retained; expiry at 600,000 ms equality | 4 obligations |
 | 8 | Logical capacity and transport | Global 512 items/64 MiB; partition 16 items/2 MiB; accounting through work/cache/outcomes/advice; bounded 256 KiB IPC before decode; explicit rejection and terminal cleanup; no RSS claim | 4 obligations |
 | 9 | Operational failure diagnostics | First capacity/backend failure recorded; same kind/partition suppressed before 60,000 ms and refreshed at equality; 64 bounded keys; restart reset; never included in agent output | 3 obligations |
 | 10 | Singleton lifecycle | 10 s readiness; 1.5 s client deadline; 100 starters/eight processes converge; timeout/disconnect does not cancel accepted work; kill/restart loses memory; old lifetime rejected; cleanup only idle; worktree roots distinct | 4 obligations |

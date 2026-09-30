@@ -23,7 +23,6 @@ import { ResidentServer } from "./server.ts";
 import { PARTITION_BYTE_LIMIT } from "./capacity.ts";
 import { VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
 import {
-  ADVICE_COLLECTION_WINDOW_MS,
   MAX_COMBINED_RESPONSE_BYTES,
   PENDING_ADVICE_EXPIRY_MS,
   encodedHostOutputBytes,
@@ -211,7 +210,7 @@ describe("canonical resident capacity", () => {
     }
   });
 
-  it("keeps a finite review cycle open when the second Jev result arrives first", async () => {
+  it("waits for all findings from one edit when the second Jev result arrives first", async () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type FirstCount = number\n");
     await put(root, "second.ts", "type SecondCount = number\n");
@@ -240,17 +239,17 @@ describe("canonical resident capacity", () => {
           !server.pendingAdviceMetadata().some((item) => item.path === "second.ts"); attempt += 1) {
         await new Promise<void>((resolveTimeout) => setTimeout(resolveTimeout, 5));
       }
-      expect(server.pendingAdviceMetadata().map((item) => ({ path: item.path,
-        cycle: item.cycle, sequence: item.sequence, cycleComplete: item.cycleComplete })))
-        .toEqual([{ path: "second.ts", cycle: 1, sequence: 2, cycleComplete: false }]);
+      expect(server.pendingAdviceMetadata().map((item) => item.path)).toEqual(["second.ts"]);
+      expect(await server.collect(root, observation.advicee, allFindingsDispatch(statePath)))
+        .toMatchObject({ status: "empty" });
       firstGate.resolve();
       await server.whenIdle();
-      expect(server.pendingAdviceMetadata().map((item) => ({ path: item.path,
-        cycle: item.cycle, sequence: item.sequence, cycleComplete: item.cycleComplete }))
-        .sort((left, right) => left.sequence - right.sequence)).toEqual([
-        { path: "first.ts", cycle: 1, sequence: 1, cycleComplete: true },
-        { path: "second.ts", cycle: 1, sequence: 2, cycleComplete: true },
-      ]);
+      const complete = await server.collect(root, observation.advicee, allFindingsDispatch(statePath));
+      expect(complete.status).toBe("advice");
+      if (complete.status === "advice") {
+        expect(complete.output.hookSpecificOutput.additionalContext).toContain("first.ts");
+        expect(complete.output.hookSpecificOutput.additionalContext).toContain("second.ts");
+      }
     } finally {
       firstGate.resolve();
       await server.close();
@@ -273,12 +272,7 @@ describe("canonical resident capacity", () => {
       await server.whenIdle();
       expect(server.pendingAdviceMetadata().map((item) => item.path).sort())
         .toEqual(["first.ts", "second.ts"]);
-      expect(server.pendingAdviceMetadata().map((item) => ({
-        cycle: item.cycle, sequence: item.sequence, cycleComplete: item.cycleComplete,
-      })).sort((left, right) => left.sequence - right.sequence)).toEqual([
-        { cycle: 1, sequence: 1, cycleComplete: true },
-        { cycle: 1, sequence: 2, cycleComplete: true },
-      ]);
+      expect(server.pendingAdviceMetadata()).toHaveLength(2);
       expect(server.stats().retainedBytes).toBeGreaterThan(0);
       expect(server.stats().rejectedCapacity).toBe(0);
     } finally {
@@ -958,7 +952,6 @@ describe("resident delivery lease", () => {
     expect(server.admit(codex, dispatch, false, true)).toEqual({ status: "accepted" });
     expect(server.admit(claude, dispatch, false, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
-    clock += ADVICE_COLLECTION_WINDOW_MS;
     const collect = (adviceeValue: typeof codex.advicee | typeof claude.advicee,
       mode: "ordinary" | "turn-end") => server.handle({
       requestRoute: "shared", operation: "collect", lifetime: server.lifetime, root,
@@ -1818,7 +1811,6 @@ describe("resident delivery lease", () => {
     expect(stats.retainedBytes).toBe(metadata.reduce((total, item) => total + item.retainedBytes, 0) +
       server.accountingMetrics().successfulCacheBytes);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(metadata.length);
-    expect(metadata.every((item) => item.cycleComplete)).toBe(true);
     expect(metadata.map((item) => item.sequence)).toEqual(
       [...metadata.map((item) => item.sequence)].sort((left, right) => left - right),
     );
@@ -2900,7 +2892,7 @@ describe("resident bounded advice batches", () => {
     expect(server.stats().currentWork).toBe(2);
   });
 
-  it("ages each dispatch cycle independently after an earlier batch is consumed", async () => {
+  it("does not send part of a later edit after an earlier edit was delivered", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
@@ -2957,21 +2949,25 @@ describe("resident bounded advice batches", () => {
       singleFindingDispatch(statePath),
     )).resolves.toMatchObject({ status: "empty" });
 
-    clock += ADVICE_COLLECTION_WINDOW_MS;
-    const aged = await server.collect(
+    clock += 50;
+    const stillWaiting = await server.collect(
       root,
       advicee({ turnId: "aged", toolUseId: "aged" }),
       singleFindingDispatch(statePath),
     );
-    expect(aged.status).toBe("advice");
-    if (aged.status === "advice") {
-      expect(aged.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
-    }
+    expect(stillWaiting.status).toBe("empty");
     releaseC.resolve();
     await server.whenIdle();
+    const complete = await server.collect(root,
+      advicee({ turnId: "complete", toolUseId: "complete" }), singleFindingDispatch(statePath));
+    expect(complete.status).toBe("advice");
+    if (complete.status === "advice") {
+      expect(complete.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
+      expect(complete.output.hookSpecificOutput.additionalContext).toContain("c.ts :: CCount");
+    }
   });
 
-  it("uses finite-cycle completion, then exact oldest-result aging, without waiting for new work", async () => {
+  it("holds one edit together despite staggered review completion", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
@@ -3009,33 +3005,30 @@ describe("resident bounded advice batches", () => {
     await allEntered.promise;
     expect(server.pendingAdviceMetadata()).toMatchObject([{
       path: "a.ts",
-      cycleComplete: false,
       pendingAt: 10_000,
     }]);
 
     await expect(server.collect(root, advicee({ turnId: "early", toolUseId: "early" }), dispatch))
       .resolves.toMatchObject({ status: "empty" });
-    clock += ADVICE_COLLECTION_WINDOW_MS - 1;
+    clock += 49;
     await expect(server.collect(root, advicee({ turnId: "before", toolUseId: "before" }), dispatch))
       .resolves.toMatchObject({ status: "empty" });
     releases.get("b.ts")?.();
     await secondAdvicePending.promise;
     clock += 1;
-    const aged = await server.collect(root, advicee({ turnId: "at", toolUseId: "at" }), dispatch);
-    expect(aged.status).toBe("advice");
-    if (aged.status === "advice") {
-      expect(aged.output.hookSpecificOutput.additionalContext).toContain("a.ts :: ACount");
-      expect(aged.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
-      expect(server.acknowledge(aged.token).status).toBe("acknowledged");
-      expect(server.finalize(aged.token).status).toBe("finalized");
-    }
-    expect(server.pendingAdviceMetadata()).toEqual([]);
+    await expect(server.collect(root, advicee({ turnId: "at", toolUseId: "at" }), dispatch))
+      .resolves.toMatchObject({ status: "empty" });
     releases.get("c.ts")?.();
     await server.whenIdle();
-    expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "c.ts", cycleComplete: true }]);
+    const complete = await server.collect(root, advicee({ turnId: "complete", toolUseId: "complete" }), dispatch);
+    expect(complete.status).toBe("advice");
+    if (complete.status === "advice") {
+      const text = complete.output.hookSpecificOutput.additionalContext;
+      for (const path of ["a.ts", "b.ts", "c.ts"]) expect(text).toContain(`${path} ::`);
+    }
   });
 
-  it("returns only the ready subset for bounded turn-end collection without draining", async () => {
+  it("returns only the ready subset after the checked Stop deadline", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
@@ -3056,7 +3049,7 @@ describe("resident bounded advice batches", () => {
       afterAdvicePending: () => { ready.resolve(); },
     });
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
     await bothEntered.promise;
     releases.get("a.ts")?.();
     await ready.promise;
@@ -3066,12 +3059,11 @@ describe("resident bounded advice batches", () => {
       dispatch,
       "ordinary",
     )).resolves.toMatchObject({ status: "empty" });
-    const turnEnd = await server.collect(
-      root,
-      advicee({ turnId: "turn-end", toolUseId: "turn-end" }),
-      dispatch,
-      "turn-end",
-    );
+    expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "partial-stop" })).status).toBe("advanced");
+    const turnEnd = await server.handle({ requestRoute: "shared", operation: "collect",
+      lifetime: server.lifetime, root, advicee: observation.advicee, dispatch, mode: "turn-end",
+      composed: true, finish: { token: "partial-stop", deadlineReached: true } });
     expect(turnEnd.status).toBe("advice");
     expect(server.stats()).toMatchObject({ running: 1, pendingAdvice: 1 });
     if (turnEnd.status === "advice") server.releaseDelivery(turnEnd.token);

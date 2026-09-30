@@ -365,9 +365,8 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await writeFile(`${admitGate}.release`, "release\n");
     const gated = await waitFor(async () => {
       const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
-      // The first prompt lone item is a complete finite cycle. Arrivals after
-      // its dispatch wait for the next cycle and cannot extend it.
-      return stats.status === "stats" && stats.running === 1 && stats.queued === 2 ? stats : undefined;
+      // Independent preparation jobs use free resident slots immediately.
+      return stats.status === "stats" && stats.running === 3 && stats.queued === 0 ? stats : undefined;
     });
     expect(gated.retainedBytes).toBeLessThanOrEqual(64 * 1024 * 1024);
     await writeFile(gate, "release\n");

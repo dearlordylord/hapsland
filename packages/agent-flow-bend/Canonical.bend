@@ -128,13 +128,12 @@ type CanonicalEvent is Data:
     continuations: Nat}
   StopGroupEnded{group: Nat, lifetime: Nat, round: Nat,
     scopes: List<&2, StopScope>}
-  CollectionReady{advice: Nat, already: Bool, turn_end: Bool,
-    cycle_complete: Bool, elapsed: Nat, window: Nat}
+  CollectionReady{advice: Nat, partition: Nat, lifetime: Nat, round: Nat, observation: Nat,
+    joined_pending: Bool}
   CollectionCredentialCheck{same_scope: Bool, generation_valid: Bool}
   CollectionCandidateCheck{same_partition: Bool, unleased: Bool,
     has_unsuppressed: Bool, ticket_owns: Bool}
-  CollectionOrderCheck{left_cycle: Nat, left_sequence: Nat,
-    right_cycle: Nat, right_sequence: Nat}
+  CollectionOrderCheck{left_sequence: Nat, right_sequence: Nat}
   CollectionExpiryCheck{elapsed: Nat, lifetime: Nat}
   CollectionFitCheck{items: Nat, bytes: Nat}
   CollectionFindingCheck{selection_partition: Nat, selection_round: Nat,
@@ -331,8 +330,7 @@ type Command is Data:
   FailureCredential{}
   FailureLost{}
   FailureNone{}
-  DispatchStarted{operation: Nat, sequence: Nat, cycle: Nat}
-  DispatchCycleCompleted{cycle: Nat}
+  DispatchStarted{operation: Nat, sequence: Nat}
   DispatchDiscarded{operation: Nat, running: Bool}
   DiscardNamedOnly{}
   DiscardAllUnfinished{}
@@ -1621,7 +1619,7 @@ def request_settled(+state: State, +partition: Nat, +lifetime: Nat,
   match state:
     case State{_, _, _, _, _, _, dispatch, _, +history}:
       match dispatch:
-        case Dispatch.State{_, _, _, _, _, _, requests}:
+        case Dispatch.State{_, _, _, _, requests}:
           request_settled_found(state, partition, lifetime, round, operation,
             request, outcome, current_work,
             Dispatch.request_phase(requests, partition, lifetime, round,
@@ -1882,7 +1880,7 @@ def cancel_dispatch_entries(items: List<&2, Dispatch.Entry>, +work: List<&2, Wor
   match items:
     case Nil{}:
       Nil{}
-    case Dispatch.Entry{+partition, +generation, +round, +operation, _, _, cancelled, _} <> rest:
+    case Dispatch.Entry{+partition, +generation, +round, +operation, _, cancelled, _} <> rest:
       cancel_pick(operation, cancel_dispatch_entries(rest, work, lifetime, scopes),
         Bool.and(Bool.not(cancelled), Bool.and(Nat.is_eq(generation, lifetime),
           Bool.and(scope_contains(scopes, partition, round),
@@ -1891,10 +1889,9 @@ def cancel_dispatch_entries(items: List<&2, Dispatch.Entry>, +work: List<&2, Wor
 def cancel_scoped_dispatch(dispatch: Dispatch.State, +work: List<&2, Work>, +lifetime: Nat,
     +scopes: List<&2, StopScope>) -> List<&2, Command>:
   match dispatch:
-    case Dispatch.State{pending, active, running, _, _, _, _}:
-      List.append(&2, Command, cancel_dispatch_entries(pending, work, lifetime, scopes),
-        List.append(&2, Command, cancel_dispatch_entries(active, work, lifetime, scopes),
-          cancel_dispatch_entries(running, work, lifetime, scopes)))
+    case Dispatch.State{queued, running, _, _, _}:
+      List.append(&2, Command, cancel_dispatch_entries(queued, work, lifetime, scopes),
+        cancel_dispatch_entries(running, work, lifetime, scopes))
 
 def stop_group_wait(+state: State, +group: Nat, +lifetime: Nat,
     +round: Nat, scopes: List<&2, StopScope>) -> Step:
@@ -2258,10 +2255,8 @@ def dispatch_commands(items: List<&2, Dispatch.Command>) -> List<&2, Command>:
   match items:
     case Nil{}:
       Nil{}
-    case Dispatch.Started{operation, sequence, cycle} <> rest:
-      DispatchStarted{operation, sequence, cycle} <> dispatch_commands(rest)
-    case Dispatch.CycleCompleted{cycle} <> rest:
-      DispatchCycleCompleted{cycle} <> dispatch_commands(rest)
+    case Dispatch.Started{operation, sequence} <> rest:
+      DispatchStarted{operation, sequence} <> dispatch_commands(rest)
     case Dispatch.Discarded{operation, running} <> rest:
       DispatchDiscarded{operation, running} <> dispatch_commands(rest)
 
@@ -2340,13 +2335,54 @@ def collection_decision(+state: State, decision: CollectionState.Decision,
     case CollectionState.Refused{_}:
       Advanced{state, refused <> Nil{}}
 
-def collection_ready(+state: State, advice: Nat, already: Bool, turn_end: Bool,
-    cycle_complete: Bool, elapsed: Nat, window: Nat) -> Step:
+def unfinished_for_observation(items: List<&2, Work>, +partition: Nat,
+    +lifetime: Nat, +round: Nat, +observation: Nat) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case Work{_, _, _, _, _, PendingFinding{_}, _} <> rest:
+      unfinished_for_observation(rest, partition, lifetime, round, observation)
+    case Work{owner, generation, current, operation, _, _, parent} <> rest:
+      Bool.or(Bool.and(Nat.is_eq(owner, partition),
+        Bool.and(Nat.is_eq(generation, lifetime),
+          Bool.and(Nat.is_eq(current, round),
+            Bool.or(Nat.is_eq(operation, observation), Nat.is_eq(parent, observation))))),
+        unfinished_for_observation(rest, partition, lifetime, round, observation))
+
+def finding_for_observation(items: List<&2, Work>, +partition: Nat,
+    +lifetime: Nat, +round: Nat, +observation: Nat, +advice: Nat) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case Work{owner, generation, current, operation, _, PendingFinding{_}, parent} <> rest:
+      Bool.or(Bool.and(Nat.is_eq(owner, partition),
+        Bool.and(Nat.is_eq(generation, lifetime),
+          Bool.and(Nat.is_eq(current, round),
+            Bool.and(Nat.is_eq(operation, advice), Nat.is_eq(parent, observation))))),
+        finding_for_observation(rest, partition, lifetime, round, observation, advice))
+    case _ <> rest:
+      finding_for_observation(rest, partition, lifetime, round, observation, advice)
+
+def deciding_round(found: Maybe<&2, Round>, group: Nat,
+    lifetime: Nat, round: Nat) -> Bool:
+  match found:
+    case Some{+current}:
+      match current:
+        case Round{_, _, _, _, deciding, _, _, +quiet_since}:
+          Bool.and(deciding, same_round(group, lifetime, round, current))
+    case None{}:
+      False{}
+
+def collection_ready(+state: State, +advice: Nat,
+    +partition: Nat, +lifetime: Nat, +round: Nat, +observation: Nat,
+    joined_pending: Bool) -> Step:
   match state:
-    case State{_, _, _, _, _, _, _, collection, +history}:
+    case State{_, rounds, work, _, _, _, _, collection, +history}:
       collection_decision(state,
         CollectionState.mark_ready(collection, advice,
-          Collection.eligible(already, turn_end, cycle_complete, elapsed, window)),
+          Bool.and(finding_for_observation(work, partition, lifetime, round, observation, advice),
+            Collection.eligible(deciding_round(find_round(partition, rounds),
+                partition, lifetime, round),
+              Bool.not(Bool.or(joined_pending,
+                unfinished_for_observation(work, partition, lifetime, round, observation)))))),
         CollectionEligible{}, CollectionWaiting{})
 
 def collection_credential_result(state: State,
@@ -2502,16 +2538,6 @@ def selected_valid(+all: List<&2, Nat>, remaining: List<&2, Nat>,
 
 def selected_pending(+selected: List<&2, Nat>, work: List<&2, Work>) -> Bool:
   selected_valid(selected, selected, work)
-
-def deciding_round(found: Maybe<&2, Round>, group: Nat,
-    lifetime: Nat, round: Nat) -> Bool:
-  match found:
-    case Some{+current}:
-      match current:
-        case Round{_, _, _, _, deciding, _, _, +quiet_since}:
-          Bool.and(deciding, same_round(group, lifetime, round, current))
-    case None{}:
-      False{}
 
 def finish_reserve_decision(+state: State, group: Nat, round: Nat,
     attempt: Nat, token: Nat, selected: List<&2, Nat>) -> Step:
@@ -2767,7 +2793,7 @@ def ticket_retention_result(+state: State, result: TicketState.Retention) -> Ste
 def cleanup_state_clean(state: State) -> Bool:
   match state:
     case State{_, Nil{}, Nil{}, _, _, admissions,
-        Dispatch.State{Nil{}, Nil{}, Nil{}, _, _, False{}, Nil{}},
+        Dispatch.State{Nil{}, Nil{}, _, False{}, Nil{}},
         CollectionState.State{Nil{}, Nil{}, Nil{},
           DeliveryState.State{Nil{}, _, SubmissionState.State{Nil{}, Nil{}}},
           RevisionState.State{Nil{}, _}, _,
@@ -3046,16 +3072,17 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
         continuations)
     case StopGroupEnded{group, lifetime, round, scopes}:
       stop_group_end(state, group, lifetime, round, scopes)
-    case CollectionReady{advice, already, turn_end, cycle_complete, elapsed, window}:
-      collection_ready(state, advice, already, turn_end, cycle_complete, elapsed, window)
+    case CollectionReady{advice, partition, lifetime, round,
+        observation, joined_pending}:
+      collection_ready(state, advice, partition, lifetime, round,
+        observation, joined_pending)
     case CollectionCredentialCheck{same_scope, generation_valid}:
       collection_credential_result(state,
         Collection.credential_disposition(same_scope, generation_valid))
     case CollectionCandidateCheck{same_partition, unleased, has_unsuppressed, ticket_owns}:
       collection_candidate(state, same_partition, unleased, has_unsuppressed, ticket_owns)
-    case CollectionOrderCheck{left_cycle, left_sequence, right_cycle, right_sequence}:
-      collection_order_result(state, Collection.order(left_cycle, left_sequence,
-        right_cycle, right_sequence))
+    case CollectionOrderCheck{left_sequence, right_sequence}:
+      collection_order_result(state, Collection.order(left_sequence, right_sequence))
     case CollectionExpiryCheck{elapsed, lifetime}:
       collection_expiry(state, elapsed, lifetime)
     case CollectionFitCheck{items, bytes}:

@@ -213,12 +213,12 @@ export const bendNoticePrune = (hasPending, leased, leaseExpired,
   pendingExpired, excepted, cooldownExpired) =>
   run_loop($Notice$prune$(hasPending, leased, leaseExpired,
     pendingExpired, excepted, cooldownExpired));
-export const bendCollectionOrder = (leftCycle, leftSequence, rightCycle, rightSequence) =>
-  run_loop($Collection$order$(nat(leftCycle), nat(leftSequence), nat(rightCycle), nat(rightSequence)));
+export const bendCollectionOrder = (leftSequence, rightSequence) =>
+  run_loop($Collection$order$(nat(leftSequence), nat(rightSequence)));
 export const bendCollectionCredentialDisposition = (sameScope, generationValid) =>
   run_loop($Collection$credential_disposition$(sameScope, generationValid));
-export const bendCollectionEligible = (already, turnEnd, cycleComplete, elapsed, window) =>
-  run_loop($Collection$eligible$(already, turnEnd, cycleComplete, nat(elapsed), nat(window)));
+export const bendCollectionEligible = (stopDeciding, editComplete) =>
+  run_loop($Collection$eligible$(stopDeciding, editComplete));
 export const bendCollectionExpired = (elapsed, lifetime) =>
   run_loop($Collection$expired$(nat(elapsed), nat(lifetime)));
 export const bendDeliveryTransition = (current, requested) =>

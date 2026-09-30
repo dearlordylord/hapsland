@@ -251,10 +251,9 @@ export type BendCollectionOrder = { readonly $: "Before" | "Equal" | "After" };
 export type BendCollectionCredentialDisposition = { readonly $: "RetainAdvice" | "RetireAdvice" };
 export function bendCollectionCredentialDisposition(sameScope: boolean,
   generationValid: boolean): BendCollectionCredentialDisposition;
-export function bendCollectionOrder(leftCycle: number | bigint, leftSequence: number | bigint,
-  rightCycle: number | bigint, rightSequence: number | bigint): BendCollectionOrder;
-export function bendCollectionEligible(already: boolean, turnEnd: boolean,
-  cycleComplete: boolean, elapsed: number | bigint, window: number | bigint): boolean;
+export function bendCollectionOrder(leftSequence: number | bigint,
+  rightSequence: number | bigint): BendCollectionOrder;
+export function bendCollectionEligible(stopDeciding: boolean, editComplete: boolean): boolean;
 export function bendCollectionExpired(elapsed: number | bigint,
   lifetime: number | bigint): boolean;
 

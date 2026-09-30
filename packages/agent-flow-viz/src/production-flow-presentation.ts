@@ -6,7 +6,7 @@ type Square = Readonly<{ title: string; owner: string; x: number; y: number; fac
 const facet = (label: string, references: readonly string[]): SquareFacet => ({ label, count: references.length, references });
 const ids = (items: readonly number[]) => items.map((id) => `#${id}`);
 const work = (state: CanonicalProjection, kind: CanonicalProjection["work"][number]["kind"]) => ids(state.work.filter((item) => item.kind === kind).map((item) => item.operation));
-const dispatch = (state: CanonicalProjection, place: "pending" | "active" | "running", preparation?: boolean) => state.dispatch[place].filter((item) => preparation === undefined || item.preparation === preparation).map((item) => `#${item.operation}/agent ${item.partition}/round ${item.round}/seq ${item.sequence}/cycle ${item.cycle}/${item.preparation ? "preparation" : "review"}${item.cancelled ? "/cancelled" : ""}`);
+const dispatch = (state: CanonicalProjection, place: "queued" | "running", preparation?: boolean) => state.dispatch[place].filter((item) => preparation === undefined || item.preparation === preparation).map((item) => `#${item.operation}/agent ${item.partition}/round ${item.round}/seq ${item.sequence}/${item.preparation ? "preparation" : "review"}${item.cancelled ? "/cancelled" : ""}`);
 const facetCount = (item: SquareFacet) => `${item.count} ${item.count === 1 ? item.label.replace(/\b(rounds|permits|charges|requests|units|leases|claims|slots)\b/g, (word) => word.slice(0, -1)) : item.label}`;
 const square = (definition: Omit<Square, "detail">): Square => ({ ...definition, detail: (state) => definition.facets(state).map((item) => `${facetCount(item)}${item.references.length ? `: ${item.references.join(", ")}` : ""}`).join(" · ") });
 /** Count and facet name always remain visible; only the identity sample is bounded. */
@@ -28,7 +28,7 @@ export const SQUARES: Record<Place, Square> = {
   sourcePending: square({ title: "Awaiting source read", owner: "BEND STATE", x: 32, y: 190,
     facets: (s) => [facet("source work waiting", work(s, "awaitingSourceRead"))] }),
   scheduling: square({ title: "Job scheduling", owner: "BEND DECISION + STATE", x: 588, y: 190,
-    facets: (s) => [facet("waiting next batch", dispatch(s, "pending")), facet("waiting current batch", dispatch(s, "active")),
+    facets: (s) => [facet("waiting to prepare", dispatch(s, "queued", true)), facet("waiting to review", dispatch(s, "queued", false)),
       facet("running preparation jobs", dispatch(s, "running", true)), facet("running review jobs", dispatch(s, "running", false))] }),
   preparation: square({ title: "Read & prepare source", owner: "NATIVE EFFECT + BEND STATE", x: 866, y: 52,
     facets: (s) => [facet("source read phase", work(s, "sourceReading")), facet("preparing", work(s, "preparing"))] }),

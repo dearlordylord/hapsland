@@ -20,7 +20,11 @@ const pause = () => new Promise((resolve) => setTimeout(resolve, 10));
 const waitFile = async (path, child) => {
   for (let attempt = 0; attempt < 2_000; attempt += 1) {
     if (child.exitCode !== null) throw new Error("offline resident exited before readiness");
-    try { return await readFile(path, "utf8"); } catch { await pause(); }
+    try {
+      const content = await readFile(path, "utf8");
+      if (content.trim().length > 0) return content;
+    } catch { /* The child has not published the marker yet. */ }
+    await pause();
   }
   throw new Error("offline resident readiness timed out");
 };

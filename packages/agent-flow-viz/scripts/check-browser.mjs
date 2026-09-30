@@ -42,7 +42,7 @@ try {
   };
   assert.match(await canonical.innerText(), /Capacity rules/);
   assert.match(await canonical.innerText(), /All agents in this Hapsland process · 0\/3 work items/);
-  assert.match(await canonical.innerText(), /Two edits through a queue, Jev findings, and Stop output/);
+  assert.match(await canonical.innerText(), /Two edits through preparation, Jev findings, and Stop output/);
   await advanceGuided(1, 1, 57);
   assert.match(await page.locator(".flow-provenance").innerText(), /Before the edit.*Bend issued a permit.*No virtual round is open yet/s);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Admission & capacity" }).textContent(), /1 edit permit: #1/);
@@ -58,10 +58,10 @@ try {
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "dispatch entered running" }).count(), 1);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "→ Read & prepare source" }).count(), 0);
   await advanceGuided(5, 8, 57);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /1 waiting next batch:/);
-  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "entered pending" }).count(), 1);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /2 running preparation jobs:/);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "entered running" }).count(), 1);
   await canonical.locator(".topology-node").filter({ hasText: "Job scheduling" }).click();
-  assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /waiting next batch: 1.*#2 · agent 1 · round 1 · seq 1/s);
+  assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /running preparation jobs: 2.*#2 · agent 1 · round 1 · seq 1/s);
   await canonical.getByLabel("Inspect square").selectOption("sourcePending");
   assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /source work waiting: 2.*#1.*#2/s);
   await canonical.getByRole("button", { name: "Close square details" }).click();
@@ -238,15 +238,14 @@ try {
 
   await canonical.getByRole("button", { name: "Reset replay" }).click();
   await waitForText(".canonical-progress", "history 0/0");
-  const dispatchTrace = dispatchFixture.traces.find((trace) => trace.name === "finite FIFO cohorts start two units and settle reordered callbacks");
+  const dispatchTrace = dispatchFixture.traces.find((trace) => trace.name === "available preparation starts immediately and reordered callbacks settle");
   assert.ok(dispatchTrace);
   for (let index = 0; index < 5; index++) await applyManual(dispatchTrace.events[index], index + 1);
-  assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 1\/8/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /1 waiting next batch: #2\/agent 1\/seq 1/);
-  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 0);
+  assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 2\/8/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /2 running preparation jobs/);
   for (let index = 5; index < 10; index++) await applyManual(dispatchTrace.events[index], index + 1);
   await waitForText(".topology-step", "dispatchStarted");
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /2 running preparation jobs: #2\/agent 1\/seq 1\/preparation, #3\/agent 1\/seq 2\/preparation/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /2 running preparation jobs/);
   assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 2\/8/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 1);
 

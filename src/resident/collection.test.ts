@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Finding } from "../direct-event/pipeline.ts";
 import {
-  ADVICE_COLLECTION_WINDOW_MS,
   MAX_COMBINED_RESPONSE_BYTES,
   PENDING_ADVICE_EXPIRY_MS,
   collectionOrder,
@@ -14,7 +13,6 @@ import {
   encodedClaudeHostOutputBytes,
   fitsClaudeReviewResponse,
   fitsCombinedResponse,
-  isCollectionEligible,
   isPendingAdviceExpired,
   selectFittingFindings,
   selectFittingClaudeFindings,
@@ -27,14 +25,10 @@ import {
 } from "./collection.ts";
 
 const candidate = (overrides: Partial<{
-  cycle: number;
   sequence: number;
-  cycleComplete: boolean;
   pendingAt: number;
 }> = {}) => ({
-  cycle: 2,
   sequence: 4,
-  cycleComplete: false,
   pendingAt: 1_000,
   ...overrides,
 });
@@ -49,35 +43,19 @@ const finding = (index: number, message = "use a domain name"): Finding => ({
 });
 
 describe("resident advice collection policy", () => {
-  it("becomes eligible at cycle completion or exactly 50 ms without resetting age", () => {
-    expect(isCollectionEligible(candidate(), 1_000 + ADVICE_COLLECTION_WINDOW_MS - 1)).toBe(false);
-    expect(isCollectionEligible(candidate(), 1_000 + ADVICE_COLLECTION_WINDOW_MS)).toBe(true);
-    expect(isCollectionEligible(candidate({ cycleComplete: true }), 1_000)).toBe(true);
-    expect(isCollectionEligible(candidate(), 1_000, "turn-end")).toBe(true);
-
-    const older = candidate({ pendingAt: 1_000 });
-    const newer = candidate({ pendingAt: 1_049, sequence: 5 });
-    expect(isCollectionEligible(older, 1_050)).toBe(true);
-    expect(isCollectionEligible(newer, 1_050)).toBe(false);
-    expect(isCollectionEligible(newer, 1_050, "ordinary", older.pendingAt)).toBe(true);
-    expect(isCollectionEligible({ ...newer, collectionEligible: true }, 1_050)).toBe(true);
-  });
-
-  it("preserves fractional-time collection and expiry boundaries", () => {
+  it("preserves fractional-time expiry boundaries", () => {
     const pending = candidate({ pendingAt: 0.9 });
-    expect(isCollectionEligible(pending, ADVICE_COLLECTION_WINDOW_MS + 0.1)).toBe(false);
-    expect(isCollectionEligible(pending, ADVICE_COLLECTION_WINDOW_MS + 0.9)).toBe(true);
     expect(isPendingAdviceExpired(pending, PENDING_ADVICE_EXPIRY_MS + 0.1)).toBe(false);
     expect(isPendingAdviceExpired(pending, PENDING_ADVICE_EXPIRY_MS + 0.9)).toBe(true);
   });
 
-  it("orders deterministically by finite cycle then dispatch sequence", () => {
+  it("orders deterministically by dispatch sequence", () => {
     const ordered = [
-      candidate({ cycle: 3, sequence: 1 }),
-      candidate({ cycle: 2, sequence: 9 }),
-      candidate({ cycle: 2, sequence: 4 }),
+      candidate({ sequence: 9 }),
+      candidate({ sequence: 1 }),
+      candidate({ sequence: 4 }),
     ].sort(collectionOrder);
-    expect(ordered.map(({ cycle, sequence }) => [cycle, sequence])).toEqual([[2, 4], [2, 9], [3, 1]]);
+    expect(ordered.map(({ sequence }) => sequence)).toEqual([1, 4, 9]);
   });
 
   it("enforces the exact 10 KiB host encoding without an item cap", () => {

@@ -17,7 +17,7 @@ export type FlowStepInput = Readonly<{
 export type Located = Readonly<{ key: string; stage: FlowStage; description: string }>;
 const locatedWork = (state: CanonicalProjection, kinds: readonly CanonicalProjection["work"][number]["kind"][], stage: FlowStage) =>
   state.work.filter((item) => kinds.includes(item.kind)).map((item) => ({ key: `work:${item.operation}`, stage, description: `work #${item.operation} (${item.kind})` }));
-const locatedDispatch = (state: CanonicalProjection, fields: readonly ("pending" | "active" | "running")[], stage: FlowStage) =>
+const locatedDispatch = (state: CanonicalProjection, fields: readonly ("queued" | "running")[], stage: FlowStage) =>
   fields.flatMap((field) => state.dispatch[field].map((item) => ({ key: `dispatch:${item.operation}`, stage, description: `dispatch #${item.operation} (${field})` })));
 
 /** Only checked fields that this flow assigns to a conceptual stage. */
@@ -26,7 +26,7 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
     case "observation": return [];
     case "admission": return [state.charges, state.global, state.partitions, state.admissions];
     case "sourcePending": return state.work.filter((item) => item.kind === "awaitingSourceRead").map((item) => item.operation);
-    case "scheduling": return [state.dispatch.pending, state.dispatch.active, state.dispatch.running];
+    case "scheduling": return [state.dispatch.queued, state.dispatch.running];
     case "preparation": return state.work.filter((item) => item.kind === "sourceReading" || item.kind === "preparing").map((item) => [item.operation, item.kind]);
     case "units": return [state.work.filter((item) => item.kind === "reviewing").map((item) => item.operation), state.charges.filter((item) => item.purpose === "reviewUnit").length];
     case "authorization": return state.dispatch.requests.filter((item) => !item.started).map((item) => item.request);
@@ -42,7 +42,7 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
 /** Locate identified work and records in the conceptual flow. */
 export const locateFlow = (state: CanonicalProjection): readonly Located[] => [
   ...locatedWork(state, ["awaitingSourceRead"], "sourcePending"),
-  ...locatedDispatch(state, ["pending", "active", "running"], "scheduling"),
+  ...locatedDispatch(state, ["queued", "running"], "scheduling"),
   ...locatedWork(state, ["sourceReading", "preparing"], "preparation"),
   ...locatedWork(state, ["reviewing"], "units"),
   ...state.dispatch.requests.filter((item) => !item.started).map((item) => ({ key: `request:${item.request}`, stage: "authorization" as const, description: `request #${item.request} (issued)` })),
@@ -112,9 +112,8 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
   }
   // QueueDispatch creates a dispatch record for existing work. The work stays
   // at its stage; the scheduling link denotes shared identity, not movement.
-  for (const field of ["pending", "active", "running"] as const) for (const next of step.after.dispatch[field]) if (
-    !step.before.dispatch.pending.some((prior) => prior.operation === next.operation) &&
-    !step.before.dispatch.active.some((prior) => prior.operation === next.operation) &&
+  for (const field of ["queued", "running"] as const) for (const next of step.after.dispatch[field]) if (
+    !step.before.dispatch.queued.some((prior) => prior.operation === next.operation) &&
     !step.before.dispatch.running.some((prior) => prior.operation === next.operation)) {
     if (step.event.kind !== "queueDispatch" || step.event.operation !== next.operation) continue;
     const source = before.get(`work:${next.operation}`);
@@ -142,8 +141,9 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
     changedStages.add("advice"); changedStages.add("collection");
   }
   if (step.event.kind === "collectionReady") for (const id of step.after.collection.ready) if (!step.before.collection.ready.includes(id)) {
-    evidence.push({ from: "outcomes", to: "advice", source: "native fact",
-      description: `advice #${id} supplied ready by native storage; producing work ID is not projected`, identity: `ready-advice:${id}` });
+    evidence.push({ from: "outcomes", to: "advice", source: "state", relation: "linked record",
+      description: `Bend marked advice #${id} ready from finding work #${id} for edit #${step.event.observation}; joined work status was supplied by the resident`,
+      identity: `work:${id}` });
     changedStages.add("outcomes"); changedStages.add("advice");
   }
   const kinds = commandKinds(step.commands);

@@ -40,10 +40,10 @@ try {
     "a running dispatch does not yet mean source reading began");
   assert.ok(has(8, "state", "sourcePending", "scheduling", "work:2"),
     "the second source job enters scheduling while the first runs");
-  assert.equal(steps[7].after.dispatch.pending.length, 1);
+  assert.equal(steps[7].after.dispatch.queued.length, 0);
   assert.ok(has(19, "state", "units", "scheduling", "work:4"));
-  assert.ok(has(13, "state", "scheduling", "scheduling", "dispatch:2"),
-    "the same dispatch ID changes from pending to running within scheduling");
+  assert.ok(has(8, "state", "sourcePending", "scheduling", "work:2"),
+    "the second job starts while preparation capacity remains");
   assert.ok(has(11, "state", "preparation", "units", "work:4"),
     "a prepared work item's child review unit has an explicit parent link");
   assert.ok(has(21, "command", "authorization", "effect"),
@@ -54,16 +54,16 @@ try {
     "the observed request start moves its stable request ID");
   assert.ok(has(27, "command", "outcomes", "advice"),
     "a finding's retain command is visible");
-  assert.ok(!steps[26].after.collection.ready.includes(10),
+  assert.ok(!steps[26].after.collection.ready.includes(4),
     "retain command does not assert stored advice");
-  assert.ok(has(28, "native fact", "outcomes", "advice"),
-    "later native readiness visibly brings advice to the pending-advice square");
-  assert.ok(steps[27].after.collection.ready.includes(10));
+  assert.ok(has(28, "state", "outcomes", "advice", "work:4"),
+    "Bend links the ready advice to checked finding work");
+  assert.ok(steps[27].after.collection.ready.includes(4));
   assert.ok(!flow.projectFlowStep(steps[10]).changedStages.includes("observation"),
     "preparing one item does not highlight an unrelated queued observation");
-  assert.ok(has(34, "state", "advice", "collection", "advice:10"),
+  assert.ok(has(34, "state", "advice", "collection", "advice:4"),
     "a new lease is linked to its ready advice even while readiness remains visible");
-  assert.ok(steps[33].after.collection.ready.includes(10),
+  assert.ok(steps[33].after.collection.ready.includes(4),
     "lease creation does not invent removal of the ready advice");
   assert.ok(has(53, "state", "round", "round", "round:1"),
     "checked retirement marks the round's end");

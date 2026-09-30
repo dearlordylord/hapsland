@@ -135,7 +135,7 @@ describe("ongoing public sessions", () => {
     run.advance({ maxEvents: 5000 });
     const starts = run.observations.filter(frame => frame.event.kind === "beginObservedPreparation");
     expect(starts).toHaveLength(16);
-    expect(starts.filter(frame => frame.time === 0)).toHaveLength(1);
+    expect(starts.filter(frame => frame.time === 0)).toHaveLength(8);
     expect(starts.filter(frame => frame.time === 10)).toHaveLength(8);
     expect(Math.max(...run.observations.map(frame => frame.after.dispatch.running.filter(entry => entry.preparation).length))).toBe(8);
     expect(run.projection.dispatch.running).toEqual([]);

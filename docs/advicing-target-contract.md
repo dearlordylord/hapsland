@@ -169,6 +169,12 @@ not a reason to skip the wait. When the continuation budget is exhausted,
 Hapsland may allow finish immediately because it cannot present another
 continue-with-advice response.
 
+At the safe Stop deadline, Hapsland may send findings already completed for
+an edit even if other review work from that edit is unfinished. The finish
+decision cancels the unfinished work of that virtual round, so its late results
+are not sent as another part of the edit's advice. This deadline exception
+does not make a partial edit eligible during ordinary collection.
+
 If actionable advice can be presented and a continuation remains, Hapsland
 returns a **continue-with-advice response** (`block`). This asks the runtime to
 let the agent work on the advice in the same virtual round. Otherwise it returns
@@ -198,7 +204,13 @@ safe synchronous deadline. If no eligible advice is ready, it returns quietly
 and leaves later opportunities to background or Stop. Advisory output is the
 default. A synchronous `block-current-findings` response requires a user-owned
 opt-in that remains valid at the final handoff; project policy may narrow it to
-advisory. The collector may batch eligible findings from several admissions in
+advisory. For ordinary collection, findings from an accepted edit become ready
+after its source preparation and all derived review work have settled. A
+completed finding from that edit remains pending while sibling work is still
+unfinished; a short elapsed-time window does not make it ready on its own.
+This boundary follows the originating edit, not a dispatch cohort. Work from
+other edits and advicees can use free preparation slots concurrently. The
+collector may batch eligible findings from several completed admissions in
 the same advicee and virtual round. For example, edit B's synchronous response
 may include a still-current finding from edit A in that round, even when the
 finding was not ready during edit A's hook. An admission identifies each

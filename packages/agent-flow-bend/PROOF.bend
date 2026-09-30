@@ -58,10 +58,13 @@ def Laws.canonical_completed_finding_does_not_block_finish():
 def Laws.canonical_source_without_charge_blocks_finish():
   {==}
 
-def Laws.dispatch_first_item_starts_cycle_one():
+def Laws.dispatch_first_item_starts_immediately():
   {==}
 
 def Laws.dispatch_has_eight_shared_slots():
+  {==}
+
+def Laws.dispatch_review_passes_full_preparation_queue():
   {==}
 
 def Laws.canonical_deadline_releases_exact_charge():
@@ -655,16 +658,19 @@ def Laws.live_background_cannot_reoffer():
 def Laws.submitted_edit_cannot_reoffer_at_stop():
   {==}
 
-def Laws.collection_orders_cycle_before_sequence():
+def Laws.collection_orders_by_dispatch_sequence():
   {==}
 
-def Laws.collection_orders_sequence_inside_cycle():
+def Laws.collection_orders_later_sequence_after_earlier():
   {==}
 
-def Laws.collection_waits_until_exact_window():
+def Laws.collection_waits_for_edit_completion():
   {==}
 
-def Laws.collection_cycle_completion_unblocks_early():
+def Laws.collection_edit_completion_unblocks():
+  {==}
+
+def Laws.collection_stop_may_send_ready_part():
   {==}
 
 def Laws.pending_advice_expires_at_boundary():
