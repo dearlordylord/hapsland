@@ -39,7 +39,7 @@ try {
   await status("One checked transition advanced");
   assert.match(await panel.locator(".simulation-status").innerText(), /Paused/);
   await panel.locator(".simulation-details summary").click();
-  assert.equal(await panel.locator(".topology-node").count(), 14);
+  assert.equal(await panel.locator(".topology-node").count(), 15);
   assert.match(await panel.innerText(), /simulated Jev/i);
   assert.match(
     await panel.locator(".simulation-details").innerText(),

@@ -72,9 +72,9 @@ const routeGeometry = (route: Route, offset: number) => {
   }
   if (route.from === "outcomes" && route.to === "outcomes") {
     const x = from.x + NODE_WIDTH / 2;
-    const y = from.y;
-    return { path: `M ${x - 45} ${y - 9} C ${x - 58} ${y - 90}, ${x + 58} ${y - 90}, ${x + 45} ${y - 9}`,
-      badge: { x, y: y - 64 }, tip: { x: x + 45, y: y - 9 }, toward: { x: -1, y: 1 } };
+    const y = from.y + NODE_HEIGHT;
+    return { path: `M ${x - 45} ${y + 9} C ${x - 58} ${y + 75}, ${x + 58} ${y + 75}, ${x + 45} ${y + 9}`,
+      badge: { x, y: y + 59 }, tip: { x: x + 45, y: y + 9 }, toward: { x: -1, y: -1 } };
   }
   if (route.from === "round" && route.to === "round") {
     const x = from.x + NODE_WIDTH;
@@ -89,19 +89,59 @@ const routeGeometry = (route: Route, offset: number) => {
       badge: { x: x + 7, y: y + 71 }, tip: { x: x + 28, y: y - 9 }, toward: { x: 0, y: -1 } };
   }
   if (route.from === "admission" && route.to === "preparation") {
-    const startX = from.x + NODE_WIDTH / 2;
-    const endX = to.x + NODE_WIDTH / 2;
-    return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L ${startX} 220 L ${endX} 220 L ${endX} ${to.y + NODE_HEIGHT + 9}`,
-      badge: { x: 750, y: 220 }, tip: { x: endX, y: to.y + NODE_HEIGHT + 9 }, toward: { x: 0, y: -1 } };
+    const startX = from.x + NODE_WIDTH + 9;
+    const laneX = startX + 17;
+    const laneY = 185;
+    const endLaneX = to.x - 36;
+    const endX = to.x - 9;
+    const endY = to.y + NODE_HEIGHT / 2;
+    return { path: `M ${startX} ${from.y + NODE_HEIGHT / 2} L ${laneX} ${from.y + NODE_HEIGHT / 2} L ${laneX} ${laneY} L ${endLaneX} ${laneY} L ${endLaneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 750, y: laneY }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
   }
   if (route.from === "sourcePending" && route.to === "preparation") {
+    const startX = from.x + NODE_WIDTH / 2;
+    const laneX = to.x - 36;
+    const y = from.y + NODE_HEIGHT + 9;
+    const endX = to.x - 9;
+    const endY = to.y + NODE_HEIGHT / 2;
+    return { path: `M ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 775, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
+  }
+  if (route.from === "dispatchScheduling" && route.to === "preparation") {
     const startX = from.x + NODE_WIDTH + 9;
     const laneX = to.x - 36;
     const y = from.y + NODE_HEIGHT / 2;
     const endX = to.x - 9;
     const endY = to.y + NODE_HEIGHT / 2;
     return { path: `M ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
-      badge: { x: 540, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
+      badge: { x: 700, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
+  }
+  if (route.from === "dispatchScheduling" && route.to === "units") {
+    const startX = from.x + NODE_WIDTH + 9;
+    const laneX = to.x - 34;
+    const y = from.y + NODE_HEIGHT / 2 + 30;
+    const endX = to.x - 9;
+    const endY = to.y + NODE_HEIGHT / 2;
+    return { path: `M ${startX} ${from.y + NODE_HEIGHT / 2} L ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 985, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
+  }
+  if (route.from === "units" && route.to === "dispatchScheduling") {
+    const startX = from.x + NODE_WIDTH / 2;
+    const y = 300;
+    const laneX = to.x + NODE_WIDTH + 36;
+    const endX = to.x + NODE_WIDTH + 9;
+    const endY = to.y + NODE_HEIGHT / 2;
+    return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 1060, y }, tip: { x: endX, y: endY }, toward: { x: -1, y: 0 } };
+  }
+  if (route.from === "queued" && route.to === "units") {
+    const startX = from.x + NODE_WIDTH / 2;
+    const y = 206;
+    const laneX = to.x - 34;
+    const endX = to.x - 9;
+    const endY = to.y + NODE_HEIGHT / 2;
+    return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
+      badge: { x: 932, y }, tip: { x: endX, y: endY }, toward: { x: 1, y: 0 } };
   }
   if (route.from === "collection" && route.to === "preparation") {
     const y = from.y + NODE_HEIGHT / 2;

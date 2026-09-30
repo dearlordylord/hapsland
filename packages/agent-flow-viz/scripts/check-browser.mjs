@@ -26,7 +26,7 @@ try {
   };
 
   assert.match(await page.locator(".page-header").innerText(), /From agent edit to Jev and back/);
-  assert.equal(await page.locator(".topology-node").count(), 14);
+  assert.equal(await page.locator(".topology-node").count(), 15);
   assert.match(await page.locator(".production-flow").innerText(), /Jev request attempt/);
   assert.match(await page.locator(".production-flow").innerText(), /Jev in-flight: 0\/8 · no Jev wait queue/);
   const canonical = page.locator("#canonical-replay");
@@ -52,8 +52,13 @@ try {
   await advanceGuided(3, 3, 57);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Awaiting source read" }).textContent(), /1 source work waiting: #1/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "observation admitted as source work" }).count(), 1);
-  await advanceGuided(4, 8, 57);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).textContent(), /1 pending dispatch:/);
+  await advanceGuided(4, 4, 57);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Awaiting source read" }).textContent(), /1 source work waiting: #1/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Source preparation" }).textContent(), /1 running prep:/);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "dispatch #1 entered running" }).count(), 1);
+  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "Admission & capacity → Source preparation" }).count(), 0);
+  await advanceGuided(5, 8, 57);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Dispatch queue" }).textContent(), /1 pending dispatch:/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "entered pending" }).count(), 1);
   await advanceGuided(9, 13, 57);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 1);
@@ -228,7 +233,7 @@ try {
   assert.ok(dispatchTrace);
   for (let index = 0; index < 5; index++) await applyManual(dispatchTrace.events[index], index + 1);
   assert.match(await page.locator(".topology-capacities").innerText(), /Preparation running: 1\/8/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Preparation queue" }).textContent(), /1 pending dispatch: #2\/agent 1\/seq 1/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Dispatch queue" }).textContent(), /1 pending dispatch: #2\/agent 1\/seq 1/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 0);
   for (let index = 5; index < 10; index++) await applyManual(dispatchTrace.events[index], index + 1);
   await waitForText(".topology-step", "dispatchStarted");

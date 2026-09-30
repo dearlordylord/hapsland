@@ -97,8 +97,8 @@ try {
   const elements = (model, name) => descendants(main.view(model, inertHtml).body)
     .filter((node) => node.data?.class?.[name]);
   const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
-  assert.equal(elements(initial, "topology-node").length, 14);
-  assert.equal(elements(initial, "topology-route").length, 24);
+  assert.equal(elements(initial, "topology-node").length, 15);
+  assert.equal(elements(initial, "topology-route").length, 29);
   assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
   assert.equal(canonical.CANONICAL_SCENARIOS[initial.scenario].name, canonical.SHOWCASE_SCENARIO.name);
   let showcase = initial;
@@ -124,7 +124,7 @@ try {
       assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
       assert.ok(active.some((route) => labels(route).includes("dispatch #2 entered pending")));
     }
-    if (index === 12) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running)")));
+    if (index === 12) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running preparation)")));
     if (index === 20) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
     if (index === 25) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
     if (index === 26) assert.ok(active.some((route) => labels(route).includes("retain finding command")));

@@ -28,8 +28,18 @@ try {
     "checked admission places new work in its own waiting-source stage");
   assert.ok(has(9, "state", "sourcePending", "preparation", "work:1"),
     "source work moves from the waiting stage only when reading starts");
-  assert.ok(has(8, "state", "admission", "queued", "dispatch:2"),
+  assert.ok(has(4, "state", "sourcePending", "dispatchScheduling", "work:1"),
+    "the waiting source work is linked to scheduling without leaving its state");
+  assert.ok(has(4, "state", "dispatchScheduling", "preparation", "dispatch:1"),
+    "Bend immediately starts the first preparation dispatch");
+  assert.ok(!evidenceAt(4).some((item) => item.from === "admission"),
+    "dispatch scheduling does not invent an admission or capacity transition");
+  assert.equal(steps[3].after.work.find((work) => work.operation === 1)?.kind, "sourceQueued",
+    "a running dispatch does not yet mean source reading began");
+  assert.ok(has(8, "state", "dispatchScheduling", "queued", "dispatch:2"),
     "a second queued edit is evidenced by its dispatch ID");
+  assert.ok(has(19, "state", "units", "dispatchScheduling", "work:4"));
+  assert.ok(has(19, "state", "dispatchScheduling", "units", "dispatch:4"));
   assert.ok(has(13, "state", "queued", "preparation", "dispatch:2"),
     "the same dispatch ID crosses from waiting queue to running preparation");
   assert.ok(has(11, "state", "preparation", "units", "work:4"),
