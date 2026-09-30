@@ -182,7 +182,7 @@ export const productionFlowView = <Message>(
     { label: "Cancel unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
   ];
   return h.div([h.Class("production-topology")], [
-    h.p([h.Class("flow-legend")], ["Blue squares: checked Bend state or decision · gray squares: native fact/effect. Gold arrows mark supplied external Jev facts; orange arrows mark other accepted facts or state movement. Purple dashed arrows mark emitted commands; they do not prove a native effect or stored advice."]),
+    h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Purple dashed: command"]),
     h.div([h.Class("topology-scroll")], [
       h.svg([h.ViewBox("0 0 1400 830"), h.Role("img"),
         h.AriaLabel("Connected production flow from agent edit through Jev review to advice and round decision")], [
@@ -224,9 +224,6 @@ export const productionFlowView = <Message>(
                 h.Fill("#435670")], [squareFacetLine(facet)])),
           ]);
         }),
-        h.text([h.X("32"), h.Y("810"), h.FontSize("12"), h.Fill("#52647d")], [
-          "Numbers match the route key. Gold is an external Jev fact; orange is other accepted evidence; purple dashed is a command. Gray shows possible paths.",
-        ]),
       ]),
     ]),
     h.details([h.Class("topology-route-key")], [
@@ -238,9 +235,7 @@ export const productionFlowView = <Message>(
         ]);
       })),
     ]),
-    h.div([h.Class("finish-decision")], [
-      h.strong([], ["Stop finish decision · canonical branches"]),
-      h.p([], ["Bend chooses from supplied deadline, work, collection, and output facts. Host output is a separate native effect."]),
+    h.details([h.Class("finish-decision")], [h.summary([], ["Finish outcomes"]),
       h.div([h.Class("finish-branches")], finishBranches.map((branch) => h.div([
         h.Class(`finish-branch ${branch.active ? "active" : ""}`),
       ], [h.span([], ["Stop collection"]), h.span([h.Class("route-arrow")], ["→"]), h.strong([], [branch.label])]))),
@@ -251,8 +246,7 @@ export const productionFlowView = <Message>(
       h.span([], [`Jev in-flight: ${requests.length}/${projection.executionLimits.jevRequests} · no Jev wait queue`]),
       h.span([], [`Review capacity ledger: ${projection.global.items}/${projection.limits.globalItems} items; ${projection.global.bytes}/${projection.limits.globalBytes} bytes`]),
     ]),
-    h.div([h.Class("topology-step")], [
-      h.strong([], ["Inspectable decision"]),
+    h.details([h.Class("topology-step")], [h.summary([], ["Decision details"]),
       h.p([], [last === undefined ? "Choose a guided or manual event." : last.rejection !== undefined
         ? `${last.event.kind} rejected: ${last.rejection}. Bend state and item locations did not change.`
         : `${last.event.kind} accepted · ${commands.length} command(s): ${commands.map((command) => command.kind).join(", ") || "none"}`]),
@@ -272,7 +266,6 @@ export const productionFlowView = <Message>(
               : flow.projectionChanged ? "Checked reducer state changed outside the displayed square details; no displayed movement is established."
                 : commands.length ? `Decision emitted ${commands.map((command) => command.kind).join(", ")}; no displayed item movement is established.`
                   : "Accepted event; no displayed item movement or square change is established."]),
-      h.p([], ["A Jev command authorizes an attempt; only a request-start fact records an attempt. A submitted host output does not establish agent receipt or use."]),
       h.p([], [`Branches at this step: ${commands.filter((command) => /Refused|Unavailable|Interrupted|Ignored|Stale|Cancel|Clear|Finding|Waiting|Allowed|Expired|Lease|Reoffer|Unknown|Recorded|Terminal/.test(command.kind)).map((command) => command.kind).join(", ") || "none"}.`]),
     ]),
   ]);

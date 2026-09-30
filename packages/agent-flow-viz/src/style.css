@@ -137,6 +137,7 @@ p { line-height: 1.5; }
 @media (max-width: 600px) { .capacity-inventory ul { columns: 1; } }
 
 .simulation-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 16px 0; }
+.simulation-controls form.simulation-controls { margin: 0; }
 .simulation-controls label { display: flex; flex-direction: column; gap: 5px; }
 .simulation-controls input { width: 150px; }
 .simulation-panel textarea { width: 100%; min-height: 150px; font-family: monospace; }
@@ -158,3 +159,8 @@ p { line-height: 1.5; }
 .simulation-outcome-mix > summary { height: 3em; overflow: auto; }
 
 .topology-facet { font-variant-numeric: tabular-nums; }
+
+.canonical-step-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.canonical-step-controls button { margin: 0; height: 4em; overflow: hidden; overflow-wrap: anywhere; }
+.canonical-feedback { height: 3em; overflow: auto; }
+@media (min-width: 1000px) { .canonical-step-controls { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

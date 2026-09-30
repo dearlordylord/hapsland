@@ -44,11 +44,11 @@ export const importGraphView = <Message>(h: HtmlBuilder<Message>, scenarioIndex:
   const { scenario, history, states } = projectImportExample(scenarioIndex, cursor, limits);
   const current = history.at(-1);
   return h.section([h.Id("import-graph"), h.Class("card import-graph-section")], [
-    h.h2([], ["Import exploration · separate Bend state machine"]),
-    h.p([h.Class("description")], ["Compiled ImportGraph.bend decides traversal from source-free facts through the checked transition adapter. These are synthetic examples, independent of the full-flow replay above. Native resolution and capture are supplied facts; rule selection, filesystem calls, and Jev calls do not run here."]),
+    h.h2([], ["Import exploration"]),
     h.div([h.Class("import-graph-legend")], [h.span([h.Class("native")], ["Native: resolution, permission facts, source capture"]), h.span([h.Class("bend")], ["Bend: gates, ordering, budgets, completion"]), h.span([h.Class("jev")], ["Jev: downstream outcome, not simulated"])]),
     h.div([h.Class("trace-options")], IMPORT_GRAPH_SCENARIOS.map((entry, index) => h.button([h.OnClick(select(index)), h.Class(index === scenarioIndex ? "trace selected" : "trace")], [entry.title]))),
-    h.p([h.Class("description")], [`${scenario.description} Effective tree cap: ${states[0]?.limits.treeBytes ?? 0} bytes.`]),
+    h.p([h.Class("description")], [`Tree cap: ${states[0]?.limits.treeBytes ?? 0} bytes`]),
+    h.details([], [h.summary([], ["Scenario details"]), h.p([], [scenario.description])]),
     importGraphDiagram(h, current ? stages[current.state.phase] ?? null : null, scenario.units,
       scenario.targetNames, history, states,
       scenario.units[current?.unit ?? 0] ?? "selected unit"),
