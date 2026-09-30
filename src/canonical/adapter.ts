@@ -7,6 +7,19 @@ const MAX_BYTES = CANONICAL_MAX_BYTES;
 export const CANONICAL_MAX_UNITS = 1024;
 const MAX_UNITS = CANONICAL_MAX_UNITS;
 export type JevRequestOutcome = "neverSent" | "finding" | "clear" | "backendFailure" | "timeout" | "interrupted";
+export type CompletedEditReason = "consumed" | "released" | "expired" | "closed";
+const completedEditTags: Record<CompletedEditReason, string> = {
+  consumed: "Consumed", released: "Released", expired: "Expired", closed: "Closed",
+};
+const encodeCompletedEditReason = (reason: CompletedEditReason): unknown =>
+  ({ $: `EditHistory.${completedEditTags[reason]}` });
+const decodeCompletedEditReason = (value: unknown): CompletedEditReason => {
+  const entry = (Object.entries(completedEditTags) as [CompletedEditReason, string][])
+    .find(([, name]) => tag(value) === `EditHistory.${name}`);
+  if (entry === undefined) throw new TypeError("invalid completed edit reason");
+  fields(value, `EditHistory.${entry[1]}`, []);
+  return entry[0];
+};
 type RecordValue = Record<string, unknown>;
 const object = (value: unknown): RecordValue => {
   if (value === null || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid canonical object");
@@ -97,6 +110,8 @@ export type CanonicalEvent =
   | { readonly kind: "releaseCapacity"; readonly reservation: number }
   | { readonly kind: "replaceCapacity"; readonly reservation: number; readonly unitBytes: readonly number[] }
   | { readonly kind: "issuePermit"; readonly partition: number; readonly lifetime: number; readonly tool: number; readonly started: number; readonly deadline: number; readonly now: number; readonly minimumStarted: number; readonly facts: ProspectiveFacts }
+  | { readonly kind: "checkCompletedEdit"; readonly tool: number }
+  | { readonly kind: "rememberCompletedEdit"; readonly tool: number; readonly reason: CompletedEditReason }
   | { readonly kind: "consumePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly tool: number; readonly now: number }
   | { readonly kind: "releasePermit"; readonly partition: number; readonly lifetime: number; readonly token: number }
   | { readonly kind: "expirePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly deadlineReached: boolean }
@@ -235,6 +250,9 @@ export type CanonicalCommand =
   | { readonly kind: "capacityUnitAdmitted"; readonly reservation: number; readonly position: number; readonly bytes: number; readonly after: CapacityView }
   | { readonly kind: "capacityUnitRefused"; readonly position: number; readonly bytes: number; readonly reason: CapacityRefusal; readonly after: CapacityView }
   | { readonly kind: "permitIssued"; readonly token: number; readonly round: number }
+  | { readonly kind: "completedEditAbsent" }
+  | { readonly kind: "completedEditSeen"; readonly reason: CompletedEditReason; readonly report: boolean }
+  | { readonly kind: "completedEditRemembered"; readonly evicted?: number }
   | { readonly kind: "permitConsumed"; readonly round: number }
   | { readonly kind: "permitReleased" | "permitExpired" | "permitKept" }
   | { readonly kind: "permitRoundClosed"; readonly round: number }
@@ -378,6 +396,8 @@ const encode = (event: CanonicalEvent): unknown => {
     case "releaseCapacity": inputFields(event, ["kind", "reservation"]); return { $: "Canonical.ReleaseCapacity", reservation: nat(event.reservation, true) };
     case "replaceCapacity": inputFields(event, ["kind", "reservation", "unitBytes"]); return { $: "Canonical.ReplaceCapacity", reservation: nat(event.reservation, true), unit_bytes: list(event.unitBytes) };
     case "issuePermit": inputFields(event, ["kind", "partition", "lifetime", "tool", "started", "deadline", "now", "minimumStarted", "facts"]); return { $: "Canonical.IssuePermit", ...identity(event), tool: nat(event.tool, true), started: nat(event.started), deadline: nat(event.deadline), now: nat(event.now), minimum_started: nat(event.minimumStarted), facts: encodeFacts(event.facts) };
+    case "checkCompletedEdit": inputFields(event, ["kind", "tool"]); return { $: "Canonical.CheckCompletedEdit", tool: nat(event.tool, true) };
+    case "rememberCompletedEdit": inputFields(event, ["kind", "tool", "reason"]); return { $: "Canonical.RememberCompletedEdit", tool: nat(event.tool, true), reason: encodeCompletedEditReason(event.reason) };
     case "consumePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "tool", "now"]); return { $: "Canonical.ConsumePermit", ...identity(event), token: nat(event.token, true), tool: nat(event.tool, true), now: nat(event.now) };
     case "releasePermit": inputFields(event, ["kind", "partition", "lifetime", "token"]); return { $: "Canonical.ReleasePermit", ...identity(event), token: nat(event.token, true) };
     case "expirePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "deadlineReached"]); return { $: "Canonical.ExpirePermit", ...identity(event), token: nat(event.token, true), deadline_reached: bool(event.deadlineReached) };
@@ -673,6 +693,9 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.CapacityUnitAdmitted": { const x = fields(value, "Canonical.CapacityUnitAdmitted", ["reservation", "position", "bytes", "after"]); return { kind: "capacityUnitAdmitted", reservation: nat(x.reservation, true), position: nat(x.position, true), bytes: bytes(x.bytes), after: capacityView(x.after) }; }
     case "Canonical.CapacityUnitRefused": { const x = fields(value, "Canonical.CapacityUnitRefused", ["position", "bytes", "reason", "after"]); return { kind: "capacityUnitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
     case "Canonical.PermitIssued": { const x = fields(value, "Canonical.PermitIssued", ["token", "round"]); return { kind: "permitIssued", token: nat(x.token, true), round: nat(x.round, true) }; }
+    case "Canonical.CompletedEditAbsent": fields(value, "Canonical.CompletedEditAbsent", []); return { kind: "completedEditAbsent" };
+    case "Canonical.CompletedEditSeen": { const x = fields(value, "Canonical.CompletedEditSeen", ["reason", "report"]); return { kind: "completedEditSeen", reason: decodeCompletedEditReason(x.reason), report: bool(x.report) }; }
+    case "Canonical.CompletedEditRemembered": { const x = fields(value, "Canonical.CompletedEditRemembered", ["evicted"]); const evicted = tag(x.evicted) === "Some" ? nat(fields(x.evicted, "Some", ["value"]).value, true) : undefined; if (evicted === undefined) fields(x.evicted, "None", []); return { kind: "completedEditRemembered", ...(evicted === undefined ? {} : { evicted }) }; }
     case "Canonical.PermitConsumed": return { kind: "permitConsumed", round: nat(fields(value, "Canonical.PermitConsumed", ["round"]).round, true) };
     case "Canonical.PermitReleased": fields(value, "Canonical.PermitReleased", []); return { kind: "permitReleased" };
     case "Canonical.PermitExpired": fields(value, "Canonical.PermitExpired", []); return { kind: "permitExpired" };
@@ -921,6 +944,7 @@ export type CanonicalProjection = {
   readonly inventory: readonly { readonly purpose: CapacityPurpose; readonly limits: CanonicalProjection["limits"] }[];
   readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean }[];
   readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[] }[];
+  readonly completedEdits: readonly { readonly tool: number; readonly reason: CompletedEditReason; readonly reported: boolean }[];
   readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "sourceQueued" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
   readonly pendingFindings: readonly { readonly operation: number; readonly count: number }[];
   readonly dispatch: { readonly pending: readonly DispatchEntry[]; readonly active: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly cycle: number; readonly closed: boolean; readonly requests: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number; readonly started: boolean; readonly interrupted: boolean }[] };
@@ -935,8 +959,14 @@ type DispatchEntry = { readonly partition: number; readonly lifetime: number; re
 const known = new WeakSet<object>();
 export const projectCanonical = (state: unknown): CanonicalProjection => {
   if (!known.has(object(state))) throw new TypeError("foreign canonical state");
-  const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions", "dispatch", "collection"]);
+  const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions", "dispatch", "collection", "history"]);
   nat(s.next_round, true); nat(s.next_operation, true);
+  const history = fields(s.history, "EditHistory.State", ["entries"]);
+  const completedEdits = readList(history.entries, (value) => {
+    const entry = fields(value, "EditHistory.Completed", ["tool", "reason", "reported"]);
+    return { tool: nat(entry.tool, true), reason: decodeCompletedEditReason(entry.reason), reported: bool(entry.reported) };
+  }, 1000);
+  if (new Set(completedEdits.map((entry) => entry.tool)).size !== completedEdits.length) throw new TypeError("duplicate completed edit identity");
   const rawDispatch = fields(s.dispatch, "Dispatch.State", ["pending", "active", "running", "next_sequence", "cycle", "closed", "requests"]);
   const dispatchEntry = (value: unknown): DispatchEntry => {
     const x = fields(value, "Dispatch.Entry", ["partition", "lifetime", "round", "operation", "sequence", "cycle", "cancelled", "preparation"]);
@@ -1188,7 +1218,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   return { global, executionLimits,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
-    partitions, charges, inventory, rounds, admissions, work, pendingFindings,
+    partitions, charges, inventory, rounds, admissions, completedEdits, work, pendingFindings,
     dispatch, collection, revision, tickets, reuse, notices, delivery };
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {

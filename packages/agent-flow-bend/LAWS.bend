@@ -2,6 +2,7 @@ import Base
 import ./Advicing.bend as Advicing
 import ./Flow.bend as Flow
 import ./Admission.bend as Admission
+import ./EditHistory.bend as EditHistory
 import ./Work.bend as Work
 import ./Handoff.bend as Handoff
 import ./Lifecycle.bend as Lifecycle
@@ -23,6 +24,32 @@ import ./Retention.bend as Retention
 import ./ImportGraph.bend as ImportGraph
 import ./Canonical.bend as Canonical
 import ./Dispatch.bend as Dispatch
+
+law completed_edit_history_starts_empty:
+  {EditHistory.count(EditHistory.initial()) == 0n : Nat}
+
+law completed_edit_history_remembers_reason:
+  {EditHistory.lookup(7n, EditHistory.State{
+    EditHistory.Completed{7n, EditHistory.Consumed{}, False{}} <> Nil{}}) ==
+    EditHistory.Seen{EditHistory.Consumed{}, True{}} : EditHistory.Lookup}
+
+law completed_edit_history_reports_once:
+  {EditHistory.lookup(7n, EditHistory.mark_reported(7n, EditHistory.State{
+    EditHistory.Completed{7n, EditHistory.Consumed{}, False{}} <> Nil{}})) ==
+    EditHistory.Seen{EditHistory.Consumed{}, False{}} : EditHistory.Lookup}
+
+law completed_edit_history_records_source_free_id:
+  {EditHistory.record(7n, EditHistory.Released{}, EditHistory.initial()) ==
+    EditHistory.Recorded{EditHistory.State{
+      EditHistory.Completed{7n, EditHistory.Released{}, False{}} <> Nil{}}, None{}} : EditHistory.Record}
+
+law completed_edit_history_threshold_branch_evicts_oldest:
+  {EditHistory.record_entries(9n, EditHistory.Closed{},
+    EditHistory.Completed{1n, EditHistory.Consumed{}, False{}} <>
+      EditHistory.Completed{2n, EditHistory.Released{}, False{}} <> Nil{}, 1000n) ==
+    EditHistory.Recorded{EditHistory.State{
+      EditHistory.Completed{2n, EditHistory.Released{}, False{}} <>
+        EditHistory.Completed{9n, EditHistory.Closed{}, False{}} <> Nil{}}, Some{1n}} : EditHistory.Record}
 
 law canonical_cross_advicee_identity_is_distinct:
   {Canonical.same_ids(1n, 1n, 1n, 2n, 1n, 1n) == False{} : Bool}
@@ -78,10 +105,10 @@ law canonical_capacity_view_uses_bend_ledger_totals:
 law canonical_released_capacity_rejects_duplicate:
   {Canonical.capacity_release(Canonical.State{Ledger.Ledger{
     Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
-    Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial()}, 1n) ==
+    Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, 1n) ==
     Canonical.Rejected{Canonical.State{Ledger.Ledger{
       Ledger.Limits{3n, 100n, 2n, 60n}, 2n, Nil{}},
-      Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial()}, Canonical.StaleOperation{}} : Canonical.Step}
+      Nil{}, Nil{}, 1n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, Canonical.StaleOperation{}} : Canonical.Step}
 
 law canonical_permit_issue_is_partitioned_and_round_bound:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
@@ -91,14 +118,14 @@ law canonical_permit_issue_is_partitioned_and_round_bound:
     Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
       Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
-        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
+        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()},
       Canonical.PermitIssued{1n, 1n} <> Nil{}} : Canonical.Step}
 
 law canonical_forget_inactive_admission_removes_identity:
   {Canonical.forget_admission(Canonical.State{
     Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}), Nil{}, Nil{}, 1n, 1n,
     Admission.AdmissionState{1n, 1n, 1n, False{}, 100n, 2n, Nil{}} <> Nil{},
-    Dispatch.initial(), CollectionState.initial()}, 1n, 1n) ==
+    Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, 1n, 1n) ==
     Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Canonical.AdmissionForgotten{} <> Nil{}} : Canonical.Step}
 
@@ -107,12 +134,12 @@ law canonical_forget_pending_admission_rejects:
     Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}), Nil{}, Nil{}, 1n, 1n,
     Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
       Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{},
-    Dispatch.initial(), CollectionState.initial()}, 1n, 1n) ==
+    Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, 1n, 1n) ==
     Canonical.Rejected{Canonical.State{
       Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}), Nil{}, Nil{}, 1n, 1n,
       Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
         Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{},
-      Dispatch.initial(), CollectionState.initial()}, Canonical.WrongStage{}} : Canonical.Step}
+      Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, Canonical.WrongStage{}} : Canonical.Step}
 
 law canonical_eviction_floor_rejects_old_edit_without_state_change:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
@@ -135,11 +162,11 @@ law canonical_pending_permit_counts_use_reducer_state:
 law canonical_expired_permit_does_not_create_round:
   {Canonical.step(Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Nil{}, Nil{}, 1n, 1n,
-    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
+    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()},
     Canonical.ClosePermitRound{1n, 1n, 1n, 200n}) ==
     Canonical.Rejected{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
-      Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
+      Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n, Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()},
       Canonical.PermitDenied{Admission.RoundAlreadyClosed{}}} : Canonical.Step}
 
 law ledger_resize_changes_purpose_without_new_reservation:
@@ -1664,7 +1691,7 @@ law canonical_post_state_duplicates_roll_back:
     Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Canonical.Round{1n, 1n, 1n, False{}, False{}, None{}, False{}} <>
       Canonical.Round{1n, 2n, 2n, False{}, False{}, None{}, False{}} <> Nil{},
-      Nil{}, 3n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial()}, commands}) ==
+      Nil{}, 3n, 1n, Nil{}, Dispatch.initial(), CollectionState.initial(), EditHistory.initial()}, commands}) ==
     Canonical.Rejected{original, Canonical.InconsistentLedger{}} : Canonical.Step}
 
 law canonical_round_guard_preserves_rejections:

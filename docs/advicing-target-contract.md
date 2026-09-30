@@ -112,8 +112,9 @@ wrong-agent, or stale permits mean incomplete admission, not review. Tool
 failure, timeout, and round closure release unused permits. A repeated pre-edit
 notification while its permit is pending returns the existing admission result
 without creating another permit. A repeated post-edit notification has no
-permit to consume and starts no second evaluation. The resident retains the
-last 1,000 completed native edit identities across all advicees. A pre-edit
+permit to consume and starts no second evaluation. The Bend reducer retains the
+last 1,000 completed edit identities across all advicees; the adapter holds only
+the corresponding native-to-opaque identity mapping. A pre-edit
 notification matching one of those identities cannot start new work and is
 recorded as a source-free diagnostic. The oldest identity is evicted when a
 new one exceeds that bound. After eviction, identity alone does not establish

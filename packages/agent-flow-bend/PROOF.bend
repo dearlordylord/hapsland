@@ -1,6 +1,21 @@
 import Base
 import ./LAWS.bend as Laws
 
+def Laws.completed_edit_history_starts_empty():
+  {==}
+
+def Laws.completed_edit_history_remembers_reason():
+  {==}
+
+def Laws.completed_edit_history_reports_once():
+  {==}
+
+def Laws.completed_edit_history_records_source_free_id():
+  {==}
+
+def Laws.completed_edit_history_threshold_branch_evicts_oldest():
+  {==}
+
 def Laws.undeclared_rule_target_is_omitted():
   {==}
 
@@ -978,7 +993,7 @@ def Laws.closure_allows_fresh_reissue_after_history_eviction():
 
 def Laws.canonical_open_rejects_existing_partition(state, partition, lifetime, existing):
   match state:
-    case Canonical.State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, collection}:
+    case Canonical.State{ledger, rounds, work, next_round, next_operation, admissions, dispatch, collection, +history}:
       {==}
 
 def Laws.canonical_edit_joins_existing_round_without_insertion(original, updated, partition, round, existing_round):

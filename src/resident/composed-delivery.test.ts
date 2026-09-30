@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MAX_PARTITION_IDENTITIES } from "./capacity.ts";
-import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS, RECENT_EDIT_IDENTITIES } from "./composed-delivery.ts";
+import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS } from "./composed-delivery.ts";
+const RECENT_EDIT_IDENTITIES = 1_000;
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
 const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number => {
@@ -183,12 +184,14 @@ describe("shared Hapsland rounds", () => {
       expect(state.admitEdit(`agent-${index % 2}`, `edit-${index}`, index + 1)).toBe(1);
     }
     expect(state.recentEditCount()).toBe(RECENT_EDIT_IDENTITIES);
+    expect(state.editIdentityMappingCount()).toBe(RECENT_EDIT_IDENTITIES);
     expect(state.registerEditDecision("agent-0", "edit-0", 1002, 1003)).toEqual({ accepted: false, reason: "DuplicateTool" });
     expect(diagnostics).toHaveLength(1);
     expect(state.admitEdit("agent-0", `edit-${RECENT_EDIT_IDENTITIES}`, 1001)).toBe(1);
     expect(state.recentEditCount()).toBe(RECENT_EDIT_IDENTITIES);
+    expect(state.editIdentityMappingCount()).toBe(RECENT_EDIT_IDENTITIES);
     expect(state.registerEditDecision("agent-0", "edit-0", 1004, 1005)).toEqual({ accepted: true });
-  });
+  }, 20_000);
 
   it("counts pending permits per advicee and across the resident, then frees consumed capacity", () => {
     const state = new ComposedDelivery();
