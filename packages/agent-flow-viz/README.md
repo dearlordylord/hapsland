@@ -107,7 +107,7 @@ state, stage inference, or possible routes.
 In the default guided example, inspect step 25, `collectionReady` for advice
 `#10`: [before the inferred projection](docs/assets/production-flow-before-inference-step-25.png)
 and [after](docs/assets/production-flow-inferred-step-25.png). The earlier view
-showed `ready #10` but left the Review outcomes → Pending advice connection
+showed `ready #10` but left the Review outcomes → Advice ready / retained connection
 inactive. The current view lights connection 14 from the checked new ready
 advice and labels its source as a supplied native fact. Connection 16 separately
 shows Bend's `collectionEligible` command. [Step 24](docs/assets/production-flow-inferred-step-24.png)
@@ -151,10 +151,12 @@ checked observation, including paused history inspection.
 2. Pause and inject a burst of `5`. Step through preparation and overlapping
    review. History includes transitions without cross-square movement and
    ordinary Bend refusals, which are product outcomes rather than run errors.
-3. Set simulated Jev delay to `500` and outcome to `backendFailure` or `timeout`,
-   then apply the profile. New requests use that profile; in-flight completion
+3. Open **Simulated Jev outcome mix**, set Backend failure or Timeout weight to
+   `100` and the other weights to `0`, then set delay to `500` and apply the
+   profile. New requests use that profile; in-flight completion
    times stay fixed. Inspect identified request effects and results.
-4. Select `clear` with delay `50` for recovery, apply it, and suspend edit
+4. Set No finding (clear) weight to `100`, others to `0`, with delay `50` for
+   recovery, apply it, and suspend edit
    generation. Resume so outstanding work can settle. Playback pause stops the
    browser driver; edit suspension stops future arrivals. Agent finish attempts
    appear as `stopPolled`; Hapsland's `finishAllowed*` command is a separate checked
@@ -179,6 +181,17 @@ checked observation, including paused history inspection.
    exact saved endpoint, including metadata-only time/control changes. Drafts
    remain editable while replaying, but new environment controls wait until
    recorded replay completes. Intermediate branching is unsupported.
+
+The initial outcome mix has Finding and No finding (clear) weights of `50`
+each; the other four weights are zero. Sliders use relative weights from `0` to
+`100`, not percentages. Each displayed probability is its weight divided by the
+sum; Finding `100` and Clear `100` therefore mean `50%` each. Sliders are drafts
+and never change the active profile until **Apply simulated Jev profile** applies
+the mix and delay together. All-zero drafts show an inline message and failed
+Apply preserves playback and the previous active profile. Native range controls
+support keyboard arrows, Home and End. Named deterministic scenarios set one
+outcome to `100` and the others to zero. Replay restores the recorded raw weights
+and their normalized probabilities.
 
 The freshness, credential and host output controls are also drafts. **Apply environment facts** records current/stale work and ready/unavailable credentials
 at a virtual boundary. A delayed request observes the current freshness when

@@ -20,6 +20,16 @@ try {
           ?.textContent.includes(expected),
       text,
     );
+  const outcomeLabels = { neverSent: "Never sent", finding: "Finding", clear: "No finding (clear)", backendFailure: "Backend failure", timeout: "Timeout", interrupted: "Interrupted" };
+  const outcomeSlider = (outcome) => panel.getByLabel(outcomeLabels[outcome] + " relative weight", { exact: true });
+  const openMix = async () => { if (!(await outcomeSlider("finding").isVisible())) await panel.locator(".simulation-outcome-mix summary").click(); };
+  const setOutcome = async (outcome) => {
+    await openMix();
+    for (const name of Object.keys(outcomeLabels)) await outcomeSlider(name).press("Home");
+    await outcomeSlider(outcome).press("End");
+  };
+  assert.equal(await outcomeSlider("finding").inputValue(), "50");
+  assert.equal(await outcomeSlider("clear").inputValue(), "50");
   await panel.getByLabel("Seed", { exact: true }).fill("7");
   await panel
     .getByRole("button", { name: "Start / reset", exact: true })
@@ -53,9 +63,7 @@ try {
   await panel
     .getByLabel("Simulated Jev delay (virtual ms)", { exact: true })
     .press("Tab");
-  await panel
-    .getByLabel("Simulated Jev outcome", { exact: true })
-    .selectOption("backendFailure");
+  await setOutcome("backendFailure");
   await panel
     .getByRole("button", { name: "Apply simulated Jev profile", exact: true })
     .click();
@@ -327,6 +335,22 @@ try {
   await status("Seeded session started");
   await panel.getByRole("button", { name: "Resume", exact: true }).click();
   await status("Running");
+  await openMix();
+  for (const name of Object.keys(outcomeLabels)) await outcomeSlider(name).press("Home");
+  await page.waitForFunction(() => document.querySelector(".simulation-mix-total")?.textContent.includes("Choose at least one nonzero weight"));
+  await panel.getByRole("button", { name: "Apply simulated Jev profile", exact: true }).click();
+  await status("At least one Jev outcome weight must be greater than zero");
+  await page.waitForTimeout(100);
+  await status("Running");
+  assert.match(await panel.locator(".simulation-active-controls").innerText(), /active mix Finding 100.0%/);
+  await outcomeSlider("finding").press("End");
+  await outcomeSlider("clear").press("End");
+  await page.waitForFunction(() => document.querySelector(".simulation-mix-total")?.textContent.includes("Total relative weight: 200"));
+  assert.match(await panel.locator(".simulation-outcome-mix").innerText(), /weight 100 · 50.0%/);
+  assert.match(await panel.locator(".simulation-active-controls").innerText(), /active mix Finding 100.0%/);
+  await panel.getByRole("button", { name: "Apply simulated Jev profile", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector(".simulation-active-controls")?.textContent.includes("active mix Finding 50.0% · No finding (clear) 50.0%"));
+  await status("Running");
   await panel.getByLabel("Work freshness", { exact: true }).selectOption("stale");
   await panel.getByLabel("Credential availability", { exact: true }).selectOption("unavailable");
   await panel.getByLabel("Credential generation", { exact: true }).fill(".");
@@ -360,6 +384,7 @@ try {
   await status("Replay inputs exported");
   const lifecycleReplayText = await panel.getByLabel("Replay JSON", { exact: true }).inputValue();
   const lifecycleReplay = JSON.parse(lifecycleReplayText);
+  assert.deepEqual(lifecycleReplay.controls.find((entry) => entry.control.kind === "jevProfile").control.outcomeWeights, { neverSent: 0, finding: 100, clear: 100, backendFailure: 0, timeout: 0, interrupted: 0 });
   assert.deepEqual(lifecycleReplay.controls.find((entry) => entry.control.kind === "environment").control, { kind: "environment", currentWork: false, credentialReady: false, credentialGeneration: 2, sourceReadable: false });
   assert.deepEqual(lifecycleReplay.controls.find((entry) => entry.control.kind === "outputProfile").control, { kind: "outputProfile", outcome: "uncertain", delayMs: 50, leaseMs: 500 });
   const lifecycleDetails = await panel.locator(".simulation-details").innerText();
@@ -367,6 +392,8 @@ try {
   await status("Replay reconstructed");
   assert.equal(await panel.getByLabel("Work freshness", { exact: true }).inputValue(), "stale");
   assert.equal(await panel.getByLabel("Host output outcome", { exact: true }).inputValue(), "uncertain");
+  assert.equal(await outcomeSlider("finding").inputValue(), "100");
+  assert.equal(await outcomeSlider("clear").inputValue(), "100");
   assert.equal(await panel.locator(".simulation-details").innerText(), lifecycleDetails);
   await panel.getByLabel("Work freshness", { exact: true }).selectOption("current");
   await panel.getByLabel("Credential availability", { exact: true }).selectOption("ready");

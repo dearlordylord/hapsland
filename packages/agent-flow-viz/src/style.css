@@ -151,3 +151,8 @@ p { line-height: 1.5; }
 .simulation-stage-inspector { height: 300px; overflow: auto; padding: 12px; border: 1px solid #bac9dc; margin: 16px 0; }
 .simulation-status, .simulation-inspection, .simulation-outcomes, .simulation-active-controls { height: 3em; overflow: auto; }
 .simulation-control-markers { max-height: 120px; overflow: auto; }
+
+.simulation-outcome-slider { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(120px, 2fr) minmax(140px, 1fr); gap: 12px; align-items: center; margin: 12px 0; }
+@media (max-width: 600px) { .simulation-outcome-slider { grid-template-columns: 1fr; gap: 4px; } }
+
+.simulation-outcome-mix > summary { height: 3em; overflow: auto; }
