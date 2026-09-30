@@ -60,13 +60,23 @@ The [Codex and Claude adapter checks](../src/direct-event/adapter.ts), [native e
 | Why outside Bend | Reading the runtime's monotonic clock and converting units are native measurements. The deadline rule belongs in the reducer. |
 | Review and limits | On 2026-09-29 the owner approved moving the time decision into Bend and using today's fixed value while preparing for configuration. Integer-microsecond bounds can conservatively reject a valid attempt near a boundary; they cannot admit an expired or reversed one. This does not approve the particular duration as a permanent product rule or resolve duplicate identities, counts, and capacity limits in the rest of TS-005. |
 
+## TS-005b — Decide repeated edit identity in Bend
+
+| Field | Reviewed boundary |
+| --- | --- |
+| Decision | One edit occurrence cannot receive another permit in the same resident lifetime after its identity is pending, consumed, released, expired, or retired by round closure. |
+| TypeScript owner | [Composed delivery](../src/resident/composed-delivery.ts) turns the runtime's opaque edit occurrence ID into a stable numeric tool ID scoped to the advicee. It retains native IDs for matching pre-edit and post-edit notifications and counting resident events. It no longer sends a duplicate verdict to Bend. |
+| Bend boundary | [Admission](../packages/agent-flow-bend/Admission.bend) checks its pending permits and used identities when issuing a permit. The canonical result returns `DuplicateTool` for a repeat. |
+| Why outside Bend | Reading and pairing native runtime identities is adapter work. Whether an already-seen identity may receive another permit is a reducer decision. |
+| Review and limits | On 2026-09-29 the owner approved this identity boundary. It applies to the current resident lifetime; it does not specify how a different runtime must form its occurrence ID or settle the remaining TS-005 count and capacity choices. |
+
 ## TODO — TypeScript choices awaiting boundary review
 
 These are the remaining choices from the owner-facing “Choice made in TypeScript” table. They describe current implementation and unresolved placement, **not owner approval of each TypeScript boundary**. Review them in order; keep the replay walkthrough in the separate [temporary table](issue-147-default-replay-walkthrough.md) for later diagram review. The former per-edit capacity and round split was corrected before this boundary review; it is not a supported alternative.
 
 | ID | Choice currently made in TypeScript | What needs review |
 | --- | --- | --- |
-| TS-005 | [`ComposedDelivery.registerEditDecision`](../src/resident/composed-delivery.ts) supplies duplicate identities and round/permit counts to Bend's permit decision. The time comparison is resolved in TS-005a. | Decide which remaining identity, count, and capacity predicates belong in Bend, one at a time. |
+| TS-005 | [`ComposedDelivery.registerEditDecision`](../src/resident/composed-delivery.ts) supplies round/permit counts to Bend's permit decision. Time is resolved in TS-005a and repeated identity in TS-005b. | Decide which remaining count and capacity predicates belong in Bend, one at a time. |
 | TS-006 | Native [file selection](../src/direct-event/selection.ts), source capture, parsing, and [rule compilation](../src/rules/compiler.ts) establish what code and rules can enter review. | Separate facts that require filesystem/runtime access from product choices about eligible files and applicable rules; verify which choices Bend already owns. |
 | TS-007 | The resident [measures encoded objects and selects reservation purposes](../src/resident/server.ts) before Bend enforces capacity for the advicee partition. | Review the measurement contract and purpose mapping. The corrected partition identity does not approve a particular numeric limit. Reconcile the numeric limits in [the supported profile](direct-event-v1-supported-profile.md) with the current code separately. |
 | TS-008 | The resident checks credentials, calls Jev, encodes output, and writes to the agent runtime around Bend decisions ([resident](../src/resident/server.ts)). | Keep external effects native, but examine each TypeScript precondition that can deny or change a user-visible result without a Bend decision. |

@@ -302,17 +302,15 @@ export type CanonicalCommand =
 export type ProspectiveFacts = {
   readonly clockValid: boolean; readonly hookWindow: number;
   readonly startedUpper: number; readonly nowLower: number;
-  readonly duplicateEvent: boolean;
   readonly permitCount: number; readonly permitLimit: number;
   readonly roundCount: number; readonly roundLimit: number; readonly newRound: boolean;
   readonly eventCount: number; readonly eventLimit: number;
 };
 
 const encodeFacts = (facts: ProspectiveFacts): unknown => {
-  inputFields(facts, ["clockValid", "hookWindow", "startedUpper", "nowLower", "duplicateEvent", "permitCount", "permitLimit", "roundCount", "roundLimit", "newRound", "eventCount", "eventLimit"]);
+  inputFields(facts, ["clockValid", "hookWindow", "startedUpper", "nowLower", "permitCount", "permitLimit", "roundCount", "roundLimit", "newRound", "eventCount", "eventLimit"]);
   return { $: "Admission.ProspectiveFacts", clock_valid: bool(facts.clockValid), hook_window: nat(facts.hookWindow, true),
     started_upper: nat(facts.startedUpper), now_lower: nat(facts.nowLower),
-    duplicate_event: bool(facts.duplicateEvent),
     permit_count: nat(facts.permitCount), permit_limit: nat(facts.permitLimit, true),
     round_count: nat(facts.roundCount), round_limit: nat(facts.roundLimit, true), new_round: bool(facts.newRound),
     event_count: nat(facts.eventCount), event_limit: nat(facts.eventLimit, true) };

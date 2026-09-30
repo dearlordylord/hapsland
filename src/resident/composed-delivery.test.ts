@@ -117,6 +117,23 @@ describe("shared Hapsland rounds", () => {
     });
   });
 
+  it("lets Bend reject a repeated edit ID while pending, consumed, and closed", () => {
+    const state = new ComposedDelivery();
+    expect(state.registerEditDecision("agent", "same-edit", 100, 110)).toEqual({ accepted: true });
+    expect(state.registerEditDecision("agent", "same-edit", 111, 120)).toEqual({
+      accepted: false, reason: "DuplicateTool",
+    });
+    expect(state.admitEdit("agent", "same-edit", 130, true)).toBe(1);
+    expect(state.registerEditDecision("agent", "same-edit", 131, 140)).toEqual({
+      accepted: false, reason: "DuplicateTool",
+    });
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishStop("agent", "stop", true, 200)).toBe(1);
+    expect(state.registerEditDecision("agent", "same-edit", 220, 230)).toEqual({
+      accepted: false, reason: "DuplicateTool",
+    });
+  });
+
   it("does not reopen a closed round through the internal admission seam", () => {
     const state = new ComposedDelivery();
     expect(state.admitEdit("agent", "first", 1)).toBe(1);

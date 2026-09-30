@@ -86,7 +86,7 @@ law canonical_released_capacity_rejects_duplicate:
 law canonical_permit_issue_is_partitioned_and_round_bound:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
     Canonical.IssuePermit{1n, 1n, 11n, 100n, 300n, 110n,
-      Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n, False{},
+      Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n,
         0n, 1024n, 0n, 64n, True{}, 0n, 4096n}}) ==
     Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
       Nil{}, Nil{}, 1n, 1n,
@@ -808,50 +808,46 @@ law oversized_notice_stops_codex_prefix:
   {Handoff.notice_offer(2n, 10241n, False{}) ==
     Handoff.StopNotices{} : Handoff.NoticeOffer}
 
-def permit_facts(duplicate: Bool, permit_count: Nat, round_count: Nat,
+def permit_facts(permit_count: Nat, round_count: Nat,
     new_round: Bool, event_count: Nat) -> Admission.ProspectiveFacts:
-  Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n, duplicate,
+  Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n,
     permit_count, 1024n, round_count, 64n, new_round, event_count, 4096n}
 
 law prospective_gate_accepts_exact_last_capacity_slot:
-  {Admission.prospective_gate(permit_facts(False{}, 1023n, 63n, True{}, 4095n), 100n, 110n) ==
+  {Admission.prospective_gate(permit_facts(1023n, 63n, True{}, 4095n), 100n, 110n) ==
     Admission.PermitAllowed{} : Admission.ProspectiveDecision}
 
 law prospective_gate_rejects_full_permit_table:
-  {Admission.prospective_gate(permit_facts(False{}, 1024n, 0n, True{}, 0n), 100n, 110n) ==
+  {Admission.prospective_gate(permit_facts(1024n, 0n, True{}, 0n), 100n, 110n) ==
     Admission.PermitDenied{} : Admission.ProspectiveDecision}
 
 law prospective_gate_rejects_new_round_at_limit:
-  {Admission.prospective_gate(permit_facts(False{}, 0n, 64n, True{}, 0n), 100n, 110n) ==
+  {Admission.prospective_gate(permit_facts(0n, 64n, True{}, 0n), 100n, 110n) ==
     Admission.PermitDenied{} : Admission.ProspectiveDecision}
 
 law prospective_gate_allows_existing_round_at_table_limit:
-  {Admission.prospective_gate(permit_facts(False{}, 0n, 64n, False{}, 0n), 100n, 110n) ==
+  {Admission.prospective_gate(permit_facts(0n, 64n, False{}, 0n), 100n, 110n) ==
     Admission.PermitAllowed{} : Admission.ProspectiveDecision}
 
-law prospective_gate_rejects_duplicate:
-  {Admission.prospective_gate(permit_facts(True{}, 0n, 0n, False{}, 0n), 100n, 110n) ==
-    Admission.PermitDenied{} : Admission.ProspectiveDecision}
-
 law prospective_gate_rejects_late_hook_clock:
-  {Admission.prospective_gate(permit_facts(False{}, 0n, 0n, True{}, 0n), 100n, 2601n) ==
+  {Admission.prospective_gate(permit_facts(0n, 0n, True{}, 0n), 100n, 2601n) ==
     Admission.PermitLate{} : Admission.ProspectiveDecision}
 
 law prospective_gate_accepts_before_hook_window_boundary:
-  {Admission.prospective_gate(permit_facts(False{}, 0n, 0n, True{}, 0n), 100n, 2599n) ==
+  {Admission.prospective_gate(permit_facts(0n, 0n, True{}, 0n), 100n, 2599n) ==
     Admission.PermitAllowed{} : Admission.ProspectiveDecision}
 
 law prospective_gate_rejects_at_hook_window_boundary:
-  {Admission.prospective_gate(permit_facts(False{}, 0n, 0n, True{}, 0n), 100n, 2600n) ==
+  {Admission.prospective_gate(permit_facts(0n, 0n, True{}, 0n), 100n, 2600n) ==
     Admission.PermitLate{} : Admission.ProspectiveDecision}
 
 law prospective_gate_uses_supplied_hook_window:
-  {Admission.prospective_gate(Admission.ProspectiveFacts{True{}, 100n, 100n, 199n, False{},
+  {Admission.prospective_gate(Admission.ProspectiveFacts{True{}, 100n, 100n, 199n,
       0n, 1024n, 0n, 64n, True{}, 0n, 4096n}, 100n, 199n) ==
     Admission.PermitAllowed{} : Admission.ProspectiveDecision}
 
 law prospective_gate_rejects_reversed_clock:
-  {Admission.prospective_gate(Admission.ProspectiveFacts{True{}, 2500n, 200n, 100n, False{},
+  {Admission.prospective_gate(Admission.ProspectiveFacts{True{}, 2500n, 200n, 100n,
       0n, 1024n, 0n, 64n, True{}, 0n, 4096n}, 200n, 100n) ==
     Admission.PermitInvalidClock{} : Admission.ProspectiveDecision}
 

@@ -115,7 +115,7 @@ for (const trace of permitFixture.traces) {
     if (kind === "issue") event = { kind: "issuePermit", partition, lifetime,
       tool: input.tool, started: input.started, now: input.now, deadline: input.deadline,
       facts: { clockValid: true, hookWindow: 2500, startedUpper: input.started, nowLower: input.now,
-        duplicateEvent: false, permitCount: 0, permitLimit: 1024,
+        permitCount: 0, permitLimit: 1024,
         roundCount: 0, roundLimit: 64, newRound: true, eventCount: 0, eventLimit: 4096 } };
     else if (kind === "consume") event = { kind: "consumePermit", partition, lifetime,
       token: input.token, tool: input.tool, now: input.now };
@@ -170,7 +170,7 @@ for (let generation = 1; generation <= 3; generation++) {
       applyUnique({ kind: "issuePermit", partition, lifetime: 1, tool: token,
         started, now: started + edit, deadline: started + 50,
         facts: { clockValid: true, hookWindow: 2500, startedUpper: started, nowLower: started + edit,
-          duplicateEvent: false, permitCount: 0, permitLimit: 1024,
+          permitCount: 0, permitLimit: 1024,
           roundCount: 0, roundLimit: 64, newRound: edit === 1, eventCount: 0, eventLimit: 4096 } },
         ["permitIssued"]);
       const before = projectCanonical(uniqueRounds).rounds;
@@ -206,7 +206,7 @@ const issuedAtLimit = stepCanonical(fullRounds, {
   kind: "issuePermit", partition: 257, lifetime: 1, tool: 1,
   started: 100, now: 101, deadline: 200,
   facts: { clockValid: true, hookWindow: 2500, startedUpper: 100, nowLower: 101,
-    duplicateEvent: false, permitCount: 0, permitLimit: 1024,
+    permitCount: 0, permitLimit: 1024,
     roundCount: 0, roundLimit: 64, newRound: true, eventCount: 0, eventLimit: 4096 },
 });
 assert.equal(issuedAtLimit.rejection, undefined);

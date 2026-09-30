@@ -523,9 +523,6 @@ def Laws.prospective_gate_rejects_new_round_at_limit():
 def Laws.prospective_gate_allows_existing_round_at_table_limit():
   {==}
 
-def Laws.prospective_gate_rejects_duplicate():
-  {==}
-
 def Laws.prospective_gate_rejects_late_hook_clock():
   {==}
 

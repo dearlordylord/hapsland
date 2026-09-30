@@ -144,7 +144,6 @@ export class ComposedDelivery {
         startedAt > 0,
       hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
       startedUpper: this.#bendUpperTime(startedAt), nowLower: this.#bendTime(now),
-      duplicateEvent: round?.events.has(event) ?? false,
       permitCount: this.#permits.size, permitLimit: 1024,
       roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
       newRound: round === undefined,
@@ -165,7 +164,6 @@ export class ComposedDelivery {
     if (issued.rejection !== undefined || command?.kind !== "permitIssued") {
       const reason = issued.rejection === "ProspectiveDenied"
         ? !facts.clockValid ? "InvalidClock"
-          : facts.duplicateEvent ? "DuplicateTool"
           : facts.permitCount >= facts.permitLimit ? "PermitLimit"
           : facts.newRound && facts.roundCount >= facts.roundLimit ? "RoundLimit"
           : facts.eventCount >= facts.eventLimit ? "EventLimit" : "ProspectiveDenied"
@@ -234,7 +232,6 @@ export class ComposedDelivery {
       lifetime: 1, tool, started: syntheticNow, deadline: syntheticNow + this.#bendTime(EDIT_PERMIT_EXPIRY_MS),
       now: syntheticNow, facts: { clockValid: true, hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
         startedUpper: syntheticNow, nowLower: syntheticNow,
-        duplicateEvent: previous?.events.has(event) ?? false,
         permitCount: this.#permits.size, permitLimit: 1024,
         roundCount: this.#rounds.size, roundLimit: MAX_COMPOSED_ROUNDS,
         newRound: previous === undefined, eventCount: previous?.events.size ?? 0, eventLimit: 4096 } });

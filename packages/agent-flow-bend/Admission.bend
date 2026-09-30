@@ -49,7 +49,6 @@ type ExpiryResult is Data:
 type ProspectiveFacts is Data:
   ProspectiveFacts{clock_valid: Bool, hook_window: Nat,
     started_upper: Nat, now_lower: Nat,
-    duplicate_event: Bool,
     permit_count: Nat, permit_limit: Nat,
     round_count: Nat, round_limit: Nat, new_round: Bool,
     event_count: Nat, event_limit: Nat}
@@ -62,7 +61,7 @@ type ProspectiveDecision is Data:
 
 # Native identity and monotonic clock readings are measured by the adapter.
 # Bend owns the elapsed-time and bounded-retention decisions.
-def prospective_gate_ordered(clock_valid: Bool, duplicate_event: Bool,
+def prospective_gate_ordered(clock_valid: Bool,
     permit_count: Nat, permit_limit: Nat, round_count: Nat, round_limit: Nat,
     new_round: Bool, event_count: Nat, event_limit: Nat, within: Bool) -> ProspectiveDecision:
   match within:
@@ -70,31 +69,30 @@ def prospective_gate_ordered(clock_valid: Bool, duplicate_event: Bool,
       PermitLate{}
     case True{}:
       Bool.pick(ProspectiveDecision,
-        Bool.and(clock_valid, Bool.and(Bool.not(duplicate_event),
-          Bool.and(Nat.is_lt(permit_count, permit_limit),
-            Bool.and(Bool.or(Bool.not(new_round), Nat.is_lt(round_count, round_limit)),
-              Nat.is_lt(event_count, event_limit))))),
+        Bool.and(clock_valid, Bool.and(Nat.is_lt(permit_count, permit_limit),
+          Bool.and(Bool.or(Bool.not(new_round), Nat.is_lt(round_count, round_limit)),
+            Nat.is_lt(event_count, event_limit)))),
         PermitAllowed{}, PermitDenied{})
 
 def prospective_gate_window(facts: ProspectiveFacts, within: Bool, ordered: Bool) -> ProspectiveDecision:
   match facts:
     case ProspectiveFacts{clock_valid, hook_window, started_upper, now_lower,
-        duplicate_event, permit_count, permit_limit, round_count, round_limit,
+        permit_count, permit_limit, round_count, round_limit,
         new_round, event_count, event_limit}:
       match ordered:
         case False{}:
           PermitInvalidClock{}
         case True{}:
-          prospective_gate_ordered(clock_valid, duplicate_event, permit_count,
+          prospective_gate_ordered(clock_valid, permit_count,
             permit_limit, round_count, round_limit, new_round, event_count,
             event_limit, within)
 
 def prospective_gate(facts: ProspectiveFacts, +started: Nat, +now: Nat) -> ProspectiveDecision:
   match facts:
-    case ProspectiveFacts{clock_valid, +hook_window, +started_upper, +now_lower, duplicate_event,
+    case ProspectiveFacts{clock_valid, +hook_window, +started_upper, +now_lower,
         permit_count, permit_limit, round_count, round_limit,
         new_round, event_count, event_limit}:
-      prospective_gate_window(ProspectiveFacts{clock_valid, hook_window, started_upper, now_lower, duplicate_event,
+      prospective_gate_window(ProspectiveFacts{clock_valid, hook_window, started_upper, now_lower,
         permit_count, permit_limit, round_count, round_limit, new_round,
         event_count, event_limit}, Nat.is_lt(now, (started + hook_window : Nat)),
         Nat.is_le(started_upper, now_lower))

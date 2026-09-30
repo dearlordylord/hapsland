@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:bd4f98569a595ab2d77dbfb0aa760c48877dba931ce45c692f1b9182f491cd0e
+// hapsland-bend-source-sha256:981563dc54002d837b56d58fa58d0383683a6817da60281f8a1ba0abfb7a66a4
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -2566,7 +2566,6 @@ function $Admission$prospective_gate$(_facts_0, _started_0, _now_0) {
   const _hook_window_0 = _facts_0["hook_window"];
   const _started_upper_0 = _facts_0["started_upper"];
   const _now_lower_0 = _facts_0["now_lower"];
-  const _duplicate_event_0 = _facts_0["duplicate_event"];
   const _permit_count_0 = _facts_0["permit_count"];
   const _permit_limit_0 = _facts_0["permit_limit"];
   const _round_count_0 = _facts_0["round_count"];
@@ -2575,7 +2574,7 @@ function $Admission$prospective_gate$(_facts_0, _started_0, _now_0) {
   const _event_count_0 = _facts_0["event_count"];
   const _event_limit_0 = _facts_0["event_limit"];
   const _x_0 = nat_chk(_started_0 + _hook_window_0);
-  return $Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "duplicate_event": _duplicate_event_0, "permit_count": _permit_count_0, "permit_limit": _permit_limit_0, "round_count": _round_count_0, "round_limit": _round_limit_0, "new_round": _new_round_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
+  return $Admission$prospective_gate_window$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "permit_count": _permit_count_0, "permit_limit": _permit_limit_0, "round_count": _round_count_0, "round_limit": _round_limit_0, "new_round": _new_round_0, "event_count": _event_count_0, "event_limit": _event_limit_0}, (_now_0 < _x_0), ($Nat$is_le$(_started_upper_0, _now_lower_0)));
 }
 
 function $Canonical$consume_result$(_state_0, _partition_0, _lifetime_0, _result_0) {
@@ -4410,7 +4409,6 @@ function $Canonical$issue_result$(_state_0, _partition_0, _result_0) {
 
 function $Admission$prospective_gate_window$(_facts_0, _within_0, _ordered_0) {
   const _clock_valid_0 = _facts_0["clock_valid"];
-  const _duplicate_event_0 = _facts_0["duplicate_event"];
   const _permit_count_0 = _facts_0["permit_count"];
   const _permit_limit_0 = _facts_0["permit_limit"];
   const _round_count_0 = _facts_0["round_count"];
@@ -4421,7 +4419,7 @@ function $Admission$prospective_gate_window$(_facts_0, _within_0, _ordered_0) {
   if (!_ordered_0) {
     return {$: "Admission.PermitInvalidClock"};
   } else {
-    return $Admission$prospective_gate_ordered$(_clock_valid_0, _duplicate_event_0, _permit_count_0, _permit_limit_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0);
+    return $Admission$prospective_gate_ordered$(_clock_valid_0, _permit_count_0, _permit_limit_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0);
   }
 }
 
@@ -5866,13 +5864,13 @@ function $Canonical$capacity_replace_units$($0, $1, $2, $3) {
   }
 }
 
-function $Admission$prospective_gate_ordered$(_clock_valid_0, _duplicate_event_0, _permit_count_0, _permit_limit_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0) {
+function $Admission$prospective_gate_ordered$(_clock_valid_0, _permit_count_0, _permit_limit_0, _round_count_0, _round_limit_0, _new_round_0, _event_count_0, _event_limit_0, _within_0) {
   if (!_within_0) {
     return {$: "Admission.PermitLate"};
   } else {
     const _x_0 = ($Bool$not$(_new_round_0));
     const _x_1 = (_round_count_0 < _round_limit_0);
-    return $Bool$pick$(($Bool$and$(_clock_valid_0, ($Bool$and$(($Bool$not$(_duplicate_event_0)), ($Bool$and$((_permit_count_0 < _permit_limit_0), ($Bool$and$((_x_0 || _x_1), (_event_count_0 < _event_limit_0))))))))), {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
+    return $Bool$pick$(($Bool$and$(_clock_valid_0, ($Bool$and$((_permit_count_0 < _permit_limit_0), ($Bool$and$((_x_0 || _x_1), (_event_count_0 < _event_limit_0))))))), {$: "Admission.PermitAllowed"}, {$: "Admission.PermitDenied"});
   }
 }
 
