@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MAX_PARTITION_IDENTITIES } from "./capacity.ts";
 import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS, RECENT_EDIT_IDENTITIES } from "./composed-delivery.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
@@ -31,6 +32,46 @@ const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number 
 };
 
 describe("shared Hapsland rounds", () => {
+  it("does not retain an advicee identity for a rejected first edit", () => {
+    const state = new ComposedDelivery();
+    expect(state.registerEditDecision("late-advicee", "edit", 100, 2600)).toEqual({
+      accepted: false, reason: "StaleInvocation",
+    });
+    expect(state.canonical.knownPartitionId("late-advicee")).toBeUndefined();
+    expect(state.canonical.canonicalProjection().admissions).toEqual([]);
+  });
+
+  it("reclaims a closed advicee record and refuses its old edit after eviction", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "first", 1);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishStop("agent", "stop", true, 100)).toBe(1);
+    const oldId = state.canonical.knownPartitionId("agent");
+    for (let index = 1; index < MAX_PARTITION_IDENTITIES; index++) {
+      state.canonical.partitionId(`other-${index}`);
+    }
+    state.canonical.partitionId("overflow");
+    expect(state.canonical.knownPartitionId("agent")).toBeUndefined();
+    expect(state.canonical.canonicalProjection().admissions.some(
+      (item) => item.partition === oldId)).toBe(false);
+    const oldStart = state.canonical.minimumFreshStart() / 1000;
+    expect(state.registerEditDecision("agent", "late", oldStart, oldStart + 1).accepted).toBe(false);
+    expect(state.canonical.knownPartitionId("agent")).toBeUndefined();
+  });
+
+  it("removes the Bend delivery counter when a virtual round ends", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "first", 1);
+    const group = state.canonical.partitionId("agent");
+    const round = state.canonical.roundId("agent");
+    expect(state.canonical.transition({ kind: "continuationConsume", group, round }).commands[0]?.kind)
+      .toBe("continuationConsumed");
+    expect(state.canonical.canonicalProjection().delivery.counters).toHaveLength(1);
+    expect(state.beginStop("agent", "stop")).toBe(true);
+    expect(state.finishStop("agent", "stop", true, 100)).toBe(1);
+    expect(state.canonical.canonicalProjection().delivery.counters).toEqual([]);
+  });
+
   it("denies a fresh background token after a Stop continuation installs its barrier", () => {
     const state = new ComposedDelivery();
     state.admitEdit("agent", "edit", 100);

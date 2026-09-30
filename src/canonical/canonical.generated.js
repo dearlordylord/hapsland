@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:31429e14ac3b236930581df640eb8433942ee0962afbd21e98f9019dd5479a87
+// hapsland-bend-source-sha256:f67207602c5a1d72bd3bc63400b37841388072b2ab46bf5871c72c2ba94ee5d6
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -221,8 +221,9 @@ function $Canonical$step_unchecked$(_state_0, _event_0) {
     const _started_0 = _event_0["started"];
     const _deadline_0 = _event_0["deadline"];
     const _now_0 = _event_0["now"];
+    const _minimum_started_0 = _event_0["minimum_started"];
     const _facts_0 = _event_0["facts"];
-    return $Canonical$issue_permit$(_state_0, _partition_1, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _facts_0);
+    return $Canonical$issue_permit$(_state_0, _partition_1, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _minimum_started_0, _facts_0);
   } else if (_event_0.$ === "Canonical.ConsumePermit") {
     const _partition_2 = _event_0["partition"];
     const _lifetime_1 = _event_0["lifetime"];
@@ -921,11 +922,15 @@ function $Canonical$step_unchecked$(_state_0, _event_0) {
     const _operation_13 = _event_0["operation"];
     const _outcome_4 = _event_0["outcome"];
     return $Canonical$output_terminal$(_state_0, _partition_33, _lifetime_33, _round_34, _operation_13, _outcome_4);
-  } else {
+  } else if (_event_0.$ === "Canonical.RetirePartition") {
     const _partition_34 = _event_0["partition"];
     const _lifetime_34 = _event_0["lifetime"];
     const _round_35 = _event_0["round"];
     return $Canonical$retire$(_state_0, _partition_34, _lifetime_34, _round_35);
+  } else {
+    const _partition_35 = _event_0["partition"];
+    const _lifetime_35 = _event_0["lifetime"];
+    return $Canonical$forget_admission$(_state_0, _partition_35, _lifetime_35);
   }
 }
 
@@ -1030,14 +1035,14 @@ function $Canonical$capacity_replace$(_state_0, _id_0, _sizes_0) {
   return $Canonical$capacity_replace_found$({$: "Canonical.State", "ledger": {$: "Ledger.Ledger", "limits": __0, "next_id": __1, "charges": _charges_0}, "rounds": __2, "work": __3, "next_round": __4, "next_operation": __5, "admissions": __6, "dispatch": _dispatch_0, "collection": _collection_0}, _id_0, _sizes_0, ($Ledger$find$(_id_0, _charges_0)));
 }
 
-function $Canonical$issue_permit$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _facts_0) {
+function $Canonical$issue_permit$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _minimum_started_0, _facts_0) {
   const _clock_valid_0 = _facts_0["clock_valid"];
   const _hook_window_0 = _facts_0["hook_window"];
   const _started_upper_0 = _facts_0["started_upper"];
   const _now_lower_0 = _facts_0["now_lower"];
   const _advicee_limit_0 = _facts_0["advicee_permit_limit"];
   const _resident_limit_0 = _facts_0["resident_permit_limit"];
-  return $Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0, ($Admission$prospective_gate$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_limit_0, "resident_permit_limit": _resident_limit_0}, _started_0, _now_0)));
+  return $Bool$pick$(($Nat$is_gt$(_started_0, _minimum_started_0)), ($Canonical$issue_permit_gate$(_state_0, _partition_0, _lifetime_0, _tool_0, _started_0, _deadline_0, _now_0, _advicee_limit_0, _resident_limit_0, ($Admission$prospective_gate$({$: "Admission.ProspectiveFacts", "clock_valid": _clock_valid_0, "hook_window": _hook_window_0, "started_upper": _started_upper_0, "now_lower": _now_lower_0, "advicee_permit_limit": _advicee_limit_0, "resident_permit_limit": _resident_limit_0}, _started_0, _now_0)))), {$: "Canonical.Rejected", "state": _state_0, "reason": {$: "Canonical.PermitDenied", "reason": {$: "Admission.StaleInvocation"}}});
 }
 
 function $Canonical$consume_permit$(_state_0, _partition_0, _lifetime_0, _token_0, _tool_0, _now_0) {
@@ -2410,6 +2415,18 @@ function $Canonical$retire$(_state_0, _partition_0, _lifetime_0, _round_0) {
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   return $Canonical$retire_found$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": _dispatch_0, "collection": _collection_0}, _partition_0, _lifetime_0, _round_0, ($Canonical$find_round$(_partition_0, _rounds_0)));
+}
+
+function $Canonical$forget_admission$(_state_0, _partition_0, _lifetime_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const __2 = _state_0["work"];
+  const __3 = _state_0["next_round"];
+  const __4 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  const _dispatch_0 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  return $Canonical$forget_admission_found$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, _partition_0, _lifetime_0, ($Canonical$find_admission$(_partition_0, _admissions_0)));
 }
 
 function $DeliveryState$initial$() {
@@ -4263,6 +4280,37 @@ function $Canonical$retire_found$(_state_0, _partition_0, _lifetime_0, _round_0,
   }
 }
 
+function $Canonical$forget_admission_found$(_state_0, _partition_0, _lifetime_0, _found_0) {
+  const _ledger_0 = _state_0["ledger"];
+  const _rounds_0 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _next_round_0 = _state_0["next_round"];
+  const _next_operation_0 = _state_0["next_operation"];
+  const _admissions_0 = _state_0["admissions"];
+  const _dispatch_0 = _state_0["dispatch"];
+  const _collection_0 = _state_0["collection"];
+  if (_found_0.$ === "None") {
+    return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.AdmissionForgotten"}, "tail": {$: "Nil"}}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _owner_0 = _t_0["partition"];
+    const _generation_0 = _t_0["lifetime"];
+    const _active_0 = _t_0["active"];
+    const _permits_0 = _t_0["permits"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Bool$and$(($Nat$is_eq$(_generation_0, _lifetime_0)), ($Bool$and$(($Bool$not$(_active_0)), ($Bool$and$(($List$is_empty$(_permits_0)), ($Bool$and$(($Bool$not$(($Canonical$has_partition_work$(_partition_0, _work_0)))), ($Canonical$no_round_for_partition$(_partition_0, _rounds_0)))))))))))), {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": ($Canonical$remove_admission$(_partition_0, _admissions_0)), "dispatch": _dispatch_0, "collection": _collection_0}, "commands": {$: "Con", "head": {$: "Canonical.AdmissionForgotten"}, "tail": {$: "Nil"}}}, {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": _ledger_0, "rounds": _rounds_0, "work": _work_0, "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "reason": {$: "Canonical.WrongStage"}});
+  }
+}
+
+function $Canonical$find_admission$(_partition_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($Canonical$admission_matches$(_partition_0, _item_0)), {$: "Some", "value": _item_0}, ($Canonical$find_admission$(_partition_0, _rest_0)));
+  }
+}
+
 function $SubmissionState$initial$() {
   return {$: "SubmissionState.State", "leases": {$: "Nil"}, "batches": {$: "Nil"}};
 }
@@ -4440,16 +4488,6 @@ function $Canonical$current_admission_found$(_partition_0, _lifetime_0, _found_0
     return _item_0;
   } else {
     return $Admission$initial$(_partition_0, _lifetime_0);
-  }
-}
-
-function $Canonical$find_admission$(_partition_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($Canonical$admission_matches$(_partition_0, _item_0)), {$: "Some", "value": _item_0}, ($Canonical$find_admission$(_partition_0, _rest_0)));
   }
 }
 
@@ -5743,7 +5781,54 @@ function $Canonical$retire_current$(_state_0, _partition_0, _lifetime_0, _round_
   const _admissions_0 = _state_0["admissions"];
   const _dispatch_0 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
-  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($Canonical$remove_round$(_partition_0, _rounds_0)), "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": _collection_0}, "commands": ($List$append$(($Canonical$release_all_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.PartitionRetired", "round": _round_0}, "tail": {$: "Nil"}}))))};
+  return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": ($Canonical$release_round_charges$(_work_0, _ledger_0, _partition_0, _lifetime_0, _round_0)), "rounds": ($Canonical$remove_round$(_partition_0, _rounds_0)), "work": ($Canonical$retain_other_work$(_work_0, _partition_0, _lifetime_0, _round_0)), "next_round": _next_round_0, "next_operation": _next_operation_0, "admissions": _admissions_0, "dispatch": _dispatch_0, "collection": ($CollectionState$retire_round$(_collection_0, _partition_0, _round_0))}, "commands": ($List$append$(($Canonical$release_all_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), ($List$append$(($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _work_0)), {$: "Con", "head": {$: "Canonical.PartitionRetired", "round": _round_0}, "tail": {$: "Nil"}}))))};
+}
+
+function $List$is_empty$(_xs_0) {
+  if (_xs_0.$ === "Nil") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Canonical$has_partition_work$(_partition_0, _work_0) {
+  if (_work_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _work_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _rest_0 = _work_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_partition_0, _owner_0));
+    const _x_1 = ($Canonical$has_partition_work$(_partition_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $Canonical$no_round_for_partition$(_partition_0, _rounds_0) {
+  if (_rounds_0.$ === "Nil") {
+    return true;
+  } else {
+    const _t_0 = _rounds_0["head"];
+    const _owner_0 = _t_0["partition"];
+    const _rest_0 = _rounds_0["tail"];
+    return $Bool$and$(($Bool$not$(($Nat$is_eq$(_partition_0, _owner_0)))), ($Canonical$no_round_for_partition$(_partition_0, _rest_0)));
+  }
+}
+
+function $Canonical$remove_admission$(_partition_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _item_0 = _items_0["head"];
+    const _rest_0 = _items_0["tail"];
+    return $Canonical$retain_admission$(_item_0, ($Canonical$remove_admission$(_partition_0, _rest_0)), ($Canonical$admission_matches$(_partition_0, _item_0)));
+  }
+}
+
+function $Canonical$admission_matches$(_partition_0, _item_0) {
+  const _owner_0 = _item_0["partition"];
+  return $Nat$is_eq$(_owner_0, _partition_0);
 }
 
 function $Ledger$fit_decision$(_limits_0, _global_0, _local_0, _bytes_0) {
@@ -5928,21 +6013,6 @@ function $Admission$apply_event$(_state_0, _event_0) {
 
 function $Admission$initial$(_partition_0, _lifetime_0) {
   return {$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": 0, "active": false, "closed_at": 0, "next_token": 1, "permits": {$: "Nil"}};
-}
-
-function $Canonical$admission_matches$(_partition_0, _item_0) {
-  const _owner_0 = _item_0["partition"];
-  return $Nat$is_eq$(_owner_0, _partition_0);
-}
-
-function $Canonical$remove_admission$(_partition_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _item_0 = _items_0["head"];
-    const _rest_0 = _items_0["tail"];
-    return $Canonical$retain_admission$(_item_0, ($Canonical$remove_admission$(_partition_0, _rest_0)), ($Canonical$admission_matches$(_partition_0, _item_0)));
-  }
 }
 
 function $Admission$expire$due$(_state_0, _token_0) {
@@ -7098,6 +7168,18 @@ function $Canonical$retain_other_work$(_items_0, _partition_0, _lifetime_0, _rou
   }
 }
 
+function $CollectionState$retire_round$(_state_0, _group_0, _round_0) {
+  const _ready_0 = _state_0["ready"];
+  const _leases_0 = _state_0["leases"];
+  const _claims_0 = _state_0["claims"];
+  const _delivery_0 = _state_0["delivery"];
+  const _revision_0 = _state_0["revision"];
+  const _tickets_0 = _state_0["tickets"];
+  const _reuse_0 = _state_0["reuse"];
+  const _notices_0 = _state_0["notices"];
+  return {$: "CollectionState.State", "ready": _ready_0, "leases": _leases_0, "claims": _claims_0, "delivery": ($DeliveryState$retire_round$(_delivery_0, _group_0, _round_0)), "revision": _revision_0, "tickets": _tickets_0, "reuse": _reuse_0, "notices": _notices_0};
+}
+
 function $Canonical$release_all_commands$(_partition_0, _lifetime_0, _round_0, _items_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
@@ -7124,6 +7206,14 @@ function $Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _items
     const _kind_0 = _t_0["kind"];
     const _rest_0 = _items_0["tail"];
     return $Canonical$cancel_pick$(_op_0, ($Canonical$cancel_commands$(_partition_0, _lifetime_0, _round_0, _rest_0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))));
+  }
+}
+
+function $Canonical$retain_admission$(_item_0, _tail_0, _match_owner_0) {
+  if (_match_owner_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _item_0, "tail": _tail_0};
   }
 }
 
@@ -7254,14 +7344,6 @@ function $Admission$restart$(_state_0, _new_lifetime_0, _at_0) {
   const __2 = _state_0["next_token"];
   const __3 = _state_0["permits"];
   return $Admission$restart$fresh$({$: "Admission.AdmissionState", "partition": _partition_0, "lifetime": _lifetime_0, "round": __0, "active": __1, "closed_at": _closed_at_0, "next_token": __2, "permits": __3}, _partition_0, _lifetime_0, _closed_at_0, _new_lifetime_0, _at_0, ($Bool$and$(($Nat$is_gt$(_new_lifetime_0, _lifetime_0)), ($Nat$is_ge$(_at_0, _closed_at_0)))));
-}
-
-function $Canonical$retain_admission$(_item_0, _tail_0, _match_owner_0) {
-  if (_match_owner_0) {
-    return _tail_0;
-  } else {
-    return {$: "Con", "head": _item_0, "tail": _tail_0};
-  }
 }
 
 function $Admission$remove_permit$(_token_0, _permits_0) {
@@ -7826,6 +7908,13 @@ function $Notice$refresh$(_pending_0, _leased_0, _suppressed_0, _maximum_0) {
 function $NoticeState$pending_sequence$(_pending_0) {
   const _sequence_0 = _pending_0["sequence"];
   return _sequence_0;
+}
+
+function $DeliveryState$retire_round$(_state_0, _group_0, _round_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  return {$: "DeliveryState.State", "slots": _slots_0, "counters": ($DeliveryState$without_counter$(_group_0, _round_0, _counters_0)), "submissions": _submissions_0};
 }
 
 function $Canonical$cancel_pick$(_operation_0, _tail_0, _hit_0) {

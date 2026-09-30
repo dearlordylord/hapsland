@@ -72,11 +72,13 @@ type CanonicalEvent is Data:
   ReleaseCapacity{reservation: Nat}
   ReplaceCapacity{reservation: Nat, unit_bytes: List<&2, Nat>}
   IssuePermit{partition: Nat, lifetime: Nat, tool: Nat, started: Nat,
-    deadline: Nat, now: Nat, facts: Admission.ProspectiveFacts}
+    deadline: Nat, now: Nat, minimum_started: Nat,
+    facts: Admission.ProspectiveFacts}
   ConsumePermit{partition: Nat, lifetime: Nat, token: Nat, tool: Nat, now: Nat}
   ReleasePermit{partition: Nat, lifetime: Nat, token: Nat}
   ExpirePermit{partition: Nat, lifetime: Nat, token: Nat, deadline_reached: Bool}
   ClosePermitRound{partition: Nat, lifetime: Nat, round: Nat, at: Nat}
+  ForgetAdmission{partition: Nat, lifetime: Nat}
   OpenRound{partition: Nat, lifetime: Nat}
   AdmitObservation{partition: Nat, lifetime: Nat, round: Nat}
   StartObservation{partition: Nat, lifetime: Nat, round: Nat, observation: Nat}
@@ -488,6 +490,7 @@ type Command is Data:
   WaitForOutput{}
   ReofferAtStop{}
   PartitionRetired{round: Nat}
+  AdmissionForgotten{}
 
 type Reason is Data:
   InvalidIdentity{}
@@ -556,6 +559,44 @@ def with_admission(state: State, +partition: Nat,
     case State{ledger, rounds, work, next_round, next_operation, admissions, +dispatch, +collection}:
       State{ledger, rounds, work, next_round, next_operation,
         admission <> remove_admission(partition, admissions), dispatch, collection}
+
+def has_partition_work(+partition: Nat, work: List<&2, Work>) -> Bool:
+  match work:
+    case Nil{}: False{}
+    case Work{owner, _, _, _, _, _, _} <> rest:
+      Bool.or(Nat.is_eq(partition, owner), has_partition_work(partition, rest))
+
+def no_round_for_partition(+partition: Nat, rounds: List<&2, Round>) -> Bool:
+  match rounds:
+    case Nil{}: True{}
+    case Round{owner, _, _, _, _, _, _} <> rest:
+      Bool.and(Bool.not(Nat.is_eq(partition, owner)),
+        no_round_for_partition(partition, rest))
+
+def forget_admission_found(+state: State, +partition: Nat, +lifetime: Nat,
+    found: Maybe<&2, Admission.AdmissionState>) -> Step:
+  match state found:
+    case State{ledger, rounds, work, next_round, next_operation, admissions,
+        dispatch, collection} None{}:
+      Advanced{State{ledger, rounds, work, next_round, next_operation,
+        admissions, dispatch, collection}, AdmissionForgotten{} <> Nil{}}
+    case State{ledger, rounds, work, next_round, next_operation, admissions,
+        dispatch, collection} Some{Admission.AdmissionState{owner, generation, _, active, _, _, permits}}:
+      Bool.pick(Step, Bool.and(Nat.is_eq(owner, partition),
+        Bool.and(Nat.is_eq(generation, lifetime),
+        Bool.and(Bool.not(active), Bool.and(List.is_empty(&2, Admission.Permit, permits),
+        Bool.and(Bool.not(has_partition_work(partition, work)),
+        no_round_for_partition(partition, rounds)))))),
+        Advanced{State{ledger, rounds, work, next_round, next_operation,
+          remove_admission(partition, admissions), dispatch, collection},
+          AdmissionForgotten{} <> Nil{}},
+        Rejected{State{ledger, rounds, work, next_round, next_operation,
+          admissions, dispatch, collection}, WrongStage{}})
+
+def forget_admission(+state: State, +partition: Nat, +lifetime: Nat) -> Step:
+  match state:
+    case State{_, _, _, _, _, admissions, +dispatch, +collection}:
+      forget_admission_found(state, partition, lifetime, find_admission(partition, admissions))
 
 def current_admission_found(partition: Nat, lifetime: Nat,
     found: Maybe<&2, Admission.AdmissionState>) -> Admission.AdmissionState:
@@ -654,14 +695,17 @@ def issue_permit_gate(+state: State, +partition: Nat, +lifetime: Nat,
 
 def issue_permit(+state: State, +partition: Nat, +lifetime: Nat,
     +tool: Nat, +started: Nat, +deadline: Nat, +now: Nat,
+    +minimum_started: Nat,
     facts: Admission.ProspectiveFacts) -> Step:
   match facts:
     case Admission.ProspectiveFacts{clock_valid, hook_window, started_upper,
         now_lower, +advicee_limit, +resident_limit}:
-      issue_permit_gate(state, partition, lifetime, tool, started, deadline, now,
-        advicee_limit, resident_limit,
-        Admission.prospective_gate(Admission.ProspectiveFacts{clock_valid, hook_window,
-          started_upper, now_lower, advicee_limit, resident_limit}, started, now))
+      Bool.pick(Step, Nat.is_gt(started, minimum_started),
+        issue_permit_gate(state, partition, lifetime, tool, started, deadline, now,
+          advicee_limit, resident_limit,
+          Admission.prospective_gate(Admission.ProspectiveFacts{clock_valid, hook_window,
+            started_upper, now_lower, advicee_limit, resident_limit}, started, now)),
+        Rejected{state, PermitDenied{Admission.StaleInvocation{}}})
 
 
 
@@ -1923,7 +1967,8 @@ def retire_current(+state: State, +partition: Nat, +lifetime: Nat,
       Advanced{State{release_round_charges(work, ledger, partition, lifetime, round),
         remove_round(partition, rounds),
         retain_other_work(work, partition, lifetime, round),
-        next_round, next_operation, admissions, dispatch, collection},
+        next_round, next_operation, admissions, dispatch,
+        CollectionState.retire_round(collection, partition, round)},
         List.append(&2, Command,
           release_all_commands(partition, lifetime, round, work),
           List.append(&2, Command,
@@ -2773,8 +2818,10 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
       capacity_release(state, reservation)
     case ReplaceCapacity{reservation, unit_bytes}:
       capacity_replace(state, reservation, unit_bytes)
-    case IssuePermit{partition, lifetime, tool, started, deadline, now, facts}:
-      issue_permit(state, partition, lifetime, tool, started, deadline, now, facts)
+    case IssuePermit{partition, lifetime, tool, started, deadline, now,
+        minimum_started, facts}:
+      issue_permit(state, partition, lifetime, tool, started, deadline, now,
+        minimum_started, facts)
     case ConsumePermit{partition, lifetime, token, tool, now}:
       consume_permit(state, partition, lifetime, token, tool, now)
     case ReleasePermit{partition, lifetime, token}:
@@ -3114,6 +3161,8 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
       output_terminal(state, partition, lifetime, round, operation, outcome)
     case RetirePartition{partition, lifetime, round}:
       retire(state, partition, lifetime, round)
+    case ForgetAdmission{partition, lifetime}:
+      forget_admission(state, partition, lifetime)
 
 # Rounds use a List, so uniqueness is not a type-level guarantee. Every accepted
 # transition is checked here: a partition may own at most one canonical round,

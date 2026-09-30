@@ -85,7 +85,7 @@ law canonical_released_capacity_rejects_duplicate:
 
 law canonical_permit_issue_is_partitioned_and_round_bound:
   {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
-    Canonical.IssuePermit{1n, 1n, 11n, 100n, 300n, 110n,
+    Canonical.IssuePermit{1n, 1n, 11n, 100n, 300n, 110n, 0n,
       Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n,
         32n, 4096n}}) ==
     Canonical.Advanced{Canonical.State{Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
@@ -93,6 +93,34 @@ law canonical_permit_issue_is_partitioned_and_round_bound:
       Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
         Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{}, Dispatch.initial(), CollectionState.initial()},
       Canonical.PermitIssued{1n, 1n} <> Nil{}} : Canonical.Step}
+
+law canonical_forget_inactive_admission_removes_identity:
+  {Canonical.forget_admission(Canonical.State{
+    Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}), Nil{}, Nil{}, 1n, 1n,
+    Admission.AdmissionState{1n, 1n, 1n, False{}, 100n, 2n, Nil{}} <> Nil{},
+    Dispatch.initial(), CollectionState.initial()}, 1n, 1n) ==
+    Canonical.Advanced{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.AdmissionForgotten{} <> Nil{}} : Canonical.Step}
+
+law canonical_forget_pending_admission_rejects:
+  {Canonical.forget_admission(Canonical.State{
+    Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}), Nil{}, Nil{}, 1n, 1n,
+    Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
+      Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{},
+    Dispatch.initial(), CollectionState.initial()}, 1n, 1n) ==
+    Canonical.Rejected{Canonical.State{
+      Ledger.initial(Ledger.Limits{3n, 100n, 2n, 60n}), Nil{}, Nil{}, 1n, 1n,
+      Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,
+        Admission.Permit{1n, 11n, 1n, 100n, 300n} <> Nil{}} <> Nil{},
+      Dispatch.initial(), CollectionState.initial()}, Canonical.WrongStage{}} : Canonical.Step}
+
+law canonical_eviction_floor_rejects_old_edit_without_state_change:
+  {Canonical.step(Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+    Canonical.IssuePermit{1n, 1n, 11n, 100n, 300n, 110n, 100n,
+      Admission.ProspectiveFacts{True{}, 2500n, 100n, 110n,
+        32n, 4096n}}) ==
+    Canonical.Rejected{Canonical.initial(Ledger.Limits{3n, 100n, 2n, 60n}),
+      Canonical.PermitDenied{Admission.StaleInvocation{}}} : Canonical.Step}
 
 def two_pending_advicees() -> List<&2, Admission.AdmissionState>:
   Admission.AdmissionState{1n, 1n, 0n, False{}, 0n, 2n,

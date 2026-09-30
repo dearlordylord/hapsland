@@ -96,11 +96,12 @@ export type CanonicalEvent =
   | { readonly kind: "resizeCapacity"; readonly reservation: number; readonly bytes: number; readonly purpose: CapacityPurpose }
   | { readonly kind: "releaseCapacity"; readonly reservation: number }
   | { readonly kind: "replaceCapacity"; readonly reservation: number; readonly unitBytes: readonly number[] }
-  | { readonly kind: "issuePermit"; readonly partition: number; readonly lifetime: number; readonly tool: number; readonly started: number; readonly deadline: number; readonly now: number; readonly facts: ProspectiveFacts }
+  | { readonly kind: "issuePermit"; readonly partition: number; readonly lifetime: number; readonly tool: number; readonly started: number; readonly deadline: number; readonly now: number; readonly minimumStarted: number; readonly facts: ProspectiveFacts }
   | { readonly kind: "consumePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly tool: number; readonly now: number }
   | { readonly kind: "releasePermit"; readonly partition: number; readonly lifetime: number; readonly token: number }
   | { readonly kind: "expirePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly deadlineReached: boolean }
   | { readonly kind: "closePermitRound"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly at: number }
+  | { readonly kind: "forgetAdmission"; readonly partition: number; readonly lifetime: number }
   | { readonly kind: "openRound"; readonly partition: number; readonly lifetime: number }
   | { readonly kind: "admitObservation"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "startObservation" | "completeObservation" | "interruptObservation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number }
@@ -297,7 +298,8 @@ export type CanonicalCommand =
   | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "waitForOutput" }
   | { readonly kind: "reofferAtStop" }
-  | { readonly kind: "partitionRetired"; readonly round: number };
+  | { readonly kind: "partitionRetired"; readonly round: number }
+  | { readonly kind: "admissionForgotten" };
 
 export type ProspectiveFacts = {
   readonly clockValid: boolean; readonly hookWindow: number;
@@ -375,11 +377,12 @@ const encode = (event: CanonicalEvent): unknown => {
     case "resizeCapacity": inputFields(event, ["kind", "reservation", "bytes", "purpose"]); return { $: "Canonical.ResizeCapacity", reservation: nat(event.reservation, true), bytes: nat(event.bytes), purpose: encodePurpose(event.purpose) };
     case "releaseCapacity": inputFields(event, ["kind", "reservation"]); return { $: "Canonical.ReleaseCapacity", reservation: nat(event.reservation, true) };
     case "replaceCapacity": inputFields(event, ["kind", "reservation", "unitBytes"]); return { $: "Canonical.ReplaceCapacity", reservation: nat(event.reservation, true), unit_bytes: list(event.unitBytes) };
-    case "issuePermit": inputFields(event, ["kind", "partition", "lifetime", "tool", "started", "deadline", "now", "facts"]); return { $: "Canonical.IssuePermit", ...identity(event), tool: nat(event.tool, true), started: nat(event.started), deadline: nat(event.deadline), now: nat(event.now), facts: encodeFacts(event.facts) };
+    case "issuePermit": inputFields(event, ["kind", "partition", "lifetime", "tool", "started", "deadline", "now", "minimumStarted", "facts"]); return { $: "Canonical.IssuePermit", ...identity(event), tool: nat(event.tool, true), started: nat(event.started), deadline: nat(event.deadline), now: nat(event.now), minimum_started: nat(event.minimumStarted), facts: encodeFacts(event.facts) };
     case "consumePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "tool", "now"]); return { $: "Canonical.ConsumePermit", ...identity(event), token: nat(event.token, true), tool: nat(event.tool, true), now: nat(event.now) };
     case "releasePermit": inputFields(event, ["kind", "partition", "lifetime", "token"]); return { $: "Canonical.ReleasePermit", ...identity(event), token: nat(event.token, true) };
     case "expirePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "deadlineReached"]); return { $: "Canonical.ExpirePermit", ...identity(event), token: nat(event.token, true), deadline_reached: bool(event.deadlineReached) };
     case "closePermitRound": inputFields(event, ["kind", "partition", "lifetime", "round", "at"]); return { $: "Canonical.ClosePermitRound", ...identity(event), round: nat(event.round, true), at: nat(event.at) };
+    case "forgetAdmission": inputFields(event, ["kind", "partition", "lifetime"]); return { $: "Canonical.ForgetAdmission", ...identity(event) };
     case "openRound": inputFields(event, ["kind", "partition", "lifetime"]); return { $: "Canonical.OpenRound", ...identity(event) };
     case "admitObservation": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.AdmitObservation", ...identity(event), round: nat(event.round, true) };
     case "startObservation": case "completeObservation": case "interruptObservation": {
@@ -904,6 +907,7 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.WaitForOutput": fields(value, "Canonical.WaitForOutput", []); return { kind: "waitForOutput" };
     case "Canonical.ReofferAtStop": fields(value, "Canonical.ReofferAtStop", []); return { kind: "reofferAtStop" };
     case "Canonical.PartitionRetired": return { kind: "partitionRetired", round: nat(fields(value, "Canonical.PartitionRetired", ["round"]).round, true) };
+    case "Canonical.AdmissionForgotten": fields(value, "Canonical.AdmissionForgotten", []); return { kind: "admissionForgotten" };
     default: throw new TypeError("unknown canonical command");
   }
 };

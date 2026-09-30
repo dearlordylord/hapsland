@@ -1,7 +1,62 @@
 import { describe, expect, it } from "vitest";
-import { CapacityLedger, encodedBytesWithin } from "./capacity.ts";
+import { CapacityLedger, MAX_COLLECTION_TOKEN_IDENTITIES, MAX_PARTITION_IDENTITIES, encodedBytesWithin } from "./capacity.ts";
 
 describe("resident logical capacity ledger", () => {
+  it("forgets idle advicee identities at the metadata limit and fences older starts", () => {
+    const ledger = new CapacityLedger();
+    for (let index = 0; index < MAX_PARTITION_IDENTITIES; index++) {
+      ledger.partitionId(`advicee-${index}`);
+    }
+    const first = ledger.knownPartitionId("advicee-0");
+    expect(first).toBeDefined();
+    ledger.partitionId("next-advicee");
+    expect(ledger.partitionIdentityCount()).toBe(MAX_PARTITION_IDENTITIES);
+    expect(ledger.knownPartitionId("advicee-0")).toBeUndefined();
+    expect(ledger.minimumFreshStart()).toBeGreaterThan(0);
+    const stale = ledger.transition({ kind: "issuePermit",
+      partition: ledger.knownPartitionId("next-advicee")!, lifetime: 1,
+      tool: 1, started: ledger.minimumFreshStart(),
+      deadline: ledger.minimumFreshStart() + 1000, now: ledger.minimumFreshStart(),
+      minimumStarted: ledger.minimumFreshStart(),
+      facts: { clockValid: true, hookWindow: 2500,
+        startedUpper: ledger.minimumFreshStart(), nowLower: ledger.minimumFreshStart(),
+        adviceePermitLimit: 32, residentPermitLimit: 4096 } });
+    expect(stale.rejection).toBe("StaleInvocation");
+    expect(ledger.canonicalProjection().admissions).toEqual([]);
+  });
+
+  it("prunes completed collection tokens but retains canonical live tokens", () => {
+    const ledger = new CapacityLedger();
+    const partition = ledger.partitionId("agent");
+    const live = ledger.collectionTokenId("live");
+    expect(ledger.transition({ kind: "collectionClaimBackground", group: partition,
+      token: live, active: true, capacity: 1 }).commands[0]?.kind).toBe("collectionBackgroundClaimed");
+    for (let index = 0; index < 1000; index++) ledger.collectionTokenId(`finished-${index}`);
+    ledger.pruneCollectionTokenIds(new Set());
+    expect(ledger.collectionTokenIdentityCount()).toBe(1);
+    expect(ledger.collectionTokenId("live")).toBe(live);
+    expect(ledger.transition({ kind: "collectionReleaseBackground", group: partition,
+      token: live }).commands[0]?.kind).toBe("collectionBackgroundReleased");
+    ledger.pruneCollectionTokenIds(new Set());
+    expect(ledger.collectionTokenIdentityCount()).toBe(0);
+    expect(MAX_COLLECTION_TOKEN_IDENTITIES).toBeGreaterThan(1000);
+  });
+
+  it("does not accumulate Bend delivery counters across completed rounds", () => {
+    const ledger = new CapacityLedger();
+    for (let index = 0; index < 200; index++) {
+      const partition = `agent-${index}`;
+      const group = ledger.partitionId(partition);
+      const round = ledger.roundId(partition);
+      expect(ledger.transition({ kind: "continuationConsume", group, round }).commands[0]?.kind)
+        .toBe("continuationConsumed");
+      ledger.retireRound(partition, round);
+      expect(ledger.canonicalProjection().delivery.counters).toEqual([]);
+      ledger.discardUnusedPartition(partition);
+    }
+    expect(ledger.partitionIdentityCount()).toBe(0);
+  });
+
   it("routes delivery terminal and finding decisions through canonical Bend", () => {
     const ledger = new CapacityLedger();
     for (const [event, kind] of [
@@ -109,7 +164,7 @@ describe("resident logical capacity ledger", () => {
     const ledger = new CapacityLedger();
     const partition = ledger.partitionId("agent");
     const issued = ledger.transition({ kind: "issuePermit", partition, lifetime: 1,
-      tool: 7, started: 100, deadline: 300, now: 110,
+      tool: 7, started: 100, deadline: 300, now: 110, minimumStarted: 0,
       facts: { clockValid: true, hookWindow: 2500, startedUpper: 100, nowLower: 101,
         adviceePermitLimit: 32, residentPermitLimit: 4096 } });
     expect(issued.commands[0]).toEqual({ kind: "permitIssued", token: 1, round: 1 });

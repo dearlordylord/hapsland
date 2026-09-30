@@ -92,6 +92,9 @@ export class ComposedDelivery {
     const previous = this.#rounds.get(partition);
     // Neither a prompt nor a native runtime turn resets an active round.
     if (previous !== undefined) return this.isActive(partition);
+    const known = this.canonical.knownPartitionId(partition);
+    if (known !== undefined && this.canonical.canonicalProjection().admissions.some(
+      (item) => item.partition === known && item.round > 0 && !item.active)) return false;
     // A notification without an admitted edit carries no round authority.
     return true;
   }
@@ -138,6 +141,21 @@ export class ComposedDelivery {
 
   recentEditCount(): number { return this.#recentEdits.size; }
 
+  liveCollectionTokenKeys(): Set<string> {
+    const live = new Set<string>();
+    for (const waiter of this.#backgroundWaiters.values()) live.add(waiter.token);
+    for (const stop of this.#stops.values()) if (stop.outputToken !== undefined) live.add(stop.outputToken);
+    for (const token of this.#finishPermits.keys()) live.add(token);
+    for (const [adviceId, submission] of this.#submissions) {
+      live.add(`submission-advice\0${adviceId}`);
+      for (const [token, batch] of submission.batches) {
+        live.add(token);
+        for (const digest of batch.fingerprints) live.add(`submission-finding\0${adviceId}\0${digest}`);
+      }
+    }
+    return live;
+  }
+
   #toolId(partition: string, event: string): number {
     const key = `${partition}\0${event}`;
     let id = this.#toolIds.get(key);
@@ -180,8 +198,9 @@ export class ComposedDelivery {
       return { accepted: true };
     }
     if (this.#repeat(toolKey, "completed")) return { accepted: false, reason: "DuplicateTool" };
-    const admission = this.canonical.canonicalProjection().admissions.find(
-      (item) => item.partition === this.canonical.partitionId(partition));
+    const knownPartition = this.canonical.knownPartitionId(partition);
+    const admission = knownPartition === undefined ? undefined :
+      this.canonical.canonicalProjection().admissions.find((item) => item.partition === knownPartition);
     // Bend receives both bounds of each reading. It uses the upper start and
     // lower now for ordering, then lower start and upper now for the deadline.
     const facts = {
@@ -198,15 +217,18 @@ export class ComposedDelivery {
       issued = this.canonical.transition({ kind: "issuePermit",
         partition: this.canonical.partitionId(partition), lifetime: 1, tool,
         started: this.#bendTime(startedAt), deadline: this.#bendTime(startedAt + EDIT_PERMIT_EXPIRY_MS),
-        now: this.#bendUpperTime(now), facts,
+        now: this.#bendUpperTime(now), minimumStarted: this.canonical.minimumFreshStart(), facts,
       });
-    } catch {
+    } catch (error) {
       this.#toolIds.delete(toolKey);
-      return { accepted: false, reason: "InvalidClock" };
+      if (knownPartition === undefined) this.canonical.discardUnusedPartition(partition);
+      return { accepted: false, reason: error instanceof RangeError &&
+        error.message.includes("resident") ? "ResidentPermitLimit" : "InvalidClock" };
     }
     const command = issued.commands[0];
     if (issued.rejection !== undefined || command?.kind !== "permitIssued") {
       this.#toolIds.delete(toolKey);
+      if (knownPartition === undefined) this.canonical.discardUnusedPartition(partition);
       const reason = issued.rejection === "ProspectiveDenied"
         ? !facts.clockValid ? "InvalidClock"
           : "ProspectiveDenied"
@@ -270,6 +292,10 @@ export class ComposedDelivery {
     // Internal deterministic fixtures and the non-installed API may start a
     // first round; reopening always requires the runtime's prospective permit.
     if (previous !== undefined && !this.isActive(partition)) return undefined;
+    const known = this.canonical.knownPartitionId(partition);
+    if (previous === undefined && known !== undefined &&
+      this.canonical.canonicalProjection().admissions.some((item) =>
+        item.partition === known && item.round > 0 && !item.active)) return undefined;
     if (this.#permits.has(key)) return undefined;
     const partitionId = this.canonical.partitionId(partition);
     if (this.#repeat(key, "completed")) return undefined;
@@ -277,7 +303,8 @@ export class ComposedDelivery {
     const syntheticNow = this.#bendTime(Math.max(1, now));
     const issued = this.canonical.transition({ kind: "issuePermit", partition: partitionId,
       lifetime: 1, tool, started: syntheticNow, deadline: syntheticNow + this.#bendTime(EDIT_PERMIT_EXPIRY_MS),
-      now: syntheticNow, facts: { clockValid: true, hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
+      now: syntheticNow, minimumStarted: this.canonical.minimumFreshStart(),
+      facts: { clockValid: true, hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
         startedUpper: syntheticNow, nowLower: syntheticNow,
         adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident } });
     const permit = issued.commands[0];
@@ -585,6 +612,7 @@ export class ComposedDelivery {
     for (const [id, submission] of this.#submissions) {
       if (submission.partition === partition) this.forget(id);
     }
+    this.#rounds.delete(partition);
     return stop.generation;
   }
 
@@ -643,10 +671,11 @@ export class ComposedDelivery {
   }
 
   generation(partition: string): number {
-    if (!this.#rounds.has(partition)) return 0;
+    const known = this.canonical.knownPartitionId(partition);
+    if (known === undefined) return 0;
     const admission = this.canonical.canonicalProjection().admissions.find(
-      (item) => item.partition === this.canonical.partitionId(partition));
-    return admission === undefined ? 0 : Math.max(1, admission.round);
+      (item) => item.partition === known);
+    return admission?.round ?? 0;
   }
 
   /** Reserve one request from the active virtual round's continuation budget. */

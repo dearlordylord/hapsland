@@ -37,6 +37,15 @@ def Laws.canonical_released_capacity_rejects_duplicate():
 def Laws.canonical_permit_issue_is_partitioned_and_round_bound():
   {==}
 
+def Laws.canonical_forget_inactive_admission_removes_identity():
+  {==}
+
+def Laws.canonical_forget_pending_admission_rejects():
+  {==}
+
+def Laws.canonical_eviction_floor_rejects_old_edit_without_state_change():
+  {==}
+
 def Laws.canonical_pending_permit_counts_use_reducer_state():
   {==}
 

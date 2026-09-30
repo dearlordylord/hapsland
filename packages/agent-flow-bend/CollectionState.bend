@@ -246,6 +246,12 @@ def submission_forget(state: State, advice: Nat) -> State:
     case State{ready, leases, claims, delivery, revision, tickets, reuse, notices}:
       State{ready, leases, claims, DeliveryState.submission_forget(delivery, advice), revision, tickets, reuse, notices}
 
+def retire_round(state: State, group: Nat, round: Nat) -> State:
+  match state:
+    case State{ready, leases, claims, delivery, revision, tickets, reuse, notices}:
+      State{ready, leases, claims, DeliveryState.retire_round(delivery, group, round),
+        revision, tickets, reuse, notices}
+
 def submission_suppresses(state: State, advice: Nat, fingerprint: Nat,
     round: Nat, surface: Handoff.Surface) -> Bool:
   match state:

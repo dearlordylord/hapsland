@@ -1,5 +1,6 @@
 import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent, type CapacityPurpose, type JevRequestOutcome } from "../canonical/adapter.ts";
 import { randomUUID } from "node:crypto";
+import { monotonicNow } from "./hook-clock.ts";
 export type { CapacityPurpose } from "../canonical/adapter.ts";
 
 export const GLOBAL_ITEM_LIMIT = 512;
@@ -9,6 +10,11 @@ export const GLOBAL_ITEM_LIMIT = 512;
 export const GLOBAL_BYTE_LIMIT = 256 * 1024 * 1024;
 export const PARTITION_ITEM_LIMIT = 16;
 export const PARTITION_BYTE_LIMIT = 32 * 1024 * 1024;
+export const MAX_PARTITION_IDENTITIES = 8192;
+export const MAX_PARTITION_KEY_BYTES = 1024 * 1024;
+export const MAX_PARTITION_IDENTITY_BYTES = 64 * 1024 * 1024;
+export const MAX_COLLECTION_TOKEN_IDENTITIES = 16384;
+export const MAX_COLLECTION_TOKEN_KEY_BYTES = 4096;
 
 export type CapacityLimits = {
   readonly globalItems: number;
@@ -31,7 +37,7 @@ export type CapacitySnapshot = {
 };
 
 type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
-  "issuePermit" | "consumePermit" | "releasePermit" | "expirePermit" | "closePermitRound" |
+  "issuePermit" | "consumePermit" | "releasePermit" | "expirePermit" | "closePermitRound" | "forgetAdmission" |
   "openRound" | "admitObservation" | "startObservation" | "completeObservation" |
   "interruptObservation" | "beginObservedPreparation" | "interruptPreparation" |
   "preparationCompleted" | "startReview" | "jevRequestReady" |
@@ -101,11 +107,13 @@ export class CapacityLedger {
   readonly canonicalLifetime = 1;
   readonly #reservations = new Map<number, CapacityReservation>();
   readonly #partitionIds = new Map<string, number>();
+  #partitionIdentityBytes = 0;
   readonly #roundIds = new Map<string, number>();
   readonly #requestRounds = new Map<number, { readonly partition: string; readonly round: number }>();
   readonly #collectionTokens = new Map<string, number>();
   #nextCollectionToken = 1;
   #nextPartitionId = 1;
+  #minimumFreshStart = 0;
   readonly #limits: CapacityLimits;
   #state: unknown;
 
@@ -119,19 +127,101 @@ export class CapacityLedger {
   partitionId(partition: string): number {
     let id = this.#partitionIds.get(partition);
     if (id === undefined) {
+      const keyBytes = Buffer.byteLength(partition, "utf8");
+      if (keyBytes > MAX_PARTITION_KEY_BYTES) {
+        throw new RangeError("advicee identity exceeds resident metadata bound");
+      }
+      while (this.#partitionIds.size >= MAX_PARTITION_IDENTITIES ||
+        this.#partitionIdentityBytes + keyBytes > MAX_PARTITION_IDENTITY_BYTES) {
+        if (!this.#evictInactivePartition()) {
+          throw new RangeError("resident advicee identity capacity exhausted");
+        }
+      }
       id = this.#nextPartitionId++;
       this.#partitionIds.set(partition, id);
+      this.#partitionIdentityBytes += keyBytes;
     }
     return id;
+  }
+
+  knownPartitionId(partition: string): number | undefined {
+    return this.#partitionIds.get(partition);
+  }
+
+  minimumFreshStart(): number {
+    return this.#minimumFreshStart;
+  }
+
+  partitionIdentityCount(): number { return this.#partitionIds.size; }
+  partitionIdentityBytes(): number { return this.#partitionIdentityBytes; }
+
+  discardUnusedPartition(partition: string): void {
+    const id = this.#partitionIds.get(partition);
+    if (id === undefined || this.#roundIds.has(partition) ||
+      [...this.#reservations.values()].some((item) => item.partition === partition) ||
+      [...this.#requestRounds.values()].some((item) => item.partition === partition)) return;
+    const state = this.canonicalProjection();
+    if (state.partitions.some((item) => item.partition === id) ||
+      state.rounds.some((item) => item.partition === id) ||
+      state.work.some((item) => item.partition === id) ||
+      state.charges.some((item) => item.partition === id) ||
+      state.dispatch.pending.some((item) => item.partition === id) ||
+      state.dispatch.active.some((item) => item.partition === id) ||
+      state.dispatch.running.some((item) => item.partition === id) ||
+      state.dispatch.requests.some((item) => item.partition === id) ||
+      state.delivery.slots.some((item) => item.group === id) ||
+      state.delivery.counters.some((item) => item.group === id) ||
+      state.delivery.submissions.batches.some((item) => item.group === id) ||
+      state.collection.claims.some((item) => item.group === id) ||
+      state.notices.some((item) => item.partition === id || item.group === id) ||
+      state.reuse.cache.some((item) => item.partition === id)) return;
+    const admission = state.admissions.find((item) => item.partition === id);
+    if (admission?.active || (admission?.permits.length ?? 0) > 0) return;
+    const forgotten = this.transition({ kind: "forgetAdmission", partition: id, lifetime: 1 });
+    if (forgotten.rejection !== undefined || forgotten.commands[0]?.kind !== "admissionForgotten") return;
+    this.#partitionIds.delete(partition);
+    this.#partitionIdentityBytes -= Buffer.byteLength(partition, "utf8");
+  }
+
+  #evictInactivePartition(): boolean {
+    for (const partition of this.#partitionIds.keys()) {
+      const before = this.#partitionIds.size;
+      this.discardUnusedPartition(partition);
+      if (this.#partitionIds.size < before) {
+        this.#minimumFreshStart = Math.max(this.#minimumFreshStart,
+          Math.ceil(monotonicNow() * 1000));
+        return true;
+      }
+    }
+    return false;
   }
 
   collectionTokenId(token: string): number {
     let id = this.#collectionTokens.get(token);
     if (id === undefined) {
+      if (Buffer.byteLength(token, "utf8") > MAX_COLLECTION_TOKEN_KEY_BYTES ||
+        this.#collectionTokens.size >= MAX_COLLECTION_TOKEN_IDENTITIES) {
+        throw new RangeError("resident collection token capacity exhausted");
+      }
       id = this.#nextCollectionToken++;
       this.#collectionTokens.set(token, id);
     }
     return id;
+  }
+
+  collectionTokenIdentityCount(): number { return this.#collectionTokens.size; }
+
+  pruneCollectionTokenIds(nativeLive: ReadonlySet<string>): void {
+    const state = this.canonicalProjection();
+    const canonicalLive = new Set<number>([
+      ...state.collection.leases.map((item) => item.owner),
+      ...state.collection.claims.map((item) => item.owner),
+      ...state.delivery.slots.map((item) => item.token),
+      ...state.delivery.submissions.batches.map((item) => item.token),
+    ]);
+    for (const [key, id] of this.#collectionTokens) {
+      if (!nativeLive.has(key) && !canonicalLive.has(id)) this.#collectionTokens.delete(key);
+    }
   }
 
   dispatchIdentity(partition: string, round: number): { readonly partition: number; readonly round: number } {
@@ -482,9 +572,13 @@ export class CapacityLedger {
     this.#state = initialCanonical(this.#limits);
     this.#reservations.clear();
     this.#partitionIds.clear();
+    this.#partitionIdentityBytes = 0;
     this.#roundIds.clear();
     this.#requestRounds.clear();
+    this.#collectionTokens.clear();
+    this.#nextCollectionToken = 1;
     this.#nextPartitionId = 1;
+    this.#minimumFreshStart = 0;
   }
 
   snapshot(): CapacitySnapshot {

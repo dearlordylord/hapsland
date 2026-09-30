@@ -749,6 +749,15 @@ export class ResidentServer {
     return "cleaned";
   }
 
+  #pruneCollectionTokenIds(): void {
+    const live = this.#composedDelivery.liveCollectionTokenKeys();
+    for (const advice of this.#advice) if (advice.delivery !== undefined) live.add(advice.delivery.token);
+    for (const notice of this.#noticeCooldowns.values()) {
+      if (notice.pending?.delivery !== undefined) live.add(notice.pending.delivery.token);
+    }
+    this.#ledger.pruneCollectionTokenIds(live);
+  }
+
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
@@ -1885,6 +1894,10 @@ export class ResidentServer {
       }
       removed.retired = true;
       if (!removed.revalidationActive) this.#releaseUnit(removed);
+      if (!this.#rounds.has(removed.partition) &&
+        !this.#advice.some((item) => item.partition === removed.partition)) {
+        this.#bendPartitions.delete(removed.partition);
+      }
     }
     return removed !== undefined;
   }
@@ -1965,7 +1978,7 @@ export class ResidentServer {
       : this.#dispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed && !value.work?.controller.signal.aborted);
     if (activity !== undefined) recordRoundClosure({ statePath: activity.activityPath,
       root: activity.root, advicee: activity.advicee, lifetime: this.lifetime,
-      roundIdentity: `${group}:${generation}`, reason, reservedContinuations,
+      roundIdentity: `${group}:${round?.canonicalRound ?? generation}`, reason, reservedContinuations,
       discarded: { queued: work.queued + (round?.discarded.queued ?? 0),
         running: work.running + (round?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : this.#advice.filter((advice) => advice.round === round).length,
         submitted: counts.submitted, uncertain: counts.uncertain, editPermits: counts.editPermits } });
@@ -1982,6 +1995,7 @@ export class ResidentServer {
       if (notice.partition === round.group) this.#releaseNoticeCooldown(key);
     }
     this.#reuse.discardPartition(round.group);
+    this.#bendPartitions.delete(round.group);
     for (const [key, ticket] of this.#tickets) if (ticket.partition === round.group) {
       this.#tickets.delete(key);
       this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
@@ -3436,12 +3450,14 @@ export class ResidentServer {
         socket.end(`${encodeCurrentResidentResponse({ status: "unsupported" })}\n`);
         return;
       }
+      this.#pruneCollectionTokenIds();
       void this.handle(decoded).then(async (response) => {
         await this.#responseGate(decoded.operation, response);
         await this.#beforeResponseHandoff?.();
         const sourceCurrent = await this.#handoffSourceCurrent(response);
         const selected = this.#responseForHandoff(decoded, response, sourceCurrent);
         const handoff = this.#reconcileFinishHandoff(decoded, response, selected, !socket.destroyed);
+        this.#pruneCollectionTokenIds();
         if (socket.destroyed) {
           if (handoff.status === "advice") this.releaseDelivery(handoff.token);
           if (handoff.status === "cleaned") this.#scheduleRetirementClose();

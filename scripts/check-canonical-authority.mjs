@@ -55,7 +55,7 @@ const consumedTags = matches(adapter, /"((?:Canonical|Ledger|Admission|Work|Disp
 // changed compiler layout or new consumed constructor forces a review.
 const compilerElidedTags = new Set([
   "RulePolicy.Words", "Canonical.StopScope",
-  "Retention.CleanupFacts", "Canonical.RetirePartition", "Ticket.Backend",
+  "Retention.CleanupFacts", "Canonical.ForgetAdmission", "Ticket.Backend",
   "Ticket.Capacity", "Ticket.Stale", "Ticket.Lost", "Delivery.SubmissionFacts",
 ]);
 const missingTags = new Set([...consumedTags].filter((name) => !generated.includes(`"${name}"`)));

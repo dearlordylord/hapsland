@@ -60,6 +60,11 @@ def without_counter(+group: Nat, +round: Nat,
             Bool.and(Nat.is_eq(group, candidate_group),
               Nat.is_eq(round, candidate_round)))
 
+def retire_round(state: State, group: Nat, round: Nat) -> State:
+  match state:
+    case State{slots, counters, submissions}:
+      State{slots, without_counter(group, round, counters), submissions}
+
 def set_count(state: State, +group: Nat, +round: Nat, used: Nat) -> State:
   match state:
     case State{slots, counters, submissions}:
