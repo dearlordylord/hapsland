@@ -1,3 +1,4 @@
+import { reviewCapacityView } from "./review-capacity-view";
 import { SimulationModel, initialSimulation, actSimulation, changeSimulation, tickSimulation, simulationView } from "./simulation";
 import { Schema } from "effect";
 import { Runtime, type Update } from "foldkit";
@@ -184,18 +185,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.strong([], [purposeLabels[entry.purpose]]),
           ` · ${entry.limits.map((limit) => limitLabels[limit]).join(" · ")}`,
         ]))),
-        h.h2([], ["Review capacity"]),
-        h.p([], [`All agents in this Hapsland process · ${projection.global.items}/${projection.limits.globalItems} work items · ${projection.global.bytes}/${projection.limits.globalBytes} reserved review bytes`]),
-        h.div([h.Class("capacity-bar"), h.Role("img"), h.AriaLabel(`${projection.global.bytes} of ${projection.limits.globalBytes} reserved review bytes`)], [
-          ...projection.charges.map((charge) => h.span([
-            h.Class(`capacity-segment agent-${charge.partition}`),
-            h.Style({ width: `${charge.bytes / projection.limits.globalBytes * 100}%` }),
-          ], [`Agent ${charge.partition}`])),
-          h.span([h.Class("capacity-free"), h.Style({ width: `${(projection.limits.globalBytes - projection.global.bytes) / projection.limits.globalBytes * 100}%` })], ["Free"]),
-        ]),
-        h.div([h.Class("capacity-rows")], projection.partitions.map((partition) => h.p([], [
-          `Agent ${partition.partition} · ${partition.items}/${projection.limits.partitionItems} work items · ${partition.bytes}/${projection.limits.partitionBytes} reserved bytes`,
-        ]))),
+        reviewCapacityView(h, projection),
         h.div([h.Class("canonical-controls")], [
           h.h3([], [scenario.name]),
           h.p([], [scenario.description]),
