@@ -130,11 +130,10 @@ try {
   );
   await panel.getByRole("button", { name: "Pause", exact: true }).click();
   await status("Paused");
+  const oldestDisplayed = Number((await panel.locator(".simulation-history button").first().innerText()).split(".")[0]);
   await panel.locator(".simulation-history button").first().click();
-  await page.waitForFunction(() =>
-    document
-      .querySelector("#monkey-business .simulation-details")
-      ?.textContent.includes('"sequence": 0'),
+  await page.waitForFunction((sequence) =>
+    document.querySelector("#monkey-business .simulation-details")?.textContent.includes(`"sequence": ${sequence}`), oldestDisplayed,
   );
   await panel
     .getByLabel("Edit interval (virtual ms)", { exact: true })
@@ -234,10 +233,16 @@ try {
   await panel.getByRole("button", { name: "Replay from start", exact: true }).click();
   await status("Replay reset to initial inputs");
   await status("virtual time 0 ms");
+  const appliedTimeline = panel.getByText("Applied control timeline (draft fields apply only when submitted)", { exact: true }).locator("..").locator("pre");
+  assert.deepEqual(JSON.parse(await appliedTimeline.textContent()).controls, []);
   await panel.getByRole("button", { name: "Single step", exact: true }).click();
   await status("One checked transition advanced");
   for (let index = 1; index < JSON.parse(fileReplay).endpoint.eventCount; index++) {
     await panel.getByRole("button", { name: "Single step", exact: true }).click();
+    if (index === Math.floor(JSON.parse(fileReplay).endpoint.eventCount / 2)) {
+      const shown = JSON.parse(await appliedTimeline.textContent()).controls;
+      assert.ok(shown.length < JSON.parse(fileReplay).controls.length);
+    }
   }
   await status("Replay reached its exact recorded endpoint");
   await status(`virtual time ${JSON.parse(fileReplay).endpoint.now} ms`);
@@ -253,7 +258,36 @@ try {
   await status("Replay reconstructed");
   await panel.getByRole("button", { name: "Go to bookmark", exact: true }).click();
   await page.waitForFunction((sequence) => document.querySelector(".simulation-inspection")?.textContent.includes(`Inspecting event ${sequence}`), bookmarkSequence);
+  const unfilteredHistoryCount = await panel.locator(".simulation-history button").count();
+  if (!(await panel.getByLabel("Diagram stage", { exact: true }).isVisible())) await panel.getByText("Inspect a diagram stage by keyboard", { exact: true }).click();
+  await panel.getByLabel("Diagram stage", { exact: true }).selectOption("round");
+  await panel.getByRole("button", { name: "Inspect selected stage", exact: true }).click();
+  await panel.getByRole("button", { name: "round #1", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector("#monkey-business")?.textContent.includes("Following round:1"));
+  assert.ok(await panel.locator(".simulation-history button").count() <= unfilteredHistoryCount);
+  await panel.getByRole("button", { name: "Clear lifecycle filter", exact: true }).click();
+  await page.waitForFunction((count) => document.querySelectorAll("#monkey-business .simulation-history button").length === count, unfilteredHistoryCount);
+  const simulationModule = `/@fs${fileURLToPath(new URL("../src/simulation.ts", import.meta.url))}`;
+  const identityCoverage = await page.evaluate(async ({ core, view }) => {
+    const { createRun } = await import(core);
+    const { followsRecord } = await import(view);
+    const isolated = createRun({ inputs: [{ kind: "edit", at: 1, bytes: 100, unitBytes: [100] }, { kind: "edit", at: 2, bytes: 100, unitBytes: [100] }] });
+    isolated.advance({ untilTime: 100, maxEvents: 100 });
+    return { total: isolated.observations.length, focused: isolated.observations.filter((frame) => followsRecord(frame, "operation:1")).length };
+  }, { core: publicModule, view: simulationModule });
+  assert.ok(identityCoverage.focused > 0);
+  assert.ok(identityCoverage.focused < identityCoverage.total);
   await panel.screenshot({ path: "/tmp/astra-ux-after.png" });
+  await panel.getByRole("button", { name: "Slow Jev scenario", exact: true }).click();
+  await panel.getByRole("button", { name: "Start / reset", exact: true }).click();
+  await status("Seeded session started");
+  for (let index = 0; index < 20; index++) await panel.getByRole("button", { name: "Single step", exact: true }).click();
+  if (!(await panel.getByLabel("Diagram stage", { exact: true }).isVisible())) await panel.getByText("Inspect a diagram stage by keyboard", { exact: true }).click();
+  await panel.getByLabel("Diagram stage", { exact: true }).selectOption("jev");
+  await panel.getByRole("button", { name: "Inspect selected stage", exact: true }).click();
+  await page.waitForFunction(() => [...document.querySelectorAll("#monkey-business button")].some((button) => /^request #/.test(button.textContent ?? "")));
+  await panel.getByRole("button", { name: /^request #/ }).first().click();
+  await page.waitForFunction(() => document.querySelector("#monkey-business")?.textContent.includes("Following request:"));
   assert.deepEqual(errors, []);
   console.log(
     "Simulation browser controls, existing diagram and inspection passed",

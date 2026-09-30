@@ -137,7 +137,14 @@ All Jev observations are simulated; no credentials or source files are needed.
    `50`. Click **Start / reset**, then **Single step**. Inspect the event,
    ordered commands, checked before/after projections and synthetic effects.
    **Resume** plays the same virtual engine; playback speed changes observation
-   pace without choosing random values or product policy.
+   pace without choosing random values or product policy. Edit the speed field
+   while running, including temporary empty text, dots or decimal values. The
+   **Active speed** remains in use until **Apply playback speed** accepts a finite
+   value from `0.01` to `1000`; `1.` applies as `1`. Invalid Apply preserves playback
+   and active settings, with a persistent validation message. Other numeric
+   drafts likewise require their Apply button. **Start / reset** applies initial
+   drafts together. Named Normal, Slow Jev, Failure → recovery and Capacity
+   pressure scenarios fill drafts and explain the next action.
 2. Pause and inject a burst of `5`. Step through preparation and overlapping
    review. History includes transitions without cross-square movement and
    ordinary Bend refusals, which are product outcomes rather than run errors.
@@ -149,10 +156,23 @@ All Jev observations are simulated; no credentials or source files are needed.
    browser driver; edit suspension stops future arrivals. Agent finish attempts
    appear as `stopPolled`; Hapsland's `finishAllowed*` command is a separate checked
    outcome. Suspension itself never emits a finish attempt.
-5. Pause and export replay. Copy **Replay JSON**, reset (or open a fresh browser),
+5. Click a history event to pause and inspect its time separately from the live
+   endpoint. Use Previous/Next, the retained-event timeline, Return to latest and
+   Bookmark. Click a diagram square, or use the collapsed keyboard stage picker,
+   to list identified records. Click a record to filter history to its lifecycle.
+   Pending advice counts exclude submitted records; retained submitted advice
+   stays visible until checked closure or expiry. The outcome summary counts
+   admitted observations, refusals/unavailability, failures and delivered advice
+   across the whole run, including records and display frames later retired.
+6. Pause and export replay. Copy **Replay JSON**, reset (or open a fresh browser),
    paste JSON and load. Loading reconstructs initial inputs and recorded controls
    to the recorded endpoint. The final frame is reproduced; identity mismatches
-   show an error. Intermediate branching is unsupported.
+   show an error. Download/Import replay file supports the same validated JSON
+   and preserves the bookmarked event. **Replay from start** rebuilds initial
+   inputs; Resume or Single step executes recorded controls and stops at the
+   exact saved endpoint, including metadata-only time/control changes. Drafts
+   remain editable while replaying, but new environment controls wait until
+   recorded replay completes. Intermediate branching is unsupported.
 
 Reservation size controls supply reservation/review-unit byte facts for checked
 admission. They do not establish native capture, evidence-tree, encoded-output
@@ -164,7 +184,9 @@ Each playback batch is bounded at 100 checked events. Browser replay loading
 accepts endpoints up to 100,000 events; larger runs require a headless consumer. The package retains the
 last 1000 observations and history buttons display the latest 100. Replay export
 keeps required inputs/controls independently of rendered history. Paused state
-is resumable. Invalid controls and replay identities appear in status.
+is resumable. Invalid controls and replay identities appear in status. The
+retained timeline covers 1000 frames; the button list covers 100. A bookmark
+outside retained display history can be recovered by replaying from start.
 
 Run `npm run test:simulation-browser` for focused offline browser checks;
 `npm run test:browser` covers existing examples. These validate UI wiring,

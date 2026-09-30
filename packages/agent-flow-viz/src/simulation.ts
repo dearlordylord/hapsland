@@ -23,7 +23,6 @@ export const SimulationModel = Schema.Struct({
   speed: Schema.String,
   replay: Schema.String,
   appliedSpeed: Schema.Number,
-  applied: Schema.String,
   filter: Schema.String,
   focus: Schema.String,
   stage: Schema.String,
@@ -46,7 +45,6 @@ export const initialSimulation: SimulationModel = {
   speed: "10",
   replay: "",
   appliedSpeed: 10,
-  applied: "No run started.",
   filter: "all",
   focus: "",
   stage: "advice",
@@ -77,6 +75,14 @@ class InputError extends Error {}
 const recordIdentity = (key: string) => {
   const [kind, id] = key.split(":");
   return `${["ready-advice", "lease-advice", "batch"].includes(kind) ? "advice" : ["work", "dispatch"].includes(kind) ? "operation" : kind}:${id}`;
+};
+export const followsRecord = (frame: Observation, identity: string) => {
+  const before = locateFlow(frame.before).filter((record) => recordIdentity(record.key) === identity);
+  const after = locateFlow(frame.after).filter((record) => recordIdentity(record.key) === identity);
+  if (JSON.stringify(before) !== JSON.stringify(after)) return true;
+  const [kind, id] = identity.split(":");
+  const field = kind === "operation" ? "operation" : kind === "slot" ? "group" : kind;
+  return field in frame.event && String((frame.event as unknown as Record<string, unknown>)[field]) === id;
 };
 let totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0 };
 const countFrame = (item: Observation) => {
@@ -364,7 +370,6 @@ export const actSimulation = (
       replay,
       selected,
       feedback,
-      applied: run ? JSON.stringify({ initial: run.exportReplay().config, controls: run.exportReplay().controls.map((entry) => ({ time: entry.time, ...entry.control })) }, null, 2) : model.applied,
       revision: model.revision + 1,
     };
   } catch (error) {
@@ -537,10 +542,10 @@ export const simulationView = <Message>(
       h.p([h.Class("simulation-outcomes")], [`Run outcomes: ${totals.checked} checked events · ${totals.admitted} observations admitted · ${totals.refused} refusals · ${totals.failed} failures/timeouts · ${totals.advice} delivered advice batches. ${run && model.suspended && !run.projection.work.some((work) => work.kind !== "pendingFinding") && run.projection.dispatch.requests.length === 0 && run.projection.collection.leases.length === 0 && !run.projection.delivery.slots.some((slot) => ["reserved", "authorized", "uncertain"].includes(slot.phase)) && !run.projection.delivery.submissions.batches.some((batch) => ["reserved", "authorized", "uncertain"].includes(batch.phase)) ? `Transient work settled; ${run.projection.collection.ready.length} retained advice records; arrivals suspended.` : "Work or future arrivals remain."}`]),
       h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · outcome ${latestControl("jevProfile")?.outcome ?? activeReplay.config.outcome ?? "finding"} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.session?.bytes ?? 100} bytes. Draft fields require Apply.` : "Start a run to apply environment settings."]),
       h.ul([h.Class("simulation-control-markers")], (activeReplay?.controls ?? []).slice(-20).map((entry) => h.li([], [`Control at ${entry.time} ms / event boundary ${entry.boundary}: ${JSON.stringify(entry.control)}`]))),
-      h.details([], [h.summary([], ["Applied control timeline (draft fields apply only when submitted)"]), h.pre([], [model.applied])]),
+      h.details([], [h.summary([], ["Applied control timeline (draft fields apply only when submitted)"]), h.pre([], [activeReplay ? JSON.stringify({ initial: activeReplay.config, controls: activeReplay.controls.map((entry) => ({ time: entry.time, ...entry.control })) }, null, 2) : "No run started."])]),
       h.details([], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
       ...(model.focus ? [button("Clear lifecycle filter", "focus:")] : []),
-      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after) ?? ""]), h.ul([], locateFlow(current.after).filter((record) => record.stage === model.focus).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
+      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after) ?? ""]), h.ul([], locateFlow(current.after).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
       ...(run
         ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`))]
         : []),
@@ -583,7 +588,7 @@ export const simulationView = <Message>(
       h.div(
         [h.Class("simulation-history")],
         observations
-          .filter((item) => !model.item || [...locateFlow(item.before), ...locateFlow(item.after)].some((record) => recordIdentity(record.key) === model.item))
+          .filter((item) => !model.item || followsRecord(item, model.item))
           .filter((item) => !model.focus || model.item || projectFlowStep({ event: item.event, commands: item.commands, before: item.before, after: item.after, rejection: item.rejection }).changedStages.includes(model.focus as (typeof PLACE_ORDER)[number]))
           .filter((item) => model.filter === "all" || item.rejection || item.commands.some((command) => /Refused$|Denied$|Unavailable$/.test(command.kind)) || /fail|timeout/i.test(JSON.stringify(item.event)))
           .slice(-100)
