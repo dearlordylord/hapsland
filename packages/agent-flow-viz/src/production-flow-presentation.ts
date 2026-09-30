@@ -29,8 +29,11 @@ export const SQUARES: Record<Place, Square> = {
     detail: (s) => `at Jev work ${ids(work(s, "atJev"))} · reserved request permits ${ids(s.dispatch.requests.map((x) => x.request))}` },
   outcomes: { title: "Review outcomes", owner: "BEND DECISION", x: 310, y: 322,
     detail: (s) => `pending finding operations ${ids(work(s, "pendingFinding"))} · ticket units ${s.tickets.flatMap((x) => x.units).map((x) => `#${x.id}:${x.stage}`).join(", ") || "none"}` },
-  advice: { title: "Pending advice", owner: "BEND STATE", x: 32, y: 322,
-    detail: (s) => `ready ${ids(s.collection.ready)} · leases ${ids(s.collection.leases.map((x) => x.advice))}` },
+  advice: { title: "Advice ready / retained", owner: "BEND STATE", x: 32, y: 322,
+    detail: (s) => {
+      const submitted = new Set(s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map((x) => x.advice));
+      return `pending ${s.collection.ready.filter((id) => !submitted.has(id)).length} · retained submitted ${s.collection.ready.filter((id) => submitted.has(id)).length} · ready IDs ${ids(s.collection.ready)} · leases ${s.collection.leases.length}`;
+    } },
   collection: { title: "Advice collection", owner: "BEND DECISION", x: 32, y: 592,
     detail: (s) => `waiting rounds ${ids(s.rounds.filter((x) => x.waiting).map((x) => x.id))}` },
   delivery: { title: "Host output", owner: "BEND + NATIVE EFFECT", x: 310, y: 592,

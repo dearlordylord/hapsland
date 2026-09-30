@@ -143,3 +143,7 @@ p { line-height: 1.5; }
 .simulation-details pre { max-height: 320px; overflow: auto; white-space: pre-wrap; }
 .simulation-history { max-height: 180px; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
 .simulation-history button { text-align: left; }
+
+.simulation-history button.selected { background: #dce9ff; border: 2px solid #547dc0; }
+.simulation-panel .topology-node { cursor: pointer; }
+.applied-speed { font-weight: 700; }

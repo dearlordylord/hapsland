@@ -155,8 +155,38 @@ try {
     undefined,
     { timeout: 5000 },
   );
-  await panel.getByRole("button", { name: "Pause", exact: true }).click();
+  const speed = panel.getByLabel("Playback speed (virtual ms / wall ms)", { exact: true });
+  for (const draft of ["", ".", "1.", "1..5", "2.5", "invalid"]) {
+    await speed.selectText();
+    await speed.press("Backspace");
+    if (draft) await speed.pressSequentially(draft, { delay: 100 });
+    await page.waitForTimeout(150);
+    await status("Running");
+    assert.equal(await speed.inputValue(), draft);
+    assert.equal(await speed.evaluate((element) => element === document.activeElement), true);
+    assert.match(await panel.locator(".applied-speed").innerText(), /Active speed: 1×/);
+  }
+  await panel.getByRole("button", { name: "Apply playback speed", exact: true }).click();
+  await status("Playback speed must be a number");
+  await page.waitForTimeout(250);
+  await status("Playback speed must be a number");
+  await status("Running");
+  await speed.fill(".5");
+  await panel.getByRole("button", { name: "Apply playback speed", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector(".applied-speed")?.textContent.includes("0.5×"));
+  await status("Running");
+  await panel.getByLabel("Edit interval (virtual ms)", { exact: true }).fill(".");
+  await panel.getByRole("button", { name: "Apply edit pace", exact: true }).click();
+  await status("Edit pace must be an integer");
+  await status("Running");
+  await panel.locator(".simulation-history button").first().click();
   await status("Paused");
+  assert.match(await panel.locator(".simulation-inspection").innerText(), /Inspecting event 0/);
+  await panel.getByRole("button", { name: "Next event", exact: true }).click();
+  await panel.getByRole("button", { name: "Bookmark event", exact: true }).click();
+  await panel.getByRole("button", { name: "Return to latest", exact: true }).click();
+  await panel.getByRole("button", { name: "Go to bookmark", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector(".simulation-inspection")?.textContent.includes("Inspecting event 1"));
   const publicModule = `/@fs${fileURLToPath(new URL("../../monkey-business/src/index.ts", import.meta.url))}`;
   const metadataReplay = await page.evaluate(async (moduleUrl) => {
     const { createRun } = await import(moduleUrl);
@@ -189,6 +219,41 @@ try {
   assert.deepEqual(loadedMetadataReplay.controls, metadataReplay.controls);
   await panel.getByRole("button", { name: "Single step", exact: true }).click();
   await status("One checked transition advanced");
+  await panel.getByRole("button", { name: "Bookmark event", exact: true }).click();
+  await panel.getByRole("button", { name: "Export replay", exact: true }).click();
+  await status("Replay inputs exported");
+  const fileReplay = await panel.getByLabel("Replay JSON", { exact: true }).inputValue();
+  const bookmarkSequence = JSON.parse(fileReplay).endpoint.eventCount - 1;
+  assert.equal(JSON.parse(fileReplay).dashboard.bookmark, bookmarkSequence);
+  const downloadPromise = page.waitForEvent("download");
+  await panel.getByRole("button", { name: "Download replay file", exact: true }).click();
+  const download = await downloadPromise;
+  assert.equal(download.suggestedFilename(), "hapsland-simulation-replay.json");
+  const replayFilePath = "/tmp/hapsland-simulation-browser-replay.json";
+  await download.saveAs(replayFilePath);
+  await panel.getByRole("button", { name: "Replay from start", exact: true }).click();
+  await status("Replay reset to initial inputs");
+  await status("virtual time 0 ms");
+  await panel.getByRole("button", { name: "Single step", exact: true }).click();
+  await status("One checked transition advanced");
+  for (let index = 1; index < JSON.parse(fileReplay).endpoint.eventCount; index++) {
+    await panel.getByRole("button", { name: "Single step", exact: true }).click();
+  }
+  await status("Replay reached its exact recorded endpoint");
+  await status(`virtual time ${JSON.parse(fileReplay).endpoint.now} ms`);
+  await panel.getByRole("button", { name: "Export replay", exact: true }).click();
+  await status("Replay inputs exported");
+  assert.deepEqual(JSON.parse(await panel.getByLabel("Replay JSON", { exact: true }).inputValue()).endpoint, JSON.parse(fileReplay).endpoint);
+  const chooserPromise = page.waitForEvent("filechooser");
+  await panel.getByRole("button", { name: "Import replay file", exact: true }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles(replayFilePath);
+  await page.waitForFunction((raw) => document.querySelector("#monkey-business textarea")?.value === raw, fileReplay);
+  await panel.getByRole("button", { name: "Load replay", exact: true }).click();
+  await status("Replay reconstructed");
+  await panel.getByRole("button", { name: "Go to bookmark", exact: true }).click();
+  await page.waitForFunction((sequence) => document.querySelector(".simulation-inspection")?.textContent.includes(`Inspecting event ${sequence}`), bookmarkSequence);
+  await panel.screenshot({ path: "/tmp/astra-ux-after.png" });
   assert.deepEqual(errors, []);
   console.log(
     "Simulation browser controls, existing diagram and inspection passed",

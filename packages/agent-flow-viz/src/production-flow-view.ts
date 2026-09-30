@@ -140,6 +140,7 @@ const routeGeometry = (route: Route, offset: number) => {
 export const productionFlowView = <Message>(
   h: HtmlBuilder<Message>, projection: CanonicalProjection, last: ReplayStep | undefined,
   showcase: boolean,
+  inspect?: (place: (typeof PLACE_ORDER)[number]) => Message,
 ) => {
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
   const event = last?.rejection === undefined ? last?.event.kind : undefined;
@@ -200,7 +201,7 @@ export const productionFlowView = <Message>(
           const point = PLACES[node.id];
           const palette = node.owner.includes("NATIVE") ? { fill: "#edf1f6", stroke: "#7d8da2" }
             : { fill: "#e9f1ff", stroke: "#547dc0" };
-          return h.g([h.Class(`topology-node ${flow.changedStages.includes(node.id) ? "active" : ""}`)], [
+          return h.g([h.Class(`topology-node ${flow.changedStages.includes(node.id) ? "active" : ""}`), ...(inspect ? [h.OnClick(inspect(node.id))] : [])], [
             h.title([], [`${node.title}: ${node.detail}`]),
             h.rect([h.X(String(point.x)), h.Y(String(point.y)), h.Width(String(NODE_WIDTH)),
               h.Height(String(NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
