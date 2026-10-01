@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Source-free inventory of bounded real-host validation runs for cross-file review and advice delivery.",
+  "implementationCommit": "b00278cff02f260feccf033abe19a7f4c97e9c06",
+  "primary": [
+    {
+      "file": "claude-controlled-offline-1790832544805.json",
+      "runtime": "Claude Code",
+      "mode": "controlled-offline",
+      "recordedCommit": "b00278cff02f260feccf033abe19a7f4c97e9c06",
+      "cleanProductSource": true,
+      "verdict": "demonstrated",
+      "providerCalls": 0
+    },
+    {
+      "file": "codex-controlled-offline-1790832449583.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "b00278cff02f260feccf033abe19a7f4c97e9c06",
+      "cleanProductSource": true,
+      "verdict": "demonstrated",
+      "providerCalls": 0
+    },
+    {
+      "file": "claude-live-jev-1790832594190.json",
+      "runtime": "Claude Code",
+      "mode": "live-jev",
+      "recordedCommit": "b00278cff02f260feccf033abe19a7f4c97e9c06",
+      "cleanProductSource": true,
+      "verdict": "demonstrated",
+      "providerCalls": 2
+    },
+    {
+      "file": "codex-live-jev-1790832582778.json",
+      "runtime": "Codex CLI",
+      "mode": "live-jev",
+      "recordedCommit": "b00278cff02f260feccf033abe19a7f4c97e9c06",
+      "cleanProductSource": true,
+      "verdict": "demonstrated",
+      "providerCalls": 2
+    }
+  ],
+  "other": [
+    {
+      "file": "claude-controlled-offline-1790832451343.json",
+      "runtime": "Claude Code",
+      "mode": "controlled-offline",
+      "recordedCommit": "b00278cff02f260feccf033abe19a7f4c97e9c06",
+      "cleanProductSource": true,
+      "verdict": "incomplete",
+      "providerCalls": 0,
+      "incompleteChecks": [
+        "followupObserved"
+      ],
+      "preparationFailures": [
+        "ambiguous-update"
+      ]
+    },
+    {
+      "file": "claude-controlled-offline.json",
+      "runtime": "Claude Code",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "demonstrated",
+      "providerCalls": 0
+    },
+    {
+      "file": "claude-live-jev-1790831790839.json",
+      "runtime": "Claude Code",
+      "mode": "live-jev",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "incomplete",
+      "amendedVerdict": "demonstrated",
+      "providerCalls": 2,
+      "incompleteChecks": [
+        "findingDelivered",
+        "editAfterFinding",
+        "followupObserved"
+      ],
+      "preparationFailures": []
+    },
+    {
+      "file": "codex-controlled-offline-1790831101978.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "incomplete",
+      "providerCalls": 0,
+      "incompleteChecks": [
+        "followupObserved"
+      ],
+      "preparationFailures": []
+    },
+    {
+      "file": "codex-controlled-offline-1790831220841.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "incomplete",
+      "providerCalls": 0,
+      "incompleteChecks": [
+        "followupObserved"
+      ],
+      "preparationFailures": []
+    },
+    {
+      "file": "codex-controlled-offline-1790831283711.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "incomplete",
+      "providerCalls": 0,
+      "incompleteChecks": [
+        "followupObserved"
+      ],
+      "preparationFailures": [
+        "ambiguous-update"
+      ]
+    },
+    {
+      "file": "codex-controlled-offline-1790831399158.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "incomplete",
+      "providerCalls": 0,
+      "incompleteChecks": [
+        "followupObserved"
+      ],
+      "preparationFailures": [
+        "ambiguous-update"
+      ]
+    },
+    {
+      "file": "codex-controlled-offline-1790831466092.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "incomplete",
+      "providerCalls": 0,
+      "incompleteChecks": [
+        "followupObserved"
+      ],
+      "preparationFailures": [
+        "ambiguous-update"
+      ]
+    },
+    {
+      "file": "codex-controlled-offline-1790831591634.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "incomplete",
+      "providerCalls": 0,
+      "incompleteChecks": [
+        "followupObserved"
+      ],
+      "preparationFailures": [
+        "ambiguous-update"
+      ]
+    },
+    {
+      "file": "codex-controlled-offline-1790831655141.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "incomplete",
+      "providerCalls": 0,
+      "incompleteChecks": [
+        "followupObserved"
+      ],
+      "preparationFailures": [
+        "ambiguous-update"
+      ]
+    },
+    {
+      "file": "codex-controlled-offline-1790831731181.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "demonstrated",
+      "providerCalls": 0
+    },
+    {
+      "file": "codex-controlled-offline.json",
+      "runtime": "Codex CLI",
+      "mode": "controlled-offline",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "incomplete",
+      "providerCalls": 0,
+      "incompleteChecks": [
+        "followupObserved"
+      ],
+      "preparationFailures": []
+    },
+    {
+      "file": "codex-live-jev-1790831962329.json",
+      "runtime": "Codex CLI",
+      "mode": "live-jev",
+      "recordedCommit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+      "cleanProductSource": false,
+      "verdict": "demonstrated",
+      "providerCalls": 2
+    }
+  ],
+  "interpretation": {
+    "demonstrated": "Native host edited a synthetic project, Hapsland included the support declaration, advice was delivered, the agent repaired the type, and a follow-up review result was observed.",
+    "incomplete": "A recorded attempt did not satisfy every check; it is not evidence that the full path completed.",
+    "claudeAttributionLimit": "One clean-commit controlled Claude repair used an Edit whose post-image could not be attributed to one type, so the follow-up remained incomplete. Another clean-commit controlled run and a clean-commit live run completed.",
+    "codexFix": "Earlier controlled Codex attempts exposed text-form success and an absolute Update path; the adapter fix was followed by clean-commit controlled and live passes.",
+    "amendedClaudeLive": "The earlier live Claude record retains its original incomplete classification and an explicit amendment. The clean-commit live run completed without an amendment."
+  },
+  "sourceRetained": false,
+  "providerBodiesRetained": false,
+  "credentialsRetained": false
+}

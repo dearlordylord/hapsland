@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-01T05:11:06.088Z",
+  "commit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+  "runtime": "Codex CLI",
+  "version": "codex-cli 0.155.1",
+  "mode": "controlled-offline",
+  "declaration": {
+    "maximumProviderRequests": 6,
+    "automaticRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 33520,
+  "providerCalls": 0,
+  "requestShapes": [
+    {
+      "rootKind": "type-alias",
+      "evidenceNodes": 1,
+      "expandedEdges": 1,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    }
+  ],
+  "postEditPreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1
+  },
+  "nativeUpdatePreparation": {
+    "status": "incomplete",
+    "pathReasons": [],
+    "analysisFailures": [
+      "ambiguous-update"
+    ],
+    "readyUnits": 0,
+    "operations": [
+      "update"
+    ]
+  },
+  "nativeResponseShape": {
+    "responseType": "string",
+    "responseKeys": [],
+    "explicitSuccess": false,
+    "successWord": true,
+    "failureWord": false,
+    "verifiedHunks": null,
+    "patchPathAbsolute": true,
+    "patchPathRelativeMatch": false,
+    "patchPathInsideRepo": true,
+    "patchHasCarriageReturn": false
+  },
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 10932
+    },
+    {
+      "stage": "pending",
+      "atMs": 10986
+    },
+    {
+      "stage": "findings",
+      "atMs": 11030
+    },
+    {
+      "stage": "pending",
+      "atMs": 29085
+    },
+    {
+      "stage": "incomplete",
+      "atMs": 29108
+    }
+  ],
+  "hookEvents": [
+    {
+      "kind": "prompt",
+      "atMs": 4039,
+      "durationMs": 655,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 10178,
+      "durationMs": 345,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0
+    },
+    {
+      "kind": "background",
+      "atMs": 10559,
+      "durationMs": 367,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "edit",
+      "atMs": 10551,
+      "durationMs": 393,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "stop",
+      "atMs": 13645,
+      "durationMs": 461,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "ruleIds": [
+        "r6_bare_domain_value"
+      ],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 28364,
+      "durationMs": 330,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "edit",
+      "atMs": 28726,
+      "durationMs": 378,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 126
+    },
+    {
+      "kind": "background",
+      "atMs": 28728,
+      "durationMs": 2419,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 126
+    },
+    {
+      "kind": "stop",
+      "atMs": 31941,
+      "durationMs": 336,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 126
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "crossFileExpanded": true,
+    "findingDelivered": true,
+    "editAfterFinding": true,
+    "agentAcknowledgesAdvice": true,
+    "agentNamesRule": true,
+    "sourceChanged": true,
+    "sourceCompiles": true,
+    "rawNumberRejected": true,
+    "followupObserved": false
+  },
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false,
+  "hostBytesDiscarded": 4881,
+  "verdict": "incomplete"
+}

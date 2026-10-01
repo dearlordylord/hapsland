@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-01T05:16:30.834Z",
+  "commit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+  "runtime": "Claude Code",
+  "version": "2.1.218 (Claude Code)",
+  "mode": "live-jev",
+  "declaration": {
+    "maximumProviderRequests": 6,
+    "automaticRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 47159,
+  "providerCalls": 2,
+  "requestShapes": [
+    {
+      "provider": true,
+      "expandedEvidence": true,
+      "supportDeclarationPresent": true,
+      "bytes": 15871
+    },
+    {
+      "provider": true,
+      "expandedEvidence": true,
+      "supportDeclarationPresent": true,
+      "bytes": 15908
+    }
+  ],
+  "postEditPreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1
+  },
+  "nativeUpdatePreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1,
+    "operations": [
+      "update"
+    ]
+  },
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 12701
+    },
+    {
+      "stage": "pending",
+      "atMs": 12770
+    },
+    {
+      "stage": "findings",
+      "atMs": 13019
+    },
+    {
+      "stage": "pending",
+      "atMs": 27059
+    },
+    {
+      "stage": "pending",
+      "atMs": 27139
+    },
+    {
+      "stage": "findings",
+      "atMs": 27356
+    }
+  ],
+  "hookEvents": [
+    {
+      "kind": "prompt",
+      "atMs": 1013,
+      "durationMs": 730,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 11848,
+      "durationMs": 382,
+      "event": "PreToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0
+    },
+    {
+      "kind": "background",
+      "atMs": 12264,
+      "durationMs": 420,
+      "event": "PostToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "edit",
+      "atMs": 12265,
+      "durationMs": 862,
+      "event": "PostToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": "block",
+      "finding": false,
+      "ruleIds": [
+        "r7_name_wider_than_type"
+      ],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 26208,
+      "durationMs": 385,
+      "event": "PreToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "background",
+      "atMs": 26644,
+      "durationMs": 822,
+      "event": "PostToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [
+        "r7_name_wider_than_type"
+      ],
+      "initial": false,
+      "sourceBytes": 115
+    },
+    {
+      "kind": "edit",
+      "atMs": 26644,
+      "durationMs": 4167,
+      "event": "PostToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 115
+    },
+    {
+      "kind": "stop",
+      "atMs": 46121,
+      "durationMs": 380,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 115
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "crossFileExpanded": true,
+    "findingDelivered": false,
+    "editAfterFinding": false,
+    "agentAcknowledgesAdvice": true,
+    "agentNamesRule": false,
+    "sourceChanged": true,
+    "sourceCompiles": true,
+    "rawNumberRejected": true,
+    "followupObserved": false
+  },
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false,
+  "hostBytesDiscarded": 155758,
+  "verdict": "incomplete",
+  "amendment": {
+    "madeAt": "2026-10-01T05:20:04.586Z",
+    "reason": "Original runner classified finding only for controlled r6; live Jev returned r7. Original verdict and checks remain above.",
+    "correctedChecks": {
+      "findingDelivered": true,
+      "editAfterFinding": true,
+      "followupObserved": true
+    },
+    "basis": {
+      "deliveredRuleIds": [
+        "r7_name_wider_than_type"
+      ],
+      "findingAtMs": 12265,
+      "repairAtMs": 26644,
+      "followupStage": "findings",
+      "followupAtMs": 27356
+    },
+    "correctedVerdict": "demonstrated"
+  }
+}

@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-01T05:08:03.707Z",
+  "commit": "9f38e7e067f5e4bc12f07370d9ece4d6cee027af",
+  "runtime": "Codex CLI",
+  "version": "codex-cli 0.155.1",
+  "mode": "controlled-offline",
+  "declaration": {
+    "maximumProviderRequests": 6,
+    "automaticRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 32184,
+  "providerCalls": 0,
+  "requestShapes": [
+    {
+      "rootKind": "type-alias",
+      "evidenceNodes": 1,
+      "expandedEdges": 1,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    }
+  ],
+  "postEditPreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1
+  },
+  "nativeUpdatePreparation": {
+    "status": "incomplete",
+    "pathReasons": [],
+    "analysisFailures": [
+      "ambiguous-update"
+    ],
+    "readyUnits": 0,
+    "operations": [
+      "update"
+    ]
+  },
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 10209
+    },
+    {
+      "stage": "pending",
+      "atMs": 10266
+    },
+    {
+      "stage": "findings",
+      "atMs": 10315
+    },
+    {
+      "stage": "pending",
+      "atMs": 26556
+    },
+    {
+      "stage": "incomplete",
+      "atMs": 26589
+    }
+  ],
+  "hookEvents": [
+    {
+      "kind": "prompt",
+      "atMs": 3087,
+      "durationMs": 645,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 9453,
+      "durationMs": 366,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0
+    },
+    {
+      "kind": "background",
+      "atMs": 9861,
+      "durationMs": 350,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "edit",
+      "atMs": 9848,
+      "durationMs": 373,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "stop",
+      "atMs": 12548,
+      "durationMs": 433,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "ruleIds": [
+        "r6_bare_domain_value"
+      ],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 25804,
+      "durationMs": 347,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 78
+    },
+    {
+      "kind": "edit",
+      "atMs": 26179,
+      "durationMs": 389,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 121
+    },
+    {
+      "kind": "background",
+      "atMs": 26184,
+      "durationMs": 2375,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 121
+    },
+    {
+      "kind": "stop",
+      "atMs": 30873,
+      "durationMs": 360,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 121
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "crossFileExpanded": true,
+    "findingDelivered": true,
+    "editAfterFinding": true,
+    "agentAcknowledgesAdvice": true,
+    "agentNamesRule": true,
+    "sourceChanged": true,
+    "sourceCompiles": true,
+    "rawNumberRejected": true,
+    "followupObserved": false
+  },
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false,
+  "hostBytesDiscarded": 4853,
+  "verdict": "incomplete"
+}
