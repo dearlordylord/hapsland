@@ -98,6 +98,7 @@ try {
   const elements = (model, name) => descendants(main.view(model, inertHtml).body)
     .filter((node) => node.data?.class?.[name]);
   const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
+  const visibleLabels = (node) => (node.children ?? []).slice(1).map(labels).join(" "); // SVG title is first child.
   assert.equal(elements(initial, "topology-node").length, 14);
   assert.equal(elements(initial, "topology-route").length, 25);
   assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
@@ -128,16 +129,21 @@ try {
       assert.equal(step.after.rounds.length, 0, "pre-edit permit alone must not open a round");
       assert.match(labels(main.view(showcase, inertHtml).body), /1 edit permit: Permit #1/);
       assert.match(labels(main.view(showcase, inertHtml).body), /Before the edit.*Bend issued a permit.*No virtual round is open yet/);
+      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity"))), /NOW · Permit #1 issued/);
     }
     if (index === 1) {
       assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
       assert.match(labels(main.view(showcase, inertHtml).body), /0 edit permits/);
       assert.match(labels(main.view(showcase, inertHtml).body), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/);
+      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Round state"))), /NOW · Round #1 opened with edit #1/);
     }
+    if (index === 2) assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Awaiting source read"))),
+      /NOW · Source #1 admitted · Round #1/);
     if (index === 5) {
       const nodes = elements(showcase, "topology-node");
       assert.match(labels(nodes.find((node) => labels(node).includes("Agent edit"))), /NOW · edit #2 accepted/);
       assert.match(labels(nodes.find((node) => labels(node).includes("Admission & capacity"))), /NOW · permit #2 used/);
+      assert.match(labels(nodes.find((node) => labels(node).includes("Round state"))), /NOW · edit #2 joined Round #1/);
       assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
       assert.equal(step.after.work.length, 1, "the accepted edit has no second source work until admission");
     }
@@ -200,7 +206,9 @@ try {
     if (index === 20) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
     if (index === 25) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
     if (index === 26) {
-      assert.ok(active.some((route) => labels(route).includes("retain finding command")));
+      assert.ok(!active.some((route) => labels(route).includes("retain finding command")));
+      assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+        /CMD · retain finding for Review item #1/);
       const admission = labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity")));
       assert.match(admission, /1 stored result charge: Stored result charge #1/);
       assert.match(admission, /NOW · Unit charge #1 → stored/);
@@ -208,8 +216,17 @@ try {
     if (index === 27) {
       assert.deepEqual(step.after.collection.ready, [4], "Bend links ready advice to its finding work and edit");
       assert.ok(active.some((route) => labels(route).includes("Bend marked Advice #1/operation 4 ready from Review item #1/operation 4")));
+      assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Ready advice"))),
+        /NOW · Advice #1 ← Review item #1/);
     }
-    if (index === 30) assert.deepEqual(step.after.collection.ready, [4], "advice for edit #2 waits for its other review item");
+    if (index === 29) {
+      assert.deepEqual(step.after.collection.ready, [4], "advice for edit #2 waits for its other review item");
+      assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+        /1 waiting · Review #2→#3.*CMD · retain Review #2; waits for #3/s);
+      assert.ok(!active.some((route) => labels(route).includes("Bend marked Advice #2")));
+    }
+    if (index >= 30 && index <= 34) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+      /1 waiting · Review #2→#3/, "the earlier finding and its unfinished sibling remain visible until clear");
     if (index === 35) {
       assert.equal(step.event.kind, "jevRequestSettled");
       assert.equal(step.event.outcome, "clear");
@@ -222,8 +239,38 @@ try {
     }
     if (index === 36) assert.doesNotMatch(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
       /Review item #3 clear/, "the clear marker is transient");
-    if (index === 37) assert.deepEqual(step.after.collection.ready, [6, 4],
-      "advice for edit #2 becomes ready after its clear sibling settles");
+    if (index === 37) {
+      assert.deepEqual(step.after.collection.ready, [6, 4],
+        "advice for edit #2 becomes ready after its clear sibling settles");
+      assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Ready advice"))),
+        /NOW · Advice #2 ← Review item #2/);
+      showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "advice" }));
+      assert.match(labels(elements(showcase, "flow-stage-inspector")[0]),
+        /Advice #2.*Review item #2.*edit observation #2/s);
+    }
+    const stopCaption = new Map([
+      [38, /Stop decision ready; this step does not reserve or send output/],
+      [39, /Advice #1 leased for collection; still ready/],
+      [40, /Advice #2 leased for collection; still ready/],
+      [41, /Stop output slot reserved for 2 selected advice groups; output is not yet authorized/],
+      [42, /Advice #1 submission reserved for Stop output; no host write is established/],
+      [43, /Advice #2 submission reserved for Stop output; no host write is established/],
+      [44, /Stop output authorized; no host write is established/],
+      [45, /Advice #1 submission authorized; acknowledgment remains to be checked/],
+      [46, /Advice #2 submission authorized; acknowledgment remains to be checked/],
+      [47, /Acknowledgment gate passed for 2 items; no host write is observed by this step/],
+      [48, /Advice #1 submission recorded as certain/],
+      [49, /Advice #2 submission recorded as certain/],
+      [50, /Stop result recorded as acknowledged; agent use of advice is not observed/],
+    ]).get(index);
+    if (stopCaption !== undefined) assert.match(labels(elements(showcase, "topology-current-step")[0]), stopCaption);
+    if (index === 44) assert.ok(labels(main.view(showcase, inertHtml).body).includes("Advice output authorized"));
+    if (index === 43) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),
+      /2 batches · #1:reserved, #2:reserved/);
+    if (index === 45) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),
+      /2 batches · #1:authorized, #2:reserved/);
+    if (index === 46) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),
+      /2 batches · #1:authorized, #2:authorized/);
     if (index === 39) assert.ok(active.some((route) => labels(route).includes("Advice #1/operation 4 leased; still ready")));
     if (index === 44) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
     if (index === 50) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
@@ -245,7 +292,9 @@ try {
   };
   const findingView = replayAt("finding is a distinct observed request result and duplicate is rejected", 7);
   const findingRoutes = elements(findingView, "topology-route").filter((node) => node.data.class.active);
-  assert.ok(findingRoutes.some((node) => labels(node).includes("retain finding command; storage not observed")));
+  assert.ok(!findingRoutes.some((node) => labels(node).includes("retain finding command; storage not observed")));
+  assert.match(labels(elements(findingView, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+    /CMD · retain finding for Review item/);
   assert.equal(elements(findingView, "topology-node").filter((node) =>
     node.data.class.active && labels(node).includes("Pending advice")).length, 0,
   "retainFinding command alone cannot mark advice as stored");

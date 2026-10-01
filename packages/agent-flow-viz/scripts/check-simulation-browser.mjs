@@ -552,7 +552,7 @@ try {
   const waitingSourceSquare = panel.locator(".topology-node").filter({ hasText: "Awaiting source read" });
   assert.match(await waitingSourceSquare.locator(".topology-facet").first().textContent(), /^50 pending source reads/);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Read & prepare source" }).locator(".topology-facet").count(), 2);
-  assert.equal(await panel.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).locator(".topology-facet").count(), 3);
+  assert.equal(await panel.locator(".topology-node").filter({ hasText: "Ready advice" }).locator(".topology-facet").count(), 3);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Host output" }).locator(".topology-facet").count(), 4);
   const presentationModule = `/@fs${fileURLToPath(new URL("../src/production-flow-presentation.ts", import.meta.url))}`;
   const metrics = await page.evaluate(async ({ core, presentation }) => {

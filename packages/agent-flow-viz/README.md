@@ -61,12 +61,10 @@ events use the same adapter. Rewind, redo, and history jumps replay every event
 from the checked initial state; rejected Bend events remain in the history with
 unchanged state. Malformed events are refused before reaching Bend.
 
-The default guided case starts with `openRound` for the first edit. Its step
-panel explains the production cause: the resident receives an attributed edit,
-checks and consumes an edit permit, then observation admission asks the canonical
-ledger for a round. The ledger emits `openRound` if that partition has no round
-ID yet. The source-free trace supplies `openRound` directly and omits the native
-arrival and permit events.
+The default guided case starts with an edit permit. The first accepted edit
+consumes that permit and opens the virtual round in the same Bend transition;
+the next observation-admission event creates source work. The source-free trace
+shows these reducer events but omits the agent-runtime hook payloads.
 It then follows both findings through advice leases, acknowledged output,
 finalization, and round retirement. At its last step, the checked projection
 has no active round, work, capacity charges, ready advice, leases, submission
@@ -158,17 +156,47 @@ state, stage inference, or possible routes.
 
 In the default guided example, step 27 shows Review item #1's finding. The
 Admission & capacity square displays its unit charge becoming a stored result
-charge. The retain-finding route is a command; Bend first marks the advice ready
-at step 28 after checking its finding, edit, and remaining work. Step 36 shows Review item #3's
-`clear` in Review outcomes and releases its unit charge without making advice.
-The finding from the same edit becomes ready advice at step 38, after both
-review items have finished. These are interactive replay cases for #147 owner
-inspection.
+charge. The retain-finding command appears in Review outcomes; the route to
+Ready advice lights at step 28 after Bend checks the finding, edit, remaining
+work, and supplied joined-work status. The Ready advice square names Review
+item #1 as its source. Review item #2's finding at step 30 stays visible with
+its unfinished sibling Review item #3. Step 36 reports `clear` for that sibling
+and releases its unit charge without making advice. Step 38 explicitly shows
+`Advice #2 ← Review item #2`; the Ready advice count is labeled `awaiting
+delivery`. These are interactive replay cases for #147 owner inspection.
 The other named owner-review panels are [ninth Jev request refusal](docs/assets/production-flow-inferred-jev-refusal.png)
 (guided step 29/34: eight in flight, immediate unavailable command, no Jev
 queue) and [Stop wait](docs/assets/production-flow-inferred-stop-wait.png)
 ("many units admit in order and Stop waits," step 4/7: `waitForWork`
 at collection while the round remains active).
+
+## Guided-scenario adjacency
+
+Review guided scenarios as sequences, not only as individually correct steps.
+Adjacent events can suggest a cause that the checked state does not support.
+For every visible increase, decrease, or arrow, identify the source record by
+stable ID, the event that changed it, and any earlier event that made the change
+possible. When a later result merely removes a blocker, the scenario must keep
+the earlier source of the resulting item visible or state that lineage at the
+transition. Do not reorder events solely to make an ambiguous sequence look
+causal; preserve useful cases where a finding waits for another review, and
+make the waiting relationship explicit. A command, a native attempt, and an
+observed result remain separate steps even when adjacent.
+
+In the default replay, steps 27–28 distinguish `retainFinding` from advice
+readiness; steps 30–38 are the stronger adjacency risk. Review item #2's finding
+is the source of Advice #2. Review item #3's `clear` removes the last unfinished
+review for the same edit; it does not create that advice. At step 38, the
+`collectionReady` check also uses the resident-supplied joined-work fact. The
+delivery sequence at steps 42–51 similarly distinguishes a reserved Stop slot,
+authorized submissions, and acknowledged output; proximity alone does not
+prove a host write or use of advice by the agent. Recheck these relationships
+whenever the default event order or square presentation changes.
+The default diagram shows each Stop-output phase in a visible current-step
+caption. `finishAuthorized` lights the `Advice output authorized` branch;
+`deliveryAckReady` reports only that an acknowledgment check passed. The
+following terminal events separately record each advice submission and the
+Stop result. The showcase has no native host-write observation event.
 
 Run `npm run build` for TypeScript, checked connection evidence, projection, compiled inventory, and Vite
 checks. Run `npm run test:browser` for Chromium controls. The workspace may

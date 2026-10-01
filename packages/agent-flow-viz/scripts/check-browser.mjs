@@ -108,7 +108,7 @@ try {
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "round #1 retired" }).count(), 1);
   await advanceGuided(60, 63, 63);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Round state" }).textContent(), /0 active rounds/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /0 pending ready/);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Ready advice" }).textContent(), /0 awaiting delivery/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Review outcomes" }).textContent(), /0 finding work/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Host output" }).textContent(), /0 finish slots.*0 submitted advice/s);
   assert.match(await page.locator(".topology-capacities").innerText(), /Review capacity ledger: 0\/3 items; 0\/100 bytes/);
@@ -257,7 +257,7 @@ try {
   await advanceGuided(1, 4, 7);
   await waitForText(".canonical-progress", "Guided step 4 of 7");
   assert.equal(await page.locator(".finish-branch.active").filter({ hasText: "Wait for work" }).count(), 1);
-  assert.match(await page.locator(".finish-decision").innerText(), /Continue with advice.*Allow finish.*Cancel unfinished work/s);
+  assert.match(await page.locator(".finish-decision").innerText(), /Advice output authorized.*Continuation consumed.*Allow finish.*Cancel unfinished work/s);
   await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "deadline requests exact cancellations" });
   await waitForText(".canonical-progress", "Guided step 0 of 4");
   await advanceGuided(1, 3, 4);
@@ -290,9 +290,9 @@ try {
     for (const command of event.expect.split(","))
       assert.ok((await page.locator(".topology-step").innerText()).includes(command), `fixture step ${index}: ${command}`);
     if ([12, 13, 14, 15, 16, 18].includes(index))
-      assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /1 lease: Advice #1\/operation 3/);
+      assert.match(await page.locator(".topology-node").filter({ hasText: "Ready advice" }).textContent(), /1 lease: Advice #1\/operation 3/);
     if ([17, 19, 20].includes(index))
-      assert.match(await page.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).textContent(), /0 leases/);
+      assert.match(await page.locator(".topology-node").filter({ hasText: "Ready advice" }).textContent(), /0 leases/);
     if (event.kind === "reviewCompleted")
       assert.match(await page.locator(".topology-unmapped-relations").innerText(), /Review work items → Review outcomes/);
     if (index === 11)
