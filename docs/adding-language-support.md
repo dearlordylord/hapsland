@@ -73,6 +73,47 @@ The native run bypassed trust for a vetted disposable hook and did not validate
 normal trust or the installed package. Provider metadata is not a language or
 agent-runtime support target.
 
+## What Bend added
+
+Bend's third-language profile uses `datatype` rather than disguising its roots
+as Rust enums. A bounded TypeScript surface extractor needs no new native
+parser binary and never runs the compiler or imports edited code. The local
+Bend compiler source and `bend-idea`
+surface parser informed the implementation; reproducible source identities and
+validation limits are recorded in the [Bend findings](bend-support-findings.md).
+The active contract owns the exact profile and its Base leaf assumptions.
+
+Bend makes the type-as-term assumption especially visible: `Word(32n)`,
+quantity-polymorphic kinds, equalities, and references to earlier field binders
+need evidence beyond a list of datatype names. Unsupported forms must remain
+omissions. Defs and laws also share the datatype namespace; a competing binding
+cannot disappear into a set of names. Qualified defs such as `T.show` must not
+be mistaken for a conflicting bare `T`.
+
+Cross-file Bend evidence adds a separate binding question: compiler import
+resolution rewrites the first dotted name segment, not an arbitrary text suffix.
+Relative aliases and nested generic payloads must preserve the written alias
+while resolving the target declaration. Generic or field binders can shadow
+that segment; unsupported hub imports must not become local reads. The shared
+resolver still owns capture eligibility, finite traversal, and freshness.
+A new language needs its compiler's binding rules before enabling modules;
+parser applicability alone never authorizes cross-language import resolution.
+An alias can also collide with a prelude namespace: Bend's `Word.Nil`
+counterexample required refusing assumed imported closure, not merely checking
+local shadowing. Static evidence cycles must terminate, but their bounded
+traversal does not prove compiler import-cycle loadability.
+
+The [extraction tests](../src/direct-event/bend-analyzer.test.ts) and
+[pipeline tests](../src/direct-event/bend-pipeline.test.ts) establish this
+bounded implementation, including relative alias traversal and security/freshness
+gates. The retained live and package records below predate the cross-file
+amendment; they do not validate its new scope. The [paired record](../evidence/bend-support/paired-designs.json)
+adds one six-request payment-state contrast. The [compiler record](../evidence/bend-support/compiler-fixtures.json)
+checks the synthetic declarations, valid constructors, and forbidden constructor
+arities. Neither establishes proof correctness, general review accuracy, or
+native model visibility. Language support and formal verification remain
+separate claims even when the language itself has proofs.
+
 ## Separate shared behavior from extraction
 
 File selection, stable capture, changed-root attribution, rule admission,

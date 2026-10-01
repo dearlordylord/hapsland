@@ -3,10 +3,14 @@
 ## Supported source languages
 
 Hapsland reviews TypeScript interfaces, type aliases, and named functions, plus
-Rust structs, enums, and type aliases. Rust type context follows explicit local
-module bindings whose crate and module roles are verified from Cargo metadata
-and `mod` declarations. External crates, re-exports, inline modules, functions,
-macros, and conditional compilation are unsupported.
+Rust structs, enums, and type aliases, and Bend `type` datatypes. Rust type
+context follows explicit local module bindings whose crate and module roles
+are verified from Cargo metadata and `mod` declarations. External crates,
+re-exports, inline modules, functions, macros, and conditional compilation are
+unsupported. Bend supports bounded transitive context through explicit relative
+`.bend` imports with aliases. Bend functions, dependent types, laws/proofs, and
+hub, bare, or absolute imports are unsupported; this profile also skips files
+with string literals and requires single-line constructors indented with two spaces.
 See the [supported-language table](../README.md#supported-languages) for file
 extensions and limitations. An eligible file can still be skipped when its
 syntax or supporting evidence is unsupported; a skipped edit is not a clean

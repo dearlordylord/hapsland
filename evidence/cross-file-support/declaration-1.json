@@ -1,0 +1,31 @@
+{
+  "declaredAt": "2026-10-01T05:03:02.286Z",
+  "runId": "1",
+  "declaration": {
+    "fixtureIds": [
+      "rust-cross-file-bad",
+      "rust-cross-file-good",
+      "bend-cross-file-bad",
+      "bend-cross-file-good"
+    ],
+    "repeatsPerFixture": 2,
+    "maximumProviderRequests": 8,
+    "deadlineMs": 15000,
+    "automaticRetries": 0,
+    "maximumFixtureFileBytes": 4096,
+    "targetRule": "r2_meaningless_combinations",
+    "threshold": 0.7,
+    "acceptance": "Every bad probability exceeds threshold and every good probability is below threshold; production preparation captures and freezes supporting-file evidence.",
+    "syntheticRepositoryOnly": true,
+    "retainedFields": [
+      "fixture IDs",
+      "probabilities",
+      "transport status",
+      "timings",
+      "relative capture paths",
+      "source hashes",
+      "compiler outcomes",
+      "freshness outcomes"
+    ]
+  }
+}

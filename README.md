@@ -38,6 +38,7 @@ Coincidentally, models are pretty bad at those decisions by default and need con
 | --- | --- | --- |
 | TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with bounded local type/import context | Unsupported syntax or unresolved evidence can prevent review. |
 | Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Explicit local `mod`/`use` bindings and aliases are supported. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
+| Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, with bounded same-file and explicit relative `.bend` alias-import context | Functions, laws/proofs, dependent or computed types, and hub, bare, or absolute imports are unsupported. This first profile skips files with string literals and requires single-line constructors indented with two spaces. |
 
 Rust cross-file context requires a selected `Cargo.toml` with an explicit
 2018, 2021, or 2024 edition and supported library/binary targets. Workspace-inherited
@@ -112,7 +113,7 @@ artifact verification.
    input. Effective file settings select otherwise eligible files; with no file settings,
    all otherwise eligible files are selected when Jev credentials are available.
 3. Start Codex normally, review its repository and hook trust prompts, and make a supported
-   TypeScript or supported Rust type edit. Follow the [status guide](./docs/status.md) to check observed review activity
+   TypeScript or supported Rust/Bend type edit. Follow the [status guide](./docs/status.md) to check observed review activity
    with the host session ID; installation alone does not establish that a review ran.
 
 The [Codex installation guide](./docs/codex-installation.md) covers update, disable, logout,

@@ -236,9 +236,9 @@ or protected path.
 
 Rule authors must use rule-pack schema 1 and name an exact type or function
 input contract and required capabilities. The resident reviews one changed
-TypeScript type or function, or supported Rust type declaration, per unit.
+TypeScript type or function, or supported Rust/Bend type declaration, per unit.
 TypeScript supporting evidence can follow supported local imports across selected
-files. Rust supporting evidence is limited to the same file; Rust functions are
+files. Rust and Bend supporting evidence is limited to the same file; their functions are
 deferred. The [review contract](type-function-review-proposal.md#branch-contracts)
 defines the supported extraction scope. Omitted evidence is
 marked, and a rule runs only when its declared needs are met. Its Jev input does
