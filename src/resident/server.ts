@@ -70,7 +70,7 @@ import { Exit, Scope } from "effect";
 import * as Fiber from "effect/Fiber";
 import * as FiberHandle from "effect/FiberHandle";
 import * as Schedule from "effect/Schedule";
-import { ComposedDelivery } from "./composed-delivery.ts";
+import type { ComposedDelivery } from "./composed-delivery.ts";
 import { workView, type BendWorkView } from "./bend-work.ts";
 import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import {
@@ -577,7 +577,7 @@ export class ResidentServer {
   readonly #roundActivity = new Map<string, { root: string; advicee: DirectAdvicee; activityPath: string | undefined }>();
   readonly #stopExpiries = new Map<string, Fiber.Fiber<void>>();
   readonly #rounds = new Map<string, RoundWork>();
-  readonly #composedDelivery = new ComposedDelivery(this.#ledger, (diagnostic) => {
+  readonly #composedDelivery = this.#ledger.delivery((diagnostic) => {
     // Keep diagnostics source-free and bounded even for an indefinitely running resident.
     const path = join(this.paths.directory, "repeat-edits.log");
     const line = `${JSON.stringify({ at: Date.now(), ...diagnostic })}\n`;

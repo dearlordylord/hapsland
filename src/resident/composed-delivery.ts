@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { monotonicNow, PRE_EDIT_ADMISSION_DEADLINE_MS } from "./hook-clock.ts";
 import { canonicalValue } from "../direct-event/model.ts";
-import { makeCapacityLedger, type CapacityLedger } from "./capacity.ts";
+import type { CapacityLedger } from "./capacity.ts";
 import type { CompletedEditReason } from "../canonical/adapter.ts";
 import { DEFAULT_EDIT_PERMIT_LIMITS } from "../configuration/types.ts";
 import { DEFAULT_VIRTUAL_ROUND_QUIET_MS } from "../configuration/types.ts";
@@ -34,147 +34,76 @@ type Submission = {
 const fingerprint = (finding: unknown): string =>
   createHash("sha256").update(canonicalValue(finding)).digest("hex");
 
-export class ComposedDelivery {
-  readonly canonical: CapacityLedger;
-  readonly #reportRepeat: (diagnostic: RepeatEditDiagnostic) => void;
-  constructor(canonical: CapacityLedger = makeCapacityLedger(), reportRepeat: (diagnostic: RepeatEditDiagnostic) => void =
-    () => {}) {
-    this.canonical = canonical;
-    this.#reportRepeat = reportRepeat;
+export type EditPermit = { readonly partition: string; readonly generation: number;
+  readonly expiresAt: number; readonly token: number; readonly tool: number;
+  readonly quietMs: number; logged: boolean };
+type StopRecord = { token: string; id: number; generation: number; canonicalRound: number;
+  continuationsAtStart: number; outputToken?: string };
+type FinishPermit = {
+  readonly partition: string; readonly generation: number; readonly attempt: string;
+  readonly selected: ReadonlyArray<number>;
+  readonly advice: ReadonlyArray<{ readonly id: string; readonly fingerprints: ReadonlyArray<string> }>;
+  authorized: boolean; terminal: boolean; revoked: boolean;
+};
+export type DeliveryState = {
+  readonly rounds: ReadonlyMap<string, Round>;
+  readonly permits: ReadonlyMap<string, EditPermit>;
+  readonly toolIds: ReadonlyMap<string, number>;
+  readonly toolKeys: ReadonlyMap<number, string>;
+  readonly nextToolId: number;
+  readonly stops: ReadonlyMap<string, StopRecord>;
+  readonly nextStopId: number;
+  readonly submissions: ReadonlyMap<string, Submission>;
+  readonly finishPermits: ReadonlyMap<string, FinishPermit>;
+  readonly backgroundWaiters: ReadonlyMap<string, { readonly token: string; readonly id: number; readonly at: number }>;
+};
+export type DeliveryDraft = {
+  -readonly [K in keyof DeliveryState]: DeliveryState[K] extends ReadonlyMap<infer Key, infer Value> ? Map<Key, Value> : DeliveryState[K]
+};
+export const initialDelivery = (): DeliveryState => ({
+  rounds: new Map(), permits: new Map(), toolIds: new Map(), toolKeys: new Map(), nextToolId: 1,
+  stops: new Map(), nextStopId: 1, submissions: new Map(), finishPermits: new Map(), backgroundWaiters: new Map(),
+});
+export const draftDelivery = (current: DeliveryState): DeliveryDraft => ({
+  ...current, rounds: new Map(current.rounds), toolIds: new Map(current.toolIds), toolKeys: new Map(current.toolKeys),
+  permits: new Map([...current.permits].map(([key, value]) => [key, { ...value }])),
+  stops: new Map([...current.stops].map(([key, value]) => [key, { ...value }])),
+  submissions: new Map([...current.submissions].map(([key, value]) => [key, { ...value,
+    batches: new Map([...value.batches].map(([token, batch]) => [token, { ...batch }])) }])),
+  finishPermits: new Map([...current.finishPermits].map(([key, value]) => [key, { ...value }])),
+  backgroundWaiters: new Map(current.backgroundWaiters),
+});
+
+/** Check native permit and waiter ownership before publishing the draft. */
+export const assertDeliveryState = (state: DeliveryState, owner: CapacityLedger): void => {
+  const projection = owner.canonicalProjection();
+  if (state.toolIds.size !== state.toolKeys.size ||
+      [...state.toolIds].some(([key, id]) => state.toolKeys.get(id) !== key) ||
+      projection.completedEdits.some((entry) => !state.toolKeys.has(entry.tool)) ||
+      [...state.permits.values()].some((permit) => {
+        const partition = owner.knownPartitionId(permit.partition);
+        return !projection.admissions.some((admission) => admission.partition === partition &&
+          admission.permits.some((native) => native.token === permit.token &&
+            native.tool === permit.tool && native.round === permit.generation));
+      }) || [...state.backgroundWaiters].some(([partition, waiter]) =>
+        !projection.collection.claims.some((claim) => claim.group === owner.knownPartitionId(partition) &&
+          claim.owner === waiter.id))) {
+    throw new Error("native delivery handles differ from canonical state");
   }
-  readonly #rounds = new Map<string, Round>();
-  readonly #permits = new Map<string, { readonly partition: string; readonly generation: number;
-    readonly expiresAt: number; readonly token: number; readonly tool: number;
-    readonly quietMs: number; logged: boolean }>();
-  readonly #toolIds = new Map<string, number>();
-  readonly #toolKeys = new Map<number, string>();
-  #nextToolId = 1;
-  readonly #stops = new Map<string, { token: string; id: number; generation: number; canonicalRound: number;
-    continuationsAtStart: number; outputToken?: string }>();
-  #nextStopId = 1;
-  readonly #submissions = new Map<string, Submission>();
-  readonly #finishPermits = new Map<string, {
-    readonly partition: string; readonly generation: number; readonly attempt: string;
-    readonly selected: ReadonlyArray<number>;
-    readonly advice: ReadonlyArray<{ readonly id: string; readonly fingerprints: ReadonlyArray<string> }>;
-    authorized: boolean; terminal: boolean; revoked: boolean;
-  }>();
-  readonly #backgroundWaiters = new Map<string, { readonly token: string; readonly id: number; readonly at: number }>();
+};
 
-  claimBackground(partition: string, token: string, now: number): boolean {
-    this.expire(now);
-    const id = this.canonical.collectionTokenId(token);
-    const claimed = this.canonical.transition({ kind: "collectionClaimBackground",
-      group: this.canonical.partitionId(partition), token: id,
-      active: this.isActive(partition), capacity: MAX_BACKGROUND_WAITERS });
-    if (claimed.rejection !== undefined || claimed.commands[0]?.kind !== "collectionBackgroundClaimed") return false;
-    this.#backgroundWaiters.set(partition, { token, id, at: now });
-    return true;
-  }
+/** Read-only delivery views leave the owned record unchanged. */
+export const deliveryView = (state: DeliveryState, canonicalOwner: CapacityLedger) => {
+  function recentEditCount(): number { return canonicalOwner.canonicalProjection().completedEdits.length; }
 
-  releaseBackground(partition: string, token: string): void {
-    const waiter = this.#backgroundWaiters.get(partition);
-    if (waiter === undefined) return;
-    const release = this.canonical.transition({ kind: "collectionReleaseBackground",
-      group: this.canonical.partitionId(partition), token: this.canonical.collectionTokenId(token) });
-    if (release.rejection !== undefined || release.commands[0]?.kind !== "collectionBackgroundReleased") return;
-    this.#backgroundWaiters.delete(partition);
-    for (const submission of this.#submissions.values()) {
-      if (submission.partition !== partition) continue;
-      for (const [outputToken, batch] of submission.batches) {
-        if (batch.surface === "background" && batch.status === "authorized") {
-          this.markUncertain(outputToken);
-        }
-      }
-    }
-  }
+  function editIdentityMappingCount(): number { return state.toolIds.size; }
 
-  advance(partition: string, marker: string, now: number, promptDigest?: string): boolean {
-    this.expire(now);
-    const previous = this.#rounds.get(partition);
-    // Neither a prompt nor a native runtime turn resets an active round.
-    if (previous !== undefined) return this.isActive(partition);
-    const known = this.canonical.knownPartitionId(partition);
-    if (known !== undefined && this.canonical.canonicalProjection().admissions.some(
-      (item) => item.partition === known && item.round > 0 && !item.active)) return false;
-    // A notification without an admitted edit carries no round authority.
-    return true;
-  }
-
-  #startRound(partition: string, quietMs: number): Round {
-    const round: Round = { quietMs };
-    this.#rounds.set(partition, round);
-    return round;
-  }
-
-  #editDigest(key: string): string {
-    return createHash("sha256").update(key).digest("hex");
-  }
-
-  #repeatPending(key: string): void {
-    const identityDigest = this.#editDigest(key);
-    const pending = this.#permits.get(key);
-    if (pending === undefined || pending.logged) return;
-    try {
-      this.#reportRepeat({ kind: "repeat-edit-id", phase: "pending", identityDigest });
-    } catch {
-      // Diagnostics cannot decide whether an edit is admitted.
-    }
-    pending.logged = true;
-  }
-
-  #checkCompleted(key: string): boolean {
-    const tool = this.#toolId(key);
-    const result = this.canonical.transition({ kind: "checkCompletedEdit", tool });
-    const command = result.commands[0];
-    if (result.rejection !== undefined || command === undefined) throw new Error("invalid Bend completed edit check");
-    if (command.kind === "completedEditAbsent") {
-      this.#dropTool(key);
-      return false;
-    }
-    if (command.kind !== "completedEditSeen") throw new Error("invalid Bend completed edit check");
-    if (command.report) {
-      try {
-        this.#reportRepeat({ kind: "repeat-edit-id", phase: "completed",
-          identityDigest: this.#editDigest(key), completedReason: command.reason });
-      } catch {
-        // Diagnostics cannot decide whether an edit is admitted.
-      }
-    }
-    return true;
-  }
-
-  #dropTool(key: string): void {
-    const digest = this.#editDigest(key);
-    const id = this.#toolIds.get(digest);
-    if (id !== undefined) this.#toolKeys.delete(id);
-    this.#toolIds.delete(digest);
-  }
-
-  #finishPermit(key: string, reason: CompletedEditReason): void {
-    this.#permits.delete(key);
-    const tool = this.#toolIds.get(this.#editDigest(key));
-    if (tool === undefined) throw new Error("missing completed edit identity");
-    const result = this.canonical.transition({ kind: "rememberCompletedEdit", tool, reason });
-    const command = result.commands[0];
-    if (result.rejection !== undefined || command?.kind !== "completedEditRemembered") throw new Error("invalid Bend completed edit record");
-    if (command.evicted !== undefined) {
-      const evictedDigest = this.#toolKeys.get(command.evicted);
-      if (evictedDigest === undefined) throw new Error("missing evicted edit identity");
-      this.#toolKeys.delete(command.evicted);
-      this.#toolIds.delete(evictedDigest);
-    }
-  }
-
-  recentEditCount(): number { return this.canonical.canonicalProjection().completedEdits.length; }
-  editIdentityMappingCount(): number { return this.#toolIds.size; }
-
-  liveCollectionTokenKeys(): Set<string> {
+  function liveCollectionTokenKeys(): Set<string> {
     const live = new Set<string>();
-    for (const waiter of this.#backgroundWaiters.values()) live.add(waiter.token);
-    for (const stop of this.#stops.values()) if (stop.outputToken !== undefined) live.add(stop.outputToken);
-    for (const token of this.#finishPermits.keys()) live.add(token);
-    for (const [adviceId, submission] of this.#submissions) {
+    for (const waiter of state.backgroundWaiters.values()) live.add(waiter.token);
+    for (const stop of state.stops.values()) if (stop.outputToken !== undefined) live.add(stop.outputToken);
+    for (const token of state.finishPermits.keys()) live.add(token);
+    for (const [adviceId, submission] of state.submissions) {
       live.add(`submission-advice\0${adviceId}`);
       for (const [token, batch] of submission.batches) {
         live.add(token);
@@ -184,81 +113,203 @@ export class ComposedDelivery {
     return live;
   }
 
-  #toolId(key: string): number {
-    const digest = this.#editDigest(key);
-    let id = this.#toolIds.get(digest);
+  function hasFinishPermit(token: string): boolean {
+    return state.finishPermits.has(token);
+  }
+
+  function isFinishAuthorized(token: string): boolean {
+    return state.finishPermits.get(token)?.authorized === true;
+  }
+
+  function hasToken(token: string): boolean {
+    return [...state.submissions.values()].some((submission) => submission.batches.has(token));
+  }
+  return { canonical: canonicalOwner, recentEditCount, editIdentityMappingCount, liveCollectionTokenKeys, hasFinishPermit, isFinishAuthorized, hasToken };
+};
+
+/** Delivery decisions and native staging over an explicit owned draft. */
+export const deliveryOperations = (state: DeliveryDraft, canonicalOwner: CapacityLedger,
+  reportRepeat: (diagnostic: RepeatEditDiagnostic) => void) => {
+  const { hasToken, hasFinishPermit } = deliveryView(state, canonicalOwner);
+  function claimBackground(partition: string, token: string, now: number): boolean {
+    expire(now);
+    const id = canonicalOwner.collectionTokenId(token);
+    const claimed = canonicalOwner.transition({ kind: "collectionClaimBackground",
+      group: canonicalOwner.partitionId(partition), token: id,
+      active: isActive(partition), capacity: MAX_BACKGROUND_WAITERS });
+    if (claimed.rejection !== undefined || claimed.commands[0]?.kind !== "collectionBackgroundClaimed") return false;
+    state.backgroundWaiters.set(partition, { token, id, at: now });
+    return true;
+  }
+
+  function releaseBackground(partition: string, token: string): void {
+    const waiter = state.backgroundWaiters.get(partition);
+    if (waiter === undefined) return;
+    const release = canonicalOwner.transition({ kind: "collectionReleaseBackground",
+      group: canonicalOwner.partitionId(partition), token: canonicalOwner.collectionTokenId(token) });
+    if (release.rejection !== undefined || release.commands[0]?.kind !== "collectionBackgroundReleased") return;
+    state.backgroundWaiters.delete(partition);
+    for (const submission of state.submissions.values()) {
+      if (submission.partition !== partition) continue;
+      for (const [outputToken, batch] of submission.batches) {
+        if (batch.surface === "background" && batch.status === "authorized") {
+          markUncertain(outputToken);
+        }
+      }
+    }
+  }
+
+  function advance(partition: string, marker: string, now: number, promptDigest?: string): boolean {
+    expire(now);
+    const previous = state.rounds.get(partition);
+    // Neither a prompt nor a native runtime turn resets an active round.
+    if (previous !== undefined) return isActive(partition);
+    const known = canonicalOwner.knownPartitionId(partition);
+    if (known !== undefined && canonicalOwner.canonicalProjection().admissions.some(
+      (item) => item.partition === known && item.round > 0 && !item.active)) return false;
+    // A notification without an admitted edit carries no round authority.
+    return true;
+  }
+
+  function startRound(partition: string, quietMs: number): Round {
+    const round: Round = { quietMs };
+    state.rounds.set(partition, round);
+    return round;
+  }
+
+  function editDigest(key: string): string {
+    return createHash("sha256").update(key).digest("hex");
+  }
+
+  function repeatPending(key: string): void {
+    const identityDigest = editDigest(key);
+    const pending = state.permits.get(key);
+    if (pending === undefined || pending.logged) return;
+    try {
+      reportRepeat({ kind: "repeat-edit-id", phase: "pending", identityDigest });
+    } catch {
+      // Diagnostics cannot decide whether an edit is admitted.
+    }
+    pending.logged = true;
+  }
+
+  function checkCompleted(key: string): boolean {
+    const tool = toolId(key);
+    const result = canonicalOwner.transition({ kind: "checkCompletedEdit", tool });
+    const command = result.commands[0];
+    if (result.rejection !== undefined || command === undefined) throw new Error("invalid Bend completed edit check");
+    if (command.kind === "completedEditAbsent") {
+      dropTool(key);
+      return false;
+    }
+    if (command.kind !== "completedEditSeen") throw new Error("invalid Bend completed edit check");
+    if (command.report) {
+      try {
+        reportRepeat({ kind: "repeat-edit-id", phase: "completed",
+          identityDigest: editDigest(key), completedReason: command.reason });
+      } catch {
+        // Diagnostics cannot decide whether an edit is admitted.
+      }
+    }
+    return true;
+  }
+
+  function dropTool(key: string): void {
+    const digest = editDigest(key);
+    const id = state.toolIds.get(digest);
+    if (id !== undefined) state.toolKeys.delete(id);
+    state.toolIds.delete(digest);
+  }
+
+  function finishPermit(key: string, reason: CompletedEditReason): void {
+    state.permits.delete(key);
+    const tool = state.toolIds.get(editDigest(key));
+    if (tool === undefined) throw new Error("missing completed edit identity");
+    const result = canonicalOwner.transition({ kind: "rememberCompletedEdit", tool, reason });
+    const command = result.commands[0];
+    if (result.rejection !== undefined || command?.kind !== "completedEditRemembered") throw new Error("invalid Bend completed edit record");
+    if (command.evicted !== undefined) {
+      const evictedDigest = state.toolKeys.get(command.evicted);
+      if (evictedDigest === undefined) throw new Error("missing evicted edit identity");
+      state.toolKeys.delete(command.evicted);
+      state.toolIds.delete(evictedDigest);
+    }
+  }
+
+  function toolId(key: string): number {
+    const digest = editDigest(key);
+    let id = state.toolIds.get(digest);
     if (id === undefined) {
-      id = this.#nextToolId++;
-      this.#toolIds.set(digest, id);
-      this.#toolKeys.set(id, digest);
+      id = state.nextToolId++;
+      state.toolIds.set(digest, id);
+      state.toolKeys.set(id, digest);
     }
     return id;
   }
 
-  #bendTime(ms: number): number {
+  function bendTime(ms: number): number {
     return Math.floor(ms * 1000);
   }
 
-  #bendUpperTime(ms: number): number {
+  function bendUpperTime(ms: number): number {
     return Math.ceil(ms * 1000);
   }
 
-  #releaseAdmissionPermit(partition: string, token: number): void {
-    this.canonical.transition({ kind: "releasePermit", partition: this.canonical.partitionId(partition),
+  function releaseAdmissionPermit(partition: string, token: number): void {
+    canonicalOwner.transition({ kind: "releasePermit", partition: canonicalOwner.partitionId(partition),
       lifetime: 1, token });
   }
 
-  ensureFromHostTurn(partition: string, marker: string, now: number): boolean {
-    return this.advance(partition, marker, now);
+  function ensureFromHostTurn(partition: string, marker: string, now: number): boolean {
+    return advance(partition, marker, now);
   }
 
-  /** The installed synchronous PreToolUse hook grants one prospective edit. */
-  registerEdit(partition: string, eventId: string, startedAt: number, now = monotonicNow()): boolean {
-    return this.registerEditDecision(partition, eventId, startedAt, now).accepted;
+  function registerEdit(partition: string, eventId: string, startedAt: number, now = monotonicNow()): boolean {
+    return registerEditDecision(partition, eventId, startedAt, now).accepted;
   }
 
-  registerEditDecision(partition: string, eventId: string, startedAt: number,
+  function registerEditDecision(partition: string, eventId: string, startedAt: number,
     now = monotonicNow(), limits: { readonly perAdvicee: number; readonly resident: number } = DEFAULT_EDIT_PERMIT_LIMITS,
     quietMs = DEFAULT_VIRTUAL_ROUND_QUIET_MS):
     { readonly accepted: true } | { readonly accepted: false; readonly reason: string } {
-    this.expirePermits(now);
+    expirePermits(now);
     const toolKey = `${partition}\0${eventId}`;
-    if (this.#permits.has(toolKey)) {
-      this.#repeatPending(toolKey);
+    if (state.permits.has(toolKey)) {
+      repeatPending(toolKey);
       return { accepted: true };
     }
-    if (this.#checkCompleted(toolKey)) return { accepted: false, reason: "DuplicateTool" };
-    const knownPartition = this.canonical.knownPartitionId(partition);
+    if (checkCompleted(toolKey)) return { accepted: false, reason: "DuplicateTool" };
+    const knownPartition = canonicalOwner.knownPartitionId(partition);
     const admission = knownPartition === undefined ? undefined :
-      this.canonical.canonicalProjection().admissions.find((item) => item.partition === knownPartition);
+      canonicalOwner.canonicalProjection().admissions.find((item) => item.partition === knownPartition);
     // Bend receives both bounds of each reading. It uses the upper start and
     // lower now for ordering, then lower start and upper now for the deadline.
     const facts = {
       clockValid: Number.isFinite(now) && Number.isFinite(startedAt) &&
         startedAt > 0,
-      hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
-      startedUpper: this.#bendUpperTime(startedAt), nowLower: this.#bendTime(now),
+      hookWindow: bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
+      startedUpper: bendUpperTime(startedAt), nowLower: bendTime(now),
       adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident,
     };
     const event = eventId;
-    const tool = this.#toolId(toolKey);
+    const tool = toolId(toolKey);
     let issued;
     try {
-      issued = this.canonical.transition({ kind: "issuePermit",
-        partition: this.canonical.partitionId(partition), lifetime: 1, tool,
-        started: this.#bendTime(startedAt), deadline: this.#bendTime(startedAt + EDIT_PERMIT_EXPIRY_MS),
-        now: this.#bendUpperTime(now), minimumStarted: this.canonical.minimumFreshStart(), facts,
+      issued = canonicalOwner.transition({ kind: "issuePermit",
+        partition: canonicalOwner.partitionId(partition), lifetime: 1, tool,
+        started: bendTime(startedAt), deadline: bendTime(startedAt + EDIT_PERMIT_EXPIRY_MS),
+        now: bendUpperTime(now), minimumStarted: canonicalOwner.minimumFreshStart(), facts,
       });
     } catch (error) {
-      this.#dropTool(toolKey);
-      if (knownPartition === undefined) this.canonical.discardUnusedPartition(partition);
+      dropTool(toolKey);
+      if (knownPartition === undefined) canonicalOwner.discardUnusedPartition(partition);
       return { accepted: false, reason: error instanceof RangeError &&
         error.message.includes("resident") ? "ResidentPermitLimit" : "InvalidClock" };
     }
     const command = issued.commands[0];
     if (issued.rejection !== undefined || command?.kind !== "permitIssued") {
-      this.#dropTool(toolKey);
-      if (knownPartition === undefined) this.canonical.discardUnusedPartition(partition);
+      dropTool(toolKey);
+      if (knownPartition === undefined) canonicalOwner.discardUnusedPartition(partition);
       const reason = issued.rejection === "ProspectiveDenied"
         ? !facts.clockValid ? "InvalidClock"
           : "ProspectiveDenied"
@@ -268,168 +319,168 @@ export class ComposedDelivery {
     const expectedGeneration = admission === undefined ? 1 :
       admission.round + (admission.active ? 0 : 1);
     if (command.round !== expectedGeneration) {
-      this.#releaseAdmissionPermit(partition, command.token);
-      this.#finishPermit(toolKey, "released");
+      releaseAdmissionPermit(partition, command.token);
+      finishPermit(toolKey, "released");
       return { accepted: false, reason: "StaleRound" };
     }
-    this.#permits.set(`${partition}\0${event}`, { partition,
+    state.permits.set(`${partition}\0${event}`, { partition,
       generation: command.round, expiresAt: startedAt + EDIT_PERMIT_EXPIRY_MS,
       token: command.token, tool, quietMs, logged: false });
     return { accepted: true };
   }
 
-  admitEdit(partition: string, eventId: string, now: number, requirePermit = false,
+  function admitEdit(partition: string, eventId: string, now: number, requirePermit = false,
     limits: { readonly perAdvicee: number; readonly resident: number } = DEFAULT_EDIT_PERMIT_LIMITS): number | undefined {
-    let previous = this.#rounds.get(partition);
+    let previous = state.rounds.get(partition);
     const event = eventId;
     const key = `${partition}\0${event}`;
     if (requirePermit) {
-      this.expirePermits(now);
-      const permit = this.#permits.get(key);
+      expirePermits(now);
+      const permit = state.permits.get(key);
       if (permit === undefined) {
-        this.#checkCompleted(key);
+        checkCompleted(key);
         return undefined;
       }
-      const admission = this.canonical.canonicalProjection().admissions.find(
-        (item) => item.partition === this.canonical.partitionId(partition));
+      const admission = canonicalOwner.canonicalProjection().admissions.find(
+        (item) => item.partition === canonicalOwner.partitionId(partition));
       if (admission === undefined || permit.generation !== admission.round + (admission.active ? 0 : 1)) {
-        this.#releaseAdmissionPermit(partition, permit.token);
-        this.#finishPermit(key, "released");
+        releaseAdmissionPermit(partition, permit.token);
+        finishPermit(key, "released");
         return undefined;
       }
       let consumed;
       try {
-        consumed = this.canonical.consumeEditPermit(partition, { kind: "consumePermit",
-          partition: this.canonical.partitionId(partition), lifetime: 1,
-          token: permit.token, tool: permit.tool, now: this.#bendTime(now) });
+        consumed = canonicalOwner.consumeEditPermit(partition, { kind: "consumePermit",
+          partition: canonicalOwner.partitionId(partition), lifetime: 1,
+          token: permit.token, tool: permit.tool, now: bendTime(now) });
       } catch {
-        this.#releaseAdmissionPermit(partition, permit.token);
-        this.#finishPermit(key, "released");
+        releaseAdmissionPermit(partition, permit.token);
+        finishPermit(key, "released");
         return undefined;
       }
       if (consumed.rejection !== undefined || consumed.commands[0]?.kind !== "permitConsumed" ||
           consumed.commands[0].round !== permit.generation) {
-        this.#releaseAdmissionPermit(partition, permit.token);
-        this.#finishPermit(key, "released");
+        releaseAdmissionPermit(partition, permit.token);
+        finishPermit(key, "released");
         return undefined;
       }
-      this.#finishPermit(key, "consumed");
+      finishPermit(key, "consumed");
       if (previous === undefined) {
-        previous = this.#startRound(partition, permit.quietMs);
+        previous = startRound(partition, permit.quietMs);
       }
-      return this.generation(partition);
+      return readGeneration(partition);
     }
     // Internal deterministic fixtures and the non-installed API may start a
     // first round; reopening always requires the runtime's prospective permit.
-    if (previous !== undefined && !this.isActive(partition)) return undefined;
-    const known = this.canonical.knownPartitionId(partition);
+    if (previous !== undefined && !isActive(partition)) return undefined;
+    const known = canonicalOwner.knownPartitionId(partition);
     if (previous === undefined && known !== undefined &&
-      this.canonical.canonicalProjection().admissions.some((item) =>
+      canonicalOwner.canonicalProjection().admissions.some((item) =>
         item.partition === known && item.round > 0 && !item.active)) return undefined;
-    if (this.#permits.has(key)) return undefined;
-    const partitionId = this.canonical.partitionId(partition);
-    if (this.#checkCompleted(key)) return undefined;
-    const tool = this.#toolId(key);
-    const syntheticNow = this.#bendTime(Math.max(1, now));
-    const issued = this.canonical.transition({ kind: "issuePermit", partition: partitionId,
-      lifetime: 1, tool, started: syntheticNow, deadline: syntheticNow + this.#bendTime(EDIT_PERMIT_EXPIRY_MS),
-      now: syntheticNow, minimumStarted: this.canonical.minimumFreshStart(),
-      facts: { clockValid: true, hookWindow: this.#bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
+    if (state.permits.has(key)) return undefined;
+    const partitionId = canonicalOwner.partitionId(partition);
+    if (checkCompleted(key)) return undefined;
+    const tool = toolId(key);
+    const syntheticNow = bendTime(Math.max(1, now));
+    const issued = canonicalOwner.transition({ kind: "issuePermit", partition: partitionId,
+      lifetime: 1, tool, started: syntheticNow, deadline: syntheticNow + bendTime(EDIT_PERMIT_EXPIRY_MS),
+      now: syntheticNow, minimumStarted: canonicalOwner.minimumFreshStart(),
+      facts: { clockValid: true, hookWindow: bendTime(PRE_EDIT_ADMISSION_DEADLINE_MS),
         startedUpper: syntheticNow, nowLower: syntheticNow,
         adviceePermitLimit: limits.perAdvicee, residentPermitLimit: limits.resident } });
     const permit = issued.commands[0];
     if (permit?.kind !== "permitIssued") {
-      this.#dropTool(key);
+      dropTool(key);
       return undefined;
     }
-    const consumed = this.canonical.consumeEditPermit(partition, { kind: "consumePermit", partition: partitionId,
+    const consumed = canonicalOwner.consumeEditPermit(partition, { kind: "consumePermit", partition: partitionId,
       lifetime: 1, token: permit.token, tool, now: syntheticNow });
     if (consumed.commands[0]?.kind !== "permitConsumed") {
-      this.#releaseAdmissionPermit(partition, permit.token);
-      this.#finishPermit(key, "released");
+      releaseAdmissionPermit(partition, permit.token);
+      finishPermit(key, "released");
       return undefined;
     }
     if (previous === undefined) {
-      previous = this.#startRound(partition, DEFAULT_VIRTUAL_ROUND_QUIET_MS);
+      previous = startRound(partition, DEFAULT_VIRTUAL_ROUND_QUIET_MS);
     }
-    if (consumed.commands[0].round !== this.generation(partition)) {
-      this.#finishPermit(key, "consumed");
+    if (consumed.commands[0].round !== readGeneration(partition)) {
+      finishPermit(key, "consumed");
       return undefined;
     }
-    this.#finishPermit(key, "consumed");
-    return this.generation(partition);
+    finishPermit(key, "consumed");
+    return readGeneration(partition);
   }
 
-  expirePermits(now = monotonicNow()): void {
-    for (const [key, permit] of this.#permits) {
-      const result = this.canonical.transition({ kind: "expirePermit",
-        partition: this.canonical.partitionId(permit.partition), lifetime: 1,
+  function expirePermits(now = monotonicNow()): void {
+    for (const [key, permit] of state.permits) {
+      const result = canonicalOwner.transition({ kind: "expirePermit",
+        partition: canonicalOwner.partitionId(permit.partition), lifetime: 1,
         token: permit.token, deadlineReached: permit.expiresAt <= now });
       if (result.commands[0]?.kind === "permitKept") continue;
       if (result.rejection !== undefined || result.commands[0]?.kind !== "permitExpired") throw new Error("invalid Bend permit expiry");
-      this.#finishPermit(key, "expired");
+      finishPermit(key, "expired");
     }
   }
 
-  hasPendingEdits(partition: string): boolean {
-    this.expirePermits();
-    return [...this.#permits.values()].some((permit) => permit.partition === partition);
+  function hasPendingEdits(partition: string): boolean {
+    expirePermits();
+    return [...state.permits.values()].some((permit) => permit.partition === partition);
   }
 
-  isActive(partition: string, generation = this.generation(partition)): boolean {
-    const admission = this.canonical.canonicalProjection().admissions.find(
-      (item) => item.partition === this.canonical.partitionId(partition));
+  function isActive(partition: string, generation = readGeneration(partition)): boolean {
+    const admission = canonicalOwner.canonicalProjection().admissions.find(
+      (item) => item.partition === canonicalOwner.partitionId(partition));
     // Only accepted post-edit admission binds a host round.
-    const result = this.canonical.transition({ kind: "roundActivityCheck",
-      bound: this.#rounds.has(partition), hasAdmission: admission !== undefined,
+    const result = canonicalOwner.transition({ kind: "roundActivityCheck",
+      bound: state.rounds.has(partition), hasAdmission: admission !== undefined,
       round: admission?.round ?? 0, active: admission?.active ?? false,
       closedAt: admission?.closedAt ?? 0, expectedGeneration: generation });
     if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical round activity refused");
     return result.commands[0]?.kind === "roundActive";
   }
 
-  beginStop(partition: string, token: string): boolean {
-    const id = this.#nextStopId++;
-    const decision = this.canonical.transition({ kind: "roundBeginStopCheck",
-      active: this.isActive(partition), hasStop: this.#stops.has(partition), token: id });
+  function beginStop(partition: string, token: string): boolean {
+    const id = state.nextStopId++;
+    const decision = canonicalOwner.transition({ kind: "roundBeginStopCheck",
+      active: isActive(partition), hasStop: state.stops.has(partition), token: id });
     if (decision.rejection !== undefined || decision.commands[0]?.kind !== "roundStopBegun") return false;
-    const reset = this.canonical.transition({ kind: "quietRoundReset",
-      partition: this.canonical.partitionId(partition), lifetime: 1,
-      round: this.canonical.currentRoundId(partition)! });
+    const reset = canonicalOwner.transition({ kind: "quietRoundReset",
+      partition: canonicalOwner.partitionId(partition), lifetime: 1,
+      round: canonicalOwner.currentRoundId(partition)! });
     if (reset.rejection !== undefined || reset.commands[0]?.kind !== "quietRoundResetRecorded") {
       throw new Error("canonical quiet reset refused at Stop");
     }
-    this.#stops.set(partition, { token, id, generation: this.generation(partition), canonicalRound: this.canonical.roundId(partition),
-      continuationsAtStart: this.#continuationCount(partition) });
-    this.canonical.roundId(partition);
+    state.stops.set(partition, { token, id, generation: readGeneration(partition), canonicalRound: canonicalOwner.roundId(partition),
+      continuationsAtStart: continuationCount(partition) });
+    canonicalOwner.roundId(partition);
     return true;
   }
 
-  ownsStop(partition: string, token: string): boolean {
-    const stop = this.#stops.get(partition);
-    const decision = this.canonical.transition({ kind: "roundOwnsStopCheck",
-      active: stop !== undefined && this.isActive(partition, stop.generation),
-      tokenMatches: stop?.token === token, deciding: this.isDeciding(partition) });
+  function ownsStop(partition: string, token: string): boolean {
+    const stop = state.stops.get(partition);
+    const decision = canonicalOwner.transition({ kind: "roundOwnsStopCheck",
+      active: stop !== undefined && isActive(partition, stop.generation),
+      tokenMatches: stop?.token === token, deciding: isDeciding(partition) });
     if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical Stop ownership refused");
     return decision.commands[0]?.kind === "roundStopOwned";
   }
 
-  finishGate(partition: string, token: string, extraUnfinished: number,
+  function finishGate(partition: string, token: string, extraUnfinished: number,
     deadlineReached: boolean):
     { readonly status: "waiting" } |
     { readonly status: "cutoff"; readonly cancelledSource: number[];
       readonly cancelledJev: number[]; readonly limited: boolean } | undefined {
-    const stop = this.#stops.get(partition);
-    const round = this.#rounds.get(partition);
-    if (stop?.token !== token || round === undefined || !this.isActive(partition, stop.generation)) return undefined;
+    const stop = state.stops.get(partition);
+    const round = state.rounds.get(partition);
+    if (stop?.token !== token || round === undefined || !isActive(partition, stop.generation)) return undefined;
     const canonicalRound = stop.canonicalRound;
-    const projection = this.canonical.canonicalProjection();
-    const owner = this.canonical.partitionId(partition);
-    const cutoff = this.canonical.transition({ kind: "stopGroupPolled",
-      group: this.canonical.partitionId(partition), lifetime: 1,
+    const projection = canonicalOwner.canonicalProjection();
+    const owner = canonicalOwner.partitionId(partition);
+    const cutoff = canonicalOwner.transition({ kind: "stopGroupPolled",
+      group: canonicalOwner.partitionId(partition), lifetime: 1,
       round: canonicalRound, scopes: [{ partition: owner, round: canonicalRound }],
       deadline: deadlineReached, extraPending: extraUnfinished > 0,
-      continuations: this.#continuationCount(partition, canonicalRound) });
+      continuations: continuationCount(partition, canonicalRound) });
     if (cutoff.rejection !== undefined) return undefined;
     if (cutoff.commands[0]?.kind === "waitForWork") return { status: "waiting" };
     const terminal = cutoff.commands.at(-1)?.kind;
@@ -438,42 +489,42 @@ export class ComposedDelivery {
       (item.kind === "awaitingSourceRead" || item.kind === "sourceReading")).map((item) => item.operation));
     const cancelled = cutoff.commands.filter((item) => item.kind === "cancelWork").map((item) => item.operation);
     for (const command of cutoff.commands) if (command.kind === "reservationReleased") {
-      this.canonical.acknowledgeStopRelease(command.id);
+      canonicalOwner.acknowledgeStopRelease(command.id);
     }
-    for (const [key, permit] of this.#permits) if (permit.partition === partition) {
-      const released = this.canonical.transition({ kind: "releasePermit",
-        partition: this.canonical.partitionId(partition), lifetime: 1, token: permit.token });
+    for (const [key, permit] of state.permits) if (permit.partition === partition) {
+      const released = canonicalOwner.transition({ kind: "releasePermit",
+        partition: canonicalOwner.partitionId(partition), lifetime: 1, token: permit.token });
       if (released.rejection !== undefined || released.commands[0]?.kind !== "permitReleased") {
         throw new Error("canonical permit cutoff disagrees with resident");
       }
-      this.#finishPermit(key, "released");
+      finishPermit(key, "released");
     }
     return { status: "cutoff", cancelledSource: cancelled.filter((id) => source.has(id)),
       cancelledJev: cancelled.filter((id) => !source.has(id)), limited: terminal === "finishLimit" };
   }
 
-  reserveFinishOutput(partition: string, attempt: string, outputToken: string,
+  function reserveFinishOutput(partition: string, attempt: string, outputToken: string,
     advice: ReadonlyArray<{ readonly id: string; readonly unit: number;
       readonly findings: ReadonlyArray<unknown> }>, now: number): boolean {
-    return this.decideFinishOutput(partition, attempt, outputToken, advice, now,
+    return decideFinishOutput(partition, attempt, outputToken, advice, now,
       false, false, true, true, false).kind === "reserved";
   }
 
-  decideFinishOutput(partition: string, attempt: string, outputToken: string,
+  function decideFinishOutput(partition: string, attempt: string, outputToken: string,
     advice: ReadonlyArray<{ readonly id: string; readonly unit: number;
       readonly findings: ReadonlyArray<unknown> }>, now: number,
     hasNotice: boolean, passNotices: boolean, canWrite: boolean,
     bindingValid: boolean, deadlineReached: boolean):
     { readonly kind: "reserved" | "notices" | "failed" } |
     { readonly kind: "allowed"; readonly reason: "no-advice" | "deadline" | "unavailable" } {
-    const stop = this.#stops.get(partition);
-    const round = this.#rounds.get(partition);
+    const stop = state.stops.get(partition);
+    const round = state.rounds.get(partition);
     if (stop?.token !== attempt || round === undefined) return { kind: "failed" };
     const selected = advice.flatMap((item) => item.findings.map(() => item.unit));
-    const group = this.canonical.partitionId(partition);
-    const currentRound = this.canonical.roundId(partition);
-    const tokenId = this.canonical.collectionTokenId(outputToken);
-    const decision = this.canonical.transition({ kind: "finishReserve", group,
+    const group = canonicalOwner.partitionId(partition);
+    const currentRound = canonicalOwner.roundId(partition);
+    const tokenId = canonicalOwner.collectionTokenId(outputToken);
+    const decision = canonicalOwner.transition({ kind: "finishReserve", group,
       lifetime: 1, round: currentRound, attempt: stop.id, token: tokenId,
       selected, hasNotice, passNotices, canWrite, bindingValid, deadlineReached });
     if (decision.rejection !== undefined) return { kind: "failed" };
@@ -486,58 +537,50 @@ export class ComposedDelivery {
       default: return { kind: "failed" };
     }
     const staged = advice.map((item) => [item.id,
-      this.#stageSubmission(item.id, partition, outputToken, item.findings, "stop", now, "reserved", item.unit)
+      stageSubmission(item.id, partition, outputToken, item.findings, "stop", now, "reserved", item.unit)
     ] as const);
     if (staged.some(([, submission]) => submission === undefined)) {
       for (const [id, submission] of staged) if (submission !== undefined) {
-        const rollback = this.canonical.transition({ kind: "submissionRelease",
-          advice: this.#submissionAdviceId(id), token: submission.batches.get(outputToken)!.id });
+        const rollback = canonicalOwner.transition({ kind: "submissionRelease",
+          advice: submissionAdviceId(id), token: submission.batches.get(outputToken)!.id });
         if (rollback.rejection !== undefined || rollback.commands[0]?.kind !== "submissionReleased") {
           throw new Error("canonical staged submission rollback refused");
         }
       }
-      this.canonical.transition({ kind: "finishRelease", group, round: currentRound,
+      canonicalOwner.transition({ kind: "finishRelease", group, round: currentRound,
         attempt: stop.id, token: tokenId });
       return { kind: "failed" };
     }
     stop.outputToken = outputToken;
-    this.#finishPermits.set(outputToken, { partition, generation: stop.generation, attempt,
+    state.finishPermits.set(outputToken, { partition, generation: stop.generation, attempt,
       selected, advice: advice.map((item) => ({ id: item.id,
         fingerprints: item.findings.map(fingerprint) })),
       authorized: false, terminal: false, revoked: false });
-    for (const [id, submission] of staged) this.#submissions.set(id, submission!);
+    for (const [id, submission] of staged) state.submissions.set(id, submission!);
     return { kind: "reserved" };
   }
 
-  revokeProvisionalFinishOutput(partition: string, attempt: string, outputToken: string): boolean {
-    const stop = this.#stops.get(partition);
-    const round = this.#rounds.get(partition);
-    const permit = this.#finishPermits.get(outputToken);
+  function revokeProvisionalFinishOutput(partition: string, attempt: string, outputToken: string): boolean {
+    const stop = state.stops.get(partition);
+    const round = state.rounds.get(partition);
+    const permit = state.finishPermits.get(outputToken);
     if (stop?.token !== attempt || stop.outputToken !== outputToken || round === undefined ||
         permit === undefined || permit.authorized) return false;
-    const released = this.canonical.transition({ kind: "finishRelease",
-      group: this.canonical.partitionId(partition), round: this.canonical.roundId(partition),
-      attempt: stop.id, token: this.canonical.collectionTokenId(outputToken) });
+    const released = canonicalOwner.transition({ kind: "finishRelease",
+      group: canonicalOwner.partitionId(partition), round: canonicalOwner.roundId(partition),
+      attempt: stop.id, token: canonicalOwner.collectionTokenId(outputToken) });
     if (released.rejection !== undefined || released.commands[0]?.kind !== "finishReleased") return false;
     permit.revoked = true;
-    this.release(outputToken);
-    this.#finishPermits.delete(outputToken);
+    release(outputToken);
+    state.finishPermits.delete(outputToken);
     delete stop.outputToken;
     return true;
   }
 
-  hasFinishPermit(token: string): boolean {
-    return this.#finishPermits.has(token);
-  }
-
-  isFinishAuthorized(token: string): boolean {
-    return this.#finishPermits.get(token)?.authorized === true;
-  }
-
-  finishSelectionMatches(token: string, advice: ReadonlyArray<{
+  function finishSelectionMatches(token: string, advice: ReadonlyArray<{
     readonly id: string; readonly unit: number; readonly findings: ReadonlyArray<unknown>;
   }>): boolean {
-    const permit = this.#finishPermits.get(token);
+    const permit = state.finishPermits.get(token);
     if (permit === undefined || permit.revoked || permit.advice.length !== advice.length) return false;
     const selected = advice.flatMap((item) => item.findings.map(() => item.unit));
     if (permit.selected.length !== selected.length ||
@@ -548,291 +591,289 @@ export class ComposedDelivery {
       return expected?.id === item.id && expected.fingerprints.length === digests.length &&
         expected.fingerprints.every((digest, position) => digest === digests[position]);
     })) return false;
-    return this.#finishBatchesCurrent(token, permit);
+    return finishBatchesCurrent(token, permit);
   }
 
-  #finishBatchesCurrent(token: string, permit: { readonly partition: string;
+  function finishBatchesCurrent(token: string, permit: { readonly partition: string;
     readonly advice: ReadonlyArray<{ readonly id: string; readonly fingerprints: ReadonlyArray<string> }> }): boolean {
-    const canonical = this.canonical.canonicalProjection().delivery.submissions.batches;
+    const canonical = canonicalOwner.canonicalProjection().delivery.submissions.batches;
     return permit.advice.every((item) => {
-      const batch = this.#submissions.get(item.id)?.batches.get(token);
+      const batch = state.submissions.get(item.id)?.batches.get(token);
       const canonicalBatch = canonical.find((candidate) =>
-        candidate.advice === this.#submissionAdviceId(item.id) && candidate.token === batch?.id);
+        candidate.advice === submissionAdviceId(item.id) && candidate.token === batch?.id);
       return batch?.status === "reserved" && canonicalBatch?.phase === "reserved" &&
-        canonicalBatch.group === this.canonical.partitionId(permit.partition) &&
-        canonicalBatch.round === this.canonical.roundId(permit.partition) &&
+        canonicalBatch.group === canonicalOwner.partitionId(permit.partition) &&
+        canonicalBatch.round === canonicalOwner.roundId(permit.partition) &&
         canonicalBatch.fingerprints.length === new Set(item.fingerprints).size &&
         item.fingerprints.every((digest) => batch.fingerprints.has(digest) &&
           canonicalBatch.fingerprints.includes(
-          this.#fingerprintId(item.id, digest)));
+          fingerprintId(item.id, digest)));
     });
   }
 
-  authorizeFinishOutput(partition: string, token: string): boolean {
-    const permit = this.#finishPermits.get(token);
+  function authorizeFinishOutput(partition: string, token: string): boolean {
+    const permit = state.finishPermits.get(token);
     if (permit === undefined) {
-      const decision = this.canonical.transition({ kind: "deliveryUnreservedStopCheck",
-        active: this.isActive(partition), deciding: this.isDeciding(partition) });
+      const decision = canonicalOwner.transition({ kind: "deliveryUnreservedStopCheck",
+        active: isActive(partition), deciding: isDeciding(partition) });
       if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical unreserved Stop gate refused");
       return decision.commands[0]?.kind === "deliveryUnreservedStopAllowed";
     }
-    const stop = this.#stops.get(partition);
-    if (permit.partition !== partition || !this.isActive(partition, permit.generation) ||
+    const stop = state.stops.get(partition);
+    if (permit.partition !== partition || !isActive(partition, permit.generation) ||
         permit.revoked || stop?.token !== permit.attempt || stop.outputToken !== token) return false;
-    if (!this.#finishBatchesCurrent(token, permit)) return false;
-    const authorization = this.canonical.transition({ kind: "finishAuthorize",
-      group: this.canonical.partitionId(partition), round: this.canonical.roundId(partition),
-      attempt: stop.id, token: this.canonical.collectionTokenId(token),
+    if (!finishBatchesCurrent(token, permit)) return false;
+    const authorization = canonicalOwner.transition({ kind: "finishAuthorize",
+      group: canonicalOwner.partitionId(partition), round: canonicalOwner.roundId(partition),
+      attempt: stop.id, token: canonicalOwner.collectionTokenId(token),
       selected: permit.selected });
     if (authorization.rejection !== undefined || authorization.commands[0]?.kind !== "finishAuthorized") {
-      this.release(token);
+      release(token);
       return false;
     }
     permit.authorized = true;
-    for (const [id, submission] of this.#submissions) {
+    for (const [id, submission] of state.submissions) {
       const batch = submission.batches.get(token);
       if (batch === undefined) continue;
       const batches = new Map(submission.batches);
       batches.set(token, { ...batch, status: "authorized" });
-      this.#submissions.set(id, { ...submission, batches });
+      state.submissions.set(id, { ...submission, batches });
     }
     return true;
   }
 
-  finishStop(partition: string, token: string, close: boolean, closedAt = monotonicNow()): number | undefined {
-    const stop = this.#stops.get(partition);
-    const round = this.#rounds.get(partition);
-    if (stop?.token !== token || round === undefined || !this.isActive(partition, stop.generation)) return undefined;
+  function finishStop(partition: string, token: string, close: boolean, closedAt = monotonicNow()): number | undefined {
+    const stop = state.stops.get(partition);
+    const round = state.rounds.get(partition);
+    if (stop?.token !== token || round === undefined || !isActive(partition, stop.generation)) return undefined;
     const canonicalRound = stop.canonicalRound;
     // A provisional output has not crossed the IPC write boundary. If Stop
     // ends while that response is gated, release its slot and close the round.
-    const terminal = this.canonical.transition({ kind: "roundStopTerminalCheck",
+    const terminal = canonicalOwner.transition({ kind: "roundStopTerminalCheck",
       hasOutput: stop.outputToken !== undefined,
       authorized: stop.outputToken !== undefined &&
-        this.#finishPermits.get(stop.outputToken)?.authorized === true,
+        state.finishPermits.get(stop.outputToken)?.authorized === true,
       requestedClose: close });
     const command = terminal.commands[0];
     if (terminal.rejection !== undefined || command?.kind !== "roundStopTerminal") return undefined;
     if (command.revokeProvisional && stop.outputToken !== undefined) {
-      if (!this.revokeProvisionalFinishOutput(partition, token, stop.outputToken)) return undefined;
+      if (!revokeProvisionalFinishOutput(partition, token, stop.outputToken)) return undefined;
     }
     close = command.close;
-    const owner = this.canonical.partitionId(partition);
-    const ended = this.canonical.transition({ kind: "stopGroupEnded", group: this.canonical.partitionId(partition),
+    const owner = canonicalOwner.partitionId(partition);
+    const ended = canonicalOwner.transition({ kind: "stopGroupEnded", group: canonicalOwner.partitionId(partition),
       lifetime: 1, round: canonicalRound, scopes: [{ partition: owner, round: canonicalRound }] });
     if (ended.rejection !== undefined || ended.commands[0]?.kind !== "stopEnded") throw new Error("canonical Stop end refused");
-    const outputPermit = stop.outputToken === undefined ? undefined : this.#finishPermits.get(stop.outputToken);
+    const outputPermit = stop.outputToken === undefined ? undefined : state.finishPermits.get(stop.outputToken);
     if (stop.outputToken !== undefined && outputPermit?.authorized === true) {
-      const outputEnded = this.canonical.transition({ kind: "finishEnd",
-        group: this.canonical.partitionId(partition), round: canonicalRound,
-        attempt: stop.id, token: this.canonical.collectionTokenId(stop.outputToken) });
+      const outputEnded = canonicalOwner.transition({ kind: "finishEnd",
+        group: canonicalOwner.partitionId(partition), round: canonicalRound,
+        attempt: stop.id, token: canonicalOwner.collectionTokenId(stop.outputToken) });
       if (outputEnded.rejection !== undefined || outputEnded.commands[0]?.kind !== "finishEnded") {
         throw new Error("canonical finish slot end refused");
       }
     }
     if (close) {
-      if (this.generation(partition) !== stop.generation) return undefined;
+      if (readGeneration(partition) !== stop.generation) return undefined;
       // Publish the canonical fence before changing the resident's Stop view.
-      const admission = this.canonical.canonicalProjection().admissions.find(
-        (item) => item.partition === this.canonical.partitionId(partition));
+      const admission = canonicalOwner.canonicalProjection().admissions.find(
+        (item) => item.partition === canonicalOwner.partitionId(partition));
       if (admission === undefined) throw new Error("canonical admission missing at round closure");
-      const at = Math.max(this.#bendTime(closedAt + 1), admission.closedAt);
-      const closed = this.canonical.transition({ kind: "closePermitRound",
+      const at = Math.max(bendTime(closedAt + 1), admission.closedAt);
+      const closed = canonicalOwner.transition({ kind: "closePermitRound",
         partition: admission.partition, lifetime: admission.lifetime,
         round: stop.generation, at });
       if (closed.rejection !== undefined || closed.commands[0]?.kind !== "permitRoundClosed" ||
           closed.commands[0].round !== stop.generation) throw new Error("canonical permit closure disagrees with round");
     }
-    this.#stops.delete(partition);
+    state.stops.delete(partition);
     if (stop.outputToken !== undefined) {
-      const permit = this.#finishPermits.get(stop.outputToken);
+      const permit = state.finishPermits.get(stop.outputToken);
       if (permit !== undefined) permit.revoked = true;
     }
     if (!close) return undefined;
-    this.#retireClosedRound(partition, stop.canonicalRound);
+    retireClosedRound(partition, stop.canonicalRound);
     return stop.generation;
   }
 
-  #retireClosedRound(partition: string, canonicalRound: number): void {
-    this.canonical.retireRound(partition, canonicalRound);
-    for (const [key, permit] of this.#permits) if (permit.partition === partition) this.#finishPermit(key, "closed");
-    const waiter = this.#backgroundWaiters.get(partition);
-    if (waiter !== undefined) this.releaseBackground(partition, waiter.token);
-    for (const [token, permit] of this.#finishPermits) if (permit.partition === partition) this.#finishPermits.delete(token);
-    for (const [id, submission] of this.#submissions) {
-      if (submission.partition === partition) this.forget(id);
+  function retireClosedRound(partition: string, canonicalRound: number): void {
+    canonicalOwner.retireRound(partition, canonicalRound);
+    for (const [key, permit] of state.permits) if (permit.partition === partition) finishPermit(key, "closed");
+    const waiter = state.backgroundWaiters.get(partition);
+    if (waiter !== undefined) releaseBackground(partition, waiter.token);
+    for (const [token, permit] of state.finishPermits) if (permit.partition === partition) state.finishPermits.delete(token);
+    for (const [id, submission] of state.submissions) {
+      if (submission.partition === partition) forget(id);
     }
-    this.#rounds.delete(partition);
+    state.rounds.delete(partition);
   }
 
-  tickQuietRound(partition: string, now: number,
+  function tickQuietRound(partition: string, now: number,
     facts: { readonly nativeWorkIdle: boolean; readonly adviceEmpty: boolean }): number | undefined {
-    const round = this.#rounds.get(partition);
+    const round = state.rounds.get(partition);
     if (round === undefined) return undefined;
-    const canonicalRound = this.canonical.currentRoundId(partition);
+    const canonicalRound = canonicalOwner.currentRoundId(partition);
     if (canonicalRound === undefined) throw new Error("active virtual round lacks canonical identity");
-    const handoffIdle = !this.#backgroundWaiters.has(partition) &&
-      ![...this.#finishPermits.values()].some((item) => item.partition === partition) &&
-      ![...this.#submissions.values()].some((item) => item.partition === partition &&
+    const handoffIdle = !state.backgroundWaiters.has(partition) &&
+      ![...state.finishPermits.values()].some((item) => item.partition === partition) &&
+      ![...state.submissions.values()].some((item) => item.partition === partition &&
         [...item.batches.values()].some((batch) => batch.status !== "submitted"));
-    const tick = this.canonical.transition({ kind: "quietRoundTick",
-      partition: this.canonical.partitionId(partition), lifetime: 1, round: canonicalRound,
-      now: this.#bendTime(now), window: this.#bendTime(round.quietMs),
-      facts: { ...facts, handoffIdle, stopAbsent: !this.#stops.has(partition) } });
+    const tick = canonicalOwner.transition({ kind: "quietRoundTick",
+      partition: canonicalOwner.partitionId(partition), lifetime: 1, round: canonicalRound,
+      now: bendTime(now), window: bendTime(round.quietMs),
+      facts: { ...facts, handoffIdle, stopAbsent: !state.stops.has(partition) } });
     if (tick.rejection !== undefined || tick.commands.length !== 1) throw new Error("canonical quiet tick refused");
     if (tick.commands[0]?.kind !== "quietRoundExpired") return undefined;
-    const admission = this.canonical.canonicalProjection().admissions.find(
-      (item) => item.partition === this.canonical.partitionId(partition));
+    const admission = canonicalOwner.canonicalProjection().admissions.find(
+      (item) => item.partition === canonicalOwner.partitionId(partition));
     if (admission === undefined) throw new Error("canonical admission missing at quiet closure");
-    const closed = this.canonical.transition({ kind: "closePermitRound",
+    const closed = canonicalOwner.transition({ kind: "closePermitRound",
       partition: admission.partition, lifetime: admission.lifetime,
-      round: admission.round, at: Math.max(this.#bendTime(now + 1), admission.closedAt) });
+      round: admission.round, at: Math.max(bendTime(now + 1), admission.closedAt) });
     if (closed.rejection !== undefined || closed.commands[0]?.kind !== "permitRoundClosed") {
       throw new Error("canonical quiet closure refused");
     }
-    this.#retireClosedRound(partition, canonicalRound);
+    retireClosedRound(partition, canonicalRound);
     return admission.round;
   }
 
-  closureCounts(partition: string): { reservedContinuations: number; submitted: number; uncertain: number; editPermits: number } {
+  function closureCounts(partition: string): { reservedContinuations: number; submitted: number; uncertain: number; editPermits: number } {
     const batches = new Map<string, SubmissionBatch["status"]>();
-    for (const submission of this.#submissions.values()) if (submission.partition === partition) {
+    for (const submission of state.submissions.values()) if (submission.partition === partition) {
       for (const [token, batch] of submission.batches) batches.set(token, batch.status);
     }
-    return { reservedContinuations: this.#rounds.has(partition) ? this.#continuationCount(partition) : 0,
+    return { reservedContinuations: state.rounds.has(partition) ? continuationCount(partition) : 0,
       submitted: [...batches.values()].filter((status) => status === "submitted").length,
       uncertain: [...batches.values()].filter((status) => status === "uncertain").length,
-      editPermits: [...this.#permits.values()].filter((permit) => permit.partition === partition).length };
+      editPermits: [...state.permits.values()].filter((permit) => permit.partition === partition).length };
   }
 
-  expireStop(partition: string, token: string): number | undefined {
-    const stop = this.#stops.get(partition);
+  function expireStop(partition: string, token: string): number | undefined {
+    const stop = state.stops.get(partition);
     if (stop?.token !== token) return undefined;
     // An authorized output may have reached the runtime. Preserve its count
     // and round; finishStop releases any provisional output before closing.
     const authorizedOutput = stop.outputToken !== undefined &&
-      this.#finishPermits.get(stop.outputToken)?.authorized === true;
-    const expiry = this.canonical.transition({ kind: "roundExpireCloseCheck",
-      barrier: this.#stopBarrier(partition), authorizedOutput });
+      state.finishPermits.get(stop.outputToken)?.authorized === true;
+    const expiry = canonicalOwner.transition({ kind: "roundExpireCloseCheck",
+      barrier: stopBarrier(partition), authorizedOutput });
     if (expiry.rejection !== undefined || expiry.commands.length !== 1) throw new Error("canonical Stop expiry refused");
-    return this.finishStop(partition, token, expiry.commands[0]?.kind === "roundExpireCloses");
+    return finishStop(partition, token, expiry.commands[0]?.kind === "roundExpireCloses");
   }
 
-  isDeciding(partition: string): boolean {
-    const owner = this.canonical.partitionId(partition);
-    return this.canonical.canonicalProjection().rounds.find((item) => item.partition === owner)?.deciding === true;
+  function isDeciding(partition: string): boolean {
+    const owner = canonicalOwner.partitionId(partition);
+    return canonicalOwner.canonicalProjection().rounds.find((item) => item.partition === owner)?.deciding === true;
   }
 
-  canSubmit(partition: string, surface: DeliverySurface): boolean {
-    const result = this.canonical.transition({ kind: "deliverySubmissionAllowedCheck",
-      active: this.isActive(partition), barrier: this.#stopBarrier(partition),
-      deciding: this.isDeciding(partition), surface, existingToken: false, finishPermit: false });
+  function canSubmit(partition: string, surface: DeliverySurface): boolean {
+    const result = canonicalOwner.transition({ kind: "deliverySubmissionAllowedCheck",
+      active: isActive(partition), barrier: stopBarrier(partition),
+      deciding: isDeciding(partition), surface, existingToken: false, finishPermit: false });
     if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical submission eligibility refused");
     return result.commands[0]?.kind === "deliverySubmissionAllowed";
   }
 
-  canBeginSubmission(partition: string, surface: DeliverySurface, token: string): boolean {
-    const result = this.canonical.transition({ kind: "deliverySubmissionAllowedCheck",
-      active: this.isActive(partition), barrier: this.#stopBarrier(partition),
-      deciding: this.isDeciding(partition), surface, existingToken: this.hasToken(token),
-      finishPermit: surface === "stop" && this.hasFinishPermit(token) });
+  function canBeginSubmission(partition: string, surface: DeliverySurface, token: string): boolean {
+    const result = canonicalOwner.transition({ kind: "deliverySubmissionAllowedCheck",
+      active: isActive(partition), barrier: stopBarrier(partition),
+      deciding: isDeciding(partition), surface, existingToken: hasToken(token),
+      finishPermit: surface === "stop" && hasFinishPermit(token) });
     if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical submission eligibility refused");
     return result.commands[0]?.kind === "deliverySubmissionAllowed";
   }
 
-  canBeginExistingToken(surface: DeliverySurface, token: string): boolean {
-    const result = this.canonical.transition({ kind: "deliveryExistingTokenCheck",
-      surface, existingToken: this.hasToken(token),
-      finishPermit: surface === "stop" && this.hasFinishPermit(token) });
+  function canBeginExistingToken(surface: DeliverySurface, token: string): boolean {
+    const result = canonicalOwner.transition({ kind: "deliveryExistingTokenCheck",
+      surface, existingToken: hasToken(token),
+      finishPermit: surface === "stop" && hasFinishPermit(token) });
     if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical existing token gate refused");
     return result.commands[0]?.kind === "deliveryExistingTokenAllowed";
   }
 
-  generation(partition: string): number {
-    const known = this.canonical.knownPartitionId(partition);
+  function readGeneration(partition: string): number {
+    const known = canonicalOwner.knownPartitionId(partition);
     if (known === undefined) return 0;
-    const admission = this.canonical.canonicalProjection().admissions.find(
+    const admission = canonicalOwner.canonicalProjection().admissions.find(
       (item) => item.partition === known);
     return admission?.round ?? 0;
   }
 
-  /** Reserve one request from the active virtual round's continuation budget. */
-  consumeStop(partition: string, continuationDigest?: string): boolean {
-    if (!this.hasVirtualRoundContinuationBudget(partition)) return false;
-    const consumed = this.canonical.transition({ kind: "continuationConsume",
-      group: this.canonical.partitionId(partition), round: this.canonical.roundId(partition) });
+  function consumeStop(partition: string, continuationDigest?: string): boolean {
+    if (!hasVirtualRoundContinuationBudget(partition)) return false;
+    const consumed = canonicalOwner.transition({ kind: "continuationConsume",
+      group: canonicalOwner.partitionId(partition), round: canonicalOwner.roundId(partition) });
     if (consumed.rejection !== undefined || consumed.commands[0]?.kind !== "continuationConsumed") return false;
     return true;
   }
 
-  hasVirtualRoundContinuationBudget(partition: string): boolean {
-    if (!this.#rounds.has(partition)) return false;
-    const result = this.canonical.transition({ kind: "roundContinuationBudgetCheck",
-      active: this.isActive(partition), count: this.#continuationCount(partition) });
+  function hasVirtualRoundContinuationBudget(partition: string): boolean {
+    if (!state.rounds.has(partition)) return false;
+    const result = canonicalOwner.transition({ kind: "roundContinuationBudgetCheck",
+      active: isActive(partition), count: continuationCount(partition) });
     if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical continuation budget refused");
     return result.commands[0]?.kind === "roundContinuationAvailable";
   }
 
-  #stopBarrier(partition: string): boolean {
-    const stop = this.#stops.get(partition);
-    const result = this.canonical.transition({ kind: "roundBarrierCheck",
+  function stopBarrier(partition: string): boolean {
+    const stop = state.stops.get(partition);
+    const result = canonicalOwner.transition({ kind: "roundBarrierCheck",
       hasStop: stop !== undefined, usedAtStart: stop?.continuationsAtStart ?? 0,
-      usedNow: stop === undefined ? 0 : this.#continuationCount(partition) });
+      usedNow: stop === undefined ? 0 : continuationCount(partition) });
     if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical Stop barrier refused");
     return result.commands[0]?.kind === "roundBarrierRaised";
   }
 
-  #continuationCount(partition: string, round = this.canonical.currentRoundId(partition)): number {
+  function continuationCount(partition: string, round = canonicalOwner.currentRoundId(partition)): number {
     if (round === undefined) return 0;
-    const group = this.canonical.partitionId(partition);
-    return this.canonical.canonicalProjection().delivery.counters.find((item) =>
+    const group = canonicalOwner.partitionId(partition);
+    return canonicalOwner.canonicalProjection().delivery.counters.find((item) =>
       item.group === group && item.round === round)?.used ?? 0;
   }
 
-  /** Reserve before writing; a crash or lost acknowledgement remains uncertain. */
-  #submissionTokenId(token: string): number {
-    return this.canonical.collectionTokenId(token);
+  function submissionTokenId(token: string): number {
+    return canonicalOwner.collectionTokenId(token);
   }
 
-  #submissionAdviceId(adviceId: string): number {
-    return this.canonical.collectionTokenId(`submission-advice\0${adviceId}`);
+  function submissionAdviceId(adviceId: string): number {
+    return canonicalOwner.collectionTokenId(`submission-advice\0${adviceId}`);
   }
 
-  #fingerprintId(adviceId: string, digest: string): number {
-    return this.canonical.collectionTokenId(`submission-finding\0${adviceId}\0${digest}`);
+  function fingerprintId(adviceId: string, digest: string): number {
+    return canonicalOwner.collectionTokenId(`submission-finding\0${adviceId}\0${digest}`);
   }
 
-  #stageSubmission(
+  function stageSubmission(
     adviceId: string, partition: string, token: string,
     findings: ReadonlyArray<unknown>, surface: DeliverySurface, now: number,
     status: "reserved" | "authorized", unit?: number,
   ): Submission | undefined {
-    const generation = this.generation(partition);
-    if (generation === 0 || !this.isActive(partition, generation)) return undefined;
-    const existing = this.#submissions.get(adviceId);
+    const generation = readGeneration(partition);
+    if (generation === 0 || !isActive(partition, generation)) return undefined;
+    const existing = state.submissions.get(adviceId);
     const batches = existing?.partition === partition && existing.generation === generation
       ? new Map(existing.batches) : new Map<string, SubmissionBatch>();
     if (batches.has(token)) return undefined;
     const fingerprints = new Set(findings.map(fingerprint));
     if (fingerprints.size === 0) return undefined;
-    const id = this.#submissionTokenId(token);
-    const offered = this.canonical.transition({ kind: "submissionBegin",
-      advice: this.#submissionAdviceId(adviceId), group: this.canonical.partitionId(partition),
-      round: this.canonical.roundId(partition), token: id, surface,
+    const id = submissionTokenId(token);
+    const offered = canonicalOwner.transition({ kind: "submissionBegin",
+      advice: submissionAdviceId(adviceId), group: canonicalOwner.partitionId(partition),
+      round: canonicalOwner.roundId(partition), token: id, surface,
       authorizeNow: status === "authorized",
-      fingerprints: [...fingerprints].map((digest) => this.#fingerprintId(adviceId, digest)),
+      fingerprints: [...fingerprints].map((digest) => fingerprintId(adviceId, digest)),
       units: unit === undefined ? [] : findings.map(() => unit) });
     if (offered.rejection !== undefined || offered.commands[0]?.kind !== "submissionBegun") {
       return undefined;
     }
-    if (status === "authorized" && this.canonical.canonicalProjection().delivery.submissions.batches.some(
-      (batch) => batch.advice === this.#submissionAdviceId(adviceId) && batch.token === id &&
+    if (status === "authorized" && canonicalOwner.canonicalProjection().delivery.submissions.batches.some(
+      (batch) => batch.advice === submissionAdviceId(adviceId) && batch.token === id &&
         batch.phase !== "authorized")) throw new Error("canonical submission authorization missing");
     batches.set(token, { id, surface, at: now, fingerprints, status });
     return { partition, generation, batches };
   }
 
-  beginSubmission(
+  function beginSubmission(
     adviceId: string,
     partition: string,
     token: string,
@@ -841,32 +882,32 @@ export class ComposedDelivery {
     now: number,
     unit?: number,
   ): boolean {
-    const staged = this.#stageSubmission(adviceId, partition, token, findings, surface, now, "authorized", unit);
+    const staged = stageSubmission(adviceId, partition, token, findings, surface, now, "authorized", unit);
     if (staged === undefined) return false;
-    this.#submissions.set(adviceId, staged);
+    state.submissions.set(adviceId, staged);
     return true;
   }
 
-  #transitionBatchStatus(token: string, status: SubmissionBatch["status"]): boolean {
-    const matching = [...this.#submissions].flatMap(([id, submission]) => {
+  function transitionBatchStatus(token: string, status: SubmissionBatch["status"]): boolean {
+    const matching = [...state.submissions].flatMap(([id, submission]) => {
       const batch = submission.batches.get(token);
       return batch === undefined ? [] : [{ id, submission, batch }];
     });
     const required = status === "authorized" ? "reserved" : "authorized";
-    const canonical = this.canonical.canonicalProjection().delivery.submissions;
+    const canonical = canonicalOwner.canonicalProjection().delivery.submissions;
     if (matching.some(({ id, batch }) => {
       if (batch.status !== required) return true;
-      const advice = this.#submissionAdviceId(id);
+      const advice = submissionAdviceId(id);
       const owner = canonical.batches.find((item) => item.advice === advice && item.token === batch.id);
       return owner?.phase !== required || [...batch.fingerprints].some((digest) =>
         canonical.leases.find((lease) => lease.advice === advice &&
-          lease.fingerprint === this.#fingerprintId(id, digest))?.phase !== required);
+          lease.fingerprint === fingerprintId(id, digest))?.phase !== required);
     })) return false;
     const staged: Array<readonly [string, Submission]> = [];
     for (const { id, submission, batch } of matching) {
-      const result = this.canonical.transition(status === "authorized"
-        ? { kind: "submissionAuthorize", advice: this.#submissionAdviceId(id), token: batch.id }
-        : { kind: "submissionTerminal", advice: this.#submissionAdviceId(id), token: batch.id,
+      const result = canonicalOwner.transition(status === "authorized"
+        ? { kind: "submissionAuthorize", advice: submissionAdviceId(id), token: batch.id }
+        : { kind: "submissionTerminal", advice: submissionAdviceId(id), token: batch.id,
             certain: status === "submitted" });
       const expected = status === "authorized" ? "submissionAuthorized" : "submissionRecorded";
       if (result.rejection !== undefined || result.commands[0]?.kind !== expected) {
@@ -877,69 +918,69 @@ export class ComposedDelivery {
       const next: Submission = { ...submission, batches };
       staged.push([id, next]);
     }
-    for (const [id, submission] of staged) this.#submissions.set(id, submission);
+    for (const [id, submission] of staged) state.submissions.set(id, submission);
     return true;
   }
 
-  #recordStopBatchResult(token: string, status: "submitted" | "uncertain",
+  function recordStopBatchResult(token: string, status: "submitted" | "uncertain",
     outcome: "acknowledged" | "unknown"): boolean {
-    const permit = this.#finishPermits.get(token);
+    const permit = state.finishPermits.get(token);
     if (permit === undefined || !permit.authorized || permit.terminal) return false;
-    const stop = this.#stops.get(permit.partition);
+    const stop = state.stops.get(permit.partition);
     if (stop === undefined || stop.outputToken !== token) return false;
-    const matching = [...this.#submissions].flatMap(([id, submission]) => {
+    const matching = [...state.submissions].flatMap(([id, submission]) => {
       const batch = submission.batches.get(token);
       return batch === undefined ? [] : [{ id, submission, batch }];
     });
-    const canonical = this.canonical.canonicalProjection().delivery.submissions.batches;
+    const canonical = canonicalOwner.canonicalProjection().delivery.submissions.batches;
     if (matching.length !== permit.advice.length || matching.some(({ id, batch }) =>
       !permit.advice.some((item) => item.id === id) || batch.status !== "authorized" ||
-      canonical.find((item) => item.advice === this.#submissionAdviceId(id) && item.token === batch.id)?.phase !== "authorized")) return false;
-    const recorded = this.canonical.transition({ kind: "finishTerminal",
-      group: this.canonical.partitionId(permit.partition),
-      round: this.canonical.roundId(permit.partition), attempt: stop.id,
-      token: this.canonical.collectionTokenId(token), selected: permit.selected, outcome });
+      canonical.find((item) => item.advice === submissionAdviceId(id) && item.token === batch.id)?.phase !== "authorized")) return false;
+    const recorded = canonicalOwner.transition({ kind: "finishTerminal",
+      group: canonicalOwner.partitionId(permit.partition),
+      round: canonicalOwner.roundId(permit.partition), attempt: stop.id,
+      token: canonicalOwner.collectionTokenId(token), selected: permit.selected, outcome });
     if (recorded.rejection !== undefined || recorded.commands[0]?.kind !== "finishRecorded") return false;
     for (const { id, submission, batch } of matching) {
       const batches = new Map(submission.batches);
       batches.set(token, { ...batch, status });
-      this.#submissions.set(id, { ...submission, batches });
+      state.submissions.set(id, { ...submission, batches });
     }
     permit.terminal = true;
     return true;
   }
 
-  markSubmitted(token: string, selectedUnits: ReadonlyArray<number> = []): boolean {
-    const permit = this.#finishPermits.get(token);
+  function markSubmitted(token: string, selectedUnits: ReadonlyArray<number> = []): boolean {
+    const permit = state.finishPermits.get(token);
     if (permit !== undefined && (!permit.authorized || permit.terminal ||
         permit.selected.length !== selectedUnits.length ||
         permit.selected.some((unit, index) => unit !== selectedUnits[index]))) return false;
     if (permit !== undefined) {
-      return this.#recordStopBatchResult(token, "submitted", "acknowledged");
+      return recordStopBatchResult(token, "submitted", "acknowledged");
     }
-    return this.#transitionBatchStatus(token, "submitted");
+    return transitionBatchStatus(token, "submitted");
   }
 
-  markUncertain(token: string): boolean {
-    const permit = this.#finishPermits.get(token);
+  function markUncertain(token: string): boolean {
+    const permit = state.finishPermits.get(token);
     if (permit !== undefined && permit.authorized && !permit.terminal) {
-      return this.#recordStopBatchResult(token, "uncertain", "unknown");
+      return recordStopBatchResult(token, "uncertain", "unknown");
     }
-    return this.#transitionBatchStatus(token, "uncertain");
+    return transitionBatchStatus(token, "uncertain");
   }
 
-  release(token: string): void {
-    const permit = this.#finishPermits.get(token);
+  function release(token: string): void {
+    const permit = state.finishPermits.get(token);
     if (permit !== undefined && !permit.revoked) {
-      const stop = this.#stops.get(permit.partition);
+      const stop = state.stops.get(permit.partition);
       if (stop !== undefined && !permit.terminal) {
-        const common = { group: this.canonical.partitionId(permit.partition),
-          round: this.canonical.roundId(permit.partition), attempt: stop.id,
-          token: this.canonical.collectionTokenId(token) };
+        const common = { group: canonicalOwner.partitionId(permit.partition),
+          round: canonicalOwner.roundId(permit.partition), attempt: stop.id,
+          token: canonicalOwner.collectionTokenId(token) };
         const result = permit.authorized
-          ? this.canonical.transition({ kind: "finishTerminal", ...common,
+          ? canonicalOwner.transition({ kind: "finishTerminal", ...common,
               selected: permit.selected, outcome: "failed" })
-          : this.canonical.transition({ kind: "finishRelease", ...common });
+          : canonicalOwner.transition({ kind: "finishRelease", ...common });
         const expected = permit.authorized ? "finishRecorded" : "finishReleased";
         if (result.rejection !== undefined || result.commands[0]?.kind !== expected) {
           throw new Error("canonical finish release refused");
@@ -948,16 +989,16 @@ export class ComposedDelivery {
       }
       permit.revoked = true;
       if (!permit.authorized) {
-        this.#finishPermits.delete(token);
+        state.finishPermits.delete(token);
         if (stop?.outputToken === token) delete stop.outputToken;
       }
     }
-    for (const [adviceId, submission] of this.#submissions) {
+    for (const [adviceId, submission] of state.submissions) {
       const batch = submission.batches.get(token);
       if (batch === undefined) continue;
       if (batch.status === "reserved" || batch.status === "authorized") {
-        const rollback = this.canonical.transition({ kind: "submissionRelease",
-          advice: this.#submissionAdviceId(adviceId), token: batch.id });
+        const rollback = canonicalOwner.transition({ kind: "submissionRelease",
+          advice: submissionAdviceId(adviceId), token: batch.id });
         if (rollback.rejection !== undefined || rollback.commands[0]?.kind !== "submissionReleased") {
           throw new Error("canonical submission rollback refused");
         }
@@ -965,70 +1006,69 @@ export class ComposedDelivery {
       const batches = new Map(submission.batches);
       batches.delete(token);
       if (batches.size === 0) {
-        this.#submissions.delete(adviceId);
+        state.submissions.delete(adviceId);
         continue;
       }
-      this.#submissions.set(adviceId, { ...submission, batches });
+      state.submissions.set(adviceId, { ...submission, batches });
     }
   }
 
-  forget(adviceId: string): void {
-    const result = this.canonical.transition({ kind: "submissionForget",
-      advice: this.#submissionAdviceId(adviceId) });
+  function forget(adviceId: string): void {
+    const result = canonicalOwner.transition({ kind: "submissionForget",
+      advice: submissionAdviceId(adviceId) });
     if (result.rejection !== undefined || result.commands[0]?.kind !== "submissionForgotten") {
       throw new Error("canonical submission forget refused");
     }
-    this.#submissions.delete(adviceId);
+    state.submissions.delete(adviceId);
   }
 
-  suppresses(adviceId: string, partition: string, finding: unknown, surface?: DeliverySurface): boolean {
-    const submission = this.#submissions.get(adviceId);
+  function suppresses(adviceId: string, partition: string, finding: unknown, surface?: DeliverySurface): boolean {
+    const submission = state.submissions.get(adviceId);
     if (submission === undefined || submission.partition !== partition ||
-        submission.generation !== this.generation(partition)) return false;
+        submission.generation !== readGeneration(partition)) return false;
     const digest = fingerprint(finding);
-    const checked = this.canonical.transition({ kind: "submissionSuppressCheck",
-      advice: this.#submissionAdviceId(adviceId), fingerprint: this.#fingerprintId(adviceId, digest),
-      round: this.canonical.roundId(partition), surface: surface ?? "edit" });
+    const checked = canonicalOwner.transition({ kind: "submissionSuppressCheck",
+      advice: submissionAdviceId(adviceId), fingerprint: fingerprintId(adviceId, digest),
+      round: canonicalOwner.roundId(partition), surface: surface ?? "edit" });
     if (checked.rejection !== undefined) throw new Error("canonical submission suppression refused");
     return checked.commands[0]?.kind === "submissionSuppresses";
   }
 
-  backgroundReofferable(adviceId: string, token: string): boolean {
-    const batch = this.#submissions.get(adviceId)?.batches.get(token);
+  function backgroundReofferable(adviceId: string, token: string): boolean {
+    const batch = state.submissions.get(adviceId)?.batches.get(token);
     if (batch === undefined) return false;
-    const checked = this.canonical.transition({ kind: "submissionReofferCheck",
-      advice: this.#submissionAdviceId(adviceId), token: batch.id });
+    const checked = canonicalOwner.transition({ kind: "submissionReofferCheck",
+      advice: submissionAdviceId(adviceId), token: batch.id });
     if (checked.rejection !== undefined) throw new Error("canonical submission reoffer check refused");
     return checked.commands[0]?.kind === "submissionReofferable";
   }
 
-  hasToken(token: string): boolean {
-    return [...this.#submissions.values()].some((submission) => submission.batches.has(token));
-  }
-
-  expire(now: number): void {
-    for (const [partition, waiter] of this.#backgroundWaiters) {
+  function expire(now: number): void {
+    for (const [partition, waiter] of state.backgroundWaiters) {
       const elapsed = Math.floor(Math.min(BACKGROUND_WAITER_EXPIRY_MS,
         Math.max(0, now - waiter.at)));
-      const result = this.canonical.transition({ kind: "collectionExpireBackground",
-        group: this.canonical.partitionId(partition), token: waiter.id,
+      const result = canonicalOwner.transition({ kind: "collectionExpireBackground",
+        group: canonicalOwner.partitionId(partition), token: waiter.id,
         elapsed, lifetime: BACKGROUND_WAITER_EXPIRY_MS });
       if (result.rejection !== undefined) throw new Error("canonical background expiry refused");
-      if (result.commands[0]?.kind === "collectionBackgroundReleased") this.#backgroundWaiters.delete(partition);
+      if (result.commands[0]?.kind === "collectionBackgroundReleased") state.backgroundWaiters.delete(partition);
       else if (result.commands[0]?.kind !== "collectionBackgroundKept") throw new Error("invalid canonical background expiry");
     }
     const expired = new Set<string>();
-    for (const [adviceId, submission] of this.#submissions) {
+    for (const [adviceId, submission] of state.submissions) {
       for (const [token, batch] of submission.batches) {
         const elapsed = Math.floor(Math.min(DELIVERY_LEASE_MS, Math.max(0, now - batch.at)));
-        const checked = this.canonical.transition({ kind: "submissionExpiryCheck",
-          advice: this.#submissionAdviceId(adviceId), token: batch.id, elapsed,
+        const checked = canonicalOwner.transition({ kind: "submissionExpiryCheck",
+          advice: submissionAdviceId(adviceId), token: batch.id, elapsed,
           lifetime: DELIVERY_LEASE_MS });
         if (checked.rejection !== undefined) throw new Error("canonical submission expiry refused");
         if (checked.commands[0]?.kind === "submissionExpired") expired.add(token);
       }
     }
-    for (const token of expired) this.markUncertain(token);
+    for (const token of expired) markUncertain(token);
     // Round fences and continuation counts never expire in a resident lifetime.
   }
-}
+
+  return { ...deliveryView(state, canonicalOwner), claimBackground, releaseBackground, advance, ensureFromHostTurn, registerEdit, registerEditDecision, admitEdit, expirePermits, hasPendingEdits, isActive, beginStop, ownsStop, finishGate, reserveFinishOutput, decideFinishOutput, revokeProvisionalFinishOutput, finishSelectionMatches, authorizeFinishOutput, finishStop, tickQuietRound, closureCounts, expireStop, isDeciding, canSubmit, canBeginSubmission, canBeginExistingToken, generation: readGeneration, consumeStop, hasVirtualRoundContinuationBudget, beginSubmission, markSubmitted, markUncertain, release, forget, suppresses, backgroundReofferable, expire };
+};
+export type ComposedDelivery = ReturnType<typeof deliveryOperations>;

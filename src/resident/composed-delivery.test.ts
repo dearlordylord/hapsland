@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PARTITION_IDENTITIES } from "./capacity.ts";
-import { BACKGROUND_WAITER_EXPIRY_MS, ComposedDelivery, EDIT_PERMIT_EXPIRY_MS, VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
+import { makeCapacityLedger, MAX_PARTITION_IDENTITIES } from "./capacity.ts";
+import { BACKGROUND_WAITER_EXPIRY_MS, type ComposedDelivery, EDIT_PERMIT_EXPIRY_MS, VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
 const RECENT_EDIT_IDENTITIES = 1_000;
+import { monotonicNow } from "./hook-clock.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
 const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number => {
@@ -33,8 +34,72 @@ const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number 
 };
 
 describe("shared Hapsland rounds", () => {
+  it("rolls back provisional revocation and nested submissions when Stop closure fails", () => {
+    const state = makeCapacityLedger().delivery();
+    const finding = { rule: "r", advice: "repair" };
+    state.admitEdit("agent", "edit", 0);
+    expect(state.beginStop("agent", "attempt")).toBe(true);
+    const unit = canonicalFinding(state);
+    state.finishGate("agent", "attempt", 0, true);
+    const selected = [{ id: "advice", unit, findings: [finding] }];
+    expect(state.reserveFinishOutput("agent", "attempt", "output", selected, 1)).toBe(true);
+    const before = state.canonical.canonicalProjection();
+    const beforeCounts = state.closureCounts("agent");
+    const beforeOwnsStop = state.ownsStop("agent", "attempt");
+
+    // finishStop revokes provisional output and ends the Stop before validating
+    // its closure timestamp. Neither step may escape when that timestamp fails.
+    expect(() => state.finishStop("agent", "attempt", true, Number.POSITIVE_INFINITY)).toThrow(TypeError);
+    expect(state.canonical.canonicalProjection()).toEqual(before);
+    expect(state.closureCounts("agent")).toEqual(beforeCounts);
+    expect(state.hasFinishPermit("output")).toBe(true);
+    expect(state.hasToken("output")).toBe(true);
+    expect(state.finishSelectionMatches("output", selected)).toBe(true);
+    expect(state.ownsStop("agent", "attempt")).toBe(beforeOwnsStop);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
+    expect(state.markSubmitted("output", [unit])).toBe(true);
+  });
+
+  it("runs repeat diagnostics after publication and contains a failing sink", () => {
+    const ledger = makeCapacityLedger();
+    let reports = 0;
+    let nestedDecision: unknown;
+    const state = ledger.delivery(() => {
+      reports += 1;
+      // Reentrant reads and commits are permitted at this external sink. The
+      // repeat flag is already published, so the nested call cannot report again.
+      nestedDecision = state.registerEditDecision("agent", "edit", 111, 120);
+      throw new Error("diagnostic sink unavailable");
+    });
+    expect(state.registerEditDecision("agent", "edit", 100, 110)).toEqual({ accepted: true });
+    expect(state.registerEditDecision("agent", "edit", 111, 120)).toEqual({ accepted: true });
+    expect(reports).toBe(1);
+    expect(nestedDecision).toEqual({ accepted: true });
+    expect(state.closureCounts("agent").editPermits).toBe(1);
+    expect(state.admitEdit("agent", "edit", 130, true)).toBe(1);
+  });
+
+  it("shares delivery views and clears their native ownership with canonical state", () => {
+    const ledger = makeCapacityLedger();
+    const now = monotonicNow();
+    const first = ledger.delivery();
+    const second = ledger.delivery();
+    expect(first.registerEdit("agent", "edit", now, now + 1)).toBe(true);
+    expect(second.hasPendingEdits("agent")).toBe(true);
+    expect(second.admitEdit("agent", "edit", now + 10, true)).toBe(1);
+    expect(first.beginStop("agent", "attempt")).toBe(true);
+    expect(second.ownsStop("agent", "attempt")).toBe(true);
+    ledger.clear();
+    expect(first.hasPendingEdits("agent")).toBe(false);
+    expect(second.ownsStop("agent", "attempt")).toBe(false);
+    expect(first.liveCollectionTokenKeys().size).toBe(0);
+    expect(first.editIdentityMappingCount()).toBe(0);
+    expect(first.registerEdit("agent", "fresh", now + 100, now + 110)).toBe(true);
+    expect(second.admitEdit("agent", "fresh", now + 120, true)).toBe(1);
+  });
+
   it("closes only after five continuous quiet minutes and opens a fresh virtual round on a later edit", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.admitEdit("agent", "first", 1)).toBe(1);
     const quiet = { nativeWorkIdle: true, adviceEmpty: true };
     expect(state.tickQuietRound("agent", 100, quiet)).toBeUndefined();
@@ -51,7 +116,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("restarts the quiet interval after edit activity and after pending advice clears", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const quiet = { nativeWorkIdle: true, adviceEmpty: true };
     expect(state.admitEdit("agent", "first", 1)).toBe(1);
     state.tickQuietRound("agent", 100, quiet);
@@ -64,7 +129,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("uses the quiet duration captured by the first admitted edit", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const limits = { perAdvicee: 32, resident: 4096 };
     expect(state.registerEditDecision("agent", "first", 100, 101, limits, 10_000)).toEqual({ accepted: true });
     expect(state.admitEdit("agent", "first", 102, true)).toBe(1);
@@ -78,7 +143,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("breaks quiescence for a permit even when the permit expires between checks", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const quiet = { nativeWorkIdle: true, adviceEmpty: true };
     expect(state.admitEdit("agent", "first", 1)).toBe(1);
     state.tickQuietRound("agent", 100, quiet);
@@ -89,7 +154,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("holds the virtual round through Stop even after the quiet deadline", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const quiet = { nativeWorkIdle: true, adviceEmpty: true };
     expect(state.admitEdit("agent", "first", 1)).toBe(1);
     state.tickQuietRound("agent", 100, quiet);
@@ -99,7 +164,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("starts a new quiet interval after Stop continues the advicee", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const quiet = { nativeWorkIdle: true, adviceEmpty: true };
     expect(state.admitEdit("agent", "first", 1)).toBe(1);
     state.tickQuietRound("agent", 100, quiet);
@@ -110,7 +175,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("frees one of 64 open slots without changing another advicee's round", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const quiet = { nativeWorkIdle: true, adviceEmpty: true };
     for (let index = 0; index < 64; index++) {
       expect(state.admitEdit(`agent-${index}`, `edit-${index}`, 1)).toBe(1);
@@ -123,7 +188,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("does not retain an advicee identity for a rejected first edit", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.registerEditDecision("late-advicee", "edit", 100, 2600)).toEqual({
       accepted: false, reason: "StaleInvocation",
     });
@@ -132,7 +197,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("reclaims a closed advicee record and refuses its old edit after eviction", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "first", 1);
     expect(state.beginStop("agent", "stop")).toBe(true);
     expect(state.finishStop("agent", "stop", true, 100)).toBe(1);
@@ -150,7 +215,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("removes the Bend delivery counter when a virtual round ends", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "first", 1);
     const group = state.canonical.partitionId("agent");
     const round = state.canonical.roundId("agent");
@@ -163,7 +228,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("denies a fresh background token after a Stop continuation installs its barrier", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 100);
     expect(state.beginStop("agent", "stop")).toBe(true);
     expect(state.consumeStop("agent")).toBe(true);
@@ -172,7 +237,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("denies a duplicate token after its native lease expires without dropping uncertainty", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 100);
     expect(state.beginSubmission("advice", "agent", "output", [{ rule: "r" }],
       "background", 100)).toBe(true);
@@ -184,7 +249,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("allows four continuation reservations; prompts and expiry cannot reset them", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.consumeStop("agent")).toBe(false);
     state.admitEdit("agent", "edit", 0);
     for (let count = 0; count < 4; count++) {
@@ -197,7 +262,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("fences a closed round and requires fresh occurrence evidence to reopen", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "old", 0);
     expect(state.beginStop("agent", "stop")).toBe(true);
     expect(state.beginStop("agent", "competing-stop")).toBe(false);
@@ -212,7 +277,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("requires a prospective permit, rejects expired or orphaned prehooks and consumes once", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.admitEdit("agent", "no-pre", 100, true)).toBeUndefined();
     expect(state.registerEditDecision("agent", "bad-clock", 200, 100)).toEqual({
       accepted: false, reason: "InvalidClock",
@@ -231,7 +296,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("lets Bend enforce the supplied pre-edit window at its exact boundary", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.registerEditDecision("agent", "just-before-window", 100, 2599.999)).toEqual({ accepted: true });
     expect(state.registerEditDecision("agent", "at-window", 100, 2600)).toEqual({
       accepted: false, reason: "StaleInvocation",
@@ -249,7 +314,7 @@ describe("shared Hapsland rounds", () => {
 
   it("reuses a pending permit and rejects a recently completed edit ID", () => {
     const diagnostics: unknown[] = [];
-    const state = new ComposedDelivery(undefined, (diagnostic) => diagnostics.push(diagnostic));
+    const state = makeCapacityLedger().delivery((diagnostic) => diagnostics.push(diagnostic));
     expect(state.registerEditDecision("agent", "same-edit", 100, 110)).toEqual({ accepted: true });
     expect(state.registerEditDecision("agent", "same-edit", 111, 120)).toEqual({ accepted: true });
     expect(state.closureCounts("agent").editPermits).toBe(1);
@@ -268,7 +333,7 @@ describe("shared Hapsland rounds", () => {
 
   it("retains at most 1000 completed identities across the resident", () => {
     const diagnostics: unknown[] = [];
-    const state = new ComposedDelivery(undefined, (diagnostic) => diagnostics.push(diagnostic));
+    const state = makeCapacityLedger().delivery((diagnostic) => diagnostics.push(diagnostic));
     for (let index = 0; index < RECENT_EDIT_IDENTITIES; index += 1) {
       expect(state.admitEdit(`agent-${index % 2}`, `edit-${index}`, index + 1)).toBe(1);
     }
@@ -283,7 +348,7 @@ describe("shared Hapsland rounds", () => {
   }, 20_000);
 
   it("counts pending permits per advicee and across the resident, then frees consumed capacity", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const limits = { perAdvicee: 2, resident: 3 };
     const issue = (partition: string, event: string) =>
       state.registerEditDecision(partition, event, 100, 110, limits);
@@ -297,7 +362,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("does not reopen a closed round through the internal admission seam", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.admitEdit("agent", "first", 1)).toBe(1);
     expect(state.beginStop("agent", "stop")).toBe(true);
     expect(state.finishStop("agent", "stop", true, 100)).toBe(1);
@@ -305,7 +370,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("never renews a tool occurrence when duplicate prehooks outlive its permit", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.registerEdit("agent", "failed", 100, 101)).toBe(true);
     expect(state.registerEdit("agent", "failed", 200, 201)).toBe(true);
     state.expirePermits(100 + EDIT_PERMIT_EXPIRY_MS);
@@ -321,7 +386,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("expires a prospective permit at its exact fractional deadline", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const startedAt = 100.5;
     expect(state.registerEdit("agent", "fractional", startedAt, 101)).toBe(true);
     state.expirePermits(startedAt + EDIT_PERMIT_EXPIRY_MS - 0.001);
@@ -333,7 +398,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("expires a failed edit permit without opening a round", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.registerEdit("agent", "first", 100, 101)).toBe(true);
     state.expirePermits(100 + EDIT_PERMIT_EXPIRY_MS);
     expect(state.beginStop("agent", "stop")).toBe(false);
@@ -346,7 +411,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("expires an unsuccessful next edit without reopening the closed round", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "first", 1);
     state.beginStop("agent", "stop");
     state.finishStop("agent", "stop", true, 100);
@@ -362,7 +427,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("does not consume or activate an edit when canonical round capacity is exhausted", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     for (let i = 0; i < 64; i++) state.canonical.roundId(`occupied-${i}`);
     expect(state.registerEdit("agent", "edit", 100, 101)).toBe(true);
     expect(state.admitEdit("agent", "edit", 102, true)).toBeUndefined();
@@ -376,7 +441,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("keeps native tool identity across duplicate and cross-advicee callbacks", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.registerEdit("child", "tool-use-original", 100, 110)).toBe(true);
     expect(state.registerEdit("child", "tool-use-original", 100, 111)).toBe(true);
     expect(state.admitEdit("parent", "tool-use-original", 115, true)).toBeUndefined();
@@ -389,7 +454,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("closes abandoned pre-output Stop attempts but preserves uncertain continuations", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("allow", "edit", 0);
     state.beginStop("allow", "lost");
     expect(state.expireStop("allow", "lost")).toBe(1);
@@ -404,7 +469,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("releases an abandoned provisional finish reservation and closes the round", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     state.beginStop("agent", "attempt");
@@ -422,7 +487,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("preserves a reserved continuation after output authorization when Stop expires", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     state.beginStop("agent", "attempt");
@@ -441,7 +506,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("records a two-advice Stop output as one checked terminal transition", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
     const first = canonicalFinding(state);
     const second = canonicalFinding(state);
@@ -476,7 +541,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("marks both advice records uncertain with their shared Stop output", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
     const first = canonicalFinding(state);
     const second = canonicalFinding(state);
@@ -494,7 +559,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("refuses a prepared Stop output when one selected advice is retired before authorization", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
     const first = canonicalFinding(state);
     const second = canonicalFinding(state);
@@ -514,7 +579,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("releases a provisional continuation before output authorization", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     expect(state.beginStop("agent", "attempt")).toBe(true);
@@ -530,7 +595,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("frees active round capacity without forgetting a closed advicee", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     for (let i = 0; i < 64; i++) {
       expect(state.registerEdit(`agent-${i}`, "edit", 1, 2)).toBe(true);
       expect(state.admitEdit(`agent-${i}`, "edit", 3, true)).toBe(1);
@@ -543,7 +608,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("does not create a round from prompt or Stop alone", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.advance("agent", "prompt", 10)).toBe(true);
     expect(state.ensureFromHostTurn("agent", "turn", 11)).toBe(true);
     expect(state.generation("agent")).toBe(0);
@@ -557,7 +622,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("starts the next round only when a fresh post edit arrives and shares it across edits", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "first", 10);
     expect(state.beginStop("agent", "stop")).toBe(true);
     expect(state.finishStop("agent", "stop", true, 100)).toBe(1);
@@ -577,7 +642,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("keeps closure diagnostics read only until a fresh edit opens the next round", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     expect(state.registerEdit("agent", "first", 10, 11)).toBe(true);
     expect(state.admitEdit("agent", "first", 12, true)).toBe(1);
     expect(state.beginStop("agent", "stop")).toBe(true);
@@ -602,7 +667,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("releases pending permits in canonical state at a Stop cutoff", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "first", 1);
     expect(state.registerEdit("agent", "pending", 10, 11)).toBe(true);
     expect(state.beginStop("agent", "stop")).toBe(true);
@@ -612,7 +677,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("waits across edits in one advicee round and resets its decision fence on continuation", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
     const first = state.canonical.admitObservation("agent");
     const second = state.canonical.admitObservation("agent");
@@ -639,7 +704,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("keeps Stop polling bound to its captured canonical round", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
     expect(state.beginStop("agent", "stop")).toBe(true);
     const original = state.canonical.roundId("agent");
@@ -656,7 +721,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("keeps an external Stop owner waiting until deadline", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
     expect(state.beginStop("agent", "stop")).toBe(true);
     expect(state.finishGate("agent", "stop", 1, false)).toMatchObject({ status: "waiting" });
@@ -664,7 +729,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("coalesces background waiters and forbids submission after the Stop barrier", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
     expect(state.claimBackground("agent", "first", 0)).toBe(true);
     expect(state.claimBackground("agent", "second", 1)).toBe(false);
@@ -678,7 +743,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("keeps one canonical background owner through wrong release and expiry", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
     expect(state.claimBackground("agent", "writer", 100)).toBe(true);
     expect(state.canonical.canonicalProjection().collection.claims).toHaveLength(1);
@@ -691,7 +756,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("keeps a fractional-time background claim until its full lifetime elapses", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
     expect(state.claimBackground("agent", "first", 0.9)).toBe(true);
     expect(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS + 0.1)).toBe(false);
@@ -699,7 +764,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("counts submitted background findings as delivered at Stop", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     state.beginSubmission("advice", "agent", "bg", [finding], "background", 1);
@@ -716,7 +781,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("reoffers an authorized background write only after terminal uncertainty", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     expect(state.claimBackground("agent", "worker", 0)).toBe(true);
@@ -728,7 +793,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("restores an uncertain background lease when an unwritten Stop reoffer is released", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     expect(state.beginSubmission("advice", "agent", "bg", [finding], "background", 1)).toBe(true);
@@ -742,7 +807,7 @@ describe("shared Hapsland rounds", () => {
   });
 
   it("expires an authorized background output only at its full fractional-time lease", () => {
-    const state = new ComposedDelivery();
+    const state = makeCapacityLedger().delivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     expect(state.beginSubmission("advice", "agent", "bg", [finding], "background", 0.9)).toBe(true);

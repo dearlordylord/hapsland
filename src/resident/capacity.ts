@@ -1,3 +1,4 @@
+import { initialDelivery, draftDelivery, deliveryOperations, deliveryView, assertDeliveryState, type DeliveryState, type ComposedDelivery, type RepeatEditDiagnostic } from "./composed-delivery.ts";
 import { initialEvaluationReuse, draftEvaluationReuse, evaluationReuseOperations, evaluationReuseView, residentEvaluationIdentity, type EvaluationReuse, type EvaluationReuseState } from "./evaluation-reuse.ts";
 import { Effect, Ref } from "effect";
 import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent, type CapacityPurpose, type JevRequestOutcome } from "../canonical/adapter.ts";
@@ -128,49 +129,115 @@ const draftCapacity = (current: CapacityState, readReservation: CapacityDraft["r
   collectionTokens: new Map(current.collectionTokens), readReservation,
 });
 
-/** One commit owner for canonical state, capacity identities and evaluation reuse.
+/** One commit owner for canonical state, capacity identities, evaluation reuse and delivery.
  * Draft validation can fail without publishing a partial canonical transition.
  * Synchronous methods bridge existing host callers while the resident service
  * surface is migrated; all internal operations receive their draft explicitly.
  */
 export const makeCapacityLedger = <Pending = never>(limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) => {
-  const state = Effect.runSync(Ref.make<CapacityState & { readonly reuse: EvaluationReuseState<Pending> }>({
+  const state = Effect.runSync(Ref.make<CapacityState & { readonly reuse: EvaluationReuseState<Pending>; readonly delivery: DeliveryState }>({
     residentLifetime, limits, canonical: initialCanonical(limits), reservations: new Map(),
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
-    reuse: initialEvaluationReuse<Pending>(),
+    reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
   }));
   const read = <A>(operation: (current: CapacityState) => A): A =>
     Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
   let committing = false;
-  const commitAll = <A>(operation: (draft: CapacityDraft, reuse: EvaluationReuseState<Pending>) =>
-    readonly [A, EvaluationReuseState<Pending>]): A => {
+  const commitAll = <A>(operation: (draft: CapacityDraft, reuse: EvaluationReuseState<Pending>, delivery: DeliveryState) =>
+    readonly [A, EvaluationReuseState<Pending>, DeliveryState]): A => {
     if (committing) throw new Error("resident capacity commit cannot be reentered");
     committing = true;
     try {
       return Effect.runSync(Ref.modify(state, (current) => {
         const draft = draftCapacity(current, (id) => Ref.getUnsafe(state).reservations.get(id));
-        const [value, reuse] = operation(draft, current.reuse);
+        const [value, reuse, delivery] = operation(draft, current.reuse, current.delivery);
         const { readReservation: _, ...next } = draft;
-        return [value, { ...next, reuse }] as const;
+        return [value, { ...next, reuse, delivery }] as const;
       }).pipe(Effect.withSpan("ResidentState.commit")));
     } finally { committing = false; }
   };
   const commit = <A>(operation: (draft: CapacityDraft) => A): A =>
-    commitAll((draft, reuse) => [operation(draft), reuse]);
+    commitAll((draft, reuse, delivery) => [operation(draft), reuse, delivery]);
   const capacity = capacityOperations(commit, read, residentLifetime);
   return {
     ...capacity,
-    clear: () => commitAll((draft) => [clear(draft), initialEvaluationReuse<Pending>()]),
+    clear: () => commitAll((draft) => [clear(draft), initialEvaluationReuse<Pending>(), initialDelivery()]),
+    delivery: (reportRepeat: (diagnostic: RepeatEditDiagnostic) => void = () => {}) => {
+      const deliveryCommit = <A>(operation: (operations: ComposedDelivery) => A): A => {
+        const [value, diagnostics] = commitAll((draft, reuse, current) => {
+          const delivery = draftDelivery(current);
+          const diagnostics: RepeatEditDiagnostic[] = [];
+          const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+          const operations = deliveryOperations(delivery, owner, (diagnostic) => diagnostics.push(diagnostic));
+          const value = operation(operations);
+          assertDeliveryState(delivery, owner);
+          return [[value, diagnostics] as const, reuse, delivery];
+        });
+        // Diagnostics run after publication, outside the atomic commit. A
+        // diagnostic failure cannot undo admission or change policy decisions.
+        for (const diagnostic of diagnostics) {
+          try { reportRepeat(diagnostic); } catch { /* diagnostic sink unavailable */ }
+        }
+        return value;
+      };
+      const view = () => deliveryView(Ref.getUnsafe(state).delivery, capacity);
+      return {
+        canonical: capacity,
+        claimBackground: (...args: Parameters<ComposedDelivery["claimBackground"]>) => deliveryCommit((operations) => operations.claimBackground(...args)),
+        releaseBackground: (...args: Parameters<ComposedDelivery["releaseBackground"]>) => deliveryCommit((operations) => operations.releaseBackground(...args)),
+        advance: (...args: Parameters<ComposedDelivery["advance"]>) => deliveryCommit((operations) => operations.advance(...args)),
+        recentEditCount: (...args: Parameters<ComposedDelivery["recentEditCount"]>) => view().recentEditCount(...args),
+        editIdentityMappingCount: (...args: Parameters<ComposedDelivery["editIdentityMappingCount"]>) => view().editIdentityMappingCount(...args),
+        liveCollectionTokenKeys: (...args: Parameters<ComposedDelivery["liveCollectionTokenKeys"]>) => view().liveCollectionTokenKeys(...args),
+        ensureFromHostTurn: (...args: Parameters<ComposedDelivery["ensureFromHostTurn"]>) => deliveryCommit((operations) => operations.ensureFromHostTurn(...args)),
+        registerEdit: (...args: Parameters<ComposedDelivery["registerEdit"]>) => deliveryCommit((operations) => operations.registerEdit(...args)),
+        registerEditDecision: (...args: Parameters<ComposedDelivery["registerEditDecision"]>) => deliveryCommit((operations) => operations.registerEditDecision(...args)),
+        admitEdit: (...args: Parameters<ComposedDelivery["admitEdit"]>) => deliveryCommit((operations) => operations.admitEdit(...args)),
+        expirePermits: (...args: Parameters<ComposedDelivery["expirePermits"]>) => deliveryCommit((operations) => operations.expirePermits(...args)),
+        hasPendingEdits: (...args: Parameters<ComposedDelivery["hasPendingEdits"]>) => deliveryCommit((operations) => operations.hasPendingEdits(...args)),
+        isActive: (...args: Parameters<ComposedDelivery["isActive"]>) => deliveryCommit((operations) => operations.isActive(...args)),
+        beginStop: (...args: Parameters<ComposedDelivery["beginStop"]>) => deliveryCommit((operations) => operations.beginStop(...args)),
+        ownsStop: (...args: Parameters<ComposedDelivery["ownsStop"]>) => deliveryCommit((operations) => operations.ownsStop(...args)),
+        finishGate: (...args: Parameters<ComposedDelivery["finishGate"]>) => deliveryCommit((operations) => operations.finishGate(...args)),
+        reserveFinishOutput: (...args: Parameters<ComposedDelivery["reserveFinishOutput"]>) => deliveryCommit((operations) => operations.reserveFinishOutput(...args)),
+        decideFinishOutput: (...args: Parameters<ComposedDelivery["decideFinishOutput"]>) => deliveryCommit((operations) => operations.decideFinishOutput(...args)),
+        revokeProvisionalFinishOutput: (...args: Parameters<ComposedDelivery["revokeProvisionalFinishOutput"]>) => deliveryCommit((operations) => operations.revokeProvisionalFinishOutput(...args)),
+        hasFinishPermit: (...args: Parameters<ComposedDelivery["hasFinishPermit"]>) => view().hasFinishPermit(...args),
+        isFinishAuthorized: (...args: Parameters<ComposedDelivery["isFinishAuthorized"]>) => view().isFinishAuthorized(...args),
+        finishSelectionMatches: (...args: Parameters<ComposedDelivery["finishSelectionMatches"]>) => deliveryCommit((operations) => operations.finishSelectionMatches(...args)),
+        authorizeFinishOutput: (...args: Parameters<ComposedDelivery["authorizeFinishOutput"]>) => deliveryCommit((operations) => operations.authorizeFinishOutput(...args)),
+        finishStop: (...args: Parameters<ComposedDelivery["finishStop"]>) => deliveryCommit((operations) => operations.finishStop(...args)),
+        tickQuietRound: (...args: Parameters<ComposedDelivery["tickQuietRound"]>) => deliveryCommit((operations) => operations.tickQuietRound(...args)),
+        closureCounts: (...args: Parameters<ComposedDelivery["closureCounts"]>) => deliveryCommit((operations) => operations.closureCounts(...args)),
+        expireStop: (...args: Parameters<ComposedDelivery["expireStop"]>) => deliveryCommit((operations) => operations.expireStop(...args)),
+        isDeciding: (...args: Parameters<ComposedDelivery["isDeciding"]>) => deliveryCommit((operations) => operations.isDeciding(...args)),
+        canSubmit: (...args: Parameters<ComposedDelivery["canSubmit"]>) => deliveryCommit((operations) => operations.canSubmit(...args)),
+        canBeginSubmission: (...args: Parameters<ComposedDelivery["canBeginSubmission"]>) => deliveryCommit((operations) => operations.canBeginSubmission(...args)),
+        canBeginExistingToken: (...args: Parameters<ComposedDelivery["canBeginExistingToken"]>) => deliveryCommit((operations) => operations.canBeginExistingToken(...args)),
+        generation: (...args: Parameters<ComposedDelivery["generation"]>) => deliveryCommit((operations) => operations.generation(...args)),
+        consumeStop: (...args: Parameters<ComposedDelivery["consumeStop"]>) => deliveryCommit((operations) => operations.consumeStop(...args)),
+        hasVirtualRoundContinuationBudget: (...args: Parameters<ComposedDelivery["hasVirtualRoundContinuationBudget"]>) => deliveryCommit((operations) => operations.hasVirtualRoundContinuationBudget(...args)),
+        beginSubmission: (...args: Parameters<ComposedDelivery["beginSubmission"]>) => deliveryCommit((operations) => operations.beginSubmission(...args)),
+        markSubmitted: (...args: Parameters<ComposedDelivery["markSubmitted"]>) => deliveryCommit((operations) => operations.markSubmitted(...args)),
+        markUncertain: (...args: Parameters<ComposedDelivery["markUncertain"]>) => deliveryCommit((operations) => operations.markUncertain(...args)),
+        release: (...args: Parameters<ComposedDelivery["release"]>) => deliveryCommit((operations) => operations.release(...args)),
+        forget: (...args: Parameters<ComposedDelivery["forget"]>) => deliveryCommit((operations) => operations.forget(...args)),
+        suppresses: (...args: Parameters<ComposedDelivery["suppresses"]>) => deliveryCommit((operations) => operations.suppresses(...args)),
+        backgroundReofferable: (...args: Parameters<ComposedDelivery["backgroundReofferable"]>) => deliveryCommit((operations) => operations.backgroundReofferable(...args)),
+        hasToken: (...args: Parameters<ComposedDelivery["hasToken"]>) => view().hasToken(...args),
+        expire: (...args: Parameters<ComposedDelivery["expire"]>) => deliveryCommit((operations) => operations.expire(...args)),
+      };
+    },
     reuse: (logicalBytes: (value: unknown) => number) => {
       const reuseCommit = <A>(operation: (operations: EvaluationReuse<Pending>) => A): A =>
-        commitAll((draft, current) => {
+        commitAll((draft, current, delivery) => {
           const reuse = draftEvaluationReuse(current);
           const operations = evaluationReuseOperations(reuse,
             capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime), logicalBytes);
           const value = operation(operations);
           operations.snapshot();
-          return [value, reuse];
+          return [value, reuse, delivery];
         });
       const view = () => evaluationReuseView(Ref.getUnsafe(state).reuse, capacity);
       return {
