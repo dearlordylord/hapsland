@@ -70,7 +70,12 @@
     "Launch claims retain physical acknowledgement through interruption, release on failure and fence old failure callbacks after expiry; independent service acquisitions have independent launch state",
     "CLI and composed-hook runtime layers share their root startup service; public Promise entry points use a lazily acquired process ManagedRuntime closed at beforeExit, preserving throttle sharing across concurrent calls",
     "Resident IPC errors now use the pinned Schema.TaggedError API; shared admission awaits residentRequestEffect directly instead of returning a detached Promise",
-    "Controlled readiness fixtures now provide Effect layers and Effect-native operations; new Deferred/Ref launch and native admission interruption conformance covers the changed ownership boundary"
+    "Controlled readiness fixtures now provide Effect layers and Effect-native operations; new Deferred/Ref launch and native admission interruption conformance covers the changed ownership boundary",
+    "Native round capabilities, work cohorts, discarded counts and activity snapshots now share the canonical/native Ref; deleted the server round and round-activity Maps and mutable cohort/count assignments",
+    "Round binding validates the canonical admission generation and stages identity allocation with immutable native records; failed construction publishes no partial binding or identity",
+    "Work cutoff stages the Bend-selected scope and immutable cohort/discard counts together; native AbortController cancellation executes after publication",
+    "Round retirement fences exact native capabilities and stages canonical retirement with binding removal; retired handles cannot observe replacement work after numeric identity reuse",
+    "Shutdown retains round activity and cancellation handles until native dispatch work settles and whole-owner clearing succeeds"
   ],
   "verification": [
     {
@@ -845,10 +850,50 @@
         "Existing CLI, direct output, security and Claude host contracts"
       ],
       "note": "Final combined run passed after the two observed initial regressions were corrected and child-failure reporting was added; the earlier 5s admission gate timeout remains recorded without an established cause."
+    },
+    {
+      "stage": "Shared native round ownership",
+      "command": "tsc -p tsconfig.json --noEmit and npm run build",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared native round ownership",
+      "command": "vitest run --maxWorkers=1 round-records server composed-delivery bend-work",
+      "exitCode": 0,
+      "tests": 140,
+      "files": 4
+    },
+    {
+      "stage": "Shared native round ownership",
+      "command": "vitest run --maxWorkers=1 round-records",
+      "exitCode": 0,
+      "tests": 7,
+      "files": 1,
+      "covers": [
+        "Canonical generation authority",
+        "Immutable native handles and activity",
+        "Binding and cohort-construction rollback",
+        "Bend-selected discard counts",
+        "Retirement and identity reuse fences",
+        "Physical dispatch settlement before whole-owner clear"
+      ]
+    },
+    {
+      "stage": "Shared native round ownership",
+      "command": "All 14 authority/boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared native round ownership",
+      "command": "vitest run --maxWorkers=1 round-records server subprocess claude-delivery terminal-collection capacity composed-delivery bend-work security-queued security-sinks dispatch jev-request",
+      "exitCode": 0,
+      "tests": 231,
+      "files": 12
     }
   ],
   "next": [
-    "Consolidate remaining server advice/notice/round records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
+    "User requested the Effect 4 stable-release upgrade on resume: verify the published release and latest mutually compatible effect/ai-typesafe/vitest cohort, then pin the compatible versions exactly and validate the upgrade separately; checkpoint remains on 4.0.0-rc.116",
+    "Consolidate remaining server advice/notice records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -856,7 +901,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Remaining advice/notice/round records, statistics and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
+    "Remaining advice/notice records, statistics and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"
@@ -864,5 +909,15 @@
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",
     "action": "Consolidate cases into resident conformance and delete disposable prototype; retain sanitized executable evidence in relevant conformance artifacts"
+  },
+  "pause": {
+    "requestedBy": "user",
+    "reason": "Resume in approximately ten minutes from a reasonable committed checkpoint",
+    "checkpointStage": "Shared native round ownership",
+    "resumeFirst": "Effect 4 stable-release cohort verification and upgrade",
+    "remainingScope": "Full idiomatic Effect migration remains active in scope: advice/notice ownership, production ResidentState service and runtime layer graph, removal of ResidentServer business-state class and internal synchronous bridges, remaining client/configuration/trust and server fixture ports, architecture ownership, full acceptance gates and benchmark failure resolution",
+    "validation": "231 tests across 12 files passed; typecheck, build and 14 boundary scripts passed",
+    "dependenciesAtCheckpoint": "4.0.0-rc.116",
+    "benchmarkAcceptance": "Still unproven; earlier strict peak-retention budget failure and missing actual eight-request saturation remain outstanding"
   }
 }

@@ -16,3 +16,9 @@ for (const name of ["stopGroupPolled", "stopGroupEnded", "cancelWork", "finishLi
 if (!server.includes("job.canonicalObservationId") || !server.includes("job.canonicalOperationId")) {
   throw new Error("Stop cancellation must use canonical job identities");
 }
+for (const owner of ["#rounds", "#roundActivity", "round.work =", "round.discarded.queued +=", "round.discarded.running +="]) {
+  if (server.includes(owner)) throw new Error(`independent resident round owner returned: ${owner}`);
+}
+if (!server.includes("#ledger.rounds.replaceWork") || !server.includes("#ledger.rounds.retire")) {
+  throw new Error("native round replacement and retirement must use the shared resident owner");
+}

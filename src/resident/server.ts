@@ -1,3 +1,4 @@
+import type { RoundWork, WorkCohort } from "./round-records.ts";
 import type { JoinedReview } from "./joined-reviews.ts";
 import type { TicketRecord } from "./ticket-records.ts";
 import type { TicketUnit } from "./ticket-units.ts";
@@ -75,7 +76,6 @@ import * as Fiber from "effect/Fiber";
 import * as FiberHandle from "effect/FiberHandle";
 import * as Schedule from "effect/Schedule";
 import type { ComposedDelivery } from "./composed-delivery.ts";
-import { workView, type BendWorkView } from "./bend-work.ts";
 import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import {
   PENDING_ADVICE_EXPIRY_MS,
@@ -194,17 +194,6 @@ const ResidentControlledOptions = Schema.Struct({
   requireCredential: Schema.optionalKey(Schema.Boolean),
   syntheticR6BrandedRepair: Schema.optionalKey(Schema.Literals(["control", "finding"])),
 });
-
-type WorkCohort = { readonly id: string; readonly controller: AbortController };
-type RoundWork = {
-  readonly group: string;
-  readonly generation: number;
-  readonly canonicalRound: number;
-  readonly controller: AbortController;
-  work: WorkCohort;
-  readonly policyWork: () => BendWorkView;
-  readonly discarded: { queued: number; running: number };
-};
 
 type IngressJob = {
   readonly canonicalRound: number;
@@ -520,9 +509,7 @@ export class ResidentServer {
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatchScope = Scope.makeUnsafe();
   readonly #dispatcher: Dispatcher<string, Job>;
-  readonly #roundActivity = new Map<string, { root: string; advicee: DirectAdvicee; activityPath: string | undefined }>();
   readonly #stopExpiries = new Map<string, Fiber.Fiber<void>>();
-  readonly #rounds = new Map<string, RoundWork>();
   readonly #composedDelivery = this.#ledger.delivery((diagnostic) => {
     // Keep diagnostics source-free and bounded even for an indefinitely running resident.
     const path = join(this.paths.directory, "repeat-edits.log");
@@ -732,17 +719,10 @@ export class ResidentServer {
         lifetime: this.lifetime, stage: "incomplete" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-stale" } : { status: "rejected-stale" };
     }
-    let round = composed ? this.#rounds.get(group) : undefined;
-    if (generation !== undefined && round?.generation !== generation) {
-      const canonicalRound = this.#ledger.roundId(group);
-      round = { group, generation, canonicalRound, controller: new AbortController(),
-        work: { id: randomUUID(), controller: new AbortController() },
-        policyWork: () => workView(this.#ledger.canonicalProjection(), this.#ledger.partitionId(group), canonicalRound), discarded: { queued: 0, running: 0 } };
-      this.#rounds.set(group, round);
-    }
+    const round = generation === undefined ? undefined : this.#ledger.rounds.bind(group, generation,
+      { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath }, randomUUID());
     const partition = group;
     const canonicalRound = round?.canonicalRound ?? this.#ledger.roundId(partition);
-    if (round !== undefined) this.#roundActivity.set(group, { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath });
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
@@ -1418,7 +1398,7 @@ export class ResidentServer {
       const jobs = Effect.runSync(this.#dispatcher.snapshotWhere(({ key }) => key === partition));
       return jobs.queued + jobs.running;
     })();
-    const work = composed ? this.#rounds.get(partition)?.policyWork().unfinished() ?? 0 : dispatcherWork;
+    const work = composed ? this.#ledger.rounds.get(partition)?.policyWork().unfinished() ?? 0 : dispatcherWork;
     return Number(composed && this.#composedDelivery.hasPendingEdits(partition)) +
       work +
       this.#advice.filter((item) =>
@@ -1781,7 +1761,7 @@ export class ResidentServer {
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
     let closedCount = 0;
-    for (const [group, round] of [...this.#rounds]) {
+    for (const [group, round] of this.#ledger.rounds.entries()) {
       const work = Effect.runSync(this.#dispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed));
       const counts = this.#composedDelivery.closureCounts(group);
       const closed = this.#composedDelivery.tickQuietRound(group, now, {
@@ -1826,13 +1806,15 @@ export class ResidentServer {
     const namedCounts = Effect.runSync(this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed && named(value)));
     const hasUnnamed = Effect.runSync(this.#dispatcher.hasWorkWhere(({ value }) =>
       value.work === work && !value.completed && !named(value)));
-    const matched = this.#ledger.dispatchScope(namedCounts.queued + namedCounts.running,
-      sourceIds.size + unitIds.size, hasUnnamed);
-    const counts = matched ? namedCounts : Effect.runSync(this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed));
-    round.discarded.queued += counts.queued;
-    round.discarded.running += counts.running;
-    work.controller.abort();
-    round.work = { id: randomUUID(), controller: new AbortController() };
+    const replacement = this.#ledger.rounds.replaceWork(round,
+      { id: randomUUID(), controller: new AbortController() }, {
+        named: namedCounts,
+        all: Effect.runSync(this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed)),
+        cancelled: sourceIds.size + unitIds.size, hasUnnamed,
+      });
+    if (replacement === undefined) throw new Error("native work cutoff lost its round capability");
+    const { matched, previousWork } = replacement;
+    previousWork.controller.abort();
     const discarded = Effect.runSync(this.#dispatcher.discardWhere(({ value }) => value.work === work && (named(value) || !matched)));
     for (const job of discarded) this.#discardJob(job);
     return matched;
@@ -1859,9 +1841,8 @@ export class ResidentServer {
     // finishStop can release an unwritten provisional slot after callers took
     // the pre-cleanup snapshot. Report the final Bend reservation count.
     const reservedContinuations = this.#composedDelivery.closureCounts(group).reservedContinuations;
-    const round = this.#rounds.get(group);
-    const activity = this.#roundActivity.get(group);
-    this.#roundActivity.delete(group);
+    const round = this.#ledger.rounds.get(group);
+    const activity = round === undefined ? undefined : this.#ledger.rounds.activity(round);
     const work = round === undefined ? { queued: 0, running: 0 }
       : Effect.runSync(this.#dispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed && !value.work?.controller.signal.aborted));
     if (activity !== undefined) recordRoundClosure({ statePath: activity.activityPath,
@@ -1875,7 +1856,6 @@ export class ResidentServer {
     // their provider connections before releasing all retained round resources.
     round.controller.abort();
     round.work.controller.abort();
-    this.#rounds.delete(group);
     const discarded = Effect.runSync(this.#dispatcher.discardWhere(({ value }) => value.round === round));
     for (const job of discarded) this.#discardJob(job);
     for (const advice of [...this.#advice]) if (advice.round === round) this.#removeAdvice(advice.id);
@@ -1884,7 +1864,7 @@ export class ResidentServer {
     }
     this.#reuse.discardPartition(round.group);
     this.#ledger.tickets.discardPartition(round.group);
-    this.#ledger.retireRound(round.group, round.canonicalRound);
+    this.#ledger.rounds.retire(round);
   }
 
   #run = Effect.fn("ResidentRuntime.run")((job: Job, sequence: number) =>
@@ -2891,7 +2871,7 @@ export class ResidentServer {
             if (adviceePartition(advice.observation.root, advice.observation.advicee) === group &&
                 advice.delivery !== undefined && advice.delivery.leaseUntil <= server.#now()) server.#releaseAdviceLease(advice);
           }
-          const round = server.#rounds.get(group);
+          const round = server.#ledger.rounds.get(group);
           const totalUnfinished = server.#collectionWorkCount(request.root, request.advicee, true);
           const ownUnfinished = round?.policyWork().unfinished() ?? 0;
           const extraUnfinished = Math.max(0, totalUnfinished - ownUnfinished);
@@ -2911,7 +2891,7 @@ export class ResidentServer {
         const collected = yield* server.#collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", undefined, true);
         if (request.finish !== undefined) {
           const group = adviceePartition(request.root, request.advicee);
-          const round = server.#rounds.get(group);
+          const round = server.#ledger.rounds.get(group);
           const selectedAdvice = collected.status === "advice"
             ? server.#advice.filter((advice) => advice.delivery?.token === collected.token) : [];
           const selected = selectedAdvice.map((advice) => ({ id: advice.id,
@@ -3214,7 +3194,7 @@ export class ResidentServer {
       this.#allowFinish(group, request.finish.token, "unavailable");
       return { status: "empty" };
     }
-    const round = this.#rounds.get(group);
+    const round = this.#ledger.rounds.get(group);
     const selectedAdvice = final.status === "advice"
       ? this.#advice.filter((advice) => advice.delivery?.token === final.token) : [];
     const selectedCount = selectedAdvice.reduce((count, advice) =>
@@ -3413,9 +3393,7 @@ export class ResidentServer {
       yield* FiberHandle.clear(owner.#quietChecks);
       yield* Fiber.interruptAll(owner.#stopExpiries.values());
       owner.#stopExpiries.clear();
-      for (const round of owner.#rounds.values()) { round.controller.abort(); round.work.controller.abort(); }
-      owner.#rounds.clear();
-      owner.#roundActivity.clear();
+      for (const [, round] of owner.#ledger.rounds.entries()) { round.controller.abort(); round.work.controller.abort(); }
       for (const job of (yield* owner.#dispatcher.close())) {
         if (job.kind === "unit") {
           owner.#releaseReuseClaim(job.evaluationKey);

@@ -1,7 +1,7 @@
 import type { CanonicalProjection } from "../canonical/adapter.ts";
 
 /** Pure work view for one partition/round in an explicit canonical projection. */
-export const workView = (projection: CanonicalProjection, partition: number, round: number) => {
+export const workView = (projection: Pick<CanonicalProjection, "work" | "pendingFindings">, partition: number, round: number) => {
   const findWork = (operation: number) => projection.work.find((item) =>
     item.partition === partition && item.round === round && item.operation === operation);
   return {

@@ -1,3 +1,5 @@
+import { initialRoundRecords, draftRoundRecords, roundRecordOperations, type RoundRecordsState, type RoundRecords, type RoundWork, type WorkCohort } from "./round-records.ts";
+import { workView } from "./bend-work.ts";
 import { initialJoinedReviews, draftJoinedReviews, joinedReviewOperations, type JoinedReviewsState, type JoinedReviews } from "./joined-reviews.ts";
 import { initialTicketRecords, draftTicketRecords, ticketRecordOperations, type TicketRecordsState, type TicketRecords } from "./ticket-records.ts";
 import { initialTicketUnits, draftTicketUnits, ticketUnitOperations, ticketUnitView, emptyTicketUnitCurrent, type TicketUnitsState, type TicketUnit, type TicketUnits } from "./ticket-units.ts";
@@ -116,6 +118,7 @@ type ResidentRecords<Pending, Key, Value> = {
   readonly ticketUnits: TicketUnitsState;
   readonly tickets: TicketRecordsState;
   readonly joined: JoinedReviewsState;
+  readonly rounds: RoundRecordsState;
 };
 type CapacityState = {
   readonly residentLifetime: string;
@@ -155,7 +158,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
     records: { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
-      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews() },
+      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords() },
   });
   const read = <A>(operation: (current: CapacityState) => A): A =>
     Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
@@ -225,14 +228,48 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     discardPartition: (partition) => ticketCommit((operations) => operations.discardPartition(partition)),
     retain: (limit) => ticketCommit((operations) => operations.retain(limit)),
   };
+  const roundCommit = <A>(operation: (operations: ReturnType<typeof roundRecordOperations>) => A): A =>
+    commitAll((draft, records) => {
+      const rounds = draftRoundRecords(records.rounds);
+      const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+      const value = operation(roundRecordOperations(rounds, owner));
+      return [value, { ...records, rounds }];
+    });
+  const rounds: RoundRecords = {
+    bind: (group, generation, activity, cohortId) => roundCommit((operations) => operations.bind(group, generation, activity, (canonicalRound, partition) => {
+      const issuedWork: WorkCohort = Object.freeze({ id: cohortId, controller: new AbortController() });
+      const discarded = Object.freeze({ queued: 0, running: 0 });
+      const live = () => {
+        const record = Ref.getUnsafe(state).records.rounds.entries.get(group);
+        return record?.capability === capability ? record : undefined;
+      };
+      const capability: RoundWork = Object.freeze({
+        group, generation, canonicalRound, controller: new AbortController(),
+        get work() { return live()?.work ?? issuedWork; },
+        get discarded() { return live()?.discarded ?? discarded; },
+        policyWork: () => workView(live() === undefined
+          ? { work: [], pendingFindings: [] } : canonicalProjection(Ref.getUnsafe(state)), partition, canonicalRound),
+      });
+      return capability;
+    })),
+    get: (group) => Ref.getUnsafe(state).records.rounds.entries.get(group)?.capability,
+    entries: () => [...Ref.getUnsafe(state).records.rounds.entries].map(([group, record]) => [group, record.capability] as const),
+    activity: (round) => {
+      const record = Ref.getUnsafe(state).records.rounds.entries.get(round.group);
+      return record?.capability === round ? record.activity : undefined;
+    },
+    replaceWork: (...args) => roundCommit((operations) => operations.replaceWork(...args)),
+    retire: (round) => roundCommit((operations) => operations.retire(round)),
+  };
   return {
     ...capacity,
+    rounds,
     ticketUnits,
     tickets,
     clear: () => commitAll((draft, records) => {
       const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
-      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(),
+      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(),
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     }),
     revision: (() => {
