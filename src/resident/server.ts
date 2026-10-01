@@ -1,3 +1,4 @@
+import type { JoinedReview } from "./joined-reviews.ts";
 import type { TicketRecord } from "./ticket-records.ts";
 import type { TicketUnit } from "./ticket-units.ts";
 import { workSubject, type WorkRevision } from "./revision.ts";
@@ -220,14 +221,6 @@ type IngressJob = {
   readonly ticket?: TicketRecord;
 };
 
-type JoinedReview = {
-  readonly admission: number;
-  readonly evaluationKey: string;
-  readonly observation: DirectObservation;
-  readonly activityPath: string | undefined;
-  readonly ticketUnit?: TicketUnit;
-  revision?: WorkRevision;
-};
 const ticketUnitStageOrUndefined = (unit: TicketUnit) => {
   return unit.stage();
 };
@@ -522,8 +515,8 @@ export class ResidentServer {
   readonly lifetime = randomUUID();
   readonly #advice: Array<Advice> = [];
   readonly #noticeCooldowns = new Map<string, NoticeCooldown>();
-  readonly #joinedReviews = new Map<string, Array<JoinedReview>>();
   readonly #ledger = makeCapacityLedger<UnitJob, string, Job>(undefined, this.lifetime);
+  readonly #joined = this.#ledger.joinedReviews(logicalBytes);
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatchScope = Scope.makeUnsafe();
   readonly #dispatcher: Dispatcher<string, Job>;
@@ -859,8 +852,7 @@ export class ResidentServer {
   }
 
   #collectionReady(advice: Advice): boolean {
-    const joinedPending = [...this.#joinedReviews.values()].some((reviews) =>
-      reviews.some((review) => review.admission === advice.admissionId));
+    const joinedPending = this.#joined.hasAdmission(advice.admissionId);
     const result = this.#ledger.transition({ kind: "collectionReady",
       advice: advice.canonicalOperationId, partition: this.#ledger.partitionId(advice.partition),
       lifetime: this.#ledger.canonicalLifetime, round: advice.canonicalRound,
@@ -1722,17 +1714,10 @@ export class ResidentServer {
         const revision = unit.current.revision;
         if (revision !== undefined && superseded(revision)) unitUnavailable(unit, "stale");
       }
-      for (const [key, joined] of this.#joinedReviews) {
-        const current = joined.filter((review) => {
-          if (review.revision === undefined || !superseded(review.revision)) return true;
-          if (review.ticketUnit !== undefined) unitUnavailable(review.ticketUnit, "stale");
-          recordActivity({ statePath: review.activityPath, root: review.observation.root,
-            advicee: review.observation.advicee, lifetime: this.lifetime,
-            stage: "unavailable", unitIdentity: review.evaluationKey });
-          return false;
-        });
-        if (current.length > 0) this.#joinedReviews.set(key, current);
-        else this.#joinedReviews.delete(key);
+      for (const review of this.#joined.retireSuperseded(subject)) {
+        recordActivity({ statePath: review.activityPath, root: review.observation.root,
+          advicee: review.observation.advicee, lifetime: this.lifetime,
+          stage: "unavailable", unitIdentity: review.evaluationKey });
       }
     }
     for (const advice of [...this.#advice]) {
@@ -2115,10 +2100,7 @@ export class ResidentServer {
                   activityPath: job.dispatch.activityPath,
                   ...(ticketUnit === undefined ? {} : { ticketUnit }),
                   ...(pending === undefined ? {} : { revision: pending.revision }) };
-                if (ticketUnit !== undefined && pending !== undefined) unitRevision(ticketUnit, pending.revision);
-                const reviews = server.#joinedReviews.get(item.evaluationKey) ?? [];
-                reviews.push(joined);
-                server.#joinedReviews.set(item.evaluationKey, reviews);
+                server.#joined.append(joined);
                 expectedActivityUnits.push(item.evaluationKey);
               }
             }
@@ -2208,11 +2190,10 @@ export class ResidentServer {
             })));
             continue;
           }
-          if (!server.#reuse.attachPending(item.evaluationKey, unit)) {
+          if (!server.#joined.attachOwner(item.evaluationKey, unit, revision)) {
             throw new Error("canonical evaluation attachment refused");
           }
           unassignedClaims.delete(item.evaluationKey);
-          server.#attachClaimedJoined(item.evaluationKey, revision);
           if (!(yield* server.#dispatcher.enqueue(job.partition, unit))) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             server.#releaseReuseClaim(item.evaluationKey, "capacity");
@@ -2656,71 +2637,21 @@ export class ResidentServer {
     );
   }));
 
-  #attachClaimedJoined(key: string, revision: WorkRevision): void {
-    for (const joined of this.#joinedReviews.get(key) ?? []) {
-      if (joined.revision !== undefined) continue;
-      joined.revision = revision;
-      if (joined.ticketUnit !== undefined && ticketUnitStageOrUndefined(joined.ticketUnit)?.stage === "pending") {
-        unitRevision(joined.ticketUnit, revision);
-      }
-    }
-  }
-
   #releaseReuseClaim(key: string, reason: ResidentUnavailableReason = "lost"): void {
-    this.#reuse.releaseClaim(key);
-    const joined = this.#joinedReviews.get(key);
-    if (joined === undefined) return;
-    const attached: JoinedReview[] = [];
-    for (const review of joined) {
-      if (review.revision !== undefined) attached.push(review);
-      else {
-        if (review.ticketUnit !== undefined) unitUnavailable(review.ticketUnit, reason);
-        recordActivity({ statePath: review.activityPath, root: review.observation.root,
-          advicee: review.observation.advicee, lifetime: this.lifetime,
-          stage: "unavailable", unitIdentity: review.evaluationKey });
-      }
+    for (const review of this.#joined.releaseOwner(key, reason)) {
+      recordActivity({ statePath: review.activityPath, root: review.observation.root,
+        advicee: review.observation.advicee, lifetime: this.lifetime,
+        stage: "unavailable", unitIdentity: review.evaluationKey });
     }
-    if (attached.length > 0) this.#joinedReviews.set(key, attached);
-    else this.#joinedReviews.delete(key);
   }
 
   #settleJoined(key: string, state: "pending" | "clear" | "finding" | "unavailable", reason?: ResidentUnavailableReason,
     adviceId?: string): void {
-    const joined = this.#joinedReviews.get(key);
-    if (joined === undefined) return;
-    this.#joinedReviews.delete(key);
-    for (const review of joined) {
-      const unit = review.ticketUnit;
-      const revision = review.revision;
-      let outcome: "clear" | "findings" | "unavailable" | undefined;
-      if (unit !== undefined && ticketUnitStageOrUndefined(unit) !== undefined) {
-        const stage = ticketUnitStage(unit);
-        const disposition = this.#ledger.transition({ kind: "ticketJoinedCheck", state,
-          staleUnavailable: stage.stage === "unavailable" && stage.reason === "stale",
-          hasRevision: revision !== undefined, hasAdviceId: adviceId !== undefined }).commands[0]?.kind;
-        switch (disposition) {
-          case "ticketKeepJoined": break;
-          case "ticketSetJoinedUnavailable": unitUnavailable(unit, reason ?? "lost"); outcome = "unavailable"; break;
-          case "ticketSetJoinedLost": unitUnavailable(unit, "lost"); outcome = "unavailable"; break;
-          case "ticketSetJoinedClear":
-            if (revision === undefined) throw new Error("Bend joined clear lacks revision");
-            unitClear(unit, revision);
-            outcome = "clear";
-            break;
-          case "ticketSetJoinedFinding":
-            if (revision === undefined || adviceId === undefined) throw new Error("Bend joined finding lacks identity");
-            unitFinding(unit, revision, adviceId);
-            outcome = "findings";
-            break;
-          default: throw new Error("Bend denied joined ticket disposition");
-        }
-      } else if (state === "clear" || state === "finding") {
-        outcome = revision === undefined ? "unavailable" : state === "clear" ? "clear" : "findings";
-      } else if (state === "unavailable") outcome = "unavailable";
-      if (outcome !== undefined) recordActivity({ statePath: review.activityPath,
+    for (const { review, stage } of this.#joined.settle(key, state, reason, adviceId)) {
+      recordActivity({ statePath: review.activityPath,
         root: review.observation.root, advicee: review.observation.advicee,
-        lifetime: this.lifetime, stage: outcome,
-        ...(outcome !== "findings" ? {} : {
+        lifetime: this.lifetime, stage,
+        ...(stage !== "findings" ? {} : {
           findings: this.#advice.find((item) => item.id === adviceId)?.findings.length ?? 0,
         }), unitIdentity: review.evaluationKey });
     }
@@ -3497,7 +3428,6 @@ export class ResidentServer {
         if (!advice.revalidationActive) owner.#releaseUnit(advice);
       }
       for (const key of [...owner.#noticeCooldowns.keys()]) owner.#releaseNoticeCooldown(key);
-      owner.#joinedReviews.clear();
       // Running work may be interrupted by process exit or finish later. Clear
       // its logical ownership after native effects settle. Issued Jev permits
       // remain reserved through an interruption attempt.

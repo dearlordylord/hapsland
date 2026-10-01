@@ -1,3 +1,4 @@
+import { initialJoinedReviews, draftJoinedReviews, joinedReviewOperations, type JoinedReviewsState, type JoinedReviews } from "./joined-reviews.ts";
 import { initialTicketRecords, draftTicketRecords, ticketRecordOperations, type TicketRecordsState, type TicketRecords } from "./ticket-records.ts";
 import { initialTicketUnits, draftTicketUnits, ticketUnitOperations, ticketUnitView, emptyTicketUnitCurrent, type TicketUnitsState, type TicketUnit, type TicketUnits } from "./ticket-units.ts";
 import { initialRevision, draftRevision, revisionOperations, type RevisionState, type RevisionOperations } from "./revision.ts";
@@ -114,6 +115,7 @@ type ResidentRecords<Pending, Key, Value> = {
   readonly revision: RevisionState;
   readonly ticketUnits: TicketUnitsState;
   readonly tickets: TicketRecordsState;
+  readonly joined: JoinedReviewsState;
 };
 type CapacityState = {
   readonly residentLifetime: string;
@@ -152,7 +154,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
     records: { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
-      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords() },
+      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews() },
   });
   const read = <A>(operation: (current: CapacityState) => A): A =>
     Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
@@ -229,7 +231,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     clear: () => commitAll((draft, records) => {
       const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
-      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(),
+      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(),
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     }),
     revision: (() => {
@@ -326,6 +328,39 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         backgroundReofferable: (...args: Parameters<ComposedDelivery["backgroundReofferable"]>) => deliveryCommit((operations) => operations.backgroundReofferable(...args)),
         hasToken: (...args: Parameters<ComposedDelivery["hasToken"]>) => view().hasToken(...args),
         expire: (...args: Parameters<ComposedDelivery["expire"]>) => deliveryCommit((operations) => operations.expire(...args)),
+      };
+    },
+    joinedReviews: (logicalBytes: (value: unknown) => number): JoinedReviews<Pending> => {
+      const joinedCommit = <A>(operation: (joined: ReturnType<typeof joinedReviewOperations>, reuse: EvaluationReuse<Pending>) => A): A =>
+        commitAll((draft, records) => {
+          const joined = draftJoinedReviews(records.joined);
+          const ticketUnits = draftTicketUnits(records.ticketUnits);
+          const revision = draftRevision(records.revision);
+          const reuse = draftEvaluationReuse(records.reuse);
+          const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+          const unitOperations = ticketUnitOperations(ticketUnits, owner);
+          const revisionOps = revisionOperations(revision, owner);
+          const reuseOps = evaluationReuseOperations(reuse, owner, logicalBytes);
+          const operations = joinedReviewOperations(joined, owner, unitOperations, revisionOps);
+          const value = operation(operations, reuseOps);
+          revisionOps.assert();
+          reuseOps.snapshot();
+          return [value, { ...records, joined, ticketUnits, revision, reuse }];
+        });
+      return {
+        append: (review) => joinedCommit((joined) => joined.append(review)),
+        hasAdmission: (admission) => [...Ref.getUnsafe(state).records.joined.entries.values()].some((reviews) => reviews.some((review) => review.admission === admission)),
+        attachOwner: (key, pending, revision) => joinedCommit((joined, reuse) => {
+          if (!reuse.attachPending(key, pending)) return false;
+          joined.attach(key, revision);
+          return true;
+        }),
+        releaseOwner: (key, reason) => joinedCommit((joined, reuse) => {
+          reuse.releaseClaim(key);
+          return joined.releaseUnattached(key, reason);
+        }),
+        retireSuperseded: (subject) => joinedCommit((joined) => joined.retireSuperseded(subject)),
+        settle: (...args) => joinedCommit((joined) => joined.settle(...args)),
       };
     },
     reuse: (logicalBytes: (value: unknown) => number) => {

@@ -59,7 +59,11 @@
     "Ticket opening, retention eviction and partition retirement stage canonical admission state, native ticket records and unit binding retirement in one commit; validate native/canonical admission membership before publication",
     "Unit admission requires its retained parent capability; stale parent records cannot attach work to a replacement using the same nonce or generation after clear",
     "Removed the public metadata-only unit forget path; parent retirement and whole-owner clearing fence ticket and unit handles together",
-    "Ticket and retention boundary checks follow the new native metadata owner while preserving canonical event and retired-policy guards"
+    "Ticket and retention boundary checks follow the new native metadata owner while preserving canonical event and retired-policy guards",
+    "Joined-review subscriber membership and immutable revision bindings now share the canonical/native Ref; deleted the server joined-review Map and mutable attachment path",
+    "Owner claim attachment, subscriber revision attachment and ticket-unit metadata stage in one commit; release and supersession stage subscriber retirement with unit progress",
+    "Joined subscribers retain only activity root/advicee metadata, rather than the full source-bearing observation; activity recording runs after publication",
+    "Whole-owner clearing retains subscriber state through physical dispatch settlement and clears all native domains together"
   ],
   "verification": [
     {
@@ -693,10 +697,50 @@
         "Stale ticket and unit capability fences after clear",
         "Existing ticketed and shared delivery/lifecycle behavior"
       ]
+    },
+    {
+      "stage": "Shared joined-review ownership",
+      "command": "Initial six-file resident suite",
+      "exitCode": 1,
+      "testsPassed": 121,
+      "testsExpected": 122,
+      "failure": "Existing closes-a-composed-round cancellation case exceeded its 5s fixture timeout; root cause not established"
+    },
+    {
+      "stage": "Shared joined-review ownership",
+      "command": "Isolated timed-out composed-round cancellation case",
+      "exitCode": 0,
+      "tests": 1
+    },
+    {
+      "stage": "Shared joined-review ownership",
+      "command": "tsc -p tsconfig.json --noEmit and npm run build",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared joined-review ownership",
+      "command": "All 14 authority/boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared joined-review ownership",
+      "command": "vitest run --maxWorkers=1 joined-reviews ticket-records ticket-units server subprocess claude-delivery terminal-collection capacity security-queued security-sinks evaluation-reuse",
+      "exitCode": 0,
+      "tests": 169,
+      "files": 11,
+      "covers": [
+        "Independent subscriber settlement",
+        "Atomic owner/subscriber attachment rollback",
+        "Native subscriber construction rollback",
+        "Supersession isolation",
+        "Shared clear and acquisition isolation",
+        "Existing resident delivery, reuse, security and subprocess contracts"
+      ],
+      "note": "An earlier combined session result could not be recovered after context compaction. This repeated run was captured in a persistent local log and its terminal exit observed."
     }
   ],
   "next": [
-    "Consolidate remaining server advice/notice/round/joined-review records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
+    "Consolidate remaining server advice/notice/round records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
     "Consolidate client lifecycle and fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -704,7 +748,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Remaining advice/notice/round/joined-review records, statistics and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
+    "Remaining advice/notice/round records, statistics and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"
