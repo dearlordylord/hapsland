@@ -1,0 +1,33 @@
+{
+  "purpose": "Sanitized offline resident migration benchmark",
+  "checkout": "/workspace/typescript/jev-worktrees/effect4-migration",
+  "environment": {
+    "node": "v24.20.0",
+    "platform": "linux",
+    "arch": "arm64"
+  },
+  "workload": {
+    "warmups": 1,
+    "iterations": 8,
+    "editsPerIteration": 24,
+    "mode": "offline controlled DecisionModel",
+    "providerDelayMs": 5
+  },
+  "observations": {
+    "admissionP95Ms": 4.041782999998759,
+    "stopP95Ms": 22.956770000000688,
+    "saturationP95Ms": 1762.1242199999997,
+    "shutdownP95Ms": 3.911947999999029,
+    "eventLoopP95Ms": 25.608191,
+    "peakRetainedBytes": 15554794,
+    "peakRssBytes": 404164608,
+    "maximumConcurrentDecisionEffects": 5
+  },
+  "samples": {
+    "admission": 192,
+    "stop": 8,
+    "saturation": 8,
+    "shutdown": 8
+  },
+  "limitations": "Controlled local Decision effects and synthetic source only. No live Jev transport, real host, physical wire cancellation, or cross-platform performance evidence. Final migration must rerun the same workload and add the required physical retirement workloads."
+}

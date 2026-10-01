@@ -103,7 +103,9 @@
     "Registered canonical states and validated projections are deeply immutable; weak identity memoization reuses numeric projections without retaining state ownership or skipping validation of new Bend results",
     "Purpose-specific diagnostic isolates retention difference to preparation resizing, with matching review and admission charges",
     "Stable analysis workspace uses measured source size; unknown capture preserves maximum-source bound, verified by 400 generated cases",
-    "Successor-round fixture waits beyond explicit one-millisecond closure fence"
+    "Successor-round fixture waits beyond explicit one-millisecond closure fence",
+    "Round cutoff, closure, quiet sweeping, collection work-state and ticket/handoff reconciliation compose named Effects in the owning fiber; internal dispatcher runSync queries/discards removed",
+    "Finish-stop and final authorization-to-socket handoff preserve uninterruptible ownership boundaries; Stop boundary rejects synchronous dispatcher bridges"
   ],
   "verification": [
     {
@@ -1216,11 +1218,53 @@
       "evidence": "benchmark-measured-workspace-comparison.json",
       "budgetsMet": false,
       "limitation": "Retention passes at 15554794 bytes; Stop, saturation and event-loop latency fail; five active effects reached"
+    },
+    {
+      "stage": "Composed round and collection Effects",
+      "command": "Initial resident/collection/subprocess/security suite",
+      "exitCode": 1,
+      "testsPassed": 101,
+      "plannedTests": 107,
+      "limitation": "Server test worker exited with SIGSEGV; this run is not accepted as passing. Native worker failure also appeared in earlier migration stages and remains unexplained."
+    },
+    {
+      "stage": "Composed round and collection Effects",
+      "command": "Final server and terminal-collection suites with verbose output",
+      "exitCode": 0,
+      "tests": 102,
+      "files": 2
+    },
+    {
+      "stage": "Composed round and collection Effects",
+      "command": "Final collection, subprocess and security-queued suites",
+      "exitCode": 0,
+      "tests": 27,
+      "files": 3
+    },
+    {
+      "stage": "Composed round and collection Effects",
+      "command": "Jev request, dispatcher and runtime service suites",
+      "exitCode": 0,
+      "tests": 25,
+      "files": 3
+    },
+    {
+      "stage": "Composed round and collection Effects",
+      "command": "Typecheck, build, all 15 boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Composed round and collection Effects",
+      "command": "Unchanged original benchmark",
+      "exitCode": 0,
+      "evidence": "benchmark-round-effects-comparison.json",
+      "budgetsMet": true,
+      "limitation": "Five simultaneous effects observed; required deterministic eight-effect physical-retirement benchmark remains pending. Prior failed runs preserved; this measurement alone does not establish causal speedup."
     }
   ],
   "next": [
-    "Investigate current Stop/saturation/event-loop failures; add deterministic eight-effect physical-retirement workload and preserve prior measurements",
-    "Compose remaining round closure/cutoff, quiet sweeping and collection work-state helpers as named Effects; remove their internal synchronous dispatcher bridges and finish scoped fixture controls",
+    "Declare and execute deterministic eight-effect saturation/physical-retirement benchmark for baseline and current; preserve all original thresholds and measurements",
+    "Replace remaining synchronous domain commit/read bridges with service operations and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -1231,8 +1275,9 @@
     "Shared state owns lifecycle and statistics; native IPC handles and mutable per-job callback metadata remain executor resources, and intermediate synchronous domain bridges still need removal",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "Exploratory full suite had 1078 passes and one subsequently corrected test failure; final full suite/package/host/live gates remain pending",
-    "Measured-source preparation passes strict retention at 15554794 bytes, but current Stop/saturation/event-loop budgets fail and five active effects reached; deterministic physical-retirement benchmark remains required",
-    "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied"
+    "Latest ordinary benchmark passes every original regression budget, with logical retention 15554794 bytes; reaches five active effects. Deterministic eight-effect physical-retirement benchmark and final full migration rerun remain required; prior failed runs preserved.",
+    "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied",
+    "Intermittent Vitest server worker SIGSEGV recurred during this stage; isolated final suites passed, but root cause is unproven"
   ],
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",

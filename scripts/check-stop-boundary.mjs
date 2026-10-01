@@ -22,3 +22,7 @@ for (const owner of ["#rounds", "#roundActivity", "round.work =", "round.discard
 if (!server.includes("residentLedger.rounds.replaceWork") || !server.includes("residentLedger.rounds.retire")) {
   throw new Error("native round replacement and retirement must use the shared resident owner");
 }
+
+if (/Effect\.runSync\(residentDispatcher\.(?:snapshotWhere|hasWorkWhere|discardWhere)\(/u.test(server)) {
+  throw new Error("round and collection operations must compose dispatcher Effects in their owning fiber");
+}
