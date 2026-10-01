@@ -2,7 +2,7 @@ import { Schema } from "effect";
 import type { HtmlBuilder } from "foldkit/html";
 import { numberRecords } from "@hapsland/agent-flow-projection";
 import { preparationSnapshot } from "./preparation-mini";
-import { productionFlowView } from "./production-flow-view";
+import { productionFlowView, INFRASTRUCTURE_CONTACTS } from "./production-flow-view";
 import {
   SimulationModel as AgentModel, initialSimulation as initialAgent,
   actSimulation as actAgent, changeSimulation as changeAgent,
@@ -125,8 +125,9 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
       h.div([h.Class("ensemble-layout")], [
         h.aside([h.Class("ensemble-agents"), h.AriaLabel("Agent layers")], [
           h.p([h.Class("ensemble-sidebar-label")], ["AGENT LAYERS"]),
+          h.p([h.Class("ensemble-hover-hint")], ["Hover to reveal a layer. Click to select."]),
           ...layers.map(({ agent, index, run, current }) => h.button([
-            h.Type("button"), h.Class(`ensemble-agent ${index === model.active ? "selected" : ""}`),
+            h.Type("button"), h.Class(`ensemble-agent agent-index-${index} ${index === model.active ? "selected" : ""}`),
             h.Style({ borderLeftColor: colors[index] }), h.OnClick(action(`fleet:select:${index}`)),
             h.AriaLabel(`Select agent ${index + 1}`),
           ], [h.strong([], [`Agent ${String(index + 1).padStart(2, "0")}`]),
@@ -139,21 +140,25 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
             transform: model.flat ? "none" : `translateY(${-35 + Math.max(0, model.agents.length - 3) * 30}px) scale(${bounded(model.zoom, 35, 100, 72) / 100}) rotateX(${bounded(model.tilt, 0, 65, 48)}deg) rotateZ(${bounded(model.turn, -180, 180, -16)}deg) translateZ(${-(model.agents.length - 1) * spacing / 2}px)`,
           })], [
             ...layers.filter(layer => !model.flat || layer.index === model.active).map(({ agent, index, run, current, history, numbers }) => h.div([
-              h.Class(`ensemble-layer ${index === model.active ? "is-selected" : ""}`),
+              h.Class(`ensemble-layer agent-index-${index} ${index === model.active ? "is-selected" : ""}`),
               h.Style({ transform: model.flat ? "none" : `translateZ(${index * spacing}px)`, borderColor: colors[index] }),
             ], [
               h.div([h.Class("ensemble-layer-title"), h.Style({ color: colors[index] })], [
                 h.strong([], [`AGENT ${String(index + 1).padStart(2, "0")}`]), h.span([], [`${run?.now ?? 0} ms · seed ${agent.seed}`]),
               ]),
               ...(run ? [productionFlowView(h, current?.after ?? run.projection, current ? { ...current, origin: "manual" } : undefined,
-                false, place => action(`fleet:inspect:${index}:${place}`), preparationSnapshot(history.map(frame => ({ ...frame, origin: "manual" as const }))), numbers)]
+                false, place => action(`fleet:inspect:${index}:${place}`), preparationSnapshot(history.map(frame => ({ ...frame, origin: "manual" as const }))), numbers, true)]
                 : [h.div([h.Class("ensemble-empty")], [h.strong([], ["Your agent diagram starts here"]), h.p([], ["Start the ensemble to create independent Monkey Business runs."])])]),
-              h.div([h.Class("ensemble-contact workspace")], ["WORKSPACE"]),
-              h.div([h.Class("ensemble-contact jev")], ["JEV"]),
-              ...(!model.flat && index < model.agents.length - 1 ? ["workspace", "jev"].map(resource => h.div([
-                h.Class(`ensemble-connector ${resource}`), h.Style({ height: `${spacing}px` }),
-              ], [])) : []),
             ])),
+            ...(!model.flat ? layers.slice(0, -1).filter(layer => layer.run).flatMap(({ index }) => INFRASTRUCTURE_CONTACTS.map(contact => h.div([
+              h.Class(`ensemble-connector ${contact.id}`),
+              h.Style({ height: `${spacing}px`,
+                // Match the SVG's xMidYMid meet geometry inside the fixed diagram plane.
+                left: `${1 + 12 + (894 - 505 * 1400 / 830) / 2 + contact.x * 505 / 830}px`,
+                top: `${1 + 32 + contact.y * 505 / 830}px`,
+                transform: `translateZ(${index * spacing}px) rotateX(90deg)`,
+              }),
+            ], []))) : []),
           ]),
           ...(!model.flat ? [h.div([h.Class("ensemble-gesture-hint")], ["Drag to rotate · touch: drag sideways, scroll vertically"])] : []),
           h.div([h.Class("ensemble-orientation")], [model.flat ? `AGENT ${model.active + 1} / INSPECTION VIEW` : "X / Y · SYSTEM FLOW     Z · AGENTS"]),
@@ -162,8 +167,8 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
       h.div([h.Class("ensemble-camera")], [range("Tilt", "tilt", 0, 65, model.tilt), range("Rotation", "turn", -180, 180, model.turn),
         range("Layer spacing", "spacing", 70, 190, model.spacing), range("Zoom", "zoom", 35, 100, model.zoom)]),
       h.p([h.Class("ensemble-evidence-key")], ["Diagram: blue = state / decision · gray = external work · orange = transition · purple dashed = command. Select a stage to inspect its checked state."]),
-      h.div([h.Class("ensemble-resource-key")], [h.span([h.Class("workspace-key")], ["● Workspace / source access"]), h.span([h.Class("jev-key")], ["● Jev / review backend"]),
-        h.p([], ["Vertical contacts show common infrastructure. Each layer currently runs an isolated checked simulation; shared capacity and contention are not simulated. Jev responses are synthetic."])]),
+      h.div([h.Class("ensemble-resource-key")], [h.span([h.Class("capacity-key")], ["● Resident capacity → Admission & capacity"]), h.span([h.Class("jev-key")], ["● Jev backend → Jev request attempt"]),
+        h.p([], ["Agents on the same resident share its global capacity ledger. The green contacts show that product topology; this demo keeps separate ledgers per agent. Gold contacts show the common Jev backend target; responses are synthetic. No cross-agent contention is simulated."])]),
     ]),
     h.div([h.Class("ensemble-inspector-heading")], [h.h2([], [`Agent ${String(model.active + 1).padStart(2, "0")} · controls & inspection`]),
       h.p([], [`Seed ${active.seed}. Settings, history navigation and replay files apply to this agent.`])]),

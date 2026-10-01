@@ -234,7 +234,9 @@ selected agent's draft settings. Agent seeds are derived from that agent's seed
 with distinct 32-bit offsets, and each run receives its own `session.agent` name.
 The generators execute independently; layers do not replay copies of one event
 stream. **Play all**, **Pause all** and **Step all** operate on every agent.
-Selecting a layer card changes the controls, history, counters and replay below.
+Hovering or keyboard-focusing a layer card makes the other planes transparent
+without changing the selection; leaving restores the full stack. Selecting a
+layer card changes the controls, history, counters and replay below.
 Those controls, including **Start / reset**, affect only that selected agent.
 Replay JSON remains the existing version-one single-run format; export/load
 applies to the selected agent, not the entire ensemble.
@@ -249,17 +251,23 @@ activate a diagram stage, while a click or tap still opens its inspector.
 inspection view and its existing stage inspector. On narrow screens the diagram
 viewport scrolls independently of the page.
 
-Workspace and Jev contacts visually connect the planes as common infrastructure.
-They describe topology, not cross-agent state or product decisions. Each agent
-currently has an isolated checked Monkey Business Run and capacity ledger;
-shared resident admission, contention and an aggregate enforced capacity are
-not simulated. Canonical state and transitions still come from compiled Bend.
+Resident capacity and Jev backend contacts are drawn inside the reused SVG,
+attached to **Admission & capacity** and **Jev request attempt** respectively.
+The vertical rails terminate at those same contacts on each agent plane.
+Agents routed to the same product resident share its canonical global item/byte
+ledger (`src/resident/capacity.ts`), with per-partition limits. The green rail
+explains that product topology; each dashboard agent currently has an isolated
+checked Monkey Business Run and capacity ledger. The gold rail identifies a
+common Jev backend target; every response here is synthetic. The demo has no
+shared runtime ledger, cross-agent contention or aggregate enforced capacity.
+These annotations describe infrastructure topology, not observed traffic or
+additional decisions. Canonical state and transitions still come from compiled Bend.
 
 Run `npm run test:ensemble-browser` for independent event/seed checks,
 agent-scoped controls and replay, global playback, invalid count handling,
 keyboard-capable stage inspection, six-layer camera fit and narrow layout.
 The visual change to inspect is the Monkey Business panel with **Agents = 3**:
-three independently changing diagrams and two infrastructure contact rails
+three independently changing diagrams, transient hover isolation and two stage-linked infrastructure contact rails
 replace the single flat diagram. Focus mode retains detailed single-agent
 inspection. These browser checks establish UI behavior, not design acceptance
 or installed runtime support.

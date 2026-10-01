@@ -104,8 +104,10 @@ checked Monkey Business run as a layer of the existing SVG widget. Distinct
 seeds and session agent names produce independent event streams. Per-agent
 controls, replay and capacity totals retain that run's scope. Global playback
 controls advance the runs; they do not arbitrate capacity between them.
-Workspace and Jev contact rails are static topology annotations identifying
-common infrastructure, not observed inter-agent traffic. The panel must state
+Resident-capacity and Jev-backend contact rails are static topology annotations
+attached to admission and request-attempt stages, not observed inter-agent
+traffic. The product resident shares a global ledger between partitions; the
+dashboard runs currently do not share that ledger. The panel must state
 that shared capacity and contention are not simulated until a checked shared
 resident simulation exists. No aggregate limit may be inferred from these
 isolated ledgers.

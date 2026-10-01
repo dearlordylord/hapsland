@@ -18,6 +18,22 @@ try {
   await click("Start ensemble");
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 3);
   assert.equal(await ensemble.locator(".ensemble-connector").count(), 4);
+  const layerOpacity = () => ensemble.locator(".ensemble-layer").evaluateAll(layers => layers.map(layer => getComputedStyle(layer).opacity));
+  await ensemble.getByRole("button", { name: "Select agent 2", exact: true }).hover();
+  assert.deepEqual(await layerOpacity(), ["0.1", "1", "0.1"]);
+  assert.equal(await ensemble.locator(".ensemble-agent.selected").getAttribute("aria-label"), "Select agent 1", "hover must not change selection");
+  assert.equal(await ensemble.locator(".topology-resource.capacity").count(), 3);
+  assert.equal(await ensemble.locator(".topology-resource.jev").count(), 3);
+  assert.match(await ensemble.locator(".topology-resource.capacity").first().getAttribute("aria-label"), /Admission & capacity.*shared in resident.*isolated here/);
+  assert.match(await ensemble.locator(".topology-resource.jev").first().getAttribute("aria-label"), /Jev request attempt.*synthetic here/);
+  await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-hover.png" });
+  await ensemble.locator(".ensemble-heading").hover();
+  assert.deepEqual(await layerOpacity(), ["1", "1", "1"], "leaving the card restores the stack");
+  await page.keyboard.press("Tab");
+  await ensemble.getByRole("button", { name: "Select agent 3", exact: true }).focus();
+  assert.deepEqual(await layerOpacity(), ["0.1", "0.1", "1"], "keyboard focus also reveals its layer");
+  await page.getByLabel("Agent count", { exact: true }).focus();
+  assert.deepEqual(await layerOpacity(), ["1", "1", "1"]);
   const viewport = ensemble.locator(".ensemble-viewport");
   const bounds = await viewport.boundingBox();
   const beforeTransform = await ensemble.locator(".ensemble-scene").getAttribute("style");
@@ -110,6 +126,8 @@ try {
   await ensemble.getByRole("button", { name: "Inspect Ready advice", exact: true }).click();
   await settle();
   assert.match(await inspector.locator(".simulation-stage-inspector").textContent(), /Focused lifecycle and state/);
+  // Focus view exposes the two resource contacts on their actual diagram stages.
+  assert.equal(await ensemble.locator(".topology-resource").count(), 2);
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-focus.png" });
   await click("3D layers");
   await page.getByLabel("Agent count", { exact: true }).fill("6");
@@ -157,7 +175,7 @@ try {
   assert.equal(await touchPage.locator(".is-dragging").count(), 0);
   await touchPage.close();
   assert.deepEqual(errors, []);
-  console.log("Ensemble browser checks passed: independent streams, agent-scoped controls/replay, global playback, count validation, focus, six-layer fit, mobile layout, mouse drag, stage click preservation and touch orbit/scroll.");
+  console.log("Ensemble browser checks passed: independent streams, agent-scoped controls/replay, global playback, count validation, focus, six-layer fit, mobile layout, mouse drag, stage click preservation, touch orbit/scroll, transient layer reveal and stage-linked infrastructure contacts.");
 } finally {
   await browser?.close();
   await server.close();

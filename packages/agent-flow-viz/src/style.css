@@ -222,7 +222,7 @@ p { line-height: 1.5; }
 .ensemble-scene { position: relative; width: 920px; height: 550px; margin: 40px auto 0; transform-style: preserve-3d; transform-origin: 50% 50%; }
 .ensemble-layer { position: absolute; inset: 0; width: 920px; height: 550px; border: 1px solid; border-radius: 12px; background: #fffffff2; box-shadow: 0 18px 40px #334b691a; transform-style: preserve-3d; }
 .ensemble-layer.is-selected { background: #fff; box-shadow: 0 0 0 2px #5686c921, 0 24px 45px #334b6921; }
-.ensemble-layer-title { display: flex; justify-content: space-between; padding: 11px 18px 6px; font-family: ui-monospace, monospace; font-size: 12px; }
+.ensemble-layer-title { height: 32px; display: flex; justify-content: space-between; padding: 11px 18px 6px; font-family: ui-monospace, monospace; font-size: 12px; }
 .ensemble-layer-title strong { letter-spacing: .07em; }
 .ensemble-layer-title span { opacity: .7; }
 .ensemble-layer .production-topology { margin: 0; padding: 0; }
@@ -231,13 +231,9 @@ p { line-height: 1.5; }
 .ensemble-layer .topology-scroll svg { width: 894px; min-width: 0; height: 505px; display: block; }
 .ensemble-layer .topology-node { cursor: pointer; }
 .ensemble-layer .topology-node:focus-visible { outline: none; filter: drop-shadow(0 0 5px #2765c2); }
-.ensemble-contact { position: absolute; bottom: -12px; padding: 5px 9px; font-size: 10px; font-family: ui-monospace, monospace; letter-spacing: .06em; border: 1px solid currentColor; border-radius: 5px; background: #fff; transform: translateZ(1px); }
-.ensemble-contact::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; background: currentColor; }
-.ensemble-contact.workspace { left: 34px; color: #168f83; }
-.ensemble-contact.jev { right: 34px; color: #b17a22; }
-.ensemble-connector { position: absolute; bottom: 0; width: 2px; transform-origin: bottom center; transform: rotateX(-90deg); background: currentColor; }
-.ensemble-connector.workspace { left: 48px; color: #168f83; }
-.ensemble-connector.jev { right: 99px; color: #b17a22; }
+.ensemble-connector { position: absolute; width: 2px; transform-origin: top center; background: currentColor; pointer-events: none; }
+.ensemble-connector.capacity { color: #168f83; }
+.ensemble-connector.jev { color: #b17a22; }
 .ensemble-orientation { position: absolute; bottom: 16px; left: 22px; font: 10px ui-monospace, monospace; letter-spacing: .06em; color: #8294ae; pointer-events: none; }
 .ensemble-empty { height: 440px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #7e91aa; }
 .ensemble-empty strong { font-size: 1.4rem; }
@@ -246,7 +242,7 @@ p { line-height: 1.5; }
 .ensemble-camera input { width: 120px; accent-color: #426998; }
 .ensemble-resource-key { padding: 12px 28px 16px; font-size: .75rem; border-top: 1px solid #e3eaf4; }
 .ensemble-resource-key span { margin-right: 24px; font-weight: 600; }
-.workspace-key { color: #168f83; }.jev-key { color: #a27321; }
+.capacity-key { color: #168f83; }.jev-key { color: #a27321; }
 .ensemble-resource-key p { margin: 7px 0 0; font-size: .71rem; color: #7a889a; max-width: 860px; }
 .ensemble-inspector-heading { margin: 28px 0 12px; }
 .ensemble-inspector-heading h2 { margin-bottom: 5px; }.ensemble-inspector-heading p { margin: 0; font-size: .82rem; color: #6c7c92; }
@@ -271,3 +267,17 @@ p { line-height: 1.5; }
 .is-spatial .ensemble-viewport { cursor: grab; touch-action: pan-y pinch-zoom; user-select: none; }
 .is-spatial .ensemble-viewport.is-dragging, .is-spatial .ensemble-viewport.is-dragging * { cursor: grabbing; }
 .ensemble-gesture-hint { position: absolute; top: 12px; left: 16px; z-index: 1; padding: 6px 9px; border: 1px solid #dbe4ef; border-radius: 6px; background: #f9fbfeee; color: #637b98; font-size: .69rem; pointer-events: none; }
+
+.ensemble-hover-hint { margin: -5px 5px 13px; color: #73839b; font-size: .66rem; line-height: 1.4; }
+.is-spatial:has(.ensemble-agent.agent-index-0:hover) .ensemble-layer:not(.agent-index-0),
+.is-spatial:not(:has(.ensemble-agent:hover)):has(.ensemble-agent.agent-index-0:focus-visible) .ensemble-layer:not(.agent-index-0) { opacity: .1; }
+.is-spatial:has(.ensemble-agent.agent-index-1:hover) .ensemble-layer:not(.agent-index-1),
+.is-spatial:not(:has(.ensemble-agent:hover)):has(.ensemble-agent.agent-index-1:focus-visible) .ensemble-layer:not(.agent-index-1) { opacity: .1; }
+.is-spatial:has(.ensemble-agent.agent-index-2:hover) .ensemble-layer:not(.agent-index-2),
+.is-spatial:not(:has(.ensemble-agent:hover)):has(.ensemble-agent.agent-index-2:focus-visible) .ensemble-layer:not(.agent-index-2) { opacity: .1; }
+.is-spatial:has(.ensemble-agent.agent-index-3:hover) .ensemble-layer:not(.agent-index-3),
+.is-spatial:not(:has(.ensemble-agent:hover)):has(.ensemble-agent.agent-index-3:focus-visible) .ensemble-layer:not(.agent-index-3) { opacity: .1; }
+.is-spatial:has(.ensemble-agent.agent-index-4:hover) .ensemble-layer:not(.agent-index-4),
+.is-spatial:not(:has(.ensemble-agent:hover)):has(.ensemble-agent.agent-index-4:focus-visible) .ensemble-layer:not(.agent-index-4) { opacity: .1; }
+.is-spatial:has(.ensemble-agent.agent-index-5:hover) .ensemble-layer:not(.agent-index-5),
+.is-spatial:not(:has(.ensemble-agent:hover)):has(.ensemble-agent.agent-index-5:focus-visible) .ensemble-layer:not(.agent-index-5) { opacity: .1; }
