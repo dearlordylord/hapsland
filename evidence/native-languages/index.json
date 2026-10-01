@@ -162,5 +162,98 @@
   ],
   "rawSourceRetained": false,
   "rawHostStreamsRetained": false,
-  "credentialsRetained": false
+  "credentialsRetained": false,
+  "offlineAmendment": {
+    "recordedAt": "2026-10-01T12:47:51.267Z",
+    "purpose": "Controlled offline real-agent adoption results added after the live language matrix; original live fields above remain unchanged.",
+    "primary": [
+      {
+        "file": "codex-typescript-adoption-controlled-offline-1790858736297.json",
+        "runtime": "Codex CLI",
+        "language": "typescript",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "followupStages": [
+          "findings",
+          "clear"
+        ],
+        "runnerHash": "3fd18fb8d00c6359168c77e5fb1e3fb2ad7267c83b9e0baee672c9c0d431f9e4"
+      },
+      {
+        "file": "claude-typescript-adoption-controlled-offline-1790858736473.json",
+        "runtime": "Claude Code",
+        "language": "typescript",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "followupStages": [
+          "findings",
+          "clear"
+        ],
+        "runnerHash": "3fd18fb8d00c6359168c77e5fb1e3fb2ad7267c83b9e0baee672c9c0d431f9e4"
+      },
+      {
+        "file": "codex-rust-adoption-controlled-offline-1790858736329.json",
+        "runtime": "Codex CLI",
+        "language": "rust",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "followupStages": [
+          "findings",
+          "clear"
+        ],
+        "runnerHash": "3fd18fb8d00c6359168c77e5fb1e3fb2ad7267c83b9e0baee672c9c0d431f9e4"
+      },
+      {
+        "file": "claude-rust-adoption-controlled-offline-1790858736484.json",
+        "runtime": "Claude Code",
+        "language": "rust",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "followupStages": [
+          "findings",
+          "clear"
+        ],
+        "runnerHash": "3fd18fb8d00c6359168c77e5fb1e3fb2ad7267c83b9e0baee672c9c0d431f9e4"
+      },
+      {
+        "file": "codex-bend-adoption-controlled-offline-1790858736295.json",
+        "runtime": "Codex CLI",
+        "language": "bend",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "followupStages": [
+          "findings",
+          "clear"
+        ],
+        "runnerHash": "3fd18fb8d00c6359168c77e5fb1e3fb2ad7267c83b9e0baee672c9c0d431f9e4"
+      },
+      {
+        "file": "claude-bend-adoption-controlled-offline-1790858805766.json",
+        "runtime": "Claude Code",
+        "language": "bend",
+        "verdict": "demonstrated",
+        "providerCalls": 0,
+        "followupStages": [
+          "findings",
+          "clear"
+        ],
+        "runnerHash": "3fd18fb8d00c6359168c77e5fb1e3fb2ad7267c83b9e0baee672c9c0d431f9e4"
+      }
+    ],
+    "earlierAttempt": {
+      "file": "claude-bend-adoption-controlled-offline-1790858736483.json",
+      "runtime": "Claude Code",
+      "language": "bend",
+      "verdict": "incomplete",
+      "failedChecks": [
+        "editAfterFinding",
+        "agentAcknowledgesAdvice",
+        "sourceChanged",
+        "finalDesignConstrained",
+        "missingReceiptRejected",
+        "followupObserved"
+      ]
+    },
+    "providerCalls": 0
+  }
 }

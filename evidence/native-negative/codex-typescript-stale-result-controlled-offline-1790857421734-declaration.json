@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-01T12:23:41.734Z",
+  "host": "codex",
+  "language": "typescript",
+  "mode": "controlled-offline",
+  "scenario": "stale-result",
+  "declaration": {
+    "scenario": "stale-result",
+    "maximumProviderRequests": 0,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 2,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "codex-cli 0.155.1"
+  }
+}

@@ -1,0 +1,291 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-01T12:46:07.276Z",
+  "commit": "573d8f089b854e5a3178763f96276752cf9e75ce",
+  "sourceWorktreeDirty": true,
+  "language": "bend",
+  "scenario": "adoption",
+  "runnerHash": "3fd18fb8d00c6359168c77e5fb1e3fb2ad7267c83b9e0baee672c9c0d431f9e4",
+  "executionProfile": {
+    "runtime": "source-checkout",
+    "installedPackageValidated": false,
+    "normalTrustValidated": false,
+    "syntheticRepositoryOnly": true
+  },
+  "runtime": "Codex CLI",
+  "version": "codex-cli 0.155.1",
+  "mode": "controlled-offline",
+  "declaration": {
+    "scenario": "adoption",
+    "maximumProviderRequests": 0,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 2,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "codex-cli 0.155.1"
+  },
+  "hostDiagnostics": {
+    "permissionDenials": 0,
+    "finalMentionsPermission": false,
+    "finalMentionsEditLimit": false,
+    "toolErrors": 0
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 30993,
+  "providerCalls": 0,
+  "requestShapes": [
+    {
+      "rootKind": "datatype",
+      "conditionalFindingSourceMatched": true,
+      "evidenceNodes": 4,
+      "expandedEdges": 4,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    },
+    {
+      "rootKind": "datatype",
+      "conditionalFindingSourceMatched": false,
+      "evidenceNodes": 1,
+      "expandedEdges": 1,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    }
+  ],
+  "outcomeSummaries": [
+    {
+      "outcome": "completed-findings",
+      "toolUseHash": "b8029d359a5c77e6e38550f5f42bd6ad4ef34e43ddea09d0ee0af939ba6bd8e3"
+    },
+    {
+      "outcome": "completed-clear",
+      "toolUseHash": "727b5927cef26ea2f3a548bda8a705b441b12c9c54ddba0ed816089dde560ac0"
+    }
+  ],
+  "postEditPreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1
+  },
+  "nativeUpdatePreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1,
+    "operations": [
+      "update"
+    ]
+  },
+  "nativeResponseShape": {
+    "responseType": "string",
+    "responseKeys": [],
+    "explicitSuccess": false,
+    "successWord": true,
+    "startsSuccessDot": false,
+    "containsSuccessDot": true,
+    "startsPatchApplied": false,
+    "failureWord": false,
+    "verifiedHunks": 1,
+    "normalizedPatchPresent": true,
+    "normalizedVerifiedHunks": 1,
+    "patchPathAbsolute": false,
+    "patchPathRelativeMatch": true,
+    "patchPathInsideRepo": false,
+    "patchHasCarriageReturn": false
+  },
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 13155
+    },
+    {
+      "stage": "pending",
+      "atMs": 13402
+    },
+    {
+      "stage": "findings",
+      "atMs": 13567
+    },
+    {
+      "stage": "pending",
+      "atMs": 25928
+    },
+    {
+      "stage": "pending",
+      "atMs": 25992
+    },
+    {
+      "stage": "clear",
+      "atMs": 26067
+    }
+  ],
+  "hookEvents": [
+    {
+      "kind": "prompt",
+      "atMs": 4590,
+      "durationMs": 1133,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0,
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 11737,
+      "durationMs": 517,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0,
+      "toolUseHash": "b8029d359a5c77e6e38550f5f42bd6ad4ef34e43ddea09d0ee0af939ba6bd8e3",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "background",
+      "atMs": 12315,
+      "durationMs": 831,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 168,
+      "toolUseHash": "b8029d359a5c77e6e38550f5f42bd6ad4ef34e43ddea09d0ee0af939ba6bd8e3",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "edit",
+      "atMs": 12299,
+      "durationMs": 958,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 168,
+      "toolUseHash": "b8029d359a5c77e6e38550f5f42bd6ad4ef34e43ddea09d0ee0af939ba6bd8e3",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "stop",
+      "atMs": 17987,
+      "durationMs": 785,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "ruleIds": [
+        "r2_meaningless_combinations"
+      ],
+      "initial": true,
+      "sourceBytes": 168,
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 24714,
+      "durationMs": 714,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 168,
+      "toolUseHash": "727b5927cef26ea2f3a548bda8a705b441b12c9c54ddba0ed816089dde560ac0",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "edit",
+      "atMs": 25477,
+      "durationMs": 464,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 143,
+      "toolUseHash": "727b5927cef26ea2f3a548bda8a705b441b12c9c54ddba0ed816089dde560ac0",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "background",
+      "atMs": 25483,
+      "durationMs": 2480,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 143,
+      "toolUseHash": "727b5927cef26ea2f3a548bda8a705b441b12c9c54ddba0ed816089dde560ac0",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "stop",
+      "atMs": 29076,
+      "durationMs": 628,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 143,
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "crossFileExpanded": true,
+    "findingDelivered": true,
+    "editAfterFinding": true,
+    "agentAcknowledgesAdvice": true,
+    "agentNamesRule": true,
+    "sourceChanged": true,
+    "finalDesignConstrained": true,
+    "sourceCompiles": true,
+    "missingReceiptRejected": true,
+    "followupObserved": true
+  },
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false,
+  "hostBytesDiscarded": 3472,
+  "verdict": "demonstrated"
+}

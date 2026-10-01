@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-01T12:32:59.220Z",
+  "host": "claude",
+  "language": "rust",
+  "mode": "controlled-offline",
+  "scenario": "hook-crash",
+  "declaration": {
+    "scenario": "hook-crash",
+    "maximumProviderRequests": 0,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 1,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "2.1.218 (Claude Code)"
+  }
+}

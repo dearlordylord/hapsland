@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-01T12:33:36.153Z",
+  "host": "codex",
+  "language": "rust",
+  "mode": "controlled-offline",
+  "scenario": "hook-timeout",
+  "declaration": {
+    "scenario": "hook-timeout",
+    "maximumProviderRequests": 0,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 1,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "codex-cli 0.155.1",
+    "nativeEditHookDeadlineMs": 2000,
+    "injectedHookSleepMs": 10000
+  }
+}

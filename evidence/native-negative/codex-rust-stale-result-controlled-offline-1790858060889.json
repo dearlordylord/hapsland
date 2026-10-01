@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-01T12:35:02.023Z",
+  "commit": "a241eb5f554c112609047df97079bc404580d339",
+  "sourceWorktreeDirty": true,
+  "language": "rust",
+  "scenario": "stale-result",
+  "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b",
+  "executionProfile": {
+    "runtime": "source-checkout",
+    "installedPackageValidated": false,
+    "normalTrustValidated": false,
+    "syntheticRepositoryOnly": true
+  },
+  "runtime": "Codex CLI",
+  "version": "codex-cli 0.155.1",
+  "mode": "controlled-offline",
+  "declaration": {
+    "scenario": "stale-result",
+    "maximumProviderRequests": 0,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 2,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "codex-cli 0.155.1",
+    "controlledReviewDelayMs": 9000,
+    "oldResult": "finding",
+    "newResult": "clear"
+  },
+  "hostDiagnostics": {
+    "permissionDenials": 0,
+    "finalMentionsPermission": false,
+    "finalMentionsEditLimit": true,
+    "toolErrors": 0
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 41142,
+  "providerCalls": 0,
+  "requestShapes": [
+    {
+      "rootKind": "struct",
+      "conditionalFindingSourceMatched": true,
+      "evidenceNodes": 2,
+      "expandedEdges": 2,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    },
+    {
+      "rootKind": "enum",
+      "conditionalFindingSourceMatched": false,
+      "evidenceNodes": 1,
+      "expandedEdges": 1,
+      "includedEdges": 0,
+      "omittedEdges": 0
+    }
+  ],
+  "outcomeSummaries": [
+    {
+      "outcome": "completed-findings",
+      "toolUseHash": "4090647830c98ef588b5e6a24f052812cfe230d142ab66e3f048d4ea914bab4b"
+    },
+    {
+      "outcome": "completed-clear",
+      "toolUseHash": "98cad50790b0a18f4b43bf2b0de4a70f49abaed0c11b9a40b04d9d09b14d46c6"
+    }
+  ],
+  "postEditPreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1
+  },
+  "nativeUpdatePreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1,
+    "operations": [
+      "update"
+    ]
+  },
+  "nativeResponseShape": {
+    "responseType": "string",
+    "responseKeys": [],
+    "explicitSuccess": false,
+    "successWord": true,
+    "startsSuccessDot": false,
+    "containsSuccessDot": true,
+    "startsPatchApplied": false,
+    "failureWord": false,
+    "verifiedHunks": null,
+    "normalizedPatchPresent": true,
+    "normalizedVerifiedHunks": 1,
+    "patchPathAbsolute": true,
+    "patchPathRelativeMatch": false,
+    "patchPathInsideRepo": true,
+    "patchHasCarriageReturn": false
+  },
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 16915
+    },
+    {
+      "stage": "pending",
+      "atMs": 17183
+    },
+    {
+      "stage": "pending",
+      "atMs": 19227
+    },
+    {
+      "stage": "pending",
+      "atMs": 19653
+    },
+    {
+      "stage": "findings",
+      "atMs": 26492
+    },
+    {
+      "stage": "clear",
+      "atMs": 29020
+    }
+  ],
+  "hookEvents": [
+    {
+      "kind": "prompt",
+      "atMs": 2989,
+      "durationMs": 2326,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0,
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 14820,
+      "durationMs": 945,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0,
+      "toolUseHash": "4090647830c98ef588b5e6a24f052812cfe230d142ab66e3f048d4ea914bab4b",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "edit",
+      "atMs": 15861,
+      "durationMs": 1070,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 195,
+      "toolUseHash": "4090647830c98ef588b5e6a24f052812cfe230d142ab66e3f048d4ea914bab4b",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 16985,
+      "durationMs": 765,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 195,
+      "toolUseHash": "98cad50790b0a18f4b43bf2b0de4a70f49abaed0c11b9a40b04d9d09b14d46c6",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "background",
+      "atMs": 17875,
+      "durationMs": 1180,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 176,
+      "toolUseHash": "98cad50790b0a18f4b43bf2b0de4a70f49abaed0c11b9a40b04d9d09b14d46c6",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "edit",
+      "atMs": 17805,
+      "durationMs": 1447,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 176,
+      "toolUseHash": "98cad50790b0a18f4b43bf2b0de4a70f49abaed0c11b9a40b04d9d09b14d46c6",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "background",
+      "atMs": 15854,
+      "durationMs": 13181,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 176,
+      "toolUseHash": "4090647830c98ef588b5e6a24f052812cfe230d142ab66e3f048d4ea914bab4b",
+      "injectedFault": null,
+      "targetKind": null
+    },
+    {
+      "kind": "stop",
+      "atMs": 39395,
+      "durationMs": 447,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 176,
+      "toolUseHash": null,
+      "injectedFault": null,
+      "targetKind": null
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "laterEditObserved": true,
+    "separateReviewRequests": true,
+    "olderFindingCompleted": true,
+    "newerClearCompleted": true,
+    "staleFindingNotDelivered": true,
+    "agentDidNotApplyAdvice": true,
+    "finalSourceCompiles": true
+  },
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false,
+  "hostBytesDiscarded": 3401,
+  "verdict": "demonstrated"
+}

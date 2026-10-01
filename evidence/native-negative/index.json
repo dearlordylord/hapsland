@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Source-free selected native negative-case matrix for Codex CLI and Claude Code across TypeScript, Rust, and Bend.",
+  "recordedAt": "2026-10-01T12:38:08.957Z",
+  "implementationBaseCommit": "a241eb5f554c112609047df97079bc404580d339",
+  "executionProfile": "source checkout with uncommitted runner changes recorded by per-run SHA-256; disposable synthetic projects; controlled offline reviewer",
+  "selectedCells": 24,
+  "selectedDemonstrated": 24,
+  "selectedJevRequests": 0,
+  "initialBatch": {
+    "file": "batch-1790857898801.json",
+    "declaration": "batch-1790857898801-declaration.json",
+    "demonstrated": 23,
+    "incomplete": 1
+  },
+  "primary": [
+    {
+      "host": "codex",
+      "language": "typescript",
+      "scenario": "reviewer-unavailable",
+      "file": "codex-typescript-reviewer-unavailable-controlled-offline-1790857899595.json",
+      "declaration": "codex-typescript-reviewer-unavailable-controlled-offline-1790857899595-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 25759,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "typescript",
+      "scenario": "reviewer-unavailable",
+      "file": "claude-typescript-reviewer-unavailable-controlled-offline-1790857899742.json",
+      "declaration": "claude-typescript-reviewer-unavailable-controlled-offline-1790857899742-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 34510,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "rust",
+      "scenario": "reviewer-unavailable",
+      "file": "codex-rust-reviewer-unavailable-controlled-offline-1790857899597.json",
+      "declaration": "codex-rust-reviewer-unavailable-controlled-offline-1790857899597-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 28806,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "rust",
+      "scenario": "reviewer-unavailable",
+      "file": "claude-rust-reviewer-unavailable-controlled-offline-1790857925775.json",
+      "declaration": "claude-rust-reviewer-unavailable-controlled-offline-1790857925775-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 32667,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "bend",
+      "scenario": "reviewer-unavailable",
+      "file": "codex-bend-reviewer-unavailable-controlled-offline-1790857928796.json",
+      "declaration": "codex-bend-reviewer-unavailable-controlled-offline-1790857928796-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 31757,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "bend",
+      "scenario": "reviewer-unavailable",
+      "file": "claude-bend-reviewer-unavailable-controlled-offline-1790857934992.json",
+      "declaration": "claude-bend-reviewer-unavailable-controlled-offline-1790857934992-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 36498,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "typescript",
+      "scenario": "hook-crash",
+      "file": "codex-typescript-hook-crash-controlled-offline-1790857958901.json",
+      "declaration": "codex-typescript-hook-crash-controlled-offline-1790857958901-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 19477,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "typescript",
+      "scenario": "hook-crash",
+      "file": "claude-typescript-hook-crash-controlled-offline-1790857960996.json",
+      "declaration": "claude-typescript-hook-crash-controlled-offline-1790857960996-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 25188,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "rust",
+      "scenario": "hook-crash",
+      "file": "codex-rust-hook-crash-controlled-offline-1790857972628.json",
+      "declaration": "codex-rust-hook-crash-controlled-offline-1790857972628-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 24376,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "rust",
+      "scenario": "hook-crash",
+      "file": "claude-rust-hook-crash-controlled-offline-1790857979220.json",
+      "declaration": "claude-rust-hook-crash-controlled-offline-1790857979220-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 24481,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "bend",
+      "scenario": "hook-crash",
+      "file": "codex-bend-hook-crash-controlled-offline-1790857986651.json",
+      "declaration": "codex-bend-hook-crash-controlled-offline-1790857986651-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 20307,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "bend",
+      "scenario": "hook-crash",
+      "file": "claude-bend-hook-crash-controlled-offline-1790857997772.json",
+      "declaration": "claude-bend-hook-crash-controlled-offline-1790857997772-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 17979,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "typescript",
+      "scenario": "hook-timeout",
+      "file": "codex-typescript-hook-timeout-controlled-offline-1790858004083.json",
+      "declaration": "codex-typescript-hook-timeout-controlled-offline-1790858004083-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 17725,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "typescript",
+      "scenario": "hook-timeout",
+      "file": "claude-typescript-hook-timeout-controlled-offline-1790858007429.json",
+      "declaration": "claude-typescript-hook-timeout-controlled-offline-1790858007429-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 26051,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "rust",
+      "scenario": "hook-timeout",
+      "file": "codex-rust-hook-timeout-controlled-offline-1790858016153.json",
+      "declaration": "codex-rust-hook-timeout-controlled-offline-1790858016153-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 18862,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "rust",
+      "scenario": "hook-timeout",
+      "file": "claude-rust-hook-timeout-controlled-offline-1790858022237.json",
+      "declaration": "claude-rust-hook-timeout-controlled-offline-1790858022237-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 25198,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "bend",
+      "scenario": "hook-timeout",
+      "file": "codex-bend-hook-timeout-controlled-offline-1790858034013.json",
+      "declaration": "codex-bend-hook-timeout-controlled-offline-1790858034013-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 22565,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "bend",
+      "scenario": "hook-timeout",
+      "file": "claude-bend-hook-timeout-controlled-offline-1790858035502.json",
+      "declaration": "claude-bend-hook-timeout-controlled-offline-1790858035502-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 24976,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "typescript",
+      "scenario": "stale-result",
+      "file": "codex-typescript-stale-result-controlled-offline-1790858047799.json",
+      "declaration": "codex-typescript-stale-result-controlled-offline-1790858047799-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 42056,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "typescript",
+      "scenario": "stale-result",
+      "file": "claude-typescript-stale-result-controlled-offline-1790858185756.json",
+      "declaration": "claude-typescript-stale-result-controlled-offline-1790858185756-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 54186,
+      "runnerHash": "f918709a81077ffb4ffe5fadfc373450e2e496cdfdf4f0e915da5c09841ba252",
+      "selectionReason": "The first batch result completed before the second edit; a declared 13-second delay produced the intended overlap."
+    },
+    {
+      "host": "codex",
+      "language": "rust",
+      "scenario": "stale-result",
+      "file": "codex-rust-stale-result-controlled-offline-1790858060889.json",
+      "declaration": "codex-rust-stale-result-controlled-offline-1790858060889-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 41142,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "rust",
+      "scenario": "stale-result",
+      "file": "claude-rust-stale-result-controlled-offline-1790858090273.json",
+      "declaration": "claude-rust-stale-result-controlled-offline-1790858090273-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 53904,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "codex",
+      "language": "bend",
+      "scenario": "stale-result",
+      "file": "codex-bend-stale-result-controlled-offline-1790858102566.json",
+      "declaration": "codex-bend-stale-result-controlled-offline-1790858102566-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 39808,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    },
+    {
+      "host": "claude",
+      "language": "bend",
+      "scenario": "stale-result",
+      "file": "claude-bend-stale-result-controlled-offline-1790858112498.json",
+      "declaration": "claude-bend-stale-result-controlled-offline-1790858112498-declaration.json",
+      "verdict": "demonstrated",
+      "providerCalls": 0,
+      "elapsedMs": 54773,
+      "runnerHash": "aaa62678e8ec70a2d8f0d5d1c5875acf2e29b0719a5d4a4f9ac1cdd8d89c553b"
+    }
+  ],
+  "otherAttempts": [
+    {
+      "file": "claude-typescript-hook-timeout-controlled-offline-1790857302368.json",
+      "host": "Claude Code",
+      "language": "typescript",
+      "scenario": "hook-timeout",
+      "verdict": "incomplete",
+      "failedChecks": [
+        "hookDidNotCompleteNaturally"
+      ],
+      "providerCalls": 0
+    },
+    {
+      "file": "claude-typescript-hook-timeout-controlled-offline-1790857421849.json",
+      "host": "Claude Code",
+      "language": "typescript",
+      "scenario": "hook-timeout",
+      "verdict": "demonstrated",
+      "failedChecks": [],
+      "providerCalls": 0
+    },
+    {
+      "file": "claude-typescript-stale-result-controlled-offline-1790858056972.json",
+      "host": "Claude Code",
+      "language": "typescript",
+      "scenario": "stale-result",
+      "verdict": "incomplete",
+      "failedChecks": [
+        "olderFindingCompleted"
+      ],
+      "providerCalls": 0
+    },
+    {
+      "file": "codex-typescript-hook-crash-controlled-offline-1790857302047.json",
+      "host": "Codex CLI",
+      "language": "typescript",
+      "scenario": "hook-crash",
+      "verdict": "demonstrated",
+      "failedChecks": [],
+      "providerCalls": 0
+    },
+    {
+      "file": "codex-typescript-reviewer-unavailable-controlled-offline-1790857265888.json",
+      "host": "Codex CLI",
+      "language": "typescript",
+      "scenario": "reviewer-unavailable",
+      "verdict": "demonstrated",
+      "failedChecks": [],
+      "providerCalls": 0
+    },
+    {
+      "file": "codex-typescript-stale-result-controlled-offline-1790857302052.json",
+      "host": "Codex CLI",
+      "language": "typescript",
+      "scenario": "stale-result",
+      "verdict": "incomplete",
+      "failedChecks": [
+        "latestResultOnly"
+      ],
+      "providerCalls": 0
+    },
+    {
+      "file": "codex-typescript-stale-result-controlled-offline-1790857421734.json",
+      "host": "Codex CLI",
+      "language": "typescript",
+      "scenario": "stale-result",
+      "verdict": "incomplete",
+      "failedChecks": [
+        "latestResultOnly"
+      ],
+      "providerCalls": 0
+    },
+    {
+      "file": "codex-typescript-stale-result-controlled-offline-1790857586885.json",
+      "host": "Codex CLI",
+      "language": "typescript",
+      "scenario": "stale-result",
+      "verdict": "incomplete",
+      "failedChecks": [
+        "latestResultOnly",
+        "noAdviceDelivered"
+      ],
+      "providerCalls": 0
+    },
+    {
+      "file": "codex-typescript-stale-result-controlled-offline-1790857695606.json",
+      "host": "Codex CLI",
+      "language": "typescript",
+      "scenario": "stale-result",
+      "verdict": "incomplete",
+      "failedChecks": [
+        "latestResultOnly"
+      ],
+      "providerCalls": 0
+    },
+    {
+      "file": "codex-typescript-stale-result-controlled-offline-1790857779480.json",
+      "host": "Codex CLI",
+      "language": "typescript",
+      "scenario": "stale-result",
+      "verdict": "demonstrated",
+      "failedChecks": [],
+      "providerCalls": 0
+    }
+  ],
+  "interpretation": {
+    "unavailable": "Review was attempted and recorded unavailable without a fabricated advice.",
+    "hookFailure": "Real native edit hooks failed or exceeded their deadline; no review request or fabricated advice followed.",
+    "stale": "Both edit reviews completed, but an older finding that arrived after the newer edit was not delivered to the agent. The old result may remain accounted for internally."
+  },
+  "sourceRetained": false,
+  "providerBodiesRetained": false,
+  "credentialsRetained": false
+}

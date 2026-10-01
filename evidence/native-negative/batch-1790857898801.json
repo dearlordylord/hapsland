@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "declaredBy": "batch-1790857898801-declaration.json",
+  "recordedAt": "2026-10-01T12:36:07.293Z",
+  "results": [
+    {
+      "scenario": "reviewer-unavailable",
+      "language": "typescript",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-typescript-reviewer-unavailable-controlled-offline-1790857899595.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "reviewer-unavailable",
+      "language": "typescript",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-typescript-reviewer-unavailable-controlled-offline-1790857899742.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "reviewer-unavailable",
+      "language": "rust",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-rust-reviewer-unavailable-controlled-offline-1790857899597.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "reviewer-unavailable",
+      "language": "rust",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-rust-reviewer-unavailable-controlled-offline-1790857925775.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "reviewer-unavailable",
+      "language": "bend",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-bend-reviewer-unavailable-controlled-offline-1790857928796.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "reviewer-unavailable",
+      "language": "bend",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-bend-reviewer-unavailable-controlled-offline-1790857934992.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-crash",
+      "language": "typescript",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-typescript-hook-crash-controlled-offline-1790857958901.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-crash",
+      "language": "typescript",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-typescript-hook-crash-controlled-offline-1790857960996.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-crash",
+      "language": "rust",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-rust-hook-crash-controlled-offline-1790857972628.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-crash",
+      "language": "rust",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-rust-hook-crash-controlled-offline-1790857979220.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-crash",
+      "language": "bend",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-bend-hook-crash-controlled-offline-1790857986651.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-crash",
+      "language": "bend",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-bend-hook-crash-controlled-offline-1790857997772.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-timeout",
+      "language": "typescript",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-typescript-hook-timeout-controlled-offline-1790858004083.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-timeout",
+      "language": "typescript",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-typescript-hook-timeout-controlled-offline-1790858007429.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-timeout",
+      "language": "rust",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-rust-hook-timeout-controlled-offline-1790858016153.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-timeout",
+      "language": "rust",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-rust-hook-timeout-controlled-offline-1790858022237.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-timeout",
+      "language": "bend",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-bend-hook-timeout-controlled-offline-1790858034013.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "hook-timeout",
+      "language": "bend",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-bend-hook-timeout-controlled-offline-1790858035502.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "stale-result",
+      "language": "typescript",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-typescript-stale-result-controlled-offline-1790858047799.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "stale-result",
+      "language": "typescript",
+      "host": "claude",
+      "verdict": "incomplete",
+      "evidence": "claude-typescript-stale-result-controlled-offline-1790858056972.json",
+      "exitCode": 1
+    },
+    {
+      "scenario": "stale-result",
+      "language": "rust",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-rust-stale-result-controlled-offline-1790858060889.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "stale-result",
+      "language": "rust",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-rust-stale-result-controlled-offline-1790858090273.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "stale-result",
+      "language": "bend",
+      "host": "codex",
+      "verdict": "demonstrated",
+      "evidence": "codex-bend-stale-result-controlled-offline-1790858102566.json",
+      "exitCode": 0
+    },
+    {
+      "scenario": "stale-result",
+      "language": "bend",
+      "host": "claude",
+      "verdict": "demonstrated",
+      "evidence": "claude-bend-stale-result-controlled-offline-1790858112498.json",
+      "exitCode": 0
+    }
+  ],
+  "demonstrated": 23,
+  "incomplete": 1
+}
