@@ -182,3 +182,16 @@ first full cross-file validation had one existing TypeScript Claude hook child
 exit without a status; isolation and a fresh full run (917 tests) passed without
 production changes. This does not explain the termination cause or establish a
 language-binding defect.
+
+The adapter refactor passed a whole-repository architecture re-review (including
+TypeScript): zero Standards findings and zero Spec findings. The latest full
+suite passed 980 tests with two live tests skipped. Separate
+[Linux](../evidence/cross-file-support/adapter-linux-package.json) and
+[macOS](../evidence/cross-file-support/adapter-macos-package.json) installed-package
+records verify the new module layout; [macOS CI](https://github.com/dearlordylord/hapsland/actions/runs/36821311153)
+checked `e1a1bb92aca7e50500eb8b75eb75746a7f706d1f`. The
+[offline preparation record](../evidence/cross-file-support/adapter-offline-preparation.json)
+checks all four split-file fixtures through production preparation, compilers,
+and mutation/restore freshness with zero provider requests. Earlier live
+results remain evidence for their declared milestone; no new live accuracy
+claim is inferred from this architectural refactor.
