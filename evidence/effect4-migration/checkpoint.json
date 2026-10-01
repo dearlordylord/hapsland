@@ -1,0 +1,58 @@
+{
+  "purpose": "Effect 4 migration checkpoint; implementation evidence, not product acceptance or support evidence",
+  "base": "4324697adff22db315fc8e5490df6181e030b243",
+  "branch": "refactor/effect4-migration",
+  "cohort": "4.0.0-rc.116",
+  "completed": [
+    "Created isolated worktree from master and preserved advisory artifacts",
+    "Pure explicit canonical work projection replaces BendWorkTracker in place",
+    "Disposable Ref/Context/Layer ownership and scoped physical-settlement experiment"
+  ],
+  "verification": [
+    {
+      "command": "./node_modules/.bin/tsc -p tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    {
+      "command": "./node_modules/.bin/vitest run --maxWorkers=1 src/resident/bend-work.test.ts src/resident/server.test.ts src/resident/capacity.test.ts src/resident/dispatch.test.ts src/resident/evaluation-reuse.test.ts src/resident/composed-delivery.test.ts src/test-support/resident-ownership-prototype.test.ts",
+      "exitCode": 0,
+      "tests": 165,
+      "note": "Five prototype cases at this run; sixth subsequently added and separately verified"
+    },
+    {
+      "command": "./node_modules/.bin/vitest run --maxWorkers=1 src/test-support/resident-ownership-prototype.test.ts",
+      "exitCode": 0,
+      "tests": 6
+    },
+    {
+      "commands": [
+        "node scripts/check-production-authority.mjs",
+        "node scripts/check-capacity-boundary.mjs",
+        "node scripts/check-dispatch-boundary.mjs",
+        "node scripts/check-delivery-boundary.mjs",
+        "node scripts/check-reuse-boundary.mjs",
+        "node scripts/check-stop-boundary.mjs"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "next": [
+    "Extend physical settlement prototype to issued Jev accounting and original-round replacement",
+    "Exercise shared evaluation subscriber disconnect, reuse/eviction, concurrent Stop/edit/collection and startup cleanup",
+    "Consolidate canonical/native state ownership into production Effect service, deleting superseded owners",
+    "Migrate preparation/evaluation, lifecycle, IPC and host edges to idiomatic Effect workflows",
+    "Update architecture and boundary owners, remove disposable prototype after moving cases into conformance",
+    "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",
+    "Predeclare benchmark regression budgets then compare baseline and migrated saturation/retirement workloads"
+  ],
+  "limitations": [
+    "No production ResidentState or Effect executor yet",
+    "No changed Jev transport or formats",
+    "No full suite/package/host/live/performance results",
+    "Disposable experiment covers dispatch handles only; it does not prove full native registry ownership"
+  ],
+  "cleanup": {
+    "trigger": "Production ResidentState replacement and migration completion",
+    "action": "Consolidate cases into resident conformance and delete disposable prototype; retain sanitized executable evidence in relevant conformance artifacts"
+  }
+}

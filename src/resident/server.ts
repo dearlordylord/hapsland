@@ -64,7 +64,7 @@ import {
 } from "./capacity.ts";
 import { DispatchQueue } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
-import { BendWorkTracker } from "./bend-work.ts";
+import { workView, type BendWorkView } from "./bend-work.ts";
 import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import {
   PENDING_ADVICE_EXPIRY_MS,
@@ -160,7 +160,7 @@ type RoundWork = {
   readonly canonicalRound: number;
   readonly controller: AbortController;
   work: WorkCohort;
-  readonly policyWork: BendWorkTracker;
+  readonly policyWork: () => BendWorkView;
   readonly discarded: { queued: number; running: number };
 };
 
@@ -771,7 +771,7 @@ export class ResidentServer {
       const canonicalRound = this.#ledger.roundId(group);
       round = { group, generation, canonicalRound, controller: new AbortController(),
         work: { id: randomUUID(), controller: new AbortController() },
-        policyWork: new BendWorkTracker(this.#ledger, group, canonicalRound), discarded: { queued: 0, running: 0 } };
+        policyWork: () => workView(this.#ledger.canonicalProjection(), this.#ledger.partitionId(group), canonicalRound), discarded: { queued: 0, running: 0 } };
       this.#rounds.set(group, round);
     }
     const partition = group;
@@ -810,7 +810,7 @@ export class ResidentServer {
       kind: "ingress" as const,
       canonicalRound,
       ...(round === undefined ? {} : { round, work: round.work,
-        workObservationId: round.policyWork.admit(canonicalObservationId) }),
+        workObservationId: round.policyWork().admit(canonicalObservationId) }),
       observation,
       canonicalObservationId,
       partition,
@@ -1089,7 +1089,7 @@ export class ResidentServer {
         continue;
       }
       const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
-        advice.round.policyWork.reviseFinding(advice.workUnitId,
+        advice.round.policyWork().reviseFinding(advice.workUnitId,
           validity.findings.length, logicalBytes(validity.findings));
       const workRoute = this.#candidateRoute({ kind: "postValidationCheck",
         workAccepted, expired: false, hasFitting: true });
@@ -1148,7 +1148,7 @@ export class ResidentServer {
           continue;
         }
         const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
-          advice.round.policyWork.reviseFinding(advice.workUnitId,
+          advice.round.policyWork().reviseFinding(advice.workUnitId,
             validity.findings.length, logicalBytes(validity.findings));
         const workRoute = this.#candidateRoute({ kind: "postValidationCheck",
           workAccepted, expired: false, hasFitting: true });
@@ -1439,7 +1439,7 @@ export class ResidentServer {
       const jobs = this.#dispatcher.snapshotWhere(({ key }) => key === partition);
       return jobs.queued + jobs.running;
     })();
-    const work = composed ? this.#rounds.get(partition)?.policyWork.unfinished() ?? 0 : dispatcherWork;
+    const work = composed ? this.#rounds.get(partition)?.policyWork().unfinished() ?? 0 : dispatcherWork;
     return Number(composed && this.#composedDelivery.hasPendingEdits(partition)) +
       work +
       this.#advice.filter((item) =>
@@ -1859,7 +1859,7 @@ export class ResidentServer {
         throw new Error("canonical advice retirement refused");
       }
       if (removed.round !== undefined && removed.workUnitId !== undefined) {
-        removed.round.policyWork.retire(removed.workUnitId);
+        removed.round.policyWork().retire(removed.workUnitId);
       }
       this.#composedDelivery.forget(id);
       for (const unit of this.#ticketUnits) {
@@ -2042,7 +2042,7 @@ export class ResidentServer {
     const unassignedClaims = new Set<string>();
     try {
       if (job.round !== undefined && job.workObservationId !== undefined &&
-          !job.round.policyWork.startSource(job.workObservationId)) {
+          !job.round.policyWork().startSource(job.workObservationId)) {
         this.#ledger.release(job.reservation);
         return;
       }
@@ -2266,9 +2266,9 @@ export class ResidentServer {
           if (ticketUnit !== undefined) unitRevision(ticketUnit, revision);
           const workUnitId = job.round === undefined || job.workObservationId === undefined ? undefined
             : item.kind === "cached"
-              ? job.round.policyWork.cachedFinding(job.workObservationId,
+              ? job.round.policyWork().cachedFinding(job.workObservationId,
                 item.cached.evaluation.findings.length, logicalBytes(item.cached.evaluation.findings), admitted.operation)
-              : job.round.policyWork.spawn(job.workObservationId, admitted.operation);
+              : job.round.policyWork().spawn(job.workObservationId, admitted.operation);
           if (job.round !== undefined && workUnitId === undefined) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
             if (item.kind === "owner") this.#releaseReuseClaim(item.evaluationKey);
@@ -2318,7 +2318,7 @@ export class ResidentServer {
               }, sequence);
             } finally {
               if (!unit.completed && job.round !== undefined && workUnitId !== undefined) {
-                job.round.policyWork.retire(workUnitId);
+                job.round.policyWork().retire(workUnitId);
                 this.#releaseUnit(unit);
               }
             }
@@ -2350,7 +2350,7 @@ export class ResidentServer {
         });
       }
       if (job.round !== undefined && job.workObservationId !== undefined &&
-          !job.round.policyWork.completeSource(job.workObservationId)) {
+          !job.round.policyWork().completeSource(job.workObservationId)) {
         throw new Error("Bend denied source completion");
       }
       if (!this.#ledger.observation(job.partition, job.canonicalObservationId, "completeObservation", job.canonicalRound)) {
@@ -2427,7 +2427,7 @@ export class ResidentServer {
     };
     try {
       if (job.round !== undefined && job.workUnitId !== undefined &&
-          !job.round.policyWork.startUnit(job.workUnitId)) {
+          !job.round.policyWork().startUnit(job.workUnitId)) {
         this.#releaseReuseClaim(job.evaluationKey);
         this.#releaseUnit(job);
         return;
@@ -2628,7 +2628,7 @@ export class ResidentServer {
       if (result?.status === "evaluated") {
         if (this.#jobActive(job) && this.#lifecycle === "active" &&
             job.round !== undefined && job.workUnitId !== undefined &&
-            !job.round.policyWork.outcome(job.workUnitId, result.findings.length === 0
+            !job.round.policyWork().outcome(job.workUnitId, result.findings.length === 0
               ? { $: "Clear" }
               : { $: "Finding", count: result.findings.length, bytes: logicalBytes(result.findings) })) {
           throw new Error("Bend denied review outcome");
@@ -2676,7 +2676,7 @@ export class ResidentServer {
         if (disposition !== "retainFinding") {
           if (disposition === "retireStaleFinding" &&
               job.round !== undefined && job.workUnitId !== undefined) {
-            job.round.policyWork.retire(job.workUnitId);
+            job.round.policyWork().retire(job.workUnitId);
           }
           if (job.ticketUnit !== undefined) {
             if (disposition === "settleClear") {
@@ -2833,7 +2833,7 @@ export class ResidentServer {
     sequence: number,
   ): Promise<void> | void {
     if (!this.#jobActive(job)) {
-      if (job.round !== undefined && job.workUnitId !== undefined) job.round.policyWork.retire(job.workUnitId);
+      if (job.round !== undefined && job.workUnitId !== undefined) job.round.policyWork().retire(job.workUnitId);
       this.#releaseUnit(job);
       return;
     }
@@ -2843,7 +2843,7 @@ export class ResidentServer {
         unitFinding(job.ticketUnit, job.revision, existing.id);
       }
       if (existing !== undefined) this.#settleJoined(job.evaluationKey, "finding", undefined, existing.id);
-      if (job.round !== undefined && job.workUnitId !== undefined) job.round.policyWork.retire(job.workUnitId);
+      if (job.round !== undefined && job.workUnitId !== undefined) job.round.policyWork().retire(job.workUnitId);
       this.#releaseUnit(job);
       return;
     }
@@ -3065,7 +3065,7 @@ export class ResidentServer {
         }
         const round = this.#rounds.get(group);
         const totalUnfinished = this.#collectionWorkCount(request.root, request.advicee, true);
-        const ownUnfinished = round?.policyWork.unfinished() ?? 0;
+        const ownUnfinished = round?.policyWork().unfinished() ?? 0;
         const extraUnfinished = Math.max(0, totalUnfinished - ownUnfinished);
         const gate = this.#composedDelivery.finishGate(group, request.finish.token,
           extraUnfinished, request.finish.deadlineReached);
