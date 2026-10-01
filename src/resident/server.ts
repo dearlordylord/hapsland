@@ -145,6 +145,7 @@ const ResidentControlledOptions = Schema.Struct({
   delayMs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
   failure: Schema.optionalKey(Schema.String),
   failureOnSourceIncludes: Schema.optionalKey(Schema.String),
+  findingOnSourceIncludes: Schema.optionalKey(Schema.String),
   capturePath: Schema.optionalKey(Schema.String),
   requestSummaryPath: Schema.optionalKey(Schema.String),
   outcomePath: Schema.optionalKey(Schema.String),

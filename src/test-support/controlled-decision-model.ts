@@ -6,6 +6,8 @@ import { appendFile } from "node:fs/promises";
 
 export type ControlledDecisionModelOptions = {
   readonly answers?: Readonly<Record<string, DecisionModel.ProviderAnswer>>;
+  /** Test-only r2 finding when the root declaration source contains this marker. */
+  readonly findingOnSourceIncludes?: string;
   readonly delayMs?: number;
   readonly failure?: string;
   /** Test-only failure for one prepared unit selected by its declaration source. */
@@ -67,11 +69,21 @@ export const controlledDecisionModelLayer = (
     DecisionModel.DecisionModel,
     DecisionModel.make({
       decide: (request) => {
+        const state = request.state as { artifact?: { source?: unknown } } | undefined;
+        const source = state?.artifact?.source;
+        const sourceFinding = options.findingOnSourceIncludes !== undefined &&
+          options.findingOnSourceIncludes.length > 0 &&
+          typeof source === "string" && source.includes(options.findingOnSourceIncludes);
         const failure = options.failure ?? (options.failureOnSourceIncludes !== undefined &&
           JSON.stringify(request).includes(options.failureOnSourceIncludes)
           ? "controlled unit failure" : undefined);
         const answers = options.syntheticR6BrandedRepair === undefined
-          ? Effect.succeed(options.answers ?? Object.fromEntries(
+          ? Effect.succeed(sourceFinding
+            ? Object.fromEntries(Object.keys(request.decisions).map((key) => [key, {
+                _tag: "Probability" as const,
+                probability: key === "r2_meaningless_combinations" ? 0.91 : 0,
+              }]))
+            : options.answers ?? Object.fromEntries(
             Object.keys(request.decisions).map((key) => [
               key,
               { _tag: "Probability" as const, probability: 0 },
@@ -112,6 +124,7 @@ export const controlledDecisionModelLayer = (
                 const edges = state?.evidence?.edges ?? [];
                 return appendFile(options.requestSummaryPath!, `${JSON.stringify({
                   rootKind: state?.artifact?.kind ?? "unknown",
+                  conditionalFindingSourceMatched: sourceFinding,
                   evidenceNodes: state?.evidence?.nodes?.length ?? 0,
                   expandedEdges: edges.filter((edge) => edge.kind === "expanded").length,
                   includedEdges: edges.filter((edge) => edge.kind === "included").length,

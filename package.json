@@ -57,7 +57,6 @@
     "conformance:host": "node scripts/run-direct-event-host-conformance.mjs",
     "conformance:package": "node scripts/run-clean-package-conformance.mjs",
     "conformance:setup-package": "node scripts/run-setup-package-conformance.mjs",
-    "conformance:first-review-package": "node scripts/run-setup-package-conformance.mjs",
     "conformance:first-review-live": "node scripts/run-first-review-live-milestone.mjs",
     "conformance:installed-release": "node scripts/verify-installed-release.mjs",
     "conformance:live": "node scripts/run-direct-event-live-milestone.mjs"

@@ -117,17 +117,10 @@ own revision and artifact; none substitutes for validation after a new change.
 
 The [native runner](../scripts/run-native-crossfile-current.mjs) contains
 TypeScript, Rust, and Bend cross-file payment-state fixtures and compiler probes.
-From a checkout with dependencies, compiler tools, agent authentication, and a
-Jev credential available, the explicitly paid matrix is:
-
-```sh
-for host in codex claude; do
-  for language in typescript rust bend; do
-    node scripts/run-native-crossfile-current.mjs \
-      --host="$host" --language="$language" --live --execute-paid || exit 1
-  done
-done
-```
+The [testing matrix](testing-matrix.md) owns the commands for its controlled,
+paid, and negative scenarios across both agent runtimes and all three languages.
+Paid runs require a checkout with dependencies, compiler tools, agent
+authentication, and a Jev credential available.
 
 Each invocation writes its declaration before execution: at most 6 Jev requests,
 4 minutes for the host, and no automatic host retries. Six invocations have a
@@ -148,11 +141,18 @@ successful final runs on implementation commit
 `a241eb5f554c112609047df97079bc404580d339`: Codex CLI 0.155.1 and Claude Code
 2.1.218 each exercised all three languages and reached a clear follow-up.
 Final runs used 12 Jev requests; retained earlier attempts used another 8.
+Six subsequent controlled offline host runs also completed the adoption path
+without Jev requests; an earlier Claude Bend attempt that did not repair
+remains recorded separately.
 These are prompted synthetic integration demonstrations on Linux arm64, using
 source-checkout entry points and explicitly configured lifecycle hooks. They do
 not establish normal Codex trust onboarding, installed-package behavior, newer
 runtime compatibility, general review accuracy, or unprompted agent quality.
 Bend compiler checks do not establish formal proofs.
+The [negative matrix](../evidence/native-negative/index.json) separately covers
+reviewer failure, failed or slow edit hooks, and an older finding after a newer
+edit, all with real agents and a controlled offline reviewer. It makes no Jev
+requests and does not extend the paid adoption claim.
 
 Declarations and source-free results stay under `evidence/native-languages/`.
 Discard source repositories, copied credentials, raw host streams, and provider

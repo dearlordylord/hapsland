@@ -41,3 +41,27 @@ describe("source-sensitive synthetic r6 fixture", () => {
     await expect(Effect.runPromise(decide(before, "finding", "other.ts"))).rejects.toThrow();
   });
 });
+
+describe("source-sensitive native stale-result control", () => {
+  it.effect("returns a finding for the old declaration and clear for the new declaration", () =>
+    Effect.gen(function* () {
+      const model = yield* DecisionModel.DecisionModel;
+      const paymentDefinition = Decision.make({
+        input: Schema.Json,
+        decisions: { r2_meaningless_combinations: Decision.probability({
+          instructions: "Can this state admit impossible combinations?",
+          criteria: { true: "yes", false: "no" },
+        }) },
+      });
+      const initial = yield* model.decide(paymentDefinition, { input: {
+        artifact: { source: "export interface PaymentState { status: string }" },
+      } });
+      const repaired = yield* model.decide(paymentDefinition, { input: {
+        artifact: { source: "export type PaymentState = { status: 'pending' }" },
+      } });
+      expect(initial.answers.r2_meaningless_combinations.probability).toBe(0.91);
+      expect(repaired.answers.r2_meaningless_combinations.probability).toBe(0);
+    }).pipe(Effect.provide(controlledDecisionModelLayer({
+      findingOnSourceIncludes: "interface PaymentState",
+    }))));
+});

@@ -20,15 +20,26 @@ const project = resolve(import.meta.dirname, "..");
 const host = process.argv.find((arg) => arg.startsWith("--host="))?.slice(7);
 const language = process.argv.find(arg => arg.startsWith('--language='))?.slice(11) ?? 'typescript';
 if (!['typescript','rust','bend'].includes(language)) throw new Error('Choose a supported source language');
+const scenario = process.argv.find(arg => arg.startsWith('--scenario='))?.slice(11) ?? 'adoption';
+if (!['adoption','reviewer-unavailable','hook-crash','hook-timeout','stale-result'].includes(scenario))
+  throw new Error('Choose adoption, reviewer-unavailable, hook-crash, hook-timeout, or stale-result');
+const suppliedStaleDelay = process.argv.find(arg => arg.startsWith('--controlled-delay-ms='))?.slice(22);
+if (suppliedStaleDelay !== undefined && scenario !== 'stale-result') throw new Error('Controlled delay override requires stale-result');
+const staleDelayMs = suppliedStaleDelay === undefined ? 9000 : Number(suppliedStaleDelay);
+if (!Number.isInteger(staleDelayMs) || staleDelayMs < 1000 || staleDelayMs > 14000)
+  throw new Error('Controlled stale delay must be 1000–14000 ms');
 const fixtures = {
  typescript: {entry:'payment.ts',support:'support.ts',supportSource:'export type PaymentStatus = "pending" | "succeeded" | "failed";\nexport interface Receipt { value: string }\n',initial:"import type { PaymentStatus, Receipt } from './support';\nexport interface PaymentState { status: PaymentStatus; receipt: Receipt | null; failure_reason: string | null }\n",good:"import type { PaymentStatus, Receipt } from './support';\nexport type PaymentState = { status: 'pending' } | { status: 'succeeded'; receipt: Receipt } | { status: 'failed'; failure_reason: string };\n"},
  rust: {entry:'src/lib.rs',support:'src/support.rs',supportSource:'pub enum PaymentStatus { Pending, Succeeded, Failed }\npub struct Receipt { pub value: String }\n',initial:'mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub struct PaymentState { pub status: PaymentStatus, pub receipt: Option<Receipt>, pub failure_reason: Option<String> }\n',good:'mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub enum PaymentState { Pending, Succeeded { receipt: Receipt }, Failed { failure_reason: String } }\n'},
  bend: {entry:'payment.bend',support:'support.bend',supportSource:'import Base\ntype PaymentStatus is Data:\n  Pending{}\n  Succeeded{}\n  Failed{}\ntype Receipt is Data:\n  Receipt{value: String}\ntype OptionalReceipt is Data:\n  Absent{}\n  Present{value: Receipt}\ntype OptionalString is Data:\n  AbsentText{}\n  PresentText{value: String}\n',initial:'import Base\nimport ./support.bend as M\ntype PaymentState is Data:\n  PaymentState{status: M.PaymentStatus, receipt: M.OptionalReceipt, failure_reason: M.OptionalString}\n',good:'import Base\nimport ./support.bend as M\ntype PaymentState is Data:\n  Pending{}\n  Succeeded{receipt: M.Receipt}\n  Failed{failure_reason: String}\n'},
 };
 const fixture = fixtures[language];
+const initialSourceMarker = language === 'typescript' ? 'interface PaymentState'
+  : language === 'rust' ? 'struct PaymentState' : 'PaymentState{status:';
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline";
 if (host !== "codex" && host !== "claude") throw new Error("Choose --host=codex or --host=claude");
 if (mode === "live-jev" && !process.argv.includes("--execute-paid")) throw new Error("Live Jev requires --execute-paid");
+if (scenario !== 'adoption' && mode === 'live-jev') throw new Error('Fault scenarios use the controlled offline reviewer');
 const codexBinary = process.env.HAPSLAND_TEST_CODEX ?? "/tmp/hapsland-codex-01551/node_modules/.bin/codex";
 const claudeBinary = "/home/node/.local/share/claude/versions/2.1.218";
 const binary = host === "codex" ? codexBinary : claudeBinary;
@@ -39,14 +50,19 @@ if (version !== (host === "codex" ? "codex-cli 0.155.1" : "2.1.218 (Claude Code)
 const temp = mkdtempSync(join(tmpdir(), "hapsland-crossfile-native-"));
 const repo = join(temp, "repo"), runtime = join(temp, "resident"), activity = join(temp, "activity");
 const log = join(temp, "hooks.jsonl"), summaries = join(temp, "requests.jsonl"), calls = join(temp, "calls.jsonl");
+const outcomes = join(temp, "outcomes.jsonl");
 const nativeEvents = join(temp, "native-edits.jsonl");
 const rootFile = join(repo, fixture.entry), supportFile = join(repo, fixture.support);
 const started = Date.now();
-const runId = `${host}-${language}-${mode}-${started}`;
-const evidenceRoot = join(project, 'evidence', 'native-languages');
-const declaration = {maximumProviderRequests:6,automaticHostRetries:0,hostCeilingMs:240000,syntheticRepositoryOnly:true,maximumSourceEditCalls:2,sourceProfile:'bounded local cross-file types',runtimeVersion:version};
+const runId = `${host}-${language}-${scenario}-${mode}-${started}`;
+const evidenceRoot = join(project, 'evidence', scenario === 'adoption' ? 'native-languages' : 'native-negative');
+const declaration = {scenario,maximumProviderRequests:mode === 'live-jev' ? 6 : 0,automaticHostRetries:0,
+  hostCeilingMs:240000,syntheticRepositoryOnly:true,maximumSourceEditCalls:scenario === 'stale-result' || scenario === 'adoption' ? 2 : 1,
+  sourceProfile:'bounded local cross-file types',runtimeVersion:version,
+  ...(scenario === 'hook-timeout' ? {nativeEditHookDeadlineMs:2000,injectedHookSleepMs:10000} : {}),
+  ...(scenario === 'stale-result' ? {controlledReviewDelayMs:staleDelayMs,oldResult:'finding',newResult:'clear'} : {})};
 mkdirSync(evidenceRoot,{recursive:true});
-writeFileSync(join(evidenceRoot,`${runId}-declaration.json`),JSON.stringify({schemaVersion:1,declaredAt:new Date().toISOString(),host,language,mode,declaration},null,2)+'\n',{flag:'wx'});
+writeFileSync(join(evidenceRoot,`${runId}-declaration.json`),JSON.stringify({schemaVersion:1,declaredAt:new Date().toISOString(),host,language,mode,scenario,declaration},null,2)+'\n',{flag:'wx'});
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const lines = (path) => readFileSync(path, "utf8").trim().split("\n").filter(Boolean).flatMap((line) => {
   try { return [JSON.parse(line)]; } catch { return []; }
@@ -66,7 +82,7 @@ const answers = Object.fromEntries([
   "r1_inferred_case", "r2_meaningless_combinations", "r3_split_correlations",
   "r4_duplicate_encoding", "r5_absence_confusion", "r6_bare_domain_value",
   "r7_name_wider_than_type", "r8_name_claims_resource", "r9_body_reaches_undeclared",
-].map((id) => [id, { _tag: "Probability", probability: id === "r6_bare_domain_value" ? 0.91 : 0 }]));
+].map((id) => [id, { _tag: "Probability", probability: 0 }]));
 const hookScript = join(temp, "hook.mjs");
 const observer = join(temp, "observe-fetch.mjs");
 let owner;
@@ -92,6 +108,20 @@ import { createHash } from 'node:crypto';
 const kind=process.argv[2], input=readFileSync(0,'utf8');
 let native; try { native=JSON.parse(input) } catch {}
 const at=Date.now();
+if((kind==='edit'||kind==='background') && ${JSON.stringify(scenario === 'hook-crash' || scenario === 'hook-timeout')}) {
+  const faultSource=${JSON.stringify(rootFile)};
+  const faultValue=existsSync(faultSource)?readFileSync(faultSource,'utf8'):'';
+  appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind,at,doneAt:null,
+    event:native?.hook_event_name??null,tool:native?.tool_name??null,
+    toolUseHash:native?.tool_use_id?createHash('sha256').update(native.tool_use_id).digest('hex'):null,
+    injectedFault:${JSON.stringify(scenario)},initial:faultValue===${JSON.stringify(initial)},
+    sourceBytes:Buffer.byteLength(faultValue)})+'\\n',{mode:0o600});
+  if(${JSON.stringify(scenario === 'hook-crash')})process.exit(42);
+  await new Promise(resolve=>setTimeout(resolve,10000));
+  appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind:'fault-completed',at:Date.now(),doneAt:Date.now(),
+    targetKind:kind,injectedFault:${JSON.stringify(scenario)}})+'\\n',{mode:0o600});
+  process.exit(42);
+}
 const flags=kind==='edit' ? ['--${host === "codex" ? "codex" : "claude"}-hook','--controlled-writer','--composed-edit-hook']
   : ['--composed-'+kind+'-hook','--composed-host=${host === "codex" ? "codex-cli" : "claude-code"}'];
 ${mode === "controlled-offline" ? "flags.push('--controlled-reviewer');" : ""}
@@ -105,6 +135,7 @@ const value=existsSync(source)?readFileSync(source,'utf8'):'';
 if(kind==='edit' && native)appendFileSync(process.env.HAPSLAND_NATIVE_EDITS,JSON.stringify(native)+'\\n',{mode:0o600});
 appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind,at,doneAt:Date.now(),
   event:native?.hook_event_name??null,tool:native?.tool_name??null,exitCode:result.status,
+  toolUseHash:native?.tool_use_id?createHash('sha256').update(native.tool_use_id).digest('hex'):null,
   decision:output?.decision??null, finding:ruleIds.length>0, ruleIds,
   sourceHash:value?createHash('sha256').update(value).digest('hex'):null,
   initial:value===${JSON.stringify(initial)}, sourceBytes:Buffer.byteLength(value)})+'\\n',{mode:0o600});
@@ -119,7 +150,10 @@ globalThis.fetch=async (...args)=>{
   if(!url.includes('/v1/systemone'))return original(...args);
   const path=process.env.HAPSLAND_NATIVE_CALLS;
   let count=0;try{count=readFileSync(path,'utf8').trim().split('\\n').filter(Boolean).length}catch{}
-  if(count>=6)throw new Error('native milestone provider ceiling reached');
+  if(count>=${mode === 'live-jev' ? 6 : 0}){
+    appendFileSync(path,JSON.stringify({at:Date.now(),kind:'blocked-attempt'})+'\\n',{mode:0o600});
+    throw new Error('native milestone provider ceiling reached');
+  }
   appendFileSync(path,JSON.stringify({at:Date.now(),kind:'request'})+'\\n',{mode:0o600});
   const body=String(args[1]?.body??args[0]?.body??'');
   appendFileSync(process.env.HAPSLAND_NATIVE_SUMMARIES,JSON.stringify({provider:true,
@@ -134,8 +168,8 @@ globalThis.fetch=async (...args)=>{
   const settings = { hooks: {
     PreToolUse: [{ matcher: editTools, hooks: [{ type: "command", command: command("before-edit"), timeout: 5 }] }],
     PostToolUse: [{ matcher: editTools, hooks: [
-      { type: "command", command: command("edit"), timeout: 10 },
-      { type: "command", command: command("background"), timeout: 25, async: true },
+      { type: "command", command: command("edit"), timeout: scenario === 'hook-timeout' ? 2 : 10 },
+      { type: "command", command: command("background"), timeout: scenario === 'hook-timeout' ? 2 : 25, async: true },
     ] }],
     Stop: [{ hooks: [{ type: "command", command: command("stop"), timeout: 5 }] }],
     UserPromptSubmit: [{ hooks: [{ type: "command", command: command("prompt"), timeout: 4 }] }],
@@ -161,7 +195,12 @@ globalThis.fetch=async (...args)=>{
   };
   if (mode === "controlled-offline") {
     delete env.TYPESAFE_API_KEY;
-    env.REVIEW_CONTROL_JSON = JSON.stringify({ answers, requestSummaryPath: summaries });
+    env.REVIEW_CONTROL_JSON = JSON.stringify({ answers, requestSummaryPath: summaries, outcomePath: outcomes,
+      ...(scenario === 'reviewer-unavailable' ? { failure: 'controlled reviewer unavailable' } : {}),
+      ...(scenario === 'stale-result' ? { delayMs: staleDelayMs,
+        findingOnSourceIncludes: initialSourceMarker } : {}),
+      ...(scenario === 'adoption' ? { findingOnSourceIncludes: initialSourceMarker } : {}),
+    });
   } else {
     delete env.REVIEW_CONTROL_JSON;
     if (!env.TYPESAFE_API_KEY) {
@@ -172,7 +211,11 @@ globalThis.fetch=async (...args)=>{
     if (!env.TYPESAFE_API_KEY) throw new Error("Jev credential unavailable");
   }
   delete env.OPENAI_API_KEY;
-  const prompt = `Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this initial draft:\n${initial}\nAfter the edit run npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, repair PaymentState to constrain meaningless combinations, using this final design:\n${fixture.good}\nThen run npm test; if review is pending run npm test again. Keep the import/module lines exactly unchanged, including unused imported names; modify only the PaymentState declaration. For the repair use ${host === "codex" ? "apply_patch with relative paths" : "Edit"}. Leave the supporting file unchanged. Use at most two source-edit tool calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Name the delivered rule ID. Be truthful.`;
+  const prompt = scenario === 'adoption'
+    ? `Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this initial draft:\n${initial}\nAfter the edit run npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, repair PaymentState to constrain meaningless combinations, using this final design:\n${fixture.good}\nThen run npm test; if review is pending run npm test again. Keep the import/module lines exactly unchanged, including unused imported names; modify only the PaymentState declaration. For the repair use ${host === "codex" ? "apply_patch with relative paths" : "Edit"}. Leave the supporting file unchanged. Use at most two source-edit tool calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Name the delivered rule ID. Be truthful.`
+    : scenario === 'stale-result'
+      ? `This is a controlled integration check. Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this first draft:\n${initial}\nImmediately make a second source edit, replacing only the PaymentState declaration with this exact final design and keeping imports unchanged:\n${fixture.good}\nDo not wait for or act on Hapsland advice between the two edits. After the second edit, run the shell command sleep 16, then npm test, and finish. The second edit is a planned user edit, not an advice-driven repair. Do not make further source edits. Do not inspect integration settings, credentials or environment variables. End with HAPSLAND_ADVICE_NOT_APPLIED.`
+      : `This is a controlled integration check. Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this draft:\n${initial}\nThen run npm test. ${scenario === 'reviewer-unavailable' ? 'Run the shell command sleep 8 so the unavailable review can finish.' : ''} Do not change the source again. Do not inspect integration settings, credentials or environment variables. If no actionable Hapsland advice reaches you, end with HAPSLAND_ADVICE_NOT_APPLIED. Report only what you actually received.`;
   const args = host === "codex"
     ? ["exec", "--ephemeral", "--json", "--dangerously-bypass-hook-trust", "--dangerously-bypass-approvals-and-sandbox", "--ignore-rules", "-C", repo, prompt]
     : ["-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
@@ -181,6 +224,8 @@ globalThis.fetch=async (...args)=>{
   const result = await run(binary, args, env, repo);
   const native = safeLines(log);
   const requestShapes = safeLines(summaries);
+  const outcomeSummaries = safeLines(outcomes).map((item) => ({ outcome: item.outcome,
+    toolUseHash: typeof item.toolUseId === 'string' ? createHash('sha256').update(item.toolUseId).digest('hex') : null }));
   const providerCalls = safeLines(calls).length;
   const messages = result.stdout.split("\n").filter(Boolean).flatMap((line) => {
     try {
@@ -277,31 +322,74 @@ globalThis.fetch=async (...args)=>{
   };
   visit(activity);
   stages.sort((a, b) => a.atMs - b.atMs);
+  const nativeEdits = native.filter((item) => item.kind === 'edit');
+  const latestEdit = nativeEdits.at(-1);
+  const faultEvents = native.filter((item) => item.injectedFault === scenario && item.kind !== 'fault-completed');
+  const noAdviceDelivered = !native.some((item) => item.finding || (item.ruleIds?.length ?? 0) > 0);
+  const agentDidNotApplyAdvice = text.includes('HAPSLAND_ADVICE_NOT_APPLIED') && !text.includes('HAPSLAND_ADVICE_APPLIED');
+  const positiveChecks = { initialDraftObserved: native.some((item) => item.initial),
+    crossFileExpanded: requestShapes.some((item) => item.expandedEdges > 0 || item.expandedEvidence && item.supportDeclarationPresent),
+    findingDelivered: !!finding, editAfterFinding: !!repair,
+    agentAcknowledgesAdvice: text.includes('HAPSLAND_ADVICE_APPLIED') && !text.includes('HAPSLAND_ADVICE_NOT_APPLIED'),
+    agentNamesRule: !!finding && finding.ruleIds.some((id) => text.includes(id)),
+    sourceChanged: !!source && source !== initial,
+    finalDesignConstrained: language === 'typescript' ? source.includes("status: 'succeeded'") && !source.includes('receipt: Receipt | null')
+      : language === 'rust' ? source.includes('pub enum PaymentState')
+      : source.includes('Succeeded{receipt: M.Receipt}') && !source.includes('PaymentState{status:'),
+    sourceCompiles: check.status === 0, missingReceiptRejected: invalid.status === 0,
+    followupObserved: !!repair && stages.some((item) => item.atMs > repair.at - started && (item.stage === 'clear' || item.stage === 'findings')),
+  };
+  const checks = scenario === 'adoption' ? positiveChecks
+    : scenario === 'reviewer-unavailable' ? {
+        initialDraftObserved: nativeEdits.some((item) => item.initial),
+        reviewAttempted: requestShapes.length > 0,
+        unavailableRecorded: stages.some((item) => item.stage === 'incomplete' || item.stage === 'unavailable'),
+        noAdviceDelivered, agentDidNotApplyAdvice,
+        sourceLeftAtDraft: source === initial,
+      }
+    : scenario === 'stale-result' ? {
+        initialDraftObserved: nativeEdits.some((item) => item.initial),
+        laterEditObserved: nativeEdits.length >= 2 && latestEdit?.initial === false,
+        separateReviewRequests: requestShapes.length >= 2 &&
+          requestShapes[0]?.conditionalFindingSourceMatched === true &&
+          requestShapes.at(-1)?.conditionalFindingSourceMatched === false,
+        olderFindingCompleted: !!nativeEdits[0]?.toolUseHash && outcomeSummaries.some((item) =>
+          item.toolUseHash === nativeEdits[0].toolUseHash && item.outcome === 'completed-findings') &&
+          stages.some((item) => item.stage === 'findings' && item.atMs > latestEdit.at - started),
+        newerClearCompleted: !!latestEdit?.toolUseHash && outcomeSummaries.some((item) =>
+          item.toolUseHash === latestEdit.toolUseHash && item.outcome === 'completed-clear'),
+        staleFindingNotDelivered: noAdviceDelivered, agentDidNotApplyAdvice,
+        finalSourceCompiles: check.status === 0,
+      }
+    : {
+        initialDraftObserved: nativeEdits.some((item) => item.initial),
+        injectedFaultObserved: faultEvents.some((item) => item.kind === 'edit'),
+        noReviewRequest: requestShapes.length === 0,
+        noAdviceDelivered, agentDidNotApplyAdvice,
+        ...(scenario === 'hook-timeout' ? { editHookDidNotCompleteNaturally: !native.some((item) =>
+          item.kind === 'fault-completed' && item.targetKind === 'edit') } : {}),
+      };
+  const resultChecks = scenario === 'adoption' ? checks : { ...checks, noProviderRequests: providerCalls === 0 };
   const record = { schemaVersion: 1, recordedAt: new Date().toISOString(), commit: spawnSync("git", ["-C", project, "rev-parse", "HEAD"], { encoding: "utf8" }).stdout.trim(),
     sourceWorktreeDirty: spawnSync("git", ["-C", project, "diff", "--quiet", "--", "src", "scripts"], { encoding: "utf8" }).status !== 0,
-    language, runnerHash, executionProfile: {runtime:"source-checkout",installedPackageValidated:false,normalTrustValidated:false,syntheticRepositoryOnly:true}, runtime: host === "codex" ? "Codex CLI" : "Claude Code", version, mode,
+    language, scenario, runnerHash, executionProfile: {runtime:"source-checkout",installedPackageValidated:false,normalTrustValidated:false,syntheticRepositoryOnly:true}, runtime: host === "codex" ? "Codex CLI" : "Claude Code", version, mode,
     declaration,
     hostDiagnostics, hostExitCode: result.code, hostSignal: result.signal, elapsedMs: Date.now() - started, providerCalls,
-    requestShapes, postEditPreparation, nativeUpdatePreparation, nativeResponseShape,
+    requestShapes, outcomeSummaries, postEditPreparation, nativeUpdatePreparation, nativeResponseShape,
     activityStages: stages, hookEvents: native.map((item) => ({
-      kind: item.kind, atMs: item.at - started, durationMs: item.doneAt - item.at, event: item.event,
+      kind: item.kind, atMs: item.at - started, durationMs: item.doneAt === null ? null : item.doneAt - item.at, event: item.event,
       tool: item.tool, exitCode: item.exitCode, decision: item.decision, finding: item.finding,
       ruleIds: item.ruleIds, initial: item.initial, sourceBytes: item.sourceBytes,
+      toolUseHash: item.toolUseHash ?? null, injectedFault: item.injectedFault ?? null,
+      targetKind: item.targetKind ?? null,
     })),
-    checks: { initialDraftObserved: native.some((item) => item.initial),
-      crossFileExpanded: requestShapes.some((item) => item.expandedEdges > 0 || item.expandedEvidence && item.supportDeclarationPresent),
-      findingDelivered: !!finding, editAfterFinding: !!repair, agentAcknowledgesAdvice: text.includes("HAPSLAND_ADVICE_APPLIED") && !text.includes("HAPSLAND_ADVICE_NOT_APPLIED"),
-      agentNamesRule: !!finding && finding.ruleIds.some((id) => text.includes(id)),
-      sourceChanged: !!source && source !== initial, finalDesignConstrained: language === "typescript" ? source.includes("status: 'succeeded'") && !source.includes("receipt: Receipt | null") : language === "rust" ? source.includes("pub enum PaymentState") : source.includes("Succeeded{receipt: M.Receipt}") && !source.includes("PaymentState{status:"), sourceCompiles: check.status === 0,
-      missingReceiptRejected: invalid.status === 0,
-      followupObserved: !!repair && stages.some((item) => item.atMs > repair.at - started && (item.stage === "clear" || item.stage === "findings")),
-    },
+    checks: resultChecks,
     rawHostStreamRetained: false, sourceRetained: false, providerBodyRetained: false, credentialsRetained: false,
     hostBytesDiscarded: Buffer.byteLength(result.stdout) + result.stderrBytes };
   record.verdict = result.code === 0 && Object.entries(record.checks)
     .filter(([name]) => name !== "agentNamesRule").every(([, value]) => value) ? "demonstrated" : "incomplete";
   const output = join(evidenceRoot, `${runId}.json`);
-  mkdirSync(join(project, "evidence", "native-languages"), { recursive: true });
+  mkdirSync(evidenceRoot, { recursive: true });
   writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
   console.log(JSON.stringify({ evidence: output, verdict: record.verdict, checks: record.checks, providerCalls }));
   if (record.verdict !== "demonstrated") process.exitCode = 1;

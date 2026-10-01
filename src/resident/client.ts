@@ -243,6 +243,9 @@ export const makeResidentDispatchContext = async (
     ...(controlledOptions.failureOnSourceIncludes === undefined ? {} : {
       failureOnSourceIncludes: controlledOptions.failureOnSourceIncludes,
     }),
+    ...(controlledOptions.findingOnSourceIncludes === undefined ? {} : {
+      findingOnSourceIncludes: controlledOptions.findingOnSourceIncludes,
+    }),
     ...(controlledOptions.capturePath === undefined ? {} : { capturePath: controlledOptions.capturePath }),
     ...(controlledOptions.requestSummaryPath === undefined ? {} : { requestSummaryPath: controlledOptions.requestSummaryPath }),
     ...(controlledOptions.outcomePath === undefined ? {} : { outcomePath: controlledOptions.outcomePath }),

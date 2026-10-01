@@ -16,6 +16,7 @@ export type ResidentControlledOptions = {
   readonly delayMs?: number;
   readonly failure?: string;
   readonly failureOnSourceIncludes?: string;
+  readonly findingOnSourceIncludes?: string;
   readonly capturePath?: string;
   readonly requestSummaryPath?: string;
   readonly outcomePath?: string;
@@ -182,6 +183,7 @@ const controlled = (value: unknown): value is ResidentControlledOptions => {
   if (item.delayMs !== undefined && (typeof item.delayMs !== "number" || !Number.isFinite(item.delayMs) || item.delayMs < 0)) return false;
   if (item.failure !== undefined && typeof item.failure !== "string") return false;
   if (item.failureOnSourceIncludes !== undefined && typeof item.failureOnSourceIncludes !== "string") return false;
+  if (item.findingOnSourceIncludes !== undefined && typeof item.findingOnSourceIncludes !== "string") return false;
   if (item.capturePath !== undefined && typeof item.capturePath !== "string") return false;
   if (item.requestSummaryPath !== undefined && typeof item.requestSummaryPath !== "string") return false;
   if (item.outcomePath !== undefined && typeof item.outcomePath !== "string") return false;
