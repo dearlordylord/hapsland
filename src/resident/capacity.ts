@@ -1,3 +1,4 @@
+import { initialNoticeRecords, draftNoticeRecords, noticeRecordOperations, type NoticeRecordsState, type NoticeRecordOperations, type NoticeCooldownSnapshot } from "./notice-records.ts";
 import { initialRoundRecords, draftRoundRecords, roundRecordOperations, type RoundRecordsState, type RoundRecords, type RoundWork, type WorkCohort } from "./round-records.ts";
 import { workView } from "./bend-work.ts";
 import { initialJoinedReviews, draftJoinedReviews, joinedReviewOperations, type JoinedReviewsState, type JoinedReviews } from "./joined-reviews.ts";
@@ -119,6 +120,7 @@ type ResidentRecords<Pending, Key, Value> = {
   readonly tickets: TicketRecordsState;
   readonly joined: JoinedReviewsState;
   readonly rounds: RoundRecordsState;
+  readonly notices: NoticeRecordsState;
 };
 type CapacityState = {
   readonly residentLifetime: string;
@@ -158,7 +160,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
     records: { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
-      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords() },
+      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords() },
   });
   const read = <A>(operation: (current: CapacityState) => A): A =>
     Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
@@ -269,7 +271,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     clear: () => commitAll((draft, records) => {
       const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
-      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(),
+      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     }),
     revision: (() => {
@@ -366,6 +368,34 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         backgroundReofferable: (...args: Parameters<ComposedDelivery["backgroundReofferable"]>) => deliveryCommit((operations) => operations.backgroundReofferable(...args)),
         hasToken: (...args: Parameters<ComposedDelivery["hasToken"]>) => view().hasToken(...args),
         expire: (...args: Parameters<ComposedDelivery["expire"]>) => deliveryCommit((operations) => operations.expire(...args)),
+      };
+    },
+    notices: (maximumKeys: number, cooldownMs: number, lifetimeMs: number, measure: (value: unknown) => number) => {
+      const noticeCommit = <A>(operation: (operations: NoticeRecordOperations) => A, identity = ""): A => commitAll((draft, records) => {
+        const notices = draftNoticeRecords(records.notices);
+        const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+        const operations = noticeRecordOperations(notices, owner, maximumKeys, cooldownMs, lifetimeMs, measure, identity);
+        const value = operation(operations);
+        operations.assert();
+        for (const record of notices.entries.values()) {
+          if (record.pending !== undefined) {
+            Object.freeze(record.pending.value);
+            if (record.pending.delivery !== undefined) Object.freeze(record.pending.delivery);
+            Object.freeze(record.pending);
+          }
+          Object.freeze(record);
+        }
+        return [value, { ...records, notices }];
+      });
+      return {
+        entries: (): ReadonlyArray<readonly [string, NoticeCooldownSnapshot]> => [...Ref.getUnsafe(state).records.notices.entries],
+        record: (...args: Parameters<NoticeRecordOperations["record"]>) => noticeCommit((operations) => operations.record(...args), randomUUID()),
+        prune: (...args: Parameters<NoticeRecordOperations["prune"]>) => noticeCommit((operations) => operations.prune(...args)),
+        drop: (...args: Parameters<NoticeRecordOperations["drop"]>) => noticeCommit((operations) => operations.drop(...args)),
+        remove: (...args: Parameters<NoticeRecordOperations["remove"]>) => noticeCommit((operations) => operations.remove(...args)),
+        release: (...args: Parameters<NoticeRecordOperations["release"]>) => noticeCommit((operations) => operations.release(...args)),
+        acknowledge: (...args: Parameters<NoticeRecordOperations["acknowledge"]>) => noticeCommit((operations) => operations.acknowledge(...args)),
+        renew: (...args: Parameters<NoticeRecordOperations["renew"]>) => noticeCommit((operations) => operations.renew(...args)),
       };
     },
     joinedReviews: (logicalBytes: (value: unknown) => number): JoinedReviews<Pending> => {

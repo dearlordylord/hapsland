@@ -78,7 +78,11 @@
     "Shutdown retains round activity and cancellation handles until native dispatch work settles and whole-owner clearing succeeds",
     "User-requested stable cohort upgrade: exact effect, ai-typesafe and vitest 4.0.0 pins with regenerated Bun lock and isolated worktree dependencies",
     "Stable AI/HTTP module exports replace unstable paths; production compiled Noul decisions retain required true/false criteria despite the upstream optional-criteria type",
-    "Offline provider HTTP evidence regenerated through its executable fixture: all 35 observations unchanged apart from stable package labels"
+    "Offline provider HTTP evidence regenerated through its executable fixture: all 35 observations unchanged apart from stable package labels",
+    "Operational notice cooldowns, pending payloads, sequencing and key identities now share the canonical/native Ref; deleted the server notice Map and counters",
+    "Notice creation, suppression, merge, expiry, drop and native reservation ownership stage in one commit; measurement failure rolls back canonical state and native identity allocation",
+    "Notice delivery release, acknowledgement and renewal use shared-owner operations; native snapshots and nested metadata are frozen and exposed as readonly types",
+    "Notice commits validate canonical membership, partition/group identities, reservation binding, suppression and pending/leased metadata before publication"
   ],
   "verification": [
     {
@@ -918,10 +922,39 @@
       "exitCode": 0,
       "tests": 145,
       "files": 9
+    },
+    {
+      "stage": "Shared operational notice ownership",
+      "command": "Initial four-file resident suite",
+      "exitCode": 1,
+      "testsPassed": 113,
+      "testsExpected": 114,
+      "failure": "New suppression assertion incorrectly counted the current occurrence; canonical suppression counts only previously suppressed occurrences",
+      "resolution": "Corrected the assertion to the existing Bend contract; production and existing notice tests passed"
+    },
+    {
+      "stage": "Shared operational notice ownership",
+      "command": "Focused notice ownership tests",
+      "exitCode": 0,
+      "tests": 4,
+      "files": 1
+    },
+    {
+      "stage": "Shared operational notice ownership",
+      "command": "tsc, build, 17 boundary checks and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared operational notice ownership",
+      "command": "Final combined suite: notice-records operational-notices server capacity subprocess security-sinks claude-delivery terminal-collection",
+      "exitCode": 0,
+      "tests": 155,
+      "files": 8,
+      "note": "Additional capacity-refusal ownership case passed separately; readonly snapshot type annotations subsequently typechecked"
     }
   ],
   "next": [
-    "Consolidate remaining server advice/notice records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
+    "Consolidate remaining server advice records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -929,7 +962,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Remaining advice/notice records, statistics and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
+    "Remaining advice records, statistics and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim",

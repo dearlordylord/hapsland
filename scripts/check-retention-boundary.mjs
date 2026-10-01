@@ -3,18 +3,19 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const server = readFileSync(resolve(root, "src/resident/server.ts"), "utf8");
+const notices = readFileSync(resolve(root, "src/resident/notice-records.ts"), "utf8");
 const reuse = readFileSync(resolve(root, "src/resident/evaluation-reuse.ts"), "utf8");
 const collection = readFileSync(resolve(root, "src/resident/composed-delivery.ts"), "utf8");
 const tickets = readFileSync(resolve(root, "src/resident/ticket-records.ts"), "utf8");
 const capacity = readFileSync(resolve(root, "src/resident/capacity.ts"), "utf8");
 for (const name of ["bendCleanupGate", "bendCleanupCommit", "bendTicketRetention", "bendDeliveryReleaseUnacknowledged", "bendDiscardScope", "bendCollectionExpired", "bendNoticePrune"]) {
-  if ([server, reuse, collection, tickets].some((source) => source.includes(name))) {
+  if ([server, reuse, collection, tickets, notices].some((source) => source.includes(name))) {
     throw new Error(`resident retention bypass returned: ${name}`);
   }
 }
 for (const event of ["ticketRetentionCheck", "cleanupCheck", "cleanupCommit", "deliveryReleaseCheck",
   "collectionExpiryCheck", "collectionLeaseCheck", "noticePrune", "cacheDiscardPartition", "cacheClear", "dispatchScopeCheck"]) {
-  if (![server, reuse, collection, capacity, tickets].some((source) => source.includes(`kind: "${event}"`))) {
+  if (![server, reuse, collection, capacity, tickets, notices].some((source) => source.includes(`kind: "${event}"`))) {
     throw new Error(`canonical retention event missing: ${event}`);
   }
 }
