@@ -86,6 +86,10 @@ partial or unstable capture.
 
 ## Branch contracts
 
+For advisory lessons and a reusable validation workflow for future languages, see
+[Adding another source language](adding-language-support.md). That guide does not
+amend the contracts below.
+
 | Contract | Artifact root | Proposed evidence projection | Inapplicable examples |
 | --- | --- | --- | --- |
 | `direct-event/type-shape/v1` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and bounded outbound named-type reference graph with marked omissions, following supported local imports across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
