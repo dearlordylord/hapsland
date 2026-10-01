@@ -866,7 +866,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     if (!oldOwnerReleased) throw new Error("old resident owner lifetime remained active after process exit");
     const credentialRestartGate = join(temporary, "state", "hold-credential-restart-evaluation");
     const credentialRestartEnvironment = {
-      ...env,
+      ...installedHostEnvironment,
       REVIEW_RESIDENT_BACKEND_GATE_PATH: credentialRestartGate,
     };
     const restartSource = "export interface Restarted { id: string; destination: string }\n";
@@ -876,7 +876,9 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       tool_use_id: "package-restart-add",
       tool_input: { command: `*** Begin Patch\n*** Add File: restarted.ts\n+${restartSource.trim()}\n*** End Patch` },
     };
-    await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
+    await runInstalledHooks(codexHome, { ...restartEvent, hook_event_name: "PreToolUse" },
+      { cwd: temporary, env: credentialRestartEnvironment });
+    await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer", "--composed-edit-hook"], {
       cwd: temporary, env: credentialRestartEnvironment, input: JSON.stringify(restartEvent),
     });
     let replacementOwner;
@@ -895,16 +897,30 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       throw new Error("fresh resident identity was not established before the second controlled submission");
     }
     await writeFile(credentialRestartGate, "continue\n", { mode: 0o600 });
+    const restartCollectionOutputs = [];
+    const hasRestartFinding = (output) => {
+      const context = output.decision === "block" ? output.reason
+        : output.hookSpecificOutput?.hookEventName === "PostToolUse"
+          ? output.hookSpecificOutput.additionalContext : undefined;
+      return typeof context === "string" && context.split("\n").some((line) =>
+        /^restarted\.ts :: Restarted \[r[1-9]_[a-z_]+, p=0\.91\]: /.test(line));
+    };
     for (let attempt = 0; attempt < 20; attempt += 1) {
       await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-      await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
-        cwd: temporary, env: credentialRestartEnvironment,
-        input: JSON.stringify({ ...restartEvent, tool_name: "Bash", tool_use_id: `package-restart-collect-${attempt}`, tool_input: { command: "printf package-restart-ready" } }),
-      });
+      restartCollectionOutputs.push(...await runInstalledHooks(codexHome, {
+        ...restartEvent, tool_name: "Bash", tool_use_id: `package-restart-collect-${attempt}`,
+        tool_input: { command: "printf package-restart-ready" },
+      }, { cwd: temporary, env: credentialRestartEnvironment }));
+      restartCollectionOutputs.push(...await runInstalledHooks(codexHome, {
+        ...restartEvent, hook_event_name: "Stop", stop_hook_active: false,
+      }, { cwd: temporary, env: credentialRestartEnvironment }));
       submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
-      if (submissions === 2) break;
+      if (submissions === 2 && restartCollectionOutputs.some(hasRestartFinding)) break;
     }
     if (submissions !== 2) throw new Error("restarted resident did not reuse the persistent native credential");
+    if (restartCollectionOutputs.filter(hasRestartFinding).length !== 1) {
+      throw new Error("restarted resident did not deliver the credential-backed finding exactly once");
+    }
     credentialEvidence = {
       ...credentialEvidence,
       residentRestartPersistence: "passed-distinct-pid-and-lifetime",
@@ -936,17 +952,18 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       tool_use_id: "package-logged-out",
       tool_input: { command: `*** Begin Patch\n*** Add File: logged-out.ts\n+${loggedOutSource.trim()}\n*** End Patch` },
     };
-    await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
-      cwd: temporary, env, input: JSON.stringify(loggedOutEvent),
-    });
-    // File settings still select this edit. Give the resident enough time to
-    // attempt it, then prove the missing credential stopped provider egress.
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      await new Promise((resolveWait) => setTimeout(resolveWait, 50));
-      await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
-        cwd: temporary, env,
-        input: JSON.stringify({ ...loggedOutEvent, tool_name: "Bash", tool_use_id: `package-logged-out-collect-${attempt}`, tool_input: { command: "printf package-logged-out" } }),
-      });
+    await runInstalledHooks(codexHome, { ...loggedOutEvent, hook_event_name: "PreToolUse" },
+      { cwd: temporary, env: installedHostEnvironment });
+    await runInstalledHooks(codexHome, loggedOutEvent, { cwd: temporary, env: installedHostEnvironment });
+    // Use the installed admission and collection lifecycle, then prove missing
+    // credentials prevented provider egress for this otherwise selected edit.
+    const loggedOutStatus = parseJson((await mustRun(activeCli, ["--status"], {
+      cwd: temporary, env,
+      input: JSON.stringify({ version: 1, operation: "status", cwd: repository,
+        sessionId: loggedOutEvent.session_id }),
+    })).stdout, "packaged logged-out activity");
+    if (loggedOutStatus.activitySource !== "resident-v1" || loggedOutStatus.activity?.kind !== "unavailable") {
+      throw new Error("logged-out edit did not reach the unavailable credential boundary");
     }
     const submissionsAfterLogout = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
     if (submissionsAfterLogout !== submissions) {
