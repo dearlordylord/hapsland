@@ -36,6 +36,17 @@ max reasoning effort on Linux arm64. The prompt deliberately prescribed the
 initial draft and suggested a repair; this is an integration demonstration,
 not an unprompted agent-quality comparison.
 
+The cross-file amendment has separate [split-file live evidence](../evidence/rust-support/cross-file-paired-designs.json):
+two bad probabilities (0.87, 0.84) and two good probabilities (0.06, 0.06),
+through actual production observation preparation and rendering, with captured
+supporting declarations. Both synthetic Rust fixtures compiled. Supporting-file
+mutation invalidated preparation and restoration made it current again.
+These Rust observations come from a combined stacked-branch run; the original
+preexecution declaration and executed revision are retained in the record.
+[Installed-package evidence](../evidence/rust-support/cross-file-linux-package.json)
+separately exercises Cargo authority and supporting-file preparation in a clean
+production installation. The prior native-agent run predates this amendment.
+
 These observations do not validate every Noul rule, broad Rust semantics,
 reliable delivery across sessions, another agent runtime, or another platform.
 The native run bypassed trust for a vetted disposable hook and did not validate
