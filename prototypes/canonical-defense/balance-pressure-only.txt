@@ -1,0 +1,12 @@
+BALANCE map=0 profile=0 plan=0 offset=0 towers=0 cost=0 hp=52 clear=0 delivered=16 ticks=4073 peakBytes=260 peakPressure=240 hotTicks=2060 peakPending=16 active=0 owned=0
+BALANCE map=0 profile=0 plan=0 offset=25 towers=0 cost=0 hp=52 clear=0 delivered=16 ticks=4073 peakBytes=260 peakPressure=240 hotTicks=2060 peakPending=16 active=0 owned=0
+BALANCE map=0 profile=0 plan=0 offset=50 towers=0 cost=0 hp=52 clear=0 delivered=16 ticks=4073 peakBytes=260 peakPressure=240 hotTicks=2060 peakPending=16 active=0 owned=0
+BALANCE map=0 profile=0 plan=0 offset=75 towers=0 cost=0 hp=52 clear=0 delivered=16 ticks=4073 peakBytes=260 peakPressure=240 hotTicks=2060 peakPending=16 active=0 owned=0
+BALANCE map=0 profile=0 plan=1 offset=0 towers=1 cost=55 hp=100 clear=16 delivered=0 ticks=3230 peakBytes=220 peakPressure=80 hotTicks=0 peakPending=0 active=0 owned=0
+BALANCE map=0 profile=0 plan=1 offset=25 towers=1 cost=55 hp=100 clear=16 delivered=0 ticks=3230 peakBytes=220 peakPressure=80 hotTicks=0 peakPending=0 active=0 owned=0
+BALANCE map=0 profile=0 plan=1 offset=50 towers=1 cost=55 hp=100 clear=16 delivered=0 ticks=3230 peakBytes=220 peakPressure=80 hotTicks=0 peakPending=0 active=0 owned=0
+BALANCE map=0 profile=0 plan=1 offset=75 towers=1 cost=55 hp=100 clear=16 delivered=0 ticks=3230 peakBytes=220 peakPressure=80 hotTicks=0 peakPending=0 active=0 owned=0
+BALANCE map=0 profile=0 plan=2 offset=0 towers=1 cost=95 hp=100 clear=16 delivered=0 ticks=3230 peakBytes=220 peakPressure=80 hotTicks=0 peakPending=0 active=0 owned=0
+BALANCE map=0 profile=0 plan=2 offset=25 towers=1 cost=95 hp=100 clear=16 delivered=0 ticks=3230 peakBytes=220 peakPressure=80 hotTicks=0 peakPending=0 active=0 owned=0
+BALANCE map=0 profile=0 plan=2 offset=50 towers=1 cost=95 hp=100 clear=16 delivered=0 ticks=3230 peakBytes=220 peakPressure=80 hotTicks=0 peakPending=0 active=0 owned=0
+BALANCE map=0 profile=0 plan=2 offset=75 towers=1 cost=95 hp=100 clear=16 delivered=0 ticks=3230 peakBytes=220 peakPressure=80 hotTicks=0 peakPending=0 active=0 owned=0

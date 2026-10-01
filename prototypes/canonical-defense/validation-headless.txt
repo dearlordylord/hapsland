@@ -1,0 +1,105 @@
+CANONICAL SPATIAL DEFENSE HEADLESS VALIDATION
+Purpose: bounded executable evidence for the native prototype using the actual product reducer.
+Authority: implementation/validation evidence, not product contract or universal proof.
+Platform: Linux ARM64, Bend 2.0.34. macOS execution remains unvalidated.
+Product baseline: latest master 9f38e7e merged into prototype/canonical-defense.
+Checker: timeout 5 bend prototypes/canonical-defense/DefenseTests.bend --check-only, exit 0.
+Native compile: bend prototypes/canonical-defense/DefenseTests.bend -o /tmp/hapsland-canonical-spatial-final-atomic, exit 0.
+Execution: stdbuf -oL /tmp/hapsland-canonical-spatial-final-atomic --threads 4, exit 0.
+Result: 42 directed executable checks passed against the merged core and its atomic Finish adapter.
+Fixture: eight observed edits, each splits two authored units of 10/20 logical bytes; all initial finding risks 100%.
+Host initial ledger limits: global/partition 32 items and 480 logical bytes. Direct trace fixture also tests 18/240.
+Actual product worker/request pools remain eight; actual Finish reservation budget remains four per round.
+Product state transitions exclusively call imported Canonical.step and retain both Advanced and Rejected state.
+No copied product reducer or product-core edits. Stable authored hidden outcomes use edit ordinal/child lane,
+not timing-dependent operation IDs. Backend responses, travel, service work and quality are synthetic host facts.
+Seven manually constructed spatial tower families act automatically: Rapid, Refiner, Relay, Parallelizer,
+Coordinator, Packager and finite Shield; original costs and paid upgrades through level three.
+Refiner permanently lowers future risk until the simulated backend result is observed; PendingFinding is immutable.
+Road arrivals gate real source/backend facts; preparation and retained approach travel precede finite interior work.
+True queued or unstarted work remains outside; real running ownership and road arrival govern the shared classifier.
+Raw charged occupancy is unique actual reservation ownership. Shield changes only host damage work, never ledger bytes.
+Hot inside occupancy >=160 damages at baseline one HP per50 ticks; Shield is local, capped, finite240 charges.
+Existing Shields receive protection allocation first; a zero-marginal new Shield remains idle and spends no charge.
+Packager changes actual collection selection and synthetic serialization work; real limits and permission checks remain.
+Accepted atomic Finish acknowledgment gates retirement. Settlement requires real work, leases and writer slots empty.
+A enables a finite wave after150 ticks; construction is always manual. Pause freezes simulation.
+Scope: finite eight-edit wave, deadline fact at5000 ticks since wave start, bounded directed tests only.
+No empirical engagement, production-backend ability, platform support or universal property proof claim.
+Resolved defects were prototype adapter/timing/metadata issues, not confirmed product-core defects.
+Source SHA-256 (complete recursive relative .bend import closure; Base is supplied by Bend2.0.34):
+5eec31d0d3d9e81030a510beaae5019bbfd5e0afb46df2857b508c4ade14e9de  packages/agent-flow-bend/Admission.bend
+c28a87e740b3fa151b6c12fd1f1fdc076ffba3dfe0bf03732dede5724cd88ad5  packages/agent-flow-bend/Canonical.bend
+ab467b6c3d4486d8bd205a4dab75e5a900aae851ad854247cc76cd4edb9a8a12  packages/agent-flow-bend/Collection.bend
+54ca15cda7ad068d8d7233c492aa28aebba4968eecd62a381666ec2eae629fb5  packages/agent-flow-bend/CollectionState.bend
+3ac261b12ee4d463c32975fdf84f63cd8d39418230d3d0dda6af83d0cc4fae61  packages/agent-flow-bend/Configuration.bend
+1c45f8436c048c22a0257f8e0fbe43d506d45156e0cc58dcbeae08fe0e6d9475  packages/agent-flow-bend/Delivery.bend
+fe38df27671f8f67164e33eb131b4b7b38f2635edddfd2552e3cb5d0a5900237  packages/agent-flow-bend/DeliveryState.bend
+ae10e0bde2c5059b330cb968a165703e029eb05d1d223bd790b413bf5998bf46  packages/agent-flow-bend/Dispatch.bend
+93af7be4e6acadc605ac6a2a709316bc10e84da03929da3c82cd037c213ed99a  packages/agent-flow-bend/EditHistory.bend
+fcdf68ecfc402fec71ecd59e9de72f31b41c82a94d97be819c9c9b83b8eeb547  packages/agent-flow-bend/Flow.bend
+c5f2be72867198b58e8dfb329eaf44e4e109a216929b15a76d2d43bc9c666fed  packages/agent-flow-bend/Handoff.bend
+5bb64c9bb55d7ec4d94648cf320b27cfaa3660f29c9806131ed96ffdee075cad  packages/agent-flow-bend/Ledger.bend
+1941e3a6a7b03d2b2fd9eaac9c5d0119a4ddf4e939284fbb4f2a40a13105b524  packages/agent-flow-bend/Notice.bend
+2f3d37cfa6a2f3ee9f1e137b53a0964482c4adede200990a3001c988655099d2  packages/agent-flow-bend/NoticeState.bend
+abb7112120c681419d252072b0682ee8e36a50bc33b4ddde217c9d60d2813b34  packages/agent-flow-bend/Quiescence.bend
+c90202b04eeb6237771eba4bf3458030323d5679f04f3b7b4db44afcfcf59b85  packages/agent-flow-bend/Retention.bend
+88dd20e7ac490cefb356e144c8af92d3193a6ed119a622cdf294bfa8633a5ba4  packages/agent-flow-bend/ReuseState.bend
+44b1319be1d28d13b3ada995ab082be9ebbb536eac5dd2449543a1fdd8013732  packages/agent-flow-bend/RevisionState.bend
+802eb3e6907f1c3e7224a0244b9e8c9677bc23b1b26140153bfe6907c2702764  packages/agent-flow-bend/Round.bend
+ae3d229f70614445b50736e5365c8f306845e134c335ace7ece78b071994b2a1  packages/agent-flow-bend/RulePolicy.bend
+b0f699a559c0fdf7a117e491c4fd44a863cc86c62bc23ee67e93cac443b50f95  packages/agent-flow-bend/SubmissionState.bend
+269ea2039fed6706cf1f12a9bed0469660ff4c8214040b3d64f22e9df647b3d1  packages/agent-flow-bend/Ticket.bend
+b241f491e4e33f04c1a5cd653bff81aad2023ed3c22a92bd8ce48938bcf1b61d  packages/agent-flow-bend/TicketState.bend
+2ef5db0b9e6e67bc5ab76ef8a66de3b77118fb85c69ba4eb81ecb0a110b094d6  packages/agent-flow-bend/Work.bend
+5092ca024249f1634787bfecbe6b325edba6434c5202877e0f169bfb69c918e1  prototypes/canonical-defense/DefenseEffects.bend
+14163070f2c5e7fed3675975e1641ab4a9571f2baf2bd3a2708416d44a67cb9d  prototypes/canonical-defense/DefenseHost.bend
+4602a617eb2284e41c339e68e7106d6de3883ec88c6772212871b24f7bc6a38b  prototypes/canonical-defense/DefenseMap.bend
+005e0ecef27fee6c15270ab5f29573f094bd80ed73f74c1464541daebc94129d  prototypes/canonical-defense/DefenseModel.bend
+963f12b4d1ca8fafd9c91da54a27107ab2d9a11505daa15bbe669c365bcce0b7  prototypes/canonical-defense/DefenseOutput.bend
+88bdf74045b2cdeb8e56e915104f87e3805e36cbe1b0726fc6a8b041b7150247  prototypes/canonical-defense/DefenseProjection.bend
+8831acc7be3ee7bbb9b900235e7bdf6ac4ebf0fddd9117f62c6602009b3c9968  prototypes/canonical-defense/DefenseTests.bend
+
+PASS direct reducer admits observed preparation
+PASS direct reducer splits and replaces byte reservations
+PASS real sibling dependency blocks collection and Stop
+PASS completed sibling permits actual collection
+PASS cannot construct on sidebar
+PASS manual spatial construction spends original Rapid35
+PASS cannot construct in building footprint
+PASS cannot construct on road
+PASS overlapping tower construction rejected
+PASS selected upgrade spends40
+PASS Rapid actual active work shot12
+PASS out-of-range processor cannot affect active work
+PASS Refiner shot permanently removes20 percentage points
+PASS preparation prevention carries to future child source metadata
+PASS Refiner never accelerates service work
+PASS Relay has original lower power6
+PASS Coordinator targets actual unfinished sibling holding findings
+PASS Coordinator has no effect without held sibling findings
+PASS Parallelizer changes covered host source permits only
+PASS canonical limits remain original eight
+PASS Packager changes actual next batch target and host item work
+PASS Packager preview exact serialization reduction
+PASS Rapid preview matches exact remaining-work marginal shot
+PASS empty range explicitly has zero effect
+PASS inside hot pressure generates actual damage cadence
+PASS local finite Shield reduces damage work
+PASS shield charging happens only protection not work firing
+PASS Shield never changes real ledger occupancy
+PASS pause freezes pressure damage
+PASS map cannot relocate constructed towers
+PASS map cannot relocate an active wave
+PASS automatic wave mode never constructs towers
+PASS source road distance gates actual source-start fact
+PASS review road distance gates actual backend request fact
+PASS every real backend request retains actual dispatch ownership
+PASS baseline future findings chance100 never authored clear
+PASS finite baseline drains sixteen real acknowledged findings
+PASS completed wave releases request and delivery ownership
+PASS zero future risk resolves clear only at actual backend completion
+PASS Refiner never targets already observed PendingFinding
+PASS Shield spends one finite charge per useful hot tick
+PASS zero-marginal new Shield remains idle behind existing capped protection
+CANONICAL SPATIAL DEFENSE:42 directed checks complete

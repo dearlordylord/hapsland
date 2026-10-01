@@ -1,0 +1,74 @@
+{
+  "scope": "Architecture teaching increment; bounded offline tests and Linux ARM64 native compilation, not platform certification or human learning evidence",
+  "nativeOptimization": "-O3",
+  "nativeCommonAbiArguments": 102,
+  "nativeResultWords": 60,
+  "directedNewChecks": 27,
+  "combinedPassLines": 156,
+  "performanceSample": {
+    "workers": 4,
+    "counts": [
+      0,
+      8,
+      16
+    ],
+    "scene10ms": [
+      14,
+      32,
+      63
+    ],
+    "image10ms": [
+      132,
+      176,
+      294
+    ],
+    "tick100ms": [
+      3,
+      13,
+      47
+    ]
+  },
+  "performanceLimits": "Single follow-up sample excludes presentation; 16 retained image preparation 29.4ms. Added teaching text increases render cost; not a claimed FPS improvement or Mac measurement. Sample precedes only final DOES NOT MEAN/TO wording correction.",
+  "defaultStopWindowTicks": 4000,
+  "shortStopWindowTicks": 210,
+  "coreModified": false,
+  "files": {
+    "DefenseRasterTests.bend": "9d38901dd32d004ca6a28ab9a1e9ded298e8ed1e958950ff9ff9945f62cd50c5",
+    "DefenseMain.bend": "8bdaff12e2b8b4a077790624a145de23c1dc2d7ddbf174081462f732e7be2c5b",
+    "DefenseRoads.bend": "843d9496db3739320f76cb6360b0269f3c5fc3326052ee88892e29b0ebe14b88",
+    "DefenseMap.bend": "9d946542bdf84a3918917408eb875b0329374c9f88acabed640904bb4482e1b9",
+    "DefenseHost.bend": "f4d2407f79a517d865e59324abe45b52cba2127b54c6fc1c366e6566652a42da",
+    "Font.bend": "9de7da6f27b200afd790e9f7f04a2e86fa736f04664e82df88ff117a72712169",
+    "DefenseBusinessTests.bend": "f0129a27f99d1194cd4fe6b3f8d67f69d148d62c67488d82b21a9bcdfcf99746",
+    "DefenseEffects.bend": "ddd9b2e03bace22fb56f382f2b3961cab9d51adc63f7f49dc27bc62beae7de68",
+    "DefenseOutputTests.bend": "8b52e40e6d42f1d40c907acd8775bee260d91f27a7a7d8950bc47ee1abe9667b",
+    "DefenseMapTests.bend": "8511b96a87b39997ba62ccca85d70dfebe6b23790ca0d29ab5bd31c9bfb778e8",
+    "DefenseStop.bend": "f85fda4fe8fbff47744d783fbfe694088b247d8efa116a3fe4e38479d1ef8ab3",
+    "DefenseOutput.bend": "faba09739f12d250e0d2164bcbe9734814bf24d83baa9622e04815b63a380db0",
+    "DefensePreviewTests.bend": "920bf4a3592e6d6fbf969bd144aef15096a417e72d34d34f0ff32706ddd7c96b",
+    "DefenseProjection.bend": "b9600a8996cf8c44d8668c39edb58ab426de748ced39ed39041dc2a2e0bb4af5",
+    "DefenseTests.bend": "97b590b94f8abb7456a20364b761d30e1b879d98cd3f0d7289d9b80a452d9857",
+    "DefenseAuto.bend": "b3d1782719769c1345e9f9bb54c83efea3bfdd3f58cbdb48be7a7f54413db387",
+    "DefensePerformance.bend": "6df9c55e40d8edfc06e27c26240e8ca7508644b4d5bf4f8059798686a6ddef2f",
+    "DefenseModel.bend": "9ebad60abdc6560fc24cb7ef9ad70f91763f1f927ec9911d1a1174f9b945f737",
+    "DefenseAutoTests.bend": "445bb60cb65347f7cf86057cc24b44051bde49c55cf2e6342452aca17f9b9c4e",
+    "DefenseTeaching.bend": "828584c3083a247c428e2f57e8d3fb7a688da059b8598defeadbca2725aac632",
+    "DefenseFeatureTests.bend": "d9f453134e1329fe2d9f6f0bf4f7fdb31a5c191086ecb3fb132b722c5831822f",
+    "DefensePreview.bend": "894219e50a627aa0c92fe37141acde91e89cb17aa73a4bc02cadd81bad703742",
+    "DefenseRender.bend": "edebd98971e56e9a75297a0c8708bacbb49e901c319b585a4c2c3ccc9ae5199c"
+  },
+  "nativeCaptures": {
+    "teaching-shield.png": "76ca1b3108bd3c6c0c10288281bd71042067049971eec56d1274bc7d5f65b716",
+    "teaching-packager-cutoff.png": "b596345d46598772d02ec3660a1dbce534d527bc80f48eea2531257ece038277",
+    "teaching-packager-built.png": "f866d11bd15e80352137eb97368e85e6cc9722d8ab71b64a480d204cb312c5fe",
+    "teaching-coordinator.png": "a6806176bedd6d90956eb887e300c1a4f5f3021c3f876b1c3fef373ff4edd5d2",
+    "teaching-stop-cutoff.png": "21fd2443cebb6fd3e5143d95a157cd920773c26c709017b3effdb242c0e505fb",
+    "teaching-stop-settled.png": "bc4b37d1fa612003073067d112758db16b81c787ae3ccd22be5c5d7d244ff6d4",
+    "teaching-profiles.png": "2bfab29a351babb36b2bfcdf55329205b9f558e697f77c31311952a72989ab21",
+    "teaching-packager.png": "8a6a8de0f0b04946a4e8ecadd62fd5c70fa4ce0584e35d5c45122734feacd7ca",
+    "teaching-stop-wait.png": "18475d0142f4ae4370f8ba90e672f85dcc600882c1250309beb27abac30dd19e"
+  },
+  "coreHashVerification": "24 imported core files matched existing canonical-source-sha256.txt",
+  "performanceSourceRenderSha256": "258be79e1ec0303fc86fcc87d5a37481d8e0779eb0fcc3ad3a05b17e2cb5379e",
+  "finalNativeVerified": true
+}

@@ -1,0 +1,70 @@
+ASTRA MEDIUM DESIGN REVIEW — RESTORED SPATIAL GAME
+Validation date: 2026-10-01
+Purpose: assess architecture teaching and the restored native tower-game interaction.
+Status: completed bounded design review. Root owns final native verification and all further architecture/mechanics assessment.
+Authority: design judgement and implementation evidence, not accepted product contract, formal proof, or measured human learning.
+Expected use: review this throwaway prototype and decide which mechanics/layout to develop next.
+Lifecycle: consolidate useful decisions into the next accepted prototype/design owner and delete this snapshot when the canonical-defense experiment is replaced or removed.
+
+Scope and authority
+The prototype imports the actual packages/agent-flow-bend/Canonical.bend. It does not import RoadGame or reproduce Canonical transitions. The current product baseline is master 9f38e7e, merged into this branch. The dashboard and production adapter use the generated form of this same Canonical module. Game geometry, service delays, risk, gold and health belong to the synthetic host. They are not production behavior guarantees. No product-core modifications were made for this experiment.
+
+The restored interaction is materially different from the superseded global-dock design: seven manually positioned tower families, range circles, exact next-effect previews, automatic shots, selection and three-level upgrades. Roads are orthogonal. Buildings are64 × 48, with visibly smaller internal actors and finite serpentine routes. Layout switching is locked once towers or a wave exist, preventing free relocation/coverage changes.
+
+Source findings and resolutions
+- Rapid, Relay and Coordinator act only on eligible active work with positive remaining work. Refiner changes only synthetic unresolved risk; it does not shorten service work or erase observed PendingFinding. Initial risk is 100%; stored draws are fixed, not rerolled each tick. Parent quality is inherited by future children.
+- Radius coverage and hover values use the same host effect helpers. Selected inspection now uses the actual tower, fixing the former level-one-radius false-zero after upgrades.
+- Parallelizer changes local HOST launch limits, capped by unchanged actual Canonical limits of 8. Packager changes host target 4..8 and serialization work 8→4/3/2 ticks/item; it does not reduce charged ledger bytes or increase the actual four-reservation budget.
+- Output selection and duration freeze at reservation. Real CollectionFitCheck, reservation, leases and atomic Finish authorization/acknowledgement govern output. After the master merge, obsolete per-advice Stop authorization/terminal replay was removed: accepted FinishRecorded{Acknowledged} alone gates retirement of the exact committed selection, followed by FinishEnd. Refusal preserves retained work.
+- Shield mitigates local game damage work, has finite 240 useful hot-tick charges and a shared half-per-building cap. Ledger occupancy remains unchanged. Existing shields take priority, so a new zero-marginal overlap stays idle.
+- Finite phase progress derives from host work already completed, including shot boosts. Road travel uses authored distance, not a fast arbitrary cosmetic loop. Actors park when waiting; actual Canonical state remains the authority for phase and ownership.
+
+Executable evidence reviewed
+validation-headless.txt reports 42 directed native checks; validation-output.txt reports 24; validation-preview.txt reports 12. Total 78 bounded checks passed on Linux ARM64 against the merged core. These include spatial construction, service/risk separation, real sibling blocking, fixed permit limits, Shield charge and ledger invariance, map lock, full baseline 16-finding drain, retained counts 0..16, partial batches, denied acknowledgement, frozen commitments, fifth-reservation refusal and exact preview/shot agreement. These are executable examples, not universal proofs. Main source checking also passed according to root validation.
+
+Actual native images inspected
+- preview-district.png, preview-courtyard.png, preview-frontier.png: three new compact orthogonal maps, seven-family menu and on-map range/ghost. Host-limit labels distinguish host policy from the fixed backend pool.
+- preview-district-populated.png: Rapid preview 22−12 agrees with actual U1 remaining 22. Road actor is large; source-service actor is small inside its serpentine. This is a preview, not evidence that the unbuilt Rapid fired.
+- preview-refiner-before.png: unbuilt Refiner hover 100−20, gold 160. preview-refiner-after.png: actual selected L1 Refiner, gold 105 and U1 simulated risk 80. The before image is not an already-built tower. The same pair shows road and internal movement; source work 58→49 advances naturally while risk 100→80 changes independently. Worker measurement identifies nine ticks and road U2 x25→34.
+- preview-upgrade.png and preview-courtyard-populated.png: actual selected Refiner L2, range 130, gold 65, risk 80. They are the same captured state, not independent behavior cases.
+- preview-clear-exit.png: actual CLEAR 1 counter and visible exit, multiple family-labelled units on both Campus branches converging on the shared Jev building. This supports the split/rejoin teaching claim; it does not imply production Jev can be forced clear.
+- preview-frontier-populated.png: temporary no-effect example, suitable source site with zero current work delta 0−0 while preparation is on the safe approach road. The tinted ghost/radius and explicit current-no-effect text agree.
+
+Design recommendation
+Use Switchback District as the baseline gameplay map: one legible itinerary leaves space for placement and makes range choices easy to compare. Use Forked Campus to teach one edit creating sibling units and both branches sharing Jev capacity; its populated CLEAR 1 frame provides the strongest architecture explanation. Resource Junction offers a different placement geometry and intake/output corridor arrangement, but shares the same underlying processing chain; it is not a different Canonical architecture. Map geometry intentionally changes host travel time and spatial coverage, so these are alternative boards rather than identical-timing experiments.
+
+Limits and next evaluation
+This remains a finite eight-source fixture with exactly two children per source, synthetic 10/20 logical byte payloads, deterministic simulated backend outcomes and host-authored delays. It does not establish variable-n fan-out behavior, production serialization size, live Jev behavior, balance, replayability or user learning. Health bars mirror shared game health, as the footer states; they are not independent building durability. Small IDs/stat text require careful reading at 1024×768, and the active-work panel shows only four units. Dense parked ownership must be read with the explicit counts rather than inferred from sprites alone. Linux ARM64 native execution is evidenced; macOS execution is not. No human engagement or comprehension study was run.
+
+Review boundary
+At the user’s clarification, Astra review stops here. The source observations above describe work already completed; they are not a request for further Astra architecture/mechanics review. Root or Sol owns those decisions. Root independently verifies subsequent retention/output/damage captures and records that evidence separately. No pending Astra review or approval is required. Later native evidence is not claimed as inspected in this report.
+
+Fingerprints of reviewed source, bounded test evidence and the ten inspected image files (SHA-256):
+
+14163070f2c5e7fed3675975e1641ab4a9571f2baf2bd3a2708416d44a67cb9d  DefenseHost.bend
+5092ca024249f1634787bfecbe6b325edba6434c5202877e0f169bfb69c918e1  DefenseEffects.bend
+4602a617eb2284e41c339e68e7106d6de3883ec88c6772212871b24f7bc6a38b  DefenseMap.bend
+963f12b4d1ca8fafd9c91da54a27107ab2d9a11505daa15bbe669c365bcce0b7  DefenseOutput.bend
+894219e50a627aa0c92fe37141acde91e89cb17aa73a4bc02cadd81bad703742  DefensePreview.bend
+d8187232fce2d822787213ff1669cc226c5134345acef1d4b4b2572469195b28  DefenseRender.bend
+005e0ecef27fee6c15270ab5f29573f094bd80ed73f74c1464541daebc94129d  DefenseModel.bend
+88bdf74045b2cdeb8e56e915104f87e3805e36cbe1b0726fc6a8b041b7150247  DefenseProjection.bend
+843d9496db3739320f76cb6360b0269f3c5fc3326052ee88892e29b0ebe14b88  DefenseRoads.bend
+13d9a1bb0cc6cae106b6ca7fdc734ef3e84440c2d7d4e2ebac9c4f78b5104b40  DefenseMain.bend
+8831acc7be3ee7bbb9b900235e7bdf6ac4ebf0fddd9117f62c6602009b3c9968  DefenseTests.bend
+43c1f13917d2c21c1fc2a46603c26e60c7f03bc812ad8e2a27da8135af15bdee  DefenseOutputTests.bend
+331ead2eca1955f531c7f459892c8caf92a9f40cc53a8a114fa64a8f9529b764  DefensePreviewTests.bend
+c99d433fa80a1bfd27b13a7b5b08a910052af3a7f4296d71f53c002fe6f70639  validation-headless.txt
+73a2659edc8151ae786d606647953a4786acd381b06abacc6426e8d7b492fe50  validation-output.txt
+dc187280bfb321aa0f1213953aed7b730b47f9d439faa1f152c0fc74a63a100d  validation-preview.txt
+11602857168bcaf596b8f3ad917080ac4759916ff66c93e039735c19abc533dc  preview-district.png
+ea957e2399c55ed79fd743fca491df5d853e8e44b97be7e969e714eba6d3efee  preview-courtyard.png
+2915e5afd540cbab40e4c142c9b103bd4afa107bd060396b52c2eb129abc0790  preview-frontier.png
+67574fa07b7c2aff389082a1f2d41d26d360c69ed671c19a88e9e6bb19d5413f  preview-district-populated.png
+f951bc79e761c13f038a0bd9ba2dcf4f2c0bb761096a0bf2e7f9874db0979598  preview-refiner-before.png
+7a64a4c837f61cf814f8b3cb60d3d6dad1f2320b9e0a0887f28bfee16f709998  preview-refiner-after.png
+586b099848adf959e24b908118a39bafe457fb19f789068edf7111bf6f2508d8  preview-upgrade.png
+586b099848adf959e24b908118a39bafe457fb19f789068edf7111bf6f2508d8  preview-courtyard-populated.png
+cb965d28771ecc8dc8aea39b3aba16fb79ac778cc79c3724894cb33836813058  preview-clear-exit.png
+591906abcfd6cfe6c7f33ed4f3c9d998ae34668d788d923ce4bce6be3b971ae6  preview-frontier-populated.png
+c28a87e740b3fa151b6c12fd1f1fdc076ffba3dfe0bf03732dede5724cd88ad5  ../../packages/agent-flow-bend/Canonical.bend

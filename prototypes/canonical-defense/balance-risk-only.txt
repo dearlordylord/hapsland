@@ -1,0 +1,12 @@
+BALANCE map=0 profile=0 plan=0 offset=0 towers=0 cost=0 hp=76 clear=0 delivered=16 ticks=4073 peakBytes=260 peakPressure=240 hotTicks=1212 peakPending=16 active=0 owned=0
+BALANCE map=0 profile=0 plan=0 offset=25 towers=0 cost=0 hp=76 clear=0 delivered=16 ticks=4073 peakBytes=260 peakPressure=240 hotTicks=1212 peakPending=16 active=0 owned=0
+BALANCE map=0 profile=0 plan=0 offset=50 towers=0 cost=0 hp=76 clear=0 delivered=16 ticks=4073 peakBytes=260 peakPressure=240 hotTicks=1212 peakPending=16 active=0 owned=0
+BALANCE map=0 profile=0 plan=0 offset=75 towers=0 cost=0 hp=76 clear=0 delivered=16 ticks=4073 peakBytes=260 peakPressure=240 hotTicks=1212 peakPending=16 active=0 owned=0
+BALANCE map=0 profile=0 plan=1 offset=0 towers=1 cost=55 hp=92 clear=6 delivered=10 ticks=4023 peakBytes=240 peakPressure=160 hotTicks=426 peakPending=10 active=0 owned=0
+BALANCE map=0 profile=0 plan=1 offset=25 towers=1 cost=55 hp=91 clear=5 delivered=11 ticks=4031 peakBytes=250 peakPressure=170 hotTicks=464 peakPending=11 active=0 owned=0
+BALANCE map=0 profile=0 plan=1 offset=50 towers=1 cost=55 hp=90 clear=5 delivered=11 ticks=3991 peakBytes=260 peakPressure=170 hotTicks=502 peakPending=11 active=0 owned=0
+BALANCE map=0 profile=0 plan=1 offset=75 towers=1 cost=55 hp=86 clear=4 delivered=12 ticks=4000 peakBytes=240 peakPressure=180 hotTicks=704 peakPending=12 active=0 owned=0
+BALANCE map=0 profile=0 plan=2 offset=0 towers=1 cost=95 hp=100 clear=7 delivered=9 ticks=4015 peakBytes=240 peakPressure=150 hotTicks=0 peakPending=9 active=0 owned=0
+BALANCE map=0 profile=0 plan=2 offset=25 towers=1 cost=95 hp=91 clear=5 delivered=11 ticks=4031 peakBytes=250 peakPressure=170 hotTicks=464 peakPending=11 active=0 owned=0
+BALANCE map=0 profile=0 plan=2 offset=50 towers=1 cost=95 hp=100 clear=8 delivered=8 ticks=3887 peakBytes=240 peakPressure=130 hotTicks=0 peakPending=8 active=0 owned=0
+BALANCE map=0 profile=0 plan=2 offset=75 towers=1 cost=95 hp=90 clear=5 delivered=11 ticks=4031 peakBytes=240 peakPressure=160 hotTicks=502 peakPending=11 active=0 owned=0

@@ -1,0 +1,65 @@
+{
+  "scope": "Prototype assumptions; unchanged imported Canonical. No external issue reports. Linux ARM64 native validation; no new macOS measurements.",
+  "baseline": "Parent game parameters before this increment; includes pre-fix fan-out lane seed behavior. baseline single Refiner cleared all16 across authored rotations.",
+  "candidate_1": "Rejected exploratory fixture: 20/30/40 percent,18ticks,floor60; pre-fix fan-out seeds; upgrade marginal value absent. Not paired final causal evidence.",
+  "final": "15/20/25 percent current risk,90ticks,floor60; distinct child seed lanes; damage proportional over80 buildingbytes.",
+  "proof": "bend PROOF.bend --verdict completed: ALL PROOFS CHECK; only six laws in LAWS.bend.",
+  "validation": "171 directed PASS assertions; raster footer originally says6144 but seven actual1024pixel fixtures ran (7168). Latest source corrects footer only. Queue caption repositioned after aggregate execution; native final capture validates placement.",
+  "performance": "Parent renderer/font with current host vs optimized renderer before queue-caption repositioning; caption positions only, no raster algorithm change. Three paired runs; scene/image excludes native presentation.",
+  "sources_sha256": {
+    "DefenseAuto.bend": "b3d1782719769c1345e9f9bb54c83efea3bfdd3f58cbdb48be7a7f54413db387",
+    "DefenseAutoTests.bend": "445bb60cb65347f7cf86057cc24b44051bde49c55cf2e6342452aca17f9b9c4e",
+    "DefenseBalance.bend": "6d1b0e2dba1e31b9124d0d2ba7ad32825e47b467524510b686a7156004f976b3",
+    "DefenseBalanceExtra.bend": "1204ab9e617e3570abeeed0d297b8a54ca9c5ecfe9f6555ae3088ab1f0b771b5",
+    "DefenseBalanceTests.bend": "a746c36b67d98fe479a9784a5b75be1db830ec4a77bbaf97cb3e72e15696ca70",
+    "DefenseBusinessTests.bend": "f0129a27f99d1194cd4fe6b3f8d67f69d148d62c67488d82b21a9bcdfcf99746",
+    "DefenseDrawTests.bend": "1b9de7efeecc5693755dfc957a70f245d7ca87ff96d4a5c1cc606f7ed8c39d64",
+    "DefenseEffects.bend": "7b3b3c87bfc5856d0488c196d9b5025edac349949a62376336aa20d86d0730f9",
+    "DefenseFeatureTests.bend": "f6e63b5b9023d5bae20fe8c0b1763a1efac24d5fcbf86e80c88c22e20b6a3214",
+    "DefenseHost.bend": "442e1f82f5d194e436ad652c5b7c99af50455ef7a37c1eaf08b7f947b4d92252",
+    "DefenseMain.bend": "f60bbd4a01f41f0cd16722e6940b5dcbf9aab8ea15d6b7239abfbe28c16567a0",
+    "DefenseMap.bend": "9d946542bdf84a3918917408eb875b0329374c9f88acabed640904bb4482e1b9",
+    "DefenseMapTests.bend": "8511b96a87b39997ba62ccca85d70dfebe6b23790ca0d29ab5bd31c9bfb778e8",
+    "DefenseModel.bend": "9ebad60abdc6560fc24cb7ef9ad70f91763f1f927ec9911d1a1174f9b945f737",
+    "DefenseOutput.bend": "faba09739f12d250e0d2164bcbe9734814bf24d83baa9622e04815b63a380db0",
+    "DefenseOutputTests.bend": "8b52e40e6d42f1d40c907acd8775bee260d91f27a7a7d8950bc47ee1abe9667b",
+    "DefensePerformance.bend": "5ee3e6a3c51aeab6cda931e3b237375d374d50ff0df15a0e666ac567e05c5ec1",
+    "DefensePreview.bend": "894219e50a627aa0c92fe37141acde91e89cb17aa73a4bc02cadd81bad703742",
+    "DefensePreviewTests.bend": "920bf4a3592e6d6fbf969bd144aef15096a417e72d34d34f0ff32706ddd7c96b",
+    "DefenseProjection.bend": "b9600a8996cf8c44d8668c39edb58ab426de748ced39ed39041dc2a2e0bb4af5",
+    "DefenseRasterTests.bend": "66a0903a3a17bd1a83833b86aa7af63beaf4b09fd50e38f846f6e29759cfcaba",
+    "DefenseRender.bend": "9e746b1906b6af069cca4483718dfb76006f183c63df1c4dbc0db6fdc40c3a33",
+    "DefenseRoads.bend": "843d9496db3739320f76cb6360b0269f3c5fc3326052ee88892e29b0ebe14b88",
+    "DefenseStop.bend": "f85fda4fe8fbff47744d783fbfe694088b247d8efa116a3fe4e38479d1ef8ab3",
+    "DefenseTeaching.bend": "7d1de22b2dc48179a036fe065722b2442be62c05dfacb702a50deaf3b4742446",
+    "DefenseTests.bend": "a87423bff8422b3d4e857b4780c5d93cb88c423206ade528c120242375e39d8a",
+    "Font.bend": "584451ddef9d160a4dee314d97bf22f022df191af446e16246b0460d5378860e",
+    "LAWS.bend": "8bfac0a5a14983de2945eacbf9881280fdb2c4f494b62bc9c7e4415d3574406d",
+    "PROOF.bend": "4b99485ee272758a61d52686a8d5ca19ad55242a89e1d280d30b2cac7cffc5b3"
+  },
+  "astra_design_advisory": {
+    "review": "astra_teaching_ux; advisory before final tuning, not final empirical acceptance",
+    "guidance": [
+      "Expose simulated risk saturation; stop shots at floor; upgrades reach same floor faster.",
+      "Separate prevention and pressure ablations: lowering threshold and scaling damage both raise difficulty.",
+      "Packager need not dominate every scenario; test retained-heavy output pressure.",
+      "Compare investment, delivery time and retained work; more HP alone does not establish interesting choices.",
+      "Risk floor is not a finding quota; vary paired authored offsets/maps.",
+      "Shield never changes canonical bytes/capacity; show raw ownership.",
+      "Keep counts/families/targets visible; slowdown must not drop simulation deadline time."
+    ],
+    "implementation": "Final15/20/25percent rather than reviewedcandidate20/30/40;90tickcooldown. Evidence evaluates finite deterministic fixtures, no human engagement claim."
+  },
+  "native_capture_sha256": {
+    "balance-dense.png": "383aad93c6a2bbc96b68deb38d836eafb31a89805121c290777071792e356aaa",
+    "balance-refiner-preview.png": "a55deef52d76f47e09fcaf4075da00abab872c36dfe0b82c95835796a2450451",
+    "balance-refiner-shot.png": "3ba74761750e8e981f0c5dc5b6e3bcb84ed9c9c0c3e1b1defec49564146ba009",
+    "balance-review-permit-wait.png": "d2b5d9ededded50237a5f4fbd1a5eb15578f7d9783f3ce332ca79986284145be",
+    "balance-review-queue.png": "29ace982e77a012165e884144ba50e734eac324af5c7d6f94757cf6a5324803e"
+  },
+  "native_witnesses": [
+    "Preview100minus15; actual shotrisk85 atsamefamily; no observedfindingrewrite.",
+    "Fastarrival20/largeJevsibling profile: screenTRAVEL6 PERMITWAIT3, actual2requests, three separatelypositioned arrivals.",
+    "16 retained findings and240 ledgerbytes visible simultaneously, actual currentbatch4."
+  ]
+}
