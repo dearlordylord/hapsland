@@ -122,12 +122,12 @@ def clear_completed(items: List<&2, C.Work>, +before: M.World, +after: C.State) 
       (Bool.to_u32(Bool.and(Bool.not(has_operation(id, M.work(after))),
         Bool.not((M.timer_seed(E.find_timer(id, M.timers(before))) < M.timer_risk(E.find_timer(id, M.timers(before))) : U32)))) + clear_completed(rest, before, after) : U32)
     case _ <> rest: clear_completed(rest, before, after)
-def inside_for(+world: M.World, +id: U32, items: List<&2, C.Work>) -> Bool:
-  match items:
-    case Nil{}: False{}
-    case +work <> rest: Bool.or(Bool.and(U32.is_eq(M.number(E.id(work)), id), E.inside_world(world, work)), inside_for(world, id, rest))
-def in_building(+world: M.World, token: P.Token) -> Bool:
-  inside_for(world, P.id(token), M.work(M.core(world)))
+def inside_found(world: M.World,found: Maybe<&2,C.Work>) -> Bool:
+  match found:
+    case None{}: False{}
+    case Some{work}: E.inside_world(world,work)
+def in_building(+world: M.World,token: P.Token) -> Bool:
+  inside_found(world,E.find_work(U32.to_nat(P.id(token)),M.work(M.core(world))))
 def inside_bytes(items: List<&2, C.Work>, +world: M.World, +seen: List<&2, Nat>, +phase: U32) -> Nat:
   match items:
     case Nil{}: 0n
@@ -392,21 +392,36 @@ def lane_found(world: M.World, found: Maybe<&2, C.Work>) -> U32:
     case None{}: 0
 def unit_lane(+world: M.World, token: P.Token) -> U32:
   lane_found(world, E.find_work(U32.to_nat(P.id(token)), M.work(M.core(world))))
-def point_work(+world: M.World, +work: C.Work) -> Map.Point:
-  +phase = E.kind(work)
-  +age = E.age(E.id(work), phase, M.timers(world))
-  +anchor = E.anchor(world, work)
-  +effort = E.effort(world, work)
-  +room = Map.room_route(M.layout(world), phase, E.lane(world, work))
-  +inside = Map.path_position(room,
-    ((U32.min(E.duration(world, work), effort) * Map.path_length(room)) / U32.max(1, E.duration(world, work)) : U32))
-  Bool.pick(Map.Point, U32.is_eq(phase, 0), Map.path_position(Map.source_route(M.layout(world)), age),
-    Bool.pick(Map.Point, Bool.and(U32.is_eq(phase, 4), Bool.not(E.inside_world(world, work))), Map.Point{(Map.px(anchor) + 32 : U32), Map.py(anchor)},
-    Bool.pick(Map.Point, U32.is_eq(phase, 3), Map.path_position(Map.review_route(M.layout(world), E.lane(world, work)), age),
-      Bool.pick(Map.Point, U32.is_eq(phase, 2),
-        Bool.pick(Map.Point, (age < travel_ticks(world, 2, 0) : U32), Map.path_position(Map.preparation_route(M.layout(world)), age), inside),
-        Bool.pick(Map.Point, U32.is_eq(phase, 5),
-          Bool.pick(Map.Point, (age < travel_ticks(world, 5, 0) : U32), Map.path_position(Map.retained_route(M.layout(world)), age), Map.path_position(room, U32.min(Map.path_length(room), M.sub(age, travel_ticks(world, 5, 0))))), inside)))))
+def service_point(+world: M.World,+work: C.Work) -> Map.Point:
+  +room = Map.room_route(M.layout(world),E.kind(work),E.lane(world,work))
+  +duration = E.duration(world,work)
+  Map.path_position(room,((U32.min(duration,E.effort(world,work)) * Map.path_length(room)) / U32.max(1,duration) : U32))
+def service_or_road(inside: Bool,+world: M.World,+work: C.Work,road: List<&2,Map.Point>,age: U32) -> Map.Point:
+  match inside:
+    case True{}: service_point(world,work)
+    case False{}: Map.path_position(road,age)
+def retained_point(onRoad: Bool,+world: M.World,road: List<&2,Map.Point>,age: U32) -> Map.Point:
+  match onRoad:
+    case True{}: Map.path_position(road,age)
+    case False{}:
+      +room = Map.room_route(M.layout(world),5,0)
+      Map.path_position(room,U32.min(Map.path_length(room),M.sub(age,Map.path_length(road))))
+def jev_point(inside: Bool,+world: M.World,+work: C.Work) -> Map.Point:
+  match inside:
+    case True{}: service_point(world,work)
+    case False{}:
+      +anchor = E.anchor(world,work)
+      Map.Point{(Map.px(anchor) + 32 : U32),Map.py(anchor)}
+def point_phase(phase: U32,+world: M.World,+work: C.Work,+age: U32) -> Map.Point:
+  match phase:
+    case 0: Map.path_position(Map.source_route(M.layout(world)),age)
+    case 2: service_or_road((age >= travel_ticks(world,2,0) : U32),world,work,Map.preparation_route(M.layout(world)),age)
+    case 3: Map.path_position(Map.review_route(M.layout(world),E.lane(world,work)),age)
+    case 4: jev_point(E.inside_world(world,work),world,work)
+    case 5: retained_point((age < travel_ticks(world,5,0) : U32),world,Map.retained_route(M.layout(world)),age)
+    case _: service_point(world,work)
+def point_work(+world: M.World,+work: C.Work) -> Map.Point:
+  point_phase(E.kind(work),world,work,E.age(E.id(work),E.kind(work),M.timers(world)))
 def point_found(world: M.World, found: Maybe<&2, C.Work>) -> Map.Point:
   match found:
     case Some{work}: point_work(world, work)

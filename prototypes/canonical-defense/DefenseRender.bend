@@ -22,13 +22,6 @@ def keep(on: Bool, r: F.Rect, tail: List<&2, F.Rect>) -> List<&2, F.Rect>:
     case False{}:
       tail
 
-def filter(rs: List<&2, F.Rect>, +x: U32, +y: U32, +size: U32) -> List<&2, F.Rect>:
-  match rs:
-    case Nil{}:
-      Nil{}
-    case Con{+r, tail}:
-      keep(overlap(r, x, y, size), r, filter(tail, x, y, size))
-
 def covers(r: F.Rect, +x: U32, +y: U32, +size: U32) -> Bool:
   match r:
     case F.Box{+rx, +ry, w, h, _}:
@@ -40,6 +33,17 @@ def full(rs: List<&2, F.Rect>, x: U32, y: U32, size: U32) -> Bool:
       False{}
     case Con{r, _}:
       covers(r, x, y, size)
+
+# A covering front rectangle hides all later rectangles in this tile.
+# Stop filtering immediately rather than allocating invisible candidates.
+def filter_cut(rs: List<&2,F.Rect>,+x: U32,+y: U32,+size: U32,covered: Bool) -> List<&2,F.Rect>:
+  match rs covered:
+    case Nil{} _: Nil{}
+    case Con{r,_} True{}: Con{r,Nil{}}
+    case Con{+r,+tail} False{}:
+      keep(overlap(r,x,y,size),r,filter_cut(tail,x,y,size,full(tail,x,y,size)))
+def filter(+rs: List<&2,F.Rect>,+x: U32,+y: U32,+size: U32) -> List<&2,F.Rect>:
+  filter_cut(rs,x,y,size,full(rs,x,y,size))
 
 def paint(k: Nat, +x: U32, +y: U32, +size: U32, rs: List<&2, F.Rect>, solid: Bool) -> Image:
   match k rs solid:
@@ -392,15 +396,34 @@ def work_rows(tokens: List<&2,P.Token>,+world: M.World,+index: U32,rest: List<&2
     case Con{+token,tail}:
       work_row_if((index < 4 : U32),token,world,index,work_rows(tail,world,(index + 1 : U32),rest))
 
-def waiting_end(+world: M.World,+token: P.Token) -> Bool:
+def waiting_at_end(+world: M.World,+token: P.Token) -> Bool:
   +point = H.unit_point(world,token)
   +end = D.path_position(D.room_route(M.layout(world),5,0),D.path_length(D.room_route(M.layout(world),5,0)))
-  U32.is_eq(P.phase(token),5) && H.in_building(world,token) && U32.is_eq(D.px(point),D.px(end)) && U32.is_eq(D.py(point),D.py(end))
-
-def wait_rank(tokens: List<&2,P.Token>,+world: M.World,+token: P.Token) -> U32:
+  H.in_building(world,token) && U32.is_eq(D.px(point),D.px(end)) && U32.is_eq(D.py(point),D.py(end))
+def waiting_phase(phase: U32,+world: M.World,+token: P.Token) -> Bool:
+  match phase:
+    case 5: waiting_at_end(world,token)
+    case _: False{}
+def waiting_end(+world: M.World,+token: P.Token) -> Bool:
+  waiting_phase(P.phase(token),world,token)
+# Classify each actor once per frame. Ranking must not recompute everybody's path.
+def waiting_keep(on: Bool,id: U32,rest: List<&2,U32>) -> List<&2,U32>:
+  match on:
+    case True{}: id <> rest
+    case False{}: rest
+def waiting_ids(tokens: List<&2,P.Token>,+world: M.World) -> List<&2,U32>:
   match tokens:
+    case Nil{}: Nil{}
+    case +token <> rest:
+      waiting_keep(waiting_end(world,token),P.id(token),waiting_ids(rest,world))
+def wait_rank(ids: List<&2,U32>,+id: U32) -> U32:
+  match ids:
     case Nil{}: 0
-    case Con{+head,tail}: (Bool.to_u32(waiting_end(world,head) && (P.id(head) < P.id(token) : U32)) + wait_rank(tail,world,token) : U32)
+    case head <> tail: (Bool.to_u32((head < id : U32)) + wait_rank(tail,id) : U32)
+def is_waiting(ids: List<&2,U32>,+id: U32) -> Bool:
+  match ids:
+    case Nil{}: False{}
+    case head <> tail: Bool.or(U32.is_eq(head,id),is_waiting(tail,id))
 
 # Authored monster silhouettes. Road9x12 cells scaled2; interior7x8.
 def sprite_cell(on: Bool,+x: U32,+y: U32,+size: U32,color: U32,+outline: Bool,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
@@ -437,8 +460,8 @@ def monster_at(+x: U32,+y: U32,small: Bool,+color: U32,+step: U32,rest: List<&2,
 def monster(+point: D.Point,small: Bool,color: U32,step: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   monster_at(D.px(point),D.py(point),small,color,step,rest)
 
-def wait_actor(+world: M.World,+token: P.Token,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +rank = wait_rank(P.tokens(world),world,token)
+def wait_actor(+world: M.World,+token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +rank = wait_rank(ids,P.id(token))
   +center = D.center(M.layout(world),5,0)
   +point: D.Point = D.Point{(U32.sub(D.px(center),21) + rank % 4 * 14 : U32),(U32.sub(D.py(center),15) + rank / 4 * 10 : U32)}
   monster(point,True{},phase_color(5),0,rest)
@@ -451,35 +474,32 @@ def actor_unit(+world: M.World,+token: P.Token,rest: List<&2,F.Rect>) -> List<&2
   F.text("U" ++ U32.show(P.id(token)) ++ Bool.pick(String,small,""," E" ++ U32.show(P.family(token))),label_x,label_y,1,16777215,
     monster(point,small,phase_color(P.phase(token)),((M.time(world) / 8 + P.id(token)) % 2 : U32),rest))
 
-def waiting_actor(on: Bool,+world: M.World,+token: P.Token,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def waiting_actor(on: Bool,+world: M.World,+token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case False{}: actor_unit(world,token,rest)
-    case True{}: wait_actor(world,token,rest)
+    case True{}: wait_actor(world,token,ids,rest)
 
-def actor_role(file: Bool,+world: M.World,+token: P.Token,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def actor_role(file: Bool,+world: M.World,+token: P.Token,+ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match file:
-    case False{}: waiting_actor(waiting_end(world,token),world,token,rest)
+    case False{}: waiting_actor(is_waiting(ids,P.id(token)),world,token,ids,rest)
     case True{}:
       +point = H.unit_point(world,token)
       F.text("FILE U" ++ U32.show(P.id(token)) ++ " E" ++ U32.show(P.family(token)),(D.px(point) + 8 : U32),D.py(point),1,12439239,
         F.put(U32.sub(D.px(point),2),U32.sub(D.py(point),3),5,7,12439239,rest))
 
-def actor(+world: M.World,+token: P.Token,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  actor_role(U32.is_eq(P.phase(token),1) && (P.parent_children(world,P.family(token)) > 0 : U32),world,token,rest)
+def actor(+world: M.World,+token: P.Token,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  actor_role(U32.is_eq(P.phase(token),1) && (P.parent_children(world,P.family(token)) > 0 : U32),world,token,ids,rest)
 
-def actors(tokens: List<&2,P.Token>, +world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def actors(tokens: List<&2,P.Token>, +world: M.World,+ids: List<&2,U32>, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match tokens:
     case Nil{}: rest
-    case Con{token,tail}: actor(world,token,actors(tail,world,rest))
+    case Con{token,tail}: actor(world,token,ids,actors(tail,world,ids,rest))
 
-def wait_count(tokens: List<&2,P.Token>,+world: M.World) -> U32:
-  match tokens:
-    case Nil{}: 0
-    case Con{token,tail}: (Bool.to_u32(waiting_end(world,token)) + wait_count(tail,world) : U32)
-
-def wait_label(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def wait_count(tokens: List<&2,P.Token>,world: M.World) -> U32:
+  M.number(List.length(&2,U32,waiting_ids(tokens,world)))
+def wait_label(+world: M.World,ids: List<&2,U32>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +point = D.center(M.layout(world),5,0)
-  F.text("WAIT SLOTS " ++ U32.show(wait_count(P.tokens(world),world)),U32.sub(D.px(point),32),(D.py(point) + 66 : U32),1,15758447,rest)
+  F.text("WAIT SLOTS " ++ U32.show(M.number(List.length(&2,U32,ids))),U32.sub(D.px(point),32),(D.py(point) + 66 : U32),1,15758447,rest)
 
 def output_hud(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   F.text("OUTPUT NEXT TARGET " ++ U32.show(O.batch_target(world)) ++ " / ITEM WORK " ++ U32.show(O.item_work(world)) ++ " TICKS",24,674,1,7449343,
@@ -488,8 +508,9 @@ def output_hud(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
         F.text("JEV RESERVED " ++ U32.show(P.requests(world)) ++ "/8   LEDGER " ++ U32.show(P.ledger_bytes(world)) ++ "/" ++ U32.show(P.ledger_byte_limit(world)) ++ "   BUILDING PRESSURE " ++ U32.show(H.building_pressure_bytes(world)),24,710,1,16768133,
           F.text("SAFE ROAD / FINITE INTERIOR ROUTES / BARS = SHARED HEALTH / DELIVERY IS NOT REPAIR",24,726,1,9170322,rest)))))
 
-def layout_scene(+layout: U32,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  wait_label(world,actors(P.tokens(world),world,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,rest))))))
+def layout_scene(+layout: U32,+world: M.World,+tokens: List<&2,P.Token>,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +ids = waiting_ids(tokens,world)
+  wait_label(world,ids,actors(tokens,world,ids,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,rest))))))
 
 def on_word(on: Bool) -> String:
   match on:
@@ -510,7 +531,8 @@ def wave_line(+world: M.World) -> String:
 
 def scene(+world: M.World) -> List<&2,F.Rect>:
   +preview = Preview.calculate(world)
-  +base = ghost(world,preview,F.text("SHOWING " ++ U32.show(U32.min(4,M.number(List.length(&2,P.Token,P.tokens(world))))) ++ " OF " ++ U32.show(M.number(List.length(&2,P.Token,P.tokens(world)))) ++ " LIVE UNITS",812,516,1,12439239,work_rows(P.tokens(world),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,[]))))))
+  +tokens = P.tokens(world)
+  +base = ghost(world,preview,F.text("SHOWING " ++ U32.show(U32.min(4,M.number(List.length(&2,P.Token,tokens)))) ++ " OF " ++ U32.show(M.number(List.length(&2,P.Token,tokens))) ++ " LIVE UNITS",812,516,1,12439239,work_rows(tokens,world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,tokens,[]))))))
   +header = frame(M.layout(world),F.text("1-7 TOWER / CLICK BUILD / U UPGRADE / SPACE PAUSE / N ENTER NEXT WAVE / A AUTO WAVES / R RESET / TAB MAP",24,742,1,16768133,base))
   F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
