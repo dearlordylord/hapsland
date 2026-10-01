@@ -113,7 +113,10 @@
     "Native IPC framing moved to a bounded UTF-8 adapter with explicit success/interruption listener cleanup and acknowledged physical close",
     "IPC connection and response fibers belong to resident IPC scope; listener stops before closing that scope; connection leases release only after native closure; retirement fiber belongs to parent runtime scope",
     "Ticket admission, lookup, retirement, partition retirement and retention compose named Effect operations over the shared Ref; deleted synchronous ticket commit/read bridges",
-    "Ticketed admission and final handoff lookup compose ticket Effects; competing same-nonce admissions publish one ticket and rejected admissions consume no generations"
+    "Ticketed admission and final handoff lookup compose ticket Effects; competing same-nonce admissions publish one ticket and rejected admissions consume no generations",
+    "Native executable and parser binding builds publish complete staged artifacts through rename instead of overwriting an inode that running processes may have mapped; failed builds preserve the previous artifact",
+    "Scratch native parser probe reproduces unsafe copy publication as SIGSEGV/SIGBUS; atomic replacement preserves old-reader ownership and completes parsing after 32 replacements of each binding",
+    "Retained sanitized server CPU/memory/event-loop diagnostics and reusable diagnostic setup; raw profiles are disposable and test limits stay unchanged"
   ],
   "verification": [
     {
@@ -1432,10 +1435,59 @@
       "exitCode": 0,
       "tests": 3,
       "limitation": "Full server suite is still unresolved; these are diagnostic passes"
+    },
+    {
+      "stage": "Native build publication and server gate",
+      "command": "Instrumented one-worker full server suite with unchanged limits",
+      "exitCode": 1,
+      "testsPassed": 79,
+      "testsFailed": 1,
+      "evidence": "server-suite-diagnostics.json",
+      "limitation": "Profiling overhead; saturated four-partition case exceeded existing 10000ms; timings are diagnostic only"
+    },
+    {
+      "stage": "Native build publication",
+      "command": "Native artifact inode preservation/failure cleanup tests",
+      "exitCode": 0,
+      "tests": 3
+    },
+    {
+      "stage": "Native build publication",
+      "command": "Scratch loaded binding overwrite versus atomic rename probe",
+      "exitCode": 0,
+      "evidence": [
+        "native-publication-probe-attempt.json",
+        "native-publication-probe.json"
+      ],
+      "observed": [
+        "Unsafe overwrite crashed with SIGSEGV then SIGBUS",
+        "Atomic publication completed both runs with no signal"
+      ],
+      "limitation": "Demonstrated mechanism; every historical crash and timing failure is not independently attributed"
+    },
+    {
+      "stage": "Native build publication",
+      "command": "Typecheck, build with target-host parser load probe, JS syntax checks and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Native build publication and ticket Effects",
+      "command": "Full server, five state suites and native artifact suite with one worker and unchanged timeouts",
+      "exitCode": 0,
+      "tests": 112,
+      "files": 7,
+      "limitation": "Local Linux arm64 pass; final full migration and cross-platform gates remain pending"
+    },
+    {
+      "stage": "Server diagnostics",
+      "command": "Retained diagnostic config/setup validation on one OpenCode IPC case with unchanged timeout",
+      "exitCode": 0,
+      "tests": 1,
+      "limitation": "Setup verification only; preceding seven-file 112-test run is the full local server/state result"
     }
   ],
   "next": [
-    "Investigate full server-suite varying timeout failures and intermittent native worker SIGSEGV without widening existing limits; state-stage diagnostic passes do not satisfy the final server gate",
+    "Finish deterministic scoped fixture controls and final full-suite validation; preserve historical varying timeouts and confirmed loaded-library overwrite reproduction without widening limits",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
     "Replace remaining synchronous domain commit/read bridges with service operations and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
@@ -1450,9 +1502,8 @@
     "Exploratory full suite had 1078 passes and one subsequently corrected test failure; final full suite/package/host/live gates remain pending",
     "Original workload now passes every unchanged budget with automatically observed peak 17625630 bytes (strict baseline 17807985). Deterministic workload reaches eight and passes all ownership fences. Physical-retirement shutdown latency comparison remains unproven because the fixed baseline shuts down before held callbacks complete; final full-migration reruns remain required.",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied",
-    "Intermittent Vitest server worker SIGSEGV recurred during this stage; isolated final suites passed, but root cause is unproven",
-    "Previous server-sampled peak figures can omit transient capture reservations; retain them as historical diagnostic evidence, not final peak-retention validation",
-    "Ticket Effect stage state checks pass, but full isolated server suite hit varying five-second timeouts; full server gate remains unresolved alongside intermittent native worker SIGSEGV"
+    "Loaded native library overwrite was reproduced as SIGSEGV/SIGBUS and fixed with atomic publication; the subsequent 112-test server/state/build suite passed. This does not attribute every historical crash or varying timeout, and final full-suite gates remain pending.",
+    "Previous server-sampled peak figures can omit transient capture reservations; retain them as historical diagnostic evidence, not final peak-retention validation"
   ],
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",

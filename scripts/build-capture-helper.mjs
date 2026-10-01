@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildNativeArtifact, copyNativeArtifact } from "./native-artifact.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const nativeDirectory = resolve(root, "native/prebuilt", `${process.platform}-${process.arch}`);
@@ -12,43 +13,46 @@ mkdirSync(nativeDirectory, { recursive: true, mode: 0o755 });
 
 if (process.platform === "darwin") {
   const captureOutput = resolve(nativeDirectory, "capture-open");
-  const capture = spawnSync("cc", ["-O2", "-std=c11", "-Wall", "-Wextra", resolve(root, "native/capture-open.c"), "-o", captureOutput], {
-    stdio: "inherit",
+  buildNativeArtifact(captureOutput, (stagedOutput) => {
+    const capture = spawnSync("cc", ["-O2", "-std=c11", "-Wall", "-Wextra", resolve(root, "native/capture-open.c"), "-o", stagedOutput], {
+      stdio: "inherit",
+    });
+    if (capture.error !== undefined || capture.status !== 0) {
+      throw new Error("macOS descriptor capture helper could not be built; install the Xcode Command Line Tools so cc is available");
+    }
   });
-  if (capture.error !== undefined || capture.status !== 0) {
-    throw new Error("macOS descriptor capture helper could not be built; install the Xcode Command Line Tools so cc is available");
-  }
-  chmodSync(captureOutput, 0o755);
   const credentialOutput = resolve(nativeDirectory, "credential-secret-service");
-  const credential = spawnSync("cc", [
-    "-O2", "-std=c11", "-Wall", "-Wextra",
-    resolve(root, "native/credential-keychain.c"),
-    "-framework", "Security", "-framework", "CoreFoundation",
-    "-o", credentialOutput,
-  ], { stdio: "inherit" });
-  if (credential.error !== undefined || credential.status !== 0) {
-    throw new Error("macOS Keychain credential helper could not be built; install the Xcode Command Line Tools so cc is available");
-  }
-  chmodSync(credentialOutput, 0o755);
+  buildNativeArtifact(credentialOutput, (stagedOutput) => {
+    const credential = spawnSync("cc", [
+      "-O2", "-std=c11", "-Wall", "-Wextra",
+      resolve(root, "native/credential-keychain.c"),
+      "-framework", "Security", "-framework", "CoreFoundation",
+      "-o", stagedOutput,
+    ], { stdio: "inherit" });
+    if (credential.error !== undefined || credential.status !== 0) {
+      throw new Error("macOS Keychain credential helper could not be built; install the Xcode Command Line Tools so cc is available");
+    }
+  });
 }
 
 if (process.platform === "linux") {
   const output = resolve(nativeDirectory, "credential-secret-service");
-  mkdirSync(dirname(output), { recursive: true, mode: 0o755 });
-  const flags = spawnSync("pkg-config", ["--cflags", "--libs", "libsecret-1"], { encoding: "utf8" });
-  if (flags.error !== undefined || flags.status !== 0) {
-    throw new Error("Linux Secret Service credential support requires the libsecret development package and pkg-config");
-  }
-  const result = spawnSync("cc", [
-    "-O2", "-std=c11", "-Wall", "-Wextra",
-    resolve(root, "native/credential-secret-service.c"),
-    "-o", output,
-    ...flags.stdout.trim().split(/\s+/),
-  ], { stdio: "inherit" });
-  if (result.error !== undefined || result.status !== 0) {
-    throw new Error("Linux Secret Service credential helper could not be built");
-  }
-  chmodSync(output, 0o755);
+  buildNativeArtifact(output, (stagedOutput) => {
+    mkdirSync(dirname(output), { recursive: true, mode: 0o755 });
+    const flags = spawnSync("pkg-config", ["--cflags", "--libs", "libsecret-1"], { encoding: "utf8" });
+    if (flags.error !== undefined || flags.status !== 0) {
+      throw new Error("Linux Secret Service credential support requires the libsecret development package and pkg-config");
+    }
+    const result = spawnSync("cc", [
+      "-O2", "-std=c11", "-Wall", "-Wextra",
+      resolve(root, "native/credential-secret-service.c"),
+      "-o", stagedOutput,
+      ...flags.stdout.trim().split(/\s+/),
+    ], { stdio: "inherit" });
+    if (result.error !== undefined || result.status !== 0) {
+      throw new Error("Linux Secret Service credential helper could not be built");
+    }
+  });
 }
 
 const parserBindings = [
@@ -79,8 +83,7 @@ for (const binding of parserBindings) {
   if (source === undefined) throw new Error(`release build is missing the ${binding.packageName} native binding`);
   const output = resolve(nativeDirectory, binding.packageName, "build/Release", binding.localBuild);
   mkdirSync(dirname(output), { recursive: true, mode: 0o755 });
-  copyFileSync(source, output);
-  chmodSync(output, 0o755);
+  copyNativeArtifact(source, output);
 }
 
 const parserProbe = spawnSync(process.execPath, ["-e",
