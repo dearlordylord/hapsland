@@ -197,7 +197,6 @@ p { line-height: 1.5; }
 .ensemble-heading h2 { font-size: 1.75rem; letter-spacing: -.035em; margin-bottom: 6px; }
 .ensemble-heading p:not(.eyebrow) { margin: 0; font-size: .88rem; color: #62718a; }
 .ensemble-heading .eyebrow { color: #657998; font-size: .65rem; }
-.ensemble-dimension { white-space: nowrap; font-family: ui-monospace, monospace; font-size: .8rem; border: 1px solid #cbd8e9; padding: 10px 14px; border-radius: 8px; color: #4a6488; }
 .ensemble-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; padding: 15px 28px; background: #fff; border-top: 1px solid #edf1f7; }
 .ensemble-start { display: flex; align-items: center; gap: 10px; }
 .ensemble-start label { display: flex; gap: 8px; align-items: center; font-weight: 600; font-size: .85rem; }
@@ -255,7 +254,7 @@ p { line-height: 1.5; }
   .is-flat .ensemble-scene { margin-left: 20px; }
 }
 @media (max-width: 650px) {
-  .ensemble-heading, .ensemble-toolbar { padding: 18px 16px; }.ensemble-heading h2 { font-size: 1.35rem; }.ensemble-dimension { display: none; }
+  .ensemble-heading, .ensemble-toolbar { padding: 18px 16px; }.ensemble-heading h2 { font-size: 1.35rem; }
   .ensemble-layout { display: flex; flex-direction: column; }.ensemble-agents { display: flex; flex-wrap: wrap; gap: 8px; border-right: 0; border-bottom: 1px solid #dde6f2; }
   .ensemble-sidebar-label, .ensemble-scope { display: none; }.ensemble-agent { width: calc(50% - 4px); margin: 0; }
   .ensemble-camera, .ensemble-resource-key { padding-inline: 16px; }.ensemble-camera { gap: 12px; }.ensemble-camera label { width: 45%; justify-content: space-between; }.ensemble-camera input { width: 75px; }

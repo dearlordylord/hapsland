@@ -111,7 +111,6 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
       h.div([h.Class("ensemble-heading")], [
         h.div([], [h.p([h.Class("eyebrow")], ["MONKEY BUSINESS / MULTI-AGENT"]), h.h2([], ["One system. Independent agents."]),
           h.p([], ["Each plane is the same system diagram, driven by its own seeded event stream."])]),
-        h.span([h.Class("ensemble-dimension")], ["Z = agents"]),
       ]),
       h.div([h.Class("ensemble-toolbar")], [
         h.form([h.OnSubmit(action("fleet:start")), h.Class("ensemble-start")], [h.label([], ["Agents",
