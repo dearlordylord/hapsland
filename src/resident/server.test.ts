@@ -1,6 +1,6 @@
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { monotonicNow } from "./hook-clock.ts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as Effect from "effect/Effect";
 import * as Deferred from "effect/Deferred";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -802,6 +802,10 @@ describe("resident delivery lease", () => {
         root, advicee: observation.advicee, token: "old-stop" })).toEqual({ status: "advanced" });
       await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "old-stop", close: true });
+      // Round closure fences starts through the next millisecond. Establish
+      // that this successor starts beyond that fence, independent of speed.
+      const closedBy = monotonicNow();
+      await vi.waitUntil(() => monotonicNow() > closedBy + 1, { interval: 1, timeout: 1000 });
       const successor = { ...observation, advicee: { ...observation.advicee, toolUseId: "successor-edit" } };
       expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: successor.advicee, startedAt: monotonicNow() })).toEqual({ status: "advanced" });

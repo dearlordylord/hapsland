@@ -1,3 +1,4 @@
+import { captureWorkspaceBytes, analysisWorkspaceBytes } from "./preparation-workspace.ts";
 import { makeResidentRuntimeConfiguration } from "./runtime-configuration.ts";
 import type { Advice } from "./advice-records.ts";
 import type { PendingNoticeSnapshot as PendingNotice } from "./notice-records.ts";
@@ -35,9 +36,7 @@ import {
 } from "../direct-event/pipeline.ts";
 import { verifyObservationRoot } from "../direct-event/adapter.ts";
 import type { PreparedUnit } from "../direct-event/model.ts";
-import { MAX_TYPE_DECLARATIONS } from "../direct-event/analyzer.ts";
-import type { AnalyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
-import { captureStable, MAX_SOURCE_BYTES } from "../direct-event/capture.ts";
+import { captureStable } from "../direct-event/capture.ts";
 import { resolvedDirectFilePolicy, selectedByDirectFilePolicy } from "../direct-event/selection.ts";
 import { admitReview } from "../configuration/decision.ts";
 import { liveLayer as jevDecisionModelLiveLayer } from "../jev-decision.ts";
@@ -144,28 +143,6 @@ const RESIDENT_IDLE_CHECK_MS = 20_000;
 const VIRTUAL_ROUND_QUIET_CHECK_MS = 20_000;
 export const OPERATIONAL_NOTICE_COOLDOWN_MS = 60_000;
 export const MAX_OPERATIONAL_NOTICE_KEYS = 64;
-/** Covers bounded dual capture buffers/text plus declaration-count preflight payload. */
-const CAPTURE_WORKSPACE_BYTES = 8 * MAX_SOURCE_BYTES;
-/** Includes retained supporting parse facts under the 1.5 MiB graph read ceiling. */
-const IMPORT_GRAPH_WORKSPACE_BYTES = 8 * 1024 * 1024;
-
-const captureWorkspaceBytes = (path: string): number =>
-  CAPTURE_WORKSPACE_BYTES + MAX_TYPE_DECLARATIONS * (logicalBytes(path) + 512);
-
-const analysisWorkspaceBytes = (
-  path: string,
-  sourceBytes: number,
-  preflight: AnalyzerMaterializationPreflight | undefined,
-  rules: unknown,
-): number => {
-  const declarations = preflight?.declarations ?? MAX_TYPE_DECLARATIONS;
-  return captureWorkspaceBytes(path) +
-    (preflight?.hasImports ? IMPORT_GRAPH_WORKSPACE_BYTES : 0) +
-    (preflight?.expandedUnitBytes ?? MAX_TYPE_DECLARATIONS * MAX_SOURCE_BYTES) +
-    declarations * (
-      logicalBytes(rules) + sourceBytes + 4 * logicalBytes(path) + 4096
-    );
-};
 
 const ResidentControlledOptions = Schema.Struct({
   answers: Schema.optionalKey(Schema.Record(

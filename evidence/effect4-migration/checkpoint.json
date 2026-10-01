@@ -100,7 +100,10 @@
     "Resident diagnostics and source-free subprocess observation configuration acquire immutable values through Effect Config; production resident has no process.env reads",
     "Client dispatch credentials, credential metadata path and demo budget path use the supplied ConfigProvider; credential remains Redacted until constructing the authorized IPC dispatch context",
     "Configuration boundary checks reject restored resident environment reads and unredacted client credential configuration",
-    "Registered canonical states and validated projections are deeply immutable; weak identity memoization reuses numeric projections without retaining state ownership or skipping validation of new Bend results"
+    "Registered canonical states and validated projections are deeply immutable; weak identity memoization reuses numeric projections without retaining state ownership or skipping validation of new Bend results",
+    "Purpose-specific diagnostic isolates retention difference to preparation resizing, with matching review and admission charges",
+    "Stable analysis workspace uses measured source size; unknown capture preserves maximum-source bound, verified by 400 generated cases",
+    "Successor-round fixture waits beyond explicit one-millisecond closure fence"
   ],
   "verification": [
     {
@@ -1193,22 +1196,42 @@
       "evidence": "benchmark-projection-comparison.json",
       "budgetsMet": false,
       "limitation": "All latency and RSS budgets pass; peak logical retention remains 26052 bytes above baseline, and ordinary workload reaches seven active effects. No final migration acceptance."
+    },
+    {
+      "stage": "Measured preparation workspace",
+      "command": "Preparation properties, server, composed delivery and Jev request suites",
+      "exitCode": 0,
+      "tests": 144,
+      "files": 4
+    },
+    {
+      "stage": "Measured preparation workspace",
+      "command": "Typecheck; build and all boundary scripts before fixture-only clock coordination",
+      "exitCode": 0
+    },
+    {
+      "stage": "Measured preparation workspace",
+      "command": "Unchanged original benchmark",
+      "exitCode": 0,
+      "evidence": "benchmark-measured-workspace-comparison.json",
+      "budgetsMet": false,
+      "limitation": "Retention passes at 15554794 bytes; Stop, saturation and event-loop latency fail; five active effects reached"
     }
   ],
   "next": [
-    "Investigate the remaining strict peak-retention regression with purpose-specific baseline/current traces; add the deterministic eight-effect physical-retirement workload and preserve prior measurements",
+    "Investigate current Stop/saturation/event-loop failures; add deterministic eight-effect physical-retirement workload and preserve prior measurements",
     "Compose remaining round closure/cutoff, quiet sweeping and collection work-state helpers as named Effects; remove their internal synchronous dispatcher bridges and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",
-    "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
+    "Demonstrate eight-effect saturation and physical retirement, then rerun strict original performance budgets"
   ],
   "limitations": [
     "Shared state owns lifecycle and statistics; native IPC handles and mutable per-job callback metadata remain executor resources, and intermediate synchronous domain bridges still need removal",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "Exploratory full suite had 1078 passes and one subsequently corrected test failure; final full suite/package/host/live gates remain pending",
-    "Post-memoization benchmark passes latency and RSS budgets but exceeds strict peak retention by 26052 bytes; ordinary workload reaches seven effects, and final deterministic physical-retirement benchmark remains required",
+    "Measured-source preparation passes strict retention at 15554794 bytes, but current Stop/saturation/event-loop budgets fail and five active effects reached; deterministic physical-retirement benchmark remains required",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied"
   ],
   "cleanup": {
