@@ -1,14 +1,13 @@
-import { dirname, extname, isAbsolute, join, normalize, relative, sep } from "node:path";
+import { dirname, isAbsolute, join, normalize, sep } from "node:path";
 import { lstat } from "node:fs/promises";
 import * as Effect from "effect/Effect";
 import { initialImportGraph, permitLocalGraphFacts, projectImportGraph, stepImportGraph, type ImportGraphCommand } from "../canonical/graph-adapter.ts";
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-limits.ts";
-import { inspectGraphFile, type GraphDeclaration, type GraphFile } from "./analyzer.ts";
-import { analyzeFunctionFile } from "./function-analyzer.ts";
-import { resolveRustModuleContext } from "./rust-module-context.ts";
-import { captureStable, type CaptureHooks, type StableCapture } from "./capture.ts";
-import type { ArtifactReference, PhysicalRootIdentity, ReviewArtifact, ReviewNode, ReviewUnit } from "./model.ts";
-import { eligibleNamedPath, type DirectFilePolicy } from "./selection.ts";
+import { languageForPath } from "./languages/registry.ts";
+import type { GraphFacts, LanguageGraphHost } from "./languages/contracts.ts";
+import { captureStable, type StableCapture } from "./capture.ts";
+import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit } from "./model.ts";
+import { eligibleNamedPath } from "./selection.ts";
 
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] };
 type Pending = { readonly owner: MutableNode; readonly index: number; readonly from: string; readonly symbol: string; readonly importPath: string; readonly name: string; readonly depth: number; readonly expectedKind?: "type" | "function" };
@@ -23,31 +22,11 @@ type LocalBudget = {
   graphWork: number;
   maxDepth: number;
 };
-type FactReference = { readonly kind: "named" | "unsupported"; readonly name: string; readonly expectedKind?: "type" | "function" };
-type FactFile = {
-  readonly declarations: ReadonlyMap<string, { readonly artifact: ReviewArtifact; readonly references: ReadonlyArray<FactReference>; readonly exported: boolean }>;
-  readonly imports: ReadonlyMap<string, { readonly path: string; readonly name: string; readonly typeOnly?: boolean }>;
-  readonly kindAware?: boolean;
-};
+type FactFile = GraphFacts;
 const factKey = (file: FactFile, name: string, expected: "type" | "function" | undefined): string =>
   file.kindAware ? `${expected ?? "function"}:${name}` : name;
 const declarationFor = (file: FactFile, name: string, expected: "type" | "function" | undefined) =>
   file.declarations.get(factKey(file, name, expected));
-const inspectFunctionGraphFile = (path: string, source: string): FactFile | undefined => {
-  const file = analyzeFunctionFile(path, source);
-  if (file === undefined) return undefined;
-  const declarations = new Map<string, { artifact: ReviewArtifact; references: ReadonlyArray<FactReference>; exported: boolean }>();
-  for (const fact of [...file.types.values(), ...file.functions.values()]) {
-    declarations.set(`${fact.artifact.kind === "function" ? "function" : "type"}:${fact.artifact.name}`, { artifact: fact.artifact, exported: fact.exported,
-      references: fact.references.map((reference) => ({
-        kind: reference.kind === "unsupported" ? "unsupported" : "named",
-        name: reference.name,
-        ...(reference.kind === "named-function" ? { expectedKind: "function" as const } :
-          reference.kind === "named-type" ? { expectedKind: "type" as const } : {}),
-      })) });
-  }
-  return { declarations, imports: file.imports, kindAware: true };
-};
 const correctKind = (artifact: ReviewArtifact, expected: "type" | "function" | undefined): boolean =>
   expected === undefined || (expected === "function" ? artifact.kind === "function" : artifact.kind !== "function");
 export const GRAPH_ANALYSIS_DEADLINE_MS = 5_000;
@@ -55,7 +34,6 @@ export const MAX_OBSERVATION_GRAPH_FILES = 64;
 export const MAX_OBSERVATION_GRAPH_READ_BYTES = 16 * 1024 * 1024;
 export const MAX_OBSERVATION_GRAPH_UNITS = 64;
 const bytes = (value: unknown): number => Buffer.byteLength(JSON.stringify(value), "utf8");
-const sourceExtensions = [".ts", ".tsx", ".mts", ".cts"] as const;
 const mayCaptureForObservation = (captures: ReadonlyMap<string, StableCapture>, path: string): boolean =>
   captures.has(path) || (captures.size < MAX_OBSERVATION_GRAPH_FILES &&
     [...captures.values()].reduce((sum, source) => sum + source.byteLength, 0) + GRAPH_LIMIT_CEILINGS.sourceBytes <=
@@ -130,18 +108,7 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
   return { node, pending };
 };
 
-export type GraphResolveContext = {
-  readonly branch?: "type" | "function";
-  readonly root: string;
-  readonly rootIdentity: PhysicalRootIdentity;
-  readonly policy: DirectFilePolicy;
-  readonly limits?: GraphLimits;
-  readonly captureHooks?: CaptureHooks;
-  readonly captureSource?: typeof captureStable;
-  /** One preparation invocation shares stable supporting snapshots across roots. */
-  readonly captureCache?: Map<string, StableCapture>;
-  readonly now?: () => number;
-};
+export type GraphResolveContext = LanguageGraphHost;
 
 /** Run one finite, source-free Bend graph per named edited root. */
 export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(function* (
@@ -151,21 +118,18 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   context: GraphResolveContext,
 ) {
   let limits = context.limits ?? GRAPH_LIMIT_CEILINGS;
-  const inspect = context.branch === "function" ? inspectFunctionGraphFile : inspectGraphFile;
   const now = context.now ?? (() => performance.now());
   const started = now();
   const expired = () => now() - started >= GRAPH_ANALYSIS_DEADLINE_MS;
-  let dependencies: readonly string[] = [];
-  let rustOptions: import("./analyzer.ts").GraphInspectionOptions | undefined;
-  if (extname(rootPath).toLowerCase() === ".rs" && /\b(?:use|mod)\b|::/u.test(rootCapture.text)) {
-    const binding = yield* resolveRustModuleContext(rootPath, rootCapture, context, limits, expired);
-    dependencies = binding.dependencies;
-    rustOptions = binding.options;
-    limits = binding.remaining;
-    if (limits.files < 1 || limits.work < 1 || limits.readBytes < limits.sourceBytes || expired()) return undefined;
-  }
-  const rootFile = context.branch === "function" ? inspect(rootPath, rootCapture.text)
-    : inspectGraphFile(rootPath, rootCapture.text, rustOptions);
+  const language = languageForPath(rootPath);
+  if (language === undefined) return undefined;
+  const binding = yield* language.prepareGraph(rootPath, rootCapture, context, limits, expired);
+  if (binding === undefined) return undefined;
+  const { session, dependencies } = binding;
+  limits = binding.limits;
+  if (limits.files < 1 || limits.work < 1 || limits.readBytes < rootCapture.byteLength || expired()) return undefined;
+  const branch = context.branch ?? "type";
+  const rootFile = session.inspect(rootPath, rootCapture.text, branch);
   if (rootFile === undefined) return undefined;
   const rootDeclaration = declarationFor(rootFile, name, context.branch === "function" ? "function" : undefined);
   if (rootDeclaration === undefined) return undefined;
@@ -217,19 +181,9 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
         command = transition.command;
         continue;
       }
-      // Resolve within the source language; a shared extractor never permits
-      // TypeScript imports to read Rust/Bend, or vice versa.
-      const extension = extname(base).toLowerCase();
-      const language = extname(edge.from).toLowerCase();
-      const choices = language === ".rs"
-        ? extension === "" ? [`${base}.rs`, join(base, "mod.rs")] : []
-        : language === ".bend"
-          ? extension === ".bend" ? [base] : []
-          : extension === "" ? sourceExtensions.map((candidate) => `${base}${candidate}`)
-            : extension === ".js" ? [base.slice(0, -3) + ".ts", base.slice(0, -3) + ".tsx"]
-            : extension === ".mjs" ? [base.slice(0, -4) + ".mts"]
-            : extension === ".cjs" ? [base.slice(0, -4) + ".cts"]
-            : sourceExtensions.some((candidate) => candidate === extension) ? [base] : [];
+      // The adapter supplies language binding candidates. The shared host
+      // owns containment, eligibility, capture, and graph transitions.
+      const choices = session.importCandidates(edge.from, edge.importPath);
       if (choices.length === 0) {
         transition = stepImportGraph(state, { kind: "resolved", target: nextTargetId++, result: "unsupported" });
         state = transition.state;
@@ -238,6 +192,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
       }
       const existing: string[] = [];
       for (const choice of choices) {
+        if (choice === ".." || choice.startsWith(`..${sep}`) || isAbsolute(choice)) continue;
         const status = yield* Effect.promise(() => lstat(join(context.root, choice)).catch(() => undefined));
         if (status?.isFile()) existing.push(choice);
       }
@@ -296,12 +251,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
         } else {
           const localWorkBefore = budget.work;
           budget.graphWork = projectImportGraph(state).work - budget.work;
-          const file = extname(selected.relativePath).toLowerCase() === ".rs"
-            ? inspectGraphFile(selected.relativePath, source.text, { rustExternalModule: true,
-              ...(rustOptions?.rustCrateModules === undefined ? {} : { rustCrateModules: new Map(
-                [...rustOptions.rustCrateModules].map(([name, target]) => [name,
-                  relative(dirname(selected.relativePath), join(dirname(rootPath), target)) || "."])) }) })
-            : inspect(selected.relativePath, source.text);
+          const file = session.inspect(selected.relativePath, source.text, branch);
           const declaration = file === undefined ? undefined : declarationFor(file, target.name, target.edge.expectedKind);
           if (file === undefined || declaration === undefined || !declaration.exported ||
             !correctKind(declaration.artifact, target.edge.expectedKind)) {

@@ -2,6 +2,7 @@ import { accessSync, constants, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeTypeFile } from "../direct-event/analyzer.ts";
+import { registeredLanguages } from "../direct-event/languages/registry.ts";
 import { inspectResident } from "../resident/client.ts";
 import {
   previewCodexInstallation,
@@ -58,11 +59,11 @@ export const diagnoseInstalledIntegration = async (options: {
     : { stage: "package", status: "ready", observed: { declaration: "package-runtime.json", packageRoot } });
 
   try {
-    const parser = analyzeTypeFile("doctor.ts", "export interface DoctorProbe { ready: boolean }");
-    const rustParser = analyzeTypeFile("doctor.rs", "struct DoctorProbe { ready: bool }");
-    checks.push(parser.status === "analyzed" && rustParser.status === "analyzed"
+    const observed = Object.fromEntries(registeredLanguages.map((language) => [language.id,
+      analyzeTypeFile(language.probe.path, language.probe.source).status]));
+    checks.push(Object.values(observed).every((status) => status === "analyzed")
       ? { stage: "parser", status: "ready", observed: "loaded-and-analyzed" }
-      : { stage: "parser", status: "unsupported", observed: { typescript: parser.status, rust: rustParser.status }, action: "reinstall the package for this exact OS and architecture" });
+      : { stage: "parser", status: "unsupported", observed, action: "reinstall the package for this exact OS and architecture" });
   } catch {
     checks.push({ stage: "parser", status: "missing", observed: "load-failed", action: "reinstall a release archive containing compatible parser bindings for this platform" });
   }

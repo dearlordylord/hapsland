@@ -1,6 +1,7 @@
+import {inspectRust as inspectGraphFile,inspectRustModules} from "./languages/rust.ts";
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { analyzeTypeFile, combinedAnalyzerMaterializationPreflight, inspectGraphFile, inspectRustModules, MAX_TYPE_DECLARATIONS } from "./analyzer.ts";
+import { analyzeTypeFile, combinedAnalyzerMaterializationPreflight, MAX_TYPE_DECLARATIONS } from "./analyzer.ts";
 
 const units = (source: string) => {
   const result = analyzeTypeFile("src/model.rs", source);
@@ -52,7 +53,7 @@ describe("bounded Rust type extraction", () => {
       const conflicted = inspectGraphFile("src/custom.rs", `${source} struct ${alias};`, { rustCrateRoot: true });
       expect(conflicted?.imports.size).toBe(0);
       expect(conflicted?.declarations.get("Root")?.references.some((reference) => reference.kind === "unsupported")).toBe(true);
-    }), { numRuns: 100 });
+    }), { numRuns: 1000, examples: [[[9996, 8555, 5665]]] });
   });
 
   it("requires an established Cargo role even for conventional filenames", () => {

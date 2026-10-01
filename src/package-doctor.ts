@@ -136,10 +136,14 @@ if (process.platform === "darwin") {
 
 try {
   const { analyzeTypeFile } = await import("./direct-event/analyzer.ts");
-  const parser = analyzeTypeFile("doctor.ts", "export interface Doctor { ready: boolean }");
-  add("parser", parser.status === "analyzed", parser.status, "packaged TypeScript parser loads and analyzes", "reinstall the package for this exact OS/architecture; verify tree-sitter runtime dependencies were installed");
-  const rustParser = analyzeTypeFile("doctor.rs", "struct Doctor { ready: bool }");
-  add("parser-rust", rustParser.status === "analyzed", rustParser.status, "packaged Rust parser loads and analyzes", "reinstall the package for this exact OS/architecture; verify tree-sitter runtime dependencies were installed");
+  const { registeredLanguages } = await import("./direct-event/languages/registry.ts");
+  for (const language of registeredLanguages) {
+    const parsed = analyzeTypeFile(language.probe.path, language.probe.source);
+    add(language.id === "typescript" ? "parser" : `parser-${language.id}`,
+      parsed.status === "analyzed", parsed.status,
+      `packaged ${language.displayName} parser loads and analyzes`,
+      "reinstall the package for this exact OS/architecture; verify parser dependencies were installed");
+  }
 } catch (cause) {
   const code = typeof cause === "object" && cause !== null && "code" in cause ? String(cause.code) : "load-failed";
   add("parser", false, code, "packaged TypeScript parser loads and analyzes", "reinstall a release archive containing compatible parser bindings for this platform");

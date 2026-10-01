@@ -84,6 +84,19 @@ Selections are deduplicated by canonical path, branch, root identity, and captur
 snapshot within the event. Selection must not infer a complete change set from a
 partial or unstable capture.
 
+## Source-language adapter boundary
+
+Source-language support stays at cohesive adapters, including TypeScript.
+Adapters own grammar setup, syntax extraction, name-binding context, and import
+candidate conventions. The shared analysis and traversal host consumes common
+artifact, reference, visibility, and location facts. Language context remains
+inside adapter sessions; generic traversal does not carry Rust-specific flags,
+interpret Cargo manifests, or select TS/TSX grammars. A static registry selects
+supported adapters and supplies their offline parser probes. Shared selection,
+stable capture, canonical graph budgets, rule admission, freshness, rendering,
+and backend dispatch remain product responsibilities. This boundary does not
+expand supported syntax, external crates, Bend hub imports, or ambiguous binding.
+
 ## Branch contracts
 
 For advisory lessons and a reusable validation workflow for future languages, see
