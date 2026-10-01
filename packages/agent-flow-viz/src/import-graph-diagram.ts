@@ -2,14 +2,14 @@ import type { HtmlBuilder } from "foldkit/html";
 import type { ImportGraphCommand, ImportGraphEvent, ImportGraphProjection } from "../../agent-flow-bend/import-graph-adapter";
 
 export type ImportGraphStage = "resolve" | "gate" | "capture" | "expand" | "complete" | "incomplete";
-type HistoryStep = { readonly unit: number; readonly event: ImportGraphEvent; readonly command: ImportGraphCommand; readonly state: ImportGraphProjection };
-type FileNode = { readonly target: number; readonly status: "captured" | "discovered" | "read requested" | "blocked"; readonly reason?: string; readonly sourceBytes?: number; readonly treeBytes?: number; readonly sizeAccepted?: boolean; readonly acceptedTotal?: number };
-type FileEdge = { readonly id: number; readonly from: number; to?: number; reason?: string; visited?: boolean };
-type UnitGraph = { readonly nodes: Map<number, FileNode>; readonly edges: Map<number, FileEdge>; root?: number; resolving?: number; checking?: number; reading?: number };
+export type HistoryStep = { readonly unit: number; readonly event: ImportGraphEvent; readonly command: ImportGraphCommand; readonly state: ImportGraphProjection };
+export type FileNode = { readonly target: number; readonly status: "captured" | "discovered" | "read requested" | "blocked"; readonly reason?: string; readonly sourceBytes?: number; readonly treeBytes?: number; readonly sizeAccepted?: boolean; readonly acceptedTotal?: number };
+export type FileEdge = { readonly id: number; readonly from: number; to?: number; reason?: string; visited?: boolean };
+export type UnitGraph = { readonly nodes: Map<number, FileNode>; readonly edges: Map<number, FileEdge>; root?: number; resolving?: number; checking?: number; reading?: number };
 
 // This is a display projection of native scenario facts and compiled Bend results.
 // It never decides whether to follow, capture, or complete an import.
-const projectFileGraphs = (unitCount: number, history: readonly HistoryStep[]): UnitGraph[] => {
+export const projectFileGraphs = (unitCount: number, history: readonly HistoryStep[]): UnitGraph[] => {
   const graphs: UnitGraph[] = Array.from({ length: unitCount }, () => ({ nodes: new Map(), edges: new Map() }));
   for (const step of history) {
     const graph = graphs[step.unit];
