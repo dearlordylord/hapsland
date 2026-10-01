@@ -59,9 +59,24 @@ omissions. Defs and laws also share the datatype namespace; a competing binding
 cannot disappear into a set of names. Qualified defs such as `T.show` must not
 be mistaken for a conflicting bare `T`.
 
+Cross-file Bend evidence adds a separate binding question: compiler import
+resolution rewrites the first dotted name segment, not an arbitrary text suffix.
+Relative aliases and nested generic payloads must preserve the written alias
+while resolving the target declaration. Generic or field binders can shadow
+that segment; unsupported hub imports must not become local reads. The shared
+resolver still owns capture eligibility, finite traversal, and freshness.
+A new language needs its compiler's binding rules before enabling modules;
+parser applicability alone never authorizes cross-language import resolution.
+An alias can also collide with a prelude namespace: Bend's `Word.Nil`
+counterexample required refusing assumed imported closure, not merely checking
+local shadowing. Static evidence cycles must terminate, but their bounded
+traversal does not prove compiler import-cycle loadability.
+
 The [extraction tests](../src/direct-event/bend-analyzer.test.ts) and
 [pipeline tests](../src/direct-event/bend-pipeline.test.ts) establish this
-bounded implementation. The [paired record](../evidence/bend-support/paired-designs.json)
+bounded implementation, including relative alias traversal and security/freshness
+gates. The retained live and package records below predate the cross-file
+amendment; they do not validate its new scope. The [paired record](../evidence/bend-support/paired-designs.json)
 adds one six-request payment-state contrast. The [compiler record](../evidence/bend-support/compiler-fixtures.json)
 checks the synthetic declarations, valid constructors, and forbidden constructor
 arities. Neither establishes proof correctness, general review accuracy, or

@@ -12,15 +12,19 @@ This change adds explicit top-level Bend 2 datatypes to the existing type-shape
 v1 pipeline. The concrete kind is `datatype`. It uses a small TypeScript surface
 extractor, requiring no new dependency, native grammar binary, or Bend executable
 in the installed product. Runtime extraction never executes edited source,
-fetches packages, or loads imports. Functions, laws, proofs, module resolution,
-and dependent/computed types are deferred. The active contract states the exact
+fetches packages, or executes imports. The shared resolver captures selected
+relative `.bend` supporting files through leading explicit alias imports,
+including transitive references. Functions, laws, proofs, hub/bare/absolute
+imports, and dependent/computed types are deferred. The active contract states the exact
 header, constructor, indentation, parameter, and type-expression profile.
 
 Local primary sources inspected:
 
 - Bend checkout `/workspace/bend/bend`, commit
   `1adb0a61916b95de79d3541537462d0bf625f9d3`: `bend2/bend.ts`, especially
-  `book_load`, `parse_book`, `parse_fresh`, and the grammar comments; also
+  `book_load` (lines 952–1015: leading imports, plain paths, unique aliases),
+  `parse_reso` (1667–1679: first dotted segment resolution), `parse_fresh`
+  (2419–2426: local binding conflicts), `parse_book`, and grammar comments; also
   `bend2/base.bend` and `bend guide`.
 - `bend-idea` checkout `/workspace/formal-proofs/bend-idea`, commit
   `67659f5fd5faf03e0fe00cd3d87217f2ece783c7`: its
@@ -45,6 +49,31 @@ or establish the installed user's compiler version. `List`, `Maybe`, `Result`,
 and `Array` are composite supporting evidence, not free wrappers. Applications
 still traverse their type arguments and same-file declarations. Future expansion
 must explicitly decide how imported library evidence is captured and refreshed.
+
+Explicit relative alias imports now supply selected repository source rather
+than free builtin assumptions. `R.Receipt` preserves its written reference
+identity and resolves the target name `Receipt` in the imported file. The
+compiler uses the first dotted segment as the alias; a longest-suffix or global
+text-name search would manufacture bindings. Duplicate aliases and local
+binding/constructor conflicts reject the file; parameter and earlier-field
+shadowing retain omissions. Independent review also found `import Base` plus
+an alias `Word` and reference `Word.Nil`: both Base and the aliased module can
+bind the written name. The extractor now refuses closure for aliases matching
+the inspected Base type/def/law/constructor namespace prefixes in either import
+order; those qualified references cannot trigger an imported capture. A bare
+builtin spelling that is an alias is not erased as a leaf. This name-only
+refusal set is tied to the source revision above and requires review on Base
+profile changes; it does not claim support for arbitrary compiler versions.
+Hub, bare, absolute, and cross-language imports
+cannot supply evidence. This scope intentionally narrows the compiler's loader.
+
+Traversal uses the existing file/read/work/depth/tree ceilings. Selection,
+containment, exclusions, Git-ignore, and symlink checks occur before supporting
+source reads. Stable supporting captures are reused across changed roots,
+static evidence cycles terminate, and source or import-binding changes invalidate prepared
+evidence. Terminating static reference traversal does not establish compiler
+loadability of import cycles. Importing a datatype does not turn it into an
+edited root.
 
 Bend types can be terms. `Word(32n)`, quantity-dependent `Kind(a)`, dependent
 field references, equalities, and binder-bearing function types cannot be made
@@ -72,7 +101,15 @@ closure, parameters, Base assumptions and shadowing, exact source/ranges,
 ambiguous names, unsupported syntax, cycles, and shared declaration/reference
 budgets. [Pipeline tests](../src/direct-event/bend-pipeline.test.ts) cover Add and
 Update attribution, provider rendering and dispatch, omission gates, supporting
-source freshness, and refusal to read Bend files through TypeScript imports.
+source freshness, relative/transitive aliases in generic payloads, cycles,
+read-once sharing, source and import-binding invalidation, graph ceilings, and
+refusal to read excluded, ignored, symlinked, outside-root or cross-language
+targets.
+
+The following live, compiler, and package records predate the cross-file
+amendment. They remain evidence for their original same-file fixtures and
+revision; they do not establish new cross-file live or installed-platform
+validation.
 Ordinary tests remain deterministic and offline.
 
 The [pre-execution declaration](../evidence/bend-support/paired-declaration-1.json)

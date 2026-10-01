@@ -3,10 +3,11 @@
 ## Supported source languages
 
 Hapsland reviews TypeScript interfaces, type aliases, and named functions, plus
-Rust structs, enums, and type aliases, and Bend `type` datatypes. Rust and Bend
-context is limited to the same file. Rust functions, modules, macros, and
+Rust structs, enums, and type aliases, and Bend `type` datatypes. Rust
+context is limited to the same file. Bend supports bounded transitive context
+through explicit relative `.bend` imports with aliases. Rust functions, modules, macros, and
 conditional compilation are unsupported. Bend functions, dependent types,
-laws/proofs, and module resolution are unsupported; this first profile also
+laws/proofs, and hub, bare, or absolute imports are unsupported; this first profile also
 skips files with string literals and requires single-line constructors indented
 with two spaces.
 See the [supported-language table](../README.md#supported-languages) for file

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { extractBendDeclarations } from "./bend-extractor.ts";
 import { analyzeTypeFile, inspectGraphFile, combinedAnalyzerMaterializationPreflight } from "./analyzer.ts";
 
 const analyze = (source: string) => {
@@ -30,7 +31,7 @@ describe("bounded Bend datatype extraction", () => {
     "type Root is Data:\n  Root{value: Missing}",
     "type Root is Data:\n  Root{value: U32}",
     "import Base\ntype Root is Data:\n  Root{value: Maybe<String>}",
-    "import ./other.bend as M\ntype Root is Data:\n  Root{}",
+    "import hub/other.bend as M\ntype Root is Data:\n  Root{}",
     "import Base as B\ntype Root is Data:\n  Root{}",
     "type Root is Kind(a):\n  Root{}",
     "type Root<a, -A: Kind(a)> is Data:\n  Root{value: A}",
@@ -48,6 +49,70 @@ describe("bounded Bend datatype extraction", () => {
     "type Root<-A: Data> is Data:\n  Root{A: Data, value: A}",
   ])("preserves omissions for %s", (source) => {
     expect(analyze(source).at(-1)?.status).toBe("unsupported");
+  });
+
+  it("maps leading relative aliases and nested payloads in reference order", () => {
+    const result = extractBendDeclarations("import ./receipt.bend as R\nimport ../box.bend as B\ntype Root is Data:\n  Root{value: B.Box<R.Receipt>, again: R.Receipt}", 64);
+    expect("declarations" in result).toBe(true);
+    if (!("declarations" in result)) return;
+    expect([...result.imports]).toEqual([
+      ["B.Box", { path: "../box.bend", name: "Box" }],
+      ["R.Receipt", { path: "./receipt.bend", name: "Receipt" }],
+    ]);
+    expect(result.declarations[0]?.references).toEqual([
+      { kind: "named", name: "B.Box" }, { kind: "named", name: "R.Receipt" },
+    ]);
+  });
+
+  it("keeps missing aliased declarations as named edges for graph resolution", () => {
+    const result = extractBendDeclarations("import ./receipt.bend as R\ntype Root is Data:\n  Root{value: R.Missing}", 64);
+    if (!("declarations" in result)) throw new Error(result.reason);
+    expect(result.imports.get("R.Missing")).toEqual({ path: "./receipt.bend", name: "Missing" });
+    expect(result.declarations[0]?.references).toEqual([{ kind: "named", name: "R.Missing" }]);
+  });
+
+  it.each([
+    "import ./one.bend as R\nimport ./two.bend as R\ntype Root is Data:\n  Root{}",
+    "import ./one.bend as R\ntype R is Data:\n  C{}",
+    "import ./one.bend as R\ntype Root is Data:\n  R{}",
+    "import ./one.bend as R\ndef R.foo() -> Data:\n  Data\ntype Root is Data:\n  C{}",
+    "type Root is Data:\n  C{}\nimport ./one.bend as R",
+  ])("rejects conflicting or late import aliases %s", (source) => {
+    expect(extractBendDeclarations(source, 64)).toHaveProperty("reason");
+  });
+
+  it.each([
+    "import ./one.bend as R\ntype Root<-R: Data> is Data:\n  C{value: R.Receipt}",
+    "import ./one.bend as R\ntype Root is Data:\n  C{R: Data, value: R.Receipt}",
+    "import /absolute/one.bend as R\ntype Root is Data:\n  C{value: R.Receipt}",
+    "import hub/one.bend as R\ntype Root is Data:\n  C{value: R.Receipt}",
+  ])("marks shadowed or unsupported import evidence omitted %s", (source) => {
+    const result = extractBendDeclarations(source, 64);
+    if (!("declarations" in result)) throw new Error(result.reason);
+    expect(result.declarations[0]?.references.some((reference) => reference.kind === "unsupported")).toBe(true);
+  });
+
+  it.each(["Word", "List", "Maybe", "IO", "WNil", "Nat"])("does not assume aliased %s wins over Base names", (alias) => {
+    for (const imports of [`import Base\nimport ./child.bend as ${alias}`, `import ./child.bend as ${alias}\nimport Base`]) {
+      const result = extractBendDeclarations(`${imports}\ntype Root is Data:\n  Root{value: ${alias}.Nil}`, 64);
+      if (!("declarations" in result)) throw new Error(result.reason);
+      expect(result.declarations[0]?.references.some((reference) => reference.kind === "unsupported")).toBe(true);
+      expect(result.imports.size).toBe(0);
+    }
+  });
+
+  it("does not erase a bare builtin spelling that is also an alias", () => {
+    const result = extractBendDeclarations("import Base\nimport ./child.bend as Nat\ntype Root is Data:\n  Root{value: Nat}", 64);
+    if (!("declarations" in result)) throw new Error(result.reason);
+    expect(result.declarations[0]?.references).toContainEqual({ kind: "named", name: "Nat" });
+    expect(result.declarations[0]?.references).toContainEqual({ kind: "unsupported", name: "Root" });
+  });
+
+  it("allows an unambiguous Receipt alias alongside Base", () => {
+    const result = extractBendDeclarations("import Base\nimport ./child.bend as Receipt\ntype Root is Data:\n  Root{value: Receipt.Value}", 64);
+    if (!("declarations" in result)) throw new Error(result.reason);
+    expect(result.imports.get("Receipt.Value")).toEqual({ path: "./child.bend", name: "Value" });
+    expect(result.declarations[0]?.references).toEqual([{ kind: "named", name: "Receipt.Value" }]);
   });
 
   it("contains recursive references and enforces shared budgets", () => {

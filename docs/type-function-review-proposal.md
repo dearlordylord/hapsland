@@ -93,7 +93,7 @@ amend the contracts below.
 | Contract | Artifact root | Proposed evidence projection | Inapplicable examples |
 | --- | --- | --- | --- |
 | `direct-event/type-shape/v1` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and bounded outbound named-type reference graph with marked omissions, following supported local imports across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
-| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Bend `type` in `.bend` | Exact datatype declaration, constructors, and bounded outbound named-type references within the same file | Dependent/computed types, unsupported surface syntax, external imports, ambiguous binding, or missing evidence required by a selected rule |
+| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Bend `type` in `.bend` | Exact datatype declaration, constructors, and bounded outbound named-type references within the same file or through explicit relative `.bend` alias imports | Dependent/computed types, unsupported surface syntax, hub/bare/absolute imports, ambiguous binding, or missing evidence required by a selected rule |
 | `direct-event/type-shape/v1` | One uniquely named, explicit top-level Rust `struct`, `enum`, or `type` alias in `.rs` | Exact root declaration and bounded outbound named-type references resolved within the same file | Conditional compilation, macro-dependent declarations, unsupported type syntax, ambiguous binding, unresolved module/external paths, or missing evidence needed by a selected rule |
 | `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and bounded directly referenced type and named-function graph with marked omissions, following supported local imports across selected files | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, unresolved or excluded evidence needed by a selected rule |
 
@@ -136,7 +136,8 @@ A supported header is a single line `type Name is Data:` or `is Type:`, optional
 with erased type parameters `type Box<-A: Data> is Data:` (also `Type`).
 Constructors use two spaces and one line `Name{field: Type, ...}`; empty
 datatypes and recursive references are permitted. Field types are simple names
-or nested named datatype applications with `<...>`; generic parameters are
+or nested named datatype applications with `<...>`, including alias-qualified
+references such as `R.Receipt`; generic parameters are
 local binders. Names in this profile use ASCII letters, digits and underscores.
 The exact root source and line/column ranges are retained, including comments
 inside the declaration. Leading/trailing standalone comments are not part of
@@ -149,8 +150,30 @@ assumption is part of the profile, not evidence of a compiler-verified import.
 A same-file type, def, or law binding takes precedence over leaf assumptions.
 Composite Base types such as `List`, `Maybe`, `Result`, and `Array` require
 supporting evidence and remain unresolved unless explicitly declared locally.
-Other imports mark every root's evidence incomplete; no files or packages are
-loaded. Qualified names, quantity-polymorphic kinds, term applications,
+Leading imports of the form `import ./receipt.bend as R` or
+`import ../shared/receipt.bend as R` bind the first dotted segment of a type
+reference to that file; `R.Receipt` resolves `Receipt` there. Paths use plain
+ASCII name segments (letters, digits, underscores, and hyphens) and a `.bend`
+extension. Traversal can follow supported aliases transitively; imported
+declarations remain supporting evidence, never independently selected roots.
+Aliases must be unique and cannot conflict with local binding prefixes or
+constructors. With `import Base`, alias prefixes matching the inspected Base
+type/def/law/constructor namespaces make every root incomplete, and their
+qualified references cannot resolve as imported evidence. This conservative
+name-only refusal set is tied to the declared Base source profile; it is not
+evidence of arbitrary installed compiler versions. Generic-parameter or earlier-field shadowing makes the affected
+reference unsupported. Unsupported hub, bare, absolute, malformed, or late
+imports cannot establish a binding; unsupported leading imports mark every
+root incomplete, while late imports reject the file. Unknown qualified names
+remain unresolved. No cross-language imports provide evidence, and extraction
+never executes source or fetches packages. Before any supporting capture, the
+shared resolver applies containment, selection, exclusions, Git-ignore, symlink,
+and graph-budget checks. Captures are shared across roots for an observation;
+freshness includes contributing source and import bindings. Static reference
+cycles terminate in the evidence graph; this does not establish that the compiler
+can load an import cycle.
+
+Quantity-polymorphic kinds, term applications,
 dependent fields, proof/equality terms, function/product/sum types, reusable
 `+` types, and unsupported parameter forms remain explicit omissions.
 Multiline constructors and other indentation styles remain incomplete evidence;

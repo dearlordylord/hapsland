@@ -38,7 +38,7 @@ Coincidentally, models are pretty bad at those decisions by default and need con
 | --- | --- | --- |
 | TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with bounded local type/import context | Unsupported syntax or unresolved evidence can prevent review. |
 | Rust (`.rs`) | Top-level structs, enums, and type aliases, with same-file type context | Functions, module resolution, macros, and conditional compilation are not supported. Attributes such as `derive` make evidence incomplete for the default rules. |
-| Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, with same-file type context | Functions, laws/proofs, dependent or computed types, and module resolution are unsupported. This first profile skips files with string literals and requires single-line constructors indented with two spaces. |
+| Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, with bounded same-file and explicit relative `.bend` alias-import context | Functions, laws/proofs, dependent or computed types, and hub, bare, or absolute imports are unsupported. This first profile skips files with string literals and requires single-line constructors indented with two spaces. |
 
 Language support applies to source review; it does not select an agent runtime.
 If an edit lacks the evidence a rule needs, Hapsland skips that rule. Silence

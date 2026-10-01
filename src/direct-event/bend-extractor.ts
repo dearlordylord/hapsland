@@ -7,24 +7,35 @@ export type BendDeclaration = {
   readonly references: ReadonlyArray<{ readonly kind: "named" | "unsupported"; readonly name: string }>;
 };
 export type BendExtraction =
-  | { readonly declarations: ReadonlyArray<BendDeclaration> }
+  | { readonly declarations: ReadonlyArray<BendDeclaration>; readonly imports: ReadonlyMap<string, { readonly path: string; readonly name: string }> }
   | { readonly reason: "parse" | "no-declarations" | "declaration-limit" | "declaration-merge" };
 
 const namePattern = "[A-Za-z_][A-Za-z0-9_]*";
 // These are leaf assumptions, not a vendored Base library or compiler check.
 // Composite Base types remain named evidence and therefore unresolved.
 const baseLeaves = new Set(["Empty", "Unit", "Bool", "Cmp", "Nat", "U32", "F32", "Char", "String"]);
+// Namespace-prefix refusal assumptions from bend2/base.bend at compiler source
+// 1adb0a61916b95de79d3541537462d0bf625f9d3. Names only: no library code is
+// vendored. Review this bounded set when the declared Base profile changes.
+const basePrefixes = new Set([
+  "ALeaf", "ANode", "App", "Array", "Audio", "Bool", "Chan", "Char", "Chr", "Close", "Cmp", "Con",
+  "Done", "EQ", "Either", "Emit", "Empty", "Equal", "Event", "Exists", "F32", "Fail", "False", "File",
+  "GT", "Halt", "IO", "Image", "Inl", "Inr", "Key", "LT", "List", "Listener", "Look", "MLeaf",
+  "MNode", "MTip", "Map", "Maybe", "Mouse", "Move", "Nat", "Nil", "None", "Or", "Pair", "Pix",
+  "Process", "Qua", "Result", "SCon", "SNil", "Scroll", "Set", "Sigma", "Socket", "Some", "String",
+  "Succ", "TCP", "True", "Tuple", "U32", "UDP", "Unit", "WCon", "WNil", "Window", "Word", "Zero",
+]);
 const kinds = new Set(["Data", "Type", "Quant"]);
 
 /** Only names and nested datatype applications; no dependent terms or binders. */
 const typeNames = (text: string): string[] | undefined => {
-  const tokens = text.match(/[A-Za-z_][A-Za-z0-9_]*|[<>(),]|\S/g) ?? [];
+  const tokens = text.match(/[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*|[<>(),]|\S/g) ?? [];
   let index = 0;
   const names: string[] = [];
   const term = (depth: number): boolean => {
     if (depth > 32) return false;
     const name = tokens[index++];
-    if (name === undefined || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return false;
+    if (name === undefined || !/^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(name)) return false;
     names.push(name);
     if (tokens[index] === "<") {
       index++;
@@ -62,6 +73,8 @@ export const extractBendDeclarations = (source: string, limit: number): BendExtr
   let base = false;
   let uncertainScope = false;
   let seenItem = false;
+  const aliases = new Map<string, string>();
+  const imports = new Map<string, { path: string; name: string }>();
   const bindings = new Set<string>();
   const typeBindings = new Set<string>();
   for (let row = 0; row < clean.length; row++) {
@@ -70,7 +83,12 @@ export const extractBendDeclarations = (source: string, limit: number): BendExtr
     if (line.startsWith("import ")) {
       if (seenItem) return { reason: "parse" };
       if (line.trim() === "import Base") base = true;
-      else uncertainScope = true;
+      else {
+        const imported = /^import\s+((?:\.\/|(?:\.\.\/)+)(?:[A-Za-z_][A-Za-z0-9_-]*\/)*[A-Za-z_][A-Za-z0-9_-]*\.bend)\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\s*$/.exec(line);
+        if (imported === null) uncertainScope = true;
+        else if (aliases.has(imported[2]!)) return { reason: "parse" };
+        else aliases.set(imported[2]!, imported[1]!);
+      }
       continue;
     }
     const match = new RegExp(`^(?:@unsafe\\s+)?(type|def|law)\\s+(${namePattern}(?:\\.${namePattern})*)(?=[<(:?\\s]|$)`).exec(line);
@@ -78,10 +96,14 @@ export const extractBendDeclarations = (source: string, limit: number): BendExtr
     seenItem = true;
     const binding = match[2]!;
     if (bindings.has(binding) && (match[1] === "type" || typeBindings.has(binding))) return { reason: "declaration-merge" };
+    if (aliases.has(binding.split(".")[0]!)) return { reason: "declaration-merge" };
     bindings.add(binding);
     if (match[1] === "type") typeBindings.add(binding);
     starts.push(row);
   }
+  // Base and aliased module bindings can both resolve the same written name.
+  // Refuse closure rather than assume the imported declaration wins.
+  if (base && [...aliases.keys()].some((alias) => basePrefixes.has(alias))) uncertainScope = true;
   const typeStarts = starts.filter((row) => /^type\s/.test(clean[row] ?? ""));
   if (typeStarts.length === 0) return { reason: "no-declarations" };
   if (typeStarts.length > limit) return { reason: "declaration-limit" };
@@ -112,8 +134,14 @@ export const extractBendDeclarations = (source: string, limit: number): BendExtr
       const names = typeNames(text);
       if (names === undefined) { omitted(); return; }
       for (const target of names) {
+        const prefix = target.split(".")[0]!;
+        if (target.includes(".") && parameters.has(prefix)) { omitted(); continue; }
         if (parameters.has(target) || kinds.has(target)) continue;
-        if (!bindings.has(target) && base && baseLeaves.has(target)) continue;
+        const importedPath = aliases.get(prefix);
+        if (target.includes(".") && importedPath !== undefined && !(base && basePrefixes.has(prefix))) {
+          imports.set(target, { path: importedPath, name: target.slice(prefix.length + 1) });
+        }
+        if (!bindings.has(target) && !aliases.has(target) && base && baseLeaves.has(target)) continue;
         references.push({ kind: "named", name: target });
       }
     };
@@ -124,7 +152,7 @@ export const extractBendDeclarations = (source: string, limit: number): BendExtr
       const constructor = new RegExp(`^  (${namePattern})\\{([^{}]*)\\}\\s*$`).exec(line);
       if (constructor === null) { omitted(); continue; }
       const constructorName = constructor[1]!;
-      if (localConstructors.has(constructorName) || constructors.has(constructorName)) return { reason: "declaration-merge" };
+      if (aliases.has(constructorName) || localConstructors.has(constructorName) || constructors.has(constructorName)) return { reason: "declaration-merge" };
       localConstructors.add(constructorName);
       constructors.add(constructorName);
       const fields = splitFields(constructor[2]!);
@@ -136,7 +164,7 @@ export const extractBendDeclarations = (source: string, limit: number): BendExtr
         fieldNames.add(match[1]!);
         // A field binder can occur in later field types: it is not a datatype.
         const names = typeNames(match[2]!);
-        if (names?.some((target) => fieldNames.has(target))) omitted();
+        if (names?.some((target) => fieldNames.has(target.split(".")[0]!))) omitted();
         addType(match[2]!);
       }
     }
@@ -145,5 +173,5 @@ export const extractBendDeclarations = (source: string, limit: number): BendExtr
       references: [...new Map(references.map((reference) => [`${reference.kind}:${reference.name}`, reference])).values()] });
   }
   if (new Set(declarations.map((declaration) => declaration.name)).size !== declarations.length) return { reason: "declaration-merge" };
-  return { declarations };
+  return { declarations, imports };
 };
