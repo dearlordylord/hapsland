@@ -105,7 +105,10 @@
     "Stable analysis workspace uses measured source size; unknown capture preserves maximum-source bound, verified by 400 generated cases",
     "Successor-round fixture waits beyond explicit one-millisecond closure fence",
     "Round cutoff, closure, quiet sweeping, collection work-state and ticket/handoff reconciliation compose named Effects in the owning fiber; internal dispatcher runSync queries/discards removed",
-    "Finish-stop and final authorization-to-socket handoff preserve uninterruptible ownership boundaries; Stop boundary rejects synchronous dispatcher bridges"
+    "Finish-stop and final authorization-to-socket handoff preserve uninterruptible ownership boundaries; Stop boundary rejects synchronous dispatcher bridges",
+    "Peak retained bytes now update inside every canonical/native Ref publication, capturing transient capture workspaces; removed server sampling helper and runtime observeCapacity API",
+    "Declared and executed deterministic eight-effect non-cooperative physical-retirement workload against fixed baseline and current, with explicit native gates and corrected edit/callback identity ordering",
+    "Current deterministic workload passes all eight ownership invariants across eight measured iterations: saturated refusal, physical settlement fencing, permit reuse, pending shutdown and final canonical/accounting settlement"
   ],
   "verification": [
     {
@@ -1260,24 +1263,90 @@
       "evidence": "benchmark-round-effects-comparison.json",
       "budgetsMet": true,
       "limitation": "Five simultaneous effects observed; required deterministic eight-effect physical-retirement benchmark remains pending. Prior failed runs preserved; this measurement alone does not establish causal speedup."
+    },
+    {
+      "stage": "Automatic published-commit peaks",
+      "command": "Runtime records, capacity, dispatcher and Jev request suites",
+      "exitCode": 0,
+      "tests": 52,
+      "files": 4
+    },
+    {
+      "stage": "Automatic published-commit peaks",
+      "command": "Server suite",
+      "exitCode": 0,
+      "tests": 80,
+      "files": 1
+    },
+    {
+      "stage": "Automatic published-commit peaks",
+      "command": "Typecheck, build, all 15 boundary scripts, benchmark syntax and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Physical-retirement experiment",
+      "command": "Initial baseline/current runner attempts",
+      "exitCode": 1,
+      "evidence": [
+        "physical-retirement-baseline-attempt.json",
+        "physical-retirement-current-attempt.json"
+      ],
+      "limitation": "Runner awaited a guessed ninth interruption notification; unordered callback zero could belong to a different edit than the interrupted round. Corrections declared before final comparison; no production failure claim."
+    },
+    {
+      "stage": "Physical-retirement experiment",
+      "command": "Corrected fixed baseline, one warmup and eight measured iterations",
+      "exitCode": 0,
+      "evidence": "physical-retirement-baseline.json",
+      "physicalContractValid": false,
+      "limitation": "Baseline settles logical permits and finishes shutdown before non-cooperative physical callbacks complete"
+    },
+    {
+      "stage": "Physical-retirement experiment",
+      "command": "Corrected current, one warmup and eight measured iterations",
+      "exitCode": 0,
+      "evidence": "physical-retirement-current.json",
+      "physicalContractValid": true,
+      "maximumPhysicalEffects": 8,
+      "measuredIterations": 8,
+      "invariants": 8
+    },
+    {
+      "stage": "Physical-retirement experiment",
+      "command": "Comparison using unchanged ratio/allowance formulas",
+      "exitCode": 0,
+      "evidence": "physical-retirement-comparison.json",
+      "comparableBudgetsMet": true,
+      "allComparativeBudgetsVerified": false,
+      "limitation": "Shutdown latency is unproven against the invalid premature-shutdown baseline; recorded current release-to-shutdown P95 is 26.545088ms"
+    },
+    {
+      "stage": "Automatic published-commit peaks",
+      "command": "Unchanged original benchmark",
+      "exitCode": 0,
+      "evidence": "benchmark-commit-peaks-comparison.json",
+      "budgetsMet": true,
+      "peakRetainedBytes": 17625630,
+      "limitation": "Ordinary workload reaches four physical effects; deterministic retirement separately proves eight. Final full-migration rerun remains required."
     }
   ],
   "next": [
-    "Declare and execute deterministic eight-effect saturation/physical-retirement benchmark for baseline and current; preserve all original thresholds and measurements",
+    "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
     "Replace remaining synchronous domain commit/read bridges with service operations and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",
-    "Demonstrate eight-effect saturation and physical retirement, then rerun strict original performance budgets"
+    "Rerun original and deterministic physical-retirement workloads after remaining service migrations and final validation gates"
   ],
   "limitations": [
     "Shared state owns lifecycle and statistics; native IPC handles and mutable per-job callback metadata remain executor resources, and intermediate synchronous domain bridges still need removal",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "Exploratory full suite had 1078 passes and one subsequently corrected test failure; final full suite/package/host/live gates remain pending",
-    "Latest ordinary benchmark passes every original regression budget, with logical retention 15554794 bytes; reaches five active effects. Deterministic eight-effect physical-retirement benchmark and final full migration rerun remain required; prior failed runs preserved.",
+    "Original workload now passes every unchanged budget with automatically observed peak 17625630 bytes (strict baseline 17807985). Deterministic workload reaches eight and passes all ownership fences. Physical-retirement shutdown latency comparison remains unproven because the fixed baseline shuts down before held callbacks complete; final full-migration reruns remain required.",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied",
-    "Intermittent Vitest server worker SIGSEGV recurred during this stage; isolated final suites passed, but root cause is unproven"
+    "Intermittent Vitest server worker SIGSEGV recurred during this stage; isolated final suites passed, but root cause is unproven",
+    "Previous server-sampled peak figures can omit transient capture reservations; retain them as historical diagnostic evidence, not final peak-retention validation"
   ],
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",

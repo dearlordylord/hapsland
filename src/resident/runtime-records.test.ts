@@ -54,7 +54,6 @@ it.effect("keeps connection ownership and immutable statistics through physical 
   const snapshot = owner.runtime.snapshot();
   expect(Object.isFrozen(snapshot)).toBe(true);
   const reservation = owner.reserve("fixture", 20, "preparation")!;
-  owner.runtime.observeCapacity();
   owner.runtime.observePreparedUnits(3);
   owner.runtime.rejectCapacity();
   expect(owner.runtime.nextAuthoritySequence()).toBe(1);
@@ -94,4 +93,20 @@ it.effect("rolls back staged ticket eviction and retirement if native validation
   expect(owner.tickets.get(ticket.ticket.nonce)).toBe(ticket);
   expect(unit.stage()?.stage).toBe("pending");
   expect(owner.runtime.snapshot().lifecycle).toBe("active");
+}));
+
+it.effect("records transient reservation peaks without a server sampling checkpoint", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const capture = owner.reserve("capture", 128, "preparation")!;
+  expect(owner.runtime.snapshot().peakLedgerBytes).toBe(128);
+  expect(owner.resize(capture, 5)).toBe(true);
+  const concurrent = owner.reserve("other", 200, "preparation")!;
+  expect(owner.runtime.snapshot().peakLedgerBytes).toBe(205);
+  owner.release(capture);
+  owner.release(concurrent);
+  expect(owner.snapshot().bytes).toBe(0);
+  expect(owner.reserve("other", 1_000_000_000, "preparation")).toBeUndefined();
+  expect(owner.resize(concurrent, 1_000)).toBe(false);
+  owner.clear();
+  expect(owner.runtime.snapshot().peakLedgerBytes).toBe(205);
 }));

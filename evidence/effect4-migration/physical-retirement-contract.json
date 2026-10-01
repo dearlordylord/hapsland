@@ -1,0 +1,28 @@
+{
+  "purpose": "Pre-execution deterministic saturation and physical-retirement experiment",
+  "authority": "Implementation experiment declaration; no product or platform acceptance",
+  "declaredBeforeExecution": "2026-10-01",
+  "baseline": "4324697adff22db315fc8e5490df6181e030b243",
+  "workload": {
+    "warmups": 1,
+    "iterations": 8,
+    "editsPerIteration": 10,
+    "initialHeldRequests": 8,
+    "mode": "offline controlled DecisionModel with explicit non-cooperative native completion gates",
+    "heldCloseObservationMs": 25,
+    "iterationTimeoutMs": 15000
+  },
+  "regressionBudgets": "benchmark-contract.json",
+  "method": "Admit eight distinct edits and hold each physical provider callback. Admit one saturated edit, interrupt the first round, record whether a canonical settlement arrives while physical work is held, release exactly that request, and admit a tenth edit that reuses the settled permit. Start shutdown with eight physical requests held, observe it for 25ms, then release every callback and await shutdown. Measure admission/Stop/saturation latency, release-to-shutdown completion, event-loop delay, logical retained bytes, RSS and simultaneous physical effects. Gates bound ordering, not provider response time.",
+  "requiredInvariants": [
+    "Exactly eight simultaneous physical requests reached",
+    "Saturated edit does not start a ninth request",
+    "Round interruption does not settle a held physical request",
+    "Permit reuse follows physical and canonical settlement",
+    "Shutdown remains pending while physical requests are held",
+    "Shutdown does not finish before physical completion",
+    "All physical callbacks and canonical request permits settle before final accounting clears"
+  ],
+  "comparisonRule": "Use the unchanged ratio and absolute allowances from benchmark-contract.json against this workload baseline. A baseline shutdown that finishes before physical completion is invalid for shutdown latency comparison; report that fact and leave that comparative metric unproven rather than treating premature completion as a faster valid baseline.",
+  "limitations": "Synthetic offline physical callbacks only; no real Jev transport, wire cancellation, live host or cross-platform support evidence."
+}

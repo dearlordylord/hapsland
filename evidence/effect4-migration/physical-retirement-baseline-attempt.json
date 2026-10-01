@@ -1,0 +1,7 @@
+{
+  "purpose": "Sanitized physical-retirement experiment failure",
+  "checkout": "/workspace/typescript/jev-worktrees/effect4-baseline",
+  "phase": "await shutdown interruption",
+  "failure": "TimeoutError",
+  "completedMeasuredPasses": 0
+}

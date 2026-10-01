@@ -42,3 +42,8 @@ if (!server.includes("residentLedger.runtime.cleanup(logicalBytes)") ||
     !capacity.includes("runtimeRecordOperations(runtime, residentLifetime).retire()")) {
   throw new Error("runtime retirement must publish with canonical cleanup in the shared owner");
 }
+
+if (server.includes("runtime.observeCapacity(") ||
+    !capacity.includes("Math.max(records.runtime.peakLedgerBytes, projectCanonical(next.canonical).global.bytes)")) {
+  throw new Error("peak retention must observe every published shared-owner commit, not server sampling checkpoints");
+}

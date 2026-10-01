@@ -69,7 +69,6 @@ import {
 import {
   makeResidentState,
   type CapacityLedger,
-  type CapacityPurpose,
   type CapacityReservation,
 } from "./capacity.ts";
 import { makeDispatcher, type Dispatcher } from "./dispatch.ts";
@@ -655,7 +654,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath }, randomUUID());
     const partition = group;
     const canonicalRound = round?.canonicalRound ?? residentLedger.roundId(partition);
-    const reservation = residentReserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
+    const reservation = residentLedger.reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
     if (reservation === undefined) {
       residentLedger.runtime.rejectCapacity();
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
@@ -1360,16 +1359,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   function residentRecordOperationalFailure(observation: DirectObservation, kind: OperationalNoticeKind, now = residentNow()): void {
     if (residentLedger.runtime.snapshot().lifecycle !== "active" || !addressableAdvicee(observation.advicee)) return;
     residentNotices.record(adviceePartition(observation.root, observation.advicee), kind, now);
-    residentLedger.runtime.observeCapacity();
   }
 
-  function residentReserve(partition: string, bytes: number, purpose: CapacityPurpose): CapacityReservation | undefined {
-    const reservation = residentLedger.reserve(partition, bytes, purpose);
-    if (reservation !== undefined) {
-      residentLedger.runtime.observeCapacity();
-    }
-    return reservation;
-  }
 
   function residentFindingSelectionFacts(
     advice: Advice, partition: string, credentialGeneration: number | null,
@@ -1675,7 +1666,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
                 const resized = residentLedger.resize(workspace, required);
                 if (resized) {
-                  residentLedger.runtime.observeCapacity();
                 } else {
                   residentLedger.runtime.rejectCapacity();
                 }
@@ -1746,7 +1736,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           job.canonicalRound,
         );
         activeWorkspaces.delete(workspace);
-        residentLedger.runtime.observeCapacity();
         // Workspace has been released and all accepted unit reservations are
         // fixed, so best-effort notice retention cannot displace fresh work.
         if (rejectedDeliverable) {
@@ -2414,7 +2403,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       advice.reservation, advice.revision, captureWorkspaceBytes(candidate.path),
     );
     if (capture === undefined) return Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] });
-    residentLedger.runtime.observeCapacity();
     let capacityUnavailable = false;
     return Effect.gen(function* () {
       yield* residentAdapter("revalidation barrier", () => Promise.resolve(residentAfterRevalidationWorkspaceReserved?.(advice.id)));
@@ -2432,7 +2420,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
             const resized = residentLedger.adviceCaptures.resize(capture, required);
             if (resized) {
-              residentLedger.runtime.observeCapacity();
             } else capacityUnavailable = true;
             return resized;
           }),

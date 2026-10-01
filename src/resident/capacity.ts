@@ -185,7 +185,12 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         const draft = draftCapacity(current, (id) => Ref.getUnsafe(state).reservations.get(id));
         const [value, records] = operation(draft, current.records);
         const { readReservation: _, ...next } = draft;
-        return [value, { ...next, records }] as const;
+        // Record every published charge peak, including capture workspaces
+        // that can be resized or released before any server checkpoint.
+        const peakLedgerBytes = Math.max(records.runtime.peakLedgerBytes, projectCanonical(next.canonical).global.bytes);
+        const observedRecords = peakLedgerBytes === records.runtime.peakLedgerBytes ? records
+          : { ...records, runtime: { ...records.runtime, peakLedgerBytes } };
+        return [value, { ...next, records: observedRecords }] as const;
       } finally { committing = false; }
     }).pipe(Effect.withSpan("ResidentState.commit"));
   const commitAll = <A>(operation: Parameters<typeof commitAllEffect<A>>[0]): A =>
@@ -274,11 +279,10 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     replaceWork: (...args) => roundCommit((operations) => operations.replaceWork(...args)),
     retire: (round) => roundCommit((operations) => operations.retire(round)),
   };
-  const runtimeCommitEffect = <A>(operation: (runtime: ReturnType<typeof runtimeRecordOperations>, owner: CapacityLedger) => A): Effect.Effect<A> =>
-    commitAllEffect((draft, records) => {
+  const runtimeCommitEffect = <A>(operation: (runtime: ReturnType<typeof runtimeRecordOperations>) => A): Effect.Effect<A> =>
+    commitAllEffect((_draft, records) => {
       const runtime = draftRuntimeRecords(records.runtime);
-      const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
-      const value = operation(runtimeRecordOperations(runtime, residentLifetime), owner);
+      const value = operation(runtimeRecordOperations(runtime, residentLifetime));
       return [value, { ...records, runtime }];
     });
   const runtimeCommit = <A>(operation: Parameters<typeof runtimeCommitEffect<A>>[0]): A => Effect.runSync(runtimeCommitEffect(operation));
@@ -289,7 +293,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       openConnection: (maximum: number) => runtimeCommit((operations) => operations.openConnection(maximum)),
       releaseConnection: (connection: Parameters<ReturnType<typeof runtimeRecordOperations>["releaseConnection"]>[0]) => runtimeCommit((operations) => operations.releaseConnection(connection)),
       rejectCapacity: () => runtimeCommit((operations) => operations.rejectCapacity()),
-      observeCapacity: () => runtimeCommit((operations, owner) => operations.observeCapacity(owner.snapshot().bytes)),
       observePreparedUnits: (units: number) => runtimeCommit((operations) => operations.observePreparedUnits(units)),
       nextAuthoritySequence: () => runtimeCommit((operations) => operations.nextAuthoritySequence()),
       scheduleRetirement: () => runtimeCommit((operations) => operations.scheduleRetirement()),

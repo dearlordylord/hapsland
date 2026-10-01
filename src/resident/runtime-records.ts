@@ -38,7 +38,6 @@ export const runtimeRecordOperations = (draft: RuntimeRecordsDraft, lifetime: st
   },
   releaseConnection: (connection: ResidentConnection): boolean => draft.connections.delete(connection),
   rejectCapacity: (): void => { draft.rejectedCapacity = Math.min(Number.MAX_SAFE_INTEGER, draft.rejectedCapacity + 1); },
-  observeCapacity: (bytes: number): void => { draft.peakLedgerBytes = Math.max(draft.peakLedgerBytes, bytes); },
   observePreparedUnits: (units: number): void => { draft.maxMaterializedPreparedUnits = Math.max(draft.maxMaterializedPreparedUnits, units); },
   nextAuthoritySequence: (): number => {
     if (draft.nextDispatchAuthoritySequence >= Number.MAX_SAFE_INTEGER) throw new Error("resident authority sequence exhausted");
