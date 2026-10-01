@@ -24,3 +24,10 @@ if (!server.includes("this.#ledger.tickets.retain(limit)") ||
     !server.includes("this.#evictRetainedTickets(0)")) {
   throw new Error("resident ticket eviction bypassed canonical retention");
 }
+
+if (server.includes("revalidationActive") ||
+    !server.includes("server.#ledger.adviceCaptures.start(") ||
+    !server.includes("server.#ledger.adviceCaptures.finish(capture)") ||
+    !capacity.includes("resident state cannot clear outstanding advice captures")) {
+  throw new Error("advice capture lifetime escaped the shared state owner");
+}

@@ -295,8 +295,6 @@ type Advice = Omit<UnitJob, "dispatch" | "kind" | "work" | "completed"> & {
   readonly credentialEnvironmentOnly: boolean;
   readonly pendingAt: number;
   collectionEligible: boolean;
-  retired: boolean;
-  revalidationActive: boolean;
   delivery?: {
     readonly token: string;
     findings: ReadonlyArray<Finding>;
@@ -1550,8 +1548,7 @@ export class ResidentServer {
           unitUnavailable(unit, this.#adviceExpired(removed, this.#now()) ? "expired" : "stale");
         }
       }
-      removed.retired = true;
-      if (!removed.revalidationActive) this.#releaseUnit(removed);
+      if (!this.#ledger.adviceCaptures.retire(removed.reservation)) this.#releaseUnit(removed);
     }
     return removed !== undefined;
   }
@@ -2492,8 +2489,6 @@ export class ResidentServer {
         credentialEnvironmentOnly: job.dispatch.credential?.environmentOnly ?? false,
         pendingAt: server.#now(),
         collectionEligible: false,
-        retired: false,
-        revalidationActive: false,
       };
       const insertion = server.#advice.findIndex((item) => item.sequence > sequence);
       if (insertion < 0) server.#advice.push(advice);
@@ -2524,14 +2519,11 @@ export class ResidentServer {
     const server = this;
     const candidate = advice.observation.candidates[0];
     if (candidate === undefined) return Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] });
-    const retainedBytes = advice.reservation.bytes;
-    if (!server.#ledger.resize(
-      advice.reservation,
-      retainedBytes + captureWorkspaceBytes(candidate.path),
-      "adviceRecheck",
-    )) return Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] });
+    const capture = server.#ledger.adviceCaptures.start(
+      advice.reservation, advice.revision, captureWorkspaceBytes(candidate.path),
+    );
+    if (capture === undefined) return Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] });
     server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
-    advice.revalidationActive = true;
     let capacityUnavailable = false;
     return Effect.gen(function* () {
       yield* residentAdapter("revalidation barrier", () => Promise.resolve(server.#afterRevalidationWorkspaceReserved?.(advice.id)));
@@ -2547,7 +2539,7 @@ export class ResidentServer {
           settings,
           beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
             const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
-            const resized = server.#ledger.resize(advice.reservation, retainedBytes + required);
+            const resized = server.#ledger.adviceCaptures.resize(capture, required);
             if (resized) {
               server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
             } else capacityUnavailable = true;
@@ -2563,9 +2555,7 @@ export class ResidentServer {
     }).pipe(
       Effect.catch(() => Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] })),
       Effect.ensuring(Effect.sync(() => {
-        advice.revalidationActive = false;
-        if (advice.retired) server.#releaseUnit(advice);
-        else server.#ledger.resize(advice.reservation, retainedBytes, "storedResult");
+        if (server.#ledger.adviceCaptures.finish(capture) === "retired") advice.released = true;
       })),
     );
   }));
@@ -3209,8 +3199,7 @@ export class ResidentServer {
         else owner.#ledger.release(job.reservation);
       }
       for (const advice of owner.#advice.splice(0)) {
-        advice.retired = true;
-        if (!advice.revalidationActive) owner.#releaseUnit(advice);
+        if (!owner.#ledger.adviceCaptures.retire(advice.reservation)) owner.#releaseUnit(advice);
       }
       for (const key of [...owner.#notices.entries().map(([key]) => key)]) owner.#releaseNoticeCooldown(key);
       // Running work may be interrupted by process exit or finish later. Clear

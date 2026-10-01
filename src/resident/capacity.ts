@@ -4,7 +4,7 @@ import { workView } from "./bend-work.ts";
 import { initialJoinedReviews, draftJoinedReviews, joinedReviewOperations, type JoinedReviewsState, type JoinedReviews } from "./joined-reviews.ts";
 import { initialTicketRecords, draftTicketRecords, ticketRecordOperations, type TicketRecordsState, type TicketRecords } from "./ticket-records.ts";
 import { initialTicketUnits, draftTicketUnits, ticketUnitOperations, ticketUnitView, emptyTicketUnitCurrent, type TicketUnitsState, type TicketUnit, type TicketUnits } from "./ticket-units.ts";
-import { initialRevision, draftRevision, revisionOperations, type RevisionState, type RevisionOperations } from "./revision.ts";
+import { initialRevision, draftRevision, revisionOperations, type RevisionState, type RevisionOperations, type WorkRevision } from "./revision.ts";
 import { initialDispatchRegistry, type DispatchRegistry, type DispatchState } from "./dispatch.ts";
 import { initialDelivery, draftDelivery, deliveryOperations, deliveryView, assertDeliveryState, type DeliveryState, type ComposedDelivery, type RepeatEditDiagnostic } from "./composed-delivery.ts";
 import { initialEvaluationReuse, draftEvaluationReuse, evaluationReuseOperations, evaluationReuseView, residentEvaluationIdentity, type EvaluationReuse, type EvaluationReuseState } from "./evaluation-reuse.ts";
@@ -111,7 +111,14 @@ type ReservationRecord = {
   readonly bytes: number;
   readonly purpose: CapacityPurpose;
 };
+export type AdviceCapture = {
+  readonly reservation: CapacityReservation;
+  readonly revision: WorkRevision;
+  readonly retainedBytes: number;
+};
+type AdviceCaptureRecord = { readonly capability: AdviceCapture; readonly retired: boolean };
 type ResidentRecords<Pending, Key, Value> = {
+  readonly adviceCaptures: ReadonlyMap<number, AdviceCaptureRecord>;
   readonly reuse: EvaluationReuseState<Pending>;
   readonly delivery: DeliveryState;
   readonly dispatch: DispatchRegistry<Key, Value>;
@@ -159,7 +166,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     residentLifetime, limits, canonical: initialCanonical(limits), reservations: new Map(),
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
-    records: { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
+    records: { adviceCaptures: new Map(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
       dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords() },
   });
   const read = <A>(operation: (current: CapacityState) => A): A =>
@@ -271,7 +278,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     clear: () => commitAll((draft, records) => {
       const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
-      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
+      if (records.adviceCaptures.size !== 0) throw new Error("resident state cannot clear outstanding advice captures");
+      return [clear(draft), { adviceCaptures: new Map(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     }),
     revision: (() => {
@@ -370,6 +378,53 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         expire: (...args: Parameters<ComposedDelivery["expire"]>) => deliveryCommit((operations) => operations.expire(...args)),
       };
     },
+    adviceCaptures: (() => {
+      const captureCommit = <A>(operation: (
+        captures: Map<number, AdviceCaptureRecord>, owner: CapacityLedger, revision: RevisionOperations,
+      ) => A): A => commitAll((draft, records) => {
+        const captures = new Map(records.adviceCaptures);
+        const revision = draftRevision(records.revision);
+        const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+        const revisions = revisionOperations(revision, owner);
+        const value = operation(captures, owner, revisions);
+        revisions.assert();
+        return [value, { ...records, adviceCaptures: captures, revision }];
+      });
+      return {
+        start: (reservation: CapacityReservation, revision: WorkRevision, workspaceBytes: number): AdviceCapture | undefined =>
+          captureCommit((captures, owner) => {
+            if (captures.has(reservation.id)) return undefined;
+            const retainedBytes = reservation.bytes;
+            if (!owner.resize(reservation, retainedBytes + workspaceBytes, "adviceRecheck")) return undefined;
+            const capability = Object.freeze({ reservation, revision, retainedBytes });
+            captures.set(reservation.id, Object.freeze({ capability, retired: false }));
+            return capability;
+          }),
+        resize: (capture: AdviceCapture, workspaceBytes: number): boolean => captureCommit((captures, owner) => {
+          if (captures.get(capture.reservation.id)?.capability !== capture) return false;
+          return owner.resize(capture.reservation, capture.retainedBytes + workspaceBytes, "adviceRecheck");
+        }),
+        retire: (reservation: CapacityReservation): boolean => captureCommit((captures) => {
+          const record = captures.get(reservation.id);
+          if (record?.capability.reservation !== reservation) return false;
+          captures.set(reservation.id, Object.freeze({ ...record, retired: true }));
+          return true;
+        }),
+        finish: (capture: AdviceCapture): "retained" | "retired" | "stale" => captureCommit((captures, owner, revisions) => {
+          const record = captures.get(capture.reservation.id);
+          if (record?.capability !== capture) return "stale";
+          if (record.retired) {
+            owner.release(capture.reservation);
+            revisions.release(capture.revision);
+          } else if (!owner.resize(capture.reservation, capture.retainedBytes, "storedResult")) {
+            throw new Error("advice capture could not restore its retained reservation");
+          }
+          captures.delete(capture.reservation.id);
+          return record.retired ? "retired" : "retained";
+        }),
+        count: (): number => Ref.getUnsafe(state).records.adviceCaptures.size,
+      };
+    })(),
     notices: (maximumKeys: number, cooldownMs: number, lifetimeMs: number, measure: (value: unknown) => number) => {
       const noticeCommit = <A>(operation: (operations: NoticeRecordOperations) => A, identity = ""): A => commitAll((draft, records) => {
         const notices = draftNoticeRecords(records.notices);

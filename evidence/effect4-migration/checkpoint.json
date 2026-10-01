@@ -82,7 +82,8 @@
     "Operational notice cooldowns, pending payloads, sequencing and key identities now share the canonical/native Ref; deleted the server notice Map and counters",
     "Notice creation, suppression, merge, expiry, drop and native reservation ownership stage in one commit; measurement failure rolls back canonical state and native identity allocation",
     "Notice delivery release, acknowledgement and renewal use shared-owner operations; native snapshots and nested metadata are frozen and exposed as readonly types",
-    "Notice commits validate canonical membership, partition/group identities, reservation binding, suppression and pending/leased metadata before publication"
+    "Notice commits validate canonical membership, partition/group identities, reservation binding, suppression and pending/leased metadata before publication",
+    "Advice revalidation capture capabilities, workspace reservations and retirement metadata now share the canonical/native Ref; physical completion restores retained capacity or atomically releases retired capacity and revision membership, with exact capability fences and an outstanding-capture clear guard"
   ],
   "verification": [
     {
@@ -951,6 +952,41 @@
       "tests": 155,
       "files": 8,
       "note": "Additional capacity-refusal ownership case passed separately; readonly snapshot type annotations subsequently typechecked"
+    },
+    {
+      "stage": "Shared advice capture lifetime",
+      "command": "advice-capture security-queued security-sinks collection",
+      "exitCode": 0,
+      "tests": 22,
+      "files": 4
+    },
+    {
+      "stage": "Shared advice capture lifetime",
+      "command": "server capacity advice-capture combined suite",
+      "exitCode": 1,
+      "testsPassed": 99,
+      "testsExpected": 106,
+      "failure": "Native Vitest worker SIGSEGV during server.test.ts; no assertion failure reported",
+      "resolution": "Isolated server rerun passed all 80 tests; native crash root cause remains unestablished"
+    },
+    {
+      "stage": "Shared advice capture lifetime",
+      "command": "Isolated server suite",
+      "exitCode": 0,
+      "tests": 80,
+      "files": 1
+    },
+    {
+      "stage": "Shared advice capture lifetime",
+      "command": "revision advice-capture",
+      "exitCode": 0,
+      "tests": 7,
+      "files": 2
+    },
+    {
+      "stage": "Shared advice capture lifetime",
+      "command": "Typecheck, build, retention/capacity boundary checks; all boundary scripts and final typecheck after retiring obsolete advice flags",
+      "exitCode": 0
     }
   ],
   "next": [

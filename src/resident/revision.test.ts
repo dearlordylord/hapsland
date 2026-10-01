@@ -74,3 +74,20 @@ it.effect("isolates acquisitions and fences stale native tokens when generation 
   expect(first.revision.current(replacement, item)).toBe(true);
   expect(first.revision.count()).toBe(1);
 }));
+
+
+it.effect("settles a retired advice capture and its revision member in one owner commit", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const item = prepared();
+  const revision = owner.revision.register("agent", item, true, "capture").revision;
+  const reservation = owner.reserve("agent", 100, "storedResult");
+  if (reservation === undefined) throw new Error("missing capture reservation");
+  const capture = owner.adviceCaptures.start(reservation, revision, 200);
+  if (capture === undefined) throw new Error("missing capture");
+  owner.adviceCaptures.retire(reservation);
+  expect(owner.revision.current(revision, item)).toBe(true);
+  expect(owner.snapshot().bytes).toBe(300);
+  expect(owner.adviceCaptures.finish(capture)).toBe("retired");
+  expect(owner.revision.count()).toBe(0);
+  expect(owner.snapshot().items).toBe(0);
+}));
