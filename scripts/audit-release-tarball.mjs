@@ -26,8 +26,9 @@ const names = files.filter((name) => !name.endsWith("/")).map((name) => {
 });
 const allowed = (name) => name === "package.json" || name === "package-runtime.json" ||
   name === "README.md" || name === "bin/launch.sh" ||
+  ["dist/canonical/canonical.generated.js", "dist/canonical/import-graph.generated.js"].includes(name) ||
   ["docs/codex-installation.md", "docs/claude-installation.md", "docs/opencode-installation.md",
-    "docs/npm-quickstart.md", "docs/direct-event-v1-supported-profile.md",
+    "docs/direct-event-v1-supported-profile.md",
     "docs/installed-release-compatibility.md", "docs/status.md"].includes(name) ||
   /^dist\/(?:[a-z0-9-]+\/)*[a-z0-9-]+\.js$/i.test(name) ||
   /^native\/prebuilt\/(?:linux|darwin)-arm64\//.test(name);
@@ -51,11 +52,13 @@ if (manifest.name !== "@hapsland/hapsland" || manifest.version !== "0.1.0" || ma
   throw new Error("release package manifest differs from reviewed 0.1.0 coordinates or runtime contract");
 }
 const required = ["package.json", "package-runtime.json", "README.md", "bin/launch.sh",
-  "docs/npm-quickstart.md", "dist/cli.js", "dist/package-doctor.js", "dist/parser-main.js",
-  "dist/resident/main.js"];
+  "dist/cli.js", "dist/package-doctor.js", "dist/parser-main.js",
+  "dist/resident/main.js", "dist/canonical/canonical.generated.js",
+  "dist/canonical/import-graph.generated.js"];
 for (const profile of ["linux-arm64", "darwin-arm64"]) {
   for (const artifact of ["credential-secret-service", "tree-sitter/build/Release/tree_sitter_runtime_binding.node",
     "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node",
+    "tree-sitter-rust/build/Release/tree_sitter_rust_binding.node",
     ...(profile === "darwin-arm64" ? ["capture-open"] : [])]) {
     const path = `native/prebuilt/${profile}/${artifact}`;
     required.push(path);

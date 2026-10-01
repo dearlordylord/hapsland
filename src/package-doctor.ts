@@ -89,6 +89,7 @@ if (process.platform === "linux" || process.platform === "darwin") {
 for (const [name, path] of [
   ["parser-runtime-binding", "tree-sitter/build/Release/tree_sitter_runtime_binding.node"],
   ["parser-typescript-binding", "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node"],
+  ["parser-rust-binding", "tree-sitter-rust/build/Release/tree_sitter_rust_binding.node"],
 ] as const) {
   const binding = join(packageRoot, "native", "prebuilt", `${process.platform}-${process.arch}`, path);
   const architecture = nativeArchitecture(binding);
@@ -135,8 +136,14 @@ if (process.platform === "darwin") {
 
 try {
   const { analyzeTypeFile } = await import("./direct-event/analyzer.ts");
-  const parser = analyzeTypeFile("doctor.ts", "export interface Doctor { ready: boolean }");
-  add("parser", parser.status === "analyzed", parser.status, "packaged TypeScript parser loads and analyzes", "reinstall the package for this exact OS/architecture; verify tree-sitter runtime dependencies were installed");
+  const { registeredLanguages } = await import("./direct-event/languages/registry.ts");
+  for (const language of registeredLanguages) {
+    const parsed = analyzeTypeFile(language.probe.path, language.probe.source);
+    add(language.id === "typescript" ? "parser" : `parser-${language.id}`,
+      parsed.status === "analyzed", parsed.status,
+      `packaged ${language.displayName} parser loads and analyzes`,
+      "reinstall the package for this exact OS/architecture; verify parser dependencies were installed");
+  }
 } catch (cause) {
   const code = typeof cause === "object" && cause !== null && "code" in cause ? String(cause.code) : "load-failed";
   add("parser", false, code, "packaged TypeScript parser loads and analyzes", "reinstall a release archive containing compatible parser bindings for this platform");

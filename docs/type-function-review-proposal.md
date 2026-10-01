@@ -1,7 +1,7 @@
 # Issue #93: diff-selected type and function review target specification
 
 **Purpose:** Define the direct-edit type and function review behavior.
-**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling.
+**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling, and by the 2026-09-30 request to add bounded Rust support and the 2026-10-01 request for cross-file Rust evidence.
 **Authority:** Accepted product contract. Implementation and tests are separate evidence.
 **Expected use:** Build and review the supported direct-edit path.
 **Lifecycle:** Maintained as that path changes; review after a new owner decision or a changed runtime boundary.
@@ -84,11 +84,29 @@ Selections are deduplicated by canonical path, branch, root identity, and captur
 snapshot within the event. Selection must not infer a complete change set from a
 partial or unstable capture.
 
+## Source-language adapter boundary
+
+Source-language support stays at cohesive adapters, including TypeScript.
+Adapters own grammar setup, syntax extraction, name-binding context, and import
+candidate conventions. The shared analysis and traversal host consumes common
+artifact, reference, visibility, and location facts. Language context remains
+inside adapter sessions; generic traversal does not carry Rust-specific flags,
+interpret Cargo manifests, or select TS/TSX grammars. A static registry selects
+supported adapters and supplies their offline parser probes. Shared selection,
+stable capture, canonical graph budgets, rule admission, freshness, rendering,
+and backend dispatch remain product responsibilities. This boundary does not
+expand supported syntax, external crates, Bend hub imports, or ambiguous binding.
+
 ## Branch contracts
+
+For advisory lessons and a reusable validation workflow for future languages, see
+[Adding another source language](adding-language-support.md). That guide does not
+amend the contracts below.
 
 | Contract | Artifact root | Proposed evidence projection | Inapplicable examples |
 | --- | --- | --- | --- |
 | `direct-event/type-shape/v1` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and bounded outbound named-type reference graph with marked omissions, following supported local imports across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
+| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Rust `struct`, `enum`, or `type` alias in `.rs` | Exact root declaration and bounded outbound named-type references across verified local Cargo modules | Conditional compilation, macro-dependent declarations, unsupported type syntax, ambiguous binding, unresolved module/external paths, or missing evidence needed by a selected rule |
 | `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and bounded directly referenced type and named-function graph with marked omissions, following supported local imports across selected files | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, unresolved or excluded evidence needed by a selected rule |
 
 These contract IDs replace the former production
@@ -99,8 +117,60 @@ and independently selected cross-file roots are deferred. A referenced declarati
 in another file is supporting evidence, not a new changed root. The function branch must identify its body and
 signature together; signature-only input cannot answer body-dependent rules.
 
-The candidate projection walks outbound references from the root, including
-statically bound local imports of supported declarations. Resolve an import to a
+Rust uses the active type-shape v1 input, with bounded local cross-file projection. Rust
+functions and external-crate resolution are deferred. Parsing a
+file does not establish Rust compiler validity or macro expansion. Unsupported
+syntax and unresolved references must remain explicit limitations; rules needing
+that evidence cannot run. Rust source does not authorize a separate legacy
+named-type route or a new format version.
+
+Rust primitive types, unqualified `String`, `str`, `Option`, `Result`, `Vec`,
+and `Box`, and declared type parameters may contribute type context; generic
+payloads and defaults still require reference resolution. Same-file declarations
+take precedence over these wrapper names; same-file trait and union names cannot
+be treated as builtins and remain unresolved supporting evidence. Explicit qualified local paths and aliases resolve through the module bindings
+described below. Trait bounds, `where` clauses, const generics, and dynamic or
+abstract types are unsupported evidence. Arrays require integer-literal lengths; named
+constants and computed lengths are omitted. Non-integer enum discriminants and
+const generic arguments are also unsupported evidence. Raw identifiers are
+conservatively rejected by this parser profile. Unsupported imports or modules, an extern-crate
+declaration, foreign extern block, macro definition/invocation, or attribute
+anywhere in the file makes the scope uncertain for every root. This includes
+`derive`, `cfg`, and attributes on unrelated functions: procedural expansion can
+introduce type bindings. Ordinary doc comments do not create this uncertainty.
+These roots remain selectable, but only rules whose declared evidence needs
+permit the omissions can run; root-declaration-only rules may review partial
+evidence, while rules requiring complete type closure cannot.
+
+Rust module resolution requires an eligible nearest `Cargo.toml` with explicit
+package edition 2018, 2021, or 2024 and a supported local library or binary target.
+The supported manifest subset includes default or explicit relative library paths
+and explicit binary name/path pairs. Explicit binary tables disable automatic
+binary inference conservatively. Workspace-inherited editions, target edition
+overrides, custom build targets, test/example/bench target tables, and source
+roles in automatic test/example/bench directories are unsupported. Crate roots
+come from the manifest, not source filenames. Explicit external
+`mod child;` declarations establish module roles along the selected source's
+ancestor chain. Exactly one of `child.rs` and `child/mod.rs` must exist. A module
+named `lib.rs` or `main.rs` uses ordinary module layout when declared as a child.
+Direct `use child::Type`, `self::child::Type`, their aliases and flat lists, and
+qualified references through those bindings are supported. `crate::child::Type`
+uses the verified crate-root module map. Re-exports, glob imports, inline modules,
+external crates, path attributes, and unsupported module chains remain omitted.
+Supporting declarations must have supported public visibility. Namespace
+collisions and generic parameter shadowing cannot establish a binding.
+
+Cargo metadata and captured crate/ancestor modules count toward graph file,
+read-byte, work, and deadline limits. They are freshness dependencies even when
+no declaration from them appears in the rendered evidence. Cargo manifests and
+module ancestors must pass the same repository containment, exclusion, ignore,
+and selection checks as supporting type sources. Only referenced declarations
+are included in provider input; Cargo contents and unrelated ancestor bodies
+are binding evidence retained locally.
+
+The supported candidate projection walks outbound references from the root,
+including statically bound local imports of supported TypeScript declarations.
+Cross-language imports do not provide supporting evidence. Resolve an import to a
 canonical repository-relative path and declaration identity; a text-name match
 alone never establishes a binding. Before reading **each** newly discovered
 source file, check root containment,

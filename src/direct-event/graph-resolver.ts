@@ -1,16 +1,16 @@
-import { dirname, extname, isAbsolute, join, normalize, sep } from "node:path";
+import { dirname, isAbsolute, join, normalize, sep } from "node:path";
 import { lstat } from "node:fs/promises";
 import * as Effect from "effect/Effect";
 import { initialImportGraph, permitLocalGraphFacts, projectImportGraph, stepImportGraph, type ImportGraphCommand } from "../canonical/graph-adapter.ts";
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-limits.ts";
-import { inspectGraphFile, type GraphDeclaration, type GraphFile } from "./analyzer.ts";
-import { analyzeFunctionFile } from "./function-analyzer.ts";
-import { captureStable, type CaptureHooks, type StableCapture } from "./capture.ts";
-import type { ArtifactReference, PhysicalRootIdentity, ReviewArtifact, ReviewNode, ReviewUnit } from "./model.ts";
-import { eligibleNamedPath, type DirectFilePolicy } from "./selection.ts";
+import { languageForPath } from "./languages/registry.ts";
+import type { GraphFacts, LanguageGraphHost } from "./languages/contracts.ts";
+import { captureStable, type StableCapture } from "./capture.ts";
+import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit } from "./model.ts";
+import { eligibleNamedPath } from "./selection.ts";
 
 type MutableNode = { artifact: ReviewNode["artifact"]; references: ArtifactReference[] };
-type Pending = { readonly owner: MutableNode; readonly index: number; readonly from: string; readonly importPath: string; readonly name: string; readonly depth: number; readonly expectedKind?: "type" | "function" };
+type Pending = { readonly owner: MutableNode; readonly index: number; readonly from: string; readonly symbol: string; readonly importPath: string; readonly name: string; readonly depth: number; readonly expectedKind?: "type" | "function" };
 type Built = { readonly node: ReviewNode; readonly pending: ReadonlyArray<Pending> };
 type LocalBudget = {
   readonly limits: GraphLimits;
@@ -22,31 +22,11 @@ type LocalBudget = {
   graphWork: number;
   maxDepth: number;
 };
-type FactReference = { readonly kind: "named" | "unsupported"; readonly name: string; readonly expectedKind?: "type" | "function" };
-type FactFile = {
-  readonly declarations: ReadonlyMap<string, { readonly artifact: ReviewArtifact; readonly references: ReadonlyArray<FactReference>; readonly exported: boolean }>;
-  readonly imports: ReadonlyMap<string, { readonly path: string; readonly name: string; readonly typeOnly?: boolean }>;
-  readonly kindAware?: boolean;
-};
+type FactFile = GraphFacts;
 const factKey = (file: FactFile, name: string, expected: "type" | "function" | undefined): string =>
   file.kindAware ? `${expected ?? "function"}:${name}` : name;
 const declarationFor = (file: FactFile, name: string, expected: "type" | "function" | undefined) =>
   file.declarations.get(factKey(file, name, expected));
-const inspectFunctionGraphFile = (path: string, source: string): FactFile | undefined => {
-  const file = analyzeFunctionFile(path, source);
-  if (file === undefined) return undefined;
-  const declarations = new Map<string, { artifact: ReviewArtifact; references: ReadonlyArray<FactReference>; exported: boolean }>();
-  for (const fact of [...file.types.values(), ...file.functions.values()]) {
-    declarations.set(`${fact.artifact.kind === "function" ? "function" : "type"}:${fact.artifact.name}`, { artifact: fact.artifact, exported: fact.exported,
-      references: fact.references.map((reference) => ({
-        kind: reference.kind === "unsupported" ? "unsupported" : "named",
-        name: reference.name,
-        ...(reference.kind === "named-function" ? { expectedKind: "function" as const } :
-          reference.kind === "named-type" ? { expectedKind: "type" as const } : {}),
-      })) });
-  }
-  return { declarations, imports: file.imports, kindAware: true };
-};
 const correctKind = (artifact: ReviewArtifact, expected: "type" | "function" | undefined): boolean =>
   expected === undefined || (expected === "function" ? artifact.kind === "function" : artifact.kind !== "function");
 export const GRAPH_ANALYSIS_DEADLINE_MS = 5_000;
@@ -54,7 +34,6 @@ export const MAX_OBSERVATION_GRAPH_FILES = 64;
 export const MAX_OBSERVATION_GRAPH_READ_BYTES = 16 * 1024 * 1024;
 export const MAX_OBSERVATION_GRAPH_UNITS = 64;
 const bytes = (value: unknown): number => Buffer.byteLength(JSON.stringify(value), "utf8");
-const sourceExtensions = [".ts", ".tsx", ".mts", ".cts"] as const;
 const mayCaptureForObservation = (captures: ReadonlyMap<string, StableCapture>, path: string): boolean =>
   captures.has(path) || (captures.size < MAX_OBSERVATION_GRAPH_FILES &&
     [...captures.values()].reduce((sum, source) => sum + source.byteLength, 0) + GRAPH_LIMIT_CEILINGS.sourceBytes <=
@@ -120,7 +99,7 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
       }
       const index = node.references.length;
       node.references.push({ kind: "omitted", site: { symbol: reference.name }, target: { kind: "unresolved", symbol: reference.name }, reason: "unavailable" });
-      pending.push({ owner: node, index, from: path, importPath: imported.path, name: imported.name, depth,
+      pending.push({ owner: node, index, from: path, symbol: reference.name, importPath: imported.path, name: imported.name, depth,
         ...(reference.expectedKind === undefined ? {} : { expectedKind: reference.expectedKind }) });
     } else {
       node.references.push({ kind: "omitted", site: { symbol: reference.name }, target: { kind: "unresolved", symbol: reference.name }, reason: "unresolved" });
@@ -129,18 +108,7 @@ const buildLocal = (file: FactFile, path: string, name: string, visited: Set<str
   return { node, pending };
 };
 
-export type GraphResolveContext = {
-  readonly branch?: "type" | "function";
-  readonly root: string;
-  readonly rootIdentity: PhysicalRootIdentity;
-  readonly policy: DirectFilePolicy;
-  readonly limits?: GraphLimits;
-  readonly captureHooks?: CaptureHooks;
-  readonly captureSource?: typeof captureStable;
-  /** One preparation invocation shares stable supporting snapshots across roots. */
-  readonly captureCache?: Map<string, StableCapture>;
-  readonly now?: () => number;
-};
+export type GraphResolveContext = LanguageGraphHost;
 
 /** Run one finite, source-free Bend graph per named edited root. */
 export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(function* (
@@ -149,21 +117,28 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
   name: string,
   context: GraphResolveContext,
 ) {
-  const limits = context.limits ?? GRAPH_LIMIT_CEILINGS;
-  const inspect = context.branch === "function" ? inspectFunctionGraphFile : inspectGraphFile;
-  const rootFile = inspect(rootPath, rootCapture.text);
+  let limits = context.limits ?? GRAPH_LIMIT_CEILINGS;
+  const now = context.now ?? (() => performance.now());
+  const started = now();
+  const expired = () => now() - started >= GRAPH_ANALYSIS_DEADLINE_MS;
+  const language = languageForPath(rootPath);
+  if (language === undefined) return undefined;
+  const binding = yield* language.prepareGraph(rootPath, rootCapture, context, limits, expired);
+  if (binding === undefined) return undefined;
+  const { session, dependencies } = binding;
+  limits = binding.limits;
+  if (limits.files < 1 || limits.work < 1 || limits.readBytes < rootCapture.byteLength || expired()) return undefined;
+  const branch = context.branch ?? "type";
+  const rootFile = session.inspect(rootPath, rootCapture.text, branch);
   if (rootFile === undefined) return undefined;
   const rootDeclaration = declarationFor(rootFile, name, context.branch === "function" ? "function" : undefined);
   if (rootDeclaration === undefined) return undefined;
   const visited = new Set([rootDeclaration.artifact.id]);
   const budget: LocalBudget = { limits, targetsByPath: new Map(), maxTargetsInFile: 0, work: 0, graphWork: 0, maxDepth: 0 };
-  const now = context.now ?? (() => performance.now());
-  const started = now();
-  const expired = () => now() - started >= GRAPH_ANALYSIS_DEADLINE_MS;
   const built = buildLocal(rootFile, rootPath, name, visited, budget, 0);
   if (built === undefined ||
     !permitLocalGraphFacts(limits, budget.work, budget.maxDepth, budget.maxTargetsInFile, 0)) return undefined;
-  const unit: ReviewUnit = { root: built.node };
+  const unit: ReviewUnit = { root: built.node, ...(dependencies.length === 0 ? {} : { sourceDependencies: dependencies }) };
   let nextId = 1;
   const pending = new Map<number, Pending>();
   const pathForTarget = new Map<number, { readonly path: string; readonly name: string; readonly edge: Pending }>();
@@ -206,14 +181,18 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
         command = transition.command;
         continue;
       }
-      const extension = extname(base);
-      const choices = extension === "" ? sourceExtensions.map((candidate) => `${base}${candidate}`)
-        : extension === ".js" ? [base.slice(0, -3) + ".ts", base.slice(0, -3) + ".tsx"]
-        : extension === ".mjs" ? [base.slice(0, -4) + ".mts"]
-        : extension === ".cjs" ? [base.slice(0, -4) + ".cts"]
-        : [base];
+      // The adapter supplies language binding candidates. The shared host
+      // owns containment, eligibility, capture, and graph transitions.
+      const choices = session.importCandidates(edge.from, edge.importPath);
+      if (choices.length === 0) {
+        transition = stepImportGraph(state, { kind: "resolved", target: nextTargetId++, result: "unsupported" });
+        state = transition.state;
+        command = transition.command;
+        continue;
+      }
       const existing: string[] = [];
       for (const choice of choices) {
+        if (choice === ".." || choice.startsWith(`..${sep}`) || isAbsolute(choice)) continue;
         const status = yield* Effect.promise(() => lstat(join(context.root, choice)).catch(() => undefined));
         if (status?.isFile()) existing.push(choice);
       }
@@ -237,7 +216,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
           if (transition.command.kind === "none") {
             const artifactId = artifactsByTarget.get(targetId);
             if (artifactId !== undefined) edge.owner.references[edge.index] = {
-              kind: "included", site: { symbol: edge.name }, target: artifactId,
+              kind: "included", site: { symbol: edge.symbol }, target: artifactId,
             };
           }
           pathForTarget.set(targetId, { path: selectedPath, name: targetName, edge });
@@ -272,7 +251,7 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
         } else {
           const localWorkBefore = budget.work;
           budget.graphWork = projectImportGraph(state).work - budget.work;
-          const file = inspect(selected.relativePath, source.text);
+          const file = session.inspect(selected.relativePath, source.text, branch);
           const declaration = file === undefined ? undefined : declarationFor(file, target.name, target.edge.expectedKind);
           if (file === undefined || declaration === undefined || !declaration.exported ||
             !correctKind(declaration.artifact, target.edge.expectedKind)) {
@@ -289,12 +268,12 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
               transition = stepImportGraph(state, { kind: "captureFailed" });
             } else {
               const previous = bytes(unit);
-              target.edge.owner.references[target.edge.index] = { kind: "expanded", site: { symbol: target.edge.name }, node: child.node };
+              target.edge.owner.references[target.edge.index] = { kind: "expanded", site: { symbol: target.edge.symbol }, node: child.node };
               const contribution = bytes(unit) - previous;
               transition = stepImportGraph(state, { kind: "captured", sourceBytes: source.byteLength,
                 treeBytes: Math.max(0, contribution), localWork: budget.work - localWorkBefore, edges: addEdges(child.pending) });
               if (transition.command.kind === "skipImport") {
-                target.edge.owner.references[target.edge.index] = { kind: "omitted", site: { symbol: target.edge.name }, target: { kind: "unresolved", symbol: target.edge.name }, reason: "reference-limit" };
+                target.edge.owner.references[target.edge.index] = { kind: "omitted", site: { symbol: target.edge.symbol }, target: { kind: "unresolved", symbol: target.edge.name }, reason: "reference-limit" };
               } else {
                 captured.set(selected.relativePath, { file, sourceBytes: source.byteLength });
                 artifactsByTarget.set(command.target, declaration.artifact.id);

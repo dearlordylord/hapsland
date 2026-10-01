@@ -1,0 +1,20 @@
+{
+  "declaredAt": "2026-10-01T03:21:52.933Z",
+  "declaration": {
+    "attempt": 2,
+    "priorAttemptProviderRequests": 0,
+    "fixtureIds": [
+      "rust-payment-edit-repair"
+    ],
+    "maximumProviderRequests": 6,
+    "deadlineMs": 15000,
+    "hostDeadlineMs": 240000,
+    "automaticHostRetries": 0,
+    "productionTransientRetries": 2,
+    "maximumFixtureFileBytes": 4096,
+    "syntheticRepositoryOnly": true,
+    "model": "gpt-6-luna",
+    "reasoningEffort": "max",
+    "expectedCodexVersion": "0.156.0"
+  }
+}

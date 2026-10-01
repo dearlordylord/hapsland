@@ -1,7 +1,7 @@
 # Configuration and rule packs
 
 The configuration file and authored rule packs use version 1.
-Each rule names the TypeScript type or function input it can review and the
+Each rule names the type-shape or function input it can review and the
 supporting evidence it needs. Jev returns a probability for the rule's binary
 question. Choice and Score are not supported result forms.
 
@@ -236,8 +236,11 @@ or protected path.
 
 Rule authors must use rule-pack schema 1 and name an exact type or function
 input contract and required capabilities. The resident reviews one changed
-TypeScript type or function per unit, with bounded supporting evidence
-from selected files reached through supported local imports. Omitted evidence is
+TypeScript type or function, or supported Rust type declaration, per unit.
+TypeScript supporting evidence can follow supported local imports across selected
+files. Rust supporting evidence is limited to the same file; Rust functions are
+deferred. The [review contract](type-function-review-proposal.md#branch-contracts)
+defines the supported extraction scope. Omitted evidence is
 marked, and a rule runs only when its declared needs are met. Its Jev input does
 not contain a whole file, a before/after diff, or task or transcript context.
 Packs without explicit targets fail configuration before source capture.

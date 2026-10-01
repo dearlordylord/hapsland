@@ -1,0 +1,29 @@
+{
+  "declaredAt": "2026-10-01T03:18:00.797Z",
+  "declaration": {
+    "attempt": 2,
+    "previousAttemptCompletedDecideOperations": 1,
+    "cumulativeIntendedProviderRequestCeiling": 7,
+    "fixtureIds": [
+      "rust-payment-bad",
+      "rust-payment-good"
+    ],
+    "repeatsPerFixture": 3,
+    "maximumProviderRequests": 6,
+    "deadlineMs": 15000,
+    "automaticRetries": 0,
+    "maximumFixtureFileBytes": 4096,
+    "targetRule": "r2_meaningless_combinations",
+    "threshold": 0.7,
+    "acceptance": "All bad probabilities exceed threshold; all good probabilities are below threshold.",
+    "retainedFields": [
+      "fixture IDs",
+      "probabilities",
+      "durations",
+      "transport status",
+      "contract outcome",
+      "source hashes"
+    ],
+    "syntheticRepositoryOnly": true
+  }
+}

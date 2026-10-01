@@ -32,11 +32,24 @@ Coincidentally, models are pretty bad at those decisions by default and need con
 
 <p align="center"><img src="./assets/review-flow.gif" alt="Hapsland review flow: an agent edit is expanded into type context, reviewed, repaired, checked again, and committed" width="800"></p>
 
-### Restrictions
+### Supported languages
 
-The restriction that comes with this idea is that we have to implement context extraction per-language.
+| Language | Reviewed code | Main limits |
+| --- | --- | --- |
+| TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with bounded local type/import context | Unsupported syntax or unresolved evidence can prevent review. |
+| Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Explicit local `mod`/`use` bindings and aliases are supported. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
 
-Currently supported is TypeScript.
+Rust cross-file context requires a selected `Cargo.toml` with an explicit
+2018, 2021, or 2024 edition and supported library/binary targets. Workspace-inherited
+editions, custom build targets, and test/example/bench target tables are outside
+this profile. Module paths must be unambiguous; excluded supporting files stay unread.
+
+Language support applies to source review; it does not select an agent runtime.
+If an edit lacks the evidence a rule needs, Hapsland skips that rule. Silence
+is not confirmation that the code passed review. See the
+[review contract](./docs/type-function-review-proposal.md#branch-contracts) for
+the exact supported syntax and [session status](./docs/status.md) to inspect
+review activity.
 
 TODO contribution guide
 
@@ -99,7 +112,7 @@ artifact verification.
    input. Effective file settings select otherwise eligible files; with no file settings,
    all otherwise eligible files are selected when Jev credentials are available.
 3. Start Codex normally, review its repository and hook trust prompts, and make a supported
-   TypeScript edit. Follow the [status guide](./docs/status.md) to check observed review activity
+   TypeScript or supported Rust type edit. Follow the [status guide](./docs/status.md) to check observed review activity
    with the host session ID; installation alone does not establish that a review ran.
 
 The [Codex installation guide](./docs/codex-installation.md) covers update, disable, logout,
@@ -137,7 +150,7 @@ npm test
 npm run conformance:package
 ```
 
-`npm pack` builds JavaScript release entry points for the review CLI, TypeScript parser,
+`npm pack` builds JavaScript release entry points for the review CLI, source parsers,
 resident process, and offline package doctor. The tested installed profile is exactly Node
 24.20.0 on Linux arm64 with Git and `/proc/self/fd`, plus Node 24.20.0 on macOS arm64 with
 Git and a packaged `openat` capture helper. The macOS controlled package path and authenticated

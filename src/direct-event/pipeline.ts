@@ -173,7 +173,7 @@ const unitSourceFingerprints = (
   unit: ReviewUnit,
   captures: ReadonlyMap<string, import("./capture.ts").StableCapture>,
 ): ReviewInput["sourceFingerprints"] | undefined => {
-  const paths = new Set<string>();
+  const paths = new Set<string>(unit.sourceDependencies ?? []);
   const pending = [unit.root];
   while (pending.length > 0) {
     const node = pending.pop();
