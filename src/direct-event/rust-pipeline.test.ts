@@ -7,7 +7,7 @@ import { adaptCodexAdd } from "./adapter.ts";
 import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent, evaluatePrepared } from "./pipeline.ts";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { resolveRustModuleContext } from "./rust-module-context.ts";
+import { resolveRustModuleContext } from "./languages/rust-module-context.ts";
 import { captureStable } from "./capture.ts";
 import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "./selection.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts";

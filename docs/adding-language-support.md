@@ -111,10 +111,17 @@ spans, reference bindings, and explicit omissions. Extend the shared artifact mo
 language needs a real distinction; preserve format version 1 for in-place
 pre-release changes according to repository guidance.
 
-The current Rust extractor is inline in [analyzer.ts](../src/direct-event/analyzer.ts).
-It is not a public parser plugin API. Reusing this conceptual separation does
-not require introducing an adapter framework before demonstrated variation
-justifies one. New languages need not share Rust's declaration families.
+Source-language implementations now live together under
+[`src/direct-event/languages`](../src/direct-event/languages). A static registry
+selects a registered source-language adapter. Each adapter owns syntax extraction,
+binding context, import candidate paths, and parser smoke fixtures, and returns
+common declaration/reference/location facts. Graph sessions keep language context
+inside adapter closures. The shared graph host owns containment, selection,
+capture, canonical budget transitions, and freshness; it does not inspect Rust
+module flags or select TypeScript grammars. TypeScript type and function extraction
+share one grammar setup. This is a cohesive module boundary, not a dynamic plugin
+framework. Add another language through its implementation and registry entry;
+source review contracts and packaging dependencies still require explicit decisions.
 
 ## Assumptions to falsify first
 
