@@ -123,7 +123,8 @@
     "Preparation completion is owned by ResidentPreparationControls; removed the Promise afterPrepare option and converted its callers to scoped Ref/Deferred/Queue controls.",
     "Owner, joined and completion preparation barriers now observe owning-work cancellation inside the dispatcher uninterruptible region; actual resident-close tests prove held barriers retire without external gate release.",
     "Dispatch authorization and credential-resolution barriers are a scoped ResidentDispatchControls service with typed failures; removed both optional Promise callbacks in place.",
-    "Credential-generation child-process and exclusion-update races now run in the test after a deterministic scoped dispatch barrier; no file/process mutations inside production fixture callbacks."
+    "Credential-generation child-process and exclusion-update races now run in the test after a deterministic scoped dispatch barrier; no file/process mutations inside production fixture callbacks.",
+    "Resident control scope owns both preparation and dispatch layers; authorization/credential typed failure tests prove provider suppression and complete charge release."
   ],
   "verification": [
     {
@@ -1582,6 +1583,18 @@
     {
       "stage": "Scoped dispatch controls",
       "command": "Typecheck, build, dispatch/reuse boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Scoped dispatch controls final",
+      "command": "Full server/security-queued/preparation-controls/dispatch-controls suite",
+      "exitCode": 0,
+      "tests": 99,
+      "files": 4
+    },
+    {
+      "stage": "Scoped dispatch controls final",
+      "command": "Typecheck, build, all boundary scripts and git diff --check",
       "exitCode": 0
     }
   ],

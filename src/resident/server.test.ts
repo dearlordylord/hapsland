@@ -1,3 +1,4 @@
+import { ResidentDispatchControls, DispatchControlError } from "./dispatch-controls.ts";
 import { makeDispatchControls } from "../test-support/dispatch-controls.ts";
 import { Layer } from "effect";
 import { ResidentPreparationControls, PreparationControlError, defaultPreparationControls } from "./preparation-controls.ts";
@@ -3146,6 +3147,28 @@ describe("resident bounded advice batches", () => {
 
 
 describe("Effect dispatch ownership", () => {
+  it.each(["authorized", "credentialResolved"] as const)("releases charged work when the %s control fails", async (phase) => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const capturePath = join(root, "provider-calls");
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      dispatchControls: Layer.succeed(ResidentDispatchControls, ResidentDispatchControls.of({
+        atBoundary: Effect.fn("DispatchFailureFixture.atBoundary")(function* (boundary) {
+          if (boundary === phase) yield* Effect.fail(new DispatchControlError({ phase }));
+        }),
+      })),
+    });
+    try {
+      expect(server.admit(observation, { ...findingDispatch(join(root, "consent")),
+        controlled: { ...findingDispatch(join(root, "consent")).controlled, capturePath } }).status).toBe("accepted");
+      await server.whenIdle();
+      expect(existsSync(capturePath)).toBe(false);
+      expect(server.stats()).toMatchObject({ queued: 0, running: 0, retainedBytes: 0, pendingEvaluations: 0 });
+    } finally { await server.close(); }
+  });
+
   it.each(["authorized", "credentialResolved"] as const)("closes a held %s boundary without an external release", async (phase) => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type OrderCount = number\n");

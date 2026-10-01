@@ -21,6 +21,6 @@ if (server.includes("bendDiscardScope")) throw new Error("direct discard scope p
 for (const callback of ["afterAuthorizeBeforeCredential", "afterCredentialBeforeDispatch"]) {
   if (server.includes(callback)) throw new Error(`legacy dispatch Promise callback returned: ${callback}`);
 }
-if (!server.includes("Layer.buildWithScope(options.dispatchControls ?? dispatchControlsLayer, residentPreparationScope)")) {
+if (!server.includes("Layer.buildWithScope(options.dispatchControls ?? dispatchControlsLayer, residentControlScope)")) {
   throw new Error("dispatch coordination must share resident-owned scoped retirement");
 }

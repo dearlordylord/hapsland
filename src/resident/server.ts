@@ -573,13 +573,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentCaptureSource = options.captureSource;
   const residentAfterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
   const residentAfterAdvicePending = options.afterAdvicePending;
-  const residentPreparationScope = yield* Scope.make();
-  yield* Effect.addFinalizer(() => Scope.close(residentPreparationScope, Exit.void));
+  const residentControlScope = yield* Scope.make();
+  yield* Effect.addFinalizer(() => Scope.close(residentControlScope, Exit.void));
   const residentPreparationControls = Context.get(
-    yield* Layer.buildWithScope(options.preparationControls ?? preparationControlsLayer, residentPreparationScope), ResidentPreparationControls);
+    yield* Layer.buildWithScope(options.preparationControls ?? preparationControlsLayer, residentControlScope), ResidentPreparationControls);
   const residentBeforeFinalRevalidate = options.beforeFinalRevalidate;
   const residentDispatchControls = Context.get(
-    yield* Layer.buildWithScope(options.dispatchControls ?? dispatchControlsLayer, residentPreparationScope), ResidentDispatchControls);
+    yield* Layer.buildWithScope(options.dispatchControls ?? dispatchControlsLayer, residentControlScope), ResidentDispatchControls);
   const residentDispatchAuthorityObserver = options.dispatchAuthorityObserver;
   const residentJevRequestObserver = options.jevRequestObserver;
   const residentOfflineHttpClient = options.offlineHttpClient;
@@ -3072,7 +3072,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       residentReuse.clear();
       yield* residentDispatcher.whenIdle();
       yield* Scope.close(residentDispatchScope, Exit.void);
-      yield* Scope.close(residentPreparationScope, Exit.void);
+      yield* Scope.close(residentControlScope, Exit.void);
       const server = residentServer;
       const endpointClosed = server === undefined ? undefined : yield* Effect.forkChild(
         Effect.callback<void>((resume) => { server.close(() => resume(Effect.void)); }),
