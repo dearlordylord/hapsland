@@ -23,3 +23,7 @@ for (const name of ["collectionReady", "collectionOrderCheck", "collectionExpiry
   "collectionReleaseLease", "collectionLeaseCheck", "collectionClaimBackground"]) {
   if (!server.includes(name) && !delivery.includes(name)) throw new Error(`canonical collection event missing: ${name}`);
 }
+
+if (server.includes("#bendPartitions") || server.includes("#nextBendPartition")) {
+  throw new Error("finding selection must use the shared resident partition identity owner");
+}

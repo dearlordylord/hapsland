@@ -545,8 +545,6 @@ export class ResidentServer {
   readonly lifetime = randomUUID();
   readonly #advice: Array<Advice> = [];
   readonly #noticeCooldowns = new Map<string, NoticeCooldown>();
-  readonly #bendPartitions = new Map<string, number>();
-  #nextBendPartition = 1;
   readonly #tickets = new Map<string, TicketRecord>();
   readonly #ticketUnits = new Set<TicketUnit>();
   readonly #joinedReviews = new Map<string, Array<JoinedReview>>();
@@ -1732,11 +1730,8 @@ export class ResidentServer {
     advice: Advice, partition: string, credentialGeneration: number | null,
     now: number, composed: boolean,
   ): FindingSelectionFacts {
-    let partitionId = this.#bendPartitions.get(partition);
-    if (partitionId === undefined) {
-      partitionId = this.#nextBendPartition++;
-      this.#bendPartitions.set(partition, partitionId);
-    }
+    const partitionId = this.#ledger.knownPartitionId(partition);
+    if (partitionId === undefined) throw new Error("finding selection lost its resident partition identity");
     return {
       partition: partitionId,
       round: composed ? this.#composedDelivery.generation(partition) : 0,
@@ -1832,10 +1827,6 @@ export class ResidentServer {
       }
       removed.retired = true;
       if (!removed.revalidationActive) this.#releaseUnit(removed);
-      if (!this.#rounds.has(removed.partition) &&
-        !this.#advice.some((item) => item.partition === removed.partition)) {
-        this.#bendPartitions.delete(removed.partition);
-      }
     }
     return removed !== undefined;
   }
@@ -1954,7 +1945,6 @@ export class ResidentServer {
       if (notice.partition === round.group) this.#releaseNoticeCooldown(key);
     }
     this.#reuse.discardPartition(round.group);
-    this.#bendPartitions.delete(round.group);
     for (const [key, ticket] of this.#tickets) if (ticket.partition === round.group) {
       this.#tickets.delete(key);
       this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });

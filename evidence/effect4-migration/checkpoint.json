@@ -49,7 +49,8 @@
     "The direct hook watchdog is a scoped Effect fiber bound to the original absolute host deadline; a timed-out write retains the watchdog until its process exit boundary",
     "Direct submission finalizers release an original lease on interruption before output handoff and retain uncertainty once writing may have started; refused admission and reported write errors release once without recording or acknowledging",
     "Encoded and composed JSON output share one callback/resource owner; the native Writable adapter keeps its error observer through the queued error event before removing it",
-    "Direct submission trace configuration is acquired through Config in its production layer; controlled submission services test write/record/acknowledgement ordering and original resident identity"
+    "Direct submission trace configuration is acquired through Config in its production layer; controlled submission services test write/record/acknowledgement ordering and original resident identity",
+    "Finding selection uses the bounded shared resident partition identity registry; deleted the server-local partition map/counter and collection-side identity allocation, with an explicit missing-ownership check"
   ],
   "verification": [
     {
@@ -534,6 +535,33 @@
         "Broken-stdout Claude CLI regression",
         "Existing CLI and composed delivery contracts"
       ]
+    },
+    {
+      "stage": "Shared finding-selection partition identity",
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared finding-selection partition identity",
+      "command": "npm run build",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared finding-selection partition identity",
+      "commands": [
+        "check-collection-boundary",
+        "check-capacity-boundary",
+        "check-production-authority",
+        "git diff --check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared finding-selection partition identity",
+      "command": "vitest run --maxWorkers=1 src/resident/server.test.ts src/resident/claude-delivery.test.ts src/resident/terminal-collection.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts src/resident/capacity.test.ts",
+      "exitCode": 0,
+      "tests": 138,
+      "files": 6
     }
   ],
   "next": [
