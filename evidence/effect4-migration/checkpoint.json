@@ -99,7 +99,8 @@
     "Runtime owner proofs cover bounded connection membership, foreign/duplicate releases, isolated acquisition, busy cleanup, successful canonical retirement and rollback after staged native ticket validation failure",
     "Resident diagnostics and source-free subprocess observation configuration acquire immutable values through Effect Config; production resident has no process.env reads",
     "Client dispatch credentials, credential metadata path and demo budget path use the supplied ConfigProvider; credential remains Redacted until constructing the authorized IPC dispatch context",
-    "Configuration boundary checks reject restored resident environment reads and unredacted client credential configuration"
+    "Configuration boundary checks reject restored resident environment reads and unredacted client credential configuration",
+    "Registered canonical states and validated projections are deeply immutable; weak identity memoization reuses numeric projections without retaining state ownership or skipping validation of new Bend results"
   ],
   "verification": [
     {
@@ -1157,9 +1158,37 @@
       "stage": "Resident and client Effect configuration",
       "command": "Typecheck, build, all boundary scripts and git diff --check",
       "exitCode": 0
+    },
+    {
+      "stage": "Stable runtime Jev concurrency",
+      "command": "Jev request suite",
+      "exitCode": 0,
+      "tests": 10,
+      "files": 1
+    },
+    {
+      "stage": "Scoped runtime performance investigation",
+      "command": "Original unchanged 24-edit, eight-iteration benchmark",
+      "exitCode": 0,
+      "evidence": "benchmark-runtime-comparison.json",
+      "budgetsMet": false,
+      "limitations": "Five regression budgets fail and the ordinary delay workload reaches five concurrent effects, not eight; no acceptance claim."
+    },
+    {
+      "stage": "Canonical projection memoization",
+      "command": "Canonical adapter, capacity, dispatch, runtime-records and Jev request tests",
+      "exitCode": 0,
+      "tests": 54,
+      "files": 5
+    },
+    {
+      "stage": "Canonical projection memoization",
+      "command": "Typecheck, build, canonical authority and git diff --check",
+      "exitCode": 0
     }
   ],
   "next": [
+    "Measure canonical immutable projection memoization against unchanged strict budgets; complete physical retirement workload and preserve prior failures",
     "Compose remaining round closure/cutoff, quiet sweeping and collection work-state helpers as named Effects; remove their internal synchronous dispatcher bridges and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
@@ -1171,7 +1200,7 @@
     "Shared state owns lifecycle and statistics; native IPC handles and mutable per-job callback metadata remain executor resources, and intermediate synchronous domain bridges still need removal",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "Exploratory full suite had 1078 passes and one subsequently corrected test failure; final full suite/package/host/live gates remain pending",
-    "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim",
+    "Current stable runtime benchmark fails Stop, saturation, shutdown, event-loop and peak-retention budgets; immutable projection memoization is tested but not yet measured, and final eight-effect physical workload remains required",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied"
   ],
   "cleanup": {
