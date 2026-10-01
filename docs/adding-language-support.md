@@ -45,7 +45,15 @@ These Rust observations come from a combined stacked-branch run; the original
 preexecution declaration and executed revision are retained in the record.
 [Installed-package evidence](../evidence/rust-support/cross-file-linux-package.json)
 separately exercises Cargo authority and supporting-file preparation in a clean
-production installation. The prior native-agent run predates this amendment.
+production installation. [macOS arm64 package conformance](https://github.com/dearlordylord/hapsland/actions/runs/36818185849)
+also passed at `c8fddecbe478a766e065408fa5d1d8e1c0016339`; its
+[sanitized record](../evidence/rust-support/cross-file-macos-package.json) includes
+actual installed Cargo/module preparation. The prior native-agent run predates
+this amendment. The final full Rust suite passed 917 tests with two live tests
+skipped; typecheck, build, native verification, and pinned clean-tarball audit
+passed. A preceding full run had one existing TypeScript Claude hook child exit
+without a status. Isolation and the fresh full run passed without production
+changes; the termination cause is unestablished.
 
 These observations do not validate every Noul rule, broad Rust semantics,
 reliable delivery across sessions, another agent runtime, or another platform.

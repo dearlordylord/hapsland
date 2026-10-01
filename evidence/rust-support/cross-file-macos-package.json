@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-01T05:06:59.828Z",
+  "package": {
+    "name": "@hapsland/hapsland",
+    "version": "0.1.0",
+    "artifact": "hapsland-hapsland-0.1.0.tgz",
+    "source": "local-pack",
+    "sha256": "0e3c4305c89b552076da5547c3cd0f19c779805737c549703160e3eb57ffce71"
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "operatingSystem": "darwin",
+    "architecture": "arm64"
+  },
+  "continuousIntegration": {
+    "provider": "github-actions",
+    "runId": "36818185849",
+    "commit": "c8fddecbe478a766e065408fa5d1d8e1c0016339"
+  },
+  "isolation": {
+    "temporaryInstallation": true,
+    "developmentDependencies": false,
+    "checkoutPathUsedAtRuntime": false,
+    "retainedSyntheticSource": false
+  },
+  "entryPoints": {
+    "cli": "passed",
+    "parser": "passed",
+    "resident": "passed",
+    "hook": "passed"
+  },
+  "rustPreparation": {
+    "status": "passed",
+    "cargoAuthority": true,
+    "supportingFileResolved": true,
+    "rendered": true
+  },
+  "installation": {
+    "preview": "passed",
+    "installed": "passed",
+    "idempotent": "passed",
+    "scopedUninstall": "passed",
+    "customQuotedHome": true,
+    "independentHookPreserved": true,
+    "fileSelection": "effective-settings",
+    "disableDispatchGate": "passed",
+    "update": {
+      "fromVersion": "0.1.0",
+      "toVersion": "0.0.1-local",
+      "preview": "passed",
+      "protocolIncompatibility": "rejected-before-write",
+      "partialRecovery": "resumed",
+      "previousHookRetainedOnPartialFailure": true,
+      "oldGrantFilesPreserved": true,
+      "credentialState": "preserved-external-native-store",
+      "trustRecordsModified": false,
+      "processesStopped": false,
+      "controlledReviewAfterUpdate": "passed",
+      "independentHookAfterUpdate": "passed"
+    }
+  },
+  "review": {
+    "backend": "controlled-offline",
+    "submissions": 2,
+    "adviceReturned": true,
+    "activity": {
+      "submitted": {
+        "instrumentation": "resident-v1",
+        "kind": "submitted",
+        "submission": "submitted",
+        "modelReaction": "unavailable"
+      },
+      "restart": {
+        "before": "pending",
+        "after": "restarted/lost",
+        "modelReaction": "unavailable"
+      }
+    }
+  },
+  "credentialLifecycle": {
+    "status": "actual-keychain",
+    "loginMs": 800,
+    "separateProcessLookupMs": 543,
+    "defaultKeychainIsolation": "lookup-replacement-logout-passed",
+    "residentRestartPersistence": "passed-distinct-pid-and-lifetime",
+    "residentControlledTransportResolution": "passed",
+    "logoutBeforeFutureDispatch": "passed",
+    "restrictedNativeLookupMs": 1005,
+    "restrictedNativeOutcome": "timed-out-helper-terminated",
+    "secretRetainedInEvidence": false
+  },
+  "realCodex": {
+    "status": "not-requested"
+  },
+  "transientPackageDownloadPerEdit": false,
+  "verdict": "clean-package-passed-real-host-not-requested"
+}
