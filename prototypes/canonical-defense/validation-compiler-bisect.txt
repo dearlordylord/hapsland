@@ -1,0 +1,59 @@
+Purpose: isolate a native compilation regression and validate a source-level fix.
+Authority: bounded implementation/validation evidence; no compiler-correctness or macOS execution claim.
+Cleanup: at game layout selection, consolidate current build decisions into README/implementation issue and delete this temporary evidence.
+
+Bend 2.0.34; Debian clang14.0.6; Linux ARM64.
+Before 0a3b2a4: main C at -O3 -c exit0, 102 ABI arguments, WL_RESW60.
+After 35a1218: main C at -O3 -c exit70, 119 ABI arguments, WL_RESW77.
+Candidate: same after source, only singleton boxing of game scheduler and corresponding access/construction edits. Main C at -O3 -c exit0, 102 ABI arguments, WL_RESW60. Linked with pthread/math/X11 and ran native window, A countdown, first wave; closed exit0.
+This is commit-range bisection followed by a controlled representation change, not exhaustive binary testing of every changed line.
+Current authored game source matches tested candidate except explanatory comments. Shared Session and Canonical unchanged. Mac failures were user-reported; Apple clang has not been executed locally.
+
+db3f2afe6a186f5fcc57d105f2627686b7a04e5913c72013acff063d10ab2327  before.c
+f4a91c5429ea2f1e43edd2797433d0c1aebca95f75a86393e709f9f5cd097182  after.c
+018b9a1f7c81b38e5be18681ae83c9aaba5aba70fee9ac1aef9968b3adb94bc1  boxed.c
+4e260f11131ef449c0957114f473c3ab1d66e6fb15dac13d452ca2663161cd67  boxed-auto.c
+
+Optimized candidate campaign output (exit0):
+PASS first wave drains before retiring its canonical round
+PASS Enter starts a distinct actual second round
+PASS next wave retains towers gold and HP
+PASS two rounds drain thirty-two real findings using eight actual reservations
+PASS manual completion awards exactly twenty gold once per survived wave
+PASS A grants three seconds prep
+PASS countdown advances by the fixed twenty millisecond tick
+PASS pause freezes the shared Task countdown
+PASS resumed countdown starts exactly one wave
+PASS shared Session automatic defended campaign drains six actual rounds
+PASS automatic waves retain manual tower levels and award exactly twenty gold per completed survived wave
+PASS campaign settles ninety-six actual review outcomes with at most twenty-four real reservations
+PASS finite campaign ends recurring Tasks after six waves
+PASS every observed actual delivery counter remains within the real four-reservation budget
+PASS undefended defeat settles all real ownership and disables automatic starts
+PASS defeat prevents further manual and automatic waves
+PASS defeat gives no completion reward for the lost wave
+PASS defeated campaign also obeys each actual round finish budget
+PASS restart resets campaign and disables automatic waves
+PASS restart resets resources and delivered count
+PASS manual start cannot overlap real ownership
+PASS wave completion requests the next recurring Task from shared Session.on_finish
+CANONICAL CAMPAIGN:7 directed checks complete
+
+Current source inventory:
+b3d1782719769c1345e9f9bb54c83efea3bfdd3f58cbdb48be7a7f54413db387  DefenseAuto.bend
+445bb60cb65347f7cf86057cc24b44051bde49c55cf2e6342452aca17f9b9c4e  DefenseAutoTests.bend
+5092ca024249f1634787bfecbe6b325edba6434c5202877e0f169bfb69c918e1  DefenseEffects.bend
+85e355ba062949ad4e54414fb57786955dd128d1641a1b23d9db64e2847f3efe  DefenseHost.bend
+8571564233739318d092edbce6d9f6b09a1a5a896cd1434afea44e05ca12d55c  DefenseMain.bend
+9d946542bdf84a3918917408eb875b0329374c9f88acabed640904bb4482e1b9  DefenseMap.bend
+8511b96a87b39997ba62ccca85d70dfebe6b23790ca0d29ab5bd31c9bfb778e8  DefenseMapTests.bend
+53229f061f1b3f07c10489d2cc3c118726df0cb5670a88d71f3baba8e2214189  DefenseModel.bend
+53b01dd6414f543fa21c29214f0747ee2761811ae1de47f77c5e2f16baaed05e  DefenseOutput.bend
+eb792c9a9ae76b365606b1857b0e746102a710d9e9a26958d732f135805fe74c  DefenseOutputTests.bend
+894219e50a627aa0c92fe37141acde91e89cb17aa73a4bc02cadd81bad703742  DefensePreview.bend
+920bf4a3592e6d6fbf969bd144aef15096a417e72d34d34f0ff32706ddd7c96b  DefensePreviewTests.bend
+b9600a8996cf8c44d8668c39edb58ab426de748ced39ed39041dc2a2e0bb4af5  DefenseProjection.bend
+201a64b4224cd43f394956b10e0008af8876684d723ae766b8de2648a9d0ff18  DefenseRender.bend
+843d9496db3739320f76cb6360b0269f3c5fc3326052ee88892e29b0ebe14b88  DefenseRoads.bend
+8831acc7be3ee7bbb9b900235e7bdf6ac4ebf0fddd9117f62c6602009b3c9968  DefenseTests.bend
+9de7da6f27b200afd790e9f7f04a2e86fa736f04664e82df88ff117a72712169  Font.bend

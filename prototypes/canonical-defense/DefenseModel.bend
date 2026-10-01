@@ -10,11 +10,14 @@ type Timer is Data:
   Timer{id: Nat, phase: U32, age: U32, family: Nat, risk: U32, seed: U32, boost: U32}
 type Output is Data:
   Output{age: U32, attempt: Nat, token: Nat, selected: List<&2, Nat>, flushAge: U32, span: U32}
+# Keep the shared scheduler in a singleton list: Bend boxes recursive lists.
+# Inlining Session into World widens every native continuation (102 to 119 arguments).
+# Construction and schedule replacement always preserve exactly one scheduler.
 type World is Data:
   World{core: C.State, clock: U32, paused: Bool, layout: U32, choice: U32,
     gold: U32, hp: U32, towers: List<&2, Tower>, timers: List<&2, Timer>,
     active: Bool, offered: U32, rejected: U32, clear: U32, delivered: U32,
-    output: Output, auto: A.State, mouseX: U32, mouseY: U32, selected: U32, damageWork: U32, damageFlash: U32}
+    output: Output, auto: List<&2, A.State>, mouseX: U32, mouseY: U32, selected: U32, damageWork: U32, damageFlash: U32}
 def number(n: Nat) -> U32:
   U32.from_nat(Nat.min(n, 4294967295n))
 def sub(+a: U32, +b: U32) -> U32:
@@ -80,9 +83,14 @@ def output(world: World) -> Output:
   match world:
     case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _, _}: v
 
+def schedule_value(items: List<&2, A.State>) -> A.State:
+  match items:
+    case value <> _: value
+    case Nil{}: A.initial()
+
 def auto(world: World) -> Bool:
   match world:
-    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: A.enabled(v)
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: A.enabled(schedule_value(v))
 
 def mouse_x(world: World) -> U32:
   match world:
@@ -197,11 +205,11 @@ def damage_flash(world: World) -> U32:
 # Campaign facts are host metadata; round() reads the actual canonical identity.
 def schedule(world: World) -> A.State:
   match world:
-    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: v
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: schedule_value(v)
 def with_schedule(world: World, schedule: A.State) -> World:
   match world:
     case World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, _, x, y, selected, damage, flash}:
-      World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, schedule, x, y, selected, damage, flash}
+      World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, [schedule], x, y, selected, damage, flash}
 def wave(world: World) -> U32:
   A.wave(schedule(world))
 def wave_count() -> U32: 6
