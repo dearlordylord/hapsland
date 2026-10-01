@@ -76,7 +76,7 @@ try {
   );
   assert.match(
     await panel.locator(".simulation-history").innerText(),
-    /0\. 105 ms · openRound/,
+    /0\. 105 ms · agent-1 · openRound/,
   );
   await panel.getByLabel("Burst count (1–100)", { exact: true }).fill("0");
   await panel.getByLabel("Burst count (1–100)", { exact: true }).press("Enter");
@@ -118,9 +118,9 @@ try {
   );
   const assertCapacity = async () => {
     const projection = JSON.parse(await panel.locator(".simulation-details pre").textContent()).after;
-    assert.equal(await panel.locator(".review-capacity [role=img]").getAttribute("aria-label"), `${projection.global.bytes} of ${projection.limits.globalBytes} reserved review bytes`);
-    assert.match(await panel.locator(".review-capacity").innerText(), new RegExp(`${projection.global.items}/${projection.limits.globalItems} work items`));
-    assert.equal(await panel.locator(".review-capacity .capacity-segment").count(), projection.charges.length);
+    assert.equal(await panel.locator(".shared-capacity-bar[role=img]").getAttribute("aria-label"), `Resident capacity ${projection.global.bytes} of ${projection.limits.globalBytes} bytes`);
+    assert.match(await panel.locator(".shared-capacity-total").innerText(), new RegExp(`${projection.global.items} / ${projection.limits.globalItems} items`));
+    assert.equal(await panel.locator(".shared-capacity-bar span").count(), projection.charges.length);
   };
   await assertCapacity();
   await panel.getByRole("button", { name: "Previous event", exact: true }).click();
@@ -536,6 +536,8 @@ try {
   await panel.getByRole("button", { name: "Load replay", exact: true }).click();
   await status("Replay reconstructed");
   await page.waitForFunction(() => document.querySelector(".simulation-tree-active")?.textContent.includes("7–7 files") && document.querySelector(".simulation-tree-active")?.textContent.includes("depth ≤ 6"));
+  assert.equal(await page.locator(".ensemble-layer").count(), 1, "scripted input replay has a partition layer without a generator");
+  assert.equal(await panel.getByRole("button", { name: "Apply edit pace", exact: true }).count(), 0, "scripted replay must not offer nonexistent generator controls");
   assert.match(await panel.locator(".preparation-mini-counts").textContent(), /5\/7 files read/);
   if (!(await panel.getByLabel("Diagram stage", { exact: true }).isVisible())) await panel.getByText("Inspect a diagram stage by keyboard", { exact: true }).click();
   await panel.getByLabel("Diagram stage", { exact: true }).selectOption("preparation");

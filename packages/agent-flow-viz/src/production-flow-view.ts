@@ -177,9 +177,9 @@ const routeGeometry = (route: Route, offset: number) => {
 /** Topology annotations, not additional states or observed traffic. */
 export const INFRASTRUCTURE_CONTACTS = [
   { id: "capacity", stage: "admission", x: SQUARES.admission.x + NODE_WIDTH / 2, y: 40, edgeY: SQUARES.admission.y,
-    labelY: 0, title: "Resident capacity", scope: "shared in resident · isolated here", color: "#168f83" },
+    labelY: 0, title: "Resident capacity", scope: "one shared resident ledger", color: "#168f83" },
   { id: "jev", stage: "effect", x: SQUARES.effect.x + NODE_WIDTH / 2, y: 490, edgeY: SQUARES.effect.y + NODE_HEIGHT,
-    labelY: 502, title: "Jev backend", scope: "common target · synthetic here", color: "#b17a22" },
+    labelY: 502, title: "Jev backend", scope: "shared permits · simulated responses", color: "#b17a22" },
 ] as const;
 
 export const productionFlowView = <Message>(

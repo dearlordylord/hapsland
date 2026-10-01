@@ -99,15 +99,18 @@ also shows denied X without a read, followed by E/G tree-budget skips and a
 
 ## Multi-agent visualization boundary
 
-`fleet-simulation.ts` owns independent dashboard contexts and presents each
-checked Monkey Business run as a layer of the existing SVG widget. Distinct
-seeds and session agent names produce independent event streams. Per-agent
-controls, replay and capacity totals retain that run's scope. Global playback
-controls advance the runs; they do not arbitrate capacity between them.
-Resident-capacity and Jev-backend contact rails are static topology annotations
-attached to admission and request-attempt stages, not observed inter-agent
-traffic. The product resident shares a global ledger between partitions; the
-dashboard runs currently do not share that ledger. The panel must state
-that shared capacity and contention are not simulated until a checked shared
-resident simulation exists. No aggregate limit may be inferred from these
-isolated ledgers.
+`fleet-simulation.ts` renders one Monkey Business Run fed by independently seeded
+SessionGenerators. That Run owns one canonical resident state, event queue,
+clock, capacity ledger and Jev execution pool. The frontend must not instantiate
+one Run per plane or arbitrate capacity itself. Targeted controls identify the
+selected generator; native/backend profiles and replay remain resident-wide.
+
+All planes and shared resource panels use the same global history position.
+`projectAgent` filters owned records from that checked snapshot for the local
+SVG; it preserves global totals and execution limits. It does not calculate
+new decisions or local versions of shared limits. Shared item/byte totals,
+per-partition usage and occupied Jev permits must read the checked projection.
+Resident-capacity and Jev contacts are attached to the admission and request-
+attempt stages. The rails identify the shared resources; they do not by
+themselves establish an observed message, request or result. Jev and native
+responses remain synthetic observations supplied to the checked reducer.

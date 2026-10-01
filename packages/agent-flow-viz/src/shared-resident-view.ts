@@ -1,0 +1,43 @@
+import type { HtmlBuilder } from "foldkit/html";
+import type { CanonicalProjection } from "../../../src/canonical/adapter";
+
+export const AGENT_COLORS = ["#427bc4", "#a16acc", "#169e8c", "#d48534", "#cc6184", "#638e3e"];
+export interface AgentScope { readonly agent: string; readonly partition: number; readonly seed: number }
+
+/** All displayed utilization comes directly from the single checked resident snapshot. */
+export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection: CanonicalProjection,
+  agents: readonly AgentScope[], sequence: number, now: number) => {
+  const label = (partition: number) => agents.find(agent => agent.partition === partition)?.agent ?? `partition ${partition}`;
+  const color = (partition: number) => AGENT_COLORS[Math.max(0, agents.findIndex(agent => agent.partition === partition)) % AGENT_COLORS.length];
+  const requests = projection.dispatch.requests;
+  return h.section([h.Class("shared-resident"), h.AriaLabel("Shared resident resources")], [
+    h.div([h.Class("shared-resident-heading")], [h.strong([], ["ONE RESIDENT"]),
+      h.span([], [`${agents.length} agent${agents.length === 1 ? "" : "s"} · ${sequence < 0 ? "initial state" : `event ${sequence}`} · ${now} ms`])]),
+    h.div([h.Class("shared-resident-resources")], [
+      h.div([h.Class("shared-ledger")], [
+        h.h3([], ["Global review capacity"]),
+        h.p([h.Class("shared-capacity-total")], [`${projection.global.items} / ${projection.limits.globalItems} items · ${projection.global.bytes} / ${projection.limits.globalBytes} bytes`]),
+        h.div([h.Class("shared-capacity-bar"), h.Role("img"), h.AriaLabel(`Resident capacity ${projection.global.bytes} of ${projection.limits.globalBytes} bytes`)],
+          projection.charges.map(charge => h.span([h.Style({ width: `${charge.bytes / projection.limits.globalBytes * 100}%`, background: color(charge.partition) }),
+            h.Title(`${label(charge.partition)} · ${charge.purpose} · ${charge.bytes} bytes`)], []))),
+        h.div([h.Class("shared-partition-ledger")], agents.map(agent => {
+          const usage = projection.partitions.find(partition => partition.partition === agent.partition);
+          return h.span([h.Style({ borderLeftColor: color(agent.partition) })], [`${agent.agent}: ${usage?.items ?? 0} items · ${usage?.bytes ?? 0} B`]);
+        })),
+        h.small([], [`Per-agent ceiling: ${projection.limits.partitionItems} items / ${projection.limits.partitionBytes} bytes. All agents draw from the global ledger above.`]),
+      ]),
+      h.div([h.Class("shared-jev")], [
+        h.h3([], ["Shared Jev request pool"]),
+        h.p([h.Class("shared-jev-total")], [`${requests.length} / ${projection.executionLimits.jevRequests} permits held`]),
+        h.div([h.Class("shared-jev-slots"), h.AriaLabel("Shared Jev permits")], Array.from({ length: projection.executionLimits.jevRequests }, (_, index) => {
+          const request = requests[index];
+          return h.div([h.Class(`shared-jev-slot ${request ? "occupied" : "free"}`),
+            ...(request ? [h.Style({ borderColor: color(request.partition), background: `${color(request.partition)}15` })] : []),
+            h.Title(request ? `${label(request.partition)} · request ${request.request} · ${request.started ? "started" : "authorized, not started"}` : "Available permit"),
+          ], [h.strong([], [request ? label(request.partition) : "Free"]), h.small([], [request ? `#${request.request} · ${request.started ? "started" : "ready"}` : String(index + 1)])]);
+        })),
+        h.small([], ["A permit belongs to one agent request. The pool is shared; Jev responses are simulated."]),
+      ]),
+    ]),
+  ]);
+};

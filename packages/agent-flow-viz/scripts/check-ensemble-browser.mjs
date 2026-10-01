@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createServer } from "vite";
 const server = await createServer({ server: { host: "127.0.0.1", port: 0, hmr: false } });
@@ -15,7 +16,7 @@ try {
   const settle = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const click = async name => { await settle(); await page.getByRole("button", { name, exact: true }).click(); await settle(); };
   await page.getByLabel("Agent count", { exact: true }).fill("3");
-  await click("Start ensemble");
+  await click("Start resident");
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 3);
   assert.equal(await ensemble.locator(".ensemble-connector").count(), 4);
   const layerOpacity = () => ensemble.locator(".ensemble-layer").evaluateAll(layers => layers.map(layer => getComputedStyle(layer).opacity));
@@ -24,8 +25,8 @@ try {
   assert.equal(await ensemble.locator(".ensemble-agent.selected").getAttribute("aria-label"), "Select agent 1", "hover must not change selection");
   assert.equal(await ensemble.locator(".topology-resource.capacity").count(), 3);
   assert.equal(await ensemble.locator(".topology-resource.jev").count(), 3);
-  assert.match(await ensemble.locator(".topology-resource.capacity").first().getAttribute("aria-label"), /Admission & capacity.*shared in resident.*isolated here/);
-  assert.match(await ensemble.locator(".topology-resource.jev").first().getAttribute("aria-label"), /Jev request attempt.*synthetic here/);
+  assert.match(await ensemble.locator(".topology-resource.capacity").first().getAttribute("aria-label"), /Admission & capacity.*one shared resident ledger/);
+  assert.match(await ensemble.locator(".topology-resource.jev").first().getAttribute("aria-label"), /Jev request attempt.*simulated responses/);
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-hover.png" });
   await ensemble.locator(".ensemble-heading").hover();
   assert.deepEqual(await layerOpacity(), ["1", "1", "1"], "leaving the card restores the stack");
@@ -69,7 +70,7 @@ try {
   assert.equal(await ensemble.locator(".ensemble-scene").getAttribute("style"), flatTransform);
   await click("3D layers");
   await click("Reset view");
-  for (let i = 0; i < 36; i++) await click("Step all");
+  for (let i = 0; i < 36; i++) await click("Step resident");
   const events = [];
   const replays = [];
   for (let i = 0; i < 3; i++) {
@@ -78,9 +79,13 @@ try {
     await click("Export replay");
     replays.push(JSON.parse(await inspector.getByLabel("Replay JSON", { exact: true }).inputValue()));
   }
-  assert.equal(new Set(replays.map(replay => replay.config.seed)).size, 3);
-  assert.deepEqual(replays.map(replay => replay.config.session.agent), ["agent-1", "agent-2", "agent-3"]);
-  assert.equal(new Set(events).size, 3, "independent generators must produce distinct event/state traces");
+  assert.equal(new Set(replays[0].config.sessions.map(session => session.seed)).size, 3);
+  assert.deepEqual(replays[0].config.sessions.map(session => session.agent), ["agent-1", "agent-2", "agent-3"]);
+  assert.deepEqual(replays[1], replays[0], "agent selection must not change the resident replay");
+  assert.deepEqual(replays[2], replays[0]);
+  assert.equal(new Set(events).size, 1, "all agents inspect the same resident event");
+  assert.equal(await ensemble.locator(".shared-jev-slots").count(), 1);
+  assert.equal(await ensemble.locator(".shared-jev-slot").count(), 8);
   await click("Select agent 2");
   await inspector.getByLabel("Edit interval (virtual ms)", { exact: true }).fill("731");
   await click("Apply edit pace");
@@ -89,11 +94,14 @@ try {
   await click("Select agent 1");
   assert.equal(await inspector.getByLabel("Edit interval (virtual ms)", { exact: true }).inputValue(), "100");
   await click("Export replay");
-  assert.deepEqual(JSON.parse(await inspector.getByLabel("Replay JSON", { exact: true }).inputValue()).controls, replays[0].controls);
+  const sharedReplay = JSON.parse(await inspector.getByLabel("Replay JSON", { exact: true }).inputValue());
+  assert.equal(sharedReplay.controls.at(-1).control.agent, "agent-2", "targeted control remains in the one shared replay");
+  assert.equal(sharedReplay.controls.at(-1).control.intervalMs, 731);
   const currentEvent = await inspector.locator(".simulation-details pre").textContent();
   await click("Load replay");
   assert.equal(await inspector.locator(".simulation-details pre").textContent(), currentEvent);
-  // A pending file read must never write into another agent after switching.
+  assert.equal(await inspector.getByLabel("Edit interval (virtual ms)", { exact: true }).inputValue(), "100", "replay restore selects agent 1 controls, not the latest other-agent control");
+  // A pending file read is resident-owned; resetting the resident cancels stale reads.
   await page.evaluate(() => {
     window.originalFileText = File.prototype.text;
     File.prototype.text = function () { return new Promise(resolve => { window.finishReplayRead = resolve; }); };
@@ -104,21 +112,50 @@ try {
   await chooser.setFiles({ name: "pending-replay.json", mimeType: "application/json", buffer: Buffer.from("late file contents") });
   await page.waitForFunction(() => typeof window.finishReplayRead === "function");
   await click("Select agent 2");
+  await click("Start resident");
   const unchangedReplay = await inspector.getByLabel("Replay JSON", { exact: true }).inputValue();
   await page.evaluate(() => { window.finishReplayRead("late file contents"); File.prototype.text = window.originalFileText; });
   await settle();
   assert.equal(await inspector.getByLabel("Replay JSON", { exact: true }).inputValue(), unchangedReplay);
   await click("Select agent 1");
   await page.getByLabel("Agent count", { exact: true }).fill("");
-  await click("Start ensemble");
+  await click("Start resident");
   assert.match(await ensemble.locator(".ensemble-feedback").textContent(), /integer from 1 to 6/);
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 3);
   await page.getByLabel("Agent count", { exact: true }).fill("3");
-  await click("Play all");
-  await page.waitForFunction(() => [...document.querySelectorAll('.ensemble-agent')].every(node => Number(node.textContent.match(/· (\d+) events/)[1]) > 36));
-  await click("Pause all");
+  await click("Play resident");
+  await page.waitForFunction(() => [...document.querySelectorAll('.ensemble-agent')].every(node => Number(node.textContent.match(/· (\d+) retained events/)[1]) > 10));
+  await click("Pause resident");
   await page.waitForFunction(() => [...document.querySelectorAll(".ensemble-agent")].every(node => node.textContent.includes("Paused")));
   assert.ok((await ensemble.locator(".ensemble-agent").allTextContents()).every(text => text.includes("Paused")));
+  // Load a checked three-generator history that exhausts the one shared pool.
+  const saturation = await page.evaluate(async module => {
+    const { createRun } = await import(module);
+    const run = createRun({ seed: 7, jevDelay: 1000000,
+      limits: { globalItems: 64, globalBytes: 8000, partitionItems: 16, partitionBytes: 4000 },
+      sessions: Array.from({ length: 3 }, (_, index) => ({ agent: `agent-${index + 1}`, seed: index + 7,
+        editIntervalMs: 1, variationMs: 0, editsPerTask: 1024, bytes: 100 })),
+    });
+    for (let i = 0; i < 3000 && run.projection.dispatch.requests.length < 8; i++) run.step();
+    return { replay: run.exportReplay(), projection: run.projection, observations: run.observations };
+  }, `/@fs${fileURLToPath(new URL("../../monkey-business/src/index.ts", import.meta.url))}`);
+  assert.equal(saturation.projection.dispatch.requests.length, 8);
+  assert.ok(new Set(saturation.projection.dispatch.requests.map(request => request.partition)).size > 1);
+  await inspector.getByLabel("Replay JSON", { exact: true }).fill(JSON.stringify(saturation.replay));
+  await click("Load replay");
+  assert.equal(await ensemble.locator(".shared-jev-slot.occupied").count(), 8, "there is one eight-slot pool across all agents");
+  assert.equal(await ensemble.locator(".shared-jev-total").textContent(), "8 / 8 permits held");
+  assert.match(await ensemble.locator(".shared-capacity-total").textContent(), new RegExp(`^${saturation.projection.global.items} / 64 items · ${saturation.projection.global.bytes} / 8000 bytes$`));
+  const times = await ensemble.locator(".ensemble-layer-title span").allTextContents();
+  assert.equal(new Set(times.map(text => text.split(" · ")[0])).size, 1, "all layers share the same resident time");
+  await ensemble.screenshot({ path: "/tmp/hapsland-shared-resident.png" });
+  const finalResourceText = await ensemble.locator(".shared-resident").textContent();
+  await click("Previous event");
+  const prior = JSON.parse(await inspector.locator(".simulation-details pre").textContent());
+  assert.match(await ensemble.locator(".shared-capacity-total").textContent(), new RegExp(`^${prior.after.global.items} /`));
+  assert.equal(await ensemble.locator(".shared-jev-slot.occupied").count(), prior.after.dispatch.requests.length);
+  await click("Return to latest");
+  assert.equal(await ensemble.locator(".shared-resident").textContent(), finalResourceText);
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-three.png" });
   await click("Focus selected agent");
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 1);
@@ -131,7 +168,7 @@ try {
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-focus.png" });
   await click("3D layers");
   await page.getByLabel("Agent count", { exact: true }).fill("6");
-  await click("Start ensemble");
+  await click("Start resident");
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 6);
   // At the default camera all six complete layer bounds fit vertically.
   const fit = await ensemble.evaluate(node => {
@@ -175,7 +212,7 @@ try {
   assert.equal(await touchPage.locator(".is-dragging").count(), 0);
   await touchPage.close();
   assert.deepEqual(errors, []);
-  console.log("Ensemble browser checks passed: independent streams, agent-scoped controls/replay, global playback, count validation, focus, six-layer fit, mobile layout, mouse drag, stage click preservation, touch orbit/scroll, transient layer reveal and stage-linked infrastructure contacts.");
+  console.log("Ensemble browser checks passed: independent generators, targeted controls, shared resident replay/resources, global playback, count validation, focus, six-layer fit, mobile layout, mouse drag, stage click preservation, touch orbit/scroll, transient layer reveal and stage-linked infrastructure contacts.");
 } finally {
   await browser?.close();
   await server.close();

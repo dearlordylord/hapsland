@@ -221,56 +221,54 @@ form field; focused sliders retain their native keyboard behavior.
 
 Run `npm run test:replay-browser` for repeated-key events, guided boundaries with several manual events per step, mouse seeking, retained future preservation and input focus checks.
 
-## Multi-agent layers
+## Multi-agent layers in one resident
 
 The Monkey Business panel renders one to six agent diagrams as planes in CSS
 3D. Every plane uses the same `productionFlowView` SVG widget as guided replay.
-The installed stack is FoldKit + SVG; CSS `preserve-3d` adds depth while keeping
-SVG labels, keyboard stage selection and existing projection rendering. No
-Three.js or other rendering dependency is needed for this planar view.
+The installed stack is FoldKit + SVG; CSS `preserve-3d` keeps labels and stage
+selection available without another rendering dependency.
 
-Set **Agents** and choose **Start ensemble**. This resets the ensemble using the
-selected agent's draft settings. Agent seeds are derived from that agent's seed
-with distinct 32-bit offsets, and each run receives its own `session.agent` name.
-The generators execute independently; layers do not replay copies of one event
-stream. **Play all**, **Pause all** and **Step all** operate on every agent.
+Set **Agents** and choose **Start resident**. One Monkey Business Run owns the
+canonical state, event queue, clock, capacity ledger and Jev request pool.
+Its `sessions` array supplies independent SessionGenerators with distinct
+agent names and reproducible seeds. Generator events enter the same checked
+Bend resident; admission and global contention are decided there.
+
+The **Global review capacity** panel displays the resident's checked item/byte
+totals and per-partition usage. **Shared Jev request pool** displays the one
+pool's held request permits, their owning agents and observed start status.
+The permit limit comes from the checked execution limits, currently eight.
+Resource contacts inside each SVG attach this same ledger to **Admission &
+capacity**, and the same request pool to **Jev request attempt**.
+
+**Play resident**, **Pause resident** and **Step resident** advance one global
+chronological history. Every plane displays its partition of the same selected
+resident snapshot, via `projectAgent`; selecting a historical event updates all
+planes and shared resource panels together. Per-agent filtering only projects
+owned records and does not re-run or replace any product decision.
+
 Hovering or keyboard-focusing a layer card makes the other planes transparent
-without changing the selection; leaving restores the full stack. Selecting a
-layer card changes the controls, history, counters and replay below.
-Those controls, including **Start / reset**, affect only that selected agent.
-Replay JSON remains the existing version-one single-run format; export/load
-applies to the selected agent, not the entire ensemble.
+without changing selection; leaving restores the full stack. Selecting an
+agent targets its edit pace, bursts, reservation size and arrival suspension.
+Native environment, file-tree, output and Jev profiles are resident-wide.
+**Start / reset** resets the entire resident. Replay JSON stays at version one
+and includes all configured sessions, globally ordered inputs and targeted
+controls; export/load always applies to the entire resident.
 
-Drag the 3D viewport to rotate the layers directly. Mouse dragging changes
-rotation and tilt; horizontal touch dragging rotates while vertical touch
-gestures scroll the page. Rotation wraps through a full turn. A drag does not
-activate a diagram stage, while a click or tap still opens its inspector.
-**Tilt**, **Rotation**, **Layer spacing** and **Zoom** also position the layers.
-**Focus selected agent** opens the selected diagram without perspective;
-**3D layers** returns to the stack. Selecting a diagram stage also opens this
-inspection view and its existing stage inspector. On narrow screens the diagram
-viewport scrolls independently of the page.
+Drag the 3D viewport to rotate the layers. Mouse dragging changes rotation and
+tilt; horizontal touch dragging rotates while vertical touch gestures scroll
+the page. Rotation wraps through a full turn. A drag does not activate a stage;
+a click or tap opens its inspector. **Tilt**, **Rotation**, **Layer spacing** and
+**Zoom** also position the layers. **Focus selected agent** opens that diagram
+without perspective; **3D layers** returns to the stack. Narrow screens scroll
+the diagram viewport independently of the page.
 
-Resident capacity and Jev backend contacts are drawn inside the reused SVG,
-attached to **Admission & capacity** and **Jev request attempt** respectively.
-The vertical rails terminate at those same contacts on each agent plane.
-Agents routed to the same product resident share its canonical global item/byte
-ledger (`src/resident/capacity.ts`), with per-partition limits. The green rail
-explains that product topology; each dashboard agent currently has an isolated
-checked Monkey Business Run and capacity ledger. The gold rail identifies a
-common Jev backend target; every response here is synthetic. The demo has no
-shared runtime ledger, cross-agent contention or aggregate enforced capacity.
-These annotations describe infrastructure topology, not observed traffic or
-additional decisions. Canonical state and transitions still come from compiled Bend.
-
-Run `npm run test:ensemble-browser` for independent event/seed checks,
-agent-scoped controls and replay, global playback, invalid count handling,
-keyboard-capable stage inspection, six-layer camera fit and narrow layout.
-The visual change to inspect is the Monkey Business panel with **Agents = 3**:
-three independently changing diagrams, transient hover isolation and two stage-linked infrastructure contact rails
-replace the single flat diagram. Focus mode retains detailed single-agent
-inspection. These browser checks establish UI behavior, not design acceptance
-or installed runtime support.
+Run `npm run test:ensemble-browser` for shared history/replay, targeted generator
+controls, the combined eight-permit pool, historical resource projections,
+hover/focus, rotation and narrow layout. The case to inspect is **Agents = 3**:
+three independently generated workloads compete for one resident's resources,
+while hover or focus reveals each agent's local state. Synthetic inputs and
+Jev responses remain example facts; this is not live runtime validation.
 
 ## Seeded simulation walkthrough
 
@@ -278,7 +276,7 @@ The Monkey Business ensemble at `/#monkey-business` consumes the public
 `monkey-business` run API. It maps checked canonical frames onto the existing places and routes, with
 checked graph frames inside preparation. It adds controls without changing diagram layout or product policy.
 All Jev observations are simulated; no credentials or source files are needed.
-The simulation has its own **Review capacity** bar and per-agent item/byte totals,
+The simulation has one **Global review capacity** bar and per-agent item/byte totals,
 using the same presentation as the canonical examples. It follows the displayed
 checked observation, including paused history inspection.
 
@@ -379,7 +377,7 @@ Reservation size controls supply reservation/review-unit byte facts for checked
 admission. They do not establish native capture, evidence-tree, encoded-output
 or import traversal enforcement. The package's separate graph scenarios cover
 only their declared boundaries. Defaults are illustrative, not empirical agent
-or Jev measurements. Multi-agent contention is unsupported.
+or Jev measurements. Multi-agent contention is checked by the shared Bend resident; it is not a measurement of native throughput.
 
 Each playback batch is bounded at 100 checked events. Browser replay loading
 accepts endpoints up to 100,000 events; larger runs require a headless consumer. The package retains the
