@@ -12,6 +12,6 @@
     "runtimeCommitEffect": 9.5
   },
   "finding": "Repeated validated projection traversals dominate a substantial part of runtime CPU. Native spawn calls also take substantial time; no substrate or workload gate is bypassed.",
-  "next": "Register deeply immutable canonical states and memoize validated immutable projections by weak identity, then verify functional transitions and unchanged strict budgets.",
-  "rawProfile": "Temporary /tmp CPU profile; delete after summary transfer and optimization verification."
+  "next": "Projection conformance and latency/RSS checks pass; remaining retention-budget failure has a separate purpose-specific investigation.",
+  "rawProfile": "Deleted after summary transfer and projection conformance/performance verification; sanitized evidence remains here and in the benchmark artifacts."
 }

@@ -1185,10 +1185,18 @@
       "stage": "Canonical projection memoization",
       "command": "Typecheck, build, canonical authority and git diff --check",
       "exitCode": 0
+    },
+    {
+      "stage": "Canonical projection memoization",
+      "command": "Unchanged original benchmark after immutable projection memoization",
+      "exitCode": 0,
+      "evidence": "benchmark-projection-comparison.json",
+      "budgetsMet": false,
+      "limitation": "All latency and RSS budgets pass; peak logical retention remains 26052 bytes above baseline, and ordinary workload reaches seven active effects. No final migration acceptance."
     }
   ],
   "next": [
-    "Measure canonical immutable projection memoization against unchanged strict budgets; complete physical retirement workload and preserve prior failures",
+    "Investigate the remaining strict peak-retention regression with purpose-specific baseline/current traces; add the deterministic eight-effect physical-retirement workload and preserve prior measurements",
     "Compose remaining round closure/cutoff, quiet sweeping and collection work-state helpers as named Effects; remove their internal synchronous dispatcher bridges and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
@@ -1200,7 +1208,7 @@
     "Shared state owns lifecycle and statistics; native IPC handles and mutable per-job callback metadata remain executor resources, and intermediate synchronous domain bridges still need removal",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "Exploratory full suite had 1078 passes and one subsequently corrected test failure; final full suite/package/host/live gates remain pending",
-    "Current stable runtime benchmark fails Stop, saturation, shutdown, event-loop and peak-retention budgets; immutable projection memoization is tested but not yet measured, and final eight-effect physical workload remains required",
+    "Post-memoization benchmark passes latency and RSS budgets but exceeds strict peak retention by 26052 bytes; ordinary workload reaches seven effects, and final deterministic physical-retirement benchmark remains required",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied"
   ],
   "cleanup": {

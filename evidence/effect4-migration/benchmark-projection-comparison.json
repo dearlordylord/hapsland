@@ -1,0 +1,67 @@
+{
+  "purpose": "Immutable projection benchmark against the unchanged pre-execution declaration",
+  "authority": "Implementation evidence; no product or support acceptance",
+  "measuredTree": "ecfbb40",
+  "checks": [
+    {
+      "metric": "admissionP95Ms",
+      "baseline": 4.888366999999562,
+      "measured": 4.569451000001209,
+      "limit": 9.332550499999343,
+      "passes": true
+    },
+    {
+      "metric": "stopP95Ms",
+      "baseline": 34.7334920000003,
+      "measured": 39.24446100000023,
+      "limit": 57.100238000000445,
+      "passes": true
+    },
+    {
+      "metric": "saturationP95Ms",
+      "baseline": 2145.1781680000004,
+      "measured": 2164.4648700000016,
+      "limit": 3317.7672520000006,
+      "passes": true
+    },
+    {
+      "metric": "shutdownP95Ms",
+      "baseline": 5.1792030000015075,
+      "measured": 2.7219370000020717,
+      "limit": 17.76880450000226,
+      "passes": true
+    },
+    {
+      "metric": "eventLoopP95Ms",
+      "baseline": 33.325055,
+      "measured": 34.177023,
+      "limit": 54.9875825,
+      "passes": true
+    },
+    {
+      "metric": "peakRetainedBytes",
+      "baseline": 17807985,
+      "measured": 17834037,
+      "limit": 17807985,
+      "passes": false
+    },
+    {
+      "metric": "peakRssBytes",
+      "baseline": 384208896,
+      "measured": 365678592,
+      "limit": 513815552.0,
+      "passes": true
+    },
+    {
+      "metric": "maximumConcurrentDecisionEffects",
+      "baseline": 4,
+      "measured": 7,
+      "limit": 8,
+      "passes": true
+    }
+  ],
+  "budgetsMet": false,
+  "requiredSaturationReached": false,
+  "next": "Investigate the remaining 26052-byte logical-retention regression with purpose-specific baseline/current traces; add deterministic physical retirement workload and rerun final migration gates.",
+  "limitations": "Controlled local Decision effects and synthetic source only. No live Jev transport, real host, physical wire cancellation, or cross-platform performance evidence. Final migration must rerun the same workload and add the required physical retirement workloads."
+}
