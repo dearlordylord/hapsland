@@ -250,12 +250,21 @@ response budget is 10 KiB of final encoded host output, including Claude-specifi
 wrapping. There is no separate finding-count cap. An individually oversized finding yields a bounded
 limitation rather than an endless retry.
 
+The response-size check determines which findings enter a Stop output before
+the output is reserved. Once selected, its advice records share one output
+token. Bend authorizes every selected record with the Stop slot in one
+transition, and records an acknowledged or uncertain result for every record
+with the slot in one transition. If any member cannot make either transition,
+the entire transition is refused without a partial state change. A size limit
+may leave findings out of the selected output; it does not allow a subset of
+that selected output to be recorded as delivered.
+
 At most one finish collector owns an advicee's active finish attempt. A
 continue-with-advice response reserves one of four continuation numbers in
 resident state **before** output authorization. The output permit binds the
 round, attempt, collector, and advice IDs; reuse cannot authorize another
-submission. Once output may have reached the runtime, partial or uncertain
-submissions, process death, and lost acknowledgement consume that reservation. A proven
+submission. Once output may have reached the runtime, interrupted or uncertain
+native writes, process death, and lost acknowledgement consume that reservation. A proven
 failure before authorization may release a provisional reservation. A later
 finish attempt cannot replay that attempt or spend a new slot on the same
 advice. When four are reserved, the next finish attempt may allow immediately,

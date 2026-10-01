@@ -33,7 +33,7 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:f089c4c09a281cb6f046ece5ef6fe34a60e23fe029c193f94cdfe9133cd9fe77";
+  "canonical-source-sha256:3bf1c60bb920608412b200e91a652b8fdd8f7de6b4b42481de756d34c31b6395";
 export const PREPARATION_IDENTITY = "import-preparation-sha256:812ca7a89d0f7b39ea4b4aa68e220b744bc0f6c2a7e1c1dcf2e5374919ca11ae";
 export type RunInput =
   | SessionInput
@@ -87,7 +87,7 @@ export type EffectObservation =
   | {
       readonly kind: "output";
       readonly phase: "started";
-      readonly advice: number;
+      readonly advices: readonly number[];
     }
   | {
       readonly kind: "cancellation";
@@ -599,7 +599,7 @@ export class Run {
           effects.push({
             kind: "output",
             phase: "started",
-            advice: event.advice,
+            advices: [event.advice],
           });
           const profile = this.outputProfile;
           if (profile.outcome === "failed") {
@@ -759,34 +759,30 @@ export class Run {
         case "finishAuthorized": {
           const f = this.finish;
           if (!f) break;
-          for (const advice of f.selected)
-            this.event({ kind: "submissionAuthorize", advice, token: f.token });
-          break;
-        }
-        case "submissionRecorded": {
-          const f = this.finish;
-          if (
-            f &&
-            event.kind === "submissionTerminal" &&
-            event.token === f.token &&
-            f.selected.every((advice) =>
-              this.projection.delivery.submissions.batches.some(
-                (b) =>
-                  b.advice === advice &&
-                  b.token === f.token &&
-                  (b.phase === "submitted" || b.phase === "uncertain"),
-              ),
-            )
-          )
-            this.event({
-              kind: "finishTerminal",
-              group: 1,
-              round: f.round,
-              attempt: f.attempt,
-              token: f.token,
-              selected: f.selected,
-              outcome: event.certain ? "acknowledged" : "unknown",
-            });
+          effects.push({ kind: "output", phase: "started", advices: [...f.selected] });
+          const profile = this.outputProfile;
+          if (profile.outcome === "failed") {
+            this.event({ kind: "finishTerminal", group: 1, round: f.round,
+              attempt: f.attempt, token: f.token, selected: f.selected, outcome: "failed" }, profile.delayMs);
+            for (const advice of f.selected) {
+              this.event({ kind: "submissionRelease", advice, token: f.token }, profile.delayMs);
+              this.event({ kind: "collectionReleaseLease", advice, token: f.token }, profile.delayMs);
+            }
+          } else {
+            const due = Math.min(profile.delayMs, profile.leaseMs);
+            if (profile.delayMs > profile.leaseMs)
+              this.event({ kind: "deliveryAcknowledgeCheck", items: f.selected.length, anyExpired: true }, profile.delayMs);
+            this.event({ kind: "finishTerminal", group: 1, round: f.round,
+              attempt: f.attempt, token: f.token, selected: f.selected,
+              outcome: profile.delayMs >= profile.leaseMs || profile.outcome === "uncertain"
+                ? "unknown" : "acknowledged" }, due);
+            for (const advice of f.selected) {
+              this.event({ kind: "collectionLeaseCheck", advice, token: f.token,
+                expired: profile.delayMs >= profile.leaseMs, stopCollector: false, sameGroup: true,
+                reofferable: false }, due);
+              this.event({ kind: "collectionReleaseLease", advice, token: f.token }, due);
+            }
+          }
           break;
         }
         case "finishRecorded": {
@@ -852,12 +848,10 @@ export class Run {
       ].includes(event.kind)
     )
       this.pollFinish();
-    if (
-      event.kind === "submissionTerminal" &&
-      !result.rejection &&
-      result.commands.some((c) => c.kind === "submissionRecorded") &&
-      this.session
-    )
+    if (!result.rejection && this.session && (
+      event.kind === "submissionTerminal" && result.commands.some((c) => c.kind === "submissionRecorded") ||
+      event.kind === "finishTerminal" && event.outcome === "acknowledged" &&
+        result.commands.some((c) => c.kind === "finishRecorded")))
       for (const input of this.session.onAdvice(this.clock))
         this.enqueue(input);
     if (event.kind === "preparationCompleted") {

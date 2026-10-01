@@ -232,6 +232,13 @@ export const productionFlowView = <Message>(
     const newRecords = projection.delivery.submissions.batches.length - (last?.before.delivery.submissions.batches.length ?? 0);
     if (last?.event.kind === "submissionBegin" && newRecords > 1)
       return `${newRecords} advice records staged for one Stop output; no host write is established.`;
+    const newlyInPhase = (phase: string) => projection.delivery.submissions.batches.filter((batch) =>
+      batch.phase === phase && last?.before.delivery.submissions.batches.some((prior) =>
+        prior.advice === batch.advice && prior.token === batch.token && prior.phase !== phase)).length;
+    if (last?.event.kind === "finishAuthorize" && newlyInPhase("authorized") > 1)
+      return `${newlyInPhase("authorized")} advice records and their Stop output authorized together; no host write is established.`;
+    if (last?.event.kind === "finishTerminal" && newlyInPhase("submitted") > 1)
+      return `${newlyInPhase("submitted")} advice submissions and one Stop result recorded together as acknowledged; agent use of advice is not observed.`;
     if (last?.event.kind === "stopPolled" && has(commands, "finishReady")) return "Stop decision ready; this step does not reserve or send output.";
     if (last?.event.kind === "collectionReserveLease" && has(commands, "collectionLeaseReserved"))
       return `${recordLabel("advice", last.event.advice, numbers).split("/")[0]} leased for collection${projection.collection.ready.includes(last.event.advice) ? "; still ready" : ""}.`;

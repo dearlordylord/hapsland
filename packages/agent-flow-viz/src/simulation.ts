@@ -168,6 +168,15 @@ const countFrame = (item: Observation) => {
     if (item.event.certain) totals.advice++;
     else totals.uncertain++;
   }
+  if (item.event.kind === "finishTerminal" && item.commands.some((command) => command.kind === "finishRecorded")) {
+    const token = item.event.token;
+    const changed = item.after.delivery.submissions.batches.filter((batch) =>
+      batch.token === token &&
+      item.before.delivery.submissions.batches.some((prior) =>
+        prior.advice === batch.advice && prior.token === batch.token && prior.phase !== batch.phase)).length;
+    if (item.event.outcome === "acknowledged") totals.advice += changed;
+    else if (item.event.outcome === "unknown") totals.uncertain += changed;
+  }
   totals.released += item.commands.filter((command) => command.kind === "submissionReleased").length;
 };
 const speedValue = (raw: string) => {
@@ -781,7 +790,7 @@ export const simulationView = <Message>(
         observations
           .filter((item) => !model.item || followsRecord(item, model.item))
           .filter((item) => !model.focus || model.item || (item.event.kind === "preparationGraph" ? model.focus === "preparation" : projectFlowStep({ event: item.event, commands: item.commands, before: item.before, after: item.after, rejection: item.rejection }).changedStages.includes(model.focus as (typeof PLACE_ORDER)[number])))
-          .filter((item) => model.filter === "all" || item.rejection || item.commands.some((command) => /Refused$|Denied$|Unavailable$/.test(command.kind)) || item.event.kind === "submissionTerminal" && !item.event.certain || item.event.kind === "submissionRelease" || item.event.kind === "collectionLeaseCheck" && item.event.expired || /fail|timeout/i.test(JSON.stringify(item.event)))
+          .filter((item) => model.filter === "all" || item.rejection || item.commands.some((command) => /Refused$|Denied$|Unavailable$/.test(command.kind)) || item.event.kind === "submissionTerminal" && !item.event.certain || item.event.kind === "finishTerminal" && item.event.outcome === "unknown" || item.event.kind === "submissionRelease" || item.event.kind === "collectionLeaseCheck" && item.event.expired || /fail|timeout/i.test(JSON.stringify(item.event)))
           .slice(-100)
           .map((item) =>
             h.button([h.Type("button"), h.Class(item.sequence === current?.sequence ? "selected" : ""), h.OnClick(action(`inspect:${item.sequence}`))], [

@@ -2478,11 +2478,13 @@ def collection_lease_check(state: State, advice: Nat, token: Nat,
     Delivery.collection_lease(True{}, expired, stop_collector,
       same_group, reofferable))
 
-def collection_retire(+state: State, advice: Nat) -> Step:
+def collection_retire(+state: State, +advice: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{with_collection(state, CollectionState.retire(collection, advice)),
-        CollectionAdviceRetired{} <> Nil{}}
+      Bool.pick(Step, CollectionState.protected_advice(collection, advice),
+        Rejected{state, WrongStage{}},
+        Advanced{with_collection(state, CollectionState.retire(collection, advice)),
+          CollectionAdviceRetired{} <> Nil{}})
 
 def collection_claim(+state: State, group: Nat, token: Nat, active: Bool,
     capacity: Nat) -> Step:
@@ -2673,11 +2675,13 @@ def submission_release(+state: State, advice: Nat, token: Nat) -> Step:
       collection_decision(state, CollectionState.submission_release(collection,
         advice, token), SubmissionReleased{}, SubmissionRefused{})
 
-def submission_forget(+state: State, advice: Nat) -> Step:
+def submission_forget(+state: State, +advice: Nat) -> Step:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}:
-      Advanced{with_collection(state, CollectionState.submission_forget(collection, advice)),
-        SubmissionForgotten{} <> Nil{}}
+      Bool.pick(Step, CollectionState.protected_advice(collection, advice),
+        Rejected{state, WrongStage{}},
+        Advanced{with_collection(state, CollectionState.submission_forget(collection, advice)),
+          SubmissionForgotten{} <> Nil{}})
 
 def submission_suppress_check(+state: State, advice: Nat, fingerprint: Nat,
     round: Nat, surface: Handoff.Surface) -> Step:

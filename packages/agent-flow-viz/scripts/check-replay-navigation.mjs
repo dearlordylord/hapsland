@@ -21,14 +21,14 @@ try {
     }, at);
   };
   assert.equal(await slider.isDisabled(), false);
-  assert.equal(await slider.getAttribute('max'), '104');
-  await seek(104); await position(104, 104);
-  assert.match(await replay.locator('.canonical-progress').innerText(), /Guided step 63 of 63/);
-  await seek(0); await position(0, 104);
-  await seek(17); await position(17, 104);
+  assert.equal(await slider.getAttribute('max'), '100');
+  await seek(100); await position(100, 100);
+  assert.match(await replay.locator('.canonical-progress').innerText(), /Guided step 59 of 59/);
+  await seek(0); await position(0, 100);
+  await seek(17); await position(17, 100);
   await replay.getByRole('button', { name: 'Reset replay' }).click();
   await position(0, 0);
-  assert.equal(await slider.getAttribute('max'), '104');
+  assert.equal(await slider.getAttribute('max'), '100');
   await replay.locator('.manual-event summary').click();
   for (let guided = 1; guided <= 3; guided++) {
     await replay.getByRole('button', { name: /^Next:/ }).click();
@@ -79,7 +79,7 @@ try {
     return { guided: Number(parts[1]), at: Number(parts[2]), total: Number(parts[3]), recorded: Number(parts[4]) };
   };
   let before;
-  for (let step = 0; step < 63; step++) {
+  for (let step = 0; step < 59; step++) {
     before = await progress();
     if ((await replay.getByRole('button', { name: /^Next:/ }).innerText()).includes('preparation ·')) break;
     await page.locator('h1').click();
@@ -97,23 +97,23 @@ try {
   assert.ok(after.at > before.at + 2, 'Shift traverses several preparation history events');
   await page.keyboard.press('Shift+ArrowLeft'); await position(before.at, after.recorded);
   await page.keyboard.press('Shift+ArrowRight'); await position(after.at, after.recorded);
-  assert.equal(await slider.getAttribute('max'), '104', 'the scenario horizon stays fixed through inner events');
+  assert.equal(await slider.getAttribute('max'), '100', 'the scenario horizon stays fixed through inner events');
   await replay.getByRole('button', { name: 'Reset replay' }).click(); await position(0, 0);
   await seek(10); await position(10, 10);
   await replay.getByLabel('Event JSON').fill('{"kind":"interruptPreparation","partition":1,"lifetime":1,"round":1,"operation":3}');
   await replay.getByLabel('Event JSON').press('Tab');
   await replay.getByRole('button', { name: 'Apply event' }).click(); await position(11, 11);
-  assert.equal(await slider.getAttribute('max'), '105');
-  await seek(105);
-  await page.waitForFunction(() => document.querySelector('.canonical-feedback').textContent.includes('Cannot reach timeline event 105'));
+  assert.equal(await slider.getAttribute('max'), '101');
+  await seek(101);
+  await page.waitForFunction(() => document.querySelector('.canonical-feedback').textContent.includes('Cannot reach timeline event 101'));
   await position(11, 11);
   assert.equal(await slider.inputValue(), '11', 'blocked seeking settles on the last checked event');
   await seek(10); await position(10, 11);
   await replay.getByLabel('Event JSON').fill('{"kind":"fileSelectionCheck","protected":false,"excluded":false,"includesEmpty":false,"included":true}');
   await replay.getByLabel('Event JSON').press('Tab');
   await replay.getByRole('button', { name: 'Apply event' }).click(); await position(11, 11);
-  await seek(105); await position(105, 105);
-  assert.match(await replay.locator('.canonical-progress').innerText(), /Guided step 63 of 63/);
+  await seek(101); await position(101, 101);
+  assert.match(await replay.locator('.canonical-progress').innerText(), /Guided step 59 of 59/);
   await replay.getByLabel('Guided scenario', { exact: true }).selectOption({ label: 'Shared review capacity and partial unit admission' });
   await position(0, 0);
   assert.equal(await slider.getAttribute('max'), '11');

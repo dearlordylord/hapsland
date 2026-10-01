@@ -189,7 +189,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const projection = replay.projection;
   const numbers = numberRecords(replay.steps);
   const last = replay.steps.at(-1);
-  const previous = replay.steps.at(-2);
   const frames = last?.commands.filter(isCapacityFrame) ?? [];
   const frame = frames[Math.min(Math.max(model.frame, 0), Math.max(0, frames.length - 1))];
   const eventBefore = last?.before.global ?? projection.global;
@@ -198,10 +197,12 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const next = nextGuidedEvent(history, model.position, model.scenario);
   const guided = guidedIndex(history, model.position);
   const group = endingActionGroup(guided, model.scenario);
-  const groupedStep = group && last?.origin === "guided" && previous?.origin === "guided" &&
-    last.event.kind === scenario.events[group.last - 1]?.kind && previous.event.kind === scenario.events[group.first - 1]?.kind &&
-    last.rejection === undefined && previous.rejection === undefined
-    ? { ...last, before: previous.before, commands: [...previous.commands, ...last.commands] } : last;
+  const actionSteps = group === undefined ? [] : replay.steps.slice(-(group.last - group.first + 1));
+  const completeGroup = group !== undefined && actionSteps.length === group.last - group.first + 1 &&
+    actionSteps.every((step, index) => step.origin === "guided" && step.rejection === undefined &&
+      step.event.kind === scenario.events[group.first - 1 + index]?.kind);
+  const groupedStep = completeGroup && last !== undefined
+    ? { ...last, before: actionSteps[0].before, commands: actionSteps.flatMap((step) => step.commands) } : last;
   const timelineLength = historyTimelineLength(history, model.scenario);
   const flowStage = PLACE_ORDER.find((stage) => stage === model.flowStage);
   return {

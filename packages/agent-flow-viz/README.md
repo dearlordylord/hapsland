@@ -188,15 +188,15 @@ readiness; steps 30–38 are the stronger adjacency risk. Review item #2's findi
 is the source of Advice #2. Review item #3's `clear` removes the last unfinished
 review for the same edit; it does not create that advice. At step 38, the
 `collectionReady` check also uses the resident-supplied joined-work fact. The
-delivery sequence at steps 42–51 similarly distinguishes a reserved Stop slot,
+delivery sequence at steps 42–47 similarly distinguishes a reserved Stop slot,
 authorized submissions, and acknowledged output; proximity alone does not
 prove a host write or use of advice by the agent. Recheck these relationships
 whenever the default event order or square presentation changes.
 The default diagram shows each Stop-output phase in a visible current-step
 caption. `finishAuthorized` lights the `Advice output authorized` branch;
 `deliveryAckReady` reports only that an acknowledgment check passed. The
-following terminal events separately record each advice submission and the
-Stop result. The showcase has no native host-write observation event.
+following `finishTerminal` event records both advice submissions and the Stop
+result together. The showcase has no native host-write observation event.
 
 Run `npm run build` for TypeScript, checked connection evidence, projection, compiled inventory, and Vite
 checks. Run `npm run test:browser` for Chromium controls. The workspace may
@@ -204,10 +204,10 @@ need the Chromium system libraries listed by Playwright.
 
 ## Guided replay navigation
 
-Left/Right moves through one retained history event at a time; holding either key uses keyboard repeat for fast movement. Right replays existing future events before adding the next guided event, preserving manual entries. Next and Shift+Left/Right use guided action boundaries. In the default case, one action collects advice in reducer events 40–41 and another stages the two advice records in events 43–44. Both events in each action remain in the checked history; Left/Right and the timeline show the intermediate state. The two submission records share one output token and produce one Stop response, not two host writes. Other guided actions span one canonical event, while preparation frames remain inspectable. At the recorded frontier, Shift+Right completes the preparation trace and advances to the next guided action after retained history.
+Left/Right moves through one retained history event at a time; holding either key uses keyboard repeat for fast movement. Right replays existing future events before adding the next guided event, preserving manual entries. Next and Shift+Left/Right use guided action boundaries. In the default case, one action collects advice in reducer events 40–41 and another stages the two advice records in events 43–44. Both events in each action remain in the checked history; Left/Right and the timeline show the intermediate state. At step 45 Bend authorizes both advice records with their common Stop slot; step 47 records both outcomes with the slot. The two records share one output token and produce one Stop response, not two host writes. Other guided actions span one canonical event, while preparation frames remain inspectable. At the recorded frontier, Shift+Right completes the preparation trace and advances to the next guided action after retained history.
 
 The **History timeline** covers the complete planned scenario from the start,
-including inner preparation events (104 events for the default 63-step scenario).
+including inner preparation events (100 events for the default 59-step scenario).
 Recorded manual events add positions; invalid event shapes add none, while checked
 rejected events remain visible. The progress line distinguishes the planned
 horizon from the recorded event count. Dragging beyond the recorded frontier

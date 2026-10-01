@@ -1031,3 +1031,12 @@ def Laws.canonical_post_state_duplicates_roll_back(original, commands):
 
 def Laws.canonical_round_guard_preserves_rejections(original, rejected, reason):
   {==}
+
+def Laws.stop_bundle_terminal_rejects_partial():
+  {==}
+
+def Laws.stop_bundle_failed_stage_keeps_original(original):
+  {==}
+
+def Laws.stop_bundle_terminal_records_every_member():
+  {==}

@@ -192,14 +192,23 @@ def authorizable(+group: Nat, +round: Nat, +attempt: Nat, +token: Nat,
         case _:
           authorizable(group, round, attempt, token, selected, rest)
 
+def authorize_result(+state: State, +group: Nat, +round: Nat,
+    +attempt: Nat, +token: Nat, +selected: List<&2, Nat>,
+    result: SubmissionState.Decision) -> Decision:
+  match state result:
+    case _ SubmissionState.Denied{_}: Denied{state}
+    case State{slots, counters, _} SubmissionState.Granted{submissions}:
+      Granted{State{update_slot(group, round, attempt, token,
+        selected, Authorized{}, slots), counters, submissions}}
+
 def authorize(+state: State, +group: Nat, +round: Nat, +attempt: Nat,
     +token: Nat, +selected: List<&2, Nat>) -> Decision:
   match state:
-    case State{slots, counters, submissions}:
+    case State{slots, _, submissions}:
       Bool.pick(Decision,
         authorizable(group, round, attempt, token, selected, slots),
-        Granted{State{update_slot(group, round, attempt, token,
-          selected, Authorized{}, slots), counters, submissions}}, Denied{state})
+        authorize_result(state, group, round, attempt, token, selected,
+          SubmissionState.authorize_stop_token(submissions, token)), Denied{state})
 
 def terminal_owned(+group: Nat, +round: Nat, +attempt: Nat, +token: Nat,
     +selected: List<&2, Nat>, slots: List<&2, Slot>) -> Bool:
@@ -219,36 +228,64 @@ def terminal_owned(+group: Nat, +round: Nat, +attempt: Nat, +token: Nat,
         case _:
           terminal_owned(group, round, attempt, token, selected, rest)
 
+def terminal_submission_result(+state: State, +group: Nat, +round: Nat,
+    +attempt: Nat, +token: Nat, +selected: List<&2, Nat>, phase: Phase,
+    result: SubmissionState.Decision) -> Decision:
+  match state result:
+    case _ SubmissionState.Denied{_}: Denied{state}
+    case State{slots, counters, _} SubmissionState.Granted{submissions}:
+      Granted{State{update_slot(group, round, attempt, token,
+        selected, phase, slots), counters, submissions}}
+
+def terminal_owned_result(+state: State, +group: Nat, +round: Nat,
+    +attempt: Nat, +token: Nat, +selected: List<&2, Nat>, phase: Phase) -> Decision:
+  match state phase:
+    case State{_, _, submissions} Submitted{}:
+      Bool.pick(Decision, SubmissionState.token_units_match(submissions, token, selected),
+        terminal_submission_result(state, group, round, attempt, token, selected,
+          Submitted{}, SubmissionState.terminal_stop_token(submissions, token, True{})), Denied{state})
+    case State{_, _, submissions} Uncertain{}:
+      Bool.pick(Decision, SubmissionState.token_units_match(submissions, token, selected),
+        terminal_submission_result(state, group, round, attempt, token, selected,
+          Uncertain{}, SubmissionState.terminal_stop_token(submissions, token, False{})), Denied{state})
+    case State{slots, counters, submissions} _:
+      Granted{State{update_slot(group, round, attempt, token,
+        selected, phase, slots), counters, submissions}}
+
 def terminal(+state: State, +group: Nat, +round: Nat, +attempt: Nat,
-    +token: Nat, +selected: List<&2, Nat>, phase: Phase) -> Decision:
+    +token: Nat, +selected: List<&2, Nat>, +phase: Phase) -> Decision:
   match state:
-    case State{slots, counters, submissions}:
+    case State{slots, _, _}:
       Bool.pick(Decision, terminal_owned(group, round, attempt, token, selected, slots),
-        Granted{State{update_slot(group, round, attempt, token,
-          selected, phase, slots), counters, submissions}}, Denied{state})
+        terminal_owned_result(state, group, round, attempt, token, selected, phase),
+        Denied{state})
+
+def durable_phase(phase: Phase, token: Nat, submissions: SubmissionState.State) -> Bool:
+  match phase:
+    case Submitted{}: True{}
+    case Uncertain{}: True{}
+    case Failed{}: Bool.not(SubmissionState.token_exists_state(submissions, token))
+    case _: False{}
 
 def durable_owned(+group: Nat, +round: Nat, +attempt: Nat, +token: Nat,
-    slots: List<&2, Slot>) -> Bool:
+    slots: List<&2, Slot>, +submissions: SubmissionState.State) -> Bool:
   match slots:
     case Nil{}:
       False{}
     case Slot{candidate_group, candidate_round, candidate_attempt,
         candidate_token, _, phase} <> rest:
-      match phase:
-        case Reserved{}:
-          durable_owned(group, round, attempt, token, rest)
-        case _:
-          Bool.or(Bool.and(Nat.is_eq(group, candidate_group),
-            Bool.and(Nat.is_eq(round, candidate_round),
-              Bool.and(Nat.is_eq(attempt, candidate_attempt),
-                Nat.is_eq(token, candidate_token)))),
-            durable_owned(group, round, attempt, token, rest))
+      Bool.or(Bool.and(durable_phase(phase, token, submissions),
+        Bool.and(Nat.is_eq(group, candidate_group),
+          Bool.and(Nat.is_eq(round, candidate_round),
+            Bool.and(Nat.is_eq(attempt, candidate_attempt),
+              Nat.is_eq(token, candidate_token))))),
+        durable_owned(group, round, attempt, token, rest, submissions))
 
 def end(+state: State, +group: Nat, +round: Nat, +attempt: Nat,
     +token: Nat) -> Decision:
   match state:
     case State{slots, counters, submissions}:
-      Bool.pick(Decision, durable_owned(group, round, attempt, token, slots),
+      Bool.pick(Decision, durable_owned(group, round, attempt, token, slots, submissions),
         Granted{State{without_slot(group, round, attempt, token, slots), counters, submissions}},
         Denied{state})
 
@@ -267,28 +304,73 @@ def submission_result(state: State, result: SubmissionState.Decision) -> Decisio
       Granted{State{slots, counters, submissions}}
     case _ SubmissionState.Denied{_}: Denied{state}
 
+def staging_locked_phase(phase: Phase) -> Bool:
+  match phase:
+    case Reserved{}: False{}
+    case _: True{}
+
+def staging_locked(+token: Nat, slots: List<&2, Slot>) -> Bool:
+  match slots:
+    case Nil{}: False{}
+    case Slot{_, _, _, candidate, _, phase} <> rest:
+      Bool.or(Bool.and(Nat.is_eq(token, candidate), staging_locked_phase(phase)),
+        staging_locked(token, rest))
+
 def submission_begin(+state: State, advice: Nat, group: Nat, round: Nat,
-    token: Nat, surface: Handoff.Surface, authorize_now: Bool,
+    +token: Nat, surface: Handoff.Surface, authorize_now: Bool,
     fingerprints: List<&2, Nat>, units: List<&2, Nat>) -> Decision:
   match state:
-    case State{_, _, submissions}:
-      submission_result(state, SubmissionState.begin(submissions, advice, group,
-        round, token, surface, authorize_now, fingerprints, units))
+    case State{slots, _, submissions}:
+      Bool.pick(Decision, staging_locked(token, slots), Denied{state},
+        submission_result(state, SubmissionState.begin(submissions, advice, group,
+          round, token, surface, authorize_now, fingerprints, units)))
 
-def submission_authorize(+state: State, advice: Nat, token: Nat) -> Decision:
-  match state:
-    case State{_, _, submissions}:
-      submission_result(state, SubmissionState.authorize(submissions, advice, token))
+def slot_token(+token: Nat, slots: List<&2, Slot>) -> Bool:
+  match slots:
+    case Nil{}: False{}
+    case Slot{_, _, _, candidate, _, _} <> rest:
+      Bool.or(Nat.is_eq(token, candidate), slot_token(token, rest))
 
-def submission_terminal(+state: State, advice: Nat, token: Nat, certain: Bool) -> Decision:
-  match state:
-    case State{_, _, submissions}:
-      submission_result(state, SubmissionState.terminal(submissions, advice, token, certain))
+def authorized_slot_token(+token: Nat, slots: List<&2, Slot>) -> Bool:
+  match slots:
+    case Nil{}: False{}
+    case Slot{_, _, _, candidate, _, phase} <> rest:
+      match phase:
+        case Authorized{}:
+          Bool.or(Nat.is_eq(token, candidate), authorized_slot_token(token, rest))
+        case _:
+          authorized_slot_token(token, rest)
 
-def submission_release(+state: State, advice: Nat, token: Nat) -> Decision:
+def protected_advice_items(+advice: Nat, items: List<&2, SubmissionState.Batch>,
+    +slots: List<&2, Slot>) -> Bool:
+  match items:
+    case Nil{}: False{}
+    case SubmissionState.Batch{candidate, _, _, token, _, _, _, _} <> rest:
+      Bool.or(Bool.and(Nat.is_eq(advice, candidate), authorized_slot_token(token, slots)),
+        protected_advice_items(advice, rest, slots))
+
+def protected_advice(state: State, advice: Nat) -> Bool:
   match state:
-    case State{_, _, submissions}:
-      submission_result(state, SubmissionState.release(submissions, advice, token))
+    case State{slots, _, SubmissionState.State{_, batches}}:
+      protected_advice_items(advice, batches, slots)
+
+def submission_authorize(+state: State, advice: Nat, +token: Nat) -> Decision:
+  match state:
+    case State{slots, _, submissions}:
+      Bool.pick(Decision, slot_token(token, slots), Denied{state},
+        submission_result(state, SubmissionState.authorize(submissions, advice, token)))
+
+def submission_terminal(+state: State, advice: Nat, +token: Nat, certain: Bool) -> Decision:
+  match state:
+    case State{slots, _, submissions}:
+      Bool.pick(Decision, slot_token(token, slots), Denied{state},
+        submission_result(state, SubmissionState.terminal(submissions, advice, token, certain)))
+
+def submission_release(+state: State, advice: Nat, +token: Nat) -> Decision:
+  match state:
+    case State{slots, _, submissions}:
+      Bool.pick(Decision, authorized_slot_token(token, slots), Denied{state},
+        submission_result(state, SubmissionState.release(submissions, advice, token)))
 
 def submission_forget(state: State, advice: Nat) -> State:
   match state:

@@ -88,7 +88,7 @@ try {
     "a new lease is linked to its ready advice even while readiness remains visible");
   assert.ok(steps[39].after.collection.ready.includes(4),
     "lease creation does not invent removal of the ready advice");
-  assert.ok(has(59, "state", "round", "round", "round:1"),
+  assert.ok(has(55, "state", "round", "round", "round:1"),
     "checked retirement marks the round's end");
   assert.ok(steps.every((step) => step.rejection === undefined), "the complete showcase is accepted");
   const settled = steps.at(-1).after;

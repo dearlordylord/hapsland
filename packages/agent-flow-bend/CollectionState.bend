@@ -151,6 +151,11 @@ def retire(+state: State, +advice: Nat) -> State:
       State{remove_ready(advice, ready), remove_advice_lease(advice, leases), claims,
         DeliveryState.submission_forget(delivery, advice), revision, tickets, reuse, notices}
 
+def protected_advice(state: State, advice: Nat) -> Bool:
+  match state:
+    case State{_, _, _, delivery, _, _, _, _}:
+      DeliveryState.protected_advice(delivery, advice)
+
 def claim(+state: State, +group: Nat, +token: Nat, active: Bool, capacity: Nat) -> Decision:
   match state:
     case State{ready, leases, claims, delivery, revision, tickets, reuse, notices}:

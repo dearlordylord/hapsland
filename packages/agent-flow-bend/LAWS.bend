@@ -16,6 +16,7 @@ import ./Notice.bend as Notice
 import ./Collection.bend as Collection
 import ./CollectionState.bend as CollectionState
 import ./Delivery.bend as Delivery
+import ./SubmissionState.bend as SubmissionState
 import ./Cache.bend as Cache
 import ./Ticket.bend as Ticket
 import ./TicketState.bend as TicketState
@@ -1746,3 +1747,26 @@ law canonical_round_guard_preserves_rejections:
   for reason: Canonical.Reason
   {Canonical.check_step(original, Canonical.Rejected{rejected, reason}) ==
     Canonical.Rejected{rejected, reason} : Canonical.Step}
+
+# One Stop output has one terminal fate: a blocked member rejects the entire
+# transition, while two authorized members settle together.
+law stop_bundle_failed_stage_keeps_original:
+  for original: SubmissionState.State
+  {SubmissionState.terminal_stop_result(original, None{}) ==
+    SubmissionState.Denied{original} : SubmissionState.Decision}
+
+law stop_bundle_terminal_rejects_partial:
+  {SubmissionState.terminal_stop_token(SubmissionState.State{Nil{},
+    SubmissionState.Batch{1n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Authorized{}, Nil{}, 1n <> Nil{}} <>
+    SubmissionState.Batch{2n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Reserved{}, Nil{}, 2n <> Nil{}} <> Nil{}},
+    8n, True{}) == SubmissionState.Denied{SubmissionState.State{Nil{},
+    SubmissionState.Batch{1n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Authorized{}, Nil{}, 1n <> Nil{}} <>
+    SubmissionState.Batch{2n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Reserved{}, Nil{}, 2n <> Nil{}} <> Nil{}}} : SubmissionState.Decision}
+
+law stop_bundle_terminal_records_every_member:
+  {SubmissionState.terminal_stop_token(SubmissionState.State{Nil{},
+    SubmissionState.Batch{1n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Authorized{}, Nil{}, 1n <> Nil{}} <>
+    SubmissionState.Batch{2n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Authorized{}, Nil{}, 2n <> Nil{}} <> Nil{}},
+    8n, True{}) == SubmissionState.Granted{SubmissionState.State{Nil{},
+    SubmissionState.Batch{1n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Submitted{}, Nil{}, 1n <> Nil{}} <>
+    SubmissionState.Batch{2n, 1n, 1n, 8n, Handoff.Stop{}, Delivery.Submitted{}, Nil{}, 2n <> Nil{}} <> Nil{}}} : SubmissionState.Decision}

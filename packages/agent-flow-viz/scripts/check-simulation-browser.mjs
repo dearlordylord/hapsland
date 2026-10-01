@@ -480,7 +480,13 @@ try {
   const recoveredTerminals = await page.evaluate(async ({ core, replay }) => {
     const { restoreReplay } = await import(core);
     const restored = restoreReplay(JSON.parse(replay));
-    return restored.observations.filter((frame) => frame.event.kind === "submissionTerminal" && frame.commands.some((command) => command.kind === "submissionRecorded")).map((frame) => frame.event.certain);
+    return restored.observations.flatMap((frame) => {
+      if (frame.event.kind === "submissionTerminal" && frame.commands.some((command) => command.kind === "submissionRecorded"))
+        return [frame.event.certain];
+      if (frame.event.kind === "finishTerminal" && frame.commands.some((command) => command.kind === "finishRecorded") && frame.event.outcome !== "failed")
+        return [frame.event.outcome === "acknowledged"];
+      return [];
+    });
   }, { core: publicModule, replay: recoveryReplayText });
   assert.ok(recoveredTerminals.includes(false));
   assert.ok(recoveredTerminals.includes(true));

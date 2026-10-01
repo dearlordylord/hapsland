@@ -20,7 +20,7 @@ try {
     document.querySelector(target)?.textContent?.includes(expected), [selector, text]);
   const advanceGuided = async (first, last, total) => {
     for (let step = first; step <= last; step++) {
-      if (total === 63 && (step === 41 || step === 44)) continue;
+      if (total === 59 && (step === 41 || step === 44)) continue;
       while ((await canonical.getByRole("button", { name: /^Next:/ }).innerText()).includes("preparation ·")) {
         const prior = await canonical.locator(".canonical-progress").innerText();
         await canonical.getByRole("button", { name: /^Next:/ }).click();
@@ -28,8 +28,8 @@ try {
         assert.match(await canonical.locator(".preparation-mini").textContent(), /Preparation #/);
       }
       await canonical.getByRole("button", { name: /^Next:/ }).click();
-      await waitForText(".canonical-progress", `Guided step ${total === 63 && (step === 40 || step === 43) ? step + 1 : step} of ${total}`);
-      if (total === 63 && step === 16) {
+      await waitForText(".canonical-progress", `Guided step ${total === 59 && (step === 40 || step === 43) ? step + 1 : step} of ${total}`);
+      if (total === 59 && step === 16) {
         assert.match(await canonical.locator(".preparation-mini-counts").textContent(), /7\/8 files read.*20 KiB/);
         assert.match(await canonical.locator(".preparation-mini-status").textContent(), /Preparation #2.*incomplete/);
         await canonical.getByLabel("Inspect square").selectOption("preparation");
@@ -66,21 +66,21 @@ try {
   assert.match(await canonical.innerText(), /Capacity rules/);
   assert.match(await canonical.innerText(), /All agents in this Hapsland process · 0\/3 work items/);
   assert.match(await canonical.innerText(), /Two edits through findings, a clear result, and Stop output/);
-  await advanceGuided(1, 1, 63);
+  await advanceGuided(1, 1, 59);
   assert.match(await page.locator(".flow-provenance").innerText(), /Before the edit.*Bend issued a permit.*No virtual round is open yet/s);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Admission & capacity" }).textContent(), /1 edit permit: Permit #1/);
-  await advanceGuided(2, 2, 63);
+  await advanceGuided(2, 2, 59);
   assert.match(await page.locator(".flow-provenance").innerText(), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/s);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Admission & capacity" }).textContent(), /0 edit permits/);
-  await advanceGuided(3, 3, 63);
+  await advanceGuided(3, 3, 59);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Awaiting source read" }).textContent(), /1 pending source read: Source read #1/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "Source read #1/operation 1 admitted; source read not started" }).count(), 1);
-  await advanceGuided(4, 4, 63);
+  await advanceGuided(4, 4, 59);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Awaiting source read" }).textContent(), /1 pending source read: Source read #1/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /1 running preparation jobs:/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "dispatch entered running" }).count(), 1);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "→ Read & prepare source" }).count(), 0);
-  await advanceGuided(5, 8, 63);
+  await advanceGuided(5, 8, 59);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Job scheduling" }).textContent(), /2 running preparation jobs:/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "entered running" }).count(), 1);
   await canonical.locator(".topology-node").filter({ hasText: "Job scheduling" }).locator("rect").click();
@@ -99,15 +99,15 @@ try {
   await canonical.locator(".topology-node").filter({ hasText: "Job scheduling" }).locator("rect").click();
   await waitForText(".flow-stage-inspector", "Select a square or click one");
   assert.match(await canonical.locator(".flow-stage-inspector").innerText(), /Select a square or click one/);
-  await advanceGuided(9, 13, 63);
+  await advanceGuided(9, 13, 59);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "(pending) → dispatch" }).count(), 0);
-  await advanceGuided(14, 36, 63);
+  await advanceGuided(14, 36, 59);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Review outcomes" }).textContent(), /NOW · Review item #3 clear/);
-  await advanceGuided(37, 40, 63);
+  await advanceGuided(37, 40, 59);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "Advice #1/operation 4 leased; still ready" }).count(), 1);
-  await advanceGuided(41, 59, 63);
+  await advanceGuided(41, 55, 59);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "round #1 retired" }).count(), 1);
-  await advanceGuided(60, 63, 63);
+  await advanceGuided(56, 59, 59);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Round state" }).textContent(), /0 active rounds/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Ready advice" }).textContent(), /0 awaiting delivery/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Review outcomes" }).textContent(), /0 finding work/);
