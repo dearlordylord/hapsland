@@ -8,11 +8,11 @@ for (const name of ["bendWorkPreparedOffer", "bendWorkEmptyPrepared",
     throw new Error(`resident review decision bypasses canonical transition: ${name}`);
   }
 }
-if (source.includes("#ledger.replace(")) {
+if (source.includes("residentLedger.replace(")) {
   throw new Error("resident review unit fan-out bypasses canonical preparation completion");
 }
-for (const call of ["#ledger.admitObservation(", "#ledger.completePreparation(",
-  "#ledger.readyJevRequest(", "ledger.startJevRequest(",
-  "#ledger.settleJevRequest("]) {
+for (const call of ["residentLedger.admitObservation(", "residentLedger.completePreparation(",
+  "residentLedger.readyJevRequest(", "residentLedger.startJevRequest(",
+  "residentLedger.settleJevRequest("]) {
   if (!source.includes(call)) throw new Error(`resident review transition missing: ${call}`);
 }

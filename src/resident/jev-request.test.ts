@@ -1,3 +1,4 @@
+import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it, vi } from "vitest";
 import * as Effect from "effect/Effect";
 import { join } from "node:path";
@@ -6,7 +7,7 @@ import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
-import { ResidentServer, type JevRequestObservation } from "./server.ts";
+import { type JevRequestObservation } from "./server.ts";
 import { makeCapacityLedger, type CapacityLedger } from "./capacity.ts";
 import { captureStable } from "../direct-event/capture.ts";
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
@@ -35,7 +36,7 @@ describe("canonical Jev request boundary", () => {
     if (observation === undefined) throw new Error("fixture observation missing");
     const seen: string[] = [];
     const capturePath = join(root, "provider-calls.txt");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       beforeEvaluate: async (prepared) => { if (prepared.input.rules.some((rule) => rule.id === "team/check")) seen.push(prepared.input.contract); },
     });
     try {
@@ -58,7 +59,7 @@ describe("canonical Jev request boundary", () => {
       captureStable(sourceRoot, path, { ...hooks, sourceRead: (name) => { reads.push(name); } }, identity);
     const capturePath = join(root, "provider-calls.txt");
     const commands: JevRequestObservation[] = [];
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       captureSource, jevRequestObserver: (value) => { commands.push(value); },
     });
     try {
@@ -88,7 +89,7 @@ describe("canonical Jev request boundary", () => {
     if (observation === undefined) throw new Error("fixture observation missing");
     const capturePath = join(root, "provider-calls.txt");
     const commands: JevRequestObservation[] = [];
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       jevRequestObserver: (value) => { commands.push(value); },
     });
     try {
@@ -113,7 +114,7 @@ describe("canonical Jev request boundary", () => {
       captureStable(sourceRoot, path, { ...hooks, sourceRead: (name) => { reads.push(name); } }, identity);
     const capturePath = join(root, "provider-calls.txt");
     const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { capturePath } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       captureSource,
     });
     try {
@@ -124,7 +125,7 @@ describe("canonical Jev request boundary", () => {
     } finally { await server.close(); }
 
     const gatedCalls = join(root, "gated-provider-calls.txt");
-    const gatedServer = new ResidentServer(residentPaths(join(root, "gated-runtime")));
+    const gatedServer = await acquireResidentFixture(residentPaths(join(root, "gated-runtime")));
     try {
       expect(gatedServer.admit(observation, { ...dispatch, controlled: { capturePath: gatedCalls } }).status).toBe("accepted");
       await gatedServer.whenIdle();
@@ -135,7 +136,7 @@ describe("canonical Jev request boundary", () => {
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, excludes: ["c.ts"] }));
     reads.length = 0;
     const excludedCalls = join(root, "excluded-provider-calls.txt");
-    const excludedServer = new ResidentServer(residentPaths(join(root, "excluded-runtime")), undefined, { captureSource });
+    const excludedServer = await acquireResidentFixture(residentPaths(join(root, "excluded-runtime")), undefined, { captureSource });
     try {
       expect(excludedServer.admit(observation, { ...dispatch, controlled: { capturePath: excludedCalls } }).status).toBe("accepted");
       await excludedServer.whenIdle();
@@ -156,7 +157,7 @@ describe("canonical Jev request boundary", () => {
     const observations: JevRequestObservation[] = [];
     const dispatch = { statePath, userConfigPath: null, credential: null,
       controlled: { capturePath } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       jevRequestObserver: (observation) => { observations.push(observation); },
     });
     try {
@@ -183,7 +184,7 @@ describe("canonical Jev request boundary", () => {
       await server.close();
     }
     const nextLifetime: JevRequestObservation[] = [];
-    const restarted = new ResidentServer(residentPaths(join(root, "restarted-runtime")), undefined, {
+    const restarted = await acquireResidentFixture(residentPaths(join(root, "restarted-runtime")), undefined, {
       jevRequestObserver: (observation) => { nextLifetime.push(observation); },
     });
     try {
@@ -222,7 +223,7 @@ describe("canonical Jev request boundary", () => {
     const observations: JevRequestObservation[] = [];
     let effectsEntered = 0;
     let preparations = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       afterPrepare: async () => { preparations += 1; },
       controlledRequestEffect: async () => {
         effectsEntered += 1;
@@ -296,7 +297,7 @@ describe("canonical Jev request boundary", () => {
     const observations: JevRequestObservation[] = [];
     let effectsEntered = 0;
     let unavailableCount = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       controlledRequestEffect: async () => {
         const requestIndex = effectsEntered++;
         physicallyRunning += 1;
@@ -392,7 +393,7 @@ describe("canonical Jev request boundary", () => {
     const observations: JevRequestObservation[] = [];
     let effectsEntered = 0;
     let unavailableCount = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       controlledRequestEffect: async () => {
         effectsEntered += 1;
         if (effectsEntered === 1) { firstStarted.resolve(); return; }

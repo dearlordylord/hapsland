@@ -2,12 +2,12 @@ import { monitorEventLoopDelay } from "node:perf_hooks";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { readFile, rm } from "node:fs/promises";
-import { Effect } from "effect";
+import { Effect, Exit, Scope } from "effect";
 
 const checkout = resolve(process.argv[2] ?? ".");
 const contract = JSON.parse(await readFile(new URL("./benchmark-contract.json", import.meta.url), "utf8"));
 const load = (path) => import(pathToFileURL(join(checkout, path)).href);
-const [{ ResidentServer }, { residentPaths }, { adaptCodexDirectEvent }, fixtures] = await Promise.all([
+const [runtimeModule, { residentPaths }, { adaptCodexDirectEvent }, fixtures] = await Promise.all([
   load("src/resident/server.ts"), load("src/resident/paths.ts"), load("src/direct-event/adapter.ts"), load("src/direct-event/test-fixtures.ts"),
 ]);
 const root = await fixtures.makeGitFixture();
@@ -27,7 +27,13 @@ try {
   for (let pass = -contract.workload.warmups; pass < contract.workload.iterations; pass += 1) {
     const measured = pass >= 0;
     let active = 0, maximum = 0;
-    const server = new ResidentServer(residentPaths(join(root, `runtime-${pass}`)), undefined, {
+    const fixtureScope = await Effect.runPromise(Scope.make());
+    const acquireResident = runtimeModule.makeResidentRuntime === undefined
+      // The fixed baseline predates scoped runtime acquisition. This branch
+      // belongs only to the comparative evidence runner.
+      ? (...args) => new runtimeModule.ResidentServer(...args)
+      : (...args) => Effect.runPromise(runtimeModule.makeResidentRuntime(...args).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
+    const server = await acquireResident(residentPaths(join(root, `runtime-${pass}`)), undefined, {
       jevRequestObserver: (event) => {
         if (event.stage === "started") { active += 1; maximum = Math.max(maximum, active); }
         if (event.stage === "settled" && event.outcome !== "neverSent") active -= 1;
@@ -66,6 +72,7 @@ try {
       monitor.disable();
       if (measured) delays.push(monitor.percentile(95) / 1e6);
       await server.close();
+      await Effect.runPromise(Scope.close(fixtureScope, Exit.void));
     }
   }
   const p95 = (values) => [...values].sort((a, b) => a - b)[Math.ceil(values.length * .95) - 1] ?? 0;

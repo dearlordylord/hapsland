@@ -1,3 +1,4 @@
+import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { existsSync } from "node:fs";
@@ -11,7 +12,6 @@ import type { ResidentDispatchContext } from "./protocol.ts";
 import {
   MAX_OPERATIONAL_NOTICE_KEYS,
   OPERATIONAL_NOTICE_COOLDOWN_MS,
-  ResidentServer,
 } from "./server.ts";
 import { residentPaths } from "./paths.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
@@ -68,7 +68,7 @@ const capacityDispatch = (statePath: string): ResidentDispatchContext => dispatc
 });
 
 const collectAndFinalize = async (
-  server: ResidentServer,
+  server: ResidentRuntime,
   observation: DirectObservation,
   context: ResidentDispatchContext,
 ) => {
@@ -81,7 +81,7 @@ const collectAndFinalize = async (
 };
 
 const fillAndFinalizeCooldownTable = async (
-  server: ResidentServer,
+  server: ResidentRuntime,
   observation: DirectObservation,
   context: ResidentDispatchContext,
   maximumKeys = MAX_OPERATIONAL_NOTICE_KEYS,
@@ -143,7 +143,7 @@ console.log('{"version":1,"status":"interaction-required"}');
       },
       controlled: { answers, requireCredential: true, capturePath },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     try {
       expect(server.admit(observation, context).status).toBe("accepted");
       await server.whenIdle();
@@ -162,7 +162,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });
     let now = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime-a")), () => now);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime-a")), () => now);
 
     expect(server.admit(observation, failed).status).toBe("accepted");
     await server.whenIdle();
@@ -185,7 +185,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     now += OPERATIONAL_NOTICE_COOLDOWN_MS;
     expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
 
-    const restarted = new ResidentServer(residentPaths(join(root, "runtime-b")), () => now);
+    const restarted = await acquireResidentFixture(residentPaths(join(root, "runtime-b")), () => now);
     expect(restarted.admit(observation, failed).status).toBe("accepted");
     await restarted.whenIdle();
     expect((await restarted.collect(root, observation.advicee, failed)).status).toBe("empty");
@@ -197,7 +197,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });
     let now = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     expect(server.admit(observation, failed).status).toBe("accepted");
     await server.whenIdle();
     now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1;
@@ -215,7 +215,7 @@ console.log('{"version":1,"status":"interaction-required"}');
   it("keeps capacity/backend records separate while emitting only fresh findings", async () => {
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 1_000);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 1_000);
 
     expect(server.admit(observation, failed).status).toBe("accepted");
     await server.whenIdle();
@@ -261,7 +261,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const capacity = capacityDispatch(statePath);
     let now = 5_000;
     const maximumKeys = 2;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now, {
       maximumOperationalNoticeKeys: maximumKeys,
     });
 
@@ -276,7 +276,7 @@ console.log('{"version":1,"status":"interaction-required"}');
 
     await installCapacityRule(root);
     let excludedNow = 50_000;
-    const excludedServer = new ResidentServer(
+    const excludedServer = await acquireResidentFixture(
       residentPaths(join(root, "runtime-excluded")),
       () => excludedNow,
       { maximumOperationalNoticeKeys: maximumKeys },
@@ -328,7 +328,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const { root, statePath, observation } = await fixture();
     const failed = dispatch(statePath, { failure: "offline backend" });
     let now = 20;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     expect(server.admit(observation, failed).status).toBe("accepted");
     await server.whenIdle();
     expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
@@ -342,7 +342,7 @@ console.log('{"version":1,"status":"interaction-required"}');
 
   it("does not address unknown advicees or quiet applicability outcomes", async () => {
     const { root, statePath, observation } = await fixture();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 10);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 10);
     const oversized = dispatch(statePath, { answers: { oversized: "x".repeat(2 * 1024 * 1024) } });
     const unknown = { ...observation, advicee: { ...observation.advicee, sessionId: "" } };
     expect(server.admit(unknown, oversized).status).toBe("accepted");

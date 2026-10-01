@@ -1,3 +1,4 @@
+import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { join } from "node:path";
@@ -7,7 +8,7 @@ import type { DirectAdvicee } from "../direct-event/model.ts";
 import { makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
-import { ResidentServer } from "./server.ts";
+
 import { residentRequest } from "./client.ts";
 import { MAX_COMBINED_RESPONSE_BYTES } from "./collection.ts";
 import { monotonicNow } from "./hook-clock.ts";
@@ -22,7 +23,7 @@ describe("Claude advicee scoped resident delivery", () => {
         rule.id, { _tag: "Probability", probability: 0 },
       ])) } };
     const failed: ResidentDispatchContext = { ...dispatch, controlled: { failure: "controlled backend failure" } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     let latest: { ticket: { nonce: string; lifetime: string }; advicee: DirectAdvicee } | undefined;
     for (const name of ["first", "second"] as const) {
       const path = await put(root, `${name}.ts`, `type ${name}Count = number\n`);
@@ -55,7 +56,7 @@ describe("Claude advicee scoped resident delivery", () => {
       controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const admitted: Array<{ readonly ticket: { readonly nonce: string; readonly lifetime: string };
       readonly advicee: DirectAdvicee }> = [];
     for (const [name, toolUseId] of [["FirstCount", "first"], ["SecondCount", "second"]] as const) {
@@ -105,7 +106,7 @@ describe("Claude advicee scoped resident delivery", () => {
       controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     expect(server.stats().pendingFindingBatches).toBe(1);
@@ -135,7 +136,7 @@ describe("Claude advicee scoped resident delivery", () => {
     }));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = {
       statePath, userConfigPath: null, credential: null,
       controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
@@ -171,7 +172,7 @@ describe("Claude advicee scoped resident delivery", () => {
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
       root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
     const accepted = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
@@ -226,7 +227,7 @@ describe("Claude advicee scoped resident delivery", () => {
     };
     let changeAtHandoff = false;
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(paths, undefined, { beforeResponseHandoff: async () => {
       if (changeAtHandoff) writeFileSync(path, "type OrderCount = string\n");
     } });
     await server.listen();
@@ -268,7 +269,7 @@ describe("Claude advicee scoped resident delivery", () => {
     };
     let revoke = false;
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, () => performance.now(), {
+    const server = await acquireResidentFixture(paths, () => performance.now(), {
       beforeResponseHandoff: async () => {
         if (revoke) writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
       },

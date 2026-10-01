@@ -1,3 +1,4 @@
+import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { join } from "node:path";
@@ -8,7 +9,7 @@ import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts";
 import { makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
-import { ResidentServer } from "./server.ts";
+
 import { monotonicNow } from "./hook-clock.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
 import type { ResidentDispatchContext, ResidentRequest, ResidentCollectionTicket } from "./protocol.ts";
@@ -39,14 +40,14 @@ const fixture = async () => {
   return { root, observation, dispatch };
 };
 
-const collect = (server: ResidentServer, ticket: ResidentCollectionTicket,
+const collect = (server: ResidentRuntime, ticket: ResidentCollectionTicket,
   data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext,
   advicee = data.observation.advicee) => server.handle({
     requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime, ticket,
     root: data.root, advicee, dispatch, composed: true,
   } satisfies ResidentRequest);
 
-const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTicket,
+const collectOverSocket = (server: ResidentRuntime, ticket: ResidentCollectionTicket,
   data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext, version: number | null = 1) =>
   new Promise<{ status: string; reason?: string }>((resolve, reject) => {
     const socket = createConnection(server.paths.socket);
@@ -68,7 +69,7 @@ const collectOverSocket = (server: ResidentServer, ticket: ResidentCollectionTic
 describe("Claude terminal collection", () => {
   it("rejects an invalid socket collection version without reporting a review result", async () => {
     const data = await fixture();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     await server.listen();
     try {
       expect(await collectOverSocket(server, { nonce: "invalid", lifetime: server.lifetime },
@@ -90,7 +91,7 @@ describe("Claude terminal collection", () => {
     const evaluatedIdentities = new Set<string>();
     const evaluatedContracts = new Set<string>();
     let holdOwner = false;
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => 1_000, {
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => 1_000, {
       beforeEvaluate: async (prepared) => {
         evaluationCount += 1;
         evaluatedIdentities.add(prepared.identity);
@@ -158,7 +159,7 @@ describe("Claude terminal collection", () => {
   it("releases an owner claim if preparation exits before attachment", async () => {
     const data = await fixture();
     let failOnce = true;
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => 1_000, {
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => 1_000, {
       afterReuseBoundary: () => {
         if (failOnce) { failOnce = false; throw new Error("fixture interruption"); }
       },
@@ -179,7 +180,7 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const gate = deferred();
     const entered = deferred();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
       beforeEvaluate: async () => { entered.resolve(); await gate.promise; },
     });
     const dispatch = data.dispatch(0);
@@ -211,7 +212,7 @@ describe("Claude terminal collection", () => {
 
   it("delivers findings without returning a ticket-wide terminal result", async () => {
     const data = await fixture();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
     const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
@@ -229,7 +230,7 @@ describe("Claude terminal collection", () => {
 
   it("reports backend failure and missing or replacement tickets conservatively", async () => {
     const data = await fixture();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0, "backend failed");
     const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
@@ -239,7 +240,7 @@ describe("Claude terminal collection", () => {
     expect(server.stats().pendingOperationalNotices).toBeGreaterThan(0);
     expect(await collect(server, { nonce: "unknown", lifetime: server.lifetime }, data, dispatch))
       .toEqual({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
-    const replacement = new ResidentServer(residentPaths(join(data.root, "replacement")));
+    const replacement = await acquireResidentFixture(residentPaths(join(data.root, "replacement")));
     expect(await collect(replacement, admission.ticket, data, dispatch))
       .toEqual({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
   });
@@ -247,7 +248,7 @@ describe("Claude terminal collection", () => {
   it("expires admission capabilities after a same-tool revision", async () => {
     const data = await fixture();
     let now = 1_000;
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now);
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => now);
     const dispatch = data.dispatch(0);
     const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
@@ -272,7 +273,7 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const admittedAt = 1_000.00095;
     let now = admittedAt;
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now);
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => now);
     const dispatch = data.dispatch(0);
     const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
@@ -297,7 +298,7 @@ describe("Claude terminal collection", () => {
     const evaluateGate = deferred();
     const handingOff = deferred();
     const responseGate = deferred();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
       beforeEvaluate: async () => { evaluating.resolve(); await evaluateGate.promise; },
       beforeResponseHandoff: async () => { handingOff.resolve(); await responseGate.promise; },
     });
@@ -326,7 +327,7 @@ describe("Claude terminal collection", () => {
     const evaluateGate = deferred();
     const handingOff = deferred();
     const responseGate = deferred();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
       beforeEvaluate: async () => { evaluating.resolve(); await evaluateGate.promise; },
       beforeResponseHandoff: async () => { handingOff.resolve(); await responseGate.promise; },
     });
@@ -354,7 +355,7 @@ describe("Claude terminal collection", () => {
     const data = await fixture();
     const handingOff = deferred();
     const responseGate = deferred();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
       beforeResponseHandoff: async () => { handingOff.resolve(); await responseGate.promise; },
     });
     await server.listen();
@@ -391,7 +392,7 @@ describe("Claude terminal collection", () => {
     const observation = { ...data.observation, candidates: [firstCandidate, {
       ...firstCandidate, path: secondPath, addedLines: ["type SecondCount = number"],
     }] };
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
       beforeEvaluate: async (prepared) => {
         if (prepared.input.path.endsWith("second.ts")) throw new Error("controlled unit failure");
       },
@@ -420,7 +421,7 @@ describe("Claude terminal collection", () => {
 
   it("keeps advice pending for simultaneous collectors and failed acknowledgement", async () => {
     const data = await fixture();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => 1_000);
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => 1_000);
     const dispatch = data.dispatch(0.9);
     const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
@@ -439,7 +440,7 @@ describe("Claude terminal collection", () => {
 
   it("leases eligible advice from another admission for the same Claude advicee", async () => {
     const data = await fixture();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
     const finding = server.admit(data.observation, dispatch, true);
     const skipped = server.admit({ ...data.observation, candidates: [{ operation: "delete", path: "type.ts", addedLines: [] }] }, dispatch, true);
@@ -455,7 +456,7 @@ describe("Claude terminal collection", () => {
 
   it("shares one identical finding with two admissions and does not return a terminal result", async () => {
     const data = await fixture();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0.9);
     const first = server.admit(data.observation, dispatch, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
@@ -486,7 +487,7 @@ describe("Claude terminal collection", () => {
     };
     const entered = deferred();
     const gate = deferred();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
       beforeResponseHandoff: async () => { entered.resolve(); await gate.promise; },
     });
     await server.listen();
@@ -516,7 +517,7 @@ describe("Claude terminal collection", () => {
         environmentOnly: false, generation: 1, statePath },
       controlled: { ...data.dispatch(0).controlled, requireCredential: true },
     };
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
     await server.whenIdle();
@@ -529,7 +530,7 @@ describe("Claude terminal collection", () => {
 
   it("accounts for a cached clear on a later admission", async () => {
     const data = await fixture();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0);
     const first = server.admit(data.observation, dispatch, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
@@ -544,7 +545,7 @@ describe("Claude terminal collection", () => {
   it("returns quietly when file policy excludes the admitted edit", async () => {
     const data = await fixture();
     await put(data.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0);
     const admission = server.admit(data.observation, dispatch, true);
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
@@ -554,7 +555,7 @@ describe("Claude terminal collection", () => {
 
   it("keeps failure diagnostics out of ticketed Claude output", async () => {
     const data = await fixture();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const failed = data.dispatch(0, "controlled backend failure");
     const first = server.admit(data.observation, failed, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
@@ -571,7 +572,7 @@ describe("Claude terminal collection", () => {
 
   it("keeps a prior admission valid when a later tool-use edits the same subject", async () => {
     const data = await fixture();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const dispatch = data.dispatch(0);
     const first = server.admit(data.observation, dispatch, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
@@ -586,7 +587,7 @@ describe("Claude terminal collection", () => {
   it("reports expired advice and evicted tickets without claiming clear", async () => {
     const data = await fixture();
     let now = 1_000;
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now, { maximumTickets: 1 });
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => now, { maximumTickets: 1 });
     const dispatch = data.dispatch(0.9);
     const first = server.admit(data.observation, dispatch, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");

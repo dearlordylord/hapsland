@@ -1,3 +1,4 @@
+import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
@@ -20,7 +21,7 @@ import {
   type ResidentDispatchContext,
   type ResidentRequest,
 } from "./protocol.ts";
-import { ResidentServer } from "./server.ts";
+
 import { PARTITION_BYTE_LIMIT } from "./capacity.ts";
 import { VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
 import {
@@ -68,7 +69,7 @@ describe("virtual round quiescence", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["quiet.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
     const activityPath = join(root, "activity");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now());
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now());
     const dispatch = { ...findingDispatch(join(root, "consent")), activityPath,
       controlled: { answers: Object.fromEntries(configuredRules.map((rule) =>
         [rule.id, { _tag: "Probability" as const, probability: 0 }])) } };
@@ -103,7 +104,7 @@ const mutuallyReferencingTypes = (count = 17) => Array.from({ length: count }, (
   return `interface ${typeName(index)} { ${fields} }`;
 }).join("\n");
 
-const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
+const waitUntilIdle = async (server: ResidentRuntime): Promise<void> => {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const stats = server.stats();
     if (stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0) return;
@@ -132,7 +133,7 @@ describe("canonical resident capacity", () => {
     const release = deferred();
     const captured: Array<string> = [];
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       captureSource: (_root, path) => Effect.sync(() => {
         captured.push(path.relativePath);
         const bytes = new TextEncoder().encode(text);
@@ -181,7 +182,7 @@ describe("canonical resident capacity", () => {
     const evaluated: Array<string> = [];
     const captured: Array<string> = [];
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       captureSource: (_root, path) => Effect.sync(() => {
         captured.push(path.relativePath);
         const text = "type SafeCount = number\n";
@@ -223,7 +224,7 @@ describe("canonical resident capacity", () => {
     const secondStarted = deferred();
     const firstGate = deferred();
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       beforeEvaluate: async (prepared) => {
         if (prepared.input.path === "first.ts") {
           firstStarted.resolve();
@@ -266,7 +267,7 @@ describe("canonical resident capacity", () => {
       ["first.ts", "second.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     try {
       expect(server.admit(observation, allFindingsDispatch(statePath)).status).toBe("accepted");
       clock = 101;
@@ -293,7 +294,7 @@ describe("canonical resident capacity", () => {
       { session_id: "agent-b", tool_use_id: "edit-b" })));
     if (a === undefined || b === undefined) throw new Error("missing fixture observation");
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     const dispatch = allFindingsDispatch(statePath);
     try {
       expect(server.admit(a, dispatch).status).toBe("accepted");
@@ -323,7 +324,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const entered = deferred();
     const release = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
       afterAdvicePending: async () => { entered.resolve(); await release.promise; },
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
@@ -360,7 +361,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
     const gate = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
       beforeEvaluate: async () => { started.resolve(); await gate.promise; },
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
@@ -398,7 +399,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
     const gate = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
       beforeEvaluate: async () => { started.resolve(); await gate.promise; },
     });
     const dispatch = findingDispatch(statePath);
@@ -438,7 +439,7 @@ describe("resident delivery lease", () => {
     const gate = deferred();
     const started = deferred();
     let hold = false;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
       beforeEvaluate: async () => { if (hold) { started.resolve(); await gate.promise; } },
     });
     const dispatch = findingDispatch(statePath);
@@ -482,7 +483,7 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     try {
       server.admit(observation, dispatch, false, true);
@@ -519,7 +520,7 @@ describe("resident delivery lease", () => {
     const gate = deferred(), started = deferred();
     let armed = true;
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, () => performance.now(), {
+    const server = await acquireResidentFixture(paths, () => performance.now(), {
       beforeEvaluate: async () => { started.resolve(); await gate.promise; },
       beforeResponseHandoff: async () => {
         if (!armed) return;
@@ -550,7 +551,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     let now = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     const dispatch = { ...findingDispatch(statePath), controlled: { failure: "fixture unavailable" } };
     try {
       server.admit(observation, dispatch, false, true);
@@ -575,7 +576,7 @@ describe("resident delivery lease", () => {
       host: "claude-code" as const, hostVersion: "2.1.218" as const, turnId: null } };
     let reviews = 0;
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
+    const server = await acquireResidentFixture(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
     await server.listen();
     try {
       const admission = { requestRoute, operation: "admit" as const, lifetime: server.lifetime,
@@ -608,7 +609,7 @@ describe("resident delivery lease", () => {
     const observation = { ...base, advicee: { ...base.advicee,
       host: "claude-code" as const, hostVersion: "2.1.218" as const, turnId: null } };
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths);
+    const server = await acquireResidentFixture(paths);
     const dispatch = findingDispatch(join(root, "consent"));
     await server.listen();
     try {
@@ -659,7 +660,7 @@ describe("resident delivery lease", () => {
       hostVersion: "1.14.44" as const, turnId: null, subagentId: null } };
     const paths = residentPaths(join(root, "runtime"));
     let reviews = 0;
-    const server = new ResidentServer(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
+    const server = await acquireResidentFixture(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
     const dispatch = findingDispatch(join(root, "consent"));
     await server.listen();
     try {
@@ -691,7 +692,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const paths = residentPaths(join(root, "runtime"));
     mkdirSync(paths.directory, { recursive: true, mode: 0o700 });
-    const server = new ResidentServer(paths);
+    const server = await acquireResidentFixture(paths);
     const dispatch = findingDispatch(statePath);
     const admission = { requestRoute: "shared" as const, operation: "admit" as const, lifetime: server.lifetime,
       observation, dispatch, controlledWriter: true as const, composed: true as const };
@@ -723,7 +724,7 @@ describe("resident delivery lease", () => {
     await put(root, "user-config.jsonc", '{"version":1,"editPermitLimits":{"perAdvicee":1,"resident":2}}');
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const register = (subagentId: string, toolUseId: string) => server.handle({
       requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
       root, advicee: { ...observation.advicee, subagentId, toolUseId },
@@ -745,7 +746,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
     const gate = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
       beforeEvaluate: async () => { started.resolve(); await gate.promise; },
     });
     const activityPath = join(root, "activity");
@@ -784,7 +785,7 @@ describe("resident delivery lease", () => {
     const entered = deferred();
     const release = deferred();
     let hold = true;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       afterReuseBoundary: async (stage) => {
         if (stage === "ownerClaimed" && hold) {
           hold = false;
@@ -823,7 +824,7 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const activityPath = join(root, "activity");
     const dispatch = { ...findingDispatch(statePath), activityPath };
     server.admit(observation, dispatch, false, true);
@@ -874,7 +875,7 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     try {
       const dispatch = findingDispatch(statePath);
       server.admit(observation, dispatch, false, true);
@@ -902,7 +903,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
@@ -948,7 +949,7 @@ describe("resident delivery lease", () => {
       sessionId: "claude-session", turnId: null, toolUseId: "claude-tool", subagentId: null,
     } };
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     const dispatch = findingDispatch(statePath);
     expect(server.admit(codex, dispatch, false, true)).toEqual({ status: "accepted" });
     expect(server.admit(claude, dispatch, false, true)).toEqual({ status: "accepted" });
@@ -993,7 +994,7 @@ describe("resident delivery lease", () => {
       host: "claude-code" as const, hostVersion: "2.1.218" as const,
       sessionId: "claude-session", turnId: null, toolUseId: "write-1", subagentId: null,
     } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch: ResidentDispatchContext = { ...findingDispatch(statePath), credential: {
       name: "TYPESAFE_API_KEY", environmentValue: "synthetic-race-marker",
       environmentOnly: true, generation: 1, statePath: credentialStatePath,
@@ -1024,7 +1025,7 @@ describe("resident delivery lease", () => {
       environmentOnly: true, generation: 1, statePath: credentialStatePath,
     } };
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths);
+    const server = await acquireResidentFixture(paths);
     expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
@@ -1036,7 +1037,7 @@ describe("resident delivery lease", () => {
 
     writeFileSync(credentialStatePath, credentialState(1));
     let rotateAtHandoff = true;
-    const gated = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
+    const gated = await acquireResidentFixture(paths, undefined, { beforeResponseHandoff: async () => {
       if (!rotateAtHandoff) return;
       rotateAtHandoff = false;
       writeFileSync(credentialStatePath, credentialState(2));
@@ -1069,7 +1070,7 @@ describe("resident delivery lease", () => {
       environmentOnly: true, generation: 1, statePath: credentialStatePath,
     } };
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(paths, undefined, { beforeResponseHandoff: async () => {
       writeFileSync(credentialStatePath, credentialState(2));
     } });
     try {
@@ -1099,8 +1100,8 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const dispatch = { ...findingDispatch(statePath), activityPath };
     const paths = residentPaths(join(root, "runtime"));
-    let server: ResidentServer;
-    server = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
+    let server: ResidentRuntime;
+    server = await acquireResidentFixture(paths, undefined, { beforeResponseHandoff: async () => {
       expect(await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish", close: false })).toEqual({ status: "advanced" });
     } });
@@ -1140,7 +1141,7 @@ describe("resident delivery lease", () => {
     const paths = residentPaths(join(root, "runtime"));
     let invalidate = false;
     let now = 0;
-    const server = new ResidentServer(paths, () => now, { beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(paths, () => now, { beforeResponseHandoff: async () => {
       if (invalidate) now = PENDING_ADVICE_EXPIRY_MS + 1;
     } });
     try {
@@ -1182,7 +1183,7 @@ describe("resident delivery lease", () => {
     })));
     expect(first).toBeDefined();
     if (first === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     expect(server.admit(first, dispatch)).toEqual({ status: "accepted" });
     await server.whenIdle();
@@ -1208,7 +1209,7 @@ describe("resident delivery lease", () => {
     const second = { ...first, candidates: [{ ...first.candidates[0]!, path: "second.ts" }],
       advicee: { ...first.advicee, toolUseId: "second" } };
     const issued: Array<{ partition: string; round: number }> = [];
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       jevRequestObserver: (event) => { if (event.stage === "issued") issued.push(event); },
     });
     const dispatch = findingDispatch(join(root, "state"));
@@ -1254,7 +1255,7 @@ describe("resident delivery lease", () => {
     })));
     if (first === undefined || second === undefined) throw new Error("missing fixture observation");
     let now = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     const dispatch = findingDispatch(statePath);
     try {
       expect(server.admit(first, dispatch, false, true).status).toBe("accepted");
@@ -1288,7 +1289,7 @@ describe("resident delivery lease", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     const dispatch = findingDispatch(statePath);
     const collect = () => server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
@@ -1329,7 +1330,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
@@ -1357,7 +1358,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
     await server.whenIdle();
@@ -1376,7 +1377,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["first.ts", "second.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
     await server.whenIdle();
@@ -1397,7 +1398,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = { ...findingDispatch(statePath), controlled: { failure: "fixture unavailable" } };
     expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
     await server.whenIdle();
@@ -1414,7 +1415,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     const collect = () => server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true, reportWorkState: true });
@@ -1447,7 +1448,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const dispatch = findingDispatch(join(root, "consent"));
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const codex = advicee({ sessionId: "codex-session" });
     const claude = { host: "claude-code" as const, hostVersion: "2.1.218" as const,
       sessionId: "claude-session", turnId: null, toolUseId: "prompt", subagentId: null };
@@ -1488,7 +1489,7 @@ describe("resident delivery lease", () => {
     const observation = { ...base, advicee: selected };
     const dispatch = findingDispatch(join(root, "consent"));
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths);
+    const server = await acquireResidentFixture(paths);
     await server.listen();
     try {
       expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
@@ -1527,7 +1528,7 @@ describe("resident delivery lease", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const held = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       afterPrepare: () => held.promise,
     });
     const dispatch = findingDispatch(statePath);
@@ -1556,7 +1557,7 @@ describe("resident delivery lease", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const changed = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       afterCredentialBeforeDispatch: async () => {
         const child = spawn(process.execPath, ["-e", `
           require("node:fs").writeFileSync(process.argv[1], JSON.stringify({version:1,generation:2,savedUseSuspended:false}));
@@ -1602,7 +1603,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, { ...findingDispatch(statePath), activityPath }).status).toBe("accepted");
     await server.whenIdle();
     expect(readActivity({
@@ -1621,7 +1622,7 @@ describe("resident delivery lease", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch = findingDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
 
     expect(await server.handle({
       requestRoute: "shared",
@@ -1695,7 +1696,7 @@ describe("resident delivery lease", () => {
       },
     };
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(server.stats()).toMatchObject({ pendingAdvice: 1, running: 0 });
@@ -1747,7 +1748,7 @@ describe("resident delivery lease", () => {
         ])),
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingAdvice: 1 });
@@ -1799,7 +1800,7 @@ describe("resident delivery lease", () => {
         },
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
 
@@ -1859,7 +1860,7 @@ describe("resident delivery lease", () => {
           },
         },
       };
-      const server = new ResidentServer(residentPaths(join(root, "runtime")));
+      const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
       expect(server.admit(observation, dispatch).status).toBe("accepted");
       await server.whenIdle();
       return { root, statePath, capturePath, dispatch, server };
@@ -1912,7 +1913,7 @@ describe("resident delivery lease", () => {
     };
     const entered: Array<string> = [];
     const releases = new Map<string, () => void>();
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
       { beforeRevalidate: (id) => new Promise<void>((resolve) => {
@@ -1967,7 +1968,7 @@ describe("resident delivery lease", () => {
       credential: null,
       controlled: { capturePath },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
@@ -1991,7 +1992,7 @@ describe("resident delivery lease", () => {
     const releaseOldEvaluation = deferred();
     let preparation = 0;
     let heldOldEvaluation = false;
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
       {
@@ -2046,7 +2047,7 @@ describe("resident delivery lease", () => {
     const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(first).toBeDefined();
     if (first === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const capturePath = join(root, "backend-calls");
     const dispatch: ResidentDispatchContext = {
       statePath,
@@ -2104,7 +2105,7 @@ describe("resident delivery lease", () => {
     const entered = deferred();
     const release = deferred();
     let held = false;
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
       { beforeRevalidate: async () => {
@@ -2155,7 +2156,7 @@ describe("resident delivery lease", () => {
     const workspaceReserved = deferred();
     const releaseRevalidation = deferred();
     let held = false;
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
       { afterRevalidationWorkspaceReserved: async () => {
@@ -2238,7 +2239,7 @@ describe("resident delivery lease", () => {
     const revalidationHeld = deferred();
     const releaseRevalidation = deferred();
     let holdNextRevalidation = true;
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
       {
@@ -2303,7 +2304,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["b.ts", "a.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
@@ -2330,7 +2331,7 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
@@ -2385,7 +2386,7 @@ describe("resident delivery lease", () => {
         },
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(server.stats().pendingAdvice).toBe(1);
@@ -2412,7 +2413,7 @@ describe("resident delivery lease", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch = findingDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     const saturated = server.stats();
@@ -2442,7 +2443,7 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
     const dispatch = findingDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     for (let partition = 0; partition < 4; partition += 1) {
       const paths = Array.from({ length: 16 }, (_, index) => `p${partition}-${index}.ts`);
       for (const [index, path] of paths.entries()) {
@@ -2487,7 +2488,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return;
     const dispatch = findingDispatch(statePath);
     const visits: Array<string> = [];
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
       { beforeRevalidate: async (id) => { visits.push(id); } },
@@ -2519,7 +2520,7 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const clearCalls = join(root, "clear-calls");
     const clearDispatch: ResidentDispatchContext = {
       statePath,
@@ -2582,7 +2583,7 @@ describe("resident delivery lease", () => {
         ])),
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const admitSource = async (source: string, toolUseId: string) => {
       await put(root, "type.ts", source);
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
@@ -2620,7 +2621,7 @@ describe("resident delivery lease", () => {
       credential: null,
       controlled: { capturePath },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const admit = async (index: number, toolUseId: string) => {
       await put(root, "type.ts", `type Shape${index} = ${index}\n`);
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
@@ -2674,7 +2675,7 @@ describe("resident delivery lease", () => {
         ])),
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const encoded = JSON.stringify({
       requestRoute: "shared",
       operation: "admit", composed: true,
@@ -2727,7 +2728,7 @@ describe("resident bounded advice batches", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch = allFindingsDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100);
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     const first = await server.collect(root, advicee({ turnId: "first", toolUseId: "first" }), dispatch);
@@ -2759,7 +2760,7 @@ describe("resident bounded advice batches", () => {
     const blocked = deferred();
     const release = deferred();
     let bId = "";
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       beforeRevalidate: async (id) => {
         if (id !== bId) return;
         blocked.resolve();
@@ -2806,7 +2807,7 @@ describe("resident bounded advice batches", () => {
     let bId = "";
     const blocked = deferred();
     const release = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       beforeFinalRevalidate: async (id) => {
         if (id !== bId) return;
         blocked.resolve();
@@ -2850,7 +2851,7 @@ describe("resident bounded advice batches", () => {
     let bId = "";
     const blocked = deferred();
     const release = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       beforeFinalRevalidate: async (id) => {
         if (id !== bId) return;
         blocked.resolve();
@@ -2911,7 +2912,7 @@ describe("resident bounded advice batches", () => {
     const releaseC = deferred();
     const bPending = deferred();
     let pendingCount = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       beforeEvaluate: async (prepared) => {
         if (prepared.input.path !== "c.ts") return;
         cEntered.resolve();
@@ -2985,7 +2986,7 @@ describe("resident bounded advice batches", () => {
     const firstAdvicePending = deferred();
     const secondAdvicePending = deferred();
     let pending = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       beforeEvaluate: (prepared) => new Promise<void>((resolve) => {
         entered.push(prepared.input.path);
         releases.set(prepared.input.path, resolve);
@@ -3041,7 +3042,7 @@ describe("resident bounded advice batches", () => {
     const bothEntered = deferred();
     const ready = deferred();
     let entered = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
       beforeEvaluate: (prepared) => new Promise<void>((resolve) => {
         releases.set(prepared.input.path, resolve);
         entered += 1;
@@ -3081,7 +3082,7 @@ describe("resident bounded advice batches", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch = singleFindingDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 500);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 500);
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
 
@@ -3120,7 +3121,7 @@ describe("resident bounded advice batches", () => {
       expect(observation).toBeDefined();
       if (observation === undefined) throw new Error("fixture adaptation failed");
       let clock = 1_000;
-      const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+      const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
       const dispatch = findingDispatch(statePath);
       expect(server.admit(observation, dispatch).status).toBe("accepted");
       await server.whenIdle();
@@ -3157,7 +3158,7 @@ describe("Effect preparation ownership", () => {
     await put(root, "a.ts", "type OrderCount = number\n");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       afterReuseBoundary: async () => { throw new Error("synthetic claim barrier failure"); },
     });
     try {
@@ -3175,7 +3176,7 @@ describe("Effect preparation ownership", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
     const entered = Deferred.makeUnsafe<void>();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       captureSource: () => Deferred.succeed(entered, undefined).pipe(Effect.andThen(Effect.never)),
     });
     expect(server.admit(observation, findingDispatch(join(root, "consent"))).status).toBe("accepted");

@@ -19,6 +19,6 @@ if (!server.includes("job.canonicalObservationId") || !server.includes("job.cano
 for (const owner of ["#rounds", "#roundActivity", "round.work =", "round.discarded.queued +=", "round.discarded.running +="]) {
   if (server.includes(owner)) throw new Error(`independent resident round owner returned: ${owner}`);
 }
-if (!server.includes("#ledger.rounds.replaceWork") || !server.includes("#ledger.rounds.retire")) {
+if (!server.includes("residentLedger.rounds.replaceWork") || !server.includes("residentLedger.rounds.retire")) {
   throw new Error("native round replacement and retirement must use the shared resident owner");
 }

@@ -29,7 +29,7 @@ const scan = (directory) => {
     if (entry.isDirectory()) { scan(path); continue; }
     if (!/\.(?:ts|mjs)$/.test(entry.name) || /(?:\.test\.ts|\.generated\.(?:js|d\.ts))$/.test(entry.name)) continue;
     const source = read(path);
-    assert.doesNotMatch(source, /\bclass\s+(?:CapacityLedger|EvaluationReuse|ComposedDelivery)\b/,
+    assert.doesNotMatch(source, /\bclass\s+(?:CapacityLedger|EvaluationReuse|ComposedDelivery|ResidentServer)\b/,
       `${path} restores a superseded resident state class owner`);
     if (/from ["'][^"']*(?:flow\.generated|lifecycle\.generated|bend-policy\.generated)\.js["']/.test(source)) obsoleteImports.push(path);
     if (path !== "src/canonical/adapter.ts" && /from ["'][^"']*canonical\.generated\.js["']/.test(source)) obsoleteImports.push(path);

@@ -88,7 +88,9 @@
     "Advice retention stages canonical finding counts and stored-result capacity with native payload snapshotting; collection readiness and lease reserve/release/check publish canonical and native changes together",
     "Advice retirement stages canonical collection retirement, submission cleanup, ticket outcomes, capture retirement and immediate or deferred capacity/revision release in one commit; protected Stop cleanup failures publish none of those changes",
     "Advice publication commits the owner ticket result and independently joined subscriber bindings/outcomes together after the retention barrier; deleted mutable advice types, array mutation and the superseded unitFinding helper",
-    "Collection and retention boundary checks include the advice owner and reject a restored server advice array or direct mutations of published advice payloads and delivery snapshots"
+    "Collection and retention boundary checks include the advice owner and reject a restored server advice array or direct mutations of published advice payloads and delivery snapshots",
+    "Deleted ResidentServer class; runtime acquisition is a named scoped Effect with ResidentRuntimeService and layer; process root consumes the layer, fixtures and offline witnesses acquire scoped runtimes",
+    "Runtime scope conformance proves isolated lifetimes, shared layer identity, owned endpoint removal and retired lifetime fencing"
   ],
   "verification": [
     {
@@ -1027,10 +1029,43 @@
       "stage": "Shared retained advice ownership",
       "command": "Typecheck, build, all boundary scripts and git diff --check",
       "exitCode": 0
+    },
+    {
+      "stage": "Scoped resident runtime acquisition",
+      "command": "Typecheck, production build, all boundary scripts, witness syntax checks and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Scoped resident runtime acquisition",
+      "command": "Focused runtime scope conformance",
+      "exitCode": 0,
+      "tests": 3,
+      "files": 1
+    },
+    {
+      "stage": "Scoped resident runtime acquisition",
+      "command": "Isolated server suite",
+      "exitCode": 0,
+      "tests": 80,
+      "files": 1
+    },
+    {
+      "stage": "Scoped resident runtime acquisition",
+      "command": "Security-sinks and operational-notices rerun after correcting subprocess generator syntax",
+      "exitCode": 0,
+      "tests": 10,
+      "files": 2
+    },
+    {
+      "stage": "Scoped resident runtime acquisition",
+      "command": "Broad eight-file resident suite",
+      "exitCode": 1,
+      "passedTests": 137,
+      "limitations": "One subprocess fixture syntax failure subsequently fixed; operational-notices worker exited with native SIGSEGV, isolated rerun passed. Earlier test/build sessions lost during permission interruption were rerun; lost results are not evidence."
     }
   ],
   "next": [
-    "Consolidate committed canonical/native operations and remaining job/lifecycle/statistics ownership into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
+    "Consolidate remaining runtime lifecycle/statistics and job metadata into production Effect services; remove internal synchronous owner/dispatcher bridges and supply Effect methods at the service boundary",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -1038,7 +1073,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Statistics, native IPC/lifecycle resources and mutable job callback metadata still have class or executor ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
+    "Statistics, native IPC/lifecycle resources and mutable job callback metadata still have closure or executor ownership; combined state exposes synchronous bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim",

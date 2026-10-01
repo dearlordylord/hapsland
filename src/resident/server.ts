@@ -67,13 +67,13 @@ import {
   type ResidentUnavailableReason,
 } from "./protocol.ts";
 import {
-  makeCapacityLedger,
+  makeResidentState,
   type CapacityLedger,
   type CapacityPurpose,
   type CapacityReservation,
 } from "./capacity.ts";
 import { makeDispatcher, type Dispatcher } from "./dispatch.ts";
-import { Exit, Scope } from "effect";
+import { Context, Exit, Layer, Scope } from "effect";
 import * as Fiber from "effect/Fiber";
 import * as FiberHandle from "effect/FiberHandle";
 import * as Schedule from "effect/Schedule";
@@ -431,22 +431,98 @@ const decodeControlledOptions = (
   }
 };
 
-export class ResidentServer {
-  readonly lifetime = randomUUID();
-  get #advice(): ReadonlyArray<Advice> { return this.#ledger.advice.values(); }
-  readonly #ledger = makeCapacityLedger<UnitJob, string, Job>(undefined, this.lifetime);
-  readonly #notices: ReturnType<ReturnType<typeof makeCapacityLedger>["notices"]>;
-  readonly #joined = this.#ledger.joinedReviews(logicalBytes);
-  readonly #reuse: EvaluationReuse<UnitJob>;
-  readonly #dispatchScope = Scope.makeUnsafe();
-  readonly #dispatcher: Dispatcher<string, Job>;
-  readonly #stopExpiries = new Map<string, Fiber.Fiber<void>>();
-  readonly #composedDelivery = this.#ledger.delivery((diagnostic) => {
+export type ResidentRuntimeOptions = {
+  readonly beforeRevalidate?: (adviceId: string) => Promise<void>;
+  readonly afterPrepare?: () => Promise<void>;
+  readonly beforeEvaluate?: (prepared: PreparedUnit) => Promise<void>;
+  /** Fixture-only source effect; never supplied by resident IPC. */
+  readonly captureSource?: DirectReviewContext["captureSource"];
+  readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
+  readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
+  /** Fixture-only callback-order gate for evaluation reuse. */
+  readonly afterReuseBoundary?: (phase: "ownerClaimed" | "claimJoined") => Promise<void> | void;
+  readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
+  readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
+  readonly afterCredentialBeforeDispatch?: () => Promise<void>;
+  /** Fixture-only authority observation; never supplied by resident IPC. */
+  readonly dispatchAuthorityObserver?: (observation: DispatchAuthorityObservation) => void;
+  /** Fixture-only source-free command/effect witness. */
+  readonly jevRequestObserver?: (observation: JevRequestObservation) => void;
+  readonly maximumOperationalNoticeKeys?: number;
+  /** Fixture-only HTTP transport; never supplied by resident IPC. */
+  readonly offlineHttpClient?: HttpClient.HttpClient;
+  /** Fixture-only gate entered by the controlled DecisionModel call. */
+  readonly controlledRequestEffect?: (signal: AbortSignal) => Promise<void>;
+  readonly beforeResponseHandoff?: () => Promise<void>;
+  readonly maximumTickets?: number;
+};
+
+export interface ResidentRuntime {
+  readonly lifetime: string;
+  readonly paths: ResidentPaths;
+  readonly listenEffect: () => Effect.Effect<void, ResidentAdapterError>;
+  readonly closeEffect: Effect.Effect<void, ResidentAdapterError>;
+  stats(): Extract<ResidentResponse, { status: "stats" }>;
+  cleanup(): "busy" | "cleaned";
+  admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed?: boolean, composed?: boolean, requirePermit?: boolean): ResidentResponse;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode?: CollectionMode): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: undefined, composed: true): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: TicketRecord, composed?: boolean): Promise<ResidentResponse>;
+  acknowledge(token: string): ResidentResponse;
+  finalize(token: string): ResidentResponse;
+  releaseDelivery(token: string): void;
+  beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse;
+  releaseComposedSubmission(token: string): ResidentResponse;
+  whenIdle(): Promise<void>;
+  pendingAdviceMetadata(): ReadonlyArray<{
+    readonly id: string;
+    readonly partition: string;
+    readonly sequence: number;
+    readonly pendingAt: number;
+    readonly collectionEligible: boolean;
+    readonly retainedBytes: number;
+    readonly generation: number;
+    readonly evaluationIdentities: ReadonlyArray<string>;
+    readonly path: string;
+    readonly pendingFindings: number;
+    readonly deliveryFindings: number;
+    readonly delivery: "available" | "leased-unacknowledged" | "leased-acknowledged";
+  }>;
+  accountingMetrics(): {
+    readonly peakLedgerBytes: number;
+    readonly maxMaterializedPreparedUnits: number;
+    readonly successfulCacheEntries: number;
+    readonly successfulCacheBytes: number;
+    readonly pendingEvaluations: number;
+    readonly operationalNoticeKeys: number;
+    readonly pendingOperationalNotices: number;
+    readonly operationalNoticeBytes: number;
+  };
+  sweepQuietRounds(now?: number): number;
+  handle(request: ResidentRequest): Promise<ResidentResponse>;
+  listen(): Promise<void>;
+  close(): Promise<void>;
+}
+
+export class ResidentRuntimeService extends Context.Service<ResidentRuntimeService, ResidentRuntime>()("@hapsland/ResidentRuntime") {}
+
+export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
+  paths: ResidentPaths = residentPaths(),
+  now: () => number = monotonicNow,
+  options: ResidentRuntimeOptions = {},
+) {
+  const residentLedger = yield* makeResidentState<UnitJob, string, Job>();
+  const lifetime = residentLedger.residentLifetime;
+  const residentJoined = residentLedger.joinedReviews(logicalBytes);
+  const residentDispatchScope = yield* Scope.make();
+  yield* Effect.addFinalizer(() => Scope.close(residentDispatchScope, Exit.void));
+  const residentStopExpiries = new Map<string, Fiber.Fiber<void>>();
+  const residentComposedDelivery = residentLedger.delivery((diagnostic) => {
     // Keep diagnostics source-free and bounded even for an indefinitely running resident.
-    const path = join(this.paths.directory, "repeat-edits.log");
+    const path = join(runtime.paths.directory, "repeat-edits.log");
     const line = `${JSON.stringify({ at: Date.now(), ...diagnostic })}\n`;
     const limit = 256 * 1024;
-    try { writeFileSync(join(this.paths.directory, "repeat-edits-observed"), "1\n", { flag: "wx", mode: 0o600 }); }
+    try { writeFileSync(join(runtime.paths.directory, "repeat-edits-observed"), "1\n", { flag: "wx", mode: 0o600 }); }
     catch { /* The marker is already present or diagnostics are unavailable. */ }
     try {
       const size = statSync(path).size;
@@ -456,220 +532,180 @@ export class ResidentServer {
       try { writeFileSync(path, line, { mode: 0o600 }); } catch { /* logging cannot block admission */ }
     }
   });
-  #ownsOwnerRecord = false;
-  readonly #now: () => number;
-  readonly #maximumTickets: number;
-  #server: Server | undefined;
-  #connections = 0;
-  #lifecycle: "active" | "retiring" | "closed" = "active";
-  #retirementScheduled = false;
-  readonly #idleChecks = Effect.runSync(FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, this.#dispatchScope)));
-  readonly #quietChecks = Effect.runSync(FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, this.#dispatchScope)));
-  readonly #lifetimeController = new AbortController();
-  #rejectedCapacity = 0;
-  #peakLedgerBytes = 0;
-  #maxMaterializedPreparedUnits = 0;
-  readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
-  readonly #afterPrepare: (() => Promise<void>) | undefined;
-  readonly #beforeEvaluate: ((prepared: PreparedUnit) => Promise<void>) | undefined;
-  readonly #captureSource: DirectReviewContext["captureSource"];
-  readonly #afterRevalidationWorkspaceReserved: ((adviceId: string) => Promise<void>) | undefined;
-  readonly #afterAdvicePending: ((adviceId: string) => Promise<void> | void) | undefined;
-  readonly #afterReuseBoundary: ((phase: "ownerClaimed" | "claimJoined") => Promise<void> | void) | undefined;
-  readonly #beforeFinalRevalidate: ((adviceId: string) => Promise<void>) | undefined;
-  readonly #afterAuthorizeBeforeCredential: (() => Promise<void>) | undefined;
-  readonly #afterCredentialBeforeDispatch: (() => Promise<void>) | undefined;
-  readonly #dispatchAuthorityObserver: ((observation: DispatchAuthorityObservation) => void) | undefined;
-  readonly #jevRequestObserver: ((observation: JevRequestObservation) => void) | undefined;
-  #nextDispatchAuthoritySequence = 1;
-  readonly #offlineHttpClient: HttpClient.HttpClient | undefined;
-  readonly #controlledRequestEffect: ((signal: AbortSignal) => Promise<void>) | undefined;
-  readonly #beforeResponseHandoff: (() => Promise<void>) | undefined;
-  readonly paths: ResidentPaths;
+  let residentServer: Server | undefined;
+  let residentOwnsOwnerRecord = false;
+  let residentConnections = 0;
+  let residentLifecycle: "active" | "retiring" | "closed" = "active";
+  let residentRetirementScheduled = false;
+  const residentIdleChecks = yield* FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
+  const residentQuietChecks = yield* FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
+  const residentLifetimeController = new AbortController();
+  let residentRejectedCapacity = 0;
+  let residentPeakLedgerBytes = 0;
+  let residentMaxMaterializedPreparedUnits = 0;
+  let residentNextDispatchAuthoritySequence = 1;
+  const residentCollectionFindingOffer: CanonicalFindingOffer = (input) => {
+    const facts = input.facts;
+    const result = residentLedger.transition({ kind: "collectionFindingCheck",
+      selectionPartition: input.selectionPartition, selectionRound: input.selectionRound,
+      unit: facts.unit, partition: facts.partition, round: facts.round,
+      snapshot: facts.snapshot, currentSnapshot: facts.currentSnapshot,
+      credential: facts.credential, currentCredential: facts.currentCredential,
+      ageMs: facts.ageMs, soloBytes: input.soloBytes,
+      collectionReady: facts.collectionReady, selectedCount: input.selectedCount,
+      prospectiveBytes: input.prospectiveBytes });
+    if (result.rejection !== undefined) throw new Error("canonical finding fit refused");
+    switch (result.commands[0]?.kind) {
+      case "collectionFindingSelected": return "selected";
+      case "collectionFindingRetained": return "retained";
+      case "collectionFindingLimited": return "limited";
+      case "collectionFindingExpired": return "expired";
+      default: throw new Error("invalid canonical finding fit");
+    }
+  };
 
-  constructor(
-    paths: ResidentPaths = residentPaths(),
-    now: () => number = () => performance.now(),
-    options: {
-      readonly beforeRevalidate?: (adviceId: string) => Promise<void>;
-      readonly afterPrepare?: () => Promise<void>;
-      readonly beforeEvaluate?: (prepared: PreparedUnit) => Promise<void>;
-      /** Fixture-only source effect; never supplied by resident IPC. */
-      readonly captureSource?: DirectReviewContext["captureSource"];
-      readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
-      readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
-      /** Fixture-only callback-order gate for evaluation reuse. */
-      readonly afterReuseBoundary?: (phase: "ownerClaimed" | "claimJoined") => Promise<void> | void;
-      readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
-      readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
-      readonly afterCredentialBeforeDispatch?: () => Promise<void>;
-      /** Fixture-only authority observation; never supplied by resident IPC. */
-      readonly dispatchAuthorityObserver?: (observation: DispatchAuthorityObservation) => void;
-      /** Fixture-only source-free command/effect witness. */
-      readonly jevRequestObserver?: (observation: JevRequestObservation) => void;
-      readonly maximumOperationalNoticeKeys?: number;
-      /** Fixture-only HTTP transport; never supplied by resident IPC. */
-      readonly offlineHttpClient?: HttpClient.HttpClient;
-      /** Fixture-only gate entered by the controlled DecisionModel call. */
-      readonly controlledRequestEffect?: (signal: AbortSignal) => Promise<void>;
-      readonly beforeResponseHandoff?: () => Promise<void>;
-      readonly maximumTickets?: number;
-    } = {},
+  const maximumOperationalNoticeKeys = options.maximumOperationalNoticeKeys ?? MAX_OPERATIONAL_NOTICE_KEYS;
+  if (
+    !Number.isSafeInteger(maximumOperationalNoticeKeys) ||
+    maximumOperationalNoticeKeys < 1 ||
+    maximumOperationalNoticeKeys > MAX_OPERATIONAL_NOTICE_KEYS
   ) {
-    const maximumOperationalNoticeKeys = options.maximumOperationalNoticeKeys ?? MAX_OPERATIONAL_NOTICE_KEYS;
-    if (
-      !Number.isSafeInteger(maximumOperationalNoticeKeys) ||
-      maximumOperationalNoticeKeys < 1 ||
-      maximumOperationalNoticeKeys > MAX_OPERATIONAL_NOTICE_KEYS
-    ) {
-      throw new RangeError(`maximumOperationalNoticeKeys must be an integer from 1 to ${MAX_OPERATIONAL_NOTICE_KEYS}`);
-    }
-    this.paths = paths;
-    const maximumTickets = options.maximumTickets ?? MAX_TICKETS;
-    if (!Number.isSafeInteger(maximumTickets) || maximumTickets < 1 || maximumTickets > MAX_TICKETS) {
-      throw new RangeError(`maximumTickets must be an integer from 1 to ${MAX_TICKETS}`);
-    }
-    this.#maximumTickets = maximumTickets;
-    this.#now = now;
-    this.#notices = this.#ledger.notices(maximumOperationalNoticeKeys, OPERATIONAL_NOTICE_COOLDOWN_MS, PENDING_ADVICE_EXPIRY_MS, logicalBytes);
-    this.#beforeRevalidate = options.beforeRevalidate;
-    this.#afterPrepare = options.afterPrepare;
-    this.#beforeEvaluate = options.beforeEvaluate;
-    this.#captureSource = options.captureSource;
-    this.#afterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
-    this.#afterAdvicePending = options.afterAdvicePending;
-    this.#afterReuseBoundary = options.afterReuseBoundary;
-    this.#beforeFinalRevalidate = options.beforeFinalRevalidate;
-    this.#afterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
-    this.#afterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
-    this.#dispatchAuthorityObserver = options.dispatchAuthorityObserver;
-    this.#jevRequestObserver = options.jevRequestObserver;
-    this.#offlineHttpClient = options.offlineHttpClient;
-    this.#controlledRequestEffect = options.controlledRequestEffect;
-    this.#beforeResponseHandoff = options.beforeResponseHandoff;
-    this.#reuse = this.#ledger.reuse(logicalBytes);
-    this.#dispatcher = Effect.runSync(makeDispatcher<string, Job>(
-      this.#ledger,
-      (job) => ({ operation: job.kind === "ingress" ? job.canonicalObservationId : job.canonicalOperationId,
-        round: job.canonicalRound }),
-      (entry) => this.#run(entry.value, entry.sequence),
-    ).pipe(Effect.provideService(Scope.Scope, this.#dispatchScope)));
+    throw new RangeError(`maximumOperationalNoticeKeys must be an integer from 1 to ${MAX_OPERATIONAL_NOTICE_KEYS}`);
   }
+  const maximumTickets = options.maximumTickets ?? MAX_TICKETS;
+  if (!Number.isSafeInteger(maximumTickets) || maximumTickets < 1 || maximumTickets > MAX_TICKETS) {
+    throw new RangeError(`maximumTickets must be an integer from 1 to ${MAX_TICKETS}`);
+  }
+  const residentMaximumTickets = maximumTickets;
+  const residentNow = now;
+  const residentNotices = residentLedger.notices(maximumOperationalNoticeKeys, OPERATIONAL_NOTICE_COOLDOWN_MS, PENDING_ADVICE_EXPIRY_MS, logicalBytes);
+  const residentBeforeRevalidate = options.beforeRevalidate;
+  const residentAfterPrepare = options.afterPrepare;
+  const residentBeforeEvaluate = options.beforeEvaluate;
+  const residentCaptureSource = options.captureSource;
+  const residentAfterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
+  const residentAfterAdvicePending = options.afterAdvicePending;
+  const residentAfterReuseBoundary = options.afterReuseBoundary;
+  const residentBeforeFinalRevalidate = options.beforeFinalRevalidate;
+  const residentAfterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
+  const residentAfterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
+  const residentDispatchAuthorityObserver = options.dispatchAuthorityObserver;
+  const residentJevRequestObserver = options.jevRequestObserver;
+  const residentOfflineHttpClient = options.offlineHttpClient;
+  const residentControlledRequestEffect = options.controlledRequestEffect;
+  const residentBeforeResponseHandoff = options.beforeResponseHandoff;
+  const residentReuse = residentLedger.reuse(logicalBytes);
 
-  stats(): Extract<ResidentResponse, { status: "stats" }> {
-    const now = this.#now();
-    this.#expirePending(now);
-    this.#pruneNoticeCooldowns(now);
-    const dispatch = Effect.runSync(this.#dispatcher.snapshot());
-    const capacity = this.#ledger.snapshot();
-    const reuse = this.#reuse.snapshot();
+  const residentAdvice = (): ReadonlyArray<Advice> => { return residentLedger.advice.values(); };
+
+  function stats(): Extract<ResidentResponse, { status: "stats" }> {
+    const now = residentNow();
+    residentExpirePending(now);
+    residentPruneNoticeCooldowns(now);
+    const dispatch = Effect.runSync(residentDispatcher.snapshot());
+    const capacity = residentLedger.snapshot();
+    const reuse = residentReuse.snapshot();
     return {
       status: "stats",
       queued: dispatch.queued,
       running: dispatch.running,
-      pendingAdvice: this.#advice.length + this.#pendingNoticeCount(),
-      pendingFindingBatches: this.#advice.length,
-      pendingOperationalNotices: this.#pendingNoticeCount(),
+      pendingAdvice: residentAdvice().length + residentPendingNoticeCount(),
+      pendingFindingBatches: residentAdvice().length,
+      pendingOperationalNotices: residentPendingNoticeCount(),
       retainedBytes: capacity.bytes,
-      rejectedCapacity: this.#rejectedCapacity,
+      rejectedCapacity: residentRejectedCapacity,
       successfulCacheEntries: reuse.entries,
       pendingEvaluations: reuse.pending,
-      noticeCooldowns: this.#notices.entries().length,
-      currentWork: this.#revisionCount(),
+      noticeCooldowns: residentNotices.entries().length,
+      currentWork: residentRevisionCount(),
     };
   }
 
-  /**
-   * Voluntary idle cleanup is an allowed loss boundary, but only after every
-   * accepted outcome, delivery lease, pending evaluation and cooldown has
-   * reached a terminal state. Successful cache entries are then discarded as
-   * part of ending this lifetime; they never authorize source reconstruction.
-   */
-  #evictRetainedTickets(limit: number): void {
-    this.#ledger.tickets.retain(limit);
+  function residentEvictRetainedTickets(limit: number): void {
+    residentLedger.tickets.retain(limit);
   }
 
-  cleanup(): "busy" | "cleaned" {
-    if (this.#lifecycle !== "active") return "busy";
-    const now = this.#now();
-    this.#expirePending(now);
-    this.#pruneNoticeCooldowns(now);
-    const dispatch = Effect.runSync(this.#dispatcher.snapshot());
-    const reuse = this.#reuse.snapshot();
-    const capacity = this.#ledger.snapshot();
-    const check = this.#ledger.transition({ kind: "cleanupCheck", facts: {
-      active: this.#lifecycle === "active",
+  function cleanup(): "busy" | "cleaned" {
+    if (residentLifecycle !== "active") return "busy";
+    const now = residentNow();
+    residentExpirePending(now);
+    residentPruneNoticeCooldowns(now);
+    const dispatch = Effect.runSync(residentDispatcher.snapshot());
+    const reuse = residentReuse.snapshot();
+    const capacity = residentLedger.snapshot();
+    const check = residentLedger.transition({ kind: "cleanupCheck", facts: {
+      active: residentLifecycle === "active",
       dispatcherIdle: dispatch.queued === 0 && dispatch.running === 0,
-      noAdvice: this.#advice.length === 0,
-      noNotices: this.#pendingNoticeCount() === 0,
+      noAdvice: residentAdvice().length === 0,
+      noNotices: residentPendingNoticeCount() === 0,
       noPendingEvaluations: reuse.pending === 0,
-      noCurrentWork: this.#revisionCount() === 0,
-      noCooldowns: this.#notices.entries().length === 0,
-      connectionCountOk: this.#connections <= 1,
+      noCurrentWork: residentRevisionCount() === 0,
+      noCooldowns: residentNotices.entries().length === 0,
+      connectionCountOk: residentConnections <= 1,
       cacheMatchesLedger: capacity.items === reuse.entries && capacity.bytes === reuse.bytes,
     } });
     if (check.rejection !== undefined || check.commands.length !== 1) throw new Error("canonical cleanup check refused");
     if (check.commands[0]?.kind === "cleanupBusy") return "busy";
     if (check.commands[0]?.kind !== "cleanupReady") throw new Error("invalid canonical cleanup check");
-    this.#reuse.clear();
-    this.#evictRetainedTickets(0);
-    const commit = this.#ledger.transition({ kind: "cleanupCommit" });
+    residentReuse.clear();
+    residentEvictRetainedTickets(0);
+    const commit = residentLedger.transition({ kind: "cleanupCommit" });
     if (commit.rejection !== undefined || commit.commands.length !== 1) throw new Error("canonical cleanup commit refused");
     if (commit.commands[0]?.kind === "cleanupBusy") return "busy";
     if (commit.commands[0]?.kind !== "cleanupCommitted") throw new Error("invalid canonical cleanup commit");
-    // The canonical closed-dispatch marker and this native phase commit in the
+    // The canonical closed-dispatch marker and runtime native phase commit in the
     // same synchronous turn. Subsequent callbacks cannot acquire ownership.
-    this.#lifecycle = "retiring";
+    residentLifecycle = "retiring";
     return "cleaned";
   }
 
-  #pruneCollectionTokenIds(): void {
-    const live = this.#composedDelivery.liveCollectionTokenKeys();
-    for (const advice of this.#advice) if (advice.delivery !== undefined) live.add(advice.delivery.token);
-    for (const notice of this.#notices.entries().map(([, value]) => value)) {
+  function residentPruneCollectionTokenIds(): void {
+    const live = residentComposedDelivery.liveCollectionTokenKeys();
+    for (const advice of residentAdvice()) if (advice.delivery !== undefined) live.add(advice.delivery.token);
+    for (const notice of residentNotices.entries().map(([, value]) => value)) {
       if (notice.pending?.delivery !== undefined) live.add(notice.pending.delivery.token);
     }
-    this.#ledger.pruneCollectionTokenIds(live);
+    residentLedger.pruneCollectionTokenIds(live);
   }
 
-  admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): ResidentResponse {
-    const now = this.#now();
-    this.#expirePending(now);
+  function admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): ResidentResponse {
+    const now = residentNow();
+    residentExpirePending(now);
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
-    this.#pruneNoticeCooldowns(now);
-    if (this.#lifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
+    residentPruneNoticeCooldowns(now);
+    if (residentLifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     const group = adviceePartition(observation.root, observation.advicee);
-    const generation = composed ? this.#composedDelivery.admitEdit(group,
+    const generation = composed ? residentComposedDelivery.admitEdit(group,
       observation.advicee.toolUseId, monotonicNow(), requirePermit) : undefined;
     if (composed && generation === undefined) {
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee,
-        lifetime: this.lifetime, stage: "incomplete" });
+        lifetime: runtime.lifetime, stage: "incomplete" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-stale" } : { status: "rejected-stale" };
     }
-    const round = generation === undefined ? undefined : this.#ledger.rounds.bind(group, generation,
+    const round = generation === undefined ? undefined : residentLedger.rounds.bind(group, generation,
       { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath }, randomUUID());
     const partition = group;
-    const canonicalRound = round?.canonicalRound ?? this.#ledger.roundId(partition);
-    const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
+    const canonicalRound = round?.canonicalRound ?? residentLedger.roundId(partition);
+    const reservation = residentReserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
     if (reservation === undefined) {
-      this.#rejectedCapacity += 1;
-      recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
+      residentRejectedCapacity += 1;
+      recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
     let canonicalObservationId: number;
     try {
-      canonicalObservationId = this.#ledger.admitObservation(partition, canonicalRound);
+      canonicalObservationId = residentLedger.admitObservation(partition, canonicalRound);
     } catch {
-      this.#ledger.release(reservation);
+      residentLedger.release(reservation);
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
-    const ticket: TicketRecord | undefined = ticketed ? this.#ledger.tickets.open({
-      ticket: { nonce: randomUUID(), lifetime: this.lifetime },
+    const ticket: TicketRecord | undefined = ticketed ? residentLedger.tickets.open({
+      ticket: { nonce: randomUUID(), lifetime: runtime.lifetime },
       partition,
       editAuthority: editAuthority(observation.root, observation.advicee),
       root: observation.root, userConfigPath: dispatch.userConfigPath,
-      claudeFeedbackMode: this.#currentClaudeFeedbackMode(observation.root, dispatch.userConfigPath),
+      claudeFeedbackMode: residentCurrentClaudeFeedbackMode(observation.root, dispatch.userConfigPath),
       credentialGeneration: dispatch.credential?.generation ?? null,
       credentialStatePath: dispatch.credential?.statePath ?? null,
       credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
@@ -688,16 +724,16 @@ export class ResidentServer {
       dispatch,
       ...(ticket === undefined ? {} : { ticket }),
     };
-    if (!Effect.runSync(this.#dispatcher.enqueue(partition, job))) {
-      if (ticket !== undefined) this.#ledger.tickets.forget(ticket);
-      this.#ledger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound);
-      this.#ledger.release(reservation);
-      this.#rejectedCapacity += 1;
-      recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
+    if (!Effect.runSync(residentDispatcher.enqueue(partition, job))) {
+      if (ticket !== undefined) residentLedger.tickets.forget(ticket);
+      residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound);
+      residentLedger.release(reservation);
+      residentRejectedCapacity += 1;
+      recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
     if (ticket !== undefined) {
-      this.#evictRetainedTickets(this.#maximumTickets);
+      residentEvictRetainedTickets(residentMaximumTickets);
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
@@ -712,23 +748,23 @@ export class ResidentServer {
         })}\n`, "utf8").catch(() => undefined);
       }
     }
-    recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "pending" });
+    recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "pending" });
     return ticket === undefined ? { status: "accepted" } : { requestRoute: "ticketed", status: "accepted", ticket: ticket.ticket };
   }
 
-  #collectionElapsed(now: number, started: number, limit: number): number {
+  function residentCollectionElapsed(now: number, started: number, limit: number): number {
     const elapsed = Math.min(limit, Math.max(0, now - started));
     return Number.isNaN(elapsed) ? 0 : Math.floor(elapsed);
   }
 
-  #pendingCanonicalFindings(operation: number): number {
-    return this.#ledger.canonicalProjection().pendingFindings.find((item) =>
+  function residentPendingCanonicalFindings(operation: number): number {
+    return residentLedger.canonicalProjection().pendingFindings.find((item) =>
       item.operation === operation)?.count ?? 0;
   }
 
-  #adviceExpired(advice: Pick<Advice, "pendingAt">, now: number): boolean {
-    const result = this.#ledger.transition({ kind: "collectionExpiryCheck",
-      elapsed: this.#collectionElapsed(now, advice.pendingAt, PENDING_ADVICE_EXPIRY_MS),
+  function residentAdviceExpired(advice: Pick<Advice, "pendingAt">, now: number): boolean {
+    const result = residentLedger.transition({ kind: "collectionExpiryCheck",
+      elapsed: residentCollectionElapsed(now, advice.pendingAt, PENDING_ADVICE_EXPIRY_MS),
       lifetime: PENDING_ADVICE_EXPIRY_MS });
     if (result.rejection !== undefined) throw new Error("canonical advice expiry refused");
     const command = result.commands[0]?.kind;
@@ -736,9 +772,9 @@ export class ResidentServer {
     return command === "collectionExpired";
   }
 
-  #collectionOrder(left: Pick<Advice, "sequence">,
+  function residentCollectionOrder(left: Pick<Advice, "sequence">,
     right: Pick<Advice, "sequence">): number {
-    const result = this.#ledger.transition({ kind: "collectionOrderCheck",
+    const result = residentLedger.transition({ kind: "collectionOrderCheck",
       leftSequence: left.sequence, rightSequence: right.sequence });
     if (result.rejection !== undefined) throw new Error("canonical collection order refused");
     switch (result.commands[0]?.kind) {
@@ -749,46 +785,27 @@ export class ResidentServer {
     }
   }
 
-  #collectionFindingOffer: CanonicalFindingOffer = (input) => {
-    const facts = input.facts;
-    const result = this.#ledger.transition({ kind: "collectionFindingCheck",
-      selectionPartition: input.selectionPartition, selectionRound: input.selectionRound,
-      unit: facts.unit, partition: facts.partition, round: facts.round,
-      snapshot: facts.snapshot, currentSnapshot: facts.currentSnapshot,
-      credential: facts.credential, currentCredential: facts.currentCredential,
-      ageMs: facts.ageMs, soloBytes: input.soloBytes,
-      collectionReady: facts.collectionReady, selectedCount: input.selectedCount,
-      prospectiveBytes: input.prospectiveBytes });
-    if (result.rejection !== undefined) throw new Error("canonical finding fit refused");
-    switch (result.commands[0]?.kind) {
-      case "collectionFindingSelected": return "selected";
-      case "collectionFindingRetained": return "retained";
-      case "collectionFindingLimited": return "limited";
-      case "collectionFindingExpired": return "expired";
-      default: throw new Error("invalid canonical finding fit");
-    }
-  };
-
-  #reserveAdviceLease(advice: Advice, token: string): boolean {
-    return this.#ledger.advice.reserveLease(advice, token);
+  function residentReserveAdviceLease(advice: Advice, token: string): boolean {
+    return residentLedger.advice.reserveLease(advice, token);
   }
 
-  #releaseAdviceLease(advice: Advice): void { this.#ledger.advice.releaseLease(advice); }
+  function residentReleaseAdviceLease(advice: Advice): void { residentLedger.advice.releaseLease(advice); }
 
-  #checkAdviceLease(advice: Advice, now: number, stopCollector: boolean, sameGroup: boolean): void {
+  function residentCheckAdviceLease(advice: Advice, now: number, stopCollector: boolean, sameGroup: boolean): void {
     const delivery = advice.delivery;
-    this.#ledger.advice.checkLease(advice, now, stopCollector, sameGroup,
+    residentLedger.advice.checkLease(advice, now, stopCollector, sameGroup,
       delivery !== undefined && stopCollector && sameGroup &&
-        this.#composedDelivery.backgroundReofferable(advice.id, delivery.token));
+        residentComposedDelivery.backgroundReofferable(advice.id, delivery.token));
   }
 
-  collect(
+  function collect(
     root: string,
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode?: CollectionMode,
   ): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
-  collect(
+
+  function collect(
     root: string,
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
@@ -796,7 +813,8 @@ export class ResidentServer {
     ticket: undefined,
     composed: true,
   ): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
-  collect(
+
+  function collect(
     root: string,
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
@@ -804,7 +822,8 @@ export class ResidentServer {
     ticket: TicketRecord,
     composed?: boolean,
   ): Promise<ResidentResponse>;
-  collect(
+
+  function collect(
     root: string,
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
@@ -812,10 +831,10 @@ export class ResidentServer {
     ticket?: TicketRecord,
     composed = false,
   ): Promise<ResidentResponse> {
-    return Effect.runPromise(this.#collect(root, advicee, dispatch, mode, ticket, composed));
+    return Effect.runPromise(residentCollect(root, advicee, dispatch, mode, ticket, composed));
   }
 
-  #collect = Effect.fn("ResidentRuntime.collect")((
+  const residentCollect = Effect.fn("ResidentRuntime.collect")((
     root: string,
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
@@ -823,48 +842,48 @@ export class ResidentServer {
     ticket?: TicketRecord,
     composed = false,
   ) => Effect.suspend(() => {
-    const server = this;
+    const server = runtime;
     let collectionToken: string | undefined;
     return Effect.gen(function* () {
       const partition = adviceePartition(root, advicee);
       const claudeSurface: ComposedClaudeSurface | undefined = composed && ticket === undefined &&
         advicee.host === "claude-code" ? mode === "turn-end" ? "stop" : "background" : undefined;
-      const now = server.#now();
-      if (composed && mode !== "turn-end" && server.#composedDelivery.isDeciding(partition)) return residentResponse({ status: "empty" });
-      const stopCollector = composed && mode === "turn-end" && server.#composedDelivery.isDeciding(partition);
-      server.#expirePending(now);
-      server.#pruneNoticeCooldowns(now);
+      const now = residentNow();
+      if (composed && mode !== "turn-end" && residentComposedDelivery.isDeciding(partition)) return residentResponse({ status: "empty" });
+      const stopCollector = composed && mode === "turn-end" && residentComposedDelivery.isDeciding(partition);
+      residentExpirePending(now);
+      residentPruneNoticeCooldowns(now);
       const credentialGeneration = dispatch.credential?.generation ?? null;
-      for (const item of [...server.#advice]) {
+      for (const item of [...residentAdvice()]) {
         const sameScope = composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
           : item.partition === partition;
-        const disposition = server.#ledger.transition({ kind: "collectionCredentialCheck",
+        const disposition = residentLedger.transition({ kind: "collectionCredentialCheck",
           sameScope, generationValid: item.credentialGeneration === credentialGeneration });
         if (disposition.rejection !== undefined) throw new Error("canonical credential check refused");
         if (disposition.commands[0]?.kind === "collectionRetireCredential") {
-          server.#removeAdvice(item.id);
+          residentRemoveAdvice(item.id);
         } else if (disposition.commands[0]?.kind !== "collectionRetainCredential") {
           throw new Error("invalid canonical credential decision");
         }
       }
       // Stop can reoffer only an uncertain background write after its writer has
       // terminated; a submitted write counts as delivery.
-      for (const item of server.#advice) {
+      for (const item of residentAdvice()) {
         const delivery = item.delivery;
         const sameGroup = adviceePartition(item.observation.root, item.observation.advicee) === partition;
-        if (delivery !== undefined) server.#checkAdviceLease(item, now, stopCollector, sameGroup);
+        if (delivery !== undefined) residentCheckAdviceLease(item, now, stopCollector, sameGroup);
       }
-      const available = server.#advice.filter((item) => {
+      const available = residentAdvice().filter((item) => {
         const samePartition = composed
           ? adviceePartition(item.observation.root, item.observation.advicee) === partition
           : item.partition === partition;
         const unleased = item.delivery === undefined;
         const hasUnsuppressed = samePartition && unleased && item.findings.some((finding) =>
-          !server.#composedDelivery.suppresses(item.id,
+          !residentComposedDelivery.suppresses(item.id,
             adviceePartition(item.observation.root, item.observation.advicee), finding,
             stopCollector ? "stop" : undefined));
         const ticketOwns = ticket === undefined || ticket.partition === item.partition;
-        const result = server.#ledger.transition({ kind: "collectionCandidateCheck",
+        const result = residentLedger.transition({ kind: "collectionCandidateCheck",
           samePartition, unleased, hasUnsuppressed, ticketOwns });
         if (result.rejection !== undefined) throw new Error("canonical advice candidate refused");
         if (result.commands[0]?.kind !== "collectionCandidate" && result.commands[0]?.kind !== "collectionSkip") {
@@ -873,84 +892,84 @@ export class ResidentServer {
         return result.commands[0]?.kind === "collectionCandidate";
       });
       for (const item of available) {
-        server.#ledger.advice.eligible(item, server.#joined.hasAdmission(item.admissionId));
+        residentLedger.advice.eligible(item, residentJoined.hasAdmission(item.admissionId));
       }
       const eligible = available.filter((item) => item.collectionEligible)
-        .sort((left, right) => server.#collectionOrder(left, right))
+        .sort((left, right) => residentCollectionOrder(left, right))
         .map((item) => item.id);
       const token = collectionToken = randomUUID();
       const fittingFindings = (
         retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>,
         advice: Advice, reportLimit: boolean,
       ) => {
-        const facts = server.#findingSelectionFacts(advice, partition, credentialGeneration, server.#now(), composed);
+        const facts = residentFindingSelectionFacts(advice, partition, credentialGeneration, residentNow(), composed);
         const onLimited = reportLimit
-          ? () => server.#recordOperationalFailure(advice.observation, "output-limit")
+          ? () => residentRecordOperationalFailure(advice.observation, "output-limit")
           : undefined;
         return ticket === undefined
           ? claudeSurface === undefined
-            ? selectFittingFindings(retained, candidates, facts, onLimited, server.#collectionFindingOffer)
+            ? selectFittingFindings(retained, candidates, facts, onLimited, residentCollectionFindingOffer)
             : selectFittingComposedClaudeFindings(retained, candidates, claudeSurface,
-                facts, onLimited, server.#collectionFindingOffer)
+                facts, onLimited, residentCollectionFindingOffer)
           : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode,
-            facts, onLimited, server.#collectionFindingOffer);
+            facts, onLimited, residentCollectionFindingOffer);
       };
       let handoffFindings: Array<Finding> = [];
       const selected: Array<Advice> = [];
       let selectedFindings: Array<Finding> = [];
       for (const id of eligible) {
-        const advice = server.#advice.find((item) => item.id === id && item.delivery === undefined);
+        const advice = residentAdvice().find((item) => item.id === id && item.delivery === undefined);
         if (advice === undefined) continue;
-        if (!server.#reserveAdviceLease(advice, token)) continue;
-        yield* residentAdapter("collection revalidation barrier", () => Promise.resolve(server.#beforeRevalidate?.(advice.id)));
-        const validity = yield* server.#revalidate(advice, dispatch);
-        const retained = server.#advice.find((item) => item.id === advice.id);
-        const route = server.#candidateRoute({ kind: "validationRouteCheck",
+        if (!residentReserveAdviceLease(advice, token)) continue;
+        yield* residentAdapter("collection revalidation barrier", () => Promise.resolve(residentBeforeRevalidate?.(advice.id)));
+        const validity = yield* residentRevalidate(advice, dispatch);
+        const retained = residentAdvice().find((item) => item.id === advice.id);
+        const route = residentCandidateRoute({ kind: "validationRouteCheck",
           ownerCurrent: retained === advice && retained.delivery?.token === token,
           status: validity.status });
         if (route === "ignoreCandidate") continue;
         if (route === "releaseCandidate") {
-          server.#releaseAdviceLease(advice);
+          residentReleaseAdviceLease(advice);
           continue;
         }
         if (route === "retireCandidate") {
-          server.#removeAdvice(advice.id, token);
+          residentRemoveAdvice(advice.id, token);
           continue;
         }
         if (route !== "continueCandidate" || validity.status !== "current") {
-          server.#releaseAdviceLease(advice);
+          residentReleaseAdviceLease(advice);
           continue;
         }
         const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
           advice.round.policyWork().reviseFinding(advice.workUnitId,
             validity.findings.length, logicalBytes(validity.findings));
-        const workRoute = server.#candidateRoute({ kind: "postValidationCheck",
+        const workRoute = residentCandidateRoute({ kind: "postValidationCheck",
           workAccepted, expired: false, hasFitting: true });
         if (workRoute !== "retainCandidate") {
-          if (workRoute === "retireCandidate") server.#removeAdvice(advice.id, token);
-          else server.#releaseAdviceLease(advice);
+          if (workRoute === "retireCandidate") residentRemoveAdvice(advice.id, token);
+          else residentReleaseAdviceLease(advice);
           continue;
         }
-        server.#ledger.advice.revise(advice, validity.evaluations, validity.findings);
-        const handoffNow = server.#now();
-        const expiryRoute = server.#candidateRoute({ kind: "postValidationCheck",
-          workAccepted: true, expired: server.#adviceExpired(advice, handoffNow), hasFitting: true });
+        residentLedger.advice.revise(advice, validity.evaluations, validity.findings);
+        const handoffNow = residentNow();
+        const expiryRoute = residentCandidateRoute({ kind: "postValidationCheck",
+          workAccepted: true, expired: residentAdviceExpired(advice, handoffNow), hasFitting: true });
         if (expiryRoute !== "retainCandidate") {
-          if (expiryRoute === "retireCandidate") server.#removeAdvice(advice.id, token);
-          else server.#releaseAdviceLease(advice);
+          if (expiryRoute === "retireCandidate") residentRemoveAdvice(advice.id, token);
+          else residentReleaseAdviceLease(advice);
           continue;
         }
         const fitting = fittingFindings(selectedFindings, advice.findings.filter((finding) =>
-          !server.#composedDelivery.suppresses(advice.id,
+          !residentComposedDelivery.suppresses(advice.id,
             adviceePartition(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
-        const fittingRoute = server.#candidateRoute({ kind: "postValidationCheck",
+        const fittingRoute = residentCandidateRoute({ kind: "postValidationCheck",
           workAccepted: true, expired: false, hasFitting: fitting.length > 0 });
         if (fittingRoute !== "retainCandidate") {
-          if (fittingRoute === "retireCandidate") server.#removeAdvice(advice.id, token);
-          else server.#releaseAdviceLease(advice);
+          if (fittingRoute === "retireCandidate") residentRemoveAdvice(advice.id, token);
+          else residentReleaseAdviceLease(advice);
           continue;
         }
-        server.#ledger.advice.updateDelivery(advice, token, { findings: fitting });
+        residentLedger.advice.updateDelivery(advice, token, { findings: fitting });
         selectedFindings = [...selectedFindings, ...fitting];
         selected.push(advice);
       }
@@ -958,68 +977,68 @@ export class ResidentServer {
         const final: Array<Advice> = [];
         let finalFindings: Array<Finding> = [];
         for (const advice of selected) {
-          yield* residentAdapter("final collection revalidation barrier", () => Promise.resolve(server.#beforeFinalRevalidate?.(advice.id)));
-          const validity = yield* server.#revalidate(advice, dispatch);
-          const retained = server.#advice.find((item) => item.id === advice.id);
-          const route = server.#candidateRoute({ kind: "validationRouteCheck",
+          yield* residentAdapter("final collection revalidation barrier", () => Promise.resolve(residentBeforeFinalRevalidate?.(advice.id)));
+          const validity = yield* residentRevalidate(advice, dispatch);
+          const retained = residentAdvice().find((item) => item.id === advice.id);
+          const route = residentCandidateRoute({ kind: "validationRouteCheck",
             ownerCurrent: retained === advice && retained.delivery?.token === token,
             status: validity.status });
           if (route === "ignoreCandidate") continue;
           if (route === "releaseCandidate") {
-            server.#releaseAdviceLease(advice);
+            residentReleaseAdviceLease(advice);
             continue;
           }
           if (route === "retireCandidate") {
-            server.#removeAdvice(advice.id, token);
+            residentRemoveAdvice(advice.id, token);
             continue;
           }
           if (route !== "continueCandidate" || validity.status !== "current") {
-            server.#releaseAdviceLease(advice);
+            residentReleaseAdviceLease(advice);
             continue;
           }
           const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
             advice.round.policyWork().reviseFinding(advice.workUnitId,
               validity.findings.length, logicalBytes(validity.findings));
-          const workRoute = server.#candidateRoute({ kind: "postValidationCheck",
+          const workRoute = residentCandidateRoute({ kind: "postValidationCheck",
             workAccepted, expired: false, hasFitting: true });
           if (workRoute !== "retainCandidate") {
-            if (workRoute === "retireCandidate") server.#removeAdvice(advice.id, token);
-            else server.#releaseAdviceLease(advice);
+            if (workRoute === "retireCandidate") residentRemoveAdvice(advice.id, token);
+            else residentReleaseAdviceLease(advice);
             continue;
           }
-          server.#ledger.advice.revise(advice, validity.evaluations, validity.findings);
-          const handoffNow = server.#now();
-          const expiryRoute = server.#candidateRoute({ kind: "postValidationCheck",
-            workAccepted: true, expired: server.#adviceExpired(advice, handoffNow), hasFitting: true });
+          residentLedger.advice.revise(advice, validity.evaluations, validity.findings);
+          const handoffNow = residentNow();
+          const expiryRoute = residentCandidateRoute({ kind: "postValidationCheck",
+            workAccepted: true, expired: residentAdviceExpired(advice, handoffNow), hasFitting: true });
           if (expiryRoute !== "retainCandidate") {
-            if (expiryRoute === "retireCandidate") server.#removeAdvice(advice.id, token);
-            else server.#releaseAdviceLease(advice);
+            if (expiryRoute === "retireCandidate") residentRemoveAdvice(advice.id, token);
+            else residentReleaseAdviceLease(advice);
             continue;
           }
           const fitting = fittingFindings(finalFindings, advice.findings.filter((finding) =>
-            !server.#composedDelivery.suppresses(advice.id,
+            !residentComposedDelivery.suppresses(advice.id,
               adviceePartition(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
-          const fittingRoute = server.#candidateRoute({ kind: "postValidationCheck",
+          const fittingRoute = residentCandidateRoute({ kind: "postValidationCheck",
             workAccepted: true, expired: false, hasFitting: fitting.length > 0 });
           if (fittingRoute !== "retainCandidate") {
-            if (fittingRoute === "retireCandidate") server.#removeAdvice(advice.id, token);
-            else server.#releaseAdviceLease(advice);
+            if (fittingRoute === "retireCandidate") residentRemoveAdvice(advice.id, token);
+            else residentReleaseAdviceLease(advice);
             continue;
           }
           if (advice.delivery?.token !== token) continue;
-          server.#ledger.advice.updateDelivery(advice, token, { findings: fitting });
+          residentLedger.advice.updateDelivery(advice, token, { findings: fitting });
           finalFindings = [...finalFindings, ...fitting];
           final.push(advice);
         }
         if (final.length > 0) {
-          // No asynchronous work may occur after this handoff barrier. Earlier
+          // No asynchronous work may occur after runtime handoff barrier. Earlier
           // members can expire or be superseded while a later member is doing
           // its final capture, so validate ownership and authority once more
           // using one final clock reading immediately before encoding.
-          const handoffNow = server.#now();
+          const handoffNow = residentNow();
           const handoff: Array<Advice> = [];
           for (const advice of final) {
-            const retained = server.#advice.find((item) => item.id === advice.id);
+            const retained = residentAdvice().find((item) => item.id === advice.id);
             const delivery = retained?.delivery;
             const ownerCurrent = retained === advice && delivery?.token === token;
             const credentialGenerationValid = advice.credentialGeneration === credentialGeneration;
@@ -1030,43 +1049,43 @@ export class ResidentServer {
                 credentialState.generation === credentialGeneration &&
                 (dispatch.credential.environmentOnly || !credentialState.savedUseSuspended);
             }
-            const route = server.#candidateRoute({ kind: "finalCandidateCheck", ownerCurrent,
+            const route = residentCandidateRoute({ kind: "finalCandidateCheck", ownerCurrent,
               credentialGeneration: credentialGenerationValid, credentialAuthorized,
               expired: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
-                server.#adviceExpired(advice, handoffNow),
+                residentAdviceExpired(advice, handoffNow),
               workCurrent: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
-                server.#isCurrentWork(advice.revision, advice.prepared),
+                residentIsCurrentWork(advice.revision, advice.prepared),
               hasFindings: delivery !== undefined && delivery.findings.length > 0 });
             if (route === "ignoreCandidate") continue;
             if (route === "retireCandidate") {
-              server.#removeAdvice(advice.id, token);
+              residentRemoveAdvice(advice.id, token);
               continue;
             }
             if (route === "releaseCandidate") {
-              server.#releaseAdviceLease(advice);
+              residentReleaseAdviceLease(advice);
               continue;
             }
             if (route !== "retainCandidate" || delivery === undefined) continue;
-            server.#ledger.advice.updateDelivery(advice, token, { leaseUntil: handoffNow + DELIVERY_LEASE_MS });
+            residentLedger.advice.updateDelivery(advice, token, { leaseUntil: handoffNow + DELIVERY_LEASE_MS });
             handoff.push(advice);
           }
           const offers = handoff.flatMap((advice) => (advice.delivery?.findings ?? []).map((finding) => ({
             advice,
             finding,
-            facts: server.#findingSelectionFacts(advice, partition, credentialGeneration, handoffNow, composed),
+            facts: residentFindingSelectionFacts(advice, partition, credentialGeneration, handoffNow, composed),
           })));
           const accepted = new Set(selectFittingCurrentFindingIndices(offers,
             ticket === undefined ? claudeSurface === undefined ? "codex" :
               claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
-            (index) => server.#recordOperationalFailure(offers[index]!.advice.observation,
+            (index) => residentRecordOperationalFailure(offers[index]!.advice.observation,
               "output-limit", handoffNow),
-            server.#collectionFindingOffer));
+            residentCollectionFindingOffer));
           let index = 0;
           for (const advice of handoff) {
             const delivery = advice.delivery;
             if (delivery === undefined) continue;
-            server.#ledger.advice.updateDelivery(advice, token, { findings: delivery.findings.filter(() => accepted.has(index++)) });
-            if (advice.delivery?.findings.length === 0) server.#releaseAdviceLease(advice);
+            residentLedger.advice.updateDelivery(advice, token, { findings: delivery.findings.filter(() => accepted.has(index++)) });
+            if (advice.delivery?.findings.length === 0) residentReleaseAdviceLease(advice);
           }
           handoffFindings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
         }
@@ -1081,15 +1100,15 @@ export class ResidentServer {
             output: combinedClaudeOutput(handoffFindings, [], ticket.claudeFeedbackMode) });
     }).pipe(Effect.onError(() => Effect.sync(() => {
       // A failed or interrupted collector cannot retain a lease indefinitely.
-      // Revalidation's own finalizer has settled before this handoff is released.
+      // Revalidation's own finalizer has settled before runtime handoff is released.
       if (collectionToken !== undefined) server.releaseDelivery(collectionToken);
     })));
   }));
 
-  #candidateRoute(event: Extract<CanonicalEvent, { readonly kind:
+  function residentCandidateRoute(event: Extract<CanonicalEvent, { readonly kind:
     "validationRouteCheck" | "postValidationCheck" | "finalCandidateCheck" }>):
     "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" {
-    const result = this.#ledger.transition(event);
+    const result = residentLedger.transition(event);
     const kind = result.commands[0]?.kind;
     if (result.rejection !== undefined || result.commands.length !== 1 ||
         (kind !== "ignoreCandidate" && kind !== "releaseCandidate" && kind !== "retireCandidate" &&
@@ -1099,196 +1118,196 @@ export class ResidentServer {
     return kind;
   }
 
-  acknowledge(token: string): ResidentResponse {
-    const now = this.#now();
-    this.#expirePending(now);
-    this.#pruneNoticeCooldowns(now);
-    const advice = this.#advice.filter((item) => item.delivery?.token === token);
-    const notices = this.#noticesForToken(token);
+  function acknowledge(token: string): ResidentResponse {
+    const now = residentNow();
+    residentExpirePending(now);
+    residentPruneNoticeCooldowns(now);
+    const advice = residentAdvice().filter((item) => item.delivery?.token === token);
+    const notices = residentNoticesForToken(token);
     const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
-    const decision = this.#ledger.transition({ kind: "deliveryAcknowledgeCheck",
+    const decision = residentLedger.transition({ kind: "deliveryAcknowledgeCheck",
       items: advice.length + notices.length, anyExpired: expired });
     if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical acknowledgement refused");
     if (decision.commands[0]?.kind === "deliveryAckEmpty") return { status: "empty" };
     if (decision.commands[0]?.kind === "deliveryAckExpired") {
-      for (const item of advice) this.#releaseAdviceLease(item);
-      for (const item of notices) { this.#notices.release(item.id); }
+      for (const item of advice) residentReleaseAdviceLease(item);
+      for (const item of notices) { residentNotices.release(item.id); }
       return { status: "empty" };
     }
     if (decision.commands[0]?.kind !== "deliveryAckReady") throw new Error("invalid canonical acknowledgement");
-    if (!this.#composedDelivery.markSubmitted(token,
+    if (!residentComposedDelivery.markSubmitted(token,
       advice.flatMap((item) => (item.delivery?.findings ?? []).map(() => item.canonicalOperationId)))) {
       return { status: "empty" };
     }
     for (const item of advice) {
-      this.#ledger.advice.updateDelivery(item, token, { acknowledged: true });
+      residentLedger.advice.updateDelivery(item, token, { acknowledged: true });
     }
-    for (const item of notices) this.#notices.acknowledge(item.id);
+    for (const item of notices) residentNotices.acknowledge(item.id);
     return { status: "acknowledged" };
   }
 
-  finalize(token: string): ResidentResponse {
-    const now = this.#now();
-    this.#expirePending(now);
-    this.#pruneNoticeCooldowns(now);
-    const advice = this.#advice.filter((item) => item.delivery?.token === token);
-    const notices = this.#noticesForToken(token);
+  function finalize(token: string): ResidentResponse {
+    const now = residentNow();
+    residentExpirePending(now);
+    residentPruneNoticeCooldowns(now);
+    const advice = residentAdvice().filter((item) => item.delivery?.token === token);
+    const notices = residentNoticesForToken(token);
     const allAcknowledged = advice.every((item) => item.delivery?.acknowledged === true) &&
       notices.every((item) => item.delivery?.acknowledged === true);
     const expired = advice.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
-    const decision = this.#ledger.transition({ kind: "deliveryFinalizeCheck",
+    const decision = residentLedger.transition({ kind: "deliveryFinalizeCheck",
       items: advice.length + notices.length, allAcknowledged, anyExpired: expired });
     if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical finalization refused");
     if (decision.commands[0]?.kind === "deliveryFinalEmpty") return { status: "empty" };
     if (decision.commands[0]?.kind === "deliveryFinalExpired") {
-      for (const item of advice) this.#releaseAdviceLease(item);
-      for (const item of notices) { this.#notices.release(item.id); }
+      for (const item of advice) residentReleaseAdviceLease(item);
+      for (const item of notices) { residentNotices.release(item.id); }
       return { status: "empty" };
     }
     if (decision.commands[0]?.kind !== "deliveryFinalReady") throw new Error("invalid canonical finalization");
-    const composed = this.#composedDelivery.hasToken(token);
+    const composed = residentComposedDelivery.hasToken(token);
     for (const item of advice) {
       const delivered = item.delivery?.findings ?? [];
       const remaining = composed ? [] : withoutDeliveredFindings(item.findings, delivered);
-      const disposition = this.#ledger.transition({ kind: "deliveryFindingDispositionCheck",
+      const disposition = residentLedger.transition({ kind: "deliveryFindingDispositionCheck",
         composed, remaining: remaining.length });
       if (disposition.rejection !== undefined || disposition.commands.length !== 1) throw new Error("canonical finding disposition refused");
       if (disposition.commands[0]?.kind === "deliveryKeepForReoffer") {
-        this.#releaseAdviceLease(item);
+        residentReleaseAdviceLease(item);
         continue;
       }
       if (disposition.commands[0]?.kind === "deliveryRetireAdvice") {
-        for (const unit of this.#ledger.ticketUnits.values()) {
+        for (const unit of residentLedger.ticketUnits.values()) {
           if (ticketUnitStage(unit).stage === "finding" && unit.current.adviceId === item.id) {
             ticketUnitTransition(unit, "markDelivered");
           }
         }
-        this.#removeAdvice(item.id, token);
+        residentRemoveAdvice(item.id, token);
         continue;
       }
       if (disposition.commands[0]?.kind !== "deliveryKeepRemaining") throw new Error("invalid canonical delivery disposition");
-      this.#ledger.advice.revise(item, item.evaluations.map((evaluation) => ({
+      residentLedger.advice.revise(item, item.evaluations.map((evaluation) => ({
         ...evaluation,
         findings: withoutDeliveredFindings(evaluation.findings, delivered),
       })).filter((evaluation) => evaluation.findings.length > 0), remaining);
-      this.#releaseAdviceLease(item);
+      residentReleaseAdviceLease(item);
     }
-    for (const item of notices) this.#removePendingNotice(item.id, token);
+    for (const item of notices) residentRemovePendingNotice(item.id, token);
     return { status: "finalized" };
   }
 
-  #releaseUnacknowledged(acknowledged: boolean): boolean {
-    const result = this.#ledger.transition({ kind: "deliveryReleaseCheck", acknowledged });
+  function residentReleaseUnacknowledged(acknowledged: boolean): boolean {
+    const result = residentLedger.transition({ kind: "deliveryReleaseCheck", acknowledged });
     if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical delivery release refused");
     if (result.commands[0]?.kind === "deliveryReleaseUnacknowledged") return true;
     if (result.commands[0]?.kind === "deliveryKeepAcknowledged") return false;
     throw new Error("invalid canonical delivery release");
   }
 
-  releaseDelivery(token: string): void {
-    for (const advice of this.#advice) {
+  function releaseDelivery(token: string): void {
+    for (const advice of residentAdvice()) {
       if (advice.delivery?.token === token &&
-          this.#releaseUnacknowledged(advice.delivery.acknowledged)) this.#releaseAdviceLease(advice);
+          residentReleaseUnacknowledged(advice.delivery.acknowledged)) residentReleaseAdviceLease(advice);
     }
-    for (const notice of this.#noticesForToken(token)) {
+    for (const notice of residentNoticesForToken(token)) {
       if (notice.delivery?.token === token &&
-          this.#releaseUnacknowledged(notice.delivery.acknowledged)) {
-        this.#notices.release(notice.id);
+          residentReleaseUnacknowledged(notice.delivery.acknowledged)) {
+        residentNotices.release(notice.id);
       }
     }
   }
 
-  beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse {
-    const now = this.#now();
-    this.#expirePending(now);
-    const finishPermit = surface === "stop" && this.#composedDelivery.hasFinishPermit(token);
-    if (finishPermit && this.#composedDelivery.isFinishAuthorized(token)) return { status: "empty" };
-    if (!this.#composedDelivery.canBeginExistingToken(surface, token)) return { status: "empty" };
-    const advice = this.#advice.filter((item) =>
+  function beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse {
+    const now = residentNow();
+    residentExpirePending(now);
+    const finishPermit = surface === "stop" && residentComposedDelivery.hasFinishPermit(token);
+    if (finishPermit && residentComposedDelivery.isFinishAuthorized(token)) return { status: "empty" };
+    if (!residentComposedDelivery.canBeginExistingToken(surface, token)) return { status: "empty" };
+    const advice = residentAdvice().filter((item) =>
       item.delivery?.token === token && item.delivery.leaseUntil > now &&
       item.delivery.findings.length > 0);
-    const selectionValid = !finishPermit || this.#composedDelivery.finishSelectionMatches(token,
+    const selectionValid = !finishPermit || residentComposedDelivery.finishSelectionMatches(token,
       advice.map((item) => ({ id: item.id, unit: item.canonicalOperationId,
         findings: item.delivery?.findings ?? [] })));
     const allValid = selectionValid && advice.every((item) => {
       const round = item.round;
       const delivery = item.delivery;
       const unit = item.workUnitId;
-      const decision = this.#ledger.transition({ kind: "deliverySubmissionCandidateCheck", facts: {
-        roundActive: this.#roundActive(round),
+      const decision = residentLedger.transition({ kind: "deliverySubmissionCandidateCheck", facts: {
+        roundActive: residentRoundActive(round),
         hasRound: round !== undefined,
         hasUnit: unit !== undefined,
         hasDelivery: delivery !== undefined,
         pendingCapacity: round !== undefined && unit !== undefined && delivery !== undefined &&
-          delivery.findings.length <= this.#pendingCanonicalFindings(item.canonicalOperationId),
-        submissionAllowed: this.#composedDelivery.canBeginSubmission(
+          delivery.findings.length <= residentPendingCanonicalFindings(item.canonicalOperationId),
+        submissionAllowed: residentComposedDelivery.canBeginSubmission(
           adviceePartition(item.observation.root, item.observation.advicee), surface, token),
-        currentWork: this.#isCurrentWork(item.revision, item.prepared),
-        credentialAuthorized: this.#adviceCredentialAuthority(item),
+        currentWork: residentIsCurrentWork(item.revision, item.prepared),
+        credentialAuthorized: residentAdviceCredentialAuthority(item),
       } });
       if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical submission candidate refused");
       return decision.commands[0]?.kind === "deliverySubmissionCandidate";
     });
-    const batch = this.#ledger.transition({ kind: "deliverySubmissionBatchCheck",
+    const batch = residentLedger.transition({ kind: "deliverySubmissionBatchCheck",
       count: advice.length, allValid });
     if (batch.rejection !== undefined || batch.commands.length !== 1) throw new Error("canonical submission batch refused");
     if (batch.commands[0]?.kind !== "deliveryBatchProceed") {
-      this.releaseComposedSubmission(token);
+      runtime.releaseComposedSubmission(token);
       return { status: "empty" };
     }
     if (surface === "stop") {
       const group = adviceePartition(advice[0]!.observation.root, advice[0]!.observation.advicee);
-      if (!this.#composedDelivery.authorizeFinishOutput(group, token)) return { status: "empty" };
+      if (!residentComposedDelivery.authorizeFinishOutput(group, token)) return { status: "empty" };
     }
     for (const item of advice) {
       if (finishPermit) continue;
-      if (!this.#composedDelivery.beginSubmission(
+      if (!residentComposedDelivery.beginSubmission(
         item.id, adviceePartition(item.observation.root, item.observation.advicee),
         token, item.delivery?.findings ?? [], surface, now, item.canonicalOperationId,
       )) {
-        this.releaseComposedSubmission(token);
+        runtime.releaseComposedSubmission(token);
         return { status: "empty" };
       }
     }
     return { status: "submitting" };
   }
 
-  releaseComposedSubmission(token: string): ResidentResponse {
-    this.#composedDelivery.release(token);
-    this.releaseDelivery(token);
+  function releaseComposedSubmission(token: string): ResidentResponse {
+    residentComposedDelivery.release(token);
+    runtime.releaseDelivery(token);
     return { status: "released" };
   }
 
-  #collectionWorkCount(root: string, advicee: DirectAdvicee, composed = false): number {
+  function residentCollectionWorkCount(root: string, advicee: DirectAdvicee, composed = false): number {
     const partition = adviceePartition(root, advicee);
     const dispatcherWork = composed ? 0 : (() => {
-      const jobs = Effect.runSync(this.#dispatcher.snapshotWhere(({ key }) => key === partition));
+      const jobs = Effect.runSync(residentDispatcher.snapshotWhere(({ key }) => key === partition));
       return jobs.queued + jobs.running;
     })();
-    const work = composed ? this.#ledger.rounds.get(partition)?.policyWork().unfinished() ?? 0 : dispatcherWork;
-    return Number(composed && this.#composedDelivery.hasPendingEdits(partition)) +
+    const work = composed ? residentLedger.rounds.get(partition)?.policyWork().unfinished() ?? 0 : dispatcherWork;
+    return Number(composed && residentComposedDelivery.hasPendingEdits(partition)) +
       work +
-      this.#advice.filter((item) =>
+      residentAdvice().filter((item) =>
         (composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
           : item.partition === partition) && item.delivery !== undefined).length +
-      [...this.#notices.entries().map(([, value]) => value)].filter((notice) =>
+      [...residentNotices.entries().map(([, value]) => value)].filter((notice) =>
         (composed ? notice.deliveryGroup === partition : notice.partition === partition) && notice.pending?.delivery !== undefined).length;
   }
 
-  #collectionWorkState(root: string, advicee: DirectAdvicee, composed = false): { readonly status: "pending" | "empty" } {
-    return { status: this.#collectionWorkCount(root, advicee, composed) > 0 ? "pending" : "empty" };
+  function residentCollectionWorkState(root: string, advicee: DirectAdvicee, composed = false): { readonly status: "pending" | "empty" } {
+    return { status: residentCollectionWorkCount(root, advicee, composed) > 0 ? "pending" : "empty" };
   }
 
-  whenIdle(): Promise<void> {
-    return Effect.runPromise(this.#dispatcher.whenIdle());
+  function whenIdle(): Promise<void> {
+    return Effect.runPromise(residentDispatcher.whenIdle());
   }
 
-  pendingAdviceMetadata(): ReadonlyArray<{
+  function pendingAdviceMetadata(): ReadonlyArray<{
     readonly id: string;
     readonly partition: string;
-      readonly sequence: number;
+    readonly sequence: number;
     readonly pendingAt: number;
     readonly collectionEligible: boolean;
     readonly retainedBytes: number;
@@ -1299,7 +1318,7 @@ export class ResidentServer {
     readonly deliveryFindings: number;
     readonly delivery: "available" | "leased-unacknowledged" | "leased-acknowledged";
   }> {
-    return this.#advice.map((advice) => ({
+    return residentAdvice().map((advice) => ({
       id: advice.id,
       partition: advice.partition,
       sequence: advice.sequence,
@@ -1319,7 +1338,7 @@ export class ResidentServer {
     }));
   }
 
-  accountingMetrics(): {
+  function accountingMetrics(): {
     readonly peakLedgerBytes: number;
     readonly maxMaterializedPreparedUnits: number;
     readonly successfulCacheEntries: number;
@@ -1329,179 +1348,181 @@ export class ResidentServer {
     readonly pendingOperationalNotices: number;
     readonly operationalNoticeBytes: number;
   } {
-    const reuse = this.#reuse.snapshot();
+    const reuse = residentReuse.snapshot();
     return {
-      peakLedgerBytes: this.#peakLedgerBytes,
-      maxMaterializedPreparedUnits: this.#maxMaterializedPreparedUnits,
+      peakLedgerBytes: residentPeakLedgerBytes,
+      maxMaterializedPreparedUnits: residentMaxMaterializedPreparedUnits,
       successfulCacheEntries: reuse.entries,
       successfulCacheBytes: reuse.bytes,
       pendingEvaluations: reuse.pending,
-      operationalNoticeKeys: this.#notices.entries().length,
-      pendingOperationalNotices: this.#pendingNoticeCount(),
-      operationalNoticeBytes: [...this.#notices.entries().map(([, value]) => value)].reduce(
+      operationalNoticeKeys: residentNotices.entries().length,
+      pendingOperationalNotices: residentPendingNoticeCount(),
+      operationalNoticeBytes: [...residentNotices.entries().map(([, value]) => value)].reduce(
         (total, cooldown) => total + cooldown.reservation.bytes,
         0,
       ),
     };
   }
 
-  #pendingNoticeCount(): number {
+  function residentPendingNoticeCount(): number {
     let count = 0;
-    for (const cooldown of this.#notices.entries().map(([, value]) => value)) {
+    for (const cooldown of residentNotices.entries().map(([, value]) => value)) {
       if (cooldown.pending !== undefined) count += 1;
     }
     return count;
   }
 
-  #noticesForToken(token: string): Array<PendingNotice> {
+  function residentNoticesForToken(token: string): Array<PendingNotice> {
     const notices: Array<PendingNotice> = [];
-    for (const cooldown of this.#notices.entries().map(([, value]) => value)) {
+    for (const cooldown of residentNotices.entries().map(([, value]) => value)) {
       if (cooldown.pending?.delivery?.token === token) notices.push(cooldown.pending);
     }
     return notices;
   }
 
-  #removePendingNotice(id: string, token?: string): boolean { return this.#notices.remove(id, token); }
-  #releaseNoticeCooldown(key: string): void { this.#notices.drop(key); }
-  #pruneNoticeCooldowns(now: number, exceptKey?: string): void { this.#notices.prune(now, exceptKey); }
-  #recordOperationalFailure(observation: DirectObservation, kind: OperationalNoticeKind, now = this.#now()): void {
-    if (this.#lifecycle !== "active" || !addressableAdvicee(observation.advicee)) return;
-    this.#notices.record(adviceePartition(observation.root, observation.advicee), kind, now);
-    this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
+  function residentRemovePendingNotice(id: string, token?: string): boolean { return residentNotices.remove(id, token); }
+
+  function residentReleaseNoticeCooldown(key: string): void { residentNotices.drop(key); }
+
+  function residentPruneNoticeCooldowns(now: number, exceptKey?: string): void { residentNotices.prune(now, exceptKey); }
+
+  function residentRecordOperationalFailure(observation: DirectObservation, kind: OperationalNoticeKind, now = residentNow()): void {
+    if (residentLifecycle !== "active" || !addressableAdvicee(observation.advicee)) return;
+    residentNotices.record(adviceePartition(observation.root, observation.advicee), kind, now);
+    residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
   }
 
-  #reserve(partition: string, bytes: number, purpose: CapacityPurpose): CapacityReservation | undefined {
-    const reservation = this.#ledger.reserve(partition, bytes, purpose);
+  function residentReserve(partition: string, bytes: number, purpose: CapacityPurpose): CapacityReservation | undefined {
+    const reservation = residentLedger.reserve(partition, bytes, purpose);
     if (reservation !== undefined) {
-      this.#peakLedgerBytes = Math.max(this.#peakLedgerBytes, this.#ledger.snapshot().bytes);
+      residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
     }
     return reservation;
   }
 
-  #findingSelectionFacts(
+  function residentFindingSelectionFacts(
     advice: Advice, partition: string, credentialGeneration: number | null,
     now: number, composed: boolean,
   ): FindingSelectionFacts {
-    const partitionId = this.#ledger.knownPartitionId(partition);
+    const partitionId = residentLedger.knownPartitionId(partition);
     if (partitionId === undefined) throw new Error("finding selection lost its resident partition identity");
     return {
       partition: partitionId,
-      round: composed ? this.#composedDelivery.generation(partition) : 0,
+      round: composed ? residentComposedDelivery.generation(partition) : 0,
       unit: advice.revision.generation,
       snapshot: advice.revision.generation,
-      currentSnapshot: this.#currentRevisionGeneration(advice.revision.subject),
+      currentSnapshot: residentCurrentRevisionGeneration(advice.revision.subject),
       credential: advice.credentialGeneration ?? 0,
       currentCredential: credentialGeneration ?? 0,
       ageMs: Math.floor(Math.max(0, now - advice.pendingAt)),
       collectionReady: advice.collectionEligible &&
         (composed && advice.round !== undefined
-          ? advice.round.generation === this.#composedDelivery.generation(partition) : true),
+          ? advice.round.generation === residentComposedDelivery.generation(partition) : true),
     };
   }
 
-  #revisionCount(): number { return this.#ledger.revision.count(); }
+  function residentRevisionCount(): number { return residentLedger.revision.count(); }
 
-  #currentRevisionGeneration(subject: string): number { return this.#ledger.revision.generation(subject); }
+  function residentCurrentRevisionGeneration(subject: string): number { return residentLedger.revision.generation(subject); }
 
-  #registerRevision(partition: string, prepared: PreparedUnit, addMember: boolean): WorkRevision {
-    const { revision, replaced } = this.#ledger.revision.register(partition, prepared, addMember, randomUUID());
-    if (replaced) this.#retireSuperseded(revision.subject, revision.generation, addMember);
+  function residentRegisterRevision(partition: string, prepared: PreparedUnit, addMember: boolean): WorkRevision {
+    const { revision, replaced } = residentLedger.revision.register(partition, prepared, addMember, randomUUID());
+    if (replaced) residentRetireSuperseded(revision.subject, revision.generation, addMember);
     return revision;
   }
 
-  #registerCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
-    return this.#registerRevision(partition, prepared, true);
+  function residentRegisterCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
+    return residentRegisterRevision(partition, prepared, true);
   }
 
-  #retireSuperseded(subject: string, generation: number, includeTickets: boolean): void {
-    const superseded = (revision: WorkRevision): boolean => this.#ledger.revision.superseded(subject, revision);
-    if (this.#currentRevisionGeneration(subject) !== generation) throw new Error("canonical revision changed");
+  function residentRetireSuperseded(subject: string, generation: number, includeTickets: boolean): void {
+    const superseded = (revision: WorkRevision): boolean => residentLedger.revision.superseded(subject, revision);
+    if (residentCurrentRevisionGeneration(subject) !== generation) throw new Error("canonical revision changed");
     if (includeTickets) {
-      for (const unit of this.#ledger.ticketUnits.values()) {
+      for (const unit of residentLedger.ticketUnits.values()) {
         const revision = unit.current.revision;
         if (revision !== undefined && superseded(revision)) unitUnavailable(unit, "stale");
       }
-      for (const review of this.#joined.retireSuperseded(subject)) {
+      for (const review of residentJoined.retireSuperseded(subject)) {
         recordActivity({ statePath: review.activityPath, root: review.observation.root,
-          advicee: review.observation.advicee, lifetime: this.lifetime,
+          advicee: review.observation.advicee, lifetime: runtime.lifetime,
           stage: "unavailable", unitIdentity: review.evaluationKey });
       }
     }
-    for (const advice of [...this.#advice]) {
-      if (superseded(advice.revision)) this.#removeAdvice(advice.id);
+    for (const advice of [...residentAdvice()]) {
+      if (superseded(advice.revision)) residentRemoveAdvice(advice.id);
     }
   }
 
-  #restoreCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
-    return this.#registerRevision(partition, prepared, false);
+  function residentRestoreCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
+    return residentRegisterRevision(partition, prepared, false);
   }
 
-  #isCurrentWork(revision: WorkRevision, prepared: PreparedUnit): boolean {
-    return this.#ledger.revision.current(revision, prepared);
+  function residentIsCurrentWork(revision: WorkRevision, prepared: PreparedUnit): boolean {
+    return residentLedger.revision.current(revision, prepared);
   }
 
-  #releaseCurrentWork(revision: WorkRevision): void { this.#ledger.revision.release(revision); }
+  function residentReleaseCurrentWork(revision: WorkRevision): void { residentLedger.revision.release(revision); }
 
-  #releaseUnit(job: Pick<UnitJob, "reservation" | "revision" | "released">): void {
+  function residentReleaseUnit(job: Pick<UnitJob, "reservation" | "revision" | "released">): void {
     if (job.released) return;
     job.released = true;
-    this.#ledger.release(job.reservation);
-    this.#releaseCurrentWork(job.revision);
+    residentLedger.release(job.reservation);
+    residentReleaseCurrentWork(job.revision);
   }
 
-  #removeAdvice(id: string, token?: string): boolean {
-    const advice = this.#advice.find((item) => item.id === id);
-    return advice !== undefined && this.#ledger.advice.remove(advice,
-      this.#adviceExpired(advice, this.#now()) ? "expired" : "stale", token);
+  function residentRemoveAdvice(id: string, token?: string): boolean {
+    const advice = residentAdvice().find((item) => item.id === id);
+    return advice !== undefined && residentLedger.advice.remove(advice,
+      residentAdviceExpired(advice, residentNow()) ? "expired" : "stale", token);
   }
 
-  #expirePending(now: number): void {
-    this.#composedDelivery.expire(now);
-    for (const advice of [...this.#advice]) {
-      if (this.#adviceExpired(advice, now)) this.#removeAdvice(advice.id);
+  function residentExpirePending(now: number): void {
+    residentComposedDelivery.expire(now);
+    for (const advice of [...residentAdvice()]) {
+      if (residentAdviceExpired(advice, now)) residentRemoveAdvice(advice.id);
     }
   }
 
-  sweepQuietRounds(now = this.#now()): number {
-    if (this.#lifecycle !== "active") return 0;
-    this.#expirePending(now);
-    this.#pruneNoticeCooldowns(now);
+  function sweepQuietRounds(now = residentNow()): number {
+    if (residentLifecycle !== "active") return 0;
+    residentExpirePending(now);
+    residentPruneNoticeCooldowns(now);
     let closedCount = 0;
-    for (const [group, round] of this.#ledger.rounds.entries()) {
-      const work = Effect.runSync(this.#dispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed));
-      const counts = this.#composedDelivery.closureCounts(group);
-      const closed = this.#composedDelivery.tickQuietRound(group, now, {
+    for (const [group, round] of residentLedger.rounds.entries()) {
+      const work = Effect.runSync(residentDispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed));
+      const counts = residentComposedDelivery.closureCounts(group);
+      const closed = residentComposedDelivery.tickQuietRound(group, now, {
         nativeWorkIdle: work.queued === 0 && work.running === 0,
-        adviceEmpty: !this.#advice.some((advice) => advice.round === round) &&
-          ![...this.#notices.entries().map(([, value]) => value)].some((notice) => notice.partition === group),
+        adviceEmpty: !residentAdvice().some((advice) => advice.round === round) &&
+          ![...residentNotices.entries().map(([, value]) => value)].some((notice) => notice.partition === group),
       });
       if (closed !== undefined) {
-        this.#closeRound(group, closed, "quiescent", counts);
+        residentCloseRound(group, closed, "quiescent", counts);
         closedCount += 1;
       }
     }
     return closedCount;
   }
 
-  #roundActive(round: RoundWork | undefined): boolean {
+  function residentRoundActive(round: RoundWork | undefined): boolean {
     return round === undefined || (!round.controller.signal.aborted &&
-      this.#composedDelivery.isActive(round.group, round.generation));
+      residentComposedDelivery.isActive(round.group, round.generation));
   }
 
-  #allowFinish(group: string, token: string, reason: RoundCloseReason): void {
-    const counts = this.#composedDelivery.closureCounts(group);
-    const closed = this.#composedDelivery.finishStop(group, token, true,
-      this.#now());
-    if (closed !== undefined) this.#closeRound(group, closed, reason, counts);
+  function residentAllowFinish(group: string, token: string, reason: RoundCloseReason): void {
+    const counts = residentComposedDelivery.closureCounts(group);
+    const closed = residentComposedDelivery.finishStop(group, token, true,
+      residentNow());
+    if (closed !== undefined) residentCloseRound(group, closed, reason, counts);
   }
 
-  #jobActive(job: Job): boolean {
-    return this.#lifecycle === "active" && !this.#lifetimeController.signal.aborted &&
-      !job.work?.controller.signal.aborted && this.#roundActive(job.round);
+  function residentJobActive(job: Job): boolean {
+    return residentLifecycle === "active" && !residentLifetimeController.signal.aborted &&
+      !job.work?.controller.signal.aborted && residentRoundActive(job.round);
   }
 
-  /** Cut off the pre-decision work cohort without retiring completed advice. */
-  #discardUnfinishedWork(round: RoundWork, cancellation: {
+  function residentDiscardUnfinishedWork(round: RoundWork, cancellation: {
     readonly cancelledSource: ReadonlyArray<number>; readonly cancelledJev: ReadonlyArray<number> }): boolean {
     const work = round.work;
     const sourceIds = new Set(cancellation.cancelledSource);
@@ -1509,83 +1530,83 @@ export class ResidentServer {
     const named = (job: Job): boolean => job.kind === "ingress"
       ? sourceIds.has(job.canonicalObservationId)
       : unitIds.has(job.canonicalOperationId);
-    const namedCounts = Effect.runSync(this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed && named(value)));
-    const hasUnnamed = Effect.runSync(this.#dispatcher.hasWorkWhere(({ value }) =>
+    const namedCounts = Effect.runSync(residentDispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed && named(value)));
+    const hasUnnamed = Effect.runSync(residentDispatcher.hasWorkWhere(({ value }) =>
       value.work === work && !value.completed && !named(value)));
-    const replacement = this.#ledger.rounds.replaceWork(round,
+    const replacement = residentLedger.rounds.replaceWork(round,
       { id: randomUUID(), controller: new AbortController() }, {
         named: namedCounts,
-        all: Effect.runSync(this.#dispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed)),
+        all: Effect.runSync(residentDispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed)),
         cancelled: sourceIds.size + unitIds.size, hasUnnamed,
       });
     if (replacement === undefined) throw new Error("native work cutoff lost its round capability");
     const { matched, previousWork } = replacement;
     previousWork.controller.abort();
-    const discarded = Effect.runSync(this.#dispatcher.discardWhere(({ value }) => value.work === work && (named(value) || !matched)));
-    for (const job of discarded) this.#discardJob(job);
+    const discarded = Effect.runSync(residentDispatcher.discardWhere(({ value }) => value.work === work && (named(value) || !matched)));
+    for (const job of discarded) residentDiscardJob(job);
     return matched;
   }
 
-  #discardJob(job: Job): void {
+  function residentDiscardJob(job: Job): void {
     if (job.completed) return;
     if (job.kind === "ingress") {
-      this.#ledger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound);
+      residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound);
     }
     if (job.kind === "unit") {
       if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
-      this.#settleJoined(job.evaluationKey, "unavailable", "lost");
-      this.#releaseReuseClaim(job.evaluationKey);
+      residentSettleJoined(job.evaluationKey, "unavailable", "lost");
+      residentReleaseReuseClaim(job.evaluationKey);
       // An issued Jev permit remains reserved until its native Effect settles.
-      if (job.requestId === undefined) this.#releaseUnit(job);
-    } else this.#ledger.release(job.reservation);
+      if (job.requestId === undefined) residentReleaseUnit(job);
+    } else residentLedger.release(job.reservation);
     recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
-      advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete" });
+      advicee: job.observation.advicee, lifetime: runtime.lifetime, stage: "incomplete" });
   }
 
-  #closeRound(group: string, generation: number, reason: RoundCloseReason,
+  function residentCloseRound(group: string, generation: number, reason: RoundCloseReason,
     counts: ReturnType<ComposedDelivery["closureCounts"]>): void {
     // finishStop can release an unwritten provisional slot after callers took
     // the pre-cleanup snapshot. Report the final Bend reservation count.
-    const reservedContinuations = this.#composedDelivery.closureCounts(group).reservedContinuations;
-    const round = this.#ledger.rounds.get(group);
-    const activity = round === undefined ? undefined : this.#ledger.rounds.activity(round);
+    const reservedContinuations = residentComposedDelivery.closureCounts(group).reservedContinuations;
+    const round = residentLedger.rounds.get(group);
+    const activity = round === undefined ? undefined : residentLedger.rounds.activity(round);
     const work = round === undefined ? { queued: 0, running: 0 }
-      : Effect.runSync(this.#dispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed && !value.work?.controller.signal.aborted));
+      : Effect.runSync(residentDispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed && !value.work?.controller.signal.aborted));
     if (activity !== undefined) recordRoundClosure({ statePath: activity.activityPath,
-      root: activity.root, advicee: activity.advicee, lifetime: this.lifetime,
+      root: activity.root, advicee: activity.advicee, lifetime: runtime.lifetime,
       roundIdentity: `${group}:${round?.canonicalRound ?? generation}`, reason, reservedContinuations,
       discarded: { queued: work.queued + (round?.discarded.queued ?? 0),
-        running: work.running + (round?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : this.#advice.filter((advice) => advice.round === round).length,
+        running: work.running + (round?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : residentAdvice().filter((advice) => advice.round === round).length,
         submitted: counts.submitted, uncertain: counts.uncertain, editPermits: counts.editPermits } });
     if (round === undefined || round.generation !== generation) return;
     // The admission/output fence is already published. Abort Effect fibers and
     // their provider connections before releasing all retained round resources.
     round.controller.abort();
     round.work.controller.abort();
-    const discarded = Effect.runSync(this.#dispatcher.discardWhere(({ value }) => value.round === round));
-    for (const job of discarded) this.#discardJob(job);
-    for (const advice of [...this.#advice]) if (advice.round === round) this.#removeAdvice(advice.id);
-    for (const [key, notice] of this.#notices.entries()) {
-      if (notice.partition === round.group) this.#releaseNoticeCooldown(key);
+    const discarded = Effect.runSync(residentDispatcher.discardWhere(({ value }) => value.round === round));
+    for (const job of discarded) residentDiscardJob(job);
+    for (const advice of [...residentAdvice()]) if (advice.round === round) residentRemoveAdvice(advice.id);
+    for (const [key, notice] of residentNotices.entries()) {
+      if (notice.partition === round.group) residentReleaseNoticeCooldown(key);
     }
-    this.#reuse.discardPartition(round.group);
-    this.#ledger.tickets.discardPartition(round.group);
-    this.#ledger.rounds.retire(round);
+    residentReuse.discardPartition(round.group);
+    residentLedger.tickets.discardPartition(round.group);
+    residentLedger.rounds.retire(round);
   }
 
-  #run = Effect.fn("ResidentRuntime.run")((job: Job, sequence: number) =>
-    job.kind === "ingress" ? this.#prepare(job, sequence)
-      : this.#evaluateUnit(job, sequence));
+  const residentRun = Effect.fn("ResidentRuntime.run")((job: Job, sequence: number) =>
+    job.kind === "ingress" ? residentPrepare(job, sequence)
+      : residentEvaluateUnit(job, sequence));
 
-  #observeDispatchAuthority(
+  function residentObserveDispatchAuthority(
     job: UnitJob,
     details: DispatchAuthorityObservationDetails,
   ): void {
-    const observer = this.#dispatchAuthorityObserver;
+    const observer = residentDispatchAuthorityObserver;
     if (observer === undefined) return;
     const observation: DispatchAuthorityObservation = {
       kind: "dispatchAuthority",
-      sequence: this.#nextDispatchAuthoritySequence++,
+      sequence: residentNextDispatchAuthoritySequence++,
       evaluationId: createHash("sha256").update(job.evaluationKey, "utf8").digest("hex"),
       path: job.prepared.input.path,
       ...details,
@@ -1600,30 +1621,30 @@ export class ResidentServer {
     }
   }
 
-  #observeJevRequest(observation: JevRequestObservation): void {
-    try { this.#jevRequestObserver?.(observation); } catch {
+  function residentObserveJevRequest(observation: JevRequestObservation): void {
+    try { residentJevRequestObserver?.(observation); } catch {
       // Fixture observation must not change request execution.
     }
   }
 
-  #prepare = Effect.fn("ResidentRuntime.prepare")((job: IngressJob, sequence: number) => {
-    const server = this;
+  const residentPrepare = Effect.fn("ResidentRuntime.prepare")((job: IngressJob, sequence: number) => {
+    const server = runtime;
     const expectedActivityUnits: Array<string> = [];
     const unassignedClaims = new Set<string>();
     const activeWorkspaces = new Set<CapacityReservation>();
     return Effect.gen(function* () {
       if (job.round !== undefined && job.workObservationId !== undefined &&
           !job.round.policyWork().startSource(job.workObservationId)) {
-        server.#ledger.release(job.reservation);
+        residentLedger.release(job.reservation);
         return;
       }
-      if (!server.#ledger.observation(job.partition, job.canonicalObservationId, "startObservation", job.canonicalRound)) {
-        server.#ledger.release(job.reservation);
+      if (!residentLedger.observation(job.partition, job.canonicalObservationId, "startObservation", job.canonicalRound)) {
+        residentLedger.release(job.reservation);
         return;
       }
-      yield* server.#awaitBackendGate();
-      if (server.#lifecycle !== "active") {
-        server.#ledger.release(job.reservation);
+      yield* residentAwaitBackendGate();
+      if (residentLifecycle !== "active") {
+        residentLedger.release(job.reservation);
         return;
       }
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
@@ -1644,9 +1665,9 @@ export class ResidentServer {
         ) return undefined;
         return settings;
       }),
-        job.work?.controller.signal ?? server.#lifetimeController.signal);
-      server.#ledger.release(job.reservation);
-      if (settings === undefined || server.#lifecycle !== "active" || !server.#jobActive(job)) {
+        job.work?.controller.signal ?? residentLifetimeController.signal);
+      residentLedger.release(job.reservation);
+      if (settings === undefined || residentLifecycle !== "active" || !residentJobActive(job)) {
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         return;
       }
@@ -1656,11 +1677,11 @@ export class ResidentServer {
       // a time prevents a 16-path event from materializing 1,024 complete
       // inputs outside the ledger.
       for (const candidate of job.observation.candidates) {
-        if (!server.#jobActive(job)) return;
-        const preparation = server.#ledger.beginObservedPreparation(
+        if (!residentJobActive(job)) return;
+        const preparation = residentLedger.beginObservedPreparation(
           job.partition, job.canonicalObservationId, captureWorkspaceBytes(candidate.path), job.canonicalRound);
         if (preparation === undefined) {
-          server.#rejectedCapacity += 1;
+          residentRejectedCapacity += 1;
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
           continue;
         }
@@ -1672,23 +1693,23 @@ export class ResidentServer {
               controlledWriter: true,
               advicee: pathObservation.advicee,
               settings,
-              ...(server.#captureSource === undefined ? {} : { captureSource: server.#captureSource }),
+              ...(residentCaptureSource === undefined ? {} : { captureSource: residentCaptureSource }),
               beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
                 const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
-                const resized = server.#ledger.resize(workspace, required);
+                const resized = residentLedger.resize(workspace, required);
                 if (resized) {
-                  server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
+                  residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
                 } else {
-                  server.#rejectedCapacity += 1;
+                  residentRejectedCapacity += 1;
                 }
                 return resized;
               }),
             });
           }),
-        job.work?.controller.signal ?? server.#lifetimeController.signal).pipe(Effect.onError(() => Effect.sync(() => { server.#ledger.release(workspace); })));
-        if (!server.#jobActive(job)) { server.#ledger.release(workspace); return; }
+        job.work?.controller.signal ?? residentLifetimeController.signal).pipe(Effect.onError(() => Effect.sync(() => { residentLedger.release(workspace); })));
+        if (!residentJobActive(job)) { residentLedger.release(workspace); return; }
         const ready = prepared.outcomes.flatMap((outcome) => {
-          const offer = server.#ledger.preparedOffer(outcome.status === "ready", true);
+          const offer = residentLedger.preparedOffer(outcome.status === "ready", true);
           return offer === "preparedAdmitted" && outcome.status === "ready" ? [outcome] : [];
         });
         if (ready.length === 0) {
@@ -1700,81 +1721,81 @@ export class ResidentServer {
             stage: prepared.observation.status === "incomplete" ? "incomplete" : "skipped",
           });
         }
-        server.#maxMaterializedPreparedUnits = Math.max(server.#maxMaterializedPreparedUnits, ready.length);
+        residentMaxMaterializedPreparedUnits = Math.max(residentMaxMaterializedPreparedUnits, ready.length);
         let rejectedDeliverable = false;
         const deliverable = ready.filter((outcome) => {
-          const accepted = server.#ledger.preparedOffer(true,
+          const accepted = residentLedger.preparedOffer(true,
             residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024) === "preparedAdmitted";
           if (!accepted) {
-            server.#rejectedCapacity += 1;
+            residentRejectedCapacity += 1;
             rejectedDeliverable = true;
           }
           return accepted;
         });
         const planned = deliverable.map((outcome) => {
           const generationPartition = `${job.partition}\0work:${job.work?.id ?? "standalone"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
-          const evaluationKey = server.#reuse.key(generationPartition, outcome.prepared);
-          const liveAdvice = server.#advice.some((advice) => advice.evaluationKey === evaluationKey);
-          switch (server.#reuse.route(evaluationKey, liveAdvice)) {
+          const evaluationKey = residentReuse.key(generationPartition, outcome.prepared);
+          const liveAdvice = residentAdvice().some((advice) => advice.evaluationKey === evaluationKey);
+          switch (residentReuse.route(evaluationKey, liveAdvice)) {
             case "joinedAdvice":
               return { kind: "joined" as const, join: "advice" as const, outcome, evaluationKey };
             case "joinedClaimed":
               return { kind: "joined" as const, join: "claimed" as const, outcome, evaluationKey };
             case "joinedPending": {
-              const pending = server.#reuse.pending(evaluationKey);
+              const pending = residentReuse.pending(evaluationKey);
               if (pending === undefined) throw new Error("canonical reuse route lacks pending evaluation");
-              pending.revision = server.#restoreCurrentWork(job.partition, outcome.prepared);
+              pending.revision = residentRestoreCurrentWork(job.partition, outcome.prepared);
               return { kind: "joined" as const, join: "pending" as const, outcome, evaluationKey };
             }
             case "cached":
               return { kind: "cached" as const, outcome, evaluationKey,
-                cached: server.#reuse.cached(evaluationKey) };
+                cached: residentReuse.cached(evaluationKey) };
             case "owner":
               unassignedClaims.add(evaluationKey);
               return { kind: "owner" as const, outcome, evaluationKey };
           }
         });
-        if (server.#afterReuseBoundary !== undefined && planned.some((item) => item.kind === "owner")) {
-          yield* residentAdapter("owner claim barrier", () => Promise.resolve(server.#afterReuseBoundary?.("ownerClaimed")));
+        if (residentAfterReuseBoundary !== undefined && planned.some((item) => item.kind === "owner")) {
+          yield* residentAdapter("owner claim barrier", () => Promise.resolve(residentAfterReuseBoundary?.("ownerClaimed")));
         }
-        if (!server.#jobActive(job)) { server.#ledger.release(workspace); return; }
+        if (!residentJobActive(job)) { residentLedger.release(workspace); return; }
         const ticketUnitsByPlan = new Map<(typeof planned)[number], TicketUnit>();
         const retained = planned.filter((item) =>
           item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
-        const reservations = server.#ledger.completePreparation(
+        const reservations = residentLedger.completePreparation(
           job.partition, preparation.operation, workspace,
           retained.map((item) =>
             residentUnitReservationBytes(pathObservation, job.dispatch, item.outcome.prepared)),
           job.canonicalRound,
         );
         activeWorkspaces.delete(workspace);
-        server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
+        residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
         // Workspace has been released and all accepted unit reservations are
         // fixed, so best-effort notice retention cannot displace fresh work.
         if (rejectedDeliverable) {
-          server.#recordOperationalFailure(job.observation, "capacity");
+          residentRecordOperationalFailure(job.observation, "capacity");
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
-          const ticketUnit = job.ticket === undefined ? undefined : server.#ledger.ticketUnits.add(job.ticket);
+          const ticketUnit = job.ticket === undefined ? undefined : residentLedger.ticketUnits.add(job.ticket);
           if (ticketUnit !== undefined) {
             ticketUnitsByPlan.set(item, ticketUnit);
           }
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
-            const revision = server.#registerCurrentWork(job.partition, item.outcome.prepared);
+            const revision = residentRegisterCurrentWork(job.partition, item.outcome.prepared);
             if (ticketUnit !== undefined) unitClear(ticketUnit, revision);
-            server.#releaseCurrentWork(revision);
+            residentReleaseCurrentWork(revision);
             expectedActivityUnits.push(item.evaluationKey);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "clear", unitIdentity: item.evaluationKey });
           } else if (item.kind === "joined") {
-            const existing = server.#advice.find((advice) => advice.evaluationKey === item.evaluationKey);
+            const existing = residentAdvice().find((advice) => advice.evaluationKey === item.evaluationKey);
             if (existing !== undefined) {
-              server.#recordJoinedOutcomes(server.#ledger.advice.publish(existing, ticketUnit), existing.id);
+              residentRecordJoinedOutcomes(residentLedger.advice.publish(existing, ticketUnit), existing.id);
               recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
                 advicee: job.observation.advicee, lifetime: server.lifetime, stage: "findings",
                 findings: existing.findings.length, unitIdentity: item.evaluationKey });
             } else {
-              const pending = server.#reuse.pending(item.evaluationKey);
+              const pending = residentReuse.pending(item.evaluationKey);
               if (pending === undefined && item.join !== "claimed") {
                 if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
                 recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
@@ -1786,23 +1807,23 @@ export class ResidentServer {
                   activityPath: job.dispatch.activityPath,
                   ...(ticketUnit === undefined ? {} : { ticketUnit }),
                   ...(pending === undefined ? {} : { revision: pending.revision }) };
-                server.#joined.append(joined);
+                residentJoined.append(joined);
                 expectedActivityUnits.push(item.evaluationKey);
               }
             }
           }
         }
-        if (server.#afterReuseBoundary !== undefined &&
+        if (residentAfterReuseBoundary !== undefined &&
             planned.some((item) => item.kind === "joined" && item.join === "claimed")) {
-          yield* residentAdapter("joined claim barrier", () => Promise.resolve(server.#afterReuseBoundary?.("claimJoined")));
+          yield* residentAdapter("joined claim barrier", () => Promise.resolve(residentAfterReuseBoundary?.("claimJoined")));
         }
         for (const [index, item] of retained.entries()) {
-          if (!server.#jobActive(job)) {
+          if (!residentJobActive(job)) {
             for (let remaining = index; remaining < retained.length; remaining++) {
               const admitted = reservations[remaining];
-              if (admitted !== undefined) server.#ledger.release(admitted.reservation);
+              if (admitted !== undefined) residentLedger.release(admitted.reservation);
               const pending = retained[remaining];
-              if (pending?.kind === "owner") server.#releaseReuseClaim(pending.evaluationKey);
+              if (pending?.kind === "owner") residentReleaseReuseClaim(pending.evaluationKey);
             }
             return;
           }
@@ -1810,14 +1831,14 @@ export class ResidentServer {
           const admitted = reservations[index];
           if (admitted === undefined) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
-            if (item.kind === "owner") server.#releaseReuseClaim(item.evaluationKey, "capacity");
-            server.#rejectedCapacity += 1;
-            server.#recordOperationalFailure(job.observation, "capacity");
+            if (item.kind === "owner") residentReleaseReuseClaim(item.evaluationKey, "capacity");
+            residentRejectedCapacity += 1;
+            residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
             continue;
           }
           const reservation = admitted.reservation;
-          const revision = server.#registerCurrentWork(job.partition, item.outcome.prepared);
+          const revision = residentRegisterCurrentWork(job.partition, item.outcome.prepared);
           if (ticketUnit !== undefined) unitRevision(ticketUnit, revision);
           const workUnitId = job.round === undefined || job.workObservationId === undefined ? undefined
             : item.kind === "cached"
@@ -1826,9 +1847,9 @@ export class ResidentServer {
               : job.round.policyWork().spawn(job.workObservationId, admitted.operation);
           if (job.round !== undefined && workUnitId === undefined) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
-            if (item.kind === "owner") server.#releaseReuseClaim(item.evaluationKey);
-            server.#ledger.release(reservation);
-            server.#releaseCurrentWork(revision);
+            if (item.kind === "owner") residentReleaseReuseClaim(item.evaluationKey);
+            residentLedger.release(reservation);
+            residentReleaseCurrentWork(revision);
             continue;
           }
           expectedActivityUnits.push(item.evaluationKey);
@@ -1853,8 +1874,8 @@ export class ResidentServer {
             ...(job.ticket === undefined ? {} : { ticket: job.ticket }),
           };
           if (item.kind === "cached") {
-            if (!server.#ledger.startReview(job.partition, admitted.operation, job.canonicalRound) ||
-                !server.#ledger.completeReview(job.partition, admitted.operation, reservation, "finding", job.canonicalRound)) {
+            if (!residentLedger.startReview(job.partition, admitted.operation, job.canonicalRound) ||
+                !residentLedger.completeReview(job.partition, admitted.operation, reservation, "finding", job.canonicalRound)) {
               throw new Error("canonical cached review settlement refused");
             }
             recordActivity({
@@ -1866,26 +1887,26 @@ export class ResidentServer {
               findings: item.cached.evaluation.findings.length,
               unitIdentity: item.evaluationKey,
             });
-            yield* server.#retainAdvice(unit, {
+            yield* residentRetainAdvice(unit, {
               prepared: item.outcome.prepared, findings: item.cached.evaluation.findings,
             }, sequence).pipe(Effect.ensuring(Effect.sync(() => {
               if (!unit.completed && job.round !== undefined && workUnitId !== undefined) {
                 job.round.policyWork().retire(workUnitId);
-                server.#releaseUnit(unit);
+                residentReleaseUnit(unit);
               }
             })));
             continue;
           }
-          if (!server.#joined.attachOwner(item.evaluationKey, unit, revision)) {
+          if (!residentJoined.attachOwner(item.evaluationKey, unit, revision)) {
             throw new Error("canonical evaluation attachment refused");
           }
           unassignedClaims.delete(item.evaluationKey);
-          if (!(yield* server.#dispatcher.enqueue(job.partition, unit))) {
+          if (!(yield* residentDispatcher.enqueue(job.partition, unit))) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
-            server.#releaseReuseClaim(item.evaluationKey, "capacity");
-            server.#releaseUnit(unit);
-            server.#rejectedCapacity += 1;
-            server.#recordOperationalFailure(job.observation, "capacity");
+            residentReleaseReuseClaim(item.evaluationKey, "capacity");
+            residentReleaseUnit(unit);
+            residentRejectedCapacity += 1;
+            residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: item.evaluationKey });
           }
         }
@@ -1904,31 +1925,31 @@ export class ResidentServer {
           !job.round.policyWork().completeSource(job.workObservationId)) {
         throw new Error("Bend denied source completion");
       }
-      if (!server.#ledger.observation(job.partition, job.canonicalObservationId, "completeObservation", job.canonicalRound)) {
+      if (!residentLedger.observation(job.partition, job.canonicalObservationId, "completeObservation", job.canonicalRound)) {
         throw new Error("canonical observation completion refused");
       }
       job.completed = true;
-      yield* residentAdapter("preparation barrier", () => Promise.resolve(server.#afterPrepare?.()));
+      yield* residentAdapter("preparation barrier", () => Promise.resolve(residentAfterPrepare?.()));
       return;
     }).pipe(
       Effect.catch(() => Effect.sync(() => {
         if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident preparation unavailable");
-        server.#ledger.release(job.reservation);
-        if (server.#lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
+        residentLedger.release(job.reservation);
+        if (residentLifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable" });
       })),
       Effect.ensuring(Effect.sync(() => {
-        server.#ledger.release(job.reservation);
-        for (const workspace of activeWorkspaces) server.#ledger.release(workspace);
-        for (const key of unassignedClaims) server.#releaseReuseClaim(key);
-        if (!job.completed) server.#ledger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound);
+        residentLedger.release(job.reservation);
+        for (const workspace of activeWorkspaces) residentLedger.release(workspace);
+        for (const key of unassignedClaims) residentReleaseReuseClaim(key);
+        if (!job.completed) residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound);
       })),
     );
   });
 
-  #evaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")((job: UnitJob, sequence: number) => Effect.suspend(() => {
-    const server = this;
+  const residentEvaluateUnit = Effect.fn("ResidentRuntime.evaluateUnit")((job: UnitJob, sequence: number) => Effect.suspend(() => {
+    const server = runtime;
     let issuedRequest: number | undefined;
     let requestStarted = false;
     let requestSettled = false;
@@ -1939,22 +1960,22 @@ export class ResidentServer {
     const observeRequest = (stage: JevRequestObservation["stage"], request?: number,
       outcome?: JevRequestObservation["outcome"]) => {
       if (requestIdentity === undefined) throw new Error("Jev request observation lacks canonical identity");
-      server.#observeJevRequest({ ...requestIdentity, stage,
+      residentObserveJevRequest({ ...requestIdentity, stage,
         ...(request === undefined ? {} : { request }),
         ...(outcome === undefined ? {} : { outcome }) });
     };
-    const signal = job.work?.controller.signal ?? server.#lifetimeController.signal;
+    const signal = job.work?.controller.signal ?? residentLifetimeController.signal;
     const requestReady = (facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
       readonly credentialReady: boolean; readonly selected: boolean; readonly currentWork: boolean;
       readonly physicalAvailable: boolean }) => {
       readyReported = true;
-      const decision = server.#ledger.readyJevRequest(job.partition,
+      const decision = residentLedger.readyJevRequest(job.partition,
         job.canonicalOperationId, job.reservation, facts, job.canonicalRound);
       if (decision.status !== "stale") requestIdentity = {
         partition: job.partition,
-        canonicalPartition: server.#ledger.partitionId(job.partition),
-        lifetime: server.#ledger.residentLifetime,
-        canonicalLifetime: server.#ledger.canonicalLifetime,
+        canonicalPartition: residentLedger.partitionId(job.partition),
+        lifetime: residentLedger.residentLifetime,
+        canonicalLifetime: residentLedger.canonicalLifetime,
         round: decision.round,
         hapslandRound: job.round?.generation ?? null,
         operation: job.canonicalOperationId,
@@ -1978,44 +1999,43 @@ export class ResidentServer {
     };
     const reportInterruption = (): void => {
       if (issuedRequest === undefined || !requestStarted || interruptionReported) return;
-      interruptionReported = server.#ledger.interruptJevRequest(job.partition,
+      interruptionReported = residentLedger.interruptJevRequest(job.partition,
         job.canonicalOperationId, issuedRequest);
       if (interruptionReported) observeRequest("interrupted", issuedRequest);
     };
     return Effect.gen(function* () {
       if (job.round !== undefined && job.workUnitId !== undefined &&
           !job.round.policyWork().startUnit(job.workUnitId)) {
-        server.#releaseReuseClaim(job.evaluationKey);
-        server.#releaseUnit(job);
+        residentReleaseReuseClaim(job.evaluationKey);
+        residentReleaseUnit(job);
         return;
       }
-      if (!server.#ledger.startReview(job.partition, job.canonicalOperationId, job.canonicalRound)) {
-        server.#releaseReuseClaim(job.evaluationKey);
-        server.#releaseUnit(job);
+      if (!residentLedger.startReview(job.partition, job.canonicalOperationId, job.canonicalRound)) {
+        residentReleaseReuseClaim(job.evaluationKey);
+        residentReleaseUnit(job);
         return;
       }
-      yield* server.#awaitBackendGate();
-      if (!server.#jobActive(job) || !server.#isCurrentWork(job.revision, job.prepared)) {
+      yield* residentAwaitBackendGate();
+      if (!residentJobActive(job) || !residentIsCurrentWork(job.revision, job.prepared)) {
         denyReady();
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "stale");
-        server.#settleJoined(job.evaluationKey, "unavailable", "stale");
+        residentSettleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
-        server.#releaseReuseClaim(job.evaluationKey);
-        server.#releaseUnit(job);
+        residentReleaseReuseClaim(job.evaluationKey);
+        residentReleaseUnit(job);
         return;
       }
-      yield* residentAdapter("evaluation barrier", () => Promise.resolve(server.#beforeEvaluate?.(job.prepared)));
+      yield* residentAdapter("evaluation barrier", () => Promise.resolve(residentBeforeEvaluate?.(job.prepared)));
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
-      const afterAuthorizeBeforeCredential = server.#afterAuthorizeBeforeCredential;
-      const afterCredentialBeforeDispatch = server.#afterCredentialBeforeDispatch;
-      const offlineHttpClient = server.#offlineHttpClient;
-      const controlledRequestEffect = server.#controlledRequestEffect;
-      const ledger = server.#ledger;
-      const isCurrentWork = () => server.#isCurrentWork(job.revision, job.prepared);
-      const isJobActive = () => server.#jobActive(job);
+      const afterAuthorizeBeforeCredential = residentAfterAuthorizeBeforeCredential;
+      const afterCredentialBeforeDispatch = residentAfterCredentialBeforeDispatch;
+      const offlineHttpClient = residentOfflineHttpClient;
+      const controlledRequestEffect = residentControlledRequestEffect;
+      const isCurrentWork = () => residentIsCurrentWork(job.revision, job.prepared);
+      const isJobActive = () => residentJobActive(job);
       const observeDispatchAuthority = (details: DispatchAuthorityObservationDetails): void =>
-        server.#observeDispatchAuthority(job, details);
+        residentObserveDispatchAuthority(job, details);
       const result = yield* withinWork(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
           job.observation.root,
@@ -2148,7 +2168,7 @@ export class ResidentServer {
         const beforeDispatch = credentialAuthority.pipe(
           Effect.andThen(budgetAuthority),
           Effect.andThen(Effect.sync(() => {
-            if (!ledger.startJevRequest(job.partition,
+            if (!residentLedger.startJevRequest(job.partition,
               job.canonicalOperationId, ready.request)) {
               throw new Error("canonical Jev request start refused");
             }
@@ -2169,41 +2189,41 @@ export class ResidentServer {
       if (result?.status === "notAuthorized") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit,
           result.reason === "credential" ? "credential" : "lost");
-        server.#settleJoined(job.evaluationKey, "unavailable",
+        residentSettleJoined(job.evaluationKey, "unavailable",
           result.reason === "credential" ? "credential" : "lost");
-        if (result.reason === "credential") server.#recordOperationalFailure(job.observation, "credential");
+        if (result.reason === "credential") residentRecordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
           advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable", unitIdentity: job.evaluationKey });
-        server.#releaseReuseClaim(job.evaluationKey);
-        server.#releaseUnit(job);
+        residentReleaseReuseClaim(job.evaluationKey);
+        residentReleaseUnit(job);
         return;
       }
-      if (!server.#jobActive(job) && issuedRequest === undefined) {
-        server.#releaseReuseClaim(job.evaluationKey); server.#releaseUnit(job); return;
+      if (!residentJobActive(job) && issuedRequest === undefined) {
+        residentReleaseReuseClaim(job.evaluationKey); residentReleaseUnit(job); return;
       }
       if (result?.status === "evaluated") {
-        if (server.#jobActive(job) && server.#lifecycle === "active" &&
+        if (residentJobActive(job) && residentLifecycle === "active" &&
             job.round !== undefined && job.workUnitId !== undefined &&
             !job.round.policyWork().outcome(job.workUnitId, result.findings.length === 0
               ? { $: "Clear" }
               : { $: "Finding", count: result.findings.length, bytes: logicalBytes(result.findings) })) {
           throw new Error("Bend denied review outcome");
         }
-        const currentWork = server.#lifecycle === "active" && server.#jobActive(job) &&
-          server.#isCurrentWork(job.revision, job.prepared);
+        const currentWork = residentLifecycle === "active" && residentJobActive(job) &&
+          residentIsCurrentWork(job.revision, job.prepared);
         if (issuedRequest === undefined || !requestStarted) {
           throw new Error("Jev result without a matching canonical request command and start");
         }
-        const disposition = server.#ledger.settleJevRequest(job.partition, job.canonicalOperationId,
+        const disposition = residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
           issuedRequest, job.reservation,
           result.findings.length === 0 ? "clear" : "finding", currentWork);
         requestSettled = true;
         observeRequest("settled", issuedRequest,
           result.findings.length === 0 ? "clear" : "finding");
         if (disposition === "ignored" || disposition === "stale") {
-          server.#releaseReuseClaim(job.evaluationKey);
-          server.#releaseUnit(job);
+          residentReleaseReuseClaim(job.evaluationKey);
+          residentReleaseUnit(job);
           return;
         }
         recordDemoTrace(job.dispatch.demoBudgetPath, job.observation.root, job.observation.advicee, {
@@ -2211,8 +2231,8 @@ export class ResidentServer {
           state: result.findings.length === 0 ? "clear" : "findings",
         });
         const evaluation = { prepared: job.prepared, findings: result.findings };
-        server.#reuse.put(job.partition, job.evaluationKey, evaluation);
-        server.#releaseReuseClaim(job.evaluationKey);
+        residentReuse.put(job.partition, job.evaluationKey, evaluation);
+        residentReleaseReuseClaim(job.evaluationKey);
         recordActivity({
           statePath: job.dispatch.activityPath,
           root: job.observation.root,
@@ -2240,15 +2260,15 @@ export class ResidentServer {
               unitClear(job.ticketUnit, job.revision);
             } else unitUnavailable(job.ticketUnit, "stale");
           }
-          server.#settleJoined(job.evaluationKey,
+          residentSettleJoined(job.evaluationKey,
             disposition === "settleClear" ? "clear" : "unavailable",
             "stale");
           job.completed = true;
-          server.#releaseUnit(job);
+          residentReleaseUnit(job);
           yield* recordOutcome();
           return;
         }
-        yield* server.#retainAdvice(job, evaluation, sequence);
+        yield* residentRetainAdvice(job, evaluation, sequence);
         yield* recordOutcome();
         return;
       }
@@ -2257,32 +2277,32 @@ export class ResidentServer {
         : signal?.aborted && requestStarted && interruptionReported ? "interrupted"
         : !requestStarted ? "neverSent"
         : result?.status === "timeout" ? "timeout" : "backendFailure";
-      const failure = server.#ledger.reviewFailure(
+      const failure = residentLedger.reviewFailure(
         observed === "backendFailure" || observed === "timeout" ||
           (issuedRequest === undefined && (result?.status === "backend" || result?.status === "timeout")),
         false, observed === "neverSent" || observed === "interrupted" || result === undefined);
       if (issuedRequest === undefined) {
-        if (!server.#ledger.completeReview(job.partition, job.canonicalOperationId,
+        if (!residentLedger.completeReview(job.partition, job.canonicalOperationId,
           job.reservation, "unavailable", job.canonicalRound)) return;
       } else {
-        server.#ledger.settleJevRequest(job.partition, job.canonicalOperationId,
+        residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
           issuedRequest, job.reservation, observed ?? "neverSent", false);
         requestSettled = true;
         observeRequest("settled", issuedRequest, observed ?? "neverSent");
       }
       if (failure === "failureBackend") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
-        server.#settleJoined(job.evaluationKey, "unavailable", "backend");
-        server.#recordOperationalFailure(job.observation, "backend");
+        residentSettleJoined(job.evaluationKey, "unavailable", "backend");
+        residentRecordOperationalFailure(job.observation, "backend");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureCredential") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "credential");
-        server.#settleJoined(job.evaluationKey, "unavailable", "credential");
-        server.#recordOperationalFailure(job.observation, "credential");
+        residentSettleJoined(job.evaluationKey, "unavailable", "credential");
+        residentRecordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureLost") {
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
-        server.#settleJoined(job.evaluationKey, "unavailable", "lost");
+        residentSettleJoined(job.evaluationKey, "unavailable", "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure !== "failureNone") {
         throw new Error("Bend denied review failure disposition");
@@ -2292,7 +2312,7 @@ export class ResidentServer {
       // native job. Typed adapter failures have a truthful unavailable outcome;
       // invariant defects and scope interruption remain visible in the fiber.
       Effect.onError(() => Effect.sync(() => {
-        if (!readyReported && server.#ledger.canonicalProjection().work.some((entry) =>
+        if (!readyReported && residentLedger.canonicalProjection().work.some((entry) =>
           entry.operation === job.canonicalOperationId && entry.kind === "reviewing")) {
           denyReady();
         }
@@ -2300,15 +2320,15 @@ export class ResidentServer {
           if (signal?.aborted) reportInterruption();
           const observed = signal?.aborted && requestStarted && interruptionReported
             ? "interrupted" : requestStarted ? "backendFailure" : "neverSent";
-          server.#ledger.settleJevRequest(job.partition, job.canonicalOperationId,
+          residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
             issuedRequest, job.reservation, observed, false);
           requestSettled = true;
           observeRequest("settled", issuedRequest, observed);
         }
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
-        server.#settleJoined(job.evaluationKey, "unavailable", "backend");
+        residentSettleJoined(job.evaluationKey, "unavailable", "backend");
         if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident evaluation unavailable");
-        if (server.#lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
+        if (residentLifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable", unitIdentity: job.evaluationKey });
       })),
@@ -2316,56 +2336,56 @@ export class ResidentServer {
       Effect.ensuring(Effect.sync(() => {
         signal.removeEventListener("abort", reportInterruption);
         if (!job.completed) {
-          server.#releaseReuseClaim(job.evaluationKey);
-          server.#releaseUnit(job);
+          residentReleaseReuseClaim(job.evaluationKey);
+          residentReleaseUnit(job);
         }
       })),
     );
   }));
 
-  #releaseReuseClaim(key: string, reason: ResidentUnavailableReason = "lost"): void {
-    for (const review of this.#joined.releaseOwner(key, reason)) {
+  function residentReleaseReuseClaim(key: string, reason: ResidentUnavailableReason = "lost"): void {
+    for (const review of residentJoined.releaseOwner(key, reason)) {
       recordActivity({ statePath: review.activityPath, root: review.observation.root,
-        advicee: review.observation.advicee, lifetime: this.lifetime,
+        advicee: review.observation.advicee, lifetime: runtime.lifetime,
         stage: "unavailable", unitIdentity: review.evaluationKey });
     }
   }
 
-  #settleJoined(key: string, state: "pending" | "clear" | "unavailable", reason?: ResidentUnavailableReason,
+  function residentSettleJoined(key: string, state: "pending" | "clear" | "unavailable", reason?: ResidentUnavailableReason,
     adviceId?: string): void {
-    this.#recordJoinedOutcomes(this.#joined.settle(key, state, reason, adviceId), adviceId);
+    residentRecordJoinedOutcomes(residentJoined.settle(key, state, reason, adviceId), adviceId);
   }
 
-  #recordJoinedOutcomes(outcomes: ReadonlyArray<JoinedReviewOutcome>, adviceId?: string): void {
+  function residentRecordJoinedOutcomes(outcomes: ReadonlyArray<JoinedReviewOutcome>, adviceId?: string): void {
     for (const { review, stage } of outcomes) {
       recordActivity({ statePath: review.activityPath,
         root: review.observation.root, advicee: review.observation.advicee,
-        lifetime: this.lifetime, stage,
+        lifetime: runtime.lifetime, stage,
         ...(stage !== "findings" ? {} : {
-          findings: this.#advice.find((item) => item.id === adviceId)?.findings.length ?? 0,
+          findings: residentAdvice().find((item) => item.id === adviceId)?.findings.length ?? 0,
         }), unitIdentity: review.evaluationKey });
     }
   }
 
-  #retainAdvice = Effect.fn("ResidentRuntime.retainAdvice")((
+  const residentRetainAdvice = Effect.fn("ResidentRuntime.retainAdvice")((
     job: UnitJob, evaluation: EvaluatedUnit, sequence: number,
   ) => {
-    const server = this;
+    const server = runtime;
     return Effect.gen(function* () {
-      if (!server.#jobActive(job)) {
+      if (!residentJobActive(job)) {
         if (job.round !== undefined && job.workUnitId !== undefined) job.round.policyWork().retire(job.workUnitId);
-        server.#releaseUnit(job);
+        residentReleaseUnit(job);
         return;
       }
-      if (server.#advice.some((item) => item.evaluationKey === job.evaluationKey)) {
-        const existing = server.#advice.find((item) => item.evaluationKey === job.evaluationKey);
-        if (existing !== undefined) server.#recordJoinedOutcomes(
-          server.#ledger.advice.publish(existing, job.ticketUnit, job.revision), existing.id);
+      if (residentAdvice().some((item) => item.evaluationKey === job.evaluationKey)) {
+        const existing = residentAdvice().find((item) => item.evaluationKey === job.evaluationKey);
+        if (existing !== undefined) residentRecordJoinedOutcomes(
+          residentLedger.advice.publish(existing, job.ticketUnit, job.revision), existing.id);
         if (job.round !== undefined && job.workUnitId !== undefined) job.round.policyWork().retire(job.workUnitId);
-        server.#releaseUnit(job);
+        residentReleaseUnit(job);
         return;
       }
-      const advice = server.#ledger.advice.insert({
+      const advice = residentLedger.advice.insert({
         id: randomUUID(),
         ...(job.round === undefined ? {} : { round: job.round }),
         ...(job.workUnitId === undefined ? {} : { workUnitId: job.workUnitId }),
@@ -2386,41 +2406,41 @@ export class ResidentServer {
         credentialStatePath: job.dispatch.credential?.statePath ?? null,
         credentialRequired: job.dispatch.controlled === null || job.dispatch.controlled.requireCredential === true,
         credentialEnvironmentOnly: job.dispatch.credential?.environmentOnly ?? false,
-        pendingAt: server.#now(),
+        pendingAt: residentNow(),
       });
       job.completed = true;
-      if (server.#afterAdvicePending !== undefined) {
-        yield* residentAdapter("pending advice barrier", () => Promise.resolve(server.#afterAdvicePending?.(advice.id)));
-        if (!server.#jobActive(job)) return;
+      if (residentAfterAdvicePending !== undefined) {
+        yield* residentAdapter("pending advice barrier", () => Promise.resolve(residentAfterAdvicePending?.(advice.id)));
+        if (!residentJobActive(job)) return;
       }
-      server.#recordJoinedOutcomes(server.#ledger.advice.publish(advice, job.ticketUnit, job.revision), advice.id);
+      residentRecordJoinedOutcomes(residentLedger.advice.publish(advice, job.ticketUnit, job.revision), advice.id);
     });
   });
 
-  #awaitBackendGate = Effect.fn("ResidentRuntime.awaitBackendGate")(() => {
-    const server = this;
+  const residentAwaitBackendGate = Effect.fn("ResidentRuntime.awaitBackendGate")(() => {
+    const server = runtime;
     return Effect.gen(function* () {
       const configured = yield* Config.option(Config.String("REVIEW_RESIDENT_BACKEND_GATE_PATH"));
       if (Option.isNone(configured)) return;
       yield* residentAdapter("observe backend gate", () => access(configured.value)).pipe(
-        Effect.as(true), Effect.catch(() => Effect.succeed(server.#lifetimeController.signal.aborted)),
+        Effect.as(true), Effect.catch(() => Effect.succeed(residentLifetimeController.signal.aborted)),
         Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (ready) => ready }),
       );
     }).pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "configure backend gate" })));
   });
 
-  #revalidate = Effect.fn("ResidentRuntime.revalidate")((advice: Advice, dispatch: ResidentDispatchContext) => Effect.suspend(() => {
-    const server = this;
+  const residentRevalidate = Effect.fn("ResidentRuntime.revalidate")((advice: Advice, dispatch: ResidentDispatchContext) => Effect.suspend(() => {
+    const server = runtime;
     const candidate = advice.observation.candidates[0];
     if (candidate === undefined) return Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] });
-    const capture = server.#ledger.adviceCaptures.start(
+    const capture = residentLedger.adviceCaptures.start(
       advice.reservation, advice.revision, captureWorkspaceBytes(candidate.path),
     );
     if (capture === undefined) return Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] });
-    server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
+    residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
     let capacityUnavailable = false;
     return Effect.gen(function* () {
-      yield* residentAdapter("revalidation barrier", () => Promise.resolve(server.#afterRevalidationWorkspaceReserved?.(advice.id)));
+      yield* residentAdapter("revalidation barrier", () => Promise.resolve(residentAfterRevalidationWorkspaceReserved?.(advice.id)));
       const userConfigPath = dispatch.userConfigPath ?? undefined;
       const current = yield* withinWork(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
@@ -2433,40 +2453,40 @@ export class ResidentServer {
           settings,
           beforeAnalyze: (path, sourceBytes, preflight) => Effect.sync(() => {
             const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
-            const resized = server.#ledger.adviceCaptures.resize(capture, required);
+            const resized = residentLedger.adviceCaptures.resize(capture, required);
             if (resized) {
-              server.#peakLedgerBytes = Math.max(server.#peakLedgerBytes, server.#ledger.snapshot().bytes);
+              residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
             } else capacityUnavailable = true;
             return resized;
           }),
         }, {
           isCurrentWork: (prepared) => Effect.sync(() =>
-            server.#isCurrentWork(advice.revision, prepared)),
+            residentIsCurrentWork(advice.revision, prepared)),
         });
       }),
-        advice.round?.controller.signal ?? server.#lifetimeController.signal);
+        advice.round?.controller.signal ?? residentLifetimeController.signal);
       return capacityUnavailable ? { status: "unavailable" as const, findings: [] } : current;
     }).pipe(
       Effect.catch(() => Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] })),
       Effect.ensuring(Effect.sync(() => {
-        server.#ledger.adviceCaptures.finish(capture);
+        residentLedger.adviceCaptures.finish(capture);
       })),
     );
   }));
 
-  handle(request: ResidentRequest): Promise<ResidentResponse> {
-    return Effect.runPromise(this.#handle(request));
+  function handle(request: ResidentRequest): Promise<ResidentResponse> {
+    return Effect.runPromise(residentHandle(request));
   }
 
-  #handle = Effect.fn("ResidentRuntime.handle")((request: ResidentRequest) => {
-    const server = this;
+  const residentHandle = Effect.fn("ResidentRuntime.handle")((request: ResidentRequest) => {
+    const server = runtime;
     return Effect.gen(function* () {
       if (request.operation === "hello") {
-        return residentResponse(server.#lifecycle === "active"
+        return residentResponse(residentLifecycle === "active"
           ? { status: "ready", lifetime: server.lifetime, pid: process.pid }
           : { status: "obsolete-lifetime" });
       }
-      if (request.lifetime !== server.lifetime || server.#lifecycle !== "active") {
+      if (request.lifetime !== server.lifetime || residentLifecycle !== "active") {
         return residentResponse(request.requestRoute === "ticketed"
           ? request.operation === "collect" ? { requestRoute: "ticketed", status: "unavailable", reason: "lost" }
             : { requestRoute: "ticketed", status: "obsolete-lifetime" }
@@ -2479,40 +2499,40 @@ export class ResidentServer {
       if (request.operation === "prompt-marker") {
         const group = adviceePartition(request.root, request.advicee);
         return residentResponse((request.onlyIfMissing === true
-          ? server.#composedDelivery.ensureFromHostTurn(group, request.marker, server.#now())
-          : server.#composedDelivery.advance(group, request.marker, server.#now(), request.promptDigest))
+          ? residentComposedDelivery.ensureFromHostTurn(group, request.marker, residentNow())
+          : residentComposedDelivery.advance(group, request.marker, residentNow(), request.promptDigest))
           ? { status: "advanced" } : { status: "rejected-capacity" });
       }
       if (request.operation === "begin-stop") {
         const group = adviceePartition(request.root, request.advicee);
-        if (!server.#composedDelivery.beginStop(group, request.token)) return residentResponse({ status: "busy" });
+        if (!residentComposedDelivery.beginStop(group, request.token)) return residentResponse({ status: "busy" });
         const expiry = yield* Effect.forkIn(Effect.sleep("5 seconds").pipe(Effect.andThen(Effect.sync(() => {
-          server.#stopExpiries.delete(request.token);
-          const counts = server.#composedDelivery.closureCounts(group);
-          const closed = server.#composedDelivery.expireStop(group, request.token);
-          if (closed !== undefined) server.#closeRound(group, closed, "abandoned-stop", counts);
-        }))), server.#dispatchScope);
-        server.#stopExpiries.set(request.token, expiry);
+          residentStopExpiries.delete(request.token);
+          const counts = residentComposedDelivery.closureCounts(group);
+          const closed = residentComposedDelivery.expireStop(group, request.token);
+          if (closed !== undefined) residentCloseRound(group, closed, "abandoned-stop", counts);
+        }))), residentDispatchScope);
+        residentStopExpiries.set(request.token, expiry);
         return residentResponse({ status: "advanced" });
       }
       if (request.operation === "finish-stop") {
-        const expiry = server.#stopExpiries.get(request.token);
+        const expiry = residentStopExpiries.get(request.token);
         if (expiry !== undefined) yield* Fiber.interrupt(expiry);
-        server.#stopExpiries.delete(request.token);
+        residentStopExpiries.delete(request.token);
         const group = adviceePartition(request.root, request.advicee);
-        const counts = server.#composedDelivery.closureCounts(group);
-        const closed = server.#composedDelivery.finishStop(group, request.token, request.close === true,
-          server.#now());
-        if (closed !== undefined) server.#closeRound(group, closed, request.reason ?? "no-advice", counts);
+        const counts = residentComposedDelivery.closureCounts(group);
+        const closed = residentComposedDelivery.finishStop(group, request.token, request.close === true,
+          residentNow());
+        if (closed !== undefined) residentCloseRound(group, closed, request.reason ?? "no-advice", counts);
         return residentResponse({ status: "advanced" });
       }
       if (request.operation === "claim-background") {
-        return residentResponse(server.#composedDelivery.claimBackground(
-          adviceePartition(request.root, request.advicee), request.token, server.#now(),
+        return residentResponse(residentComposedDelivery.claimBackground(
+          adviceePartition(request.root, request.advicee), request.token, residentNow(),
         ) ? { status: "background-claimed" } : { status: "busy" });
       }
       if (request.operation === "release-background") {
-        server.#composedDelivery.releaseBackground(
+        residentComposedDelivery.releaseBackground(
           adviceePartition(request.root, request.advicee), request.token,
         );
         return residentResponse({ status: "released" });
@@ -2528,7 +2548,7 @@ export class ResidentServer {
             Effect.catch(() => Effect.succeed(undefined)),
           );
         if (capture === undefined) return residentResponse({ status: "rejected-stale", reason: "InvalidConfiguration" });
-        const decision = server.#composedDelivery.registerEditDecision(group, request.advicee.toolUseId,
+        const decision = residentComposedDelivery.registerEditDecision(group, request.advicee.toolUseId,
           request.startedAt, monotonicNow(), effectiveEditPermitLimits(capture.policy),
           effectiveVirtualRoundQuietMs(capture.policy));
         if (!decision.accepted) return residentResponse({ status: "rejected-stale", reason: decision.reason });
@@ -2542,49 +2562,49 @@ export class ResidentServer {
         if (request.composed !== true || (request.mode === "turn-end" &&
             (request.requestRoute === "ticketed" || request.finish === undefined))) return residentResponse({ status: "unsupported" });
         if (request.requestRoute === "ticketed") {
-          const ticket = server.#ticketFor(request.ticket, request.root, request.advicee,
+          const ticket = residentTicketFor(request.ticket, request.root, request.advicee,
             true);
           if (ticket === undefined) return residentResponse({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
-          const gate = server.#ticketCollectGate(ticket, request.dispatch, server.#now());
+          const gate = residentTicketCollectGate(ticket, request.dispatch, residentNow());
           if (gate !== undefined) return residentResponse(gate);
-          const collected = yield* server.#collect(request.root, request.advicee, request.dispatch,
+          const collected = yield* residentCollect(request.root, request.advicee, request.dispatch,
             request.mode ?? "ordinary", ticket, true);
           return residentResponse(collected.status === "advice" ? { ...collected, requestRoute: "ticketed" }
-            : server.#ticketCollectionStatus(ticket, request.root, request.advicee,
-                true, server.#now()));
+            : residentTicketCollectionStatus(ticket, request.root, request.advicee,
+                true, residentNow()));
         }
         if (request.finish !== undefined) {
           const group = adviceePartition(request.root, request.advicee);
-          if (!server.#composedDelivery.ownsStop(group, request.finish.token)) return residentResponse({ status: "empty" });
+          if (!residentComposedDelivery.ownsStop(group, request.finish.token)) return residentResponse({ status: "empty" });
           // Expired leases represent uncertain external output, not live writers.
-          server.#pruneNoticeCooldowns(server.#now());
-          for (const advice of server.#advice) {
+          residentPruneNoticeCooldowns(residentNow());
+          for (const advice of residentAdvice()) {
             if (adviceePartition(advice.observation.root, advice.observation.advicee) === group &&
-                advice.delivery !== undefined && advice.delivery.leaseUntil <= server.#now()) server.#releaseAdviceLease(advice);
+                advice.delivery !== undefined && advice.delivery.leaseUntil <= residentNow()) residentReleaseAdviceLease(advice);
           }
-          const round = server.#ledger.rounds.get(group);
-          const totalUnfinished = server.#collectionWorkCount(request.root, request.advicee, true);
+          const round = residentLedger.rounds.get(group);
+          const totalUnfinished = residentCollectionWorkCount(request.root, request.advicee, true);
           const ownUnfinished = round?.policyWork().unfinished() ?? 0;
           const extraUnfinished = Math.max(0, totalUnfinished - ownUnfinished);
-          const gate = server.#composedDelivery.finishGate(group, request.finish.token,
+          const gate = residentComposedDelivery.finishGate(group, request.finish.token,
             extraUnfinished, request.finish.deadlineReached);
           if (gate === undefined) return residentResponse({ status: "empty" });
           if (gate.status === "waiting") return residentResponse({ status: "pending" });
-          if (round !== undefined && !server.#discardUnfinishedWork(round, gate)) {
-            server.#allowFinish(group, request.finish.token, "unavailable");
+          if (round !== undefined && !residentDiscardUnfinishedWork(round, gate)) {
+            residentAllowFinish(group, request.finish.token, "unavailable");
             return residentResponse({ status: "empty" });
           }
           if (gate.limited) {
-            server.#allowFinish(group, request.finish.token, "limit");
+            residentAllowFinish(group, request.finish.token, "limit");
             return residentResponse({ status: "empty" });
           }
         }
-        const collected = yield* server.#collect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", undefined, true);
+        const collected = yield* residentCollect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", undefined, true);
         if (request.finish !== undefined) {
           const group = adviceePartition(request.root, request.advicee);
-          const round = server.#ledger.rounds.get(group);
+          const round = residentLedger.rounds.get(group);
           const selectedAdvice = collected.status === "advice"
-            ? server.#advice.filter((advice) => advice.delivery?.token === collected.token) : [];
+            ? residentAdvice().filter((advice) => advice.delivery?.token === collected.token) : [];
           const selected = selectedAdvice.map((advice) => ({ id: advice.id,
             unit: advice.canonicalOperationId, findings: advice.delivery?.findings ?? [] }));
           const selectedCount = selected.reduce((count, item) => count + item.findings.length, 0);
@@ -2592,9 +2612,9 @@ export class ResidentServer {
             (round !== undefined && selectedCount === collected.findingCount &&
               selectedAdvice.every((advice) => advice.round === round &&
                 advice.workUnitId !== undefined && advice.delivery !== undefined &&
-                advice.delivery.findings.length <= server.#pendingCanonicalFindings(advice.canonicalOperationId)));
-          const output = server.#composedDelivery.decideFinishOutput(group, request.finish.token,
-            collected.status === "advice" ? collected.token : "", selected, server.#now(),
+                advice.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
+          const output = residentComposedDelivery.decideFinishOutput(group, request.finish.token,
+            collected.status === "advice" ? collected.token : "", selected, residentNow(),
             collected.status === "advice" && collected.findingCount === 0,
             true, true, bindingValid, request.finish.deadlineReached);
           if (output.kind === "failed") {
@@ -2603,7 +2623,7 @@ export class ResidentServer {
           }
           if (output.kind === "allowed") {
             if (collected.status === "advice") server.releaseDelivery(collected.token);
-            server.#allowFinish(group, request.finish.token, output.reason);
+            residentAllowFinish(group, request.finish.token, output.reason);
             if (collected.status === "advice") return residentResponse({ status: "empty" });
           }
           // Only findings can reach the hook. Operational failures remain in
@@ -2611,11 +2631,11 @@ export class ResidentServer {
           return residentResponse(collected);
         }
         return residentResponse(request.reportWorkState === true && collected.status === "empty"
-          ? server.#collectionWorkState(request.root, request.advicee, true)
+          ? residentCollectionWorkState(request.root, request.advicee, true)
           : collected);
       }
       if ((request.operation === "acknowledge" || request.operation === "finalize") &&
-          !server.#composedDelivery.hasToken(request.token)) return residentResponse({ status: "empty" });
+          !residentComposedDelivery.hasToken(request.token)) return residentResponse({ status: "empty" });
       if (request.operation === "acknowledge") return residentResponse(server.acknowledge(request.token));
       if (request.operation === "finalize") return residentResponse(server.finalize(request.token));
       if (request.operation === "stats") return residentResponse(server.stats());
@@ -2627,28 +2647,28 @@ export class ResidentServer {
     });
   });
 
-  #ticketFor(ticket: ResidentCollectionTicket, root: string, advicee: DirectAdvicee,
+  function residentTicketFor(ticket: ResidentCollectionTicket, root: string, advicee: DirectAdvicee,
     composed = false): TicketRecord | undefined {
-    const retained = this.#ledger.tickets.get(ticket.nonce);
+    const retained = residentLedger.tickets.get(ticket.nonce);
     const basePartition = adviceePartition(root, advicee);
-    return retained?.ticket.lifetime === this.lifetime && ticket.lifetime === this.lifetime &&
+    return retained?.ticket.lifetime === runtime.lifetime && ticket.lifetime === runtime.lifetime &&
       retained.ticket.nonce === ticket.nonce && retained.generation > 0 &&
       retained.partition === basePartition &&
       retained.editAuthority === editAuthority(root, advicee)
       ? retained : undefined;
   }
 
-  #currentClaudeFeedbackMode(root: string, userConfigPath: string | null): ClaudeOutputMode {
+  function residentCurrentClaudeFeedbackMode(root: string, userConfigPath: string | null): ClaudeOutputMode {
     const authority = readCurrentClaudeFeedbackAuthority(root, userConfigPath ?? undefined);
     return authority.valid ? authority.mode : "advisory";
   }
 
-  #ticketCollectGate(ticket: TicketRecord, dispatch: ResidentDispatchContext,
+  function residentTicketCollectGate(ticket: TicketRecord, dispatch: ResidentDispatchContext,
     now: number): ResidentResponse | undefined {
-    const command = this.#ledger.transition({ kind: "ticketCollectGateCheck",
+    const command = residentLedger.transition({ kind: "ticketCollectGateCheck",
       expired: now >= ticket.expiresAt,
       credentialValid: ticket.credentialGeneration === (dispatch.credential?.generation ?? null) &&
-        this.#credentialAuthority(ticket) }).commands[0];
+        residentCredentialAuthority(ticket) }).commands[0];
     if (command?.kind === "ticketCollectProceed") return undefined;
     if (command?.kind === "ticketCollectUnavailable") {
       return { requestRoute: "ticketed", status: "unavailable", reason: command.reason };
@@ -2656,17 +2676,17 @@ export class ResidentServer {
     throw new Error("canonical ticket collect gate refused");
   }
 
-  #ticketCollectionStatus(ticket: TicketRecord, root: string, advicee: DirectAdvicee,
+  function residentTicketCollectionStatus(ticket: TicketRecord, root: string, advicee: DirectAdvicee,
     composed: boolean, now: number): ResidentResponse {
     const partition = composed ? adviceePartition(root, advicee) : ticket.partition;
-    const hasAdvice = this.#advice.some((item) =>
+    const hasAdvice = residentAdvice().some((item) =>
       (composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
-        : item.partition === partition) && !this.#adviceExpired(item, now));
-    return { requestRoute: "ticketed", status: hasAdvice || this.#collectionWorkCount(root, advicee, composed) > 0
+        : item.partition === partition) && !residentAdviceExpired(item, now));
+    return { requestRoute: "ticketed", status: hasAdvice || residentCollectionWorkCount(root, advicee, composed) > 0
       ? "pending" : "empty" };
   }
 
-  #credentialAuthority(ticket: TicketRecord): boolean {
+  function residentCredentialAuthority(ticket: TicketRecord): boolean {
     if (!ticket.credentialRequired) return true;
     const credentialState = ticket.credentialStatePath === null ? undefined : readCredentialState(ticket.credentialStatePath);
     return credentialState !== undefined &&
@@ -2674,14 +2694,14 @@ export class ResidentServer {
       (ticket.credentialEnvironmentOnly || !credentialState.savedUseSuspended);
   }
 
-  #adviceCredentialAuthority(advice: Advice): boolean {
+  function residentAdviceCredentialAuthority(advice: Advice): boolean {
     if (advice.credentialStatePath === null) return !advice.credentialRequired;
     const state = readCredentialState(advice.credentialStatePath);
     return state !== undefined && state.generation === advice.credentialGeneration &&
       (advice.credentialEnvironmentOnly || !state.savedUseSuspended);
   }
 
-  #responseGate = Effect.fn("ResidentIpc.responseGate")((operation: ResidentRequest["operation"], response: ResidentResponse) =>
+  const residentResponseGate = Effect.fn("ResidentIpc.responseGate")((operation: ResidentRequest["operation"], response: ResidentResponse) =>
     Effect.gen(function* () {
       const adviceGate = yield* Config.option(Config.String("REVIEW_RESIDENT_COLLECT_ADVICE_RESPONSE_GATE_PATH"));
       const variable = operation === "collect" && response.status === "advice" && Option.isSome(adviceGate)
@@ -2705,13 +2725,12 @@ export class ResidentServer {
       );
     }).pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "response gate" }))));
 
-  /** Recheck source with bounded, descriptor-anchored capture before handoff. */
-  #handoffSourceCurrent = Effect.fn("ResidentIpc.handoffSourceCurrent")((response: ResidentResponse) => {
-    const server = this;
+  const residentHandoffSourceCurrent = Effect.fn("ResidentIpc.handoffSourceCurrent")((response: ResidentResponse) => {
+    const server = runtime;
     return Effect.gen(function* () {
       const current = new Map<string, boolean>();
       if (response.status !== "advice") return current;
-      for (const advice of server.#advice) {
+      for (const advice of residentAdvice()) {
         if (advice.delivery?.token !== response.token) continue;
         const relativePath = advice.prepared.input.path;
         const captured = yield* captureStable(advice.observation.root, {
@@ -2723,72 +2742,71 @@ export class ResidentServer {
     });
   });
 
-  /** Final policy barrier after bounded source capture and response gates. */
-  #responseForHandoff(request: ResidentRequest, response: ResidentResponse,
+  function residentResponseForHandoff(request: ResidentRequest, response: ResidentResponse,
     sourceCurrent: ReadonlyMap<string, boolean>): ResidentResponse {
     if (response.status !== "advice") {
       if (request.requestRoute === "shared" && request.operation === "collect" && request.finish === undefined && request.reportWorkState === true &&
           (response.status === "empty" || response.status === "pending")) {
-        return this.#collectionWorkState(request.root, request.advicee, request.composed === true);
+        return residentCollectionWorkState(request.root, request.advicee, request.composed === true);
       }
       if (request.requestRoute !== "ticketed" || request.operation !== "collect") return response;
-      const now = this.#now();
-      this.#expirePending(now);
-      this.#pruneNoticeCooldowns(now);
-      const ticket = this.#ticketFor(request.ticket, request.root, request.advicee,
+      const now = residentNow();
+      residentExpirePending(now);
+      residentPruneNoticeCooldowns(now);
+      const ticket = residentTicketFor(request.ticket, request.root, request.advicee,
         request.composed === true);
       if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
-      return this.#ticketCollectGate(ticket, request.dispatch, now) ??
-        this.#ticketCollectionStatus(ticket, request.root, request.advicee,
+      return residentTicketCollectGate(ticket, request.dispatch, now) ??
+        residentTicketCollectionStatus(ticket, request.root, request.advicee,
           request.composed === true, now);
     }
-    const now = this.#now();
-    this.#expirePending(now);
-    this.#pruneNoticeCooldowns(now);
+    const now = residentNow();
+    residentExpirePending(now);
+    residentPruneNoticeCooldowns(now);
     const sharedCollect = request.operation === "collect" && request.requestRoute !== "ticketed";
     let invalidCredential = false;
-    if (sharedCollect) for (const advice of this.#advice) {
+    if (sharedCollect) for (const advice of residentAdvice()) {
       if (advice.delivery?.token !== response.token || invalidCredential) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
-      const observed = this.#ledger.transition({ kind: "deliveryCredentialObserveCheck",
+      const observed = residentLedger.transition({ kind: "deliveryCredentialObserveCheck",
         invalidSeen: invalidCredential, generationValid,
-        authorized: generationValid && this.#adviceCredentialAuthority(advice) });
+        authorized: generationValid && residentAdviceCredentialAuthority(advice) });
       if (observed.rejection !== undefined || observed.commands.length !== 1) throw new Error("canonical credential observation refused");
       invalidCredential = observed.commands[0]?.kind === "deliveryCredentialInvalid";
     }
-    const credentialGate = this.#ledger.transition({ kind: "deliveryFinalCredentialCheck",
+    const credentialGate = residentLedger.transition({ kind: "deliveryFinalCredentialCheck",
       sharedCollect, invalidSeen: invalidCredential });
     if (credentialGate.rejection !== undefined || credentialGate.commands.length !== 1) throw new Error("canonical final credential gate refused");
     if (credentialGate.commands[0]?.kind !== "deliveryBatchProceed") {
-      this.releaseComposedSubmission(response.token);
+      runtime.releaseComposedSubmission(response.token);
       return { status: "empty" };
     }
     const handoff: Array<Advice> = [];
-    for (const advice of [...this.#advice]) {
+    for (const advice of [...residentAdvice()]) {
       if (advice.delivery?.token !== response.token) continue;
-      const route = this.#candidateRoute({ kind: "finalCandidateCheck",
+      const route = residentCandidateRoute({ kind: "finalCandidateCheck",
         ownerCurrent: true, credentialGeneration: true, credentialAuthorized: true,
-        expired: !this.#roundActive(advice.round) || this.#adviceExpired(advice, now),
-        workCurrent: this.#isCurrentWork(advice.revision, advice.prepared) && sourceCurrent.get(advice.id) === true,
+        expired: !residentRoundActive(advice.round) || residentAdviceExpired(advice, now),
+        workCurrent: residentIsCurrentWork(advice.revision, advice.prepared) && sourceCurrent.get(advice.id) === true,
         hasFindings: advice.delivery.findings.length > 0 });
       if (route === "retireCandidate") {
-        this.#removeAdvice(advice.id, response.token);
+        residentRemoveAdvice(advice.id, response.token);
         continue;
       }
       if (route === "releaseCandidate") {
-        this.#releaseAdviceLease(advice);
+        residentReleaseAdviceLease(advice);
         continue;
       }
       if (route !== "retainCandidate") continue;
-      this.#ledger.advice.updateDelivery(advice, response.token, { leaseUntil: now + DELIVERY_LEASE_MS });
+      residentLedger.advice.updateDelivery(advice, response.token, { leaseUntil: now + DELIVERY_LEASE_MS });
       handoff.push(advice);
     }
     const ticket = request.requestRoute === "ticketed" && request.operation === "collect"
-      ? this.#ticketFor(request.ticket, request.root, request.advicee,
+      ? residentTicketFor(request.ticket, request.root, request.advicee,
           request.composed === true)
       : undefined;
     if (request.requestRoute === "ticketed" && request.operation === "collect" && ticket === undefined) {
-      this.releaseDelivery(response.token);
+      runtime.releaseDelivery(response.token);
       return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
     }
     if (request.operation === "collect") {
@@ -2798,33 +2816,33 @@ export class ResidentServer {
       if (composed) for (const advice of handoff) {
         if (advice.delivery !== undefined && (advice.round === undefined ||
             advice.workUnitId === undefined ||
-            advice.delivery.findings.length > this.#pendingCanonicalFindings(advice.canonicalOperationId))) {
-          this.#releaseAdviceLease(advice);
+            advice.delivery.findings.length > residentPendingCanonicalFindings(advice.canonicalOperationId))) {
+          residentReleaseAdviceLease(advice);
         }
       }
       const offers = handoff.flatMap((advice) => (advice.delivery?.findings ?? []).map((finding) => ({
         finding,
-        facts: this.#findingSelectionFacts(advice, partition, generation, now, composed),
+        facts: residentFindingSelectionFacts(advice, partition, generation, now, composed),
       })));
       const claudeSurface = composed && ticket === undefined && request.advicee.host === "claude-code"
         ? request.mode === "turn-end" ? "stop" : "background" : undefined;
       const accepted = new Set(selectFittingCurrentFindingIndices(offers,
         ticket === undefined ? claudeSurface === undefined ? "codex" :
           claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
-        undefined, this.#collectionFindingOffer));
+        undefined, residentCollectionFindingOffer));
       let index = 0;
       for (const advice of handoff) {
         if (advice.delivery === undefined) continue;
-        this.#ledger.advice.updateDelivery(advice, response.token, { findings: advice.delivery.findings.filter(() => accepted.has(index++)) });
-        if (advice.delivery.findings.length === 0) this.#releaseAdviceLease(advice);
+        residentLedger.advice.updateDelivery(advice, response.token, { findings: advice.delivery.findings.filter(() => accepted.has(index++)) });
+        if (advice.delivery.findings.length === 0) residentReleaseAdviceLease(advice);
       }
     }
     const findings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
-    const notices = this.#noticesForToken(response.token);
+    const notices = residentNoticesForToken(response.token);
     if (request.operation === "collect" && request.requestRoute === "shared" && request.composed === true &&
         request.advicee.host === "claude-code") {
       const surface = request.mode === "turn-end" ? "stop" : "background";
-      const fit = this.#ledger.transition({ kind: "collectionFitCheck",
+      const fit = residentLedger.transition({ kind: "collectionFitCheck",
         items: findings.length + notices.length,
         bytes: encodedComposedClaudeOutputBytes(findings,
           notices.map((notice) => notice.value), surface) });
@@ -2832,7 +2850,7 @@ export class ResidentServer {
         throw new Error("canonical final response fit refused");
       }
       if (fit.commands[0]?.kind === "collectionLimited") {
-        this.releaseDelivery(response.token);
+        runtime.releaseDelivery(response.token);
         return { status: "empty" };
       }
       if (fit.commands[0]?.kind !== "collectionFits") {
@@ -2840,24 +2858,24 @@ export class ResidentServer {
       }
     }
     for (const notice of notices) {
-      this.#notices.renew(notice.id, now + DELIVERY_LEASE_MS);
+      residentNotices.renew(notice.id, now + DELIVERY_LEASE_MS);
     }
     if (ticket !== undefined && request.operation === "collect") {
-      const gate = this.#ticketCollectGate(ticket, request.dispatch, now);
+      const gate = residentTicketCollectGate(ticket, request.dispatch, now);
       if (gate !== undefined) {
-        this.releaseDelivery(response.token);
+        runtime.releaseDelivery(response.token);
         return gate;
       }
     }
     const admittedBlock = ticket?.claudeFeedbackMode === "block-current-findings";
     const currentBlock = admittedBlock && ticket !== undefined &&
-      this.#currentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) === "block-current-findings";
+      residentCurrentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) === "block-current-findings";
     if (ticket !== undefined && request.operation === "collect" && request.requestRoute === "ticketed" &&
-        this.#ledger.transition({ kind: "ticketFinalAuthorityCheck", admittedBlock,
+        residentLedger.transition({ kind: "ticketFinalAuthorityCheck", admittedBlock,
       currentBlock }).commands[0]?.kind !== "ticketFinalProceed") {
       // A revoked opt-in cannot turn the old selection into an advisory lease.
-      this.releaseDelivery(response.token);
-      return this.#ticketCollectionStatus(ticket, request.root, request.advicee,
+      runtime.releaseDelivery(response.token);
+      return residentTicketCollectionStatus(ticket, request.root, request.advicee,
         request.composed === true, now);
     }
     const selected: ResidentResponse = findings.length === 0 && notices.length === 0
@@ -2870,24 +2888,23 @@ export class ResidentServer {
     if (request.requestRoute !== "ticketed" || request.operation !== "collect") return selected;
     if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
     return selected.status === "advice" ? { ...selected, requestRoute: "ticketed" }
-      : this.#ticketCollectionStatus(ticket, request.root, request.advicee,
+      : residentTicketCollectionStatus(ticket, request.root, request.advicee,
           request.composed === true, now);
   }
 
-  /** Replace a provisional Stop reservation with the exact final IPC batch. */
-  #reconcileFinishHandoff(request: ResidentRequest, provisional: ResidentResponse,
+  function residentReconcileFinishHandoff(request: ResidentRequest, provisional: ResidentResponse,
     final: ResidentResponse, canWrite: boolean): ResidentResponse {
     if (request.operation !== "collect" || request.requestRoute === "ticketed" || request.finish === undefined ||
         provisional.status !== "advice" || provisional.findingCount === 0) return final;
     const group = adviceePartition(request.root, request.advicee);
-    if (!this.#composedDelivery.revokeProvisionalFinishOutput(group, request.finish.token, provisional.token)) {
-      this.releaseDelivery(provisional.token);
-      this.#allowFinish(group, request.finish.token, "unavailable");
+    if (!residentComposedDelivery.revokeProvisionalFinishOutput(group, request.finish.token, provisional.token)) {
+      runtime.releaseDelivery(provisional.token);
+      residentAllowFinish(group, request.finish.token, "unavailable");
       return { status: "empty" };
     }
-    const round = this.#ledger.rounds.get(group);
+    const round = residentLedger.rounds.get(group);
     const selectedAdvice = final.status === "advice"
-      ? this.#advice.filter((advice) => advice.delivery?.token === final.token) : [];
+      ? residentAdvice().filter((advice) => advice.delivery?.token === final.token) : [];
     const selectedCount = selectedAdvice.reduce((count, advice) =>
       count + (advice.delivery?.findings.length ?? 0), 0);
     const selected = selectedAdvice.map((advice) => ({ id: advice.id, unit: advice.canonicalOperationId,
@@ -2895,26 +2912,26 @@ export class ResidentServer {
     const bindingValid = final.status !== "advice" || final.findingCount === 0 ||
       (round !== undefined && selectedCount === final.findingCount && selectedAdvice.every((advice) =>
         advice.round === round && advice.workUnitId !== undefined && advice.delivery !== undefined &&
-        advice.delivery.findings.length <= this.#pendingCanonicalFindings(advice.canonicalOperationId)));
-    const output = this.#composedDelivery.decideFinishOutput(group, request.finish.token,
-      final.status === "advice" ? final.token : "", selected, this.#now(),
+        advice.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
+    const output = residentComposedDelivery.decideFinishOutput(group, request.finish.token,
+      final.status === "advice" ? final.token : "", selected, residentNow(),
       final.status === "advice" && final.findingCount === 0,
       false, canWrite && final.status === "advice" && final.token === provisional.token,
       bindingValid, request.finish.deadlineReached);
     if (output.kind === "reserved") return final;
-    if (final.status === "advice") this.releaseDelivery(final.token);
-    this.#allowFinish(group, request.finish.token,
+    if (final.status === "advice") runtime.releaseDelivery(final.token);
+    residentAllowFinish(group, request.finish.token,
       output.kind === "allowed" ? output.reason : "unavailable");
     return { status: "empty" };
   }
 
-  #accept(socket: Socket): void {
-    if (this.#connections >= MAX_IPC_CONNECTIONS) {
+  function residentAccept(socket: Socket): void {
+    if (residentConnections >= MAX_IPC_CONNECTIONS) {
       socket.end(`${encodeCurrentResidentResponse({ status: "rejected-capacity" })}\n`);
       return;
     }
-    this.#connections += 1;
-    this.#scheduleIdleCheck();
+    residentConnections += 1;
+    residentScheduleIdleCheck();
     let bytes = 0;
     let encoded = "";
     let handled = false;
@@ -2923,8 +2940,8 @@ export class ResidentServer {
     socket.setTimeout(1_500, () => socket.destroy());
     socket.once("close", () => {
       if (responseFiber !== undefined) Effect.runFork(Fiber.interrupt(responseFiber));
-      this.#connections -= 1;
-      this.#scheduleIdleCheck();
+      residentConnections -= 1;
+      residentScheduleIdleCheck();
       const closedPath = process.env.REVIEW_RESIDENT_COLLECT_DISCONNECT_PATH;
       if (
         closedPath !== undefined && request?.operation === "collect" &&
@@ -2953,29 +2970,29 @@ export class ResidentServer {
         socket.end(`${encodeCurrentResidentResponse({ status: "unsupported" })}\n`);
         return;
       }
-      this.#pruneCollectionTokenIds();
-      const server = this;
+      residentPruneCollectionTokenIds();
+      const server = runtime;
       let responseToken: string | undefined;
       let handedToTransport = false;
       const respond = Effect.gen(function* () {
-        const response = yield* server.#handle(decoded);
+        const response = yield* residentHandle(decoded);
         if (response.status === "advice") responseToken = response.token;
-        yield* server.#responseGate(decoded.operation, response);
-        yield* residentAdapter("response handoff barrier", () => Promise.resolve(server.#beforeResponseHandoff?.()));
-        const sourceCurrent = yield* server.#handoffSourceCurrent(response);
-        const selected = server.#responseForHandoff(decoded, response, sourceCurrent);
-        const handoff = server.#reconcileFinishHandoff(decoded, response, selected, !socket.destroyed);
-        server.#pruneCollectionTokenIds();
+        yield* residentResponseGate(decoded.operation, response);
+        yield* residentAdapter("response handoff barrier", () => Promise.resolve(residentBeforeResponseHandoff?.()));
+        const sourceCurrent = yield* residentHandoffSourceCurrent(response);
+        const selected = residentResponseForHandoff(decoded, response, sourceCurrent);
+        const handoff = residentReconcileFinishHandoff(decoded, response, selected, !socket.destroyed);
+        residentPruneCollectionTokenIds();
         if (socket.destroyed) {
           if (handoff.status === "advice") server.releaseDelivery(handoff.token);
-          if (handoff.status === "cleaned") server.#scheduleRetirementClose();
+          if (handoff.status === "cleaned") residentScheduleRetirementClose();
           return;
         }
         socket.end(`${encodeCurrentResidentResponse(handoff)}\n`, () => {
           if (socket.errored !== null && handoff.status === "advice") server.releaseDelivery(handoff.token);
         });
         handedToTransport = true;
-        if (handoff.status === "cleaned") server.#scheduleRetirementClose();
+        if (handoff.status === "cleaned") residentScheduleRetirementClose();
       }).pipe(
         Effect.catch(() => Effect.sync(() => {
           if (!socket.destroyed) socket.end(`${encodeCurrentResidentResponse({ status: "unsupported" })}\n`);
@@ -2984,59 +3001,57 @@ export class ResidentServer {
           if (!handedToTransport && responseToken !== undefined) server.releaseDelivery(responseToken);
         })),
       );
-      responseFiber = Effect.runSync(Effect.forkIn(respond, server.#dispatchScope, { startImmediately: true }));
+      responseFiber = Effect.runSync(Effect.forkIn(respond, residentDispatchScope, { startImmediately: true }));
     });
   }
 
-  #scheduleRetirementClose(): void {
-    if (this.#retirementScheduled) return;
-    this.#retirementScheduled = true;
+  function residentScheduleRetirementClose(): void {
+    if (residentRetirementScheduled) return;
+    residentRetirementScheduled = true;
     // Retirement runs at the process boundary, outside the scope it closes.
     // Keeping the closing fiber in that scope would make it await itself.
-    Effect.runFork(Effect.sleep("10 millis").pipe(Effect.andThen(this.closeEffect)));
+    Effect.runFork(Effect.sleep("10 millis").pipe(Effect.andThen(runtime.closeEffect)));
   }
 
-  // Connection activity starts a fresh grace period. Retained review state is
-  // checked by cleanup(), so an agent's exit cannot retire another's work.
-  #scheduleIdleCheck(): void {
-    if (this.#lifecycle !== "active") return;
-    const server = this;
+  function residentScheduleIdleCheck(): void {
+    if (residentLifecycle !== "active") return;
+    const server = runtime;
     const pass = Effect.sync(() => {
-      if (server.#lifecycle !== "active") return true;
-      if (server.#connections === 0 && server.cleanup() === "cleaned") {
-        server.#scheduleRetirementClose();
+      if (residentLifecycle !== "active") return true;
+      if (residentConnections === 0 && server.cleanup() === "cleaned") {
+        residentScheduleRetirementClose();
         return true;
       }
       return false;
     });
-    Effect.runSync(FiberHandle.run(server.#idleChecks,
+    Effect.runSync(FiberHandle.run(residentIdleChecks,
       Effect.sleep(RESIDENT_IDLE_CHECK_MS).pipe(Effect.andThen(pass.pipe(
         Effect.repeat({ schedule: Schedule.spaced(RESIDENT_IDLE_CHECK_MS), until: (retiring) => retiring }),
         Effect.asVoid,
       )))));
   }
 
-  #scheduleQuietCheck(): void {
-    if (this.#lifecycle !== "active") return;
-    const server = this;
+  function residentScheduleQuietCheck(): void {
+    if (residentLifecycle !== "active") return;
+    const server = runtime;
     const pass = Effect.sync(() => {
-      if (server.#lifecycle !== "active") return true;
+      if (residentLifecycle !== "active") return true;
       server.sweepQuietRounds();
       return false;
     });
-    Effect.runSync(FiberHandle.run(server.#quietChecks,
+    Effect.runSync(FiberHandle.run(residentQuietChecks,
       Effect.sleep(VIRTUAL_ROUND_QUIET_CHECK_MS).pipe(Effect.andThen(pass.pipe(
         Effect.repeat({ schedule: Schedule.spaced(VIRTUAL_ROUND_QUIET_CHECK_MS), until: (retiring) => retiring }),
         Effect.asVoid,
       )))));
   }
 
-  listen(): Promise<void> {
-    return Effect.runPromise(this.listenEffect());
+  function listen(): Promise<void> {
+    return Effect.runPromise(runtime.listenEffect());
   }
 
-  listenEffect = Effect.fn("ResidentIpc.listen")(() => {
-    const owner = this;
+  const listenEffect = Effect.fn("ResidentIpc.listen")(() => {
+    const owner = runtime;
     // Endpoint publication is a bounded acquisition. Signal interruption must
     // wait for binding to settle so its owning finalizer can remove the socket.
     return Effect.uninterruptible(Effect.gen(function* () {
@@ -3048,69 +3063,78 @@ export class ResidentServer {
       // never treated as ownership evidence.
       yield* residentAdapter("verify removable socket", () => verifyRemovableSocket(owner.paths));
       yield* residentAdapter("remove stale socket", () => rm(owner.paths.socket, { force: true }));
-      const server = createServer((socket) => owner.#accept(socket));
+      const server = createServer((socket) => residentAccept(socket));
       server.maxConnections = MAX_IPC_CONNECTIONS;
       yield* Effect.callback<void, ResidentAdapterError>((resume) => {
         server.once("error", () => resume(Effect.fail(new ResidentAdapterError({ operation: "bind resident socket" }))));
         server.listen(owner.paths.socket, () => resume(Effect.void));
       });
-      owner.#server = server;
+      residentServer = server;
       yield* residentAdapter("secure resident socket", () => chmod(owner.paths.socket, 0o600));
-      owner.#ownsOwnerRecord = true;
+      residentOwnsOwnerRecord = true;
       yield* residentAdapter("publish resident endpoint", () => writeFile(
         owner.paths.owner,
         `${JSON.stringify({ pid: process.pid, lifetime: owner.lifetime })}\n`,
         { encoding: "utf8", mode: 0o600 },
       ));
-      owner.#scheduleIdleCheck();
-      owner.#scheduleQuietCheck();
+      residentScheduleIdleCheck();
+      residentScheduleQuietCheck();
     }));
   });
 
-  close(): Promise<void> {
-    return Effect.runPromise(this.closeEffect);
+  function close(): Promise<void> {
+    return Effect.runPromise(runtime.closeEffect);
   }
 
-  // Every caller joins one lifetime finalization, including a repeated signal,
-  // voluntary retirement and the process scope's own resource finalizer.
-  readonly closeEffect = Effect.runSync(Effect.cached(Effect.suspend(() => this.#dispose())));
-
-  #dispose = Effect.fn("ResidentRuntime.close")(() => {
-    const owner = this;
+  const residentDispose = Effect.fn("ResidentRuntime.close")(() => {
+    const owner = runtime;
     return Effect.uninterruptible(Effect.gen(function* () {
-      owner.#lifecycle = "closed";
-      owner.#lifetimeController.abort();
-      yield* FiberHandle.clear(owner.#idleChecks);
-      yield* FiberHandle.clear(owner.#quietChecks);
-      yield* Fiber.interruptAll(owner.#stopExpiries.values());
-      owner.#stopExpiries.clear();
-      for (const [, round] of owner.#ledger.rounds.entries()) { round.controller.abort(); round.work.controller.abort(); }
-      for (const job of (yield* owner.#dispatcher.close())) {
+      residentLifecycle = "closed";
+      residentLifetimeController.abort();
+      yield* FiberHandle.clear(residentIdleChecks);
+      yield* FiberHandle.clear(residentQuietChecks);
+      yield* Fiber.interruptAll(residentStopExpiries.values());
+      residentStopExpiries.clear();
+      for (const [, round] of residentLedger.rounds.entries()) { round.controller.abort(); round.work.controller.abort(); }
+      for (const job of (yield* residentDispatcher.close())) {
         if (job.kind === "unit") {
-          owner.#releaseReuseClaim(job.evaluationKey);
-          owner.#releaseUnit(job);
+          residentReleaseReuseClaim(job.evaluationKey);
+          residentReleaseUnit(job);
         }
-        else owner.#ledger.release(job.reservation);
+        else residentLedger.release(job.reservation);
       }
-      for (const advice of owner.#advice) owner.#removeAdvice(advice.id);
-      for (const key of [...owner.#notices.entries().map(([key]) => key)]) owner.#releaseNoticeCooldown(key);
+      for (const advice of residentAdvice()) residentRemoveAdvice(advice.id);
+      for (const key of [...residentNotices.entries().map(([key]) => key)]) residentReleaseNoticeCooldown(key);
       // Running work may be interrupted by process exit or finish later. Clear
       // its logical ownership after native effects settle. Issued Jev permits
       // remain reserved through an interruption attempt.
-      owner.#reuse.clear();
-      yield* owner.#dispatcher.whenIdle();
-      yield* Scope.close(owner.#dispatchScope, Exit.void);
-      owner.#ledger.clear();
-      const server = owner.#server;
+      residentReuse.clear();
+      yield* residentDispatcher.whenIdle();
+      yield* Scope.close(residentDispatchScope, Exit.void);
+      residentLedger.clear();
+      const server = residentServer;
       if (server !== undefined) yield* Effect.callback<void>((resume) => { server.close(() => resume(Effect.void)); });
       if (server !== undefined) {
-        owner.#server = undefined;
+        residentServer = undefined;
         yield* residentAdapter("remove owned socket", () => rm(owner.paths.socket, { force: true }));
       }
-      if (owner.#ownsOwnerRecord) {
-        owner.#ownsOwnerRecord = false;
+      if (residentOwnsOwnerRecord) {
+        residentOwnsOwnerRecord = false;
         yield* residentAdapter("remove owned endpoint record", () => rm(owner.paths.owner, { force: true }));
       }
     }));
   });
-}
+  const closeEffect = yield* Effect.cached(Effect.suspend(() => residentDispose()));
+  const residentDispatcher: Dispatcher<string, Job> = yield* makeDispatcher<string, Job>(
+    residentLedger,
+    (job) => ({ operation: job.kind === "ingress" ? job.canonicalObservationId : job.canonicalOperationId,
+      round: job.canonicalRound }),
+    (entry) => residentRun(entry.value, entry.sequence),
+  ).pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
+  const runtime: ResidentRuntime = Object.freeze({ lifetime, paths, listenEffect, closeEffect, stats, cleanup, admit, collect, acknowledge, finalize, releaseDelivery, beginComposedSubmission, releaseComposedSubmission, whenIdle, pendingAdviceMetadata, accountingMetrics, sweepQuietRounds, handle, listen, close });
+  yield* Effect.addFinalizer(() => closeEffect.pipe(Effect.orDie));
+  return runtime;
+});
+
+export const residentRuntimeLayer = (paths: ResidentPaths, now: () => number = monotonicNow, options: ResidentRuntimeOptions = {}) =>
+  Layer.effect(ResidentRuntimeService, makeResidentRuntime(paths, now, options));

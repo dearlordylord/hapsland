@@ -1,0 +1,45 @@
+import { expect, it } from "@effect/vitest";
+import { Effect, Exit, Scope } from "effect";
+import { existsSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { makeResidentRuntime, residentRuntimeLayer, ResidentRuntimeService } from "./server.ts";
+import { residentPaths } from "./paths.ts";
+
+it.effect("separate acquisitions own separate resident lifetimes", () => Effect.scoped(Effect.gen(function* () {
+  const first = yield* makeResidentRuntime();
+  const second = yield* makeResidentRuntime();
+  expect(first.lifetime).not.toBe(second.lifetime);
+  expect(first.accountingMetrics()).toEqual(second.accountingMetrics());
+})));
+
+it.effect("a provided layer shares one runtime within its scope", () => Effect.scoped(
+  Effect.gen(function* () {
+    const first = yield* ResidentRuntimeService;
+    const second = yield* ResidentRuntimeService;
+    expect(first).toBe(second);
+  }).pipe(Effect.provide(residentRuntimeLayer(residentPaths()))),
+));
+
+it.effect("scope closure removes owned endpoints and fences the retired lifetime", () => Effect.gen(function* () {
+  const directory = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "hapsland-runtime-scope-")));
+  yield* Effect.acquireUseRelease(
+    Scope.make(),
+    (scope) => Effect.gen(function* () {
+      const paths = residentPaths(directory);
+      const runtime = yield* makeResidentRuntime(paths).pipe(Effect.provideService(Scope.Scope, scope));
+      yield* runtime.listenEffect();
+      expect(existsSync(paths.socket)).toBe(true);
+      expect(existsSync(paths.owner)).toBe(true);
+      yield* Scope.close(scope, Exit.void);
+      expect(existsSync(paths.socket)).toBe(false);
+      expect(existsSync(paths.owner)).toBe(false);
+      expect(yield* Effect.promise(() => runtime.handle({ requestRoute: "shared", operation: "hello" })))
+        .toMatchObject({ status: "obsolete-lifetime" });
+    }),
+    (scope) => Scope.close(scope, Exit.void).pipe(
+      Effect.ensuring(Effect.promise(() => rm(directory, { recursive: true, force: true }))),
+    ),
+  );
+}));

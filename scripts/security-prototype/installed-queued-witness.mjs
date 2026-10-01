@@ -33,8 +33,10 @@ try {
   const packageRoot = join(installation, "node_modules", "@hapsland", "hapsland");
   const installed = async (path) => import(pathToFileURL(join(packageRoot, "dist", path)).href);
   const Effect = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Effect.js")).href);
+  const Scope = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Scope.js")).href);
+  const Exit = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Exit.js")).href);
   const { adaptCodexDirectEvent } = await installed("direct-event/adapter.js");
-  const { ResidentServer } = await installed("resident/server.js");
+  const { makeResidentRuntime } = await installed("resident/server.js");
   const { residentPaths } = await installed("resident/paths.js");
 
   const runCase = async (kind) => {
@@ -56,13 +58,14 @@ try {
     const entered = deferred();
     const release = deferred();
     let preparedMarker = false;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, kind === "queued-excluded" ? {
+    const fixtureScope = await Effect.runPromise(Scope.make());
+    const server = await Effect.runPromise(makeResidentRuntime(residentPaths(join(root, "runtime")), undefined, kind === "queued-excluded" ? {
       beforeEvaluate: async (prepared) => {
         preparedMarker = prepared.input.declaration.source.includes("InstalledSecurityMarker");
         entered.resolve();
         await release.promise;
       },
-    } : {});
+    } : {}).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
     const admitted = server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath } });
     if (admitted.status !== "accepted") throw new Error(`installed admission ${kind} was ${admitted.status}`);
     if (kind === "queued-excluded") {
@@ -72,6 +75,7 @@ try {
       release.resolve();
     }
     await within(server.whenIdle(), "installed resident idle barrier");
+    await Effect.runPromise(Scope.close(fixtureScope, Exit.void));
     return existsSync(capturePath) ? readFileSync(capturePath, "utf8").trim().split("\n").filter(Boolean).length : 0;
   };
 

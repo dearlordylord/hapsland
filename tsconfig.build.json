@@ -13,6 +13,7 @@
   "exclude": [
     "src/**/*.test.ts",
     "src/conformance/**",
-    "src/direct-event/test-fixtures.ts"
+    "src/direct-event/test-fixtures.ts",
+    "src/resident/runtime-fixture.ts"
   ]
 }

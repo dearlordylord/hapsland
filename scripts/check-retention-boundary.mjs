@@ -20,15 +20,15 @@ for (const event of ["ticketRetentionCheck", "cleanupCheck", "cleanupCommit", "d
     throw new Error(`canonical retention event missing: ${event}`);
   }
 }
-if (!server.includes("this.#ledger.tickets.retain(limit)") ||
-    !server.includes("this.#evictRetainedTickets(this.#maximumTickets)") ||
-    !server.includes("this.#evictRetainedTickets(0)")) {
+if (!server.includes("residentLedger.tickets.retain(limit)") ||
+    !server.includes("residentEvictRetainedTickets(residentMaximumTickets)") ||
+    !server.includes("residentEvictRetainedTickets(0)")) {
   throw new Error("resident ticket eviction bypassed canonical retention");
 }
 
 if (server.includes("revalidationActive") ||
-    !server.includes("server.#ledger.adviceCaptures.start(") ||
-    !server.includes("server.#ledger.adviceCaptures.finish(capture)") ||
+    !server.includes("residentLedger.adviceCaptures.start(") ||
+    !server.includes("residentLedger.adviceCaptures.finish(capture)") ||
     !capacity.includes("resident state cannot clear outstanding advice captures")) {
   throw new Error("advice capture lifetime escaped the shared state owner");
 }

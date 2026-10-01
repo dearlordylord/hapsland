@@ -42,16 +42,16 @@ const run = Effect.fn("ResidentProcess.run")(function* () {
 
   // Only the winner loads the review runtime. Competing hook clients never
   // acquire resident state, a command executor or provider services.
-  const { ResidentServer } = yield* processEffect("load resident runtime", () => import("./server.ts"));
+  const { residentRuntimeLayer, ResidentRuntimeService } = yield* processEffect("load resident runtime", () => import("./server.ts"));
   const clockPath = yield* Config.option(Config.String("REVIEW_RESIDENT_CLOCK_PATH"));
   const now = Option.isNone(clockPath) ? () => performance.now() : () => Number(readFileSync(clockPath.value, "utf8"));
-  const server = yield* Effect.acquireRelease(
-    Effect.sync(() => new ResidentServer({ directory, socket: join(directory, "resident.sock"), lock, owner: join(directory, "owner.json") }, now)),
-    (server) => server.closeEffect.pipe(Effect.orDie),
-  );
-  yield* server.listenEffect().pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident socket" })));
-  yield* processEffect("clear startup diagnostic", () => rm(`${lock}.startup-error`, { force: true }));
-  yield* Effect.never;
+  const runtimeLayer = residentRuntimeLayer({ directory, socket: join(directory, "resident.sock"), lock, owner: join(directory, "owner.json") }, now);
+  yield* Effect.gen(function* () {
+    const server = yield* ResidentRuntimeService;
+    yield* server.listenEffect().pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident socket" })));
+    yield* processEffect("clear startup diagnostic", () => rm(`${lock}.startup-error`, { force: true }));
+    yield* Effect.never;
+  }).pipe(Effect.provide(runtimeLayer));
 });
 
 await Effect.runPromise(Effect.scoped(run().pipe(Effect.raceFirst(stopped))).pipe(

@@ -1,3 +1,4 @@
+import { Exit, Scope } from "effect";
 /** Offline resident wire witness. Run with node --experimental-strip-types. */
 import { createHash } from "node:crypto";
 import nodeHttp from "node:http";
@@ -11,7 +12,7 @@ import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts";
 import { residentRequest } from "../../src/resident/client.ts";
 import { monotonicNow } from "../../src/resident/hook-clock.ts";
 import { residentPaths } from "../../src/resident/paths.ts";
-import { ResidentServer } from "../../src/resident/server.ts";
+import { makeResidentRuntime } from "../../src/resident/server.ts";
 import { makeOfflineSecurityHttpClient, securityWireManifest, securityWireRule } from "./security-wire-observer.ts";
 
 const scenario = process.argv[process.argv.indexOf("--scenario") + 1];
@@ -51,6 +52,7 @@ const http = makeOfflineSecurityHttpClient((record) => {
 });
 let root;
 let server;
+let fixtureScope;
 try {
   root = await makeGitFixture();
   await put(root, path, manifest.positive.source);
@@ -74,7 +76,8 @@ try {
   ));
   if (observation === undefined) throw new Error("fixture observation failed");
   const paths = residentPaths(join(root, "runtime"));
-  server = new ResidentServer(paths, undefined, {
+  fixtureScope = await Effect.runPromise(Scope.make());
+  server = await Effect.runPromise(makeResidentRuntime(paths, undefined, {
     offlineHttpClient: http,
     dispatchAuthorityObserver: (record) => {
       authorityObservations.push(record);
@@ -89,7 +92,7 @@ try {
       prepared();
       await held;
     },
-  });
+  }).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
   await server.listen();
   const dispatch = {
     statePath, userConfigPath: null,
@@ -165,6 +168,6 @@ try {
   process.stderr.write(`resident wire fixture failed: ${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;
 } finally {
-  if (server !== undefined) await server.close();
+  if (fixtureScope !== undefined) await Effect.runPromise(Scope.close(fixtureScope, Exit.void));
   if (root !== undefined) await rm(root, { recursive: true, force: true });
 }

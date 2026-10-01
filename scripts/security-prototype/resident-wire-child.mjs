@@ -1,10 +1,11 @@
+import { Effect, Exit, Scope } from "effect";
 /** Dedicated offline resident process for the security wire witness. */
 import { appendFileSync } from "node:fs";
 import nodeHttp from "node:http";
 import nodeHttps from "node:https";
 import { access, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ResidentServer } from "../../src/resident/server.ts";
+import { makeResidentRuntime } from "../../src/resident/server.ts";
 import { residentPaths } from "../../src/resident/paths.ts";
 import { makeOfflineSecurityHttpClient } from "./security-wire-observer.ts";
 
@@ -23,7 +24,8 @@ nodeHttp.get = denyNetwork;
 nodeHttps.request = denyNetwork;
 nodeHttps.get = denyNetwork;
 const http = makeOfflineSecurityHttpClient((request) => record({ kind: "request", ...request }));
-const server = new ResidentServer(runtime, undefined, {
+const fixtureScope = await Effect.runPromise(Scope.make());
+const server = await Effect.runPromise(makeResidentRuntime(runtime, undefined, {
   offlineHttpClient: http,
   dispatchAuthorityObserver: (observation) => record(observation),
   beforeEvaluate: async (unit) => {
@@ -34,9 +36,9 @@ const server = new ResidentServer(runtime, undefined, {
       catch { await new Promise((resolve) => setTimeout(resolve, 10)); }
     }
   },
-});
+}).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
 await server.listen();
 await writeFile(join(root, "wire-ready"), server.lifetime, { mode: 0o600 });
-const stop = () => { void server.close().then(() => process.exit(0)); };
+const stop = () => { void Effect.runPromise(Scope.close(fixtureScope, Exit.void)).then(() => process.exit(0)); };
 process.once("SIGTERM", stop);
 process.once("SIGINT", stop);

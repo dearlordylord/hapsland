@@ -1,3 +1,4 @@
+import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { existsSync, readFileSync } from "node:fs";
@@ -6,7 +7,7 @@ import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { residentPaths } from "./paths.ts";
-import { ResidentServer } from "./server.ts";
+
 import type { ResidentDispatchContext } from "./protocol.ts";
 
 // Regresses dispatch authorization after a completed policy update. The
@@ -47,7 +48,7 @@ const calls = (path: string) => existsSync(path)
 describe("queued exclusion authority", () => {
   it("has a provider-attempt positive control", async () => {
     const fixture = await setup(false);
-    const server = new ResidentServer(residentPaths(join(fixture.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")));
     expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(calls(fixture.capturePath)).toBe(1);
@@ -55,7 +56,7 @@ describe("queued exclusion authority", () => {
 
   it("does not call the provider for an initially excluded candidate", async () => {
     const fixture = await setup(true);
-    const server = new ResidentServer(residentPaths(join(fixture.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")));
     expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(calls(fixture.capturePath)).toBe(0);
@@ -66,7 +67,7 @@ describe("queued exclusion authority", () => {
     const entered = deferred();
     const release = deferred();
     let preparedSourceSeen = false;
-    const server = new ResidentServer(residentPaths(join(fixture.root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
       beforeEvaluate: async (prepared) => {
         preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
         entered.resolve();
@@ -87,7 +88,7 @@ describe("queued exclusion authority", () => {
     const fixture = await setup(false);
     let preparedSourceSeen = false;
     let updateCompleted = false;
-    const server = new ResidentServer(residentPaths(join(fixture.root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
       beforeEvaluate: async (prepared) => {
         preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
       },

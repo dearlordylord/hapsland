@@ -11,13 +11,13 @@ for (const event of ["reuseRoute", "reuseClaim", "reuseAttach", "reuseRelease", 
   "cachePrepare", "cacheCommit", "cacheDiscardPartition", "cacheClear"]) {
   if (!reuse.includes(`kind: "${event}"`)) throw new Error(`canonical reuse event missing: ${event}`);
 }
-if (!server.includes("#reuse.route(evaluationKey, liveAdvice)")) {
+if (!server.includes("residentReuse.route(evaluationKey, liveAdvice)")) {
   throw new Error("resident evaluation route bypassed canonical reuse state");
 }
 
 for (const owner of ["#joinedReviews", "joined.revision =", "#attachClaimedJoined"]) {
   if (server.includes(owner)) throw new Error(`independent joined review owner returned: ${owner}`);
 }
-if (!server.includes("#joined.attachOwner") || !server.includes("#joined.releaseOwner")) {
+if (!server.includes("residentJoined.attachOwner") || !server.includes("residentJoined.releaseOwner")) {
   throw new Error("joined review handoff must use the combined resident owner");
 }
