@@ -1,0 +1,65 @@
+{
+  "purpose": "Original unchanged workload after scoped preparation coordination service",
+  "authority": "Implementation evidence; no product or support acceptance",
+  "measuredTree": "bd1f251 plus scoped preparation controls",
+  "checks": [
+    {
+      "metric": "admissionP95Ms",
+      "baseline": 4.888366999999562,
+      "measured": 5.433085000000119,
+      "limit": 9.332550499999343,
+      "passes": true
+    },
+    {
+      "metric": "stopP95Ms",
+      "baseline": 34.7334920000003,
+      "measured": 40.92895000000135,
+      "limit": 57.100238000000445,
+      "passes": true
+    },
+    {
+      "metric": "saturationP95Ms",
+      "baseline": 2145.1781680000004,
+      "measured": 2624.226211000001,
+      "limit": 3317.7672520000006,
+      "passes": true
+    },
+    {
+      "metric": "shutdownP95Ms",
+      "baseline": 5.1792030000015075,
+      "measured": 3.0861080000013317,
+      "limit": 17.76880450000226,
+      "passes": true
+    },
+    {
+      "metric": "eventLoopP95Ms",
+      "baseline": 33.325055,
+      "measured": 36.536319,
+      "limit": 54.9875825,
+      "passes": true
+    },
+    {
+      "metric": "peakRetainedBytes",
+      "baseline": 17807985,
+      "measured": 17625630,
+      "limit": 17807985,
+      "passes": true
+    },
+    {
+      "metric": "peakRssBytes",
+      "baseline": 384208896,
+      "measured": 401776640,
+      "limit": 513815552.0,
+      "passes": true
+    },
+    {
+      "metric": "maximumConcurrentDecisionEffects",
+      "baseline": 4,
+      "measured": 5,
+      "limit": 8,
+      "passes": true
+    }
+  ],
+  "allBudgetsMet": true,
+  "limitations": "Controlled local Decision effects and synthetic source only. No live Jev transport, real host, physical wire cancellation, or cross-platform performance evidence. Final migration must rerun the same workload and add the required physical retirement workloads."
+}

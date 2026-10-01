@@ -1,4 +1,5 @@
 import { makeSocketFramePort, type SocketFramePort } from "./socket-frame.ts";
+import { ResidentPreparationControls, preparationControlsLayer } from "./preparation-controls.ts";
 import { captureWorkspaceBytes, analysisWorkspaceBytes } from "./preparation-workspace.ts";
 import { makeResidentRuntimeConfiguration } from "./runtime-configuration.ts";
 import type { Advice } from "./advice-records.ts";
@@ -417,8 +418,8 @@ export type ResidentRuntimeOptions = {
   readonly captureSource?: DirectReviewContext["captureSource"];
   readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
   readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
-  /** Fixture-only callback-order gate for evaluation reuse. */
-  readonly afterReuseBoundary?: (phase: "ownerClaimed" | "claimJoined") => Promise<void> | void;
+  /** Scoped local preparation coordination; never supplied by resident IPC. */
+  readonly preparationControls?: Layer.Layer<ResidentPreparationControls>;
   readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
   readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
   readonly afterCredentialBeforeDispatch?: () => Promise<void>;
@@ -574,7 +575,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentCaptureSource = options.captureSource;
   const residentAfterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
   const residentAfterAdvicePending = options.afterAdvicePending;
-  const residentAfterReuseBoundary = options.afterReuseBoundary;
+  const residentPreparationScope = yield* Scope.make();
+  yield* Effect.addFinalizer(() => Scope.close(residentPreparationScope, Exit.void));
+  const residentPreparationControls = Context.get(
+    yield* Layer.buildWithScope(options.preparationControls ?? preparationControlsLayer, residentPreparationScope), ResidentPreparationControls);
   const residentBeforeFinalRevalidate = options.beforeFinalRevalidate;
   const residentAfterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
   const residentAfterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
@@ -1723,8 +1727,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               return { kind: "owner" as const, outcome, evaluationKey };
           }
         });
-        if (residentAfterReuseBoundary !== undefined && planned.some((item) => item.kind === "owner")) {
-          yield* residentAdapter("owner claim barrier", () => Promise.resolve(residentAfterReuseBoundary?.("ownerClaimed")));
+        if (planned.some((item) => item.kind === "owner")) {
+          yield* residentPreparationControls.afterReuseBoundary("ownerClaimed").pipe(
+            Effect.mapError(() => new ResidentAdapterError({ operation: "owner claim barrier" })));
         }
         if (!residentJobActive(job)) { residentLedger.release(workspace); return; }
         const ticketUnitsByPlan = new Map<(typeof planned)[number], TicketUnit>();
@@ -1780,9 +1785,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }
           }
         }
-        if (residentAfterReuseBoundary !== undefined &&
-            planned.some((item) => item.kind === "joined" && item.join === "claimed")) {
-          yield* residentAdapter("joined claim barrier", () => Promise.resolve(residentAfterReuseBoundary?.("claimJoined")));
+        if (planned.some((item) => item.kind === "joined" && item.join === "claimed")) {
+          yield* residentPreparationControls.afterReuseBoundary("claimJoined").pipe(
+            Effect.mapError(() => new ResidentAdapterError({ operation: "joined claim barrier" })));
         }
         for (const [index, item] of retained.entries()) {
           if (!residentJobActive(job)) {
@@ -3069,6 +3074,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       residentReuse.clear();
       yield* residentDispatcher.whenIdle();
       yield* Scope.close(residentDispatchScope, Exit.void);
+      yield* Scope.close(residentPreparationScope, Exit.void);
       const server = residentServer;
       const endpointClosed = server === undefined ? undefined : yield* Effect.forkChild(
         Effect.callback<void>((resume) => { server.close(() => resume(Effect.void)); }),

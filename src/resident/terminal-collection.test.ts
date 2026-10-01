@@ -1,3 +1,6 @@
+import { Layer, Ref } from "effect";
+import { ResidentPreparationControls, PreparationControlError } from "./preparation-controls.ts";
+import { makePreparationControls } from "../test-support/preparation-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
@@ -80,9 +83,7 @@ describe("Claude terminal collection", () => {
   });
   it("joins a claimed evaluation before its owner attaches the request", async () => {
     const data = await fixture();
-    const ownerClaimed = deferred();
-    const claimJoined = deferred();
-    const releaseOwner = deferred();
+    const controls = await Effect.runPromise(makePreparationControls());
     const primerEntered = deferred();
     const releasePrimer = deferred();
     const blockersEntered = deferred();
@@ -90,7 +91,6 @@ describe("Claude terminal collection", () => {
     let evaluationCount = 0;
     const evaluatedIdentities = new Set<string>();
     const evaluatedContracts = new Set<string>();
-    let holdOwner = false;
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => 1_000, {
       beforeEvaluate: async (prepared) => {
         evaluationCount += 1;
@@ -104,14 +104,7 @@ describe("Claude terminal collection", () => {
           await releaseBlockers.promise;
         }
       },
-      afterReuseBoundary: async (phase) => {
-        if (phase === "ownerClaimed" && holdOwner) {
-          holdOwner = false;
-          ownerClaimed.resolve();
-          await releaseOwner.promise;
-        }
-        if (phase === "claimJoined") claimJoined.resolve();
-      },
+      preparationControls: controls.layer,
     });
     const activityPath = join(data.root, "joined-activity");
     const dispatch = { ...data.dispatch(0), activityPath };
@@ -124,7 +117,7 @@ describe("Claude terminal collection", () => {
     }
     releasePrimer.resolve();
     await blockersEntered.promise;
-    holdOwner = true;
+    await Effect.runPromise(controls.holdNextOwner);
     const first = server.admit(data.observation, dispatch, true, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("owner not admitted");
     const secondObservation = { ...data.observation,
@@ -132,13 +125,13 @@ describe("Claude terminal collection", () => {
     const second = server.admit(secondObservation, dispatch, true, true);
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("repeat not admitted");
     releaseBlockers.resolve();
-    await ownerClaimed.promise;
+    await Effect.runPromise(controls.ownerEntered);
     try {
-      await claimJoined.promise;
+      await Effect.runPromise(controls.claimJoined);
       expect(await collect(server, second.ticket, data, dispatch, secondObservation.advicee))
         .toEqual({ requestRoute: "ticketed", status: "pending" });
     } finally {
-      releaseOwner.resolve();
+      await Effect.runPromise(controls.releaseOwner);
     }
     await server.whenIdle();
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -158,11 +151,13 @@ describe("Claude terminal collection", () => {
 
   it("releases an owner claim if preparation exits before attachment", async () => {
     const data = await fixture();
-    let failOnce = true;
+    const failOnce = await Effect.runPromise(Ref.make(true));
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => 1_000, {
-      afterReuseBoundary: () => {
-        if (failOnce) { failOnce = false; throw new Error("fixture interruption"); }
-      },
+      preparationControls: Layer.succeed(ResidentPreparationControls, ResidentPreparationControls.of({
+        afterReuseBoundary: Effect.fn("PreparationFailureFixture.afterReuseBoundary")(function* (phase) {
+          if (yield* Ref.getAndSet(failOnce, false)) yield* Effect.fail(new PreparationControlError({ phase }));
+        }),
+      })),
     });
     const dispatch = data.dispatch(0);
     const first = server.admit(data.observation, dispatch, true);

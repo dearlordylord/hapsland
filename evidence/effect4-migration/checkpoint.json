@@ -116,7 +116,10 @@
     "Ticketed admission and final handoff lookup compose ticket Effects; competing same-nonce admissions publish one ticket and rejected admissions consume no generations",
     "Native executable and parser binding builds publish complete staged artifacts through rename instead of overwriting an inode that running processes may have mapped; failed builds preserve the previous artifact",
     "Scratch native parser probe reproduces unsafe copy publication as SIGSEGV/SIGBUS; atomic replacement preserves old-reader ownership and completes parsing after 32 replacements of each binding",
-    "Retained sanitized server CPU/memory/event-loop diagnostics and reusable diagnostic setup; raw profiles are disposable and test limits stay unchanged"
+    "Retained sanitized server CPU/memory/event-loop diagnostics and reusable diagnostic setup; raw profiles are disposable and test limits stay unchanged",
+    "Replaced the optional Promise/void reuse-boundary callback with the ResidentPreparationControls Context service and a scoped Layer; no legacy callback remains",
+    "Resident owns a preparation scope built through Layer.buildWithScope and retires it in close after dispatch physically settles, even if the caller scope stays open",
+    "Controlled owner/joined fixture coordination uses Effect Deferred and Ref with layer finalizers; tests cover one-shot release, independent joining, interruption without external release, typed barrier failure cleanup, and resident-owned layer retirement"
   ],
   "verification": [
     {
@@ -1484,10 +1487,52 @@
       "exitCode": 0,
       "tests": 1,
       "limitation": "Setup verification only; preceding seven-file 112-test run is the full local server/state result"
+    },
+    {
+      "stage": "Scoped preparation controls",
+      "command": "Initial server/terminal/control suite before explicit resident child scope refinement",
+      "exitCode": 0,
+      "tests": 105
+    },
+    {
+      "stage": "Scoped preparation controls",
+      "command": "Final control lifecycle/terminal collection/full server suite",
+      "exitCode": 0,
+      "tests": 106,
+      "files": 3
+    },
+    {
+      "stage": "Scoped preparation controls",
+      "command": "Typecheck, build, all boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Scoped preparation controls",
+      "command": "Unchanged original benchmark",
+      "exitCode": 0,
+      "evidence": "benchmark-preparation-controls-comparison.json",
+      "budgetsMet": true,
+      "peakRetainedBytes": 17625630,
+      "maximumConcurrentDecisionEffects": 5
+    },
+    {
+      "stage": "Scoped preparation controls",
+      "command": "Deterministic physical-retirement benchmark",
+      "exitCode": 0,
+      "evidence": [
+        "physical-retirement-preparation-controls.json",
+        "physical-retirement-preparation-controls-comparison.json"
+      ],
+      "measuredIterations": 8,
+      "invariants": 8,
+      "comparableBudgetsMet": true,
+      "allNumericFormulasPass": true,
+      "allComparativeBudgetsVerified": false,
+      "limitation": "Current measured shutdown P95 9.739744ms is below the unchanged numeric formula limit, but baseline physical retirement remains noncomparable"
     }
   ],
   "next": [
-    "Finish deterministic scoped fixture controls and final full-suite validation; preserve historical varying timeouts and confirmed loaded-library overwrite reproduction without widening limits",
+    "Finish remaining scoped fixture ports and deterministic coordination; reuse preparation controls are now scoped and the complete 106-test server/terminal/control suite passes",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
     "Replace remaining synchronous domain commit/read bridges with service operations and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",

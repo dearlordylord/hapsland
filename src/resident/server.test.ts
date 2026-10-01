@@ -1,3 +1,6 @@
+import { Layer } from "effect";
+import { ResidentPreparationControls, PreparationControlError } from "./preparation-controls.ts";
+import { makePreparationControls } from "../test-support/preparation-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import { describe, expect, it, vi } from "vitest";
@@ -782,22 +785,15 @@ describe("resident delivery lease", () => {
     await put(root, "type.ts", "type OrderCount = number\n");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const entered = deferred();
-    const release = deferred();
-    let hold = true;
+    const controls = await Effect.runPromise(makePreparationControls());
+    await Effect.runPromise(controls.holdNextOwner);
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-      afterReuseBoundary: async (stage) => {
-        if (stage === "ownerClaimed" && hold) {
-          hold = false;
-          entered.resolve();
-          await release.promise;
-        }
-      },
+      preparationControls: controls.layer,
     });
     const dispatch = findingDispatch(join(root, "state"));
     try {
       expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
-      await entered.promise;
+      await Effect.runPromise(controls.ownerEntered);
       expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "old-stop" })).toEqual({ status: "advanced" });
       await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
@@ -810,14 +806,14 @@ describe("resident delivery lease", () => {
       expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: successor.advicee, startedAt: monotonicNow() })).toEqual({ status: "advanced" });
       expect(server.admit(successor, dispatch, false, true, true).status).toBe("accepted");
-      release.resolve();
+      await Effect.runPromise(controls.releaseOwner);
       await server.whenIdle();
       expect(server.stats().pendingFindingBatches).toBe(1);
       expect(server.stats().pendingEvaluations).toBe(0);
       expect((await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: successor.advicee, dispatch, mode: "ordinary", composed: true })).status).toBe("advice");
     } finally {
-      release.resolve();
+      await Effect.runPromise(controls.releaseOwner);
       await server.close();
     }
   });
@@ -3163,7 +3159,9 @@ describe("Effect preparation ownership", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-      afterReuseBoundary: async () => { throw new Error("synthetic claim barrier failure"); },
+      preparationControls: Layer.succeed(ResidentPreparationControls, ResidentPreparationControls.of({
+        afterReuseBoundary: Effect.fn("PreparationFailureFixture.afterReuseBoundary")((phase) => Effect.fail(new PreparationControlError({ phase }))),
+      })),
     });
     try {
       expect(server.admit(observation, findingDispatch(join(root, "consent"))).status).toBe("accepted");

@@ -21,3 +21,9 @@ for (const owner of ["#joinedReviews", "joined.revision =", "#attachClaimedJoine
 if (!server.includes("residentJoined.attachOwner") || !server.includes("residentJoined.releaseOwner")) {
   throw new Error("joined review handoff must use the combined resident owner");
 }
+
+if (server.includes("residentAfterReuseBoundary") || /afterReuseBoundary\?:/u.test(server) ||
+    !server.includes("Layer.buildWithScope(options.preparationControls ?? preparationControlsLayer, residentPreparationScope)") ||
+    !server.includes("Scope.close(residentPreparationScope, Exit.void)")) {
+  throw new Error("preparation reuse coordination must be a scoped Effect service, without the legacy Promise callback");
+}
