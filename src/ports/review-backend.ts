@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
-import { Decision, DecisionModel } from "effect/unstable/ai";
+import { Decision, DecisionModel } from "effect/ai";
 import { BackendError } from "../domain/errors.ts";
 import type { Rule } from "../policy/rules.ts";
 

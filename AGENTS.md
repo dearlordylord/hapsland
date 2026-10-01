@@ -57,8 +57,8 @@ change the product name to Jev.
 ## Effect and Jev integration baseline
 
 The version-one implementation uses TypeScript and the latest mutually compatible
-Effect 4 RC cohort. Pin `effect` and companion Effect packages to the same exact RC; do
-not use an open prerelease range. As of 2026-09-19, that cohort is `4.0.0-rc.116`.
+Effect 4 stable cohort. Pin `effect` and companion Effect packages to the same exact
+release; do not use an open range. As of 2026-10-01, that cohort is `4.0.0`.
 
 New product code integrates Jev through Effect's provider-neutral `Decision` /
 `DecisionModel` API and the `@effect/ai-typesafe` provider. Use

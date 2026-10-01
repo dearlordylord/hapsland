@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import * as Effect from "effect/Effect";
-import * as HttpClientRequest from "effect/unstable/http/HttpClientRequest";
+import * as HttpClientRequest from "effect/http/HttpClientRequest";
 import { makeOfflineSecurityHttpClient, securityWireExpectedBody } from "../../scripts/security-prototype/security-wire-observer.ts";
 
 const witness = fileURLToPath(new URL("../../scripts/security-prototype/resident-wire.mjs", import.meta.url));

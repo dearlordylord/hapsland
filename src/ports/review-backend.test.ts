@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
-import * as AiError from "effect/unstable/ai/AiError";
-import * as DecisionModel from "effect/unstable/ai/DecisionModel";
-import * as Decision from "effect/unstable/ai/Decision";
+import * as AiError from "effect/ai/AiError";
+import * as DecisionModel from "effect/ai/DecisionModel";
+import * as Decision from "effect/ai/Decision";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";

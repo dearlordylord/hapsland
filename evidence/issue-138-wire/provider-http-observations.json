@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "status": "observed-offline-pinned-client-only",
-  "providerPackage": "@effect/ai-typesafe@4.0.0-rc.116",
-  "effectPackage": "effect@4.0.0-rc.116",
+  "providerPackage": "@effect/ai-typesafe@4.0.0",
+  "effectPackage": "effect@4.0.0",
   "endpoint": "https://api.typesafe.ai/v1/systemone",
   "method": "POST",
   "bodyFields": [

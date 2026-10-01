@@ -2,7 +2,7 @@
   "purpose": "Effect 4 migration checkpoint; implementation evidence, not product acceptance or support evidence",
   "base": "4324697adff22db315fc8e5490df6181e030b243",
   "branch": "refactor/effect4-migration",
-  "cohort": "4.0.0-rc.116",
+  "cohort": "4.0.0",
   "completed": [
     "Created isolated worktree from master and preserved advisory artifacts",
     "Pure explicit canonical work projection replaces BendWorkTracker in place",
@@ -75,7 +75,10 @@
     "Round binding validates the canonical admission generation and stages identity allocation with immutable native records; failed construction publishes no partial binding or identity",
     "Work cutoff stages the Bend-selected scope and immutable cohort/discard counts together; native AbortController cancellation executes after publication",
     "Round retirement fences exact native capabilities and stages canonical retirement with binding removal; retired handles cannot observe replacement work after numeric identity reuse",
-    "Shutdown retains round activity and cancellation handles until native dispatch work settles and whole-owner clearing succeeds"
+    "Shutdown retains round activity and cancellation handles until native dispatch work settles and whole-owner clearing succeeds",
+    "User-requested stable cohort upgrade: exact effect, ai-typesafe and vitest 4.0.0 pins with regenerated Bun lock and isolated worktree dependencies",
+    "Stable AI/HTTP module exports replace unstable paths; production compiled Noul decisions retain required true/false criteria despite the upstream optional-criteria type",
+    "Offline provider HTTP evidence regenerated through its executable fixture: all 35 observations unchanged apart from stable package labels"
   ],
   "verification": [
     {
@@ -889,10 +892,35 @@
       "exitCode": 0,
       "tests": 231,
       "files": 12
+    },
+    {
+      "stage": "Effect 4 stable upgrade",
+      "command": "npm registry package metadata for effect, ai-typesafe, vitest and platform-browser",
+      "result": "4.0.0 stable releases exist; ai-typesafe and vitest require effect ^4.0.0; vitest requires >=5 <6"
+    },
+    {
+      "stage": "Effect 4 stable upgrade",
+      "command": "tsc and build and 17 boundary scripts",
+      "exitCode": 0
+    },
+    {
+      "stage": "Effect 4 stable upgrade",
+      "command": "Initial nine-file focused suite",
+      "exitCode": 1,
+      "testsPassed": 144,
+      "testsExpected": 145,
+      "failure": "Offline evidence expected RC package labels; all observations otherwise matched",
+      "resolution": "Regenerated evidence using UPDATE_PROVIDER_HTTP_EVIDENCE=1; both provider tests passed"
+    },
+    {
+      "stage": "Effect 4 stable upgrade",
+      "command": "Final focused suite: jev-decision review-backend controlled-decision-model provider-http-wire full-request pipeline round-records client-startup server",
+      "exitCode": 0,
+      "tests": 145,
+      "files": 9
     }
   ],
   "next": [
-    "User requested the Effect 4 stable-release upgrade on resume: verify the published release and latest mutually compatible effect/ai-typesafe/vitest cohort, then pin the compatible versions exactly and validate the upgrade separately; checkpoint remains on 4.0.0-rc.116",
     "Consolidate remaining server advice/notice records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
@@ -904,20 +932,11 @@
     "Remaining advice/notice records, statistics and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
-    "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"
+    "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim",
+    "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied"
   ],
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",
     "action": "Consolidate cases into resident conformance and delete disposable prototype; retain sanitized executable evidence in relevant conformance artifacts"
-  },
-  "pause": {
-    "requestedBy": "user",
-    "reason": "Resume in approximately ten minutes from a reasonable committed checkpoint",
-    "checkpointStage": "Shared native round ownership",
-    "resumeFirst": "Effect 4 stable-release cohort verification and upgrade",
-    "remainingScope": "Full idiomatic Effect migration remains active in scope: advice/notice ownership, production ResidentState service and runtime layer graph, removal of ResidentServer business-state class and internal synchronous bridges, remaining client/configuration/trust and server fixture ports, architecture ownership, full acceptance gates and benchmark failure resolution",
-    "validation": "231 tests across 12 files passed; typecheck, build and 14 boundary scripts passed",
-    "dependenciesAtCheckpoint": "4.0.0-rc.116",
-    "benchmarkAcceptance": "Still unproven; earlier strict peak-retention budget failure and missing actual eight-request saturation remain outstanding"
   }
 }

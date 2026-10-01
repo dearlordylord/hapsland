@@ -10,7 +10,7 @@ import * as Option from "effect/Option";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import type * as HttpClient from "effect/unstable/http/HttpClient";
+import type * as HttpClient from "effect/http/HttpClient";
 import { createHash, randomUUID } from "node:crypto";
 import { appendFileSync, statSync, writeFileSync } from "node:fs";
 import { access, appendFile, chmod, rm, writeFile } from "node:fs/promises";

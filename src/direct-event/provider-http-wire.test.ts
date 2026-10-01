@@ -7,10 +7,10 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
-import * as HttpClient from "effect/unstable/http/HttpClient";
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
-import * as Decision from "effect/unstable/ai/Decision";
-import * as DecisionModel from "effect/unstable/ai/DecisionModel";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
+import * as Decision from "effect/ai/Decision";
+import * as DecisionModel from "effect/ai/DecisionModel";
 import { DEFAULT_API_BASE, DEFAULT_DESTINATION } from "../runtime/review-config.ts";
 import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts";
 
@@ -112,8 +112,8 @@ describe("offline provider HTTP framing for proposed #138 study arms", () => {
   });
   it("matches pinned provider request metadata and all 35 sanitized byte observations", async () => {
     const packageJson = await readFixture<{ readonly dependencies: Readonly<Record<string, string>> }>("../../package.json");
-    expect(packageJson.dependencies["@effect/ai-typesafe"]).toBe("4.0.0-rc.116");
-    expect(packageJson.dependencies.effect).toBe("4.0.0-rc.116");
+    expect(packageJson.dependencies["@effect/ai-typesafe"]).toBe("4.0.0");
+    expect(packageJson.dependencies.effect).toBe("4.0.0");
     const cases: Array<{ id: string; local: LocalRequest; localRequestBytes: number }> = [];
     for (const branch of ["type", "function"] as const) {
       const candidate = await readFixture<Candidate>(`${branch}-candidate.json`);
@@ -132,8 +132,8 @@ describe("offline provider HTTP framing for proposed #138 study arms", () => {
     const evidence = {
       schemaVersion: 1,
       status: "observed-offline-pinned-client-only",
-      providerPackage: "@effect/ai-typesafe@4.0.0-rc.116",
-      effectPackage: "effect@4.0.0-rc.116",
+      providerPackage: "@effect/ai-typesafe@4.0.0",
+      effectPackage: "effect@4.0.0",
       endpoint: DEFAULT_DESTINATION,
       method: "POST",
       bodyFields: ["model", "state", "questions"],

@@ -2,7 +2,7 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
-import { Decision, DecisionModel } from "effect/unstable/ai";
+import { Decision, DecisionModel } from "effect/ai";
 import type { CompiledRule } from "../rules/compiler.ts";
 import { applicableRules, configuredRules } from "../policy/rules.ts";
 import { compareRuleRank, findingFromProbability } from "../rules/decision.ts";

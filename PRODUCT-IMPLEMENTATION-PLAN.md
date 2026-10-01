@@ -27,10 +27,10 @@ successful Codex edit
 ## 2. Decisions already made
 
 - The product is not named Jev. Jev is the initial external review backend.
-- Version one is implemented in TypeScript on the latest matched Effect 4 RC cohort.
+- Version one is implemented in TypeScript on the latest matched Effect 4 stable cohort.
   Effect and companion packages are exact-pinned together; the current selected cohort
-  is `4.0.0-rc.116`.
-- Jev is integrated through `Decision` / `DecisionModel` from `effect/unstable/ai` and
+  is `4.0.0`.
+- Jev is integrated through `Decision` / `DecisionModel` from `effect/ai` and
   the `@effect/ai-typesafe` provider.
 - Codex CLI is the first and only runtime-tested host in the initial environment.
 - Version one is **strictly advisory**. It never rejects, cancels, approves, or asks
@@ -273,14 +273,14 @@ light:
 - Do not yet gate prototypes on a coverage percentage, universal immutability/no-throw
   policy, unused-export census, formal Quint/MBT models, cross-host matrices, or durable
   journal/replay machinery.
-- Keep `effect` and `@effect/ai-typesafe` on one exact RC cohort, enable the full selected
+- Keep `effect` and `@effect/ai-typesafe` on one exact stable cohort, enable the full selected
   diagnostics before a release candidate, freeze the lockfile, and add package plus
   pinned-Codex smoke tests.
 
-The selected baseline is the latest matched Effect 4 RC cohort, currently
-`effect@4.0.0-rc.116` plus `@effect/ai-typesafe@4.0.0-rc.116`. Both packages must be
-exact-pinned and upgraded deliberately as one cohort; npm's unqualified
-`@effect/ai-typesafe` `latest` tag is not the Effect 4 RC line. Dalph and D&D demonstrate
+The selected baseline is the latest matched Effect 4 stable cohort, currently
+`effect@4.0.0` plus `@effect/ai-typesafe@4.0.0`. Both packages must be
+exact-pinned and upgraded deliberately as one cohort; the stable
+`@effect/ai-typesafe` release is matched to Effect 4. Dalph and D&D demonstrate
 transferable design practices but use different prerelease versions and therefore are not
 API-copy sources.
 

@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as DecisionModel from "effect/unstable/ai/DecisionModel";
-import * as AiError from "effect/unstable/ai/AiError";
+import * as DecisionModel from "effect/ai/DecisionModel";
+import * as AiError from "effect/ai/AiError";
 import { appendFile } from "node:fs/promises";
 
 export type ControlledDecisionModelOptions = {

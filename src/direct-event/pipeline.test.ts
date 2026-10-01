@@ -3,7 +3,7 @@ import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as TestClock from "effect/testing/TestClock";
-import type * as DecisionModel from "effect/unstable/ai/DecisionModel";
+import type * as DecisionModel from "effect/ai/DecisionModel";
 import { execFile } from "node:child_process";
 import { writeFile, rm, symlink, rename, mkdir } from "node:fs/promises";
 import { join } from "node:path";

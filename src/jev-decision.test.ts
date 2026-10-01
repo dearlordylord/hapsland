@@ -2,9 +2,9 @@ import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
-import * as DecisionModel from "effect/unstable/ai/DecisionModel";
-import * as HttpClient from "effect/unstable/http/HttpClient";
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
+import * as DecisionModel from "effect/ai/DecisionModel";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { TypeSafeClient, TypeSafeDecisionModel } from "@effect/ai-typesafe";
 import { decide, probability } from "./jev-decision.ts";
 
@@ -58,7 +58,7 @@ describe("Jev Decision adapter", () => {
       expect(requestedFirst.instructions).toBe(
         "Question one?\n\nFocus: Focus one.",
       );
-      expect(requestedFirst.criteria.true).toBe(
+      expect(requestedFirst.criteria?.true).toBe(
         "True one.\n\nExamples:\n- true example",
       );
       expect(result.answers.first.probability).toBe(0.25);
