@@ -3,11 +3,11 @@ import { expect } from "vitest";
 import { Deferred, Effect, Fiber, Queue } from "effect";
 import { makeDispatcher } from "./dispatch.ts";
 import { initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";
-import { CapacityLedger } from "./capacity.ts";
+import { makeCapacityLedger } from "./capacity.ts";
 
 const makeFixture = (run: (entry: { readonly key: string; readonly value: number; readonly sequence: number }) => Effect.Effect<void>) =>
   Effect.gen(function* () {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const ids = new Map<number, { operation: number; round: number }>();
     const dispatch = yield* makeDispatcher<string, number>(ledger, (value) => {
       const identity = ids.get(value);
@@ -22,7 +22,7 @@ const makeFixture = (run: (entry: { readonly key: string; readonly value: number
   });
 
 it.effect("uses the queued job's originating round after a successor opens", () => Effect.gen(function* () {
-  const ledger = new CapacityLedger();
+  const ledger = makeCapacityLedger();
   const oldRound = ledger.roundId("agent");
   ledger.retireRound("agent", oldRound);
   const round = ledger.roundId("agent");
@@ -109,7 +109,7 @@ it.effect("carries keyed FIFO sequence metadata across concurrent starts", () =>
 }));
 
 it.effect("rolls back canonical publication if native registration cannot commit", () => Effect.gen(function* () {
-  const ledger = new CapacityLedger();
+  const ledger = makeCapacityLedger();
   const before = ledger.canonicalProjection();
   expect(() => ledger.transition({ kind: "openRound", partition: 1, lifetime: 1 }, () => {
     throw new Error("registration failed");
@@ -183,7 +183,7 @@ it.effect("retains committed jobs when the admitting subscriber is interrupted",
 
 it.effect("matches direct Bend commands and projections across saturation and terminal settlement", () => Effect.gen(function* () {
   const limits = { globalItems: 512, globalBytes: 268435456, partitionItems: 16, partitionBytes: 33554432 };
-  const ledger = new CapacityLedger(limits);
+  const ledger = makeCapacityLedger(limits);
   let direct = initialCanonical(limits);
   const expectedStarts: Array<{ operation: number; sequence: number }> = [];
   const trace = (event: CanonicalEvent) => {

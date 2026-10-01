@@ -10,7 +10,7 @@ import {
 import { advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
-import { CapacityLedger } from "./capacity.ts";
+import { makeCapacityLedger } from "./capacity.ts";
 import {
   EvaluationReuse,
   SUCCESS_CACHE_BYTE_LIMIT,
@@ -95,7 +95,7 @@ describe("resident evaluation identity", () => {
   });
 
   it("evicts successful LRU entries without disturbing pending joins", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const reuse = new EvaluationReuse<never>({
       ledger,
       logicalBytes: (value) => Buffer.byteLength(JSON.stringify(value), "utf8"),
@@ -125,7 +125,7 @@ describe("resident evaluation identity", () => {
   });
 
   it("evicts the oldest success for byte pressure and rejects an oversized success", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     let size = 70_000;
     const reuse = new EvaluationReuse<never>({
       ledger,
@@ -147,7 +147,7 @@ describe("resident evaluation identity", () => {
   });
 
   it("keeps canonical claim and LRU order aligned with native handles through expiry", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const reuse = new EvaluationReuse<string>({ ledger, logicalBytes: () => 10 });
     const first = prepared(input({ path: "first.ts", rules: [] }));
     const second = prepared(input({ path: "second.ts", rules: [] }));

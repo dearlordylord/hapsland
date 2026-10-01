@@ -1,9 +1,62 @@
 import { describe, expect, it } from "vitest";
-import { CapacityLedger, MAX_COLLECTION_TOKEN_IDENTITIES, MAX_PARTITION_IDENTITIES, encodedBytesWithin } from "./capacity.ts";
+import { makeCapacityLedger, MAX_COLLECTION_TOKEN_IDENTITIES, MAX_PARTITION_IDENTITIES, encodedBytesWithin } from "./capacity.ts";
 
 describe("resident logical capacity ledger", () => {
+  it("keeps reservation metadata private and fences a reused numeric ID", () => {
+    const ledger = makeCapacityLedger();
+    const issued = ledger.reserve("agent", 20, "preparation");
+    if (issued === undefined) throw new Error("fixture reservation refused");
+    expect(Object.isFrozen(issued)).toBe(true);
+    expect(Reflect.set(issued, "bytes", 999)).toBe(false);
+    expect(Reflect.set(issued, "purpose", "storedResult")).toBe(false);
+    expect(ledger.resize(issued, 30, "storedResult")).toBe(true);
+    expect(issued.bytes).toBe(30);
+    expect(issued.purpose).toBe("storedResult");
+    expect(ledger.snapshot().bytes).toBe(30);
+
+    ledger.clear();
+    const replacement = ledger.reserve("other-agent", 90, "reviewUnit");
+    expect(replacement?.id).toBe(issued.id);
+    expect(issued.bytes).toBe(20);
+    expect(issued.purpose).toBe("preparation");
+    expect(ledger.release(issued)).toBe(false);
+    expect(ledger.resize(issued, 1)).toBe(false);
+    expect(replacement?.bytes).toBe(90);
+    expect(ledger.snapshot().bytes).toBe(90);
+  });
+
+  it("publishes neither canonical state nor native identities when registration fails", () => {
+    const ledger = makeCapacityLedger();
+    const partition = ledger.partitionId("agent");
+    const before = ledger.canonicalProjection();
+    expect(() => ledger.transition({ kind: "openRound", partition, lifetime: 1 }, () => {
+      throw new Error("native registration failed");
+    })).toThrow("native registration failed");
+    expect(ledger.canonicalProjection()).toEqual(before);
+    expect(ledger.currentRoundId("agent")).toBeUndefined();
+    const round = ledger.roundId("agent");
+    expect(round).toBe(1);
+    expect(ledger.canonicalProjection().rounds).toEqual([{ partition, lifetime: 1, id: round, deciding: false, waiting: false, uncertain: false }]);
+  });
+
+  it("rejects a reentrant mutation and rolls back the enclosing commit", () => {
+    const ledger = makeCapacityLedger();
+    const partition = ledger.partitionId("agent");
+    const before = ledger.canonicalProjection();
+    expect(() => ledger.transition({ kind: "openRound", partition, lifetime: 1 }, () => {
+      // Read-only inspection observes the published state, not the staged draft.
+      expect(ledger.canonicalProjection()).toEqual(before);
+      ledger.reserve("nested-agent", 10, "preparation");
+    })).toThrow("resident capacity commit cannot be reentered");
+    expect(ledger.canonicalProjection()).toEqual(before);
+    expect(ledger.knownPartitionId("nested-agent")).toBeUndefined();
+    expect(ledger.partitionIdentityCount()).toBe(1);
+    // The failed commit releases its fence and does not consume a reservation ID.
+    expect(ledger.reserve("agent", 10, "preparation")?.id).toBe(1);
+  });
+
   it("forgets idle advicee identities at the metadata limit and fences older starts", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     for (let index = 0; index < MAX_PARTITION_IDENTITIES; index++) {
       ledger.partitionId(`advicee-${index}`);
     }
@@ -26,7 +79,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("prunes completed collection tokens but retains canonical live tokens", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const partition = ledger.partitionId("agent");
     const live = ledger.collectionTokenId("live");
     expect(ledger.transition({ kind: "collectionClaimBackground", group: partition,
@@ -43,7 +96,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("does not accumulate Bend delivery counters across completed rounds", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     for (let index = 0; index < 200; index++) {
       const partition = `agent-${index}`;
       const group = ledger.partitionId(partition);
@@ -58,7 +111,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("routes delivery terminal and finding decisions through canonical Bend", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     for (const [event, kind] of [
       [{ kind: "deliveryAcknowledgeCheck", items: 0, anyExpired: false }, "deliveryAckEmpty"],
       [{ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: true }, "deliveryAckExpired"],
@@ -75,7 +128,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("routes composed submission and credential gates through canonical Bend", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const valid = { roundActive: true, hasRound: true, hasUnit: true,
       hasDelivery: true, pendingCapacity: true, submissionAllowed: true,
       currentWork: true, credentialAuthorized: true };
@@ -103,7 +156,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("routes revalidation and final handoff candidates through canonical Bend", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     expect(ledger.transition({ kind: "validationRouteCheck",
       ownerCurrent: false, status: "current" }).commands)
       .toEqual([{ kind: "ignoreCandidate" }]);
@@ -126,7 +179,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("routes Stop ownership, expiry, and submission through canonical Bend", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     expect(ledger.transition({ kind: "roundBeginStopCheck", active: true,
       hasStop: false, token: 1 }).commands).toEqual([{ kind: "roundStopBegun" }]);
     expect(ledger.transition({ kind: "roundBeginStopCheck", active: true,
@@ -161,7 +214,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("keeps permit and capacity transitions in one canonical resident state", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const partition = ledger.partitionId("agent");
     const issued = ledger.transition({ kind: "issuePermit", partition, lifetime: 1,
       tool: 7, started: 100, deadline: 300, now: 110, minimumStarted: 0,
@@ -183,7 +236,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("fences late work callbacks after round retirement without opening a new round", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const round = ledger.roundId("agent");
     const observation = ledger.admitObservation("agent");
     expect(ledger.observation("agent", observation, "startObservation", round)).toBe(true);
@@ -198,7 +251,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("fences old callbacks and retirement after a successor round opens", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const oldRound = ledger.roundId("agent");
     const oldSource = ledger.admitObservation("agent", oldRound);
     ledger.retireRound("agent", oldRound);
@@ -228,7 +281,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("enforces the profile's exact item and revised byte boundaries", () => {
-    const counts = new CapacityLedger();
+    const counts = makeCapacityLedger();
     for (let index = 0; index < 16; index += 1) expect(counts.reserve("one", 1, "reviewUnit")).toBeDefined();
     expect(counts.reserve("one", 1, "reviewUnit")).toBeUndefined();
     for (let index = 16; index < 512; index += 1) {
@@ -237,13 +290,13 @@ describe("resident logical capacity ledger", () => {
     expect(counts.reserve("overflow", 0, "reviewUnit")).toBeUndefined();
     expect(counts.snapshot()).toMatchObject({ items: 512, bytes: 512 });
 
-    const bytes = new CapacityLedger();
+    const bytes = makeCapacityLedger();
     for (let index = 0; index < 128; index += 1) {
       expect(bytes.reserve(`bytes-${index}`, 2 * 1024 * 1024, "reviewUnit")).toBeDefined();
     }
     expect(bytes.reserve("overflow", 1, "reviewUnit")).toBeUndefined();
     expect(bytes.snapshot()).toMatchObject({ items: 128, bytes: 256 * 1024 * 1024 });
-    const partitionBytes = new CapacityLedger();
+    const partitionBytes = makeCapacityLedger();
     for (let index = 0; index < 16; index += 1) {
       expect(partitionBytes.reserve("one", 2 * 1024 * 1024, "reviewUnit")).toBeDefined();
     }
@@ -251,7 +304,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("accepts exact count boundaries and isolates partition pressure", () => {
-    const ledger = new CapacityLedger({
+    const ledger = makeCapacityLedger({
       globalItems: 4,
       globalBytes: 100,
       partitionItems: 2,
@@ -269,7 +322,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("accepts exact byte boundaries, rejects one byte over, and releases idempotently", () => {
-    const ledger = new CapacityLedger({
+    const ledger = makeCapacityLedger({
       globalItems: 3,
       globalBytes: 10,
       partitionItems: 2,
@@ -289,7 +342,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("clears all reservations at a lifecycle terminal", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const running = ledger.reserve("one", 10, "reviewUnit");
     expect(running).toBeDefined();
     ledger.clear();
@@ -298,14 +351,14 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("reports partition names that overlap Object.prototype keys", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     expect(ledger.reserve("__proto__", 1, "reviewUnit")).toBeDefined();
     expect(Object.hasOwn(ledger.snapshot().partitions, "__proto__")).toBe(true);
     expect(ledger.snapshot().partitions["__proto__"]).toEqual({ items: 1, bytes: 1 });
   });
 
   it("resizes preparation workspace and atomically replaces it with exact units", () => {
-    const ledger = new CapacityLedger({
+    const ledger = makeCapacityLedger({
       globalItems: 4,
       globalBytes: 100,
       partitionItems: 3,
@@ -323,7 +376,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("shares capacity across advicees and releases each replacement exactly once", () => {
-    const ledger = new CapacityLedger({ globalItems: 3, globalBytes: 100,
+    const ledger = makeCapacityLedger({ globalItems: 3, globalBytes: 100,
       partitionItems: 2, partitionBytes: 60 });
     const first = ledger.reserve("agent-a", 30, "preparation");
     const second = ledger.reserve("agent-b", 40, "preparation");
@@ -349,7 +402,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("rejects unknown, negative, and unsafe output reservations", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     expect(ledger.reserve("partition", Number.NaN, "reviewUnit")).toBeUndefined();
     expect(ledger.reserve("partition", Number.POSITIVE_INFINITY, "reviewUnit")).toBeUndefined();
     expect(ledger.reserve("partition", -1, "reviewUnit")).toBeUndefined();
@@ -359,7 +412,7 @@ describe("resident logical capacity ledger", () => {
   });
 
   it("releases preparation space when measured replacement input violates the Bend bound", () => {
-    const ledger = new CapacityLedger();
+    const ledger = makeCapacityLedger();
     const workspace = ledger.reserve("agent", 20, "preparation");
     if (workspace === undefined) throw new Error("missing preparation reservation");
     expect(() => ledger.replace(workspace, [2 ** 47])).toThrow(TypeError);

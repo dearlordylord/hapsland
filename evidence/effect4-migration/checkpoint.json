@@ -16,7 +16,10 @@
     "Evaluation, advice retention and revalidation compose directly as named Effect workflows with typed adapter failures and reservation finalizers",
     "Collection and IPC response fibers compose directly as Effects; interrupted collectors release provisional delivery leases",
     "Idle, quiet-round and Stop expiry workers use scoped fibers and Schedule; startup and shared shutdown compose directly into the process scope",
-    "Controlled native provider cancellation requests AbortSignal cancellation and waits for physical Promise settlement before releasing its canonical permit"
+    "Controlled native provider cancellation requests AbortSignal cancellation and waits for physical Promise settlement before releasing its canonical permit",
+    "Replaced mutable CapacityLedger class with explicit capacity draft operations and one canonical/native Ref commit owner; deleted production class construction paths",
+    "Capacity draft failures and reentrant mutations publish no partial canonical or native state; invalid measurement cleanup preserves existing behavior",
+    "Reservation capabilities are immutable; live bytes and purpose remain in the committed registry and identity fences numeric ID reuse"
   ],
   "verification": [
     {
@@ -153,10 +156,47 @@
       "files": 8,
       "exitCode": 0,
       "stage": "Effect evaluation/collection/IPC/lifetime and physical native callback settlement"
+    },
+    {
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0,
+      "stage": "Explicit capacity state and immutable capabilities"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "stage": "Explicit capacity state and immutable capabilities"
+    },
+    {
+      "commands": [
+        "check-canonical-authority",
+        "check-production-authority",
+        "check-capacity-boundary",
+        "check-permit-boundary",
+        "check-review-boundary",
+        "check-dispatch-boundary",
+        "check-stop-boundary",
+        "check-collection-boundary",
+        "check-delivery-boundary",
+        "check-revision-boundary",
+        "check-ticket-boundary",
+        "check-reuse-boundary",
+        "check-notice-boundary",
+        "check-retention-boundary"
+      ],
+      "exitCode": 0,
+      "stage": "Explicit capacity state and immutable capabilities"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/capacity.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/dispatch.test.ts src/resident/evaluation-reuse.test.ts src/resident/composed-delivery.test.ts src/resident/jev-request.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts",
+      "tests": 192,
+      "files": 9,
+      "exitCode": 0,
+      "stage": "Explicit capacity state and immutable capabilities; rollback, reentrancy and ID reuse conformance"
     }
   ],
   "next": [
-    "Consolidate canonical/native state ownership into one production Effect service, deleting CapacityLedger, EvaluationReuse and ComposedDelivery owners",
+    "Consolidate reuse, dispatch, delivery and remaining server records with the capacity record into one production ResidentState Effect service; delete remaining class owners and synchronous commit bridges",
     "Migrate client/host edges and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -164,7 +204,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Production state and native handles remain distributed outside dispatch",
+    "Reuse, dispatch, delivery and remaining server records still have separate owners; the capacity factory retains synchronous host-call bridges pending consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"

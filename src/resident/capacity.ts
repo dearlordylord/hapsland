@@ -1,3 +1,4 @@
+import { Effect, Ref } from "effect";
 import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent, type CapacityPurpose, type JevRequestOutcome } from "../canonical/adapter.ts";
 import { randomUUID } from "node:crypto";
 import { monotonicNow } from "./hook-clock.ts";
@@ -95,507 +96,603 @@ export const encodedBytesWithin = (value: unknown, maximum: number): number | un
   }
 };
 
-/**
- * Atomic, synchronous accounting for logical resident state. A reservation is
- * an opaque capability: releasing it twice or releasing a foreign value is a
- * no-op, so terminal/finalizer paths can safely converge on one cleanup call.
- */
-export class CapacityLedger {
-  // Each ledger owns one canonical state. Its local lifetime 1 is bound to
-  // exactly one resident UUID and must be carried with external observations.
+type ReservationRecord = {
+  readonly capability: CapacityReservation;
+  readonly bytes: number;
+  readonly purpose: CapacityPurpose;
+};
+type CapacityState = {
   readonly residentLifetime: string;
-  readonly canonicalLifetime = 1;
-  readonly #reservations = new Map<number, CapacityReservation>();
-  readonly #partitionIds = new Map<string, number>();
-  #partitionIdentityBytes = 0;
-  readonly #roundIds = new Map<string, number>();
-  readonly #requestRounds = new Map<number, { readonly partition: string; readonly round: number }>();
-  readonly #collectionTokens = new Map<string, number>();
-  #nextCollectionToken = 1;
-  #nextPartitionId = 1;
-  #minimumFreshStart = 0;
-  readonly #limits: CapacityLimits;
-  #state: unknown;
+  readonly limits: CapacityLimits;
+  readonly canonical: unknown;
+  readonly reservations: ReadonlyMap<number, ReservationRecord>;
+  readonly partitionIds: ReadonlyMap<string, number>;
+  readonly partitionIdentityBytes: number;
+  readonly roundIds: ReadonlyMap<string, number>;
+  readonly requestRounds: ReadonlyMap<number, { readonly partition: string; readonly round: number }>;
+  readonly collectionTokens: ReadonlyMap<string, number>;
+  readonly nextCollectionToken: number;
+  readonly nextPartitionId: number;
+  readonly minimumFreshStart: number;
+};
+type CapacityDraft = {
+  -readonly [K in keyof CapacityState]: CapacityState[K] extends ReadonlyMap<infer Key, infer Value> ? Map<Key, Value> : CapacityState[K]
+} & { readonly readReservation: (id: number) => ReservationRecord | undefined };
+type Arguments<F extends (...args: never[]) => unknown> = Parameters<F> extends [unknown, ...infer Rest] ? Rest : never;
 
-  constructor(limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) {
-    this.#limits = limits;
-    this.residentLifetime = residentLifetime;
-    this.#state = initialCanonical(limits);
-  }
+const draftCapacity = (current: CapacityState, readReservation: CapacityDraft["readReservation"]): CapacityDraft => ({
+  ...current,
+  reservations: new Map(current.reservations), partitionIds: new Map(current.partitionIds),
+  roundIds: new Map(current.roundIds), requestRounds: new Map(current.requestRounds),
+  collectionTokens: new Map(current.collectionTokens), readReservation,
+});
 
-  /** Shared canonical state for resident admission and capacity transitions. */
-  partitionId(partition: string): number {
-    let id = this.#partitionIds.get(partition);
-    if (id === undefined) {
-      const keyBytes = Buffer.byteLength(partition, "utf8");
-      if (keyBytes > MAX_PARTITION_KEY_BYTES) {
-        throw new RangeError("advicee identity exceeds resident metadata bound");
+/** One commit owner for canonical state and its native capacity identities.
+ * Draft validation can fail without publishing a partial canonical transition.
+ * Synchronous methods bridge existing host callers while the resident service
+ * surface is migrated; all internal operations receive their draft explicitly.
+ */
+export const makeCapacityLedger = (limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) => {
+  const state = Effect.runSync(Ref.make<CapacityState>({
+    residentLifetime, limits, canonical: initialCanonical(limits), reservations: new Map(),
+    partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
+    collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
+  }));
+  const read = <A>(operation: (current: CapacityState) => A): A =>
+    Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
+  let committing = false;
+  const commit = <A>(operation: (draft: CapacityDraft) => A): A => {
+    if (committing) throw new Error("resident capacity commit cannot be reentered");
+    committing = true;
+    try {
+      return Effect.runSync(Ref.modify(state, (current): readonly [A, CapacityState] => {
+        const draft = draftCapacity(current, (id) => Ref.getUnsafe(state).reservations.get(id));
+        const value = operation(draft);
+        const { readReservation: _, ...next } = draft;
+        return [value, next];
+      }).pipe(Effect.withSpan("ResidentCapacity.commit")));
+    } finally { committing = false; }
+  };
+  return {
+    residentLifetime, canonicalLifetime: 1,
+    partitionId: (...args: Arguments<typeof partitionId>) => commit((draft) => partitionId(draft, ...args)),
+    knownPartitionId: (...args: Arguments<typeof knownPartitionId>) => read((draft) => knownPartitionId(draft, ...args)),
+    minimumFreshStart: (...args: Arguments<typeof minimumFreshStart>) => read((draft) => minimumFreshStart(draft, ...args)),
+    partitionIdentityCount: (...args: Arguments<typeof partitionIdentityCount>) => read((draft) => partitionIdentityCount(draft, ...args)),
+    partitionIdentityBytes: (...args: Arguments<typeof partitionIdentityBytes>) => read((draft) => partitionIdentityBytes(draft, ...args)),
+    discardUnusedPartition: (...args: Arguments<typeof discardUnusedPartition>) => commit((draft) => discardUnusedPartition(draft, ...args)),
+    collectionTokenId: (...args: Arguments<typeof collectionTokenId>) => commit((draft) => collectionTokenId(draft, ...args)),
+    collectionTokenIdentityCount: (...args: Arguments<typeof collectionTokenIdentityCount>) => read((draft) => collectionTokenIdentityCount(draft, ...args)),
+    pruneCollectionTokenIds: (...args: Arguments<typeof pruneCollectionTokenIds>) => commit((draft) => pruneCollectionTokenIds(draft, ...args)),
+    dispatchIdentity: (...args: Arguments<typeof dispatchIdentity>) => commit((draft) => dispatchIdentity(draft, ...args)),
+    dispatchScope: (...args: Arguments<typeof dispatchScope>) => commit((draft) => dispatchScope(draft, ...args)),
+    transition: (...args: Arguments<typeof transition>) => commit((draft) => transition(draft, ...args)),
+    canonicalProjection: (...args: Arguments<typeof canonicalProjection>) => read((draft) => canonicalProjection(draft, ...args)),
+    acknowledgeStopRelease: (...args: Arguments<typeof acknowledgeStopRelease>) => commit((draft) => acknowledgeStopRelease(draft, ...args)),
+    consumeEditPermit: (...args: Arguments<typeof consumeEditPermit>) => commit((draft) => consumeEditPermit(draft, ...args)),
+    roundId: (...args: Arguments<typeof roundId>) => commit((draft) => roundId(draft, ...args)),
+    currentRoundId: (...args: Arguments<typeof currentRoundId>) => read((draft) => currentRoundId(draft, ...args)),
+    admitObservation: (...args: Arguments<typeof admitObservation>) => commit((draft) => admitObservation(draft, ...args)),
+    observation: (...args: Arguments<typeof observation>) => commit((draft) => observation(draft, ...args)),
+    beginObservedPreparation: (...args: Arguments<typeof beginObservedPreparation>) => commit((draft) => beginObservedPreparation(draft, ...args)),
+    completePreparation: (...args: Arguments<typeof completePreparation>) => commit((draft) => completePreparation(draft, ...args)),
+    startReview: (...args: Arguments<typeof startReview>) => commit((draft) => startReview(draft, ...args)),
+    readyJevRequest: (...args: Arguments<typeof readyJevRequest>) => commit((draft) => readyJevRequest(draft, ...args)),
+    startJevRequest: (...args: Arguments<typeof startJevRequest>) => commit((draft) => startJevRequest(draft, ...args)),
+    interruptJevRequest: (...args: Arguments<typeof interruptJevRequest>) => commit((draft) => interruptJevRequest(draft, ...args)),
+    settleJevRequest: (...args: Arguments<typeof settleJevRequest>) => commit((draft) => settleJevRequest(draft, ...args)),
+    completeReview: (...args: Arguments<typeof completeReview>) => commit((draft) => completeReview(draft, ...args)),
+    observeReview: (...args: Arguments<typeof observeReview>) => commit((draft) => observeReview(draft, ...args)),
+    preparedOffer: (...args: Arguments<typeof preparedOffer>) => commit((draft) => preparedOffer(draft, ...args)),
+    emptyPrepared: (...args: Arguments<typeof emptyPrepared>) => commit((draft) => emptyPrepared(draft, ...args)),
+    reviewFailure: (...args: Arguments<typeof reviewFailure>) => commit((draft) => reviewFailure(draft, ...args)),
+    retireRound: (...args: Arguments<typeof retireRound>) => commit((draft) => retireRound(draft, ...args)),
+    reserve: (...args: Arguments<typeof reserve>) => commit((draft) => reserve(draft, ...args)),
+    resize: (...args: Arguments<typeof resize>) => commit((draft) => resize(draft, ...args)),
+    replace: (...args: Arguments<typeof replace>) => {
+      const result = commit((draft) => replace(draft, ...args));
+      if ("invalidMeasurement" in result) throw new TypeError("invalid measured review unit size");
+      return result;
+    },
+    release: (...args: Arguments<typeof release>) => commit((draft) => release(draft, ...args)),
+    clear: (...args: Arguments<typeof clear>) => commit((draft) => clear(draft, ...args)),
+    snapshot: (...args: Arguments<typeof snapshot>) => read((draft) => snapshot(draft, ...args)),
+  };
+};
+export type CapacityLedger = ReturnType<typeof makeCapacityLedger>;
+
+/** Immutable capability; metadata belongs to the current committed record.
+ * A released capability has no authority and reads its issuance metadata.
+ * Identity comparison fences clear/restart reuse of numeric reservation IDs.
+ */
+function registerReservation(draft: CapacityDraft, id: number, partition: string,
+  bytes: number, purpose: CapacityPurpose): CapacityReservation {
+  const readReservation = draft.readReservation;
+  const live = () => {
+    const record = readReservation(id);
+    return record?.capability === capability ? record : undefined;
+  };
+  const capability: CapacityReservation = Object.freeze({
+    id, partition,
+    get bytes() { return live()?.bytes ?? bytes; },
+    get purpose() { return live()?.purpose ?? purpose; },
+  });
+  draft.reservations.set(id, { capability, bytes, purpose });
+  return capability;
+}
+
+function setReservationMetadata(draft: CapacityDraft, capability: CapacityReservation,
+  bytes: number | undefined, purpose: CapacityPurpose): void {
+  const record = draft.reservations.get(capability.id);
+  if (record?.capability !== capability) throw new Error("unknown reservation metadata owner");
+  draft.reservations.set(capability.id, { capability, bytes: bytes ?? record.bytes, purpose });
+}
+
+function partitionId(draft: CapacityDraft, partition: string): number {
+  let id = draft.partitionIds.get(partition);
+  if (id === undefined) {
+    const keyBytes = Buffer.byteLength(partition, "utf8");
+    if (keyBytes > MAX_PARTITION_KEY_BYTES) {
+      throw new RangeError("advicee identity exceeds resident metadata bound");
+    }
+    while (draft.partitionIds.size >= MAX_PARTITION_IDENTITIES ||
+      draft.partitionIdentityBytes + keyBytes > MAX_PARTITION_IDENTITY_BYTES) {
+      if (!evictInactivePartition(draft)) {
+        throw new RangeError("resident advicee identity capacity exhausted");
       }
-      while (this.#partitionIds.size >= MAX_PARTITION_IDENTITIES ||
-        this.#partitionIdentityBytes + keyBytes > MAX_PARTITION_IDENTITY_BYTES) {
-        if (!this.#evictInactivePartition()) {
-          throw new RangeError("resident advicee identity capacity exhausted");
-        }
-      }
-      id = this.#nextPartitionId++;
-      this.#partitionIds.set(partition, id);
-      this.#partitionIdentityBytes += keyBytes;
     }
-    return id;
+    id = draft.nextPartitionId++;
+    draft.partitionIds.set(partition, id);
+    draft.partitionIdentityBytes += keyBytes;
   }
+  return id;
+}
 
-  knownPartitionId(partition: string): number | undefined {
-    return this.#partitionIds.get(partition);
-  }
+function knownPartitionId(draft: CapacityState, partition: string): number | undefined {
+  return draft.partitionIds.get(partition);
+}
 
-  minimumFreshStart(): number {
-    return this.#minimumFreshStart;
-  }
+function minimumFreshStart(draft: CapacityState): number {
+  return draft.minimumFreshStart;
+}
 
-  partitionIdentityCount(): number { return this.#partitionIds.size; }
-  partitionIdentityBytes(): number { return this.#partitionIdentityBytes; }
+function partitionIdentityCount(draft: CapacityState): number { return draft.partitionIds.size; }
 
-  discardUnusedPartition(partition: string): void {
-    const id = this.#partitionIds.get(partition);
-    if (id === undefined || this.#roundIds.has(partition) ||
-      [...this.#reservations.values()].some((item) => item.partition === partition) ||
-      [...this.#requestRounds.values()].some((item) => item.partition === partition)) return;
-    const state = this.canonicalProjection();
-    if (state.partitions.some((item) => item.partition === id) ||
-      state.rounds.some((item) => item.partition === id) ||
-      state.work.some((item) => item.partition === id) ||
-      state.charges.some((item) => item.partition === id) ||
-      state.dispatch.queued.some((item) => item.partition === id) ||
-      state.dispatch.running.some((item) => item.partition === id) ||
-      state.dispatch.requests.some((item) => item.partition === id) ||
-      state.delivery.slots.some((item) => item.group === id) ||
-      state.delivery.counters.some((item) => item.group === id) ||
-      state.delivery.submissions.batches.some((item) => item.group === id) ||
-      state.collection.claims.some((item) => item.group === id) ||
-      state.notices.some((item) => item.partition === id || item.group === id) ||
-      state.reuse.cache.some((item) => item.partition === id)) return;
-    const admission = state.admissions.find((item) => item.partition === id);
-    if (admission?.active || (admission?.permits.length ?? 0) > 0) return;
-    const forgotten = this.transition({ kind: "forgetAdmission", partition: id, lifetime: 1 });
-    if (forgotten.rejection !== undefined || forgotten.commands[0]?.kind !== "admissionForgotten") return;
-    this.#partitionIds.delete(partition);
-    this.#partitionIdentityBytes -= Buffer.byteLength(partition, "utf8");
-  }
+function partitionIdentityBytes(draft: CapacityState): number { return draft.partitionIdentityBytes; }
 
-  #evictInactivePartition(): boolean {
-    for (const partition of this.#partitionIds.keys()) {
-      const before = this.#partitionIds.size;
-      this.discardUnusedPartition(partition);
-      if (this.#partitionIds.size < before) {
-        this.#minimumFreshStart = Math.max(this.#minimumFreshStart,
-          Math.ceil(monotonicNow() * 1000));
-        return true;
-      }
-    }
-    return false;
-  }
+function discardUnusedPartition(draft: CapacityDraft, partition: string): void {
+  const id = draft.partitionIds.get(partition);
+  if (id === undefined || draft.roundIds.has(partition) ||
+    [...draft.reservations.values()].some((item) => item.capability.partition === partition) ||
+    [...draft.requestRounds.values()].some((item) => item.partition === partition)) return;
+  const state = canonicalProjection(draft);
+  if (state.partitions.some((item) => item.partition === id) ||
+    state.rounds.some((item) => item.partition === id) ||
+    state.work.some((item) => item.partition === id) ||
+    state.charges.some((item) => item.partition === id) ||
+    state.dispatch.queued.some((item) => item.partition === id) ||
+    state.dispatch.running.some((item) => item.partition === id) ||
+    state.dispatch.requests.some((item) => item.partition === id) ||
+    state.delivery.slots.some((item) => item.group === id) ||
+    state.delivery.counters.some((item) => item.group === id) ||
+    state.delivery.submissions.batches.some((item) => item.group === id) ||
+    state.collection.claims.some((item) => item.group === id) ||
+    state.notices.some((item) => item.partition === id || item.group === id) ||
+    state.reuse.cache.some((item) => item.partition === id)) return;
+  const admission = state.admissions.find((item) => item.partition === id);
+  if (admission?.active || (admission?.permits.length ?? 0) > 0) return;
+  const forgotten = transition(draft, { kind: "forgetAdmission", partition: id, lifetime: 1 });
+  if (forgotten.rejection !== undefined || forgotten.commands[0]?.kind !== "admissionForgotten") return;
+  draft.partitionIds.delete(partition);
+  draft.partitionIdentityBytes -= Buffer.byteLength(partition, "utf8");
+}
 
-  collectionTokenId(token: string): number {
-    let id = this.#collectionTokens.get(token);
-    if (id === undefined) {
-      if (Buffer.byteLength(token, "utf8") > MAX_COLLECTION_TOKEN_KEY_BYTES ||
-        this.#collectionTokens.size >= MAX_COLLECTION_TOKEN_IDENTITIES) {
-        throw new RangeError("resident collection token capacity exhausted");
-      }
-      id = this.#nextCollectionToken++;
-      this.#collectionTokens.set(token, id);
-    }
-    return id;
-  }
-
-  collectionTokenIdentityCount(): number { return this.#collectionTokens.size; }
-
-  pruneCollectionTokenIds(nativeLive: ReadonlySet<string>): void {
-    const state = this.canonicalProjection();
-    const canonicalLive = new Set<number>([
-      ...state.collection.leases.map((item) => item.owner),
-      ...state.collection.claims.map((item) => item.owner),
-      ...state.delivery.slots.map((item) => item.token),
-      ...state.delivery.submissions.batches.map((item) => item.token),
-    ]);
-    for (const [key, id] of this.#collectionTokens) {
-      if (!nativeLive.has(key) && !canonicalLive.has(id)) this.#collectionTokens.delete(key);
-    }
-  }
-
-  dispatchIdentity(partition: string, round: number): { readonly partition: number; readonly round: number } {
-    return { partition: this.partitionId(partition), round };
-  }
-
-  dispatchScope(namedCount: number, cancelledCount: number, hasUnnamed: boolean): boolean {
-    const result = this.transition({ kind: "dispatchScopeCheck", namedCount, cancelledCount, hasUnnamed });
-    if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical dispatch scope refused");
-    const command = result.commands[0];
-    if (command?.kind === "discardNamedOnly") return true;
-    if (command?.kind === "discardAllUnfinished") return false;
-    throw new Error("invalid canonical dispatch scope command");
-  }
-
-  transition(event: ResidentTransition, commitNative?: (result: ReturnType<typeof stepCanonical> & {
-    readonly projection: ReturnType<typeof projectCanonical>;
-  }) => void): ReturnType<typeof stepCanonical> {
-    const result = stepCanonical(this.#state, event);
-    if (result.rejection === undefined) {
-      commitNative?.({ ...result, projection: projectCanonical(result.state) });
-      this.#state = result.state;
-    }
-    return result;
-  }
-
-  canonicalProjection(): ReturnType<typeof projectCanonical> {
-    return projectCanonical(this.#state);
-  }
-
-  acknowledgeStopRelease(id: number): void {
-    if (this.canonicalProjection().charges.some((charge) => charge.id === id)) {
-      throw new Error("canonical Stop release retained its charge");
-    }
-    this.#reservations.delete(id);
-  }
-
-  /** Bind the round atomically opened or reused by canonical edit admission. */
-  consumeEditPermit(partition: string, event: Extract<ResidentTransition, { readonly kind: "consumePermit" }>):
-    ReturnType<typeof stepCanonical> {
-    const result = this.transition(event);
-    if (result.rejection !== undefined) return result;
-    const consumed = result.commands.find((command) => command.kind === "permitConsumed");
-    const round = result.commands.find((command) => command.kind === "roundStarted");
-    const boundRound = this.canonicalProjection().rounds.find(
-      (item) => item.partition === event.partition && item.lifetime === event.lifetime);
-    const roundId = round?.kind === "roundStarted" ? round.id : boundRound?.id;
-    if (consumed?.kind !== "permitConsumed" || roundId === undefined || boundRound?.id !== roundId) {
-      throw new Error("canonical edit admission omitted its round");
-    }
-    this.#roundIds.set(partition, roundId);
-    return result;
-  }
-
-  roundId(partition: string): number {
-    const existing = this.#roundIds.get(partition);
-    if (existing !== undefined) return existing;
-    const result = this.transition({ kind: "openRound", partition: this.partitionId(partition), lifetime: 1 });
-    const command = result.commands[0];
-    if (result.rejection !== undefined || command?.kind !== "roundStarted") throw new Error("canonical round admission refused");
-    this.#roundIds.set(partition, command.id);
-    return command.id;
-  }
-
-  /** Read the bound round without opening one. */
-  currentRoundId(partition: string): number | undefined {
-    return this.#roundIds.get(partition);
-  }
-
-  admitObservation(partition: string, round: number = this.roundId(partition)): number {
-    const result = this.transition({ kind: "admitObservation", partition: this.partitionId(partition),
-      lifetime: 1, round });
-    const command = result.commands[0];
-    if (result.rejection !== undefined || command?.kind !== "observationAdmitted") throw new Error("canonical observation admission refused");
-    return command.id;
-  }
-
-  observation(partition: string, id: number, kind: "startObservation" | "completeObservation" | "interruptObservation", round: number): boolean {
-    const result = this.transition({ kind, partition: this.partitionId(partition), lifetime: 1,
-      round, observation: id });
-    return result.rejection === undefined && result.commands[0]?.kind ===
-      ({ startObservation: "observationStarted", completeObservation: "observationCompleted",
-        interruptObservation: "observationInterrupted" } as const)[kind];
-  }
-
-  beginObservedPreparation(partition: string, observation: number, bytes: number, round: number):
-    { readonly operation: number; readonly reservation: CapacityReservation } | undefined {
-    if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > CANONICAL_MAX_BYTES) return undefined;
-    const result = this.transition({ kind: "beginObservedPreparation", partition: this.partitionId(partition),
-      lifetime: 1, round, observation, bytes });
-    const command = result.commands[0];
-    if (result.rejection !== undefined) return undefined;
-    if (command === undefined) throw new Error("invalid canonical preparation admission");
-    if (command.kind === "preparationRefused") return undefined;
-    if (command.kind !== "prepare") throw new Error("unexpected canonical preparation command");
-    const reservation: CapacityReservation = { id: command.reservation, partition, bytes, purpose: "preparation" };
-    this.#reservations.set(reservation.id, reservation);
-    return { operation: command.operation, reservation };
-  }
-
-  completePreparation(partition: string, operation: number, reservation: CapacityReservation,
-    sizes: readonly number[], round: number): ReadonlyArray<{ readonly operation: number; readonly reservation: CapacityReservation } | undefined> {
-    if (this.#reservations.get(reservation.id) !== reservation || sizes.length > CANONICAL_MAX_UNITS ||
-        sizes.some((size) => !Number.isSafeInteger(size) || size <= 0 || size > CANONICAL_MAX_BYTES)) {
-      throw new TypeError("invalid canonical preparation completion");
-    }
-    const result = this.transition({ kind: "preparationCompleted", partition: this.partitionId(partition),
-      lifetime: 1, round, operation, unitBytes: sizes });
-    if (result.rejection !== undefined || result.commands[0]?.kind !== "preparationReleased") {
-      throw new Error("canonical preparation completion refused");
-    }
-    this.#reservations.delete(reservation.id);
-    const units = result.commands.slice(1).map((command, index) => {
-      // undefined records a capacity refusal, which cannot establish a clear review outcome.
-      if (command.kind === "unitRefused" && command.position === index + 1) return undefined;
-      if (command.kind !== "unitAdmitted" || command.position !== index + 1) throw new Error("invalid canonical unit admission");
-      const unit: CapacityReservation = { id: command.reservation, partition, bytes: command.bytes, purpose: "reviewUnit" };
-      this.#reservations.set(unit.id, unit);
-      return { operation: command.operation, reservation: unit };
-    });
-    if (units.length !== sizes.length) throw new Error("canonical unit count mismatch");
-    return units;
-  }
-
-  startReview(partition: string, operation: number, round: number): boolean {
-    const result = this.transition({ kind: "startReview", partition: this.partitionId(partition),
-      lifetime: 1, round, operation });
-    return result.rejection === undefined && result.commands[0]?.kind === "reviewStarted";
-  }
-
-  readyJevRequest(partition: string, operation: number, reservation: CapacityReservation,
-    facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
-      readonly credentialReady: boolean; readonly selected: boolean;
-      readonly currentWork: boolean; readonly physicalAvailable: boolean }, round: number):
-    { readonly status: "issued"; readonly request: number; readonly round: number } |
-    { readonly status: "unavailable"; readonly round: number } | { readonly status: "stale" } {
-    if (this.#reservations.get(reservation.id) !== reservation) return { status: "stale" };
-    const result = this.transition({ kind: "jevRequestReady", partition: this.partitionId(partition),
-      lifetime: 1, round, operation, ...facts });
-    if (result.rejection !== undefined) return { status: "stale" };
-    const issued = result.commands[0];
-    if (issued?.kind === "jevRequestIssued") {
-      this.#requestRounds.set(issued.request, { partition, round });
-      return { status: "issued", request: issued.request, round };
-    }
-    if (result.commands.at(-1)?.kind !== "jevRequestUnavailable") throw new Error("invalid canonical request readiness");
-    this.#reservations.delete(reservation.id);
-    return { status: "unavailable", round };
-  }
-
-  startJevRequest(partition: string, operation: number, request: number): boolean {
-    const identity = this.#requestRounds.get(request);
-    if (identity?.partition !== partition) return false;
-    const result = this.transition({ kind: "jevRequestStarted", partition: this.partitionId(partition),
-      lifetime: 1, round: identity.round, operation, request });
-    return result.rejection === undefined && result.commands[0]?.kind === "jevRequestStartRecorded";
-  }
-
-  interruptJevRequest(partition: string, operation: number, request: number): boolean {
-    const identity = this.#requestRounds.get(request);
-    if (identity?.partition !== partition) return false;
-    const result = this.transition({ kind: "jevRequestInterrupted", partition: this.partitionId(partition),
-      lifetime: 1, round: identity.round, operation, request });
-    return result.rejection === undefined && result.commands[0]?.kind === "jevInterruptionRecorded";
-  }
-
-  settleJevRequest(partition: string, operation: number, request: number,
-    reservation: CapacityReservation, outcome: JevRequestOutcome, currentWork: boolean):
-    "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" | "unavailable" | "ignored" | "stale" {
-    const identity = this.#requestRounds.get(request);
-    if (identity?.partition !== partition) return "stale";
-    const result = this.transition({ kind: "jevRequestSettled", partition: this.partitionId(partition),
-      lifetime: 1, round: identity.round, operation, request, outcome, currentWork });
-    if (result.rejection !== undefined) return "stale";
-    this.#requestRounds.delete(request);
-    const disposition = result.commands.at(-1)?.kind;
-    if (disposition === "jevObservationIgnored") return "ignored";
-    if (disposition !== "jevRequestOutcomeRecorded") throw new Error("invalid canonical request settlement");
-    const choice = result.commands.at(-2)?.kind;
-    if (choice === "retainFinding") {
-      if (this.#reservations.get(reservation.id) === reservation) {
-        (reservation as { purpose: CapacityPurpose }).purpose = "storedResult";
-      }
-      return choice;
-    }
-    if (this.#reservations.get(reservation.id) === reservation) this.#reservations.delete(reservation.id);
-    if (choice === "settleClear" || choice === "settleStaleClear" || choice === "retireStaleFinding") return choice;
-    if (result.commands.some((command) => command.kind === "reviewRecorded")) return "unavailable";
-    throw new Error("invalid canonical request outcome");
-  }
-
-  completeReview(partition: string, operation: number, reservation: CapacityReservation,
-    outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded", round: number): boolean {
-    if (this.#reservations.get(reservation.id) !== reservation) return false;
-    const result = this.transition({ kind: "reviewCompleted", partition: this.partitionId(partition),
-      lifetime: 1, round, operation, outcome });
-    if (result.rejection !== undefined || result.commands.at(-1)?.kind !== "reviewRecorded") return false;
-    if (outcome === "finding") (reservation as { purpose: CapacityPurpose }).purpose = "storedResult";
-    else this.#reservations.delete(reservation.id);
-    return true;
-  }
-
-  observeReview(partition: string, operation: number, reservation: CapacityReservation,
-    outcome: "finding" | "clear", currentWork: boolean, round: number):
-    "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" {
-    if (this.#reservations.get(reservation.id) !== reservation) throw new Error("unknown review reservation");
-    const result = this.transition({ kind: "reviewObserved", partition: this.partitionId(partition),
-      lifetime: 1, round, operation, outcome, currentWork });
-    const disposition = result.commands.at(-1)?.kind;
-    if (result.rejection !== undefined || (disposition !== "retainFinding" && disposition !== "settleClear" &&
-        disposition !== "settleStaleClear" && disposition !== "retireStaleFinding")) {
-      throw new Error("canonical review observation refused");
-    }
-    if (disposition === "retainFinding") (reservation as { purpose: CapacityPurpose }).purpose = "storedResult";
-    else this.#reservations.delete(reservation.id);
-    return disposition;
-  }
-
-  preparedOffer(ready: boolean, withinFrame: boolean): "preparedSkipped" | "preparedAdmitted" | "preparedCapacityRefused" {
-    const command = this.transition({ kind: "preparedOfferCheck", ready, withinFrame }).commands[0]?.kind;
-    if (command !== "preparedSkipped" && command !== "preparedAdmitted" && command !== "preparedCapacityRefused") {
-      throw new Error("canonical prepared offer refused");
-    }
-    return command;
-  }
-
-  emptyPrepared(readyCount: number, hasNonSkipped: boolean, ticketed: boolean): boolean {
-    const command = this.transition({ kind: "emptyPreparedCheck", readyCount, hasNonSkipped, ticketed }).commands[0]?.kind;
-    if (command !== "emptyLost" && command !== "emptyAccepted") throw new Error("canonical empty preparation refused");
-    return command === "emptyLost";
-  }
-
-  reviewFailure(backendOrTimeout: boolean, credential: boolean, missing: boolean):
-    "failureBackend" | "failureCredential" | "failureLost" | "failureNone" {
-    const command = this.transition({ kind: "reviewFailureCheck", backendOrTimeout, credential, missing }).commands[0]?.kind;
-    if (command !== "failureBackend" && command !== "failureCredential" && command !== "failureLost" && command !== "failureNone") {
-      throw new Error("canonical review failure classification refused");
-    }
-    return command;
-  }
-
-  retireRound(partition: string, round: number): void {
-    if (this.#roundIds.get(partition) !== round) return;
-    const result = this.transition({ kind: "retirePartition", partition: this.partitionId(partition),
-      lifetime: 1, round });
-    if (result.rejection !== undefined || result.commands.at(-1)?.kind !== "partitionRetired") {
-      throw new Error("canonical round retirement refused");
-    }
-    const live = new Set(this.canonicalProjection().charges.map((charge) => charge.id));
-    for (const [id, reservation] of this.#reservations) {
-      if (reservation.partition === partition && !live.has(id)) this.#reservations.delete(id);
-    }
-    this.#roundIds.delete(partition);
-  }
-
-  reserve(partition: string, bytes: number, purpose: CapacityPurpose): CapacityReservation | undefined {
-    if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > CANONICAL_MAX_BYTES) return undefined;
-    const partitionId = this.partitionId(partition);
-    const result = stepCanonical(this.#state, { kind: "reserveCapacity", partition: partitionId, bytes, purpose });
-    const command = result.commands[0];
-    if (result.rejection !== undefined || result.commands.length !== 1 || command === undefined) throw new Error("invalid Bend capacity reservation result");
-    if (command.kind === "capacityRefused") return undefined;
-    if (command.kind !== "capacityGranted") throw new Error("unexpected Bend capacity reservation command");
-    const id = command.id;
-    if (this.#reservations.has(id)) throw new Error("Bend reused a live capacity reservation ID");
-    this.#state = result.state;
-    const reservation = { id, partition, bytes, purpose };
-    this.#reservations.set(reservation.id, reservation);
-    return reservation;
-  }
-
-  resize(reservation: CapacityReservation, bytes: number,
-    purpose: CapacityPurpose = reservation.purpose): boolean {
-    const retained = this.#reservations.get(reservation.id);
-    if (retained !== reservation || !Number.isSafeInteger(bytes) || bytes < 0 ||
-        bytes > CANONICAL_MAX_BYTES) return false;
-    const result = stepCanonical(this.#state, { kind: "resizeCapacity", reservation: reservation.id, bytes, purpose });
-    const command = result.commands[0];
-    if (result.rejection !== undefined || result.commands.length !== 1 || command === undefined) throw new Error("invalid Bend capacity resize result");
-    if (command.kind === "capacityRefused") return false;
-    if (command.kind !== "capacityResized" || command.id !== reservation.id) throw new Error("unexpected Bend capacity resize command");
-    this.#state = result.state;
-    (reservation as { bytes: number; purpose: CapacityPurpose }).bytes = bytes;
-    (reservation as { purpose: CapacityPurpose }).purpose = purpose;
-    return true;
-  }
-
-  /** Atomically replace one workspace charge with independently retained items. */
-  replace(
-    reservation: CapacityReservation,
-    bytes: ReadonlyArray<number>,
-  ): ReadonlyArray<CapacityReservation | undefined> {
-    if (this.#reservations.get(reservation.id) !== reservation) return bytes.map(() => undefined);
-    if (bytes.length > CANONICAL_MAX_UNITS ||
-        bytes.some((size) => !Number.isSafeInteger(size) || size <= 0 || size > CANONICAL_MAX_BYTES)) {
-      this.release(reservation);
-      throw new TypeError("invalid measured review unit size");
-    }
-    const result = stepCanonical(this.#state, { kind: "replaceCapacity", reservation: reservation.id, unitBytes: bytes });
-    if (result.rejection !== undefined || result.commands[0]?.kind !== "preparationReleased" ||
-        result.commands[0].id !== reservation.id || result.commands.length !== bytes.length + 1) {
-      throw new Error("invalid Bend capacity replacement result");
-    }
-    const replacements = result.commands.slice(1).map((command, index) => {
-      if (command.kind === "capacityUnitRefused" && command.position === index + 1 && command.bytes === bytes[index]) return undefined;
-      if (command.kind !== "capacityUnitAdmitted" || command.position !== index + 1 || command.bytes !== bytes[index]) {
-        throw new Error("unexpected Bend capacity replacement command");
-      }
-      return { id: command.reservation, partition: reservation.partition, bytes: command.bytes, purpose: "reviewUnit" as const };
-    });
-    const replacementIds = replacements.flatMap((item) => item === undefined ? [] : [item.id]);
-    if (new Set(replacementIds).size !== replacementIds.length ||
-        replacementIds.some((id) => this.#reservations.has(id))) {
-      throw new Error("Bend reused a live capacity reservation ID");
-    }
-    this.#state = result.state;
-    this.#reservations.delete(reservation.id);
-    for (const item of replacements) if (item !== undefined) this.#reservations.set(item.id, item);
-    return replacements;
-  }
-
-  release(reservation: CapacityReservation): boolean {
-    const retained = this.#reservations.get(reservation.id);
-    if (retained !== reservation) return false;
-    const work = this.canonicalProjection().work.find((item) => item.reservation === reservation.id);
-    if (work !== undefined) {
-      const kind = work.kind === "preparing" ? "interruptPreparation" :
-        work.kind === "pendingFinding" ? "retireReview" : "reviewCompleted";
-      const common = { partition: this.partitionId(reservation.partition), lifetime: 1,
-        round: work.round, operation: work.operation };
-      const result = kind === "reviewCompleted"
-        ? this.transition({ kind: "reviewCompleted", ...common, outcome: "discarded" })
-        : kind === "retireReview"
-          ? this.transition({ kind: "retireReview", ...common })
-          : this.transition({ kind: "interruptPreparation", ...common });
-      if (result.rejection !== undefined || !result.commands.some((command) =>
-          (command.kind === "preparationReleased" || command.kind === "reservationReleased") &&
-          command.id === reservation.id)) throw new Error("canonical work release refused");
-      this.#reservations.delete(reservation.id);
+function evictInactivePartition(draft: CapacityDraft): boolean {
+  for (const partition of draft.partitionIds.keys()) {
+    const before = draft.partitionIds.size;
+    discardUnusedPartition(draft, partition);
+    if (draft.partitionIds.size < before) {
+      draft.minimumFreshStart = Math.max(draft.minimumFreshStart,
+        Math.ceil(monotonicNow() * 1000));
       return true;
     }
-    const result = stepCanonical(this.#state, { kind: "releaseCapacity", reservation: reservation.id });
-    if (result.rejection !== undefined || result.commands.length !== 1 ||
-        result.commands[0]?.kind !== "reservationReleased" || result.commands[0].id !== reservation.id) {
-      throw new Error("invalid Bend capacity release result");
+  }
+  return false;
+}
+
+function collectionTokenId(draft: CapacityDraft, token: string): number {
+  let id = draft.collectionTokens.get(token);
+  if (id === undefined) {
+    if (Buffer.byteLength(token, "utf8") > MAX_COLLECTION_TOKEN_KEY_BYTES ||
+      draft.collectionTokens.size >= MAX_COLLECTION_TOKEN_IDENTITIES) {
+      throw new RangeError("resident collection token capacity exhausted");
     }
-    this.#state = result.state;
-    this.#reservations.delete(reservation.id);
+    id = draft.nextCollectionToken++;
+    draft.collectionTokens.set(token, id);
+  }
+  return id;
+}
+
+function collectionTokenIdentityCount(draft: CapacityState): number { return draft.collectionTokens.size; }
+
+function pruneCollectionTokenIds(draft: CapacityDraft, nativeLive: ReadonlySet<string>): void {
+  const state = canonicalProjection(draft);
+  const canonicalLive = new Set<number>([
+    ...state.collection.leases.map((item) => item.owner),
+    ...state.collection.claims.map((item) => item.owner),
+    ...state.delivery.slots.map((item) => item.token),
+    ...state.delivery.submissions.batches.map((item) => item.token),
+  ]);
+  for (const [key, id] of draft.collectionTokens) {
+    if (!nativeLive.has(key) && !canonicalLive.has(id)) draft.collectionTokens.delete(key);
+  }
+}
+
+function dispatchIdentity(draft: CapacityDraft, partition: string, round: number): { readonly partition: number; readonly round: number } {
+  return { partition: partitionId(draft, partition), round };
+}
+
+function dispatchScope(draft: CapacityDraft, namedCount: number, cancelledCount: number, hasUnnamed: boolean): boolean {
+  const result = transition(draft, { kind: "dispatchScopeCheck", namedCount, cancelledCount, hasUnnamed });
+  if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical dispatch scope refused");
+  const command = result.commands[0];
+  if (command?.kind === "discardNamedOnly") return true;
+  if (command?.kind === "discardAllUnfinished") return false;
+  throw new Error("invalid canonical dispatch scope command");
+}
+
+function transition(draft: CapacityDraft, event: ResidentTransition, commitNative?: (result: ReturnType<typeof stepCanonical> & {
+  readonly projection: ReturnType<typeof projectCanonical>;
+}) => void): ReturnType<typeof stepCanonical> {
+  const result = stepCanonical(draft.canonical, event);
+  if (result.rejection === undefined) {
+    commitNative?.({ ...result, projection: projectCanonical(result.state) });
+    draft.canonical = result.state;
+  }
+  return result;
+}
+
+function canonicalProjection(draft: CapacityState): ReturnType<typeof projectCanonical> {
+  return projectCanonical(draft.canonical);
+}
+
+function acknowledgeStopRelease(draft: CapacityDraft, id: number): void {
+  if (canonicalProjection(draft).charges.some((charge) => charge.id === id)) {
+    throw new Error("canonical Stop release retained its charge");
+  }
+  draft.reservations.delete(id);
+}
+
+function consumeEditPermit(draft: CapacityDraft, partition: string, event: Extract<ResidentTransition, { readonly kind: "consumePermit" }>):
+  ReturnType<typeof stepCanonical> {
+  const result = transition(draft, event);
+  if (result.rejection !== undefined) return result;
+  const consumed = result.commands.find((command) => command.kind === "permitConsumed");
+  const round = result.commands.find((command) => command.kind === "roundStarted");
+  const boundRound = canonicalProjection(draft).rounds.find(
+    (item) => item.partition === event.partition && item.lifetime === event.lifetime);
+  const roundId = round?.kind === "roundStarted" ? round.id : boundRound?.id;
+  if (consumed?.kind !== "permitConsumed" || roundId === undefined || boundRound?.id !== roundId) {
+    throw new Error("canonical edit admission omitted its round");
+  }
+  draft.roundIds.set(partition, roundId);
+  return result;
+}
+
+function roundId(draft: CapacityDraft, partition: string): number {
+  const existing = draft.roundIds.get(partition);
+  if (existing !== undefined) return existing;
+  const result = transition(draft, { kind: "openRound", partition: partitionId(draft, partition), lifetime: 1 });
+  const command = result.commands[0];
+  if (result.rejection !== undefined || command?.kind !== "roundStarted") throw new Error("canonical round admission refused");
+  draft.roundIds.set(partition, command.id);
+  return command.id;
+}
+
+function currentRoundId(draft: CapacityState, partition: string): number | undefined {
+  return draft.roundIds.get(partition);
+}
+
+function admitObservation(draft: CapacityDraft, partition: string, round: number = roundId(draft, partition)): number {
+  const result = transition(draft, { kind: "admitObservation", partition: partitionId(draft, partition),
+    lifetime: 1, round });
+  const command = result.commands[0];
+  if (result.rejection !== undefined || command?.kind !== "observationAdmitted") throw new Error("canonical observation admission refused");
+  return command.id;
+}
+
+function observation(draft: CapacityDraft, partition: string, id: number, kind: "startObservation" | "completeObservation" | "interruptObservation", round: number): boolean {
+  const result = transition(draft, { kind, partition: partitionId(draft, partition), lifetime: 1,
+    round, observation: id });
+  return result.rejection === undefined && result.commands[0]?.kind ===
+    ({ startObservation: "observationStarted", completeObservation: "observationCompleted",
+      interruptObservation: "observationInterrupted" } as const)[kind];
+}
+
+function beginObservedPreparation(draft: CapacityDraft, partition: string, observation: number, bytes: number, round: number):
+  { readonly operation: number; readonly reservation: CapacityReservation } | undefined {
+  if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > CANONICAL_MAX_BYTES) return undefined;
+  const result = transition(draft, { kind: "beginObservedPreparation", partition: partitionId(draft, partition),
+    lifetime: 1, round, observation, bytes });
+  const command = result.commands[0];
+  if (result.rejection !== undefined) return undefined;
+  if (command === undefined) throw new Error("invalid canonical preparation admission");
+  if (command.kind === "preparationRefused") return undefined;
+  if (command.kind !== "prepare") throw new Error("unexpected canonical preparation command");
+  const reservation = registerReservation(draft, command.reservation, partition, bytes, "preparation");
+  return { operation: command.operation, reservation };
+}
+
+function completePreparation(draft: CapacityDraft, partition: string, operation: number, reservation: CapacityReservation,
+  sizes: readonly number[], round: number): ReadonlyArray<{ readonly operation: number; readonly reservation: CapacityReservation } | undefined> {
+  if (draft.reservations.get(reservation.id)?.capability !== reservation || sizes.length > CANONICAL_MAX_UNITS ||
+      sizes.some((size) => !Number.isSafeInteger(size) || size <= 0 || size > CANONICAL_MAX_BYTES)) {
+    throw new TypeError("invalid canonical preparation completion");
+  }
+  const result = transition(draft, { kind: "preparationCompleted", partition: partitionId(draft, partition),
+    lifetime: 1, round, operation, unitBytes: sizes });
+  if (result.rejection !== undefined || result.commands[0]?.kind !== "preparationReleased") {
+    throw new Error("canonical preparation completion refused");
+  }
+  draft.reservations.delete(reservation.id);
+  const units = result.commands.slice(1).map((command, index) => {
+    // undefined records a capacity refusal, which cannot establish a clear review outcome.
+    if (command.kind === "unitRefused" && command.position === index + 1) return undefined;
+    if (command.kind !== "unitAdmitted" || command.position !== index + 1) throw new Error("invalid canonical unit admission");
+    const unit = registerReservation(draft, command.reservation, partition, command.bytes, "reviewUnit");
+    return { operation: command.operation, reservation: unit };
+  });
+  if (units.length !== sizes.length) throw new Error("canonical unit count mismatch");
+  return units;
+}
+
+function startReview(draft: CapacityDraft, partition: string, operation: number, round: number): boolean {
+  const result = transition(draft, { kind: "startReview", partition: partitionId(draft, partition),
+    lifetime: 1, round, operation });
+  return result.rejection === undefined && result.commands[0]?.kind === "reviewStarted";
+}
+
+function readyJevRequest(draft: CapacityDraft, partition: string, operation: number, reservation: CapacityReservation,
+  facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
+    readonly credentialReady: boolean; readonly selected: boolean;
+    readonly currentWork: boolean; readonly physicalAvailable: boolean }, round: number):
+  { readonly status: "issued"; readonly request: number; readonly round: number } |
+  { readonly status: "unavailable"; readonly round: number } | { readonly status: "stale" } {
+  if (draft.reservations.get(reservation.id)?.capability !== reservation) return { status: "stale" };
+  const result = transition(draft, { kind: "jevRequestReady", partition: partitionId(draft, partition),
+    lifetime: 1, round, operation, ...facts });
+  if (result.rejection !== undefined) return { status: "stale" };
+  const issued = result.commands[0];
+  if (issued?.kind === "jevRequestIssued") {
+    draft.requestRounds.set(issued.request, { partition, round });
+    return { status: "issued", request: issued.request, round };
+  }
+  if (result.commands.at(-1)?.kind !== "jevRequestUnavailable") throw new Error("invalid canonical request readiness");
+  draft.reservations.delete(reservation.id);
+  return { status: "unavailable", round };
+}
+
+function startJevRequest(draft: CapacityDraft, partition: string, operation: number, request: number): boolean {
+  const identity = draft.requestRounds.get(request);
+  if (identity?.partition !== partition) return false;
+  const result = transition(draft, { kind: "jevRequestStarted", partition: partitionId(draft, partition),
+    lifetime: 1, round: identity.round, operation, request });
+  return result.rejection === undefined && result.commands[0]?.kind === "jevRequestStartRecorded";
+}
+
+function interruptJevRequest(draft: CapacityDraft, partition: string, operation: number, request: number): boolean {
+  const identity = draft.requestRounds.get(request);
+  if (identity?.partition !== partition) return false;
+  const result = transition(draft, { kind: "jevRequestInterrupted", partition: partitionId(draft, partition),
+    lifetime: 1, round: identity.round, operation, request });
+  return result.rejection === undefined && result.commands[0]?.kind === "jevInterruptionRecorded";
+}
+
+function settleJevRequest(draft: CapacityDraft, partition: string, operation: number, request: number,
+  reservation: CapacityReservation, outcome: JevRequestOutcome, currentWork: boolean):
+  "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" | "unavailable" | "ignored" | "stale" {
+  const identity = draft.requestRounds.get(request);
+  if (identity?.partition !== partition) return "stale";
+  const result = transition(draft, { kind: "jevRequestSettled", partition: partitionId(draft, partition),
+    lifetime: 1, round: identity.round, operation, request, outcome, currentWork });
+  if (result.rejection !== undefined) return "stale";
+  draft.requestRounds.delete(request);
+  const disposition = result.commands.at(-1)?.kind;
+  if (disposition === "jevObservationIgnored") return "ignored";
+  if (disposition !== "jevRequestOutcomeRecorded") throw new Error("invalid canonical request settlement");
+  const choice = result.commands.at(-2)?.kind;
+  if (choice === "retainFinding") {
+    if (draft.reservations.get(reservation.id)?.capability === reservation) {
+      setReservationMetadata(draft, reservation, undefined, "storedResult");
+    }
+    return choice;
+  }
+  if (draft.reservations.get(reservation.id)?.capability === reservation) draft.reservations.delete(reservation.id);
+  if (choice === "settleClear" || choice === "settleStaleClear" || choice === "retireStaleFinding") return choice;
+  if (result.commands.some((command) => command.kind === "reviewRecorded")) return "unavailable";
+  throw new Error("invalid canonical request outcome");
+}
+
+function completeReview(draft: CapacityDraft, partition: string, operation: number, reservation: CapacityReservation,
+  outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded", round: number): boolean {
+  if (draft.reservations.get(reservation.id)?.capability !== reservation) return false;
+  const result = transition(draft, { kind: "reviewCompleted", partition: partitionId(draft, partition),
+    lifetime: 1, round, operation, outcome });
+  if (result.rejection !== undefined || result.commands.at(-1)?.kind !== "reviewRecorded") return false;
+  if (outcome === "finding") setReservationMetadata(draft, reservation, undefined, "storedResult");
+  else draft.reservations.delete(reservation.id);
+  return true;
+}
+
+function observeReview(draft: CapacityDraft, partition: string, operation: number, reservation: CapacityReservation,
+  outcome: "finding" | "clear", currentWork: boolean, round: number):
+  "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" {
+  if (draft.reservations.get(reservation.id)?.capability !== reservation) throw new Error("unknown review reservation");
+  const result = transition(draft, { kind: "reviewObserved", partition: partitionId(draft, partition),
+    lifetime: 1, round, operation, outcome, currentWork });
+  const disposition = result.commands.at(-1)?.kind;
+  if (result.rejection !== undefined || (disposition !== "retainFinding" && disposition !== "settleClear" &&
+      disposition !== "settleStaleClear" && disposition !== "retireStaleFinding")) {
+    throw new Error("canonical review observation refused");
+  }
+  if (disposition === "retainFinding") setReservationMetadata(draft, reservation, undefined, "storedResult");
+  else draft.reservations.delete(reservation.id);
+  return disposition;
+}
+
+function preparedOffer(draft: CapacityDraft, ready: boolean, withinFrame: boolean): "preparedSkipped" | "preparedAdmitted" | "preparedCapacityRefused" {
+  const command = transition(draft, { kind: "preparedOfferCheck", ready, withinFrame }).commands[0]?.kind;
+  if (command !== "preparedSkipped" && command !== "preparedAdmitted" && command !== "preparedCapacityRefused") {
+    throw new Error("canonical prepared offer refused");
+  }
+  return command;
+}
+
+function emptyPrepared(draft: CapacityDraft, readyCount: number, hasNonSkipped: boolean, ticketed: boolean): boolean {
+  const command = transition(draft, { kind: "emptyPreparedCheck", readyCount, hasNonSkipped, ticketed }).commands[0]?.kind;
+  if (command !== "emptyLost" && command !== "emptyAccepted") throw new Error("canonical empty preparation refused");
+  return command === "emptyLost";
+}
+
+function reviewFailure(draft: CapacityDraft, backendOrTimeout: boolean, credential: boolean, missing: boolean):
+  "failureBackend" | "failureCredential" | "failureLost" | "failureNone" {
+  const command = transition(draft, { kind: "reviewFailureCheck", backendOrTimeout, credential, missing }).commands[0]?.kind;
+  if (command !== "failureBackend" && command !== "failureCredential" && command !== "failureLost" && command !== "failureNone") {
+    throw new Error("canonical review failure classification refused");
+  }
+  return command;
+}
+
+function retireRound(draft: CapacityDraft, partition: string, round: number): void {
+  if (draft.roundIds.get(partition) !== round) return;
+  const result = transition(draft, { kind: "retirePartition", partition: partitionId(draft, partition),
+    lifetime: 1, round });
+  if (result.rejection !== undefined || result.commands.at(-1)?.kind !== "partitionRetired") {
+    throw new Error("canonical round retirement refused");
+  }
+  const live = new Set(canonicalProjection(draft).charges.map((charge) => charge.id));
+  for (const [id, reservation] of draft.reservations) {
+    if (reservation.capability.partition === partition && !live.has(id)) draft.reservations.delete(id);
+  }
+  draft.roundIds.delete(partition);
+}
+
+function reserve(draft: CapacityDraft, partition: string, bytes: number, purpose: CapacityPurpose): CapacityReservation | undefined {
+  if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > CANONICAL_MAX_BYTES) return undefined;
+  const identity = partitionId(draft, partition);
+  const result = stepCanonical(draft.canonical, { kind: "reserveCapacity", partition: identity, bytes, purpose });
+  const command = result.commands[0];
+  if (result.rejection !== undefined || result.commands.length !== 1 || command === undefined) throw new Error("invalid Bend capacity reservation result");
+  if (command.kind === "capacityRefused") return undefined;
+  if (command.kind !== "capacityGranted") throw new Error("unexpected Bend capacity reservation command");
+  const id = command.id;
+  if (draft.reservations.has(id)) throw new Error("Bend reused a live capacity reservation ID");
+  draft.canonical = result.state;
+  const reservation = registerReservation(draft, id, partition, bytes, purpose);
+  return reservation;
+}
+
+function resize(draft: CapacityDraft, reservation: CapacityReservation, bytes: number,
+  purpose: CapacityPurpose = reservation.purpose): boolean {
+  const retained = draft.reservations.get(reservation.id);
+  if (retained?.capability !== reservation || !Number.isSafeInteger(bytes) || bytes < 0 ||
+      bytes > CANONICAL_MAX_BYTES) return false;
+  const result = stepCanonical(draft.canonical, { kind: "resizeCapacity", reservation: reservation.id, bytes, purpose });
+  const command = result.commands[0];
+  if (result.rejection !== undefined || result.commands.length !== 1 || command === undefined) throw new Error("invalid Bend capacity resize result");
+  if (command.kind === "capacityRefused") return false;
+  if (command.kind !== "capacityResized" || command.id !== reservation.id) throw new Error("unexpected Bend capacity resize command");
+  draft.canonical = result.state;
+  setReservationMetadata(draft, reservation, bytes, purpose);
+  return true;
+}
+
+function replace(draft: CapacityDraft,
+  reservation: CapacityReservation,
+  bytes: ReadonlyArray<number>,
+): ReadonlyArray<CapacityReservation | undefined> | { readonly invalidMeasurement: true } {
+  if (draft.reservations.get(reservation.id)?.capability !== reservation) return bytes.map(() => undefined);
+  if (bytes.length > CANONICAL_MAX_UNITS ||
+      bytes.some((size) => !Number.isSafeInteger(size) || size <= 0 || size > CANONICAL_MAX_BYTES)) {
+    release(draft, reservation);
+    return { invalidMeasurement: true };
+  }
+  const result = stepCanonical(draft.canonical, { kind: "replaceCapacity", reservation: reservation.id, unitBytes: bytes });
+  if (result.rejection !== undefined || result.commands[0]?.kind !== "preparationReleased" ||
+      result.commands[0].id !== reservation.id || result.commands.length !== bytes.length + 1) {
+    throw new Error("invalid Bend capacity replacement result");
+  }
+  const replacements = result.commands.slice(1).map((command, index) => {
+    if (command.kind === "capacityUnitRefused" && command.position === index + 1 && command.bytes === bytes[index]) return undefined;
+    if (command.kind !== "capacityUnitAdmitted" || command.position !== index + 1 || command.bytes !== bytes[index]) {
+      throw new Error("unexpected Bend capacity replacement command");
+    }
+    return { id: command.reservation, partition: reservation.partition, bytes: command.bytes, purpose: "reviewUnit" as const };
+  });
+  const replacementIds = replacements.flatMap((item) => item === undefined ? [] : [item.id]);
+  if (new Set(replacementIds).size !== replacementIds.length ||
+      replacementIds.some((id) => draft.reservations.has(id))) {
+    throw new Error("Bend reused a live capacity reservation ID");
+  }
+  draft.canonical = result.state;
+  draft.reservations.delete(reservation.id);
+  return replacements.map((item) => item === undefined ? undefined :
+    registerReservation(draft, item.id, item.partition, item.bytes, item.purpose));
+}
+
+function release(draft: CapacityDraft, reservation: CapacityReservation): boolean {
+  const retained = draft.reservations.get(reservation.id);
+  if (retained?.capability !== reservation) return false;
+  const work = canonicalProjection(draft).work.find((item) => item.reservation === reservation.id);
+  if (work !== undefined) {
+    const kind = work.kind === "preparing" ? "interruptPreparation" :
+      work.kind === "pendingFinding" ? "retireReview" : "reviewCompleted";
+    const common = { partition: partitionId(draft, reservation.partition), lifetime: 1,
+      round: work.round, operation: work.operation };
+    const result = kind === "reviewCompleted"
+      ? transition(draft, { kind: "reviewCompleted", ...common, outcome: "discarded" })
+      : kind === "retireReview"
+        ? transition(draft, { kind: "retireReview", ...common })
+        : transition(draft, { kind: "interruptPreparation", ...common });
+    if (result.rejection !== undefined || !result.commands.some((command) =>
+        (command.kind === "preparationReleased" || command.kind === "reservationReleased") &&
+        command.id === reservation.id)) throw new Error("canonical work release refused");
+    draft.reservations.delete(reservation.id);
     return true;
   }
-
-  clear(): void {
-    this.#state = initialCanonical(this.#limits);
-    this.#reservations.clear();
-    this.#partitionIds.clear();
-    this.#partitionIdentityBytes = 0;
-    this.#roundIds.clear();
-    this.#requestRounds.clear();
-    this.#collectionTokens.clear();
-    this.#nextCollectionToken = 1;
-    this.#nextPartitionId = 1;
-    this.#minimumFreshStart = 0;
+  const result = stepCanonical(draft.canonical, { kind: "releaseCapacity", reservation: reservation.id });
+  if (result.rejection !== undefined || result.commands.length !== 1 ||
+      result.commands[0]?.kind !== "reservationReleased" || result.commands[0].id !== reservation.id) {
+    throw new Error("invalid Bend capacity release result");
   }
+  draft.canonical = result.state;
+  draft.reservations.delete(reservation.id);
+  return true;
+}
 
-  snapshot(): CapacitySnapshot {
-    const projection = projectCanonical(this.#state);
-    const entries: Array<[string, { items: number; bytes: number }]> = [];
-    for (const [partition, id] of this.#partitionIds) {
-      const usage = projection.partitions.find((item) => item.partition === id);
-      if (usage !== undefined && usage.items > 0) entries.push([partition, { items: usage.items, bytes: usage.bytes }]);
-    }
-    return {
-      items: projection.global.items,
-      bytes: projection.global.bytes,
-      partitions: Object.fromEntries(entries),
-    };
+function clear(draft: CapacityDraft): void {
+  draft.canonical = initialCanonical(draft.limits);
+  draft.reservations.clear();
+  draft.partitionIds.clear();
+  draft.partitionIdentityBytes = 0;
+  draft.roundIds.clear();
+  draft.requestRounds.clear();
+  draft.collectionTokens.clear();
+  draft.nextCollectionToken = 1;
+  draft.nextPartitionId = 1;
+  draft.minimumFreshStart = 0;
+}
+
+function snapshot(draft: CapacityState): CapacitySnapshot {
+  const projection = projectCanonical(draft.canonical);
+  const entries: Array<[string, { items: number; bytes: number }]> = [];
+  for (const [partition, id] of draft.partitionIds) {
+    const usage = projection.partitions.find((item) => item.partition === id);
+    if (usage !== undefined && usage.items > 0) entries.push([partition, { items: usage.items, bytes: usage.bytes }]);
   }
+  return {
+    items: projection.global.items,
+    bytes: projection.global.bytes,
+    partitions: Object.fromEntries(entries),
+  };
 }

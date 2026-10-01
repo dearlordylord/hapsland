@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { workView } from "./bend-work.ts";
-import { CapacityLedger } from "./capacity.ts";
+import { makeCapacityLedger } from "./capacity.ts";
 
 const limits = { globalItems: 8, globalBytes: 1000, partitionItems: 8, partitionBytes: 1000 };
 
 describe("canonical work projection", () => {
   it("reads source stages from the shared ledger without advancing another state", () => {
-    const ledger = new CapacityLedger(limits);
+    const ledger = makeCapacityLedger(limits);
     const round = ledger.roundId("agent");
     const view = () => workView(ledger.canonicalProjection(), ledger.partitionId("agent"), round);
     const source = ledger.admitObservation("agent");
@@ -21,7 +21,7 @@ describe("canonical work projection", () => {
   });
 
   it("keeps a retired round view separate from successor work on the same advicee", () => {
-    const ledger = new CapacityLedger(limits);
+    const ledger = makeCapacityLedger(limits);
     const oldRound = ledger.roundId("agent");
     const oldView = () => workView(ledger.canonicalProjection(), ledger.partitionId("agent"), oldRound);
     ledger.admitObservation("agent", oldRound);
@@ -43,7 +43,7 @@ describe("canonical work projection", () => {
   });
 
   it("uses canonical review identities and pending finding counts", () => {
-    const ledger = new CapacityLedger(limits);
+    const ledger = makeCapacityLedger(limits);
     const round = ledger.roundId("agent");
     const view = () => workView(ledger.canonicalProjection(), ledger.partitionId("agent"), round);
     const source = ledger.admitObservation("agent");

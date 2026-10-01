@@ -7,7 +7,7 @@ import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer, type JevRequestObservation } from "./server.ts";
-import { CapacityLedger } from "./capacity.ts";
+import { makeCapacityLedger, type CapacityLedger } from "./capacity.ts";
 import { captureStable } from "../direct-event/capture.ts";
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 
@@ -457,7 +457,7 @@ describe("canonical Jev request boundary", () => {
   it("keeps an interrupted canonical Jev permit charged until its settlement", () => {
     // Resident abort interrupts the controlled Effect promptly. Hold the
     // canonical interval open here to check the capacity boundary itself.
-    const ledger = new CapacityLedger(undefined, "interruption-barrier");
+    const ledger = makeCapacityLedger(undefined, "interruption-barrier");
     const partition = "review-partition";
     const facts = { rootValid: true, configurationValid: true,
       credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
@@ -500,8 +500,8 @@ describe("canonical Jev request boundary", () => {
   });
 
   it("binds local canonical lifetime 1 to each resident UUID and rotates canonical rounds", () => {
-    const first = new CapacityLedger(undefined, "resident-a");
-    const second = new CapacityLedger(undefined, "resident-b");
+    const first = makeCapacityLedger(undefined, "resident-a");
+    const second = makeCapacityLedger(undefined, "resident-b");
     const facts = { rootValid: true, configurationValid: true,
       credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
     const issue = (ledger: CapacityLedger) => {

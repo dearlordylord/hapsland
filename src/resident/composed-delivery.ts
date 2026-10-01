@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { monotonicNow, PRE_EDIT_ADMISSION_DEADLINE_MS } from "./hook-clock.ts";
 import { canonicalValue } from "../direct-event/model.ts";
-import { CapacityLedger } from "./capacity.ts";
+import { makeCapacityLedger, type CapacityLedger } from "./capacity.ts";
 import type { CompletedEditReason } from "../canonical/adapter.ts";
 import { DEFAULT_EDIT_PERMIT_LIMITS } from "../configuration/types.ts";
 import { DEFAULT_VIRTUAL_ROUND_QUIET_MS } from "../configuration/types.ts";
@@ -37,7 +37,7 @@ const fingerprint = (finding: unknown): string =>
 export class ComposedDelivery {
   readonly canonical: CapacityLedger;
   readonly #reportRepeat: (diagnostic: RepeatEditDiagnostic) => void;
-  constructor(canonical = new CapacityLedger(), reportRepeat: (diagnostic: RepeatEditDiagnostic) => void =
+  constructor(canonical = makeCapacityLedger(), reportRepeat: (diagnostic: RepeatEditDiagnostic) => void =
     () => {}) {
     this.canonical = canonical;
     this.#reportRepeat = reportRepeat;

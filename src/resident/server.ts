@@ -60,7 +60,8 @@ import {
   type ResidentUnavailableReason,
 } from "./protocol.ts";
 import {
-  CapacityLedger,
+  makeCapacityLedger,
+  type CapacityLedger,
   type CapacityPurpose,
   type CapacityReservation,
 } from "./capacity.ts";
@@ -569,7 +570,7 @@ export class ResidentServer {
   readonly #joinedReviews = new Map<string, Array<JoinedReview>>();
   #nextAdmissionGeneration = 1;
   #nextTicketUnitId = 1;
-  readonly #ledger = new CapacityLedger(undefined, this.lifetime);
+  readonly #ledger = makeCapacityLedger(undefined, this.lifetime);
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatchScope = Scope.makeUnsafe();
   readonly #dispatcher: Dispatcher<string, Job>;
