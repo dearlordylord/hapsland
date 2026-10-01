@@ -39,7 +39,12 @@
     "Client request transport uses Effect.callback with acquireUseRelease socket ownership and one absolute verification/response deadline; interruption destroys the connected native socket",
     "Client readiness, dispatch context, admission, shared and ticketed collection, acknowledgement/finalization and composed protocol workflows compose directly as named Effects; public Promise bridges preserve host call sites",
     "Codex direct dispatch and status workflows consume client Effects directly, removing nested Promise runtimes at those Effect call sites",
-    "Client launch throttling uses monotonic expiry pruning without native expiry timers; fixture Promise ports remain pending controlled-service conversion"
+    "Client launch throttling uses monotonic expiry pruning without native expiry timers; fixture Promise ports remain pending controlled-service conversion",
+    "Claude bounded edit collection composes client Effects with timeout interruption and Schedule polling instead of Promise.race and native sleep timers",
+    "Composed prompt/edit/background/Stop hooks compose client Effects directly and use scoped acquisition finalizers for Stop attempts and background claims; the obsolete async workflow was deleted",
+    "Composed hooks consume explicit runtime and output services; CLI root supplies production layers and controlled tests supply clock/identity/client/output ports without native timers or IPC",
+    "HookOutput owns stdout error observers through acquireUseRelease on success, error, deadline and interruption; submitted bytes remain uncertain after deadline or cancellation",
+    "Stop output interruption preserves continuation conservatively; only a proven pre-write refusal closes the attempt and releases the submission"
   ],
   "verification": [
     {
@@ -421,11 +426,66 @@
       "exitCode": 0,
       "tests": 27,
       "files": 2
+    },
+    {
+      "stage": "Scoped composed hooks and native output observer",
+      "command": "Initial hook-output.test.ts",
+      "exitCode": 1,
+      "testsPassed": 3,
+      "testsExpected": 4,
+      "failure": "Synchronous callback success did not release the native error observer; callback cleanup at rc.116 runs on interruption only",
+      "resolution": "Observer ownership moved to acquireUseRelease and all four output cases passed"
+    },
+    {
+      "stage": "Scoped composed hooks and native output observer",
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    {
+      "stage": "Scoped composed hooks and native output observer",
+      "command": "npm run build",
+      "exitCode": 0
+    },
+    {
+      "stage": "Scoped composed hooks and native output observer",
+      "commands": [
+        "check-canonical-authority",
+        "check-production-authority",
+        "check-capacity-boundary",
+        "check-permit-boundary",
+        "check-review-boundary",
+        "check-dispatch-boundary",
+        "check-stop-boundary",
+        "check-collection-boundary",
+        "check-delivery-boundary",
+        "check-revision-boundary",
+        "check-ticket-boundary",
+        "check-reuse-boundary",
+        "check-notice-boundary",
+        "check-retention-boundary",
+        "git diff --check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "stage": "Scoped composed hooks and native output observer",
+      "command": "vitest run --maxWorkers=1 src/resident/composed-hook.test.ts src/resident/hook-output.test.ts src/direct-event/claude-cli.test.ts src/cli.test.ts src/resident/claude-delivery.test.ts src/resident/terminal-collection.test.ts",
+      "exitCode": 0,
+      "tests": 64,
+      "files": 6,
+      "covers": [
+        "Interrupted Stop collection cleanup",
+        "Background acquisition/acknowledgement interruption cleanup",
+        "Interrupted uncertain Stop output preserves continuation",
+        "Pre-write refusal releases submission and closes Stop",
+        "Native output success/deadline/interruption observer cleanup",
+        "Existing CLI and composed delivery contracts"
+      ]
     }
   ],
   "next": [
     "Consolidate remaining server ticket/advice/notice/round records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
-    "Migrate remaining imperative host workflows to client Effects, replace client fixture ports and launch ownership with scoped services, and remove intermediate synchronous server/class ownership bridges",
+    "Migrate remaining direct CLI output and host workflows to scoped Effects, replace client fixture ports and launch ownership with services, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",

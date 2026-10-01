@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import * as Schedule from "effect/Schedule";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -36,17 +37,17 @@ import { attemptCodexHostOutput } from "./direct-event/writer.ts";
 import {
   acknowledgeAdvice,
   admitObservationEffect,
-  admitTicketedObservation,
-  collectOutcome,
+  admitTicketedObservationEffect,
+  collectOutcomeEffect,
   beginComposedSubmission,
   releaseComposedSubmission,
   ensureResidentEffect,
   inspectResidentEffect,
-  makeResidentDispatchContext,
   makeResidentDispatchContextEffect,
   type CollectedAdvice,
 } from "./resident/client.ts";
-import { runComposedHook, type ComposedHookKind, type ComposedHookHost } from "./resident/composed-hook.ts";
+import { hookOutputLayer } from "./resident/hook-output.ts";
+import { composedHookRuntimeLayer, runComposedHookEffect, type ComposedHookKind, type ComposedHookHost } from "./resident/composed-hook.ts";
 import {
   installCodexIntegration,
   previewCodexInstallation,
@@ -450,45 +451,45 @@ const runDirectCodexHook = (
     return { handled: true, output: {} } as const;
   });
 
-const runDirectBoundedHook = async (
+const runDirectBoundedHook = Effect.fn("ClaudeHook.collectBounded")(function* (
   observation: DirectObservation | undefined,
   controlled: ControlledDecisionModelOptions | undefined,
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
-): Promise<unknown> => {
+): Effect.fn.Return<unknown> {
   const deadline = directHookDeadline;
   if (observation === undefined) return {};
   const remaining = () => Math.max(0, deadline - performance.now());
-  const bounded = async <A>(task: () => Promise<A>): Promise<A | undefined> => {
-    const time = remaining();
-    if (time <= 0) return undefined;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    try {
-      return await Promise.race([
-        task(),
-        new Promise<undefined>((resolve) => { timer = setTimeout(() => resolve(undefined), time); }),
-      ]);
-    } catch { return undefined; }
-    finally { if (timer !== undefined) clearTimeout(timer); }
-  };
-  const dispatch = await bounded(() => makeResidentDispatchContext(
+  const bounded = <A, E>(task: Effect.Effect<A, E>): Effect.Effect<A | undefined> =>
+    Effect.suspend(() => {
+      const time = remaining();
+      if (time <= 0) return Effect.succeed(undefined);
+      return task.pipe(
+        Effect.timeoutOrElse({ duration: time, orElse: () => Effect.succeed(undefined) }),
+        Effect.catch(() => Effect.succeed(undefined)),
+      );
+    });
+  const dispatch = yield* bounded(makeResidentDispatchContextEffect(
     observation.root, statePath, activityPath, userConfigPath, controlled,
   ));
   if (dispatch === undefined) return {};
-  const accepted = await bounded(() => admitTicketedObservation(observation, dispatch, undefined, isComposedEditHook));
+  const accepted = yield* bounded(admitTicketedObservationEffect(observation, dispatch, undefined, isComposedEditHook));
   if (accepted?.status !== "accepted") return {};
-  while (remaining() > 150) {
-    const outcome = await bounded(() => collectOutcome(accepted.admission));
-    if (outcome === undefined) return {};
-    if (outcome.status === "advice") {
-      return { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice };
+  const pass = Effect.gen(function* () {
+    if (remaining() <= 150) return { done: true, output: {} };
+    const outcome = yield* bounded(collectOutcomeEffect(accepted.admission));
+    if (outcome?.status === "advice") {
+      return { done: true, output: { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice } };
     }
-    if (outcome.status !== "pending") return {};
-    await new Promise((resolve) => setTimeout(resolve, Math.min(50, remaining())));
-  }
-  return {};
-};
+    return { done: outcome?.status !== "pending", output: {} };
+  });
+  const result = yield* pass.pipe(Effect.repeat({
+    schedule: Schedule.spaced("50 millis"),
+    until: (result) => result.done || remaining() <= 150,
+  }));
+  return result.output;
+});
 
 const isDirectEventReady = (
   value: unknown,
@@ -624,7 +625,7 @@ const program = Effect.gen(function* () {
     let event: unknown;
     try { event = JSON.parse(input); } catch { event = undefined; }
     const controlled = isControlledReviewer ? yield* controlledOptions : undefined;
-    yield* Effect.promise(() => runComposedHook({
+    yield* runComposedHookEffect({
       kind: composedKind,
       host: composedHost,
       event,
@@ -633,7 +634,7 @@ const program = Effect.gen(function* () {
       activityPath,
       ...(userConfigPath === undefined ? {} : { userConfigPath }),
       ...(controlled === undefined ? {} : { controlled }),
-    }));
+    });
     return undefined;
   }
 
@@ -872,9 +873,9 @@ const program = Effect.gen(function* () {
     if (!isComposedEditHook) return {};
     const nativeEvent = yield* decodeJson(input);
     const observation = yield* adaptClaudeDirectEvent(nativeEvent, userConfigPath === undefined ? {} : { userConfigPath });
-    return yield* Effect.tryPromise(() => runDirectBoundedHook(
+    return yield* runDirectBoundedHook(
       observation, controlled, statePath, activityPath, userConfigPath,
-    )).pipe(Effect.catch(() => Effect.succeed({})));
+    ).pipe(Effect.catch(() => Effect.succeed({})));
   }
 
   if (isCodexHook) {
@@ -1283,7 +1284,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 } else {
 const output = isCredentialCommand
   ? await runCredentialCommand()
-  : await Effect.runPromise(program);
+  : await Effect.runPromise(program.pipe(Effect.provide(composedHookRuntimeLayer), Effect.provide(hookOutputLayer)));
 if (composedKind === undefined && !isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "object" && output !== null) {
   const record = output as Readonly<Record<string, unknown>>;
   process.exitCode = record.status === "unsupported"
