@@ -49,11 +49,23 @@ production installation. [macOS arm64 package conformance](https://github.com/de
 also passed at `c8fddecbe478a766e065408fa5d1d8e1c0016339`; its
 [sanitized record](../evidence/rust-support/cross-file-macos-package.json) includes
 actual installed Cargo/module preparation. The prior native-agent run predates
-this amendment. The final full Rust suite passed 917 tests with two live tests
-skipped; typecheck, build, native verification, and pinned clean-tarball audit
-passed. A preceding full run had one existing TypeScript Claude hook child exit
-without a status. Isolation and the fresh full run passed without production
-changes; the termination cause is unestablished.
+this amendment. The earlier cross-file full run had one existing TypeScript
+Claude hook child exit without a status; isolation and a fresh full run passed
+without production changes at that checkpoint. Its termination cause remains
+unestablished.
+
+The cohesive-adapter refactor has separate [Linux package evidence](../evidence/rust-support/adapter-linux-package.json)
+and [macOS package evidence](../evidence/rust-support/adapter-macos-package.json),
+with [macOS CI](https://github.com/dearlordylord/hapsland/actions/runs/36821309415)
+at runtime checkpoint `8345cc3bd6dd4d74c0056f524f8fe86e24b905b4`.
+The latest full Rust suite passed 921 tests with two live tests skipped;
+typecheck, build, and native verification passed. Whole-repository architecture
+re-review reported zero Standards findings and zero Spec findings. The
+architecture regression test protects generic-module imports and prevents Rust
+context fields leaking into the host. A separately reproduced parser-wrapper
+identity bug was fixed using node kind and source spans; the alias property now
+checks 1,000 generated cases and the counterexample. This does not establish a
+cause for the earlier hook termination. Supported language scope is unchanged.
 
 These observations do not validate every Noul rule, broad Rust semantics,
 reliable delivery across sessions, another agent runtime, or another platform.
