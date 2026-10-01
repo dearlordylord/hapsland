@@ -10,4 +10,10 @@ for (const field of ["#pending", "#active", "#runningEntries", "#sequence", "#cy
 for (const event of ["queueDispatch", "dispatchSettled", "discardDispatch", "closeDispatch"]) {
   if (!dispatch.includes(event)) throw new Error(`missing canonical dispatch event: ${event}`);
 }
+if (/\bRef\.(?:make|modify|update|set)\s*(?:<|\()/.test(dispatch)) {
+  throw new Error("dispatch registration must share the resident state owner, not acquire an independent Ref");
+}
+if (!dispatch.includes("const registry = ledger.dispatch")) {
+  throw new Error("dispatch execution bypassed the resident-owned native registry");
+}
 if (server.includes("bendDiscardScope")) throw new Error("direct discard scope policy returned");

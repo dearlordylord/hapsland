@@ -26,7 +26,12 @@
     "Replaced ComposedDelivery class with explicit delivery draft operations in the canonical/capacity/reuse Ref; cloned mutable permit, Stop, finish and nested submission records before mutation",
     "Delivery commits check native permit, background waiter and edit identity agreement before publication; read-only delivery views avoid draft cloning",
     "Repeat-edit diagnostics execute after atomic publication and contain sink failures; reentrant diagnostic sinks observe committed repeat flags",
-    "Production authority check rejects restoration of the retired CapacityLedger, EvaluationReuse and ComposedDelivery classes"
+    "Production authority check rejects restoration of the retired CapacityLedger, EvaluationReuse and ComposedDelivery classes",
+    "Dispatch native registry and retained start commands now commit in the canonical/capacity/reuse/delivery Ref; dispatcher no longer owns an independent state Ref",
+    "Dispatch commits and command acknowledgement compose directly as Effects over the shared owner; scoped physical execution and idle Latch remain executor resources",
+    "Resident state acquisition is an Effect with one Ref per acquisition; synchronous factory remains a host bridge for existing callers",
+    "Outstanding native dispatch jobs block destructive state clearing; one scoped dispatch executor attaches per owner, including after logical state clear",
+    "Dispatch boundary check rejects independently acquired dispatch Ref ownership"
   ],
   "verification": [
     {
@@ -264,10 +269,48 @@
       "files": 9,
       "exitCode": 0,
       "stage": "Combined canonical/capacity/reuse/delivery state; nested Stop revocation rollback, shared views and diagnostic reentry conformance"
+    },
+    {
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0,
+      "stage": "Combined state with dispatch registry"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "stage": "Combined state with dispatch registry"
+    },
+    {
+      "commands": [
+        "check-canonical-authority",
+        "check-production-authority",
+        "check-capacity-boundary",
+        "check-permit-boundary",
+        "check-review-boundary",
+        "check-dispatch-boundary",
+        "check-stop-boundary",
+        "check-collection-boundary",
+        "check-delivery-boundary",
+        "check-revision-boundary",
+        "check-ticket-boundary",
+        "check-reuse-boundary",
+        "check-notice-boundary",
+        "check-retention-boundary",
+        "git diff --check"
+      ],
+      "exitCode": 0,
+      "stage": "Combined state with dispatch registry"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/dispatch.test.ts src/resident/capacity.test.ts src/resident/evaluation-reuse.test.ts src/resident/composed-delivery.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/jev-request.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts",
+      "tests": 199,
+      "files": 9,
+      "exitCode": 0,
+      "stage": "Combined state with dispatch registry; registry rollback, physical clear fence, single executor and originating saturation trace conformance"
     }
   ],
   "next": [
-    "Consolidate dispatch and remaining server records with the canonical/capacity/reuse/delivery record into one production ResidentState Effect service; delete the remaining server class owner and synchronous commit bridges",
+    "Consolidate remaining server records with the canonical/capacity/reuse/delivery/dispatch record into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
     "Migrate client/host edges and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -275,7 +318,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Dispatch and remaining server records still have separate owners; the combined canonical/capacity/reuse/delivery factory retains synchronous host-call bridges pending consolidation",
+    "Remaining server records and native resources still have class ownership; the combined state exposes synchronous host bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"

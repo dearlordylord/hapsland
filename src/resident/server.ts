@@ -570,7 +570,7 @@ export class ResidentServer {
   readonly #joinedReviews = new Map<string, Array<JoinedReview>>();
   #nextAdmissionGeneration = 1;
   #nextTicketUnitId = 1;
-  readonly #ledger = makeCapacityLedger<UnitJob>(undefined, this.lifetime);
+  readonly #ledger = makeCapacityLedger<UnitJob, string, Job>(undefined, this.lifetime);
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatchScope = Scope.makeUnsafe();
   readonly #dispatcher: Dispatcher<string, Job>;

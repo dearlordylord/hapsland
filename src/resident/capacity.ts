@@ -1,3 +1,4 @@
+import { initialDispatchRegistry, type DispatchRegistry, type DispatchState } from "./dispatch.ts";
 import { initialDelivery, draftDelivery, deliveryOperations, deliveryView, assertDeliveryState, type DeliveryState, type ComposedDelivery, type RepeatEditDiagnostic } from "./composed-delivery.ts";
 import { initialEvaluationReuse, draftEvaluationReuse, evaluationReuseOperations, evaluationReuseView, residentEvaluationIdentity, type EvaluationReuse, type EvaluationReuseState } from "./evaluation-reuse.ts";
 import { Effect, Ref } from "effect";
@@ -129,50 +130,66 @@ const draftCapacity = (current: CapacityState, readReservation: CapacityDraft["r
   collectionTokens: new Map(current.collectionTokens), readReservation,
 });
 
-/** One commit owner for canonical state, capacity identities, evaluation reuse and delivery.
+/** One commit owner for canonical state, capacity identities, evaluation reuse, delivery and dispatch registration.
  * Draft validation can fail without publishing a partial canonical transition.
  * Synchronous methods bridge existing host callers while the resident service
  * surface is migrated; all internal operations receive their draft explicitly.
  */
-export const makeCapacityLedger = <Pending = never>(limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) => {
-  const state = Effect.runSync(Ref.make<CapacityState & { readonly reuse: EvaluationReuseState<Pending>; readonly delivery: DeliveryState }>({
+export const makeResidentState = <Pending = never, DispatchKey = string, DispatchValue = never>(limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) => Effect.gen(function* () {
+  const state = yield* Ref.make<CapacityState & { readonly reuse: EvaluationReuseState<Pending>; readonly delivery: DeliveryState; readonly dispatch: DispatchRegistry<DispatchKey, DispatchValue> }>({
     residentLifetime, limits, canonical: initialCanonical(limits), reservations: new Map(),
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
-    reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
-  }));
+    reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(),
+  });
   const read = <A>(operation: (current: CapacityState) => A): A =>
     Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
   let committing = false;
-  const commitAll = <A>(operation: (draft: CapacityDraft, reuse: EvaluationReuseState<Pending>, delivery: DeliveryState) =>
-    readonly [A, EvaluationReuseState<Pending>, DeliveryState]): A => {
-    if (committing) throw new Error("resident capacity commit cannot be reentered");
-    committing = true;
-    try {
-      return Effect.runSync(Ref.modify(state, (current) => {
+  const commitAllEffect = <A>(operation: (draft: CapacityDraft, reuse: EvaluationReuseState<Pending>, delivery: DeliveryState,
+    dispatch: DispatchRegistry<DispatchKey, DispatchValue>) =>
+    readonly [A, EvaluationReuseState<Pending>, DeliveryState, DispatchRegistry<DispatchKey, DispatchValue>]): Effect.Effect<A> =>
+    Ref.modify(state, (current) => {
+      if (committing) throw new Error("resident capacity commit cannot be reentered");
+      committing = true;
+      try {
         const draft = draftCapacity(current, (id) => Ref.getUnsafe(state).reservations.get(id));
-        const [value, reuse, delivery] = operation(draft, current.reuse, current.delivery);
+        const [value, reuse, delivery, dispatch] = operation(draft, current.reuse, current.delivery, current.dispatch);
         const { readReservation: _, ...next } = draft;
-        return [value, { ...next, reuse, delivery }] as const;
-      }).pipe(Effect.withSpan("ResidentState.commit")));
-    } finally { committing = false; }
-  };
+        return [value, { ...next, reuse, delivery, dispatch }] as const;
+      } finally { committing = false; }
+    }).pipe(Effect.withSpan("ResidentState.commit"));
+  const commitAll = <A>(operation: Parameters<typeof commitAllEffect<A>>[0]): A =>
+    Effect.runSync(commitAllEffect(operation));
   const commit = <A>(operation: (draft: CapacityDraft) => A): A =>
-    commitAll((draft, reuse, delivery) => [operation(draft), reuse, delivery]);
+    commitAll((draft, reuse, delivery, dispatch) => [operation(draft), reuse, delivery, dispatch]);
   const capacity = capacityOperations(commit, read, residentLifetime);
   return {
     ...capacity,
-    clear: () => commitAll((draft) => [clear(draft), initialEvaluationReuse<Pending>(), initialDelivery()]),
+    clear: () => commitAll((draft, _reuse, _delivery, dispatch) => {
+      if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
+      return [clear(draft), initialEvaluationReuse<Pending>(), initialDelivery(), {
+        ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached,
+      }];
+    }),
+    dispatch: {
+      read: Ref.get(state).pipe(Effect.map((current) => current.dispatch)),
+      modify: <A>(operation: (current: DispatchRegistry<DispatchKey, DispatchValue>, ledger: CapacityLedger) => readonly [A, DispatchRegistry<DispatchKey, DispatchValue>]) =>
+        commitAllEffect((draft, reuse, delivery, current) => {
+          const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+          const [value, dispatch] = operation(current, owner);
+          return [value, reuse, delivery, dispatch];
+        }),
+    } satisfies DispatchState<DispatchKey, DispatchValue>,
     delivery: (reportRepeat: (diagnostic: RepeatEditDiagnostic) => void = () => {}) => {
       const deliveryCommit = <A>(operation: (operations: ComposedDelivery) => A): A => {
-        const [value, diagnostics] = commitAll((draft, reuse, current) => {
+        const [value, diagnostics] = commitAll((draft, reuse, current, dispatch) => {
           const delivery = draftDelivery(current);
           const diagnostics: RepeatEditDiagnostic[] = [];
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
           const operations = deliveryOperations(delivery, owner, (diagnostic) => diagnostics.push(diagnostic));
           const value = operation(operations);
           assertDeliveryState(delivery, owner);
-          return [[value, diagnostics] as const, reuse, delivery];
+          return [[value, diagnostics] as const, reuse, delivery, dispatch];
         });
         // Diagnostics run after publication, outside the atomic commit. A
         // diagnostic failure cannot undo admission or change policy decisions.
@@ -231,13 +248,13 @@ export const makeCapacityLedger = <Pending = never>(limits: CapacityLimits = def
     },
     reuse: (logicalBytes: (value: unknown) => number) => {
       const reuseCommit = <A>(operation: (operations: EvaluationReuse<Pending>) => A): A =>
-        commitAll((draft, current, delivery) => {
+        commitAll((draft, current, delivery, dispatch) => {
           const reuse = draftEvaluationReuse(current);
           const operations = evaluationReuseOperations(reuse,
             capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime), logicalBytes);
           const value = operation(operations);
           operations.snapshot();
-          return [value, reuse, delivery];
+          return [value, reuse, delivery, dispatch];
         });
       const view = () => evaluationReuseView(Ref.getUnsafe(state).reuse, capacity);
       return {
@@ -257,7 +274,12 @@ export const makeCapacityLedger = <Pending = never>(limits: CapacityLimits = def
       };
     },
   };
-};
+}).pipe(Effect.withSpan("ResidentState.make"));
+
+/** Synchronous host bridge during runtime service consolidation. */
+export const makeCapacityLedger = <Pending = never, DispatchKey = string, DispatchValue = never>(
+  ...args: Parameters<typeof makeResidentState<Pending, DispatchKey, DispatchValue>>
+) => Effect.runSync(makeResidentState<Pending, DispatchKey, DispatchValue>(...args));
 
 const capacityOperations = (
   commit: <A>(operation: (draft: CapacityDraft) => A) => A,
