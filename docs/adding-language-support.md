@@ -14,10 +14,10 @@ needs its own explicit evidence boundary and validation cases.
 ## What Rust established
 
 The active Rust scope is explicit top-level structs, enums, and type aliases,
-with bounded same-file type references. TypeScript retains its supported local
+with bounded type references across verified local Cargo modules. TypeScript retains its supported local
 import traversal and function branch. TypeScript type shapes and Rust types use
 the existing type-shape v1 input; TypeScript functions use their separate
-function v1 contract. Rust functions, module resolution, and compiler expansion
+function v1 contract. Rust functions, external-crate resolution, and compiler expansion
 are deferred. Consult
 the accepted contract for the exact current syntax and limits.
 
@@ -108,13 +108,35 @@ justifies one. New languages need not share Rust's declaration families.
   discriminants, and const arguments must not silently become complete types.
 - Macros and attributes can change names outside the selected root. Rust marks
   file scope uncertain for attributes anywhere, including unrelated functions,
-  and for imports, modules, extern declarations, or macros. Ordinary doc
+  and for unsupported imports/modules, extern declarations, or macros. Ordinary doc
   comments are inert. A future language needs its own expansion boundary.
 - A shared parser entry point does not authorize cross-language resolution.
   TypeScript imports cannot bind to Rust declarations just because `.rs` parses.
 - Partial evidence is not a clean semantic judgment. Root-only custom rules
   may accept marked omissions; closure-dependent rules must skip missing
   evidence. Verify the exact capability gate and absence of a provider call.
+
+## Establish module authority before traversal
+
+A parser recognizing `use` is insufficient. Rust file roles come from Cargo
+and `mod` declarations: custom crate roots exist, and an ordinary module can be
+named `lib.rs`. Explicit binary targets can suppress an apparently standard
+`src/main.rs`; a filesystem match alone can supply false evidence. Consult the
+[Cargo target rules](https://doc.rust-lang.org/cargo/reference/cargo-targets.html)
+and [Rust module rules](https://doc.rust-lang.org/reference/items/modules.html).
+The implemented profile validates a bounded manifest subset and module chain,
+then passes explicit role facts to extraction. Unsupported authority remains an
+omission rather than a guessed binding.
+
+For every new language, identify the owner of module identity, exported names,
+aliases, visibility, shadowing, and extension/path choices. Keep reference-site
+spelling distinct from canonical target identity. Traverse transitively using
+the shared cycle and budget policy. Charge authority reads to the same budgets,
+check them before reads, and retain their fingerprints for freshness even when
+no source from them goes to Jev. Test custom roots, dormant targets, ambiguous
+paths, excluded ancestors, alias collisions, and edits to binding metadata.
+Cross-file support remains within one source language; recognizing another
+extension does not authorize binding to it.
 
 ## Repeatable exploration
 

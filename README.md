@@ -37,8 +37,13 @@ Coincidentally, models are pretty bad at those decisions by default and need con
 | Language | Reviewed code | Main limits |
 | --- | --- | --- |
 | TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with bounded local type/import context | Unsupported syntax or unresolved evidence can prevent review. |
-| Rust (`.rs`) | Top-level structs, enums, and type aliases, with same-file type context | Functions, module resolution, macros, and conditional compilation are not supported. Attributes such as `derive` make evidence incomplete for the default rules. |
+| Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Explicit local `mod`/`use` bindings and aliases are supported. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
 | Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, with bounded same-file and explicit relative `.bend` alias-import context | Functions, laws/proofs, dependent or computed types, and hub, bare, or absolute imports are unsupported. This first profile skips files with string literals and requires single-line constructors indented with two spaces. |
+
+Rust cross-file context requires a selected `Cargo.toml` with an explicit
+2018, 2021, or 2024 edition and supported library/binary targets. Workspace-inherited
+editions, custom build targets, and test/example/bench target tables are outside
+this profile. Module paths must be unambiguous; excluded supporting files stay unread.
 
 Language support applies to source review; it does not select an agent runtime.
 If an edit lacks the evidence a rule needs, Hapsland skips that rule. Silence

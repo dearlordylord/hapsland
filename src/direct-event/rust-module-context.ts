@@ -94,15 +94,24 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     let manifest: Record<string, unknown> | undefined;
     try { manifest = record(parse(source)); } catch { invalid = true; return []; }
     const pkg = record(manifest?.package);
-    if (pkg === undefined || typeof pkg.name !== "string" || !["2018", "2021", "2024"].includes(String(pkg.edition))) {
+    if (pkg === undefined || typeof pkg.name !== "string" || pkg.name.length === 0 ||
+      typeof pkg.edition !== "string" || !["2018", "2021", "2024"].includes(pkg.edition)) {
       invalid = true; return [];
     }
     const base = dirname(task.path);
+    const selected = relative(base, path);
+    if (["test", "example", "bench"].some((kind) => manifest?.[kind] !== undefined) ||
+      (pkg.build !== undefined && pkg.build !== false) || selected === "build.rs" ||
+      ["tests", "examples", "benches"].some((kind) => selected === kind || selected.startsWith(`${kind}${sep}`)) ||
+      ["autolib", "autobins"].some((flag) => pkg[flag] !== undefined && typeof pkg[flag] !== "boolean")) {
+      invalid = true; return [];
+    }
     const roots: string[] = [];
     const lib = record(manifest?.lib);
-    if (lib !== undefined && lib.path !== undefined && (typeof lib.path !== "string" || isAbsolute(lib.path))) { invalid = true; return []; }
+    if (manifest?.lib !== undefined && lib === undefined || lib?.edition !== undefined) { invalid = true; return []; }
+    if (lib !== undefined && lib.path !== undefined && (typeof lib.path !== "string" || lib.path.length === 0 || isAbsolute(lib.path))) { invalid = true; return []; }
     if (lib !== undefined || pkg.autolib !== false) roots.push(join(base, typeof lib?.path === "string" ? lib.path : "src/lib.rs"));
-    if (pkg.autobins !== false) {
+    if (pkg.autobins !== false && manifest?.bin === undefined) {
       roots.push(join(base, "src/main.rs"));
       const tail = relative(join(base, "src/bin"), path);
       if (within(tail) && tail !== "") {
@@ -112,9 +121,12 @@ export const resolveRustModuleContext = Effect.fn("DirectEvent.resolveRustModule
     }
     if (manifest?.bin !== undefined) {
       if (!Array.isArray(manifest.bin) || manifest.bin.length > limits.files) { invalid = true; return []; }
+      const names = new Set<string>();
       for (const value of manifest.bin) {
         const bin = record(value);
-        if (typeof bin?.path !== "string" || isAbsolute(bin.path)) { invalid = true; return []; }
+        if (typeof bin?.path !== "string" || bin.path.length === 0 || isAbsolute(bin.path) ||
+          typeof bin.name !== "string" || bin.name.length === 0 || names.has(bin.name) || bin.edition !== undefined) { invalid = true; return []; }
+        names.add(bin.name);
         roots.push(join(base, bin.path));
       }
     }

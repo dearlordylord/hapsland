@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import fc from "fast-check";
 import { analyzeTypeFile, combinedAnalyzerMaterializationPreflight, inspectGraphFile, inspectRustModules, MAX_TYPE_DECLARATIONS } from "./analyzer.ts";
 
 const units = (source: string) => {
@@ -26,7 +27,7 @@ describe("bounded Rust type extraction", () => {
     expect(combinedAnalyzerMaterializationPreflight("src/lib.rs", source)?.hasImports).toBe(true);
   });
 
-  it("resolves crate-qualified declared modules only at conventional crate-root files", () => {
+  it("resolves crate-qualified declared modules only with explicit crate-root authority", () => {
     const source = "mod child; use crate::child::Item as Alias; pub struct Root { a: Alias, b: crate::child::Item }";
     for (const path of ["src/lib.rs", "src/main.rs"]) {
       const facts = inspectGraphFile(path, source, { rustCrateRoot: true });
@@ -35,6 +36,23 @@ describe("bounded Rust type extraction", () => {
     }
     expect(inspectGraphFile("src/foo.rs", source)?.imports.size).toBe(0);
     expect(inspectGraphFile("src/foo/mod.rs", source)?.imports.size).toBe(0);
+  });
+
+  it("keeps renamed module aliases bound to their target rather than a same-spelled unrelated declaration", () => {
+    fc.assert(fc.property(fc.tuple(fc.nat(10000), fc.nat(10000), fc.nat(10000)), ([moduleId, typeId, aliasId]) => {
+      const module = `module_${moduleId}`;
+      const target = `Type_${typeId}`;
+      const alias = `Alias_${aliasId}`;
+      const source = `mod ${module}; use ${module}::${target} as ${alias}; struct Root { value: Vec<${alias}> }`;
+      const facts = inspectGraphFile("src/custom.rs", source, { rustCrateRoot: true });
+      expect(facts?.imports.get(alias)).toEqual({ path: `./${module}`, name: target });
+      expect(facts?.declarations.get("Root")?.references).toEqual([{ kind: "named", name: alias }]);
+      // Adding a conflicting local binding must remove authority, independent
+      // of the particular spelling of the generated alias.
+      const conflicted = inspectGraphFile("src/custom.rs", `${source} struct ${alias};`, { rustCrateRoot: true });
+      expect(conflicted?.imports.size).toBe(0);
+      expect(conflicted?.declarations.get("Root")?.references.some((reference) => reference.kind === "unsupported")).toBe(true);
+    }), { numRuns: 100 });
   });
 
   it("requires an established Cargo role even for conventional filenames", () => {

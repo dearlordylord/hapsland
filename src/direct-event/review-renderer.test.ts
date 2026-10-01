@@ -33,6 +33,20 @@ describe("candidate review input renderer", () => {
       .toEqual(rendered);
   });
 
+  it("preserves qualified reference spelling without relaxing declaration identities", () => {
+    const input = fixture();
+    for (const symbol of ["crate::receipt::Receipt", "R.Receipt", "self::receipt::Receipt"]) {
+      const rendered = renderCandidateReviewInput({ ...input,
+        edges: input.edges.map((edge) => ({ ...edge, symbol })) });
+      expect(rendered?.evidence.edges.every((edge) => edge.symbol === symbol)).toBe(true);
+    }
+    for (const symbol of ["::Receipt", "R..Receipt", "R::", "R/Receipt", "R.Receipt()", "R Receipt", "R:::Receipt"]) {
+      expect(renderCandidateReviewInput({ ...input,
+        edges: input.edges.map((edge) => ({ ...edge, symbol })) })).toBeUndefined();
+    }
+    expect(renderCandidateReviewInput({ ...input, artifact: { ...input.artifact, name: "R.A" } })).toBeUndefined();
+  });
+
   it("keeps type and function wire contracts distinct", () => {
     const input = fixture();
     expect(renderCandidateReviewInput({ ...input, contract: "direct-event/function/v1" })).toBeUndefined();
