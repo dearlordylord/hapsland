@@ -1,3 +1,4 @@
+import { makeDispatchControls } from "../test-support/dispatch-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
@@ -87,20 +88,20 @@ describe("queued exclusion authority", () => {
   it("rechecks exclusion after the credential-to-dispatch wait", async () => {
     const fixture = await setup(false);
     let preparedSourceSeen = false;
-    let updateCompleted = false;
+    const controls = await Effect.runPromise(makeDispatchControls());
+    await Effect.runPromise(controls.holdNext("credentialResolved"));
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
       beforeEvaluate: async (prepared) => {
         preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
       },
-      afterCredentialBeforeDispatch: async () => {
-        await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
-        updateCompleted = true;
-      },
+      dispatchControls: controls.layer,
     });
     expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved");
     expect(preparedSourceSeen).toBe(true);
-    expect(updateCompleted).toBe(true);
+    await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
+    await Effect.runPromise(controls.release);
+    await server.whenIdle();
     expect(calls(fixture.capturePath)).toBe(0);
   }, 30_000);
 });

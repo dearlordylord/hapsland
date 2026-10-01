@@ -1,3 +1,4 @@
+import { ResidentDispatchControls, dispatchControlsLayer } from "./dispatch-controls.ts";
 import { makeSocketFramePort, type SocketFramePort } from "./socket-frame.ts";
 import { ResidentPreparationControls, preparationControlsLayer } from "./preparation-controls.ts";
 import { captureWorkspaceBytes, analysisWorkspaceBytes } from "./preparation-workspace.ts";
@@ -420,8 +421,7 @@ export type ResidentRuntimeOptions = {
   /** Scoped local preparation coordination; never supplied by resident IPC. */
   readonly preparationControls?: Layer.Layer<ResidentPreparationControls>;
   readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
-  readonly afterAuthorizeBeforeCredential?: () => Promise<void>;
-  readonly afterCredentialBeforeDispatch?: () => Promise<void>;
+  readonly dispatchControls?: Layer.Layer<ResidentDispatchControls>;
   /** Fixture-only authority observation; never supplied by resident IPC. */
   readonly dispatchAuthorityObserver?: (observation: DispatchAuthorityObservation) => void;
   /** Fixture-only source-free command/effect witness. */
@@ -578,8 +578,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentPreparationControls = Context.get(
     yield* Layer.buildWithScope(options.preparationControls ?? preparationControlsLayer, residentPreparationScope), ResidentPreparationControls);
   const residentBeforeFinalRevalidate = options.beforeFinalRevalidate;
-  const residentAfterAuthorizeBeforeCredential = options.afterAuthorizeBeforeCredential;
-  const residentAfterCredentialBeforeDispatch = options.afterCredentialBeforeDispatch;
+  const residentDispatchControls = Context.get(
+    yield* Layer.buildWithScope(options.dispatchControls ?? dispatchControlsLayer, residentPreparationScope), ResidentDispatchControls);
   const residentDispatchAuthorityObserver = options.dispatchAuthorityObserver;
   const residentJevRequestObserver = options.jevRequestObserver;
   const residentOfflineHttpClient = options.offlineHttpClient;
@@ -2002,8 +2002,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentAdapter("evaluation barrier", () => Promise.resolve(residentBeforeEvaluate?.(job.prepared)));
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
-      const afterAuthorizeBeforeCredential = residentAfterAuthorizeBeforeCredential;
-      const afterCredentialBeforeDispatch = residentAfterCredentialBeforeDispatch;
       const offlineHttpClient = residentOfflineHttpClient;
       const controlledRequestEffect = residentControlledRequestEffect;
       const isCurrentWork = () => residentIsCurrentWork(job.revision, job.prepared);
@@ -2021,9 +2019,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const dispatchCredential = job.dispatch.credential;
         if (credentialRequired && dispatchCredential === null) return denyReady("credential");
         if (!(yield* verifyObservationRoot(job.observation))) return denyReady();
-        if (afterAuthorizeBeforeCredential !== undefined) {
-          yield* residentAdapter("authorization barrier", afterAuthorizeBeforeCredential);
-        }
+        yield* residentDispatchControls.atBoundary("authorized").pipe(
+          Effect.mapError(() => new ResidentAdapterError({ operation: "authorization barrier" })));
         const credential = !credentialRequired || dispatchCredential === null
           ? undefined
           : yield* residentAdapter("resolve dispatch credential", () => resolveCredential({
@@ -2041,9 +2038,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (current.generation !== credential.generation ||
               (credential.source === "saved" && current.savedUseSuspended)) return denyReady("credential");
         }
-        if (afterCredentialBeforeDispatch !== undefined) {
-          yield* residentAdapter("credential barrier", afterCredentialBeforeDispatch);
-        }
+        yield* residentDispatchControls.atBoundary("credentialResolved").pipe(
+          Effect.mapError(() => new ResidentAdapterError({ operation: "credential barrier" })));
         if (credential?.status === "present") {
           const current = readCredentialState(dispatchCredential?.statePath);
           if (current.generation !== credential.generation ||

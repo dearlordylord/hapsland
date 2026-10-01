@@ -1,3 +1,4 @@
+import { makeDispatchControls } from "../test-support/dispatch-controls.ts";
 import { Layer } from "effect";
 import { ResidentPreparationControls, PreparationControlError, defaultPreparationControls } from "./preparation-controls.ts";
 import { makePreparationControls } from "../test-support/preparation-controls.ts";
@@ -1557,18 +1558,10 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const changed = deferred();
+    const controls = await Effect.runPromise(makeDispatchControls());
+    await Effect.runPromise(controls.holdNext("credentialResolved"));
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-      afterCredentialBeforeDispatch: async () => {
-        const child = spawn(process.execPath, ["-e", `
-          require("node:fs").writeFileSync(process.argv[1], JSON.stringify({version:1,generation:2,savedUseSuspended:false}));
-        `, credentialStatePath], { stdio: "ignore" });
-        await new Promise<void>((resolveExit, rejectExit) => {
-          child.once("exit", () => resolveExit());
-          child.once("error", rejectExit);
-        });
-        changed.resolve();
-      },
+      dispatchControls: controls.layer,
     });
     const dispatch: ResidentDispatchContext = {
       statePath,
@@ -1589,7 +1582,15 @@ describe("resident delivery lease", () => {
       },
     };
     expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
-    await changed.promise;
+    expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved");
+    const child = spawn(process.execPath, ["-e", `
+      require("node:fs").writeFileSync(process.argv[1], JSON.stringify({version:1,generation:2,savedUseSuspended:false}));
+    `, credentialStatePath], { stdio: "ignore" });
+    await new Promise<void>((resolveExit, rejectExit) => {
+      child.once("exit", (code) => code === 0 ? resolveExit() : rejectExit(new Error("credential update failed")));
+      child.once("error", rejectExit);
+    });
+    await Effect.runPromise(controls.release);
     await waitUntilIdle(server);
     expect(existsSync(capturePath)).toBe(false);
     expect(server.stats()).toMatchObject({ pendingEvaluations: 0 });
@@ -3143,6 +3144,33 @@ describe("resident bounded advice batches", () => {
   });
 });
 
+
+describe("Effect dispatch ownership", () => {
+  it.each(["authorized", "credentialResolved"] as const)("closes a held %s boundary without an external release", async (phase) => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const controls = await Effect.runPromise(makeDispatchControls());
+    await Effect.runPromise(controls.holdNext(phase));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined,
+      { dispatchControls: controls.layer });
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      expect(server.admit(observation, findingDispatch(join(root, "consent"))).status).toBe("accepted");
+      expect(await Effect.runPromise(controls.entered)).toBe(phase);
+      await Promise.race([server.close(), new Promise<never>((_, reject) => {
+        deadline = setTimeout(() => reject(new Error("resident did not cancel its held dispatch")), 2_000);
+      })]);
+      await Effect.runPromise(controls.retired);
+      expect(server.stats()).toMatchObject({ queued: 0, running: 0, retainedBytes: 0, pendingEvaluations: 0 });
+    } finally {
+      clearTimeout(deadline);
+      await Effect.runPromise(controls.release);
+      await server.close();
+    }
+  });
+});
 
 describe("Effect preparation ownership", () => {
   it.each(["owner", "prepared"] as const)("closes a held %s barrier without an external gate release", async (phase) => {

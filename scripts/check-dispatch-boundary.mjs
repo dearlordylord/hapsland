@@ -17,3 +17,10 @@ if (!dispatch.includes("const registry = ledger.dispatch")) {
   throw new Error("dispatch execution bypassed the resident-owned native registry");
 }
 if (server.includes("bendDiscardScope")) throw new Error("direct discard scope policy returned");
+
+for (const callback of ["afterAuthorizeBeforeCredential", "afterCredentialBeforeDispatch"]) {
+  if (server.includes(callback)) throw new Error(`legacy dispatch Promise callback returned: ${callback}`);
+}
+if (!server.includes("Layer.buildWithScope(options.dispatchControls ?? dispatchControlsLayer, residentPreparationScope)")) {
+  throw new Error("dispatch coordination must share resident-owned scoped retirement");
+}

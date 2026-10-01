@@ -121,7 +121,9 @@
     "Resident owns a preparation scope built through Layer.buildWithScope and retires it in close after dispatch physically settles, even if the caller scope stays open",
     "Controlled owner/joined fixture coordination uses Effect Deferred and Ref with layer finalizers; tests cover one-shot release, independent joining, interruption without external release, typed barrier failure cleanup, and resident-owned layer retirement",
     "Preparation completion is owned by ResidentPreparationControls; removed the Promise afterPrepare option and converted its callers to scoped Ref/Deferred/Queue controls.",
-    "Owner, joined and completion preparation barriers now observe owning-work cancellation inside the dispatcher uninterruptible region; actual resident-close tests prove held barriers retire without external gate release."
+    "Owner, joined and completion preparation barriers now observe owning-work cancellation inside the dispatcher uninterruptible region; actual resident-close tests prove held barriers retire without external gate release.",
+    "Dispatch authorization and credential-resolution barriers are a scoped ResidentDispatchControls service with typed failures; removed both optional Promise callbacks in place.",
+    "Credential-generation child-process and exclusion-update races now run in the test after a deterministic scoped dispatch barrier; no file/process mutations inside production fixture callbacks."
   ],
   "verification": [
     {
@@ -1562,10 +1564,29 @@
       "allNumericFormulasPass": true,
       "allComparativeBudgetsVerified": false,
       "limitation": "Fixed baseline shutdown violates physical settlement; no valid comparative retirement latency claim."
+    },
+    {
+      "stage": "Scoped dispatch controls",
+      "command": "Full server, security-queued, preparation-controls suites",
+      "exitCode": 0,
+      "tests": 94,
+      "files": 3
+    },
+    {
+      "stage": "Scoped dispatch controls",
+      "command": "Dispatch-control selection, interruption and layer retirement suite",
+      "exitCode": 0,
+      "tests": 3,
+      "files": 1
+    },
+    {
+      "stage": "Scoped dispatch controls",
+      "command": "Typecheck, build, dispatch/reuse boundary scripts and git diff --check",
+      "exitCode": 0
     }
   ],
   "next": [
-    "Finish remaining scoped fixture ports and deterministic coordination; preparation ownership/cancellation suite now passes 122 tests",
+    "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
     "Replace remaining synchronous domain commit/read bridges with service operations and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
