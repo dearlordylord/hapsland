@@ -33,12 +33,13 @@ def clock_enabled(+now: Nat, world: M.World, +carry: U32, elapsed: U32, active: 
     case False{}: Frame{world,now,0,False{}}
     case True{}:
       +total = (carry + elapsed : U32)
-      Frame{physics(U32.to_nat((total / 20 : U32)),world),now,(total % 20 : U32),False{}}
+      +steps = U32.min(8,(total / 20 : U32))
+      Frame{physics(U32.to_nat(steps),world),now,M.sub(total,(steps * 20 : U32)),False{}}
 
 def clock_step(+now: Nat, frame: FrameState) -> FrameState:
   match frame:
     case Frame{+world,last,carry,_}:
-      clock_enabled(now,world,carry,U32.from_nat(Nat.min(Nat.sub(now,last),160n)),H.clock_active(world))
+      clock_enabled(now,world,carry,U32.from_nat(Nat.sub(now,last)),H.clock_active(world))
 
 def finish(+frame: FrameState) -> IO(Maybe<FrameState>):
   match frame:
@@ -76,12 +77,18 @@ def draw(drawn: FrameState & Image, window: Window, rest: Window -> FrameState -
     shown : Window & Image & List<Event> <- Window.frame(window,image)
     after_frame(shown,state,rest)
 
+# The on-screen HUD remains per-frame; native debug-title polling need not be.
+def named_window(refresh: Bool,window: Window,frame: FrameState) -> IO(Window):
+  match refresh:
+    case False{}: IO.pure(Window,window)
+    case True{}: Window.set_title(window,title(frame))
+
 def loop(fuel: Nat, window: Window, +frame: FrameState) -> IO(Unit):
   match fuel:
     case 0n: Window.close(window)
-    case 1n+n:
+    case 1n++n:
       do IO<Unit>:
-        named : Window <- Window.set_title(window,title(frame))
+        named : Window <- named_window(Nat.is_eq(fuel,4294967295n) || Nat.is_eq(Nat.mod(fuel,3n),0n),window,frame)
         draw(view(frame),named,w => f => loop(n,w,f))
 
 def launch() -> IO(Unit):

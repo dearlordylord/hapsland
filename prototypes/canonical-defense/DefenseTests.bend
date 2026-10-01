@@ -134,10 +134,10 @@ def case_12() -> IO(Unit):
   require(Nat.is_eq(E.target(prep_world(),M.Tower{40,600,0,1,0,0,0n,240}),0n),"out-of-range processor cannot affect active work")
 
 def case_13() -> IO(Unit):
-  require(U32.is_eq(M.timer_risk(E.find_timer(2n,E.shot_timers(E.shoot(prep_world(),processor(1))))),80),"Refiner shot permanently removes20 percentage points")
+  require(U32.is_eq(M.timer_risk(E.find_timer(2n,E.shot_timers(E.shoot(prep_world(),processor(1))))),85),"Refiner first shot permanently removes15 percentage points")
 
 def case_14() -> IO(Unit):
-  require(U32.is_eq(M.timer_risk(E.find_timer(1n,E.shot_timers(E.shoot(prep_world(),processor(1))))),80),"preparation prevention carries to future child source metadata")
+  require(U32.is_eq(M.timer_risk(E.find_timer(1n,E.shot_timers(E.shoot(prep_world(),processor(1))))),85),"preparation prevention carries to future child source metadata")
 
 def case_15() -> IO(Unit):
   require(U32.is_eq(M.timer_boost(E.find_timer(2n,E.shot_timers(E.shoot(prep_world(),processor(1))))),0),"Refiner never accelerates service work")
@@ -212,7 +212,7 @@ def case_38() -> IO(Unit):
   require(U32.is_eq(P.requests(run(5500n,H.key(H.initial(),110))),0) && U32.is_eq(P.writes(run(5500n,H.key(H.initial(),110))),0),"completed wave releases request and delivery ownership")
 
 def case_39() -> IO(Unit):
-  require((M.clear(run(200n,shot_world(backend_world(),backend_tower(1)))) > 0 : U32) && U32.is_eq(P.count(run(200n,shot_world(backend_world(),backend_tower(1))),5),0),"zero future risk resolves clear only at actual backend completion")
+  require((M.clear(run(200n,H.key(H.select(shot_world(backend_world(),backend_tower(1)),1),117))) > 0 : U32) && U32.is_eq(P.count(run(200n,H.key(H.select(shot_world(backend_world(),backend_tower(1)),1),117)),5),0),"upgraded prevention resolves its authored clear only at actual backend completion")
 def case_40() -> IO(Unit):
   require(Nat.is_ne(E.target(blocked_world(),backend_tower(1)),3n),"Refiner never targets already observed PendingFinding")
 def first(items:List<&2,M.Tower>)->M.Tower:
@@ -256,7 +256,7 @@ def case_44() -> IO(Unit):
     Bool.not(Map.same(H.point_work(source_road(),C.Work{1n,1n,1n,1n,1n,C.AwaitingSourceRead{},0n}),
       H.point_work(shot_once(source_road(),road_tower(0)),C.Work{1n,1n,1n,1n,1n,C.AwaitingSourceRead{},0n}))),"Rapid road shot changes the rendered authoritative travel position")
 def case_45() -> IO(Unit):
-  require(U32.is_eq(timer_risk(shot_once(source_road(),road_tower(1)),1n),80) &&
+  require(U32.is_eq(timer_risk(shot_once(source_road(),road_tower(1)),1n),85) &&
     U32.is_eq(timer_boost(shot_once(source_road(),road_tower(1)),1n),0),"Refiner reduces future findings risk on road without movement acceleration")
 def case_46() -> IO(Unit):
   require(U32.is_eq(timer_boost(shot_once(source_road(),road_tower(2)),1n),6) &&

@@ -167,3 +167,11 @@ def focus_kind(+world: M.World,fallback: U32) -> U32:
   focus_kind_found(fallback,H.selected_tower(M.towers(world),M.selected(world)))
 def preparation_limit() -> U32: M.number(Dispatch.max_running())
 def request_limit() -> U32: M.number(Dispatch.max_requests())
+
+# Road work owns bytes before a Jev request exists; waiting is a separate state.
+def review_count(items: List<&2,C.Work>,+world: M.World,+side: U32,+waiting: Bool) -> U32:
+  match items:
+    case Nil{}: 0
+    case +work <> rest:
+      +branch = Bool.not(U32.is_eq(M.layout(world),1)) || U32.is_eq(E.lane(world,work),side)
+      (Bool.to_u32(U32.is_eq(E.kind(work),3) && branch && same_bool(E.review_waiting(world,work),waiting)) + review_count(rest,world,side,waiting) : U32)

@@ -46,13 +46,24 @@ def ticks(fuel: Nat, +world: M.World) -> IO(Nat):
         end : Nat <- IO.now()
         more : Nat <- ticks(n,world)
         return Nat.add(Nat.sub(end,start),more)
+def titles(fuel: Nat,+world: M.World) -> IO(Nat):
+  match fuel:
+    case 0n: IO.pure(Nat,0n)
+    case 1n+n:
+      do IO<Nat>:
+        start : Nat <- IO.now()
+        count : Nat <- IO.pure(Nat,String.length(R.diagnostics(world)))
+        end : Nat <- IO.now()
+        more : Nat <- titles(n,world)
+        return Nat.add(Nat.sub(end,start),more)
 def sample(+count: U32) -> IO(Unit):
   +world = waiting(count)
   do IO<Unit>:
     scene : Nat <- scenes(10n,world)
     image : Nat <- images(10n,world)
     tick : Nat <- ticks(100n,world)
-    IO.print("PENDING=" ++ U32.show(count) ++ " WAIT=" ++ U32.show(R.wait_count(P.tokens(world),world)) ++ " SCENE10_MS=" ++ Nat.show(scene) ++ " IMAGE10_MS=" ++ Nat.show(image) ++ " TICK100_MS=" ++ Nat.show(tick))
+    title : Nat <- titles(100n,world)
+    IO.print("PENDING=" ++ U32.show(count) ++ " WAIT=" ++ U32.show(R.wait_count(P.tokens(world),world)) ++ " SCENE10_MS=" ++ Nat.show(scene) ++ " IMAGE10_MS=" ++ Nat.show(image) ++ " TICK100_MS=" ++ Nat.show(tick) ++ " TITLE100_MS=" ++ Nat.show(title) ++ " RECTS=" ++ Nat.show(List.length(&2,F.Rect,R.scene(world))))
 def main() -> IO(Unit):
   do IO<Unit>:
     sample(0)

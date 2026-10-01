@@ -1,0 +1,18 @@
+{
+  "risk-only": {
+    "experiment_source_sha256": {
+      "DefenseHost.bend": "5a853efb4581cfa3bdaee648ad2dce124c177b807ca351ba544253000819e3c2",
+      "DefenseEffects.bend": "7b3b3c87bfc5856d0488c196d9b5025edac349949a62376336aa20d86d0730f9",
+      "DefenseBalance.bend": "c183a1f70cb6a7506454314754941548a3cea6d9ed88db51ba8497b08d2b242e"
+    },
+    "scope": "map0, plans0/1/2, authored draw offsets0/25/50/75; latest seed and timer fixes preserved; native Linux ARM64 clang O3 four workers"
+  },
+  "pressure-only": {
+    "experiment_source_sha256": {
+      "DefenseHost.bend": "442e1f82f5d194e436ad652c5b7c99af50455ef7a37c1eaf08b7f947b4d92252",
+      "DefenseEffects.bend": "97841fe259e9891a4c7882120b217775b2bd0c5bcfeedc93c0ac260bd542bbef",
+      "DefenseBalance.bend": "6d1b0e2dba1e31b9124d0d2ba7ad32825e47b467524510b686a7156004f976b3"
+    },
+    "scope": "map0, plans0/1/2, authored draw offsets0/25/50/75; latest seed and timer fixes preserved; native Linux ARM64 clang O3 four workers"
+  }
+}

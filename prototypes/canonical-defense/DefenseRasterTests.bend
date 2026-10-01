@@ -30,10 +30,11 @@ def sample(+rects: List<&2,F.Rect>,message: String) -> IO(Unit):
   check(pixels(1024n,0,rects,R.paint(5n,0,0,32,rects,False{})),message)
 def main() -> IO(Unit):
   do IO<Unit>:
+    check(pixels(1024n,0,[F.Box{0,0,16,32,7},F.Box{16,0,16,32,7}],R.paint(5n,0,0,32,[F.Box{0,0,16,32,7},F.Box{16,0,16,32,7}],False{})),"uniform tiles spanning separate rectangles preserve every pixel")
     sample([],"empty scene background")
     sample([F.Box{0,0,32,32,1},F.Box{0,0,32,32,2}],"opaque front tile hides all later layers")
     sample([F.Box{5,7,9,13,1},F.Box{8,4,15,17,2},F.Box{0,0,32,32,3}],"overlap priority and quadrant boundaries")
     sample([F.Box{16,16,16,16,1},F.Box{0,0,32,32,2}],"half-open rectangle edges")
     sample([F.Box{30,30,8,8,1},F.Box{40,0,3,3,2}],"clipping outside canvas")
     sample([F.Box{4,4,0,9,1},F.Box{0,0,32,32,2}],"zero-width foreground has no pixels")
-    IO.print("RASTER: 6144 pixels match independent oracle")
+    IO.print("RASTER: 7168 pixels match independent oracle")

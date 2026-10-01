@@ -184,19 +184,23 @@ def shields(items: List<&2, M.Tower>, +world: M.World, +spent: List<&2, Protecte
       +amount = Bool.pick(U32, covered, U32.min(budget, (40 * M.level(tower) : U32)), 0)
       +next = shields(rest, world, Protected{site, amount} <> spent, hot)
       Shielded{shield_spent(tower, (amount > 0 : U32)) <> shield_towers(next), (amount + shield_bytes(next) : U32)}
+# Game pressure, not a ledger capacity: smooth excess avoids an all-or-nothing safe cliff.
+def pressure_buffer() -> U32: 80
+def pressure_hot(raw: U32) -> Bool: (raw > pressure_buffer() : U32)
+def damage_work(raw: U32) -> U32: ((200 * M.sub(raw,pressure_buffer())) / 80 : U32)
 def shield_allocation(+world: M.World) -> Shielded:
-  +result = shields(List.reverse(&2, M.Tower, M.towers(world)), world, Nil{}, (building_pressure_bytes(world) >= 160 : U32))
+  +result = shields(List.reverse(&2, M.Tower, M.towers(world)), world, Nil{}, pressure_hot(building_pressure_bytes(world)))
   Shielded{List.reverse(&2, M.Tower, shield_towers(result)), shield_bytes(result)}
 def residual_damage(+world: M.World) -> U32:
   +raw = building_pressure_bytes(world)
   +result = shield_allocation(world)
-  Bool.pick(U32, (raw >= 160 : U32), M.sub(200, ((200 * shield_bytes(result)) / U32.max(1, raw) : U32)), 0)
+  M.sub(damage_work(raw), ((damage_work(raw) * shield_bytes(result)) / U32.max(1, raw) : U32))
 def damage(+world: M.World) -> M.World:
   match world:
     case M.World{core, t, p, l, c, g, +h, towers, timers, a, o, r, cl, d, out, auto, x, y, selected, +work, +flash}:
       +raw = building_pressure_bytes(world)
       +guard = shield_allocation(world)
-      +pulse = Bool.pick(U32, (raw >= 160 : U32), M.sub(200, ((200 * shield_bytes(guard)) / U32.max(1, raw) : U32)), 0)
+      +pulse = M.sub(damage_work(raw), ((damage_work(raw) * shield_bytes(guard)) / U32.max(1, raw) : U32))
       +total = (work + pulse : U32)
       +hit = Bool.and((total >= 10000 : U32), (h > 0 : U32))
       M.World{core, t, p, l, c, g, M.sub(h, Bool.to_u32(hit)), shield_towers(guard), timers, a, o, r, cl, d, out, auto, x, y, selected,
@@ -227,7 +231,7 @@ def finish_active(+world: M.World) -> M.World:
     case M.World{+core, t, p, l, c, g, h, ts, ms, +a, +o, r, cl, d, out, +auto, x, y, selected, work, flash}:
       +done = a && (o >= M.wave_demand() : U32) && drained(world)
       +retired = Bool.pick(C.State, done, event(core, C.RetirePartition{1n, 1n, M.round(world)}), core)
-      M.World{retired, t, p, l, c, (g + Bool.pick(U32, done && (h > 0 : U32), 20, 0) : U32), h, ts, ms, a && Bool.not(done), o, r, cl, d, out,
+      M.World{retired, t, p, l, c, (g + Bool.pick(U32, done && (h > 0 : U32), 20, 0) : U32), h, ts, Bool.pick(List<&2,M.Timer>,done,[],ms), a && Bool.not(done), o, r, cl, d, out,
         [M.control_with_schedule(M.control_value(auto),Bool.pick(A.State, done, A.finished(M.schedule_value(auto), (M.wave(world) >= M.wave_count() : U32) || U32.is_eq(h, 0)), M.schedule_value(auto)))], x, y, selected, work, flash}
 def ticking(+world: M.World) -> M.World:
   match world:
@@ -390,7 +394,7 @@ def preview_gain(+world: M.World, +x: U32, +y: U32, +kind: U32) -> U32:
     Bool.pick(U32, U32.is_eq(kind, 3), M.sub(preview_before(after, x, y, kind), before),
       Bool.pick(U32, U32.is_eq(kind, 5), M.sub(O.batch_target(after), before),
         Bool.pick(U32, U32.is_eq(kind, 6), M.sub(before, residual_damage(after)),
-          Bool.pick(U32, Nat.is_eq(preview_target(world, x, y, kind), 0n), 0, U32.min(before, tower_power(kind, 1)))))))
+          Bool.pick(U32, Nat.is_eq(preview_target(world, x, y, kind), 0n), 0, Bool.pick(U32,U32.is_eq(kind,1),E.risk_reduction(before,tower_power(kind,1)),U32.min(before,tower_power(kind,1))))))))
 def preview_secondary_before(world: M.World, x: U32, y: U32, kind: U32) -> U32:
   Bool.pick(U32, U32.is_eq(kind, 5), O.item_work(world), 0)
 def preview_secondary_delta(+world: M.World, x: U32, y: U32, +kind: U32) -> U32:

@@ -27,7 +27,7 @@ def name(kind: U32) -> String:
 def detail(kind: U32) -> String:
   match kind:
     case 0: "ROAD OR ACTIVE WORK -12 / 8 TICKS"
-    case 1: "PERMANENT FUTURE RISK -20 PP / SHOT"
+    case 1: "RISK -15% OF CURRENT / FLOOR60%"
     case 2: "LONG RANGE ROAD / ACTIVE WORK -6 / 12 TICKS"
     case 3: "LOCAL HOST PERMITS +1 WITHIN CORE MAX8"
     case 4: "UNFINISHED SIBLING WORK -9 / 8 TICKS"
@@ -40,13 +40,17 @@ def range(+kind: U32, level: U32) -> U32:
 def power(kind: U32, level: U32) -> U32:
   match kind:
     case 0: (8 + level * 4 : U32)
-    case 1: (10 + level * 10 : U32)
+    case 1: (10 + level * 5 : U32)
     case 2: (4 + level * 2 : U32)
     case 4: (6 + level * 3 : U32)
     case _: 0
+# Synthetic balance: irreducible findings remain; repeated prevention has diminishing returns.
+def risk_floor() -> U32: 60
+def risk_reduction(+risk: U32,power: U32) -> U32:
+  U32.min(M.sub(risk,risk_floor()),((risk * power) / 100 : U32))
 def cooldown(kind: U32) -> U32:
   match kind:
-    case 1: 18
+    case 1: 90
     case 2: 12
     case _: 8
 def upgrade_cost(level: U32) -> U32:
@@ -148,11 +152,19 @@ def jev_point(inside: Bool,+world: M.World,+work: C.Work) -> Map.Point:
     case False{}:
       +anchor = anchor(world,work)
       Map.Point{(Map.px(anchor) + 32 : U32),Map.py(anchor)}
+def review_waiting(+world: M.World,+work: C.Work) -> Bool:
+  U32.is_eq(kind(work),3) && U32.is_eq(remaining(world,work),0)
+def id_of(work: C.Work) -> Nat: id(work)
+def review_rank(items: List<&2,C.Work>,+world: M.World,+id: Nat,+side: U32) -> U32:
+  match items:
+    case Nil{}: 0
+    case +other <> rest:
+      (Bool.to_u32((M.number(id_of(other)) < M.number(id) : U32) && U32.is_eq(lane(world,other),side) && review_waiting(world,other)) + review_rank(rest,world,id,side) : U32)
 def point_phase(phase: U32,+world: M.World,+work: C.Work,+age: U32) -> Map.Point:
   match phase:
     case 0: Map.path_position(Map.source_route(M.layout(world)),age)
     case 2: service_or_road((age >= Map.path_length(Map.preparation_route(M.layout(world))) : U32),world,work,Map.preparation_route(M.layout(world)),age)
-    case 3: Map.path_position(Map.review_route(M.layout(world),lane(world,work)),age)
+    case 3: Map.path_position(Map.review_route(M.layout(world),lane(world,work)),Bool.pick(U32,review_waiting(world,work),M.sub(duration(world,work),(review_rank(M.work(M.core(world)),world,id(work),lane(world,work)) * 12 : U32)),age))
     case 4: jev_point(inside_world(world,work),world,work)
     case 5: retained_point((age < Map.path_length(Map.retained_route(M.layout(world))) : U32),world,Map.retained_route(M.layout(world)),age)
     case _: service_point(world,work)
@@ -187,7 +199,7 @@ def eligible(+world: M.World, +tower: M.Tower, +work: C.Work) -> Bool:
   +processable = (phase <= 4 : U32)
   +risk = M.timer_risk(find_timer(id(work), M.timers(world)))
   Bool.and(covered(world, tower, work), Bool.and(active, Bool.and(Bool.and(processable, Bool.or(U32.is_eq(M.tkind(tower), 1), (remaining(world, work) > 0 : U32))),
-    Bool.pick(Bool, U32.is_eq(M.tkind(tower), 1), (risk > 0 : U32),
+    Bool.pick(Bool, U32.is_eq(M.tkind(tower), 1), (risk > risk_floor() : U32),
       Bool.pick(Bool, U32.is_eq(M.tkind(tower), 4),
         Bool.and(U32.is_eq(phase, 4), pending_sibling(family(work), M.work(M.core(world)))),
         Bool.or(U32.is_eq(M.tkind(tower), 0), U32.is_eq(M.tkind(tower), 2)))))))
@@ -228,20 +240,16 @@ def id_found(+operation: Nat, items: List<&2, C.Work>) -> Nat:
   match items:
     case Nil{}: 0n
     case C.Work{_, _, _, +id, _, _, _} <> rest: Bool.pick(Nat, Nat.is_eq(operation, id), id, id_found(operation, rest))
-def historical(items: List<&2, M.Timer>, +work: List<&2, C.Work>) -> List<&2, M.Timer>:
-  match items:
-    case Nil{}: Nil{}
-    case +timer <> +rest:
-      +tail = historical(rest, work)
-      Bool.pick(List<&2, M.Timer>, Bool.not(Nat.is_eq(id_found(M.timer_id(timer), work), 0n)), tail, timer <> tail)
+# New children copy risk/seed from the pre-event parent timer in current_timers.
+# Once that refresh completes, no removed operation needs historical metadata.
 def refresh(+world: M.World, +core: C.State, offered: U32) -> List<&2, M.Timer>:
-  List.append(&2, M.Timer, current_timers(M.work(core), world, offered), historical(M.timers(world), M.work(core)))
+  current_timers(M.work(core),M.with_core(world,core),offered)
 def modify(items: List<&2, M.Timer>, +operation: Nat, +family: Nat, +group: Bool, +risk: Bool, +power: U32) -> List<&2, M.Timer>:
   match items:
     case Nil{}: Nil{}
     case M.Timer{+id, +phase, age, +owner, +r, seed, +boost} <> rest:
       +hit = Bool.or(Nat.is_eq(id, operation), Bool.and(group, Nat.is_eq(family, owner)))
-      M.Timer{id, phase, age, owner, Bool.pick(U32, Bool.and(Bool.and(hit, risk), (phase <= 4 : U32)), M.sub(r, power), r), seed,
+      M.Timer{id, phase, age, owner, Bool.pick(U32, Bool.and(Bool.and(hit, risk), (phase <= 4 : U32)), M.sub(r, risk_reduction(r,power)), r), seed,
         Bool.pick(U32, Bool.and(hit, Bool.not(risk)), (boost + power : U32), boost)} <>
         modify(rest, operation, family, group, risk, power)
 
@@ -260,8 +268,7 @@ def shoot_found(+world: M.World, tower: M.Tower, found: Maybe<&2, C.Work>) -> Sh
   match tower found:
     case M.Tower{x, y, +kind, +level, 0, _, _, charges} Some{+work}:
       +risk = U32.is_eq(kind, 1)
-      +amount = U32.min(power(kind, level), Bool.pick(U32, risk,
-        M.timer_risk(find_timer(id(work), M.timers(world))), remaining(world, work)))
+      +amount = Bool.pick(U32,risk,power(kind,level),U32.min(power(kind,level),remaining(world,work)))
       Shot{M.Tower{x, y, kind, level, M.sub(cooldown(kind), 1), 5, id(work), charges},
         modify(M.timers(world), id(work), family(work), (M.phase(work_kind(work)) <= 2 : U32), risk, amount)}
     case M.Tower{x, y, kind, level, cd, flash, aim, charges} _:

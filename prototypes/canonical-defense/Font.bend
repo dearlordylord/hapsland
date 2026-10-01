@@ -96,25 +96,27 @@ def glyph(c: Char) -> U32:
     case _:
       0
 
-def dot(on: Bool, x: U32, y: U32, +scale: U32, color: U32, rest: List<&2, Rect>) -> List<&2, Rect>:
-  match on:
-    case True{}:
-      put(x, y, scale, scale, color, rest)
-    case False{}:
-      rest
-
-def dots(n: Nat, +bits: U32, +x: U32, +y: U32, +scale: U32, +color: U32, rest: List<&2, Rect>) -> List<&2, Rect>:
-  match n:
-    case 0n:
-      rest
-    case 1n++k:
-      +i = U32.from_nat(k)
-      tail = dots(k, bits, x, y, scale, color, rest)
-      dot(U32.is_ne(U32.and(U32.shrn(bits, k), 1), 0), (x + (i % 3 : U32) * scale : U32), (y + (i / 3 : U32) * scale : U32), scale, color, tail)
+# Merge adjacent lit glyph cells; exact pixels, fewer raster rectangles.
+def glyph_row(mask: U32,+x: U32,+y: U32,+scale: U32,+color: U32,rest: List<&2,Rect>) -> List<&2,Rect>:
+  match mask:
+    case 0: rest
+    case 1: put(x,y,scale,scale,color,rest)
+    case 2: put((x + scale : U32),y,scale,scale,color,rest)
+    case 3: put(x,y,(2 * scale : U32),scale,color,rest)
+    case 4: put((x + 2 * scale : U32),y,scale,scale,color,rest)
+    case 5: put(x,y,scale,scale,color,put((x + 2 * scale : U32),y,scale,scale,color,rest))
+    case 6: put((x + scale : U32),y,(2 * scale : U32),scale,color,rest)
+    case _: put(x,y,(3 * scale : U32),scale,color,rest)
+def glyph_rows(fuel: Nat,+bits: U32,+x: U32,+y: U32,+scale: U32,+color: U32,rest: List<&2,Rect>) -> List<&2,Rect>:
+  match fuel:
+    case 0n: rest
+    case 1n++n:
+      +row = U32.from_nat(n)
+      glyph_row(((bits >> Nat.mul(n,3n)) .&. 7 : U32),x,(y + row * scale : U32),scale,color,glyph_rows(n,bits,x,y,scale,color,rest))
 
 def text(s: String, +x: U32, +y: U32, +scale: U32, +color: U32, rest: List<&2, Rect>) -> List<&2, Rect>:
   match s:
     case SNil{}:
       rest
     case SCon{c, tail}:
-      dots(15n, glyph(c), x, y, scale, color, text(tail, (x + 4 * scale : U32), y, scale, color, rest))
+      glyph_rows(5n, glyph(c), x, y, scale, color, text(tail, (x + 4 * scale : U32), y, scale, color, rest))
