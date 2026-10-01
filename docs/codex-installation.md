@@ -1,5 +1,8 @@
 # Codex installation lifecycle
 
+For supported source languages and limitations, see the
+[supported-language table](../README.md#supported-languages).
+
 For a person using a normal Codex profile, start with the
 [npm quickstart](../evidence/release/npm-install-plan.md) and `hapsland --pilot` after the
 registry release. The JSON operations below remain the versioned automation

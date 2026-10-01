@@ -1,5 +1,19 @@
 # Readiness doctor and session activity
 
+## Supported source languages
+
+Hapsland reviews TypeScript interfaces, type aliases, and named functions, plus
+Rust structs, enums, and type aliases, and Bend `type` datatypes. Rust and Bend
+context is limited to the same file. Rust functions, modules, macros, and
+conditional compilation are unsupported. Bend functions, dependent types,
+laws/proofs, and module resolution are unsupported; this first profile also
+skips files with string literals and requires single-line constructors indented
+with two spaces.
+See the [supported-language table](../README.md#supported-languages) for file
+extensions and limitations. An eligible file can still be skipped when its
+syntax or supporting evidence is unsupported; a skipped edit is not a clean
+review result.
+
 Run the offline, read-only doctor with an explicit repository and selected Codex home:
 
 ```json
