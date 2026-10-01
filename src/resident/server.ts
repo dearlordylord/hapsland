@@ -1,3 +1,4 @@
+import { workSubject, type WorkRevision } from "./revision.ts";
 import { recordRoundClosure, type RoundCloseReason } from "../activity/status.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import * as Config from "effect/Config";
@@ -370,18 +371,6 @@ type NoticeCooldown = {
   pending?: PendingNotice;
 };
 
-type WorkRevision = {
-  readonly subject: string;
-  readonly token: string;
-  readonly generation: number;
-};
-
-type CurrentWork = {
-  readonly token: string;
-  readonly generation: number;
-  readonly input: PreparedUnit["input"];
-};
-
 type DispatchAuthorityCredentialStatus = CredentialResolution["status"] | "not-checked" | "not-required";
 
 type DispatchAuthorityObservation = {
@@ -424,12 +413,6 @@ const adviceePartition = (root: string, advicee: DirectAdvicee) => canonicalValu
 const editAuthority = (root: string, advicee: DirectAdvicee) => canonicalValue({
   partition: adviceePartition(root, advicee),
   toolUseId: advicee.toolUseId,
-});
-
-const workSubject = (partition: string, prepared: PreparedUnit): string => canonicalValue({
-  partition,
-  path: prepared.input.path,
-  declaration: prepared.input.declaration.name,
 });
 
 const reservedRevision = (partition: string, prepared: PreparedUnit): WorkRevision => ({
@@ -562,7 +545,6 @@ export class ResidentServer {
   readonly lifetime = randomUUID();
   readonly #advice: Array<Advice> = [];
   readonly #noticeCooldowns = new Map<string, NoticeCooldown>();
-  readonly #currentWork = new Map<string, CurrentWork>();
   readonly #bendPartitions = new Map<string, number>();
   #nextBendPartition = 1;
   readonly #tickets = new Map<string, TicketRecord>();
@@ -606,8 +588,6 @@ export class ResidentServer {
   #rejectedCapacity = 0;
   #peakLedgerBytes = 0;
   #maxMaterializedPreparedUnits = 0;
-  readonly #revisionIds = new Map<string, number>();
-  #nextRevisionId = 1;
   #nextNoticeSequence = 1;
   #nextNoticeKeyId = 1;
   readonly #beforeRevalidate: ((adviceId: string) => Promise<void>) | undefined;
@@ -1748,10 +1728,6 @@ export class ResidentServer {
     return reservation;
   }
 
-  #subject(partition: string, prepared: PreparedUnit): string {
-    return workSubject(partition, prepared);
-  }
-
   #findingSelectionFacts(
     advice: Advice, partition: string, credentialGeneration: number | null,
     now: number, composed: boolean,
@@ -1776,61 +1752,14 @@ export class ResidentServer {
     };
   }
 
-  #revisionId(key: string, retain = false): number {
-    let id = this.#revisionIds.get(key);
-    if (id === undefined) {
-      id = this.#nextRevisionId++;
-      if (retain) this.#revisionIds.set(key, id);
-    }
-    return id;
-  }
+  #revisionCount(): number { return this.#ledger.revision.count(); }
 
-  #revisionSubject(subject: string, retain = false): number {
-    return this.#revisionId(`subject:${subject}`, retain);
-  }
-
-  #revisionInput(prepared: PreparedUnit, retain = false): number {
-    return this.#revisionId(`input:${canonicalValue(prepared.input)}`, retain);
-  }
-
-  #pruneRevisionIds(): void {
-    const active = new Set(this.#ledger.canonicalProjection().revision.entries.flatMap(
-      ({ subject, input }) => [subject, input]));
-    for (const [key, id] of this.#revisionIds) {
-      if (!active.has(id)) this.#revisionIds.delete(key);
-    }
-  }
-
-  #revisionCount(): number {
-    const command = this.#ledger.transition({ kind: "revisionCountCheck" }).commands[0];
-    if (command?.kind !== "revisionCount") throw new Error("canonical revision count refused");
-    return command.count;
-  }
-
-  #currentRevisionGeneration(subject: string): number {
-    const command = this.#ledger.transition({ kind: "revisionGenerationCheck",
-      subject: this.#revisionSubject(subject) }).commands[0];
-    if (command?.kind !== "revisionGeneration") throw new Error("canonical revision generation refused");
-    return command.generation;
-  }
+  #currentRevisionGeneration(subject: string): number { return this.#ledger.revision.generation(subject); }
 
   #registerRevision(partition: string, prepared: PreparedUnit, addMember: boolean): WorkRevision {
-    const subject = this.#subject(partition, prepared);
-    const command = this.#ledger.transition({ kind: "revisionRegister",
-      subject: this.#revisionSubject(subject, true), input: this.#revisionInput(prepared, true), addMember }).commands[0];
-    this.#pruneRevisionIds();
-    if (command?.kind === "revisionReused") {
-      const retained = this.#currentWork.get(subject);
-      if (retained === undefined || retained.generation !== command.generation) {
-        throw new Error("canonical revision reuse lost its native payload");
-      }
-      return { subject, token: retained.token, generation: command.generation };
-    }
-    if (command?.kind !== "revisionReplaced") throw new Error("canonical revision registration refused");
-    const token = randomUUID();
-    this.#currentWork.set(subject, { token, generation: command.generation, input: prepared.input });
-    this.#retireSuperseded(subject, command.generation, addMember);
-    return { subject, token, generation: command.generation };
+    const { revision, replaced } = this.#ledger.revision.register(partition, prepared, addMember, randomUUID());
+    if (replaced) this.#retireSuperseded(revision.subject, revision.generation, addMember);
+    return revision;
   }
 
   #registerCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
@@ -1838,16 +1767,7 @@ export class ResidentServer {
   }
 
   #retireSuperseded(subject: string, generation: number, includeTickets: boolean): void {
-    const superseded = (revision: WorkRevision): boolean => {
-      const command = this.#ledger.transition({ kind: "revisionSupersededCheck",
-        subject: this.#revisionSubject(subject),
-        candidateSubject: this.#revisionSubject(revision.subject),
-        generation: revision.generation }).commands[0];
-      if (command?.kind !== "revisionSuperseded" && command?.kind !== "revisionNotSuperseded") {
-        throw new Error("canonical supersession check refused");
-      }
-      return command.kind === "revisionSuperseded";
-    };
+    const superseded = (revision: WorkRevision): boolean => this.#ledger.revision.superseded(subject, revision);
     if (this.#currentRevisionGeneration(subject) !== generation) throw new Error("canonical revision changed");
     if (includeTickets) {
       for (const unit of this.#ticketUnits) {
@@ -1877,24 +1797,10 @@ export class ResidentServer {
   }
 
   #isCurrentWork(revision: WorkRevision, prepared: PreparedUnit): boolean {
-    const command = this.#ledger.transition({ kind: "revisionCurrentCheck",
-      subject: this.#revisionSubject(revision.subject), input: this.#revisionInput(prepared),
-      generation: revision.generation }).commands[0];
-    if (command?.kind !== "revisionCurrent" && command?.kind !== "revisionStale") {
-      throw new Error("canonical current revision check refused");
-    }
-    return command.kind === "revisionCurrent" && this.#currentWork.get(revision.subject)?.token === revision.token;
+    return this.#ledger.revision.current(revision, prepared);
   }
 
-  #releaseCurrentWork(revision: WorkRevision): void {
-    const retained = this.#currentWork.get(revision.subject);
-    if (retained === undefined || retained.token !== revision.token) return;
-    const command = this.#ledger.transition({ kind: "revisionRelease",
-      subject: this.#revisionSubject(revision.subject), generation: revision.generation }).commands[0];
-    if (command?.kind !== "revisionReleased") throw new Error("canonical revision release refused");
-    if (this.#currentRevisionGeneration(revision.subject) === 0) this.#currentWork.delete(revision.subject);
-    this.#pruneRevisionIds();
-  }
+  #releaseCurrentWork(revision: WorkRevision): void { this.#ledger.revision.release(revision); }
 
   #releaseUnit(job: Pick<UnitJob, "reservation" | "revision" | "released">): void {
     if (job.released) return;
@@ -3671,8 +3577,6 @@ export class ResidentServer {
       yield* owner.#dispatcher.whenIdle();
       yield* Scope.close(owner.#dispatchScope, Exit.void);
       owner.#ledger.clear();
-      owner.#currentWork.clear();
-      owner.#revisionIds.clear();
       const server = owner.#server;
       if (server !== undefined) yield* Effect.callback<void>((resume) => { server.close(() => resume(Effect.void)); });
       if (server !== undefined) {

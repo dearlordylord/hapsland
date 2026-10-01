@@ -1,3 +1,4 @@
+import { initialRevision, draftRevision, revisionOperations, type RevisionState, type RevisionOperations } from "./revision.ts";
 import { initialDispatchRegistry, type DispatchRegistry, type DispatchState } from "./dispatch.ts";
 import { initialDelivery, draftDelivery, deliveryOperations, deliveryView, assertDeliveryState, type DeliveryState, type ComposedDelivery, type RepeatEditDiagnostic } from "./composed-delivery.ts";
 import { initialEvaluationReuse, draftEvaluationReuse, evaluationReuseOperations, evaluationReuseView, residentEvaluationIdentity, type EvaluationReuse, type EvaluationReuseState } from "./evaluation-reuse.ts";
@@ -104,6 +105,12 @@ type ReservationRecord = {
   readonly bytes: number;
   readonly purpose: CapacityPurpose;
 };
+type ResidentRecords<Pending, Key, Value> = {
+  readonly reuse: EvaluationReuseState<Pending>;
+  readonly delivery: DeliveryState;
+  readonly dispatch: DispatchRegistry<Key, Value>;
+  readonly revision: RevisionState;
+};
 type CapacityState = {
   readonly residentLifetime: string;
   readonly limits: CapacityLimits;
@@ -130,66 +137,87 @@ const draftCapacity = (current: CapacityState, readReservation: CapacityDraft["r
   collectionTokens: new Map(current.collectionTokens), readReservation,
 });
 
-/** One commit owner for canonical state, capacity identities, evaluation reuse, delivery and dispatch registration.
+/** One commit owner for canonical state, capacity identities and native domain records.
  * Draft validation can fail without publishing a partial canonical transition.
  * Synchronous methods bridge existing host callers while the resident service
  * surface is migrated; all internal operations receive their draft explicitly.
  */
 export const makeResidentState = <Pending = never, DispatchKey = string, DispatchValue = never>(limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) => Effect.gen(function* () {
-  const state = yield* Ref.make<CapacityState & { readonly reuse: EvaluationReuseState<Pending>; readonly delivery: DeliveryState; readonly dispatch: DispatchRegistry<DispatchKey, DispatchValue> }>({
+  const state = yield* Ref.make<CapacityState & { readonly records: ResidentRecords<Pending, DispatchKey, DispatchValue> }>({
     residentLifetime, limits, canonical: initialCanonical(limits), reservations: new Map(),
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
-    reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(),
+    records: { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
+      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision() },
   });
   const read = <A>(operation: (current: CapacityState) => A): A =>
     Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
   let committing = false;
-  const commitAllEffect = <A>(operation: (draft: CapacityDraft, reuse: EvaluationReuseState<Pending>, delivery: DeliveryState,
-    dispatch: DispatchRegistry<DispatchKey, DispatchValue>) =>
-    readonly [A, EvaluationReuseState<Pending>, DeliveryState, DispatchRegistry<DispatchKey, DispatchValue>]): Effect.Effect<A> =>
+  const commitAllEffect = <A>(operation: (draft: CapacityDraft, records: ResidentRecords<Pending, DispatchKey, DispatchValue>) =>
+    readonly [A, ResidentRecords<Pending, DispatchKey, DispatchValue>]): Effect.Effect<A> =>
     Ref.modify(state, (current) => {
       if (committing) throw new Error("resident capacity commit cannot be reentered");
       committing = true;
       try {
         const draft = draftCapacity(current, (id) => Ref.getUnsafe(state).reservations.get(id));
-        const [value, reuse, delivery, dispatch] = operation(draft, current.reuse, current.delivery, current.dispatch);
+        const [value, records] = operation(draft, current.records);
         const { readReservation: _, ...next } = draft;
-        return [value, { ...next, reuse, delivery, dispatch }] as const;
+        return [value, { ...next, records }] as const;
       } finally { committing = false; }
     }).pipe(Effect.withSpan("ResidentState.commit"));
   const commitAll = <A>(operation: Parameters<typeof commitAllEffect<A>>[0]): A =>
     Effect.runSync(commitAllEffect(operation));
   const commit = <A>(operation: (draft: CapacityDraft) => A): A =>
-    commitAll((draft, reuse, delivery, dispatch) => [operation(draft), reuse, delivery, dispatch]);
+    commitAll((draft, records) => [operation(draft), records]);
   const capacity = capacityOperations(commit, read, residentLifetime);
   return {
     ...capacity,
-    clear: () => commitAll((draft, _reuse, _delivery, dispatch) => {
+    clear: () => commitAll((draft, records) => {
+      const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
-      return [clear(draft), initialEvaluationReuse<Pending>(), initialDelivery(), {
-        ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached,
-      }];
+      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(),
+        dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     }),
+    revision: (() => {
+      const revisionCommit = <A>(operation: (operations: RevisionOperations) => A): A =>
+        commitAll((draft, records) => {
+          const revision = draftRevision(records.revision);
+          const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+          const operations = revisionOperations(revision, owner);
+          const value = operation(operations);
+          operations.assert();
+          return [value, { ...records, revision }];
+        });
+      return {
+        count: (...args: Parameters<RevisionOperations["count"]>) => revisionCommit((operations) => operations.count(...args)),
+        generation: (...args: Parameters<RevisionOperations["generation"]>) => revisionCommit((operations) => operations.generation(...args)),
+        register: (...args: Parameters<RevisionOperations["register"]>) => revisionCommit((operations) => operations.register(...args)),
+        superseded: (...args: Parameters<RevisionOperations["superseded"]>) => revisionCommit((operations) => operations.superseded(...args)),
+        current: (...args: Parameters<RevisionOperations["current"]>) => revisionCommit((operations) => operations.current(...args)),
+        release: (...args: Parameters<RevisionOperations["release"]>) => revisionCommit((operations) => operations.release(...args)),
+      };
+    })(),
     dispatch: {
-      read: Ref.get(state).pipe(Effect.map((current) => current.dispatch)),
+      read: Ref.get(state).pipe(Effect.map((current) => current.records.dispatch)),
       modify: <A>(operation: (current: DispatchRegistry<DispatchKey, DispatchValue>, ledger: CapacityLedger) => readonly [A, DispatchRegistry<DispatchKey, DispatchValue>]) =>
-        commitAllEffect((draft, reuse, delivery, current) => {
+        commitAllEffect((draft, records) => {
+          const current = records.dispatch;
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
           const [value, dispatch] = operation(current, owner);
-          return [value, reuse, delivery, dispatch];
+          return [value, { ...records, dispatch }];
         }),
     } satisfies DispatchState<DispatchKey, DispatchValue>,
     delivery: (reportRepeat: (diagnostic: RepeatEditDiagnostic) => void = () => {}) => {
       const deliveryCommit = <A>(operation: (operations: ComposedDelivery) => A): A => {
-        const [value, diagnostics] = commitAll((draft, reuse, current, dispatch) => {
+        const [value, diagnostics] = commitAll((draft, records) => {
+          const current = records.delivery;
           const delivery = draftDelivery(current);
           const diagnostics: RepeatEditDiagnostic[] = [];
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
           const operations = deliveryOperations(delivery, owner, (diagnostic) => diagnostics.push(diagnostic));
           const value = operation(operations);
           assertDeliveryState(delivery, owner);
-          return [[value, diagnostics] as const, reuse, delivery, dispatch];
+          return [[value, diagnostics] as const, { ...records, delivery }];
         });
         // Diagnostics run after publication, outside the atomic commit. A
         // diagnostic failure cannot undo admission or change policy decisions.
@@ -198,7 +226,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         }
         return value;
       };
-      const view = () => deliveryView(Ref.getUnsafe(state).delivery, capacity);
+      const view = () => deliveryView(Ref.getUnsafe(state).records.delivery, capacity);
       return {
         canonical: capacity,
         claimBackground: (...args: Parameters<ComposedDelivery["claimBackground"]>) => deliveryCommit((operations) => operations.claimBackground(...args)),
@@ -248,15 +276,16 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     },
     reuse: (logicalBytes: (value: unknown) => number) => {
       const reuseCommit = <A>(operation: (operations: EvaluationReuse<Pending>) => A): A =>
-        commitAll((draft, current, delivery, dispatch) => {
+        commitAll((draft, records) => {
+          const current = records.reuse;
           const reuse = draftEvaluationReuse(current);
           const operations = evaluationReuseOperations(reuse,
             capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime), logicalBytes);
           const value = operation(operations);
           operations.snapshot();
-          return [value, reuse, delivery, dispatch];
+          return [value, { ...records, reuse }];
         });
-      const view = () => evaluationReuseView(Ref.getUnsafe(state).reuse, capacity);
+      const view = () => evaluationReuseView(Ref.getUnsafe(state).records.reuse, capacity);
       return {
         key: residentEvaluationIdentity,
         route: (...args: Parameters<EvaluationReuse<Pending>["route"]>) => reuseCommit((operations) => operations.route(...args)),

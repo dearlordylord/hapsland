@@ -1,0 +1,76 @@
+import { it } from "@effect/vitest";
+import { expect } from "vitest";
+import { Effect } from "effect";
+import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit, type TypeDeclaration } from "../direct-event/model.ts";
+import { advicee } from "../direct-event/test-fixtures.ts";
+import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
+import { makeResidentState } from "./capacity.ts";
+
+const prepared = (source = "type Count = number"): PreparedUnit => {
+  const declaration: TypeDeclaration = { id: "count.ts::Count", kind: "type-alias", name: "Count", source, sourceHash: source };
+  const input = freezeInput({
+    contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "count.ts", declaration,
+    unit: { root: { artifact: declaration, references: [] } }, rules: freezeRules([]),
+    interpretation: "probability-strictly-greater-than-threshold",
+  });
+  return { root: "/fixture", advicee: advicee({ toolUseId: "edit" }), input, identity: semanticIdentity(input) };
+};
+
+it.effect("reuses one native revision and accounts for independent members", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const item = prepared();
+  const first = owner.revision.register("agent", item, true, "first-token");
+  const joined = owner.revision.register("agent", item, true, "unused-token");
+  expect(first.replaced).toBe(true);
+  expect(joined).toEqual({ revision: first.revision, replaced: false });
+  expect(Object.isFrozen(first.revision)).toBe(true);
+  expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([2]);
+  owner.revision.release({ ...first.revision, token: "foreign-token" });
+  expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([2]);
+  owner.revision.release(first.revision);
+  expect(owner.revision.current(joined.revision, item)).toBe(true);
+  expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([1]);
+  owner.revision.release(joined.revision);
+  expect(owner.revision.count()).toBe(0);
+  expect(owner.revision.current(first.revision, item)).toBe(false);
+  expect(owner.revision.generation(first.revision.subject)).toBe(0);
+}));
+
+it.effect("replaces only the matching subject and ignores an old generation's release", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const item = prepared();
+  const changed = prepared("type Count = string");
+  const old = owner.revision.register("agent", item, true, "old").revision;
+  const independent = owner.revision.register("other-agent", item, true, "independent").revision;
+  const replacement = owner.revision.register("agent", changed, true, "replacement").revision;
+  expect(replacement.generation).toBeGreaterThan(old.generation);
+  expect(owner.revision.superseded(replacement.subject, old)).toBe(true);
+  expect(owner.revision.superseded(replacement.subject, independent)).toBe(false);
+  expect(owner.revision.current(old, item)).toBe(false);
+  expect(owner.revision.current(replacement, changed)).toBe(true);
+  expect(owner.revision.current(independent, item)).toBe(true);
+  owner.revision.release(old);
+  expect(owner.revision.count()).toBe(2);
+  owner.revision.release(independent);
+  expect(owner.revision.count()).toBe(1);
+  owner.revision.release(replacement);
+  expect(owner.revision.count()).toBe(0);
+}));
+
+it.effect("isolates acquisitions and fences stale native tokens when generation IDs are reused", () => Effect.gen(function* () {
+  const acquire = makeResidentState();
+  const first = yield* acquire;
+  const second = yield* acquire;
+  const item = prepared();
+  const old = first.revision.register("agent", item, true, "old").revision;
+  expect(second.revision.count()).toBe(0);
+  expect(second.revision.current(old, item)).toBe(false);
+  first.clear();
+  expect(first.revision.count()).toBe(0);
+  const replacement = first.revision.register("agent", item, true, "replacement").revision;
+  expect(replacement.generation).toBe(old.generation);
+  expect(first.revision.current(old, item)).toBe(false);
+  first.revision.release(old);
+  expect(first.revision.current(replacement, item)).toBe(true);
+  expect(first.revision.count()).toBe(1);
+}));

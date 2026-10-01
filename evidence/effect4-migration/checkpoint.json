@@ -31,7 +31,11 @@
     "Dispatch commits and command acknowledgement compose directly as Effects over the shared owner; scoped physical execution and idle Latch remain executor resources",
     "Resident state acquisition is an Effect with one Ref per acquisition; synchronous factory remains a host bridge for existing callers",
     "Outstanding native dispatch jobs block destructive state clearing; one scoped dispatch executor attaches per owner, including after logical state clear",
-    "Dispatch boundary check rejects independently acquired dispatch Ref ownership"
+    "Dispatch boundary check rejects independently acquired dispatch Ref ownership",
+    "Revision identity mappings and current native work handles moved from ResidentServer fields into the shared canonical/native Ref, with draft registration/reuse/supersession/release operations",
+    "Revision commits check native subject, input identity and generation agreement before publication; immutable revision tokens fence stale native handles after numeric generation reuse",
+    "Resident native domains are grouped into one explicit records object; discarded unused server revision helpers and redundant current-work input references",
+    "Revision boundary check requires domain operations in their owner and rejects independent server revision fields or a separate revision Ref"
   ],
   "verification": [
     {
@@ -307,10 +311,70 @@
       "files": 9,
       "exitCode": 0,
       "stage": "Combined state with dispatch registry; registry rollback, physical clear fence, single executor and originating saturation trace conformance"
+    },
+    {
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0,
+      "stage": "Combined state with native revision records"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "stage": "Combined state with native revision records"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/revision.test.ts",
+      "tests": 3,
+      "exitCode": 0,
+      "stage": "Revision members, subject supersession, acquisition isolation and stale native tokens"
+    },
+    {
+      "commands": [
+        "check-canonical-authority",
+        "check-production-authority",
+        "check-capacity-boundary",
+        "check-permit-boundary",
+        "check-review-boundary",
+        "check-dispatch-boundary",
+        "check-stop-boundary",
+        "check-collection-boundary",
+        "check-delivery-boundary",
+        "check-revision-boundary",
+        "check-ticket-boundary",
+        "check-reuse-boundary",
+        "check-notice-boundary",
+        "check-retention-boundary"
+      ],
+      "exitCode": 0,
+      "stage": "Combined state with native revision records"
+    },
+    {
+      "command": "Selected 12-file resident suite",
+      "exitCode": 1,
+      "testsPassed": 223,
+      "testsExpected": 231,
+      "filesPassed": 11,
+      "filesExpected": 12,
+      "stage": "Combined state with native revision records, first broad run",
+      "failure": "Native worker exited with SIGSEGV during terminal-collection.test.ts; root cause not established"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/terminal-collection.test.ts",
+      "tests": 22,
+      "exitCode": 0,
+      "stage": "Isolated rerun after native worker SIGSEGV; no reproduction"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/revision.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/capacity.test.ts src/resident/dispatch.test.ts src/resident/evaluation-reuse.test.ts src/resident/composed-delivery.test.ts src/resident/jev-request.test.ts src/resident/terminal-collection.test.ts src/resident/claude-delivery.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts",
+      "tests": 231,
+      "files": 12,
+      "exitCode": 0,
+      "stage": "Combined state with native revision records; clean broad rerun after isolated native worker crash",
+      "note": "No concurrent build during rerun; native SIGSEGV did not reproduce. Root cause of first-run crash remains unknown."
     }
   ],
   "next": [
-    "Consolidate remaining server records with the canonical/capacity/reuse/delivery/dispatch record into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
+    "Consolidate remaining server ticket/advice/notice/round records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
     "Migrate client/host edges and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -318,7 +382,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Remaining server records and native resources still have class ownership; the combined state exposes synchronous host bridges pending runtime service consolidation",
+    "Remaining ticket/advice/notice/round records and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"
