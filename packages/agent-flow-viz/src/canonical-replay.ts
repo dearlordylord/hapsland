@@ -105,6 +105,28 @@ export const SHOWCASE_SCENARIO = {
   ] as CanonicalEvent[],
 };
 
+/** Presentation-only action boundaries. Every enclosed event still runs through Canonical.step. */
+export const SHOWCASE_ACTION_GROUPS = [
+  { first: 40, last: 41, label: "Collect 2 advice groups for one Stop output" },
+  { first: 43, last: 44, label: "Stage 2 advice records for one Stop output" },
+] as const;
+const actionGroups = (scenario: number) => scenario === 0 ? SHOWCASE_ACTION_GROUPS : [];
+export const guidedActionCount = (scenario: number): number =>
+  CANONICAL_SCENARIOS[scenario].events.length - actionGroups(scenario).reduce((count, group) => count + group.last - group.first, 0);
+export const completedGuidedActions = (events: number, scenario: number): number =>
+  Array.from({ length: events }, (_, index) => index + 1)
+    .filter((event) => !actionGroups(scenario).some((group) => event >= group.first && event < group.last)).length;
+export const nextGuidedActionEnd = (events: number, scenario: number): number => {
+  const next = events + 1;
+  return actionGroups(scenario).find((group) => next >= group.first && next <= group.last)?.last ?? next;
+};
+export const guidedActionLabel = (events: number, scenario: number): string | undefined => {
+  const next = events + 1;
+  return actionGroups(scenario).find((group) => next >= group.first && next <= group.last)?.label;
+};
+export const endingActionGroup = (events: number, scenario: number) =>
+  actionGroups(scenario).find((group) => group.last === events);
+
 export const CAPACITY_SCENARIO = {
   name: "Shared review capacity and partial unit admission",
   description: "Two advicees share one ledger. A preparation releases its space, then admits, refuses, and admits three units in order.",
@@ -256,9 +278,13 @@ export const extendGuidedHistory = (history: readonly ReplayEvent[], target: num
   return { history: events, position: events.length, ...(rejection === undefined ? {} : { rejection }) };
 };
 
-/** Guided boundaries exclude the preparation trace events inside each step. */
-export const adjacentGuidedPosition = (history: readonly ReplayEvent[], position: number, direction: -1 | 1): number | undefined => {
-  const target = guidedIndex(history, position) + direction;
+/** Guided actions keep every reducer event in history while jumping over declared display groups. */
+export const adjacentGuidedPosition = (history: readonly ReplayEvent[], position: number, direction: -1 | 1, scenario = 0): number | undefined => {
+  const current = guidedIndex(history, position);
+  const target = direction > 0 ? nextGuidedActionEnd(current, scenario) :
+    Array.from({ length: current }, (_, index) => index)
+      .filter((event) => event === 0 || !actionGroups(scenario).some((group) => event >= group.first && event < group.last))
+      .at(-1) ?? 0;
   if (target <= 0) return 0;
   let guided = 0;
   for (let index = 0; index < history.length; index++) {

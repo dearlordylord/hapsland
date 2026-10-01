@@ -83,11 +83,11 @@ export const SQUARES: Record<Place, Square> = {
       const shortBatch = (x: typeof pending[number]) => `#${n?.advice.get(x.advice) ?? x.advice}:${x.phase}`;
       const visible = pending.slice(0, 2).map(shortBatch).join(", ");
       const pendingSample = pending.length === 0 ? undefined
-        : `${pending.length} ${pending.length === 1 ? "batch" : "batches"} · ${visible}${pending.length > 2 ? ` +${pending.length - 2}` : ""}`;
-      return [facet("finish slots", s.delivery.slots.map((x) => `Finish group #${x.group}:${x.phase}`)),
-        facet("pending advice", pending.map(batch), pendingSample),
-        facet("submitted advice", s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map(batch)),
-        facet("uncertain advice", s.delivery.submissions.batches.filter((x) => x.phase === "uncertain").map(batch))];
+        : `${pending.length} ${pending.length === 1 ? "record" : "records"} · ${visible}${pending.length > 2 ? ` +${pending.length - 2}` : ""}`;
+      return [facet("Stop output slots", s.delivery.slots.map((x) => `Stop output for advicee #${x.group}:${x.phase}`)),
+        facet("advice records awaiting output", pending.map(batch), pendingSample),
+        facet("submitted advice records", s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map(batch)),
+        facet("uncertain advice records", s.delivery.submissions.batches.filter((x) => x.phase === "uncertain").map(batch))];
     } }),
   round: square({ title: "Round state", owner: "BEND STATE", x: 588, y: 592,
     facets: (s) => [facet("active rounds", ids(s.rounds.map((x) => x.id), "Round")), facet("uncertain rounds", ids(s.rounds.filter((x) => x.uncertain).map((x) => x.id), "Round"))] }),

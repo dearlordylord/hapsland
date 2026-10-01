@@ -226,6 +226,12 @@ export const productionFlowView = <Message>(
     ? recordLabel("advice", last.event.advice, numbers).split("/")[0] + " ← " +
       recordLabel("review", last.event.advice, numbers).split("/")[0] : undefined;
   const stepCaption = last?.rejection !== undefined ? undefined : (() => {
+    const newLeases = (projection.collection.leases.length - (last?.before.collection.leases.length ?? 0));
+    if (last?.event.kind === "collectionReserveLease" && newLeases > 1)
+      return `${newLeases} advice groups leased for one Stop output; no output slot is reserved yet.`;
+    const newRecords = projection.delivery.submissions.batches.length - (last?.before.delivery.submissions.batches.length ?? 0);
+    if (last?.event.kind === "submissionBegin" && newRecords > 1)
+      return `${newRecords} advice records staged for one Stop output; no host write is established.`;
     if (last?.event.kind === "stopPolled" && has(commands, "finishReady")) return "Stop decision ready; this step does not reserve or send output.";
     if (last?.event.kind === "collectionReserveLease" && has(commands, "collectionLeaseReserved"))
       return `${recordLabel("advice", last.event.advice, numbers).split("/")[0]} leased for collection${projection.collection.ready.includes(last.event.advice) ? "; still ready" : ""}.`;

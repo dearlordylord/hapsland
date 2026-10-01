@@ -3,7 +3,7 @@
 **Purpose:** Preserve a human-readable walkthrough of the default connected diagram for owner review.
 **Status:** Temporary snapshot of the 63-step default guided replay on `master`, awaiting #147 diagram review.
 **Authority:** Implementation and validation evidence. The checked reducer and its adapter determine behavior; this walkthrough is not a product contract or a live runtime trace.
-**Expected use:** Open the Hapsland dashboard's default guided case, advance one canonical step at a time, and compare the highlighted squares and connections with this table.
+**Expected use:** Open the Hapsland dashboard's default guided case, compare the highlighted squares and connections with this reducer-event table, and use the history timeline to inspect individual events inside grouped actions.
 **Lifecycle:** At #147 diagram acceptance or closure, consolidate any still-useful explanation into the maintained diagram/package guide or the accepted specification owner, update inbound links, and **delete** this snapshot. Review it if the default replay, square mapping, or connection projection changes before that trigger.
 
 Guided step numbers below count canonical events. The composed preparation trace
@@ -12,6 +12,11 @@ traces for two artifacts between canonical steps 15/16;
 these use the same Next, Previous and Redo controls and advance history while
 the canonical step number stays fixed. See the maintained
 [visualization guide](../packages/agent-flow-viz/README.md) for that inner view.
+The Next control groups reducer events 40–41 into one advice-collection action
+and 43–44 into one Stop-submission action. The table keeps separate event rows
+because Bend records each advice separately. Left/Right and the history timeline
+still reveal the intermediate states. Both submission records share one output
+token and belong to one Stop response to the agent runtime.
 
 This table follows [`SHOWCASE_SCENARIO`](../packages/agent-flow-viz/src/canonical-replay.ts), using the checked before/after projection and the [flow evidence mapping](../packages/agent-flow-projection/src/index.ts). “Squares” means squares whose borders highlight **at that step**, not every square containing an item. “None” under connections means the step has no supported displayed arrow, even if a square or hidden reducer field changes. An arrow labeled **command** grants or records a decision; it does not assert that a native request or host write occurred. **Native fact** and **external Jev fact** are supplied observations. IDs are example IDs from this source-free trace.
 
@@ -84,8 +89,8 @@ The replay starts with a source-free pre-edit permit request, followed by the ac
 | 40 | `collectionReserveLease`: reserve advice #4 for output token #8. | Ready advice, Advice collection; #4 has a lease and remains ready. | Ready advice → Advice collection: lease #4 appears while ready #4 remains (**state**). |
 | 41 | `collectionReserveLease`: reserve advice #6 for the same output token. | Ready advice, Advice collection; #6 also has a lease and remains ready. | Ready advice → Advice collection: lease #6 appears (**state**). |
 | 42 | `finishReserve`: reserve the Stop output slot for both selected units. | Host output shows the reserved Stop slot and a visible caption says it contains two selected advice groups, before authorization. | None; creating a slot changes Host output without asserting a write. |
-| 43 | `submissionBegin`: begin advice #4's Stop submission batch. | Host output shows Advice #1 `reserved`; the caption states that no host write is established. | None; a new batch appears inside Host output. |
-| 44 | `submissionBegin`: begin advice #6's Stop submission batch. | Host output shows Advice #2 `reserved` beside Advice #1; both belong to the same Stop output slot. | None; a second batch appears inside Host output. |
+| 43 | `submissionBegin`: begin advice #4's Stop submission record. | Host output shows Advice #1 `reserved`; the caption states that no host write is established. | None; one advice record appears inside Host output. |
+| 44 | `submissionBegin`: begin advice #6's Stop submission record. | Host output shows Advice #2 `reserved` beside Advice #1; both belong to the same Stop output slot and the same host response. | None; a second advice record appears inside Host output. |
 | 45 | `finishAuthorize`: authorize the combined Stop output slot. | Advice collection, Host output; finish #1 changes reserved → authorized. The branch reads `Advice output authorized`, not delivered. | Advice collection → Host output (**authorization command**); Host output → Host output (**state phase change**). No host write is established. |
 | 46 | `submissionAuthorize`: authorize advice #4's batch. | Advice collection, Host output; Advice #1 changes reserved → authorized while Advice #2 remains reserved. | Advice collection → Host output (**command**); Host output → Host output (**state phase change**). |
 | 47 | `submissionAuthorize`: authorize advice #6's batch. | Advice collection, Host output; both advice submissions are now authorized. | Advice collection → Host output (**command**); Host output → Host output (**state phase change**). |

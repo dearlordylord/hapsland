@@ -106,7 +106,7 @@ try {
   let showcase = initial;
   const showcasedRoutes = new Set();
   for (const [index, event] of canonical.SHOWCASE_SCENARIO.events.entries()) {
-    showcase = send(showcase, main.Message.Advanced());
+    showcase = send(showcase, main.Message.HistoryForward());
     let step = canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps.at(-1);
     while (step.event.kind === "preparationGraph") {
       assert.deepEqual(step.before, step.after, "inner graph steps must preserve canonical state");
@@ -118,7 +118,7 @@ try {
         assert.ok(elements(showcase, "preparation-mini-node").some(node => node.data.class.active && labels(node).includes("Capture")));
       if (step.preparation.after.phase === "complete")
         assert.ok(elements(showcase, "preparation-mini-node").some(node => node.data.class.active && labels(node).includes("Complete")));
-      showcase = send(showcase, main.Message.Advanced());
+      showcase = send(showcase, main.Message.HistoryForward());
       step = canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps.at(-1);
     }
     assert.deepEqual(step.event, event);
@@ -251,10 +251,10 @@ try {
     const stopCaption = new Map([
       [38, /Stop decision ready; this step does not reserve or send output/],
       [39, /Advice #1 leased for collection; still ready/],
-      [40, /Advice #2 leased for collection; still ready/],
+      [40, /2 advice groups leased for one Stop output; no output slot is reserved yet/],
       [41, /Stop output slot reserved for 2 selected advice groups; output is not yet authorized/],
       [42, /Advice #1 submission reserved for Stop output; no host write is established/],
-      [43, /Advice #2 submission reserved for Stop output; no host write is established/],
+      [43, /2 advice records staged for one Stop output; no host write is established/],
       [44, /Stop output authorized; no host write is established/],
       [45, /Advice #1 submission authorized; acknowledgment remains to be checked/],
       [46, /Advice #2 submission authorized; acknowledgment remains to be checked/],
@@ -266,16 +266,27 @@ try {
     if (stopCaption !== undefined) assert.match(labels(elements(showcase, "topology-current-step")[0]), stopCaption);
     if (index === 44) assert.ok(labels(main.view(showcase, inertHtml).body).includes("Advice output authorized"));
     if (index === 43) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),
-      /2 batches · #1:reserved, #2:reserved/);
+      /2 records · #1:reserved, #2:reserved/);
     if (index === 45) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),
-      /2 batches · #1:authorized, #2:reserved/);
+      /2 records · #1:authorized, #2:reserved/);
     if (index === 46) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),
-      /2 batches · #1:authorized, #2:authorized/);
+      /2 records · #1:authorized, #2:authorized/);
     if (index === 39) assert.ok(active.some((route) => labels(route).includes("Advice #1/operation 4 leased; still ready")));
     if (index === 44) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
     if (index === 50) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
     if (index === 58) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
   }
+  const atGuided = (count) => showcase.history.findIndex((_, index) => canonical.guidedIndex(showcase.history, index + 1) === count) + 1;
+  let grouped = send(showcase, main.Message.Jumped({ position: atGuided(39) }));
+  grouped = send(grouped, main.Message.Advanced());
+  assert.equal(canonical.guidedIndex(grouped.history, grouped.position), 41);
+  assert.match(labels(elements(grouped, "topology-current-step")[0]), /2 advice groups leased for one Stop output/);
+  assert.match(labels(elements(grouped, "topology-route").find((node) => labels(node).includes("Advice #1/operation 4 leased"))), /Advice #2\/operation 6 leased/);
+  grouped = send(grouped, main.Message.Advanced());
+  assert.equal(canonical.guidedIndex(grouped.history, grouped.position), 42);
+  grouped = send(grouped, main.Message.Advanced());
+  assert.equal(canonical.guidedIndex(grouped.history, grouped.position), 44);
+  assert.match(labels(elements(grouped, "topology-current-step")[0]), /2 advice records staged for one Stop output/);
   assert.ok(showcasedRoutes.size >= 12, "the opening replay should expose a broad connected route set");
   const allNumbers = numbering.numberRecords(canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps);
   assert.deepEqual([...allNumbers.review], [[4, 1], [6, 2], [7, 3]], "review ordinals survive the disappearance of work records");
@@ -474,7 +485,7 @@ try {
     Scene.given(initial),
     Scene.click(Scene.getByRole("button", { name: "Next: issuePermit", exact: true })),
     Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 63/)),
-    Scene.click(Scene.getByRole("button", { name: "Previous step", exact: true })),
+    Scene.click(Scene.getByRole("button", { name: "Previous history event", exact: true })),
     Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 63/)));
   console.log("Checked the opening connected replay, compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
 } finally {

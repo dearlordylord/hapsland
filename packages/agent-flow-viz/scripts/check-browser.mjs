@@ -20,6 +20,7 @@ try {
     document.querySelector(target)?.textContent?.includes(expected), [selector, text]);
   const advanceGuided = async (first, last, total) => {
     for (let step = first; step <= last; step++) {
+      if (total === 63 && (step === 41 || step === 44)) continue;
       while ((await canonical.getByRole("button", { name: /^Next:/ }).innerText()).includes("preparation ·")) {
         const prior = await canonical.locator(".canonical-progress").innerText();
         await canonical.getByRole("button", { name: /^Next:/ }).click();
@@ -27,7 +28,7 @@ try {
         assert.match(await canonical.locator(".preparation-mini").textContent(), /Preparation #/);
       }
       await canonical.getByRole("button", { name: /^Next:/ }).click();
-      await waitForText(".canonical-progress", `Guided step ${step} of ${total}`);
+      await waitForText(".canonical-progress", `Guided step ${total === 63 && (step === 40 || step === 43) ? step + 1 : step} of ${total}`);
       if (total === 63 && step === 16) {
         assert.match(await canonical.locator(".preparation-mini-counts").textContent(), /7\/8 files read.*20 KiB/);
         assert.match(await canonical.locator(".preparation-mini-status").textContent(), /Preparation #2.*incomplete/);
@@ -110,7 +111,7 @@ try {
   assert.match(await page.locator(".topology-node").filter({ hasText: "Round state" }).textContent(), /0 active rounds/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Ready advice" }).textContent(), /0 awaiting delivery/);
   assert.match(await page.locator(".topology-node").filter({ hasText: "Review outcomes" }).textContent(), /0 finding work/);
-  assert.match(await page.locator(".topology-node").filter({ hasText: "Host output" }).textContent(), /0 finish slots.*0 submitted advice/s);
+  assert.match(await page.locator(".topology-node").filter({ hasText: "Host output" }).textContent(), /0 Stop output slots.*0 submitted advice records/s);
   assert.match(await page.locator(".topology-capacities").innerText(), /Review capacity ledger: 0\/3 items; 0\/100 bytes/);
   await canonical.getByLabel("Guided scenario", { exact: true }).selectOption({ label: "Shared review capacity and partial unit admission" });
   await waitForText(".canonical-progress", "Guided step 0 of 11");
@@ -126,15 +127,15 @@ try {
   assert.equal(await page.locator(".topology-scroll svg").textContent(), beforeRejection);
   assert.equal(await page.locator(".topology-route.active").count(), 0);
   assert.match(await page.locator(".topology-step").innerText(), /rejected: StaleOperation/);
-  await canonical.getByRole("button", { name: "Previous step" }).click();
+  await canonical.getByRole("button", { name: "Previous history event" }).click();
   await waitForText(".canonical-progress", "Guided step 3 of 11");
   await canonical.locator(".capacity-frames").evaluate((element) => element.open = true);
   await canonical.getByRole("button", { name: /Unit 2: no capacity/ }).click();
   await waitForText(".capacity-frames", "Frame 3 of 4");
   assert.match(await canonical.innerText(), /Frame 3 of 4 · 2 shared items · 50 shared bytes/);
-  await canonical.getByRole("button", { name: "Previous step" }).click();
+  await canonical.getByRole("button", { name: "Previous history event" }).click();
   await waitForText(".canonical-progress", "Guided step 2 of 11");
-  await canonical.getByRole("button", { name: "Redo step" }).click();
+  await canonical.getByRole("button", { name: "Redo history event" }).click();
   await waitForText(".canonical-progress", "Guided step 3 of 11");
   await canonical.getByLabel("Event JSON").fill(
     '{"kind":"releaseCapacity","reservation":4}');
@@ -222,10 +223,10 @@ try {
   assert.match(await page.locator(".topology-step").innerText(), /jevRequestReady accepted.*jevRequestUnavailable/);
   assert.match(await page.locator(".topology-capacities").innerText(), /Jev in-flight: 8\/8 · no Jev wait queue/);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "request unavailable or refused" }).count(), 1);
-  await canonical.getByRole("button", { name: "Previous step" }).click();
+  await canonical.getByRole("button", { name: "Previous history event" }).click();
   await waitForText(".canonical-progress", "Guided step 28 of 34");
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "request unavailable or refused" }).count(), 0);
-  await canonical.getByRole("button", { name: "Redo step" }).click();
+  await canonical.getByRole("button", { name: "Redo history event" }).click();
   await waitForText(".canonical-progress", "Guided step 29 of 34");
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "request unavailable or refused" }).count(), 1);
 

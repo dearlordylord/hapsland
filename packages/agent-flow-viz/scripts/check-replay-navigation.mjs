@@ -75,7 +75,7 @@ try {
   await position(0, 0);
   const progress = async () => {
     const text = await replay.locator('.canonical-progress').innerText();
-    const parts = text.match(/Guided step (\d+) of \d+ · history (\d+)\/(\d+) · (\d+) recorded events/);
+    const parts = text.match(/Guided step (\d+) of \d+ · action \d+\/\d+ · history (\d+)\/(\d+) · (\d+) recorded events/);
     return { guided: Number(parts[1]), at: Number(parts[2]), total: Number(parts[3]), recorded: Number(parts[4]) };
   };
   let before;

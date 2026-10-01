@@ -204,7 +204,7 @@ need the Chromium system libraries listed by Playwright.
 
 ## Guided replay navigation
 
-Left/Right moves through one retained history event at a time; holding either key uses keyboard repeat for fast movement. Right replays existing future events before adding the next guided event, preserving manual entries. Shift+Left/Right jumps to the previous/next guided step, skipping manual entries and preparation trace events between guided boundaries. At the recorded frontier, Shift+Right completes the preparation trace and advances to the next guided boundary after retained history.
+Left/Right moves through one retained history event at a time; holding either key uses keyboard repeat for fast movement. Right replays existing future events before adding the next guided event, preserving manual entries. Next and Shift+Left/Right use guided action boundaries. In the default case, one action collects advice in reducer events 40–41 and another stages the two advice records in events 43–44. Both events in each action remain in the checked history; Left/Right and the timeline show the intermediate state. The two submission records share one output token and produce one Stop response, not two host writes. Other guided actions span one canonical event, while preparation frames remain inspectable. At the recorded frontier, Shift+Right completes the preparation trace and advances to the next guided action after retained history.
 
 The **History timeline** covers the complete planned scenario from the start,
 including inner preparation events (104 events for the default 63-step scenario).
