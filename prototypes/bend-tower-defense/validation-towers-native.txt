@@ -1,0 +1,19 @@
+Linux ARM64 actual native Bend2.0.34 window and keyboard/mouse observations. No macOS or human teaching validation claimed.
+Packager profile3 fast admission: Bend road defense | WAVE=1 PHASE=1 LIFE=220 GOLD=25 SCORE=0 DONE=0 LOST=0 ENEMIES=1 TICK=4 STOP=0 ACK=0 FINDINGS=0 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 SELECTED=0 KIND=4 LEVEL=1 CHARGE=0 ABSORBED=0 BATCH_BYTES=0 BATCH_MEMBERS=0 CONTENT=0 COORD_TARGET=0
+Actual four-finding packager reservation: Bend road defense | WAVE=1 PHASE=1 LIFE=179 GOLD=91 SCORE=36 DONE=12 LOST=6 ENEMIES=6 TICK=480 STOP=3 ACK=6 FINDINGS=12 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=10192 SELECTED=2 KIND=5 LEVEL=1 CHARGE=240 ABSORBED=0 BATCH_BYTES=10192 BATCH_MEMBERS=4 CONTENT=10000 COORD_TARGET=0
+Packager witness found True: Bend road defense | WAVE=1 PHASE=1 LIFE=179 GOLD=91 SCORE=36 DONE=12 LOST=6 ENEMIES=6 TICK=480 STOP=3 ACK=6 FINDINGS=12 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=10192 SELECTED=2 KIND=5 LEVEL=1 CHARGE=240 ABSORBED=0 BATCH_BYTES=10192 BATCH_MEMBERS=4 CONTENT=10000 COORD_TARGET=0
+Parallelizer permits: Bend road defense | WAVE=1 PHASE=1 LIFE=216 GOLD=50 SCORE=0 DONE=0 LOST=0 ENEMIES=24 TICK=148 STOP=1 ACK=0 FINDINGS=0 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 SELECTED=1 KIND=3 LEVEL=1 CHARGE=240 ABSORBED=0 BATCH_BYTES=0 BATCH_MEMBERS=0 CONTENT=0 COORD_TARGET=0
+Coordinator prospective sibling target: Bend road defense | WAVE=1 PHASE=1 LIFE=211 GOLD=85 SCORE=0 DONE=0 LOST=0 ENEMIES=24 TICK=179 STOP=1 ACK=0 FINDINGS=2 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 SELECTED=1 KIND=4 LEVEL=1 CHARGE=240 ABSORBED=0 BATCH_BYTES=0 BATCH_MEMBERS=0 CONTENT=0 COORD_TARGET=3
+Shield spent budget paused: Bend road defense | WAVE=1 PHASE=1 LIFE=216 GOLD=70 SCORE=0 DONE=0 LOST=0 ENEMIES=24 TICK=140 STOP=1 ACK=0 FINDINGS=0 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 SELECTED=1 KIND=6 LEVEL=1 CHARGE=222 ABSORBED=18 BATCH_BYTES=0 BATCH_MEMBERS=0 CONTENT=0 COORD_TARGET=0
+Shield paused again: Bend road defense | WAVE=1 PHASE=1 LIFE=216 GOLD=70 SCORE=0 DONE=0 LOST=0 ENEMIES=24 TICK=140 STOP=1 ACK=0 FINDINGS=0 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 SELECTED=1 KIND=6 LEVEL=1 CHARGE=222 ABSORBED=18 BATCH_BYTES=0 BATCH_MEMBERS=0 CONTENT=0 COORD_TARGET=0
+Shield upgraded without refill: Bend road defense | WAVE=1 PHASE=1 LIFE=216 GOLD=30 SCORE=0 DONE=0 LOST=0 ENEMIES=24 TICK=140 STOP=1 ACK=0 FINDINGS=0 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 SELECTED=1 KIND=6 LEVEL=2 CHARGE=222 ABSORBED=18 BATCH_BYTES=0 BATCH_MEMBERS=0 CONTENT=0 COORD_TARGET=0
+Pause title invariance and Shield upgrade no-refill asserted. Exit code 0
+
+Final source snapshot: RoadGame243ebc7243809b5c2cc0087ab708e853a34e8959ee366e839bcb1888183ab392; RoadRender d334bf1d09c3470519ceed4715a0d86eb7d3fc44ff3891b440cee49fff64f49d; RoadMain06301ace104782bc008c9fc21e157f59ecc40a4b0522b28293ad1c9a4d35514e.
+Commands: timeout5 bend RoadRender.bend --check-only; timeout5 bend RoadMain.bend --check-only; both exit0. bend RoadMain.bend -o /tmp/hapsland-road-supports-ui-frozen; run --threads4.
+Actual native input driver: /tmp/hapsland-towers-frozen-native.py, DISPLAY=:121. Paused captures wait1second for rendering completion. Earlier captures were replaced, not treated as final evidence.
+Packager witness: Tab3 to OUTPUT BATCHING; ]6 to pace6;6 click208400;5 click368240;N;pause at actual4member10192reservation;select Packager208400.
+Parallelizer: R/Tab to default;]6;4 click144240;N;pause then select144240.
+Coordinator: R;]6;5 click368240;N;pause at prospective active sibling target;select368240.
+Shield: R;]6;7 click368240;N;select368240;pause once charge spent; compare frozen title across1second;U. Level1→2, gold70→30, charge222/absorbed18 unchanged; all24 work tokens remain.
+Final screenshots are actual XGetImage native captures1024x768. Pause overlay obscures central map processors; selected causal panels remain visible.

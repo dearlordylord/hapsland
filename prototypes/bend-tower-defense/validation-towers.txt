@@ -1,0 +1,166 @@
+Purpose: Bounded native evidence for autonomous architecture-specific towers.
+Status: Completed bounded validation evidence; throwaway prototype, not accepted product contract.
+Authority: Executable RoadGame tests and explicit experimental criteria; no formal proof or human engagement claim.
+Expected use: Inspect architectural cause/effect and opportunity cost before accepting the tower increment.
+Lifecycle: Consolidate useful decisions into accepted prototype design when this increment is accepted; delete this temporary trace when prototype is retired. Keep earlier validation-road-increment.txt historical evidence separate.
+
+PRE-EXECUTION CONTRACT AND COMPARISON CRITERIA
+No manual activations. Every tower acts through native engine advance; construction uses actual primary click0 and charges native prices. Immutable authored demand IDs, payloads and outcomes are identical across compared policies.
+Parallelizer: ordinary active worker permits may increase; occupied/pending storage and roads do not. Writer exclusivity/byte cap do not gain permits. Test queued workload before/after and negative out-of-range/writer case.
+Coordinator (root-amended before implementation): targeted accelerator only to genuinely worker-active unfinished sibling of already-authored waiting findings. It does not preempt rank or produce service for queued work. Prioritize largest waiting group, then least remaining effort/ID. Test identical supplied total work allocated to sibling vs unrelated work, actual group-ready latency, and unrelated/completed-sibling negative cases. General policies may produce different work amounts; do not call those equal-work causal comparisons.
+Packager: reduce only per-finding encoding overhead. Immutable content bytes and outcome class stay fixed; batch cap unchanged. Require byte-exact FIFO prefix, exclusive member set and exact acknowledgement, latency tradeoff for small dense vs large content. No magical payload compression.
+Shield: finite per-wave charge absorbs only arrived-pressure damage. Same backlog/work/deadline/identities, no deletion or service. Require eventual exhaustion, safe-road negative case and gross-vs-mitigated pressure accounting.
+Campaign comparison: matched context/pace/demand, equal actual upfront spend, no upgrades/reinvestment for causal comparisons. Report terminal completion, health, ACK/clear/refusal/cancel/limited, inside-pressure integral, tick count, and charge/bytes as available. Resource conservation everytick; full bounds every20ticks/first/final plus directed transient full-capacity fixtures. Fuel14000 per case and active exhaustion fails. Select exact common spend/matrix once frozen prices/API arrive, recording amendment before execution.
+Negative controls: intentional scratch-only mutation or ineffectual placement must fail the relevant causal witness. Never mutate canonical engine silently. Do not infer human learning, enjoyment, production behavior, or universal correctness from native traces.
+
+POST-EXECUTION CURRENT COORDINATOR BASELINE (before calibration)
+Native baseline exit0. Cost65/power3/cooldown12 yields positive frontier18ticks vsRapid24 atcost35; held-finding area36 vs48. General nonblocking work: Coordinator24ticks vsRapid9. It buys only25% targeted frontier reduction for86% moregold and sixfold lower raw service rate; insufficient evidence for attractive opportunity cost. Do not claim universal dominance from two scenes.
+COORDINATOR_BALANCE cost=65 power=3 cooldown=12 positive_rapid=24 positive_coord=18 held_area_rapid=48 held_area_coord=36 negative_rapid=9 negative_coord=24
+BASELINE RoadGame SHA256 1030eab2c9ccb042456dbea59ad0ab6ace9febed950d3fb00bb470a55c307d82
+Native prior smoke also confirmed actual primary-click old package C65+Batch55 spends120.
+
+BEFORE-CANDIDATE AMENDMENT (root-approved)
+Coordinator cost35, power9/12/15, cooldown8:75% Rapid raw work at equal price/upgrade cost, same targeted eligibility. Predictions pre-execution: positive frontier9 vsRapid24 and held area18vs48; negative lone24work Coord24 vsRapid9. Exact120 fixed packages: AParallelizer70+Shield50; BRapid35+Coordinator35+Shield50; CtwoPackagers60; DtwoRapids35+Shield50. B/D use identical placements (Rapidleft144240, rightslot368240 asCoordinator/Rapid, Shield432400). AParallelizer144208 andShield432400; CPackagers112400/176400. Matrix4contexts×4packages=16; default undeployed reference=1; separate dynamic mixed campaign deploys all four new families between waves, not an equal-spend causal comparison. Pace18, no upgrades/reinvestment in fixed matrix,14000fuel. Profile3 now fixed2500payloads, batchtarget4, no oversized authored units; old oversized case remains explicit custom-rule fixture.
+
+CANDIDATE DIRECTED EXECUTION BEFORE CAMPAIGN
+56 directed fixtures pass native. Coordinator35/9/8 matches declared positive9vs24/area18vs48 and negative24vs9. Packager native advance reserves4members10192bytes, compared3/7724 baseline, then exact4ack; unchanged committed bytes after upgrade and target-induced latency negative pass. Shield600raw→240absorbed/360net with identical jobs/runtime, exhaustion/pause/upgrade/start boundaries and local overlapping-half cap pass.
+Campaign metrics HOT_AREA and EDIT_WAIT_AREA are sums of pre-tick visible HOT inventory and blocked authored-finding inventory, respectively; not hidden backend telemetry or continuous integrals. MITIGATED is native cumulative support jobticks absorbed. PEAK_MEMBERS observes actual committed member sets; MAX_ENCODING_SAVED compares baseline per-record encoding of those same immutable members to actual committed bytes. Full bounds additionally cap each Shield charge240 and cumulative prevented at240×currentwave. These remain bounded finite evidence.
+
+BEFORE EXTRA DIRECTED ECONOMIC COMPARISON (root requested; no core tuning)
+Equal70 actualgold: one Parallelizer vs two Rapids at Review with one baseworker, long unrelated active ID1remaining60, short queued clear sibling ID6remaining1, authored findings4/5 waiting for edit2. Native remaining work is heterogeneous supplied fixture state; do not claim default generator necessarily creates this distribution. Parallelizer should permit ID6 immediately; two Rapids cannot hit it while its permit is queued. Record actual frontier times/held area, not rough predicted Rapid timing. Negative lone24work/no waiting: Parallelizer24ticks vs two Rapids1tick. Construct through actual click0 and assert equal70 spent. This tests scarce concurrency versus faster work directly.
+
+SOURCE EPOCHS
+Campaign source preserved from scratch snapshot body with original unchanged campaign main restored: /tmp/hapsland-towers-campaign-source.bend
+abc06c04e2e8a9f715775fcfb6b0f74f1bb3ea9aab10c20bfa4f83f2bcb827db  /tmp/hapsland-towers-campaign-source.bend
+194207aaf5f50e933315b4f58fe6ee2375126b020ea9728bba63aa64fe338e2e  RoadHeadless.bend
+d834c2e153e239dd09de80ab7301579accb8ac9632748145dac030ed4b3bc7a3  RoadModel.bend
+243ebc7243809b5c2cc0087ab708e853a34e8959ee366e839bcb1888183ab392  RoadGame.bend
+ae79fd35d1d4cacf5ba6b30b9cda27e1b625e99e3fb20a34df2a0551756db538  RoadScenario.bend
+9c35a85ccf6fc76a247a1daa74438e5aae24cd23dc4ac86638f555d16c5bfa36  /tmp/hapsland-towers-final-directed/RoadHeadless.bend
+Final Headless adds equal70 comparison and strengthens Shield refill witness to use an actually settled prior wave. Campaign functions, inputs, policies and core are unchanged; campaigns were not repeated for those fixture-only edits. All checks compiled within five-second limits. Compiler check labels do not establish approved behavioral laws.
+
+CAMPAIGN EPOCH NATIVE STDOUT (exit0)
+PASS two stored packets share one worker; only first has a service permit
+PASS natural service never decrements queued work without a permit
+PASS completed work releases permit immediately while both storage resources remain occupied
+PASS batch tower accelerates active permit only and cannot hit queued siblings
+PASS fixed three-member group waits for siblings not yet offered
+PASS offering all members does not bypass a live source/review sibling
+PASS unrelated complete edit group obtains permit despite older blocked group
+PASS synthetic group fixture has truthful complete outcome accounting
+PASS byte prefix fits exactly cap52 including12header and8per-item, retains third overflow
+PASS exclusive byte prefix contains no duplicate member IDs
+PASS single53byte record cannot fit52cap and is explicitly oversized, next record remains selectable
+PASS unrelated complete group actually departs earlier while older group waits
+PASS writer acknowledges only its exclusive byte-selected members
+PASS completed writer cannot acknowledge members twice
+PASS partial batch flushes automatically at fixed age without manual activation
+PASS selected member still outside writer prevents acknowledgement
+PASS oversized finding is limited and never reclassified clear
+PASS Stop waits for unfinished upstream before absolute deadline
+PASS cutoff cancels upstream truthfully and releases partial authored advice
+PASS cutoff retains original absolute deadline
+PASS Stop also waits for an active writer
+PASS pause freezes complete state including deadlines writer and outcomes
+PASS tick batching is deterministic
+PASS REGRESSION byte-reserved writer lane admits selected member despite eight pending output slots
+PASS REGRESSION selected completed review traverses full pending advice road
+PASS REGRESSION writer reservation spans full intermediate advice storage and roads without ghost ownership
+PASS REGRESSION full reserved review-advice-output route acknowledges selected finding before240tick expiry
+PASS REGRESSION completed review finding survives cutoff despite blocked physical handoff
+PASS REGRESSION exhausted response budget becomes frozen incomplete and N cannot replenish
+PASS same demand identities and findings across12/28 pacing with different offer counts
+PASS final authored arrival automatically starts Stop without manual activation
+PASS cutoff and terminal freeze admit no late work or late acknowledgement
+PASS all four declared packages spend exactly120 through real construction clicks
+PASS Parallelizer raises one ordinary permit to two while four storage reservations stay fixed
+PASS four10work packets leave source at20ticks with two workers versus40ticks with one
+PASS Parallelizer aggregate grant caps at two and never expands exclusive writer permits
+PASS out-of-range Parallelizer has no effect on source
+PASS Coordinator selects unfinished active sibling blocking two authored findings ahead of one
+PASS same nine extra work units release edit1 frontier only when assigned to its actual unfinished sibling
+PASS native Coordinator reduces first-group readiness from ten ticks to one without inventing completion
+PASS Coordinator cannot serve queued sibling outside worker permits or unrelated active work
+PASS equal waiting counts break ties by remaining effort before packet ID
+PASS native automatic flush commits three2500byte payloads normally versus four with16byte encoding overhead at same10240cap
+PASS Packager changes encoding overhead and target only; payload and byte cap stay fixed
+PASS Packager built/upgraded during active writer leaves committed bytes and exclusive membership unchanged
+PASS four near-cap members really finish work and acknowledge exactly once in native writer
+PASS higher Packager target can defer a four-item batch until unchanged timed flush, a real latency cost
+PASS six inside packets generate600 raw jobticks; finite Shield absorbs240 leaving360 net
+PASS Shield mitigation never changes backlog work outcomes or deadlines
+PASS exhausted Shield cannot absorb later pressure
+PASS upgrade and N during active wave cannot refill exhausted charge
+PASS pause freezes Shield charge and cumulative mitigation
+PASS only legitimate new-wave start restores finite240 charge
+PASS safe road traffic consumes no Shield charge and receives no pressure mitigation
+PASS overlapping Shields share local half of two HOT packets and cannot spend uncovered six-packet pressure
+PASS equal-price Coordinator reverses frontier latency9vs24 while ordinary work remains24vs9
+COORDINATOR_BALANCE cost=35 power=9 cooldown=8 positive_rapid=24 positive_coord=9 held_area_rapid=48 held_area_coord=18 negative_rapid=9 negative_coord=24
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=18 policy=0 WAVE=5 PHASE=3 LIFE=0 GOLD=1159 SCORE=553 DONE=153 LOST=0 ENEMIES=18 TICK=4521 STOP=0 ACK=100 FINDINGS=106 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=171 MITIGATED=0 HOT_AREA=25868 EDIT_WAIT_AREA=2862 PEAK_MEMBERS=4 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=18 policy=1 WAVE=5 PHASE=3 LIFE=0 GOLD=1058 SCORE=564 DONE=156 LOST=0 ENEMIES=19 TICK=4587 STOP=0 ACK=102 FINDINGS=108 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=175 MITIGATED=689 HOT_AREA=26540 EDIT_WAIT_AREA=2916 PEAK_MEMBERS=4 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=18 policy=2 WAVE=6 PHASE=3 LIFE=0 GOLD=1325 SCORE=707 DONE=195 LOST=0 ENEMIES=15 TICK=5394 STOP=0 ACK=128 FINDINGS=134 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=210 MITIGATED=1372 HOT_AREA=27102 EDIT_WAIT_AREA=738 PEAK_MEMBERS=6 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=18 policy=3 WAVE=5 PHASE=3 LIFE=0 GOLD=1039 SCORE=553 DONE=153 LOST=0 ENEMIES=18 TICK=4521 STOP=0 ACK=100 FINDINGS=106 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=171 MITIGATED=0 HOT_AREA=25868 EDIT_WAIT_AREA=2862 PEAK_MEMBERS=4 MAX_ENCODING_SAVED=128
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=18 policy=4 WAVE=6 PHASE=2 LIFE=45 GOLD=1602 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=5730 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 OFFERED=234 MITIGATED=912 HOT_AREA=21222 EDIT_WAIT_AREA=4494 PEAK_MEMBERS=5 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=1 pace=18 policy=1 WAVE=5 PHASE=3 LIFE=0 GOLD=925 SCORE=487 DONE=135 LOST=0 ENEMIES=20 TICK=4324 STOP=0 ACK=88 FINDINGS=96 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=704 OFFERED=155 MITIGATED=611 HOT_AREA=26534 EDIT_WAIT_AREA=2558 PEAK_MEMBERS=4 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=1 pace=18 policy=2 WAVE=6 PHASE=3 LIFE=0 GOLD=1243 SCORE=661 DONE=181 LOST=0 ENEMIES=12 TICK=5123 STOP=0 ACK=120 FINDINGS=122 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=193 MITIGATED=1189 HOT_AREA=26971 EDIT_WAIT_AREA=949 PEAK_MEMBERS=6 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=1 pace=18 policy=3 WAVE=5 PHASE=3 LIFE=0 GOLD=922 SCORE=486 DONE=134 LOST=0 ENEMIES=17 TICK=4260 STOP=0 ACK=88 FINDINGS=93 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=151 MITIGATED=0 HOT_AREA=25929 EDIT_WAIT_AREA=2499 PEAK_MEMBERS=4 MAX_ENCODING_SAVED=128
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=1 pace=18 policy=4 WAVE=6 PHASE=2 LIFE=10 GOLD=1602 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=5866 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 OFFERED=234 MITIGATED=861 HOT_AREA=25282 EDIT_WAIT_AREA=4534 PEAK_MEMBERS=5 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=2 pace=18 policy=1 WAVE=3 PHASE=3 LIFE=0 GOLD=347 SCORE=177 DONE=49 LOST=24 ENEMIES=17 TICK=2859 STOP=1 ACK=32 FINDINGS=34 CANCELLED=6 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=90 MITIGATED=221 HOT_AREA=23524 EDIT_WAIT_AREA=918 PEAK_MEMBERS=2 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=2 pace=18 policy=2 WAVE=3 PHASE=3 LIFE=0 GOLD=385 SCORE=199 DONE=55 LOST=25 ENEMIES=10 TICK=2997 STOP=1 ACK=36 FINDINGS=38 CANCELLED=6 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=90 MITIGATED=565 HOT_AREA=23739 EDIT_WAIT_AREA=246 PEAK_MEMBERS=2 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=2 pace=18 policy=3 WAVE=3 PHASE=3 LIFE=0 GOLD=347 SCORE=177 DONE=49 LOST=24 ENEMIES=17 TICK=2847 STOP=1 ACK=32 FINDINGS=34 CANCELLED=6 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=90 MITIGATED=0 HOT_AREA=23380 EDIT_WAIT_AREA=918 PEAK_MEMBERS=2 MAX_ENCODING_SAVED=64
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=2 pace=18 policy=4 WAVE=4 PHASE=3 LIFE=0 GOLD=701 SCORE=370 DONE=102 LOST=3 ENEMIES=21 TICK=3800 STOP=0 ACK=67 FINDINGS=71 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=126 MITIGATED=365 HOT_AREA=26036 EDIT_WAIT_AREA=2896 PEAK_MEMBERS=4 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=3 pace=18 policy=1 WAVE=5 PHASE=3 LIFE=0 GOLD=947 SCORE=499 DONE=139 LOST=0 ENEMIES=19 TICK=4491 STOP=0 ACK=90 FINDINGS=98 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=5192 OFFERED=158 MITIGATED=624 HOT_AREA=26527 EDIT_WAIT_AREA=2646 PEAK_MEMBERS=3 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=3 pace=18 policy=2 WAVE=6 PHASE=3 LIFE=0 GOLD=1268 SCORE=674 DONE=186 LOST=0 ENEMIES=16 TICK=5327 STOP=0 ACK=122 FINDINGS=128 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=202 MITIGATED=1283 HOT_AREA=27034 EDIT_WAIT_AREA=730 PEAK_MEMBERS=3 MAX_ENCODING_SAVED=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=3 pace=18 policy=3 WAVE=5 PHASE=3 LIFE=0 GOLD=928 SCORE=488 DONE=136 LOST=0 ENEMIES=18 TICK=4425 STOP=0 ACK=88 FINDINGS=96 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=5128 OFFERED=154 MITIGATED=0 HOT_AREA=25916 EDIT_WAIT_AREA=2592 PEAK_MEMBERS=3 MAX_ENCODING_SAVED=96
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=3 pace=18 policy=4 WAVE=6 PHASE=2 LIFE=33 GOLD=1602 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=5834 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=2 BYTES=0 OFFERED=234 MITIGATED=960 HOT_AREA=22738 EDIT_WAIT_AREA=4414 PEAK_MEMBERS=3 MAX_ENCODING_SAVED=0
+PASS six-wave dynamic witness wins with all four autonomous architecture families legitimately constructed
+DYNAMIC WAVE=6 PHASE=2 LIFE=88 GOLD=1217 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=5530 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 MITIGATED=127 HOT_AREA=15200 EDIT_WAIT_AREA=3365 PEAK_MEMBERS=6 MAX_ENCODING_SAVED=96
+
+FINAL EXTRA DIRECTED STDOUT (exit0)
+PASS Parallelizer and two Rapids each charge exactly70 through native clicks
+PASS equal70 Parallelizer releases genuinely queued short sibling before two Rapids can obtain its permit
+PASS equal70 two Rapids finish lone24work in one tick while extra concurrency cannot shorten it
+PARALLELIZER_BALANCE spend=70 positive_parallel=1 positive_rapids=13 held_area_parallel=2 held_area_rapids=26 negative_parallel=24 negative_rapids=1
+PASS six inside packets generate600 raw jobticks; finite Shield absorbs240 leaving360 net
+PASS Shield mitigation never changes backlog work outcomes or deadlines
+PASS exhausted Shield cannot absorb later pressure
+PASS upgrade and N during active wave cannot refill exhausted charge
+PASS pause freezes Shield charge and cumulative mitigation
+PASS only legitimate settled-wave start restores240 charge while preserving past mitigation
+PASS safe road traffic consumes no Shield charge and receives no pressure mitigation
+PASS overlapping Shields share local half of two HOT packets and cannot spend uncovered six-packet pressure
+
+NEGATIVE CONTROL NATIVE FAILURE EXCERPTS (both checked/compiled, exit1)
+FAIL equal-price Coordinator reverses frontier latency9vs24 while ordinary work remains24vs9
+PASS six inside packets generate600 raw jobticks; finite Shield absorbs240 leaving360 net
+PASS Shield mitigation never changes backlog work outcomes or deadlines
+PASS exhausted Shield cannot absorb later pressure
+PASS upgrade and N during active wave cannot refill exhausted charge
+PASS pause freezes Shield charge and cumulative mitigation
+PASS only legitimate new-wave start restores finite240 charge
+PASS safe road traffic consumes no Shield charge and receives no pressure mitigation
+FAIL overlapping Shields share local half of two HOT packets and cannot spend uncovered six-packet pressure
+
+COUNTS AND LIMITS
+59 distinct final directed checks validated:56 original cases plus3 equal70 economic cases; the settled-wave refill case replaces the earlier synthetic phase0 refill case. Extra run repeats8 Shield cases, including the stronger replacement, rather than adding8 distinct cases.17 campaign termination/resource audits pass;16 equal120 fixed packages plus1 undeployed reference. Separate dynamic six-wave witness passes. Three fixed packages win (twoRapids+Shield in default/Capture/Output);14 fixed/reference runs lose; all four packages lose Review-heavy. Dynamic mixed wins with234settled,0lost,88health, all four families constructed.
+Coordinator candidate matched frontier9vs24/held area18vs48, negative24vs9. Parallelizer equal70 matched frontier1vs13/held area2vs26, negative24vs1. These reversals validate distinct causal mechanics in declared supplied states, not human engagement or general optimality.
+Packager-only profile3 campaign peaks3members despite saved encoding; cadence did not generate the four-member condition. Directed native automatic flush does commit4/10192 and acknowledge4; root independently records actual profile3 fast-pace UI reservation in validation-towers-native. Do not imply every ordinary arrival pattern gains another member.
+Campaign waiting/HOT area totals are censored by different survival and offered demand; do not interpret their ratios as matched causal latency reductions. Raw service wins the tested fixed-budget campaign objective; do not claim every tower package is economically balanced or independently winning.59checks and bounded campaigns are not exhaustive correctness, approved proofs, measured learning, enjoyment, production Hapsland behavior, or release support.

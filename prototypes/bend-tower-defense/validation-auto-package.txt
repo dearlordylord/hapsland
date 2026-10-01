@@ -1,0 +1,27 @@
+Auto-wave increment validation index, 2026-09-30.
+Scope: isolated prototype/bend-tower-defense worktree; primary checkout stays master.
+Automatic starts only. Tower construction, placement and upgrades remain manual.
+
+Shared source: packages/session-bend/Session.bend.
+Native imports that source; Monkey Business calls compiler-emitted session.mjs through session.ts.
+Native maps recurring Task timing only. Within-wave enemies, arrivals, outcomes and Stop belong to RoadGame/RoadScenario.
+Initial/reactivation 3000ms grace is a game adaptation; subsequent task pauses use shared scheduling.
+
+Root verification:
+- npm test --prefix packages/monkey-business: 9 test files, 79 tests pass.
+- node_modules/.bin/tsc -p packages/monkey-business/tsconfig.json: exit0.
+- node packages/session-bend/build.mjs --check: exit0.
+Worker executable evidence:
+- 4800 differential mixed transitions against independent test-only pre-port oracle.
+- Native/JS shared-source witness: 1:1:1486083074:46.
+- validation-auto-headless.txt: 19 directed checks pass, including an actual constructed wave settling Stop4 before shared Task2.
+- validation-auto-native.txt: actual controls, manual investment, pause invariance, Stop4 and automatic second wave, clean exit.
+- validation-auto-astra.txt: bounded architecture/teaching review and final source/screenshot fingerprints.
+
+The unchanged RoadGame and RoadHeadless mechanics also passed their 59 directed checks during this increment. A redundant campaign rerun was stopped after eight complete campaign lines; the earlier full campaign evidence remains in validation-towers.txt and its frozen source bundle. No fresh full campaign claim is made.
+
+Limits: Linux ARM64 native execution only; macOS launch requires local Bend/compiler prerequisites and has not been executed here. No human engagement/learning measurement, production lifecycle parity or approved formal proof claim.
+Portable bundle uses repository-relative prototypes/ and packages/ paths; run prototypes/bend-tower-defense/run-road.sh. Monkey Business tests require the full Hapsland checkout and existing dependencies.
+source-sha256.txt identifies all included files except itself; older source bundles preserve earlier evidence epochs.
+
+Portable extraction check: all manifest entries verified; extracted RoadMain checked and compiled to a native executable successfully. Extracted RoadMain/RoadRender/RoadAuto/Session source bytes matched final worktree. Final archive manifest was regenerated after evidence and screenshots froze.

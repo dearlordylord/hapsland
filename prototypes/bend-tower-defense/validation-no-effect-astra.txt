@@ -1,0 +1,35 @@
+No-effect placement design and source review — Astra medium — 2026-09-30
+Purpose: Review native hover feedback against the requested obvious no-effect radius.
+Status: Bounded prototype review complete; no blocking finding in the reviewed scope.
+Authority: Implementation and validation evidence, not an accepted product contract.
+Expected use: Review the exact PNG cases and classifier semantics alongside native and test evidence.
+Lifecycle: Consolidate useful design decisions into the prototype owner and delete this snapshot when the native tower-defense prototype is replaced or retired.
+
+Observed result
+Orange radius and ghost identify structural zero; amber identifies zero in the frozen current state; cyan identifies measured next-shot/protection effects or a policy delta; red identifies blocked placement. Near-ghost text supplies the distinction without relying only on color. Legal zero-effect purchases remain permitted and show their cost.
+
+Source review
+RoadDynamicPreview.cue is the single derived classification consumed by ghost, radius, label and support-target link color. Preview legality takes precedence. Processor topology uses actual building-center targeting geometry, including writer buildings. Coordinator potential sites match the engine unfinished stop classes 0 and 2; its current effect remains based on actual shot results. Parallelizer and Packager retain exact capped configuration comparison. Shield structural absence checks its support-site sentinel; marginal prevention is compared separately from charge spent. Inspection hides the entire build ghost. No future throughput, eventual usefulness, or live-state mutation is claimed.
+
+Review findings resolved
+Shield with no eligible building initially used transient zero: now structural zero.
+Zero marginal Shield protection initially claimed no hot pressure: now NO EXTRA PROTECTION NOW, with USES CHARGE when applicable.
+Positive Packager wording initially claimed benefit: now NEXT BATCH POLICY CHANGES, preserving the larger-target waiting tradeoff.
+Bottom-edge near-ghost text initially crossed the ghost outline: final label moves above the ghost.
+
+Visual evidence
+Directly inspected all six original native PNG cases, then re-inspected final regenerated preview-no-effect-range.png and preview-no-effect-policy.png after the bottom-label correction. Final range case shows a legible orange NO EFFECT HERE above the orange ghost and dotted radius. Policy case shows cyan NEXT BATCH POLICY CHANGES, target link, and exact overhead/target deltas while no batch candidates exist. Empty eligible Rapid and active-run Coordinator cases use amber NO EFFECT NOW. Invalid placement uses red CANNOT BUILD. Actual Rapid work reduction uses cyan and highlights the affected job. These views establish the requested visible distinction in the captured cases.
+
+Validation boundary
+Read validation-no-effect-tests.txt: 18 PASS checks, including all seven tower kinds, structural absence, worker cap, invalid/unfunded precedence, actual shot benefit and selected inspection. Two Shield checks use different charge-spend inputs but assert the same transient classification; they are checks, not separate universal laws or text assertions. Native execution/typecheck success is reported in validation-no-effect-native.txt; this reviewer did not independently rerun those commands. Screenshots are native Linux ARM64 1024x768 evidence, not a claim of human engagement or other-platform support. Small text can overlap existing building annotations in the invalid case; this is nonblocking because the red radius, CANNOT BUILD text and detail panel remain legible.
+
+Teaching value
+The feedback distinguishes whether placement is allowed, whether the tower covers a structurally eligible building, and what changes in the frozen state or policy. It therefore avoids teaching that idle traffic makes a placement permanently useless, or that a batch policy change guarantees immediate throughput.
+
+Reviewed final SHA256
+aa0bd882cea28c3b410181971205763befb19ecb72526be1ff5e47b4dd83c309  RoadDynamicPreview.bend
+f9eaa043bcc34036a97718396ef8812e67622f2f2fd03edf14f39118ee75acaa  RoadRender.bend
+6c3a1b2147020a7c26829a09e93fe1727850c4488cfc934ac648222b4adff853  RoadNoEffectTests.bend
+9afdb2c41a9ccc36227251e0b14e91998bbd1146d75a7947d8bf49d1aa5a8b37  validation-no-effect-tests.txt
+be029ccd78dc2c2480ef3fe67cc8b1700a4c461a128f2eff86edf760db5f8cf1  preview-no-effect-range.png
+036d7a43d49634b0e512c1c4f91c3fee0f34715a67dab6b7d15cfb034e3036a8  preview-no-effect-policy.png

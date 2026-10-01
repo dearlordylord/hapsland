@@ -1,0 +1,75 @@
+Purpose: Independently review whether the automatic towers expose truthful, observable causal lessons about Hapsland architecture.
+Status: Completed scoped prototype review. Mechanics and visible causal cues PASS; broad balance and engagement remain LIMITED/UNVALIDATED.
+Authority: Independent Astra sub-agent review of source, native evidence and actual screenshots. Advisory implementation/validation evidence, not an accepted product contract, a formal proof, or owner acceptance.
+Expected use: Inspect the lesson, positive intervention, failure boundary and visible evidence for each automatic tower before drawing teaching or balance conclusions.
+Lifecycle: Temporary. At the automatic-tower direction decision, consolidate accepted teaching decisions and surviving evidence references into the prototype README or its replacement game specification, then delete this review snapshot. Re-review after changes to tower semantics, scenarios, renderer claims or validation evidence.
+Reviewer: Astra sub-agent /root/astra_mechanics, requested by the user; separate from core, UI and test implementation ownership. This review changed only this report.
+Product source reference: Hapsland master 8233b076bcfa26a24024bf38b6911d456e5a92e5.
+
+REVIEW METHOD AND BOUNDARY
+The criterion is whether a player can predict a causal architectural effect, observe it, and identify a case where the same investment cannot help. A tower name, score increase or passing typecheck is insufficient. I read RoadModel, RoadGame, RoadScenario, RoadRender, RoadMain, RoadHeadless and the README, compared the mapping with current Dispatch/Canonical/collection behavior, and inspected all five final native screenshots using view_image. Native execution was performed by the independent test/UI agents, not rerun by this reviewer.
+The final frozen validation-towers.txt records 59 distinct directed checks, 17 fixed/reference campaign audits and one dynamic mixed-investment witness, with baseline/candidate epochs and negative-control failures distinguished. Final evidence and Headless hashes were verified at handoff. Source hashes below identify the reviewed files, not a claim that all historical experiments used one Headless revision.
+
+PARALLELIZER — CAUSAL LESSON PASS; BALANCE LIMITED
+Lesson/prediction: storage and active service permits are different. More permits can start queued work without accelerating the individual job or enlarging storage. Preparation and Jev use separate production pools; the game's generic workers approximate resources rather than copy production permit counts.
+Code: nearest eligible ordinary-service building receives a shared maximum of two additional workers. Output remains one writer. The same effective configuration drives live service and active-job display.
+Observed positive: four ten-work jobs leave a one-worker source after 40 ticks versus 20 with two workers, with unchanged storage. In the additional equal-70-gold comparison, one Parallelizer releases a queued one-work sibling at tick 1 versus tick 13 for two Rapids occupied with an unrelated long job; the two waiting findings accumulate 2 versus 26 finding-ticks.
+Observed negative: the same equal-70 comparison on a lone 24-work job completes at tick 24 with Parallelizer versus tick 1 with two Rapids. Out-of-range and exclusive-writer restrictions also pass directed checks.
+Visible cue: preview-towers-parallelizer.png shows Capture WORKERS 4/4, BASE 3, BONUS 1; the map agrees, and storage is separately 4/12. Selected-tower text states permits only and the bonus cap.
+Limitation: the equal-70 positive uses a supplied heterogeneous remaining-work state. It does not establish that the current uniform wave generator routinely creates that advantage. At current prices the fixed default package performs worse than two Rapids plus Shield; do not sell this as a universally efficient upgrade.
+
+COORDINATOR — CAUSAL LESSON AND CONDITIONAL PRICE COMPARISON PASS
+Lesson/prediction: an edit's completed findings can wait for unfinished sibling work; helping that sibling can release useful advice sooner than working on unrelated jobs.
+Code: only an already worker-active unfinished sibling with completed findings from the same edit can be targeted. It prefers the largest waiting group, then least remaining effort, then ID. It does not preempt work, grant a permit, forge readiness or change finding outcomes. Multiple unfinished siblings still all matter.
+Observed calibration: the original cost65/power3/cooldown12 baseline was measured before the declared candidate. The adopted cost35, power9/12/15, cooldown8 supplies 75% of Rapid's raw work at the same purchase/upgrade prices.
+Observed positive/negative: at equal 35 gold, targeted edit readiness is 9 ticks versus Rapid's 24, with 18 versus 48 waiting-finding ticks. With a lone job and no waiting findings, Coordinator takes 24 ticks versus Rapid's 9. A separate equal-nine-work allocation fixture isolates the dependency effect. Queued-blocker and targeting-tie checks preserve eligibility boundaries.
+Visible cue: preview-towers-coordinator.png identifies NEXT E1 UNIT3 / 2 FINDINGS WAITING and WORK BOOST9, while the shared-edit ribbon still says WAIT SIBLINGS. Global reviewed-findings count is consistent with the selected target. The panel says no outcome change.
+Limitation: these controlled reversals justify a conditional role; they do not establish general campaign balance or that a person learns the dependency rule.
+
+PACKAGER — BYTE-ACCOUNTING LESSON PASS; CADENCE-DEPENDENT BENEFIT
+Lesson/prediction: encoded representation consumes a fixed host budget. Reducing modeled per-finding overhead can fit another unchanged finding; a larger batch target can also delay departure.
+Code: content bytes, finding identity/outcome, 10240-byte cap and exclusive writer remain unchanged. Only future encoding overhead/ordinary target are derived from support. Existing writer members and committed bytes stay frozen after construction or upgrades. Timed flush and Stop retain their rules.
+Observed positive: native advance reserves three 2500-byte findings at 7724 bytes without support versus four at 10192 with level-one overhead16; those four later acknowledge exactly once. Arithmetic: 10000 content + 128 batch overhead + 4*16 item overhead = 10192. With item overhead32 the same four need 10256 and cannot fit.
+Observed negative: raising the target from four to five defers a fresh four-item ordinary batch until the unchanged flush condition. Already committed membership/bytes are unchanged by a new/upgraded Packager. Irreducibly oversized content remains a limitation.
+Visible cue: preview-towers-packager.png shows four actual members, CONTENT10000, MODEL ENCODING192, TOTAL10192/10240, SAVED64 MODEL BYTES and the committed-reservation caveat. Output correctly shows one occupied writer even while zero members are actively doing output work.
+Limitation: the fixed pace18 Packager-only output campaign peaked at three members. The four-member native window witness used profile3, pace6 and Packager plus Coordinator. Availability/cadence therefore matters; the observed positive is conditional, not a claim that every campaign gains a larger batch. Production measures actual serialized bytes; this modeled efficiency investment is not an existing configurable Hapsland codec.
+
+SHIELD — FINITE PROTECTION LESSON PASS; GAME ABSTRACTION
+Lesson/prediction: protection can buy time while leaving the backlog unresolved. It cannot increase service capacity or extend Stop.
+Code: finite 240 arrived-job-tick charge per wave; actual absorption alone spends it. Shared per-building and global ceilings cap mitigation at half the corresponding arrived pressure, with a per-tower rate cap. Roads are safe and consume no charge. Upgrades preserve spent charge; active-wave N and pause cannot refill it. Only a legitimate new-wave start restores charge.
+Observed positive: six arrived jobs for 100 ticks generate 600 raw pressure units; Shield absorbs 240, leaving 360. Health is 217 versus unshielded 215, with identical work/runtime snapshots.
+Observed negative: exhausted Shield absorbs nothing further; safe roads consume nothing. Three overlapping shields covering two occupants cannot spend the pressure of six uncovered occupants: combined absorption is at most one. Upgrade/pause/active-start and legitimate settled-wave recharge checks pass.
+Visible before/after: preview-towers-shield-before-upgrade.png and preview-towers-shield.png show level1 to level2 while charge222/240 and absorbed18 remain unchanged, gold70 becomes30, and all24 unresolved jobs remain at the same paused tick. This demonstrates upgrade without a free refill.
+Limitation: building damage and pressure protection are explicit game abstractions, not claims about an actual Hapsland protection control.
+
+CAMPAIGN AND BALANCE VERDICT — LIMITED
+The completed fixed/reference run reported 17 cases: three wins and fourteen losses. Of the fixed 120-gold packages, only two Rapids plus Shield won: default with45 life, Capture pressure with10, Output batching with33. All fixed packages lost under heavy Review. The other packages lost in all four contexts. A separate dynamic investment campaign that built all four support families settled all234 authored jobs with88 life; it is not an equal-spend causal comparison.
+Fixed packages A/C differ in several interventions and placements. B versus D is the cleaner same-placement Coordinator-for-Rapid substitution, but differing terminal histories still matter. For example, lower cumulative EDIT_WAIT_AREA in a campaign that dies earlier cannot be presented as an equivalent percentage reduction in per-finding latency. Early termination, amount of completed work, health, and duration must be considered together. Controlled frontier fixtures support the causal targeting claims; package totals do not establish universal tower ranking.
+There are meaningful conditional decisions, a runnable mixed strategy and demonstrated failure boundaries. Broad competitive balance, difficulty progression, enjoyment and player learning are not established. No further parameter tuning was performed for this review.
+
+RESOLVED REVIEW FINDINGS AND PRESENTATION LIMITS
+The review caught overlapping Shield accounting that could use uncovered pressure; the shared per-site absorption ledger and its regression resolve it. The map's worker denominator now agrees with effective permits, and Output occupancy follows the reservation rather than only active member work. Final screenshots were recaptured from the frozen binary after paused rendering completed; earlier images are not final evidence.
+The pause overlay obscures some central map towers, although the selected causal panels and architecture counters remain visible. Small bitmap text limits presentation clarity. The screenshot review confirms visible state/counter agreement, not animation smoothness or a participant comprehension result.
+
+FINAL SCOPE
+PASS: reviewed automatic mechanics, outcome/identity boundaries, source-to-display causal cues and the bounded positive/negative examples described above.
+LIMITED: comparative balance, applicability of heterogeneous fixtures to normal waves, and generalization from the sampled policies.
+UNVALIDATED: human learning, enjoyment, broad strategy balance, macOS execution and platform performance. Linux ARM64 native evidence does not validate macOS. Compiler/kernel checks and finite examples are not proofs of the proposed behavioral laws; those laws remain unapproved/unproved. No confirmed production-core defect is asserted here and no tracker report is requested for these prototype findings.
+
+REVIEWED SNAPSHOT SHA256
+Recorded UTC: 2026-10-01T00:33:08.187736+00:00
+d834c2e153e239dd09de80ab7301579accb8ac9632748145dac030ed4b3bc7a3  RoadModel.bend
+243ebc7243809b5c2cc0087ab708e853a34e8959ee366e839bcb1888183ab392  RoadGame.bend
+ae79fd35d1d4cacf5ba6b30b9cda27e1b625e99e3fb20a34df2a0551756db538  RoadScenario.bend
+d334bf1d09c3470519ceed4715a0d86eb7d3fc44ff3891b440cee49fff64f49d  RoadRender.bend
+06301ace104782bc008c9fc21e157f59ecc40a4b0522b28293ad1c9a4d35514e  RoadMain.bend
+194207aaf5f50e933315b4f58fe6ee2375126b020ea9728bba63aa64fe338e2e  RoadHeadless.bend
+174e4f48411b006fe50166b7667ea3af0d19b87fdaa82f386372ae2d083f6281  README.md
+79f906875201c999f4ea074640c7ad3f19142ed3dbae8046576e332e9fe99ed7  validation-towers-native.txt
+4e50eae40e0ccd4d24073e36ff4d8259dd60230e3ef585a3a2fda76bb34357b7  preview-towers-parallelizer.png
+a7801ae6f5a1f63f35482a2bb465eb4bbeab56d0db381139e02b1dc9e343ac85  preview-towers-coordinator.png
+3248d919c64bfea4c079ec420a0caa315c3eb723630ba7f707c13d5cfa2a1f6e  preview-towers-packager.png
+e9b512b76ca715e2f5df55a4a5e7ee6b352393ce54a14169392c6efa872cbc68  preview-towers-shield-before-upgrade.png
+add7708a3e0e9f65e7c63d764801a2e22b964dcf7bcf15a0ccd13ca74e64ce21  preview-towers-shield.png
+3aec67a2021c713c1d8354ca3a2f376cb75a72ed741ba51048da268fdde1d374  validation-towers.txt
+Finalization amendment: the complete native trace became available before final handoff; the earlier pending-trace note is superseded. Its raw execution epochs remain the owner of detailed results.

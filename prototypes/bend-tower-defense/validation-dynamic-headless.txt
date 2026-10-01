@@ -1,0 +1,17 @@
+PASS Rapid exact active shot clips5to0, preserves second unit
+PASS Batch18work hits exactly three active jobs; fourth awaits worker permit
+PASS Relay sixwork long range reaches live unit beyond Rapid range
+PASS illegal road gates snapshot; pure hover never buys/spends/mutates jobs
+PASS writer reservation restricts hit to member1; exact cooldown emits no work
+PASS held sameedit Advice work is not active and cannot be shot
+PASS Coordinator finishes active lastreview7work: two same-edit findings gate becomesready
+PASS Coordinator highlights dependents but otherreview/unoffered sibling prevents promised release
+PASS Shield snapshot absorbs two pressureunits not HP; exact halfpressure/charges
+PASS newshield spends one while replacing oldspend: zero marginal prevention under global cap
+PASS finishingCapture still requires downstreamReview: zero OTHER LIVE BLOCKERS is not release readiness
+PASS Packager eligiblebyteprefix3to4; encodedbytes7724to10192 under10240 cap
+PASS Packager raises target3to4; same three eligibleunits now waitforflush instead of promise fasterdispatch
+PASS busywriter commitment260bytes/member1 staysfixed; uncommittedeligible excludes1; no concurrentdispatch
+PASS empty prefix reports0not phantomheaderbytes; roads never contribute pressure/charge spend
+PASS flush age39 dispatches short batch; eligible oversize unit remains excluded by exactbyteprefix
+DYNAMIC PREVIEW:16 directed checks complete

@@ -1,0 +1,15 @@
+#!/bin/sh
+# Five-second bound for Bend checking, separate from slow native compilation.
+set -u
+td_timeout=timeout
+command -v timeout >/dev/null 2>&1 || td_timeout=gtimeout
+if ! command -v "$td_timeout" >/dev/null 2>&1; then
+  echo 'bend-check needs timeout or gtimeout (brew install coreutils on macOS).' >&2
+  exit 127
+fi
+"$td_timeout" 5 bend "$@"
+td_status=$?
+if [ "$td_status" -eq 124 ]; then
+  echo 'Bend checking exceeded five seconds; simplify the checked expression.' >&2
+fi
+exit "$td_status"

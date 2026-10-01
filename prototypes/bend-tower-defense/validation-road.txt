@@ -1,0 +1,776 @@
+DECLARATION: 108 native campaigns: four displayed profiles, nine actual click/key construction policies, pacing 12/18/28, same 234-ticket demand. Plans: 0 undefended; 1 mixed bridge; 2 center relays; 3 batch review + rapid capture; 4/5/6 same with income reinvestment; 7 two rapid bridges; 8 rapid bridges with reinvestment. All costs, ranges and service come from RoadGame. No engagement or proof claim.
+PASS REGRESSION resident plus two simultaneous arrivals reserves exactly two slots; ordinary third remains safe on road
+PASS immediate third arrival refuses once with exact identity accounting
+PASS 112-pixel road at4pixels/tick stays safe through27ticks
+PASS arrival at tick28 starts building danger integral
+PASS unprocessed arrived packet causes recurring damage:30jobticks/10=3
+PASS two arrived packets double pressure area:60jobticks/10=6
+PASS held output remains dangerous while consuming a building resource
+PASS pressure fixture conserved and within resource/health bounds
+MATH WITNESS travel slack ceil(112/4)=28ticks; road integral0; one arrived30ticks area30 damage3; two area60 damage6. Finite exact witnesses, not a general theorem.
+PASS out-of-range tower adds no work to an inside packet
+PASS near rapid tower adds12 work; packet identity survives
+PASS towers process at buildings and never shoot safe approach work
+PASS capture completion transfers same ticket to review road instead of killing it
+PASS clear review completes terminal route and bypasses advice/output
+PASS finding review preserves ticket on advice approach
+PASS legal rapid construction costs35 from120gold
+PASS construction on architecture road spends no gold
+PASS selected rapid upgrade costs40 and raises level
+PASS unaffordable60gold upgrade preserves complete state
+PASS pause freezes complete road, work, pressure and economy state
+PASS same exact tick count is independent of batching
+PASS reset restores exact initial state
+PASS right-bridge rapid level1 range106 cannot reach advice109pixels away
+PASS right-bridge rapid level2 range116 reaches advice and adds16work
+PASS right-bridge relay reaches advice immediately but adds only6work
+PASS same first six demand IDs and classes at actual pacing6 and18
+PASS competent actual-click construction and reinvestment finishes all234tickets through six waves
+PASS winning campaign health and residual match exact accumulated building-danger area
+PASS undefended six-wave attempt loses under recurrent building pressure
+PASS rapid-left and relay-right bridge placement covers graph for80gold leaving40
+LIMITATIONS: finite deterministic policies only; reinforced rapid bridges remain strongest across the displayed profiles. Pace 28 improves health but increases mission duration. Investment timing and unused gold leave other strategies unsearched. Human engagement, general optimality and proofs remain unvalidated.
+PASS every-tick conservation, slots, road limits and health context=3 plan=8 pace=12
+CONTEXT 3 POLICY 8 | ticks=6682 wave=6 phase=2 lives=17 gold=844 score=819 offered=234 finished=223 dropped=11 live=0 left=0 pace=12 towers=6 danger-job-ticks=23128 residual=88
+PASS every-tick conservation, slots, road limits and health context=3 plan=7 pace=12
+CONTEXT 3 POLICY 7 | ticks=5313 wave=6 phase=3 lives=0 gold=1050 score=517 offered=204 finished=145 dropped=42 live=17 left=30 pace=12 towers=2 danger-job-ticks=21360 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=6 pace=12
+CONTEXT 3 POLICY 6 | ticks=6532 wave=6 phase=3 lives=0 gold=984 score=761 offered=234 finished=213 dropped=9 live=12 left=0 pace=12 towers=4 danger-job-ticks=25322 residual=2
+PASS every-tick conservation, slots, road limits and health context=3 plan=5 pace=12
+CONTEXT 3 POLICY 5 | ticks=6380 wave=6 phase=3 lives=0 gold=692 score=749 offered=234 finished=209 dropped=12 live=13 left=0 pace=12 towers=6 danger-job-ticks=24960 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=4 pace=12
+CONTEXT 3 POLICY 4 | ticks=6402 wave=6 phase=3 lives=0 gold=709 score=756 offered=234 finished=208 dropped=24 live=2 left=0 pace=12 towers=6 danger-job-ticks=23521 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=3 pace=12
+CONTEXT 3 POLICY 3 | ticks=5650 wave=6 phase=3 lives=0 gold=1015 score=512 offered=197 finished=140 dropped=43 live=14 left=37 pace=12 towers=2 danger-job-ticks=21358 residual=118
+PASS every-tick conservation, slots, road limits and health context=3 plan=2 pace=12
+CONTEXT 3 POLICY 2 | ticks=4095 wave=5 phase=3 lives=0 gold=720 score=348 offered=180 finished=100 dropped=64 live=16 left=0 pace=12 towers=2 danger-job-ticks=18720 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=1 pace=12
+CONTEXT 3 POLICY 1 | ticks=4197 wave=5 phase=3 lives=0 gold=726 score=363 offered=180 finished=87 dropped=78 live=15 left=0 pace=12 towers=2 danger-job-ticks=17081 residual=41
+PASS every-tick conservation, slots, road limits and health context=3 plan=0 pace=12
+CONTEXT 3 POLICY 0 | ticks=3832 wave=5 phase=3 lives=0 gold=649 score=257 offered=175 finished=73 dropped=81 live=21 left=5 pace=12 towers=0 danger-job-ticks=16682 residual=2
+PASS every-tick conservation, slots, road limits and health context=3 plan=8 pace=18
+CONTEXT 3 POLICY 8 | ticks=6979 wave=6 phase=2 lives=50 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=20487 residual=87
+PASS every-tick conservation, slots, road limits and health context=3 plan=7 pace=18
+CONTEXT 3 POLICY 7 | ticks=6413 wave=6 phase=3 lives=0 gold=1321 score=675 offered=203 finished=187 dropped=0 live=16 left=31 pace=18 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=6 pace=18
+CONTEXT 3 POLICY 6 | ticks=7132 wave=6 phase=2 lives=20 gold=1162 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=4 danger-job-ticks=24034 residual=34
+PASS every-tick conservation, slots, road limits and health context=3 plan=5 pace=18
+CONTEXT 3 POLICY 5 | ticks=7062 wave=6 phase=2 lives=33 gold=884 score=853 offered=234 finished=233 dropped=1 live=0 left=0 pace=18 towers=6 danger-job-ticks=22390 residual=70
+PASS every-tick conservation, slots, road limits and health context=3 plan=4 pace=18
+CONTEXT 3 POLICY 4 | ticks=6984 wave=6 phase=2 lives=34 gold=880 score=846 offered=234 finished=230 dropped=4 live=0 left=0 pace=18 towers=6 danger-job-ticks=21882 residual=42
+PASS every-tick conservation, slots, road limits and health context=3 plan=3 pace=18
+CONTEXT 3 POLICY 3 | ticks=6740 wave=6 phase=3 lives=0 gold=1273 score=661 offered=191 finished=181 dropped=0 live=10 left=43 pace=18 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=3 plan=2 pace=18
+CONTEXT 3 POLICY 2 | ticks=4940 wave=5 phase=3 lives=0 gold=945 score=472 offered=180 finished=140 dropped=24 live=16 left=0 pace=18 towers=2 danger-job-ticks=23525 residual=5
+PASS every-tick conservation, slots, road limits and health context=3 plan=1 pace=18
+CONTEXT 3 POLICY 1 | ticks=4984 wave=5 phase=3 lives=0 gold=971 score=496 offered=180 finished=132 dropped=38 live=10 left=0 pace=18 towers=2 danger-job-ticks=21841 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=0 pace=18
+CONTEXT 3 POLICY 0 | ticks=4753 wave=5 phase=3 lives=0 gold=869 score=384 offered=162 finished=108 dropped=38 live=16 left=18 pace=18 towers=0 danger-job-ticks=21943 residual=103
+PASS every-tick conservation, slots, road limits and health context=3 plan=8 pace=28
+CONTEXT 3 POLICY 8 | ticks=8131 wave=6 phase=2 lives=60 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=19245 residual=45
+PASS every-tick conservation, slots, road limits and health context=3 plan=7 pace=28
+CONTEXT 3 POLICY 7 | ticks=7612 wave=6 phase=3 lives=0 gold=1440 score=745 offered=215 finished=205 dropped=0 live=10 left=19 pace=28 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=6 pace=28
+CONTEXT 3 POLICY 6 | ticks=8316 wave=6 phase=2 lives=7 gold=1162 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=4 danger-job-ticks=25624 residual=64
+PASS every-tick conservation, slots, road limits and health context=3 plan=5 pace=28
+CONTEXT 3 POLICY 5 | ticks=8183 wave=6 phase=2 lives=45 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=21083 residual=83
+PASS every-tick conservation, slots, road limits and health context=3 plan=4 pace=28
+CONTEXT 3 POLICY 4 | ticks=8189 wave=6 phase=2 lives=39 gold=902 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=21780 residual=60
+PASS every-tick conservation, slots, road limits and health context=3 plan=3 pace=28
+CONTEXT 3 POLICY 3 | ticks=7006 wave=6 phase=3 lives=0 gold=1273 score=661 offered=188 finished=181 dropped=0 live=7 left=46 pace=28 towers=2 danger-job-ticks=26401 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=2 pace=28
+CONTEXT 3 POLICY 2 | ticks=6165 wave=5 phase=3 lives=0 gold=1096 score=569 offered=169 finished=157 dropped=0 live=12 left=11 pace=28 towers=2 danger-job-ticks=26401 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=1 pace=28
+CONTEXT 3 POLICY 1 | ticks=6493 wave=5 phase=3 lives=0 gold=1209 score=629 offered=180 finished=173 dropped=0 live=7 left=0 pace=28 towers=2 danger-job-ticks=26401 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=0 pace=28
+CONTEXT 3 POLICY 0 | ticks=5737 wave=5 phase=3 lives=0 gold=1061 score=497 offered=149 finished=137 dropped=0 live=12 left=31 pace=28 towers=0 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=8 pace=12
+CONTEXT 2 POLICY 8 | ticks=4696 wave=6 phase=3 lives=0 gold=303 score=510 offered=234 finished=146 dropped=86 live=2 left=0 pace=12 towers=6 danger-job-ticks=16080 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=7 pace=12
+CONTEXT 2 POLICY 7 | ticks=3805 wave=5 phase=3 lives=0 gold=596 score=272 offered=180 finished=72 dropped=100 live=8 left=0 pace=12 towers=2 danger-job-ticks=14402 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=6 pace=12
+CONTEXT 2 POLICY 6 | ticks=4297 wave=6 phase=3 lives=0 gold=325 score=371 offered=225 finished=115 dropped=92 live=18 left=9 pace=12 towers=4 danger-job-ticks=15364 residual=4
+PASS every-tick conservation, slots, road limits and health context=2 plan=5 pace=12
+CONTEXT 2 POLICY 5 | ticks=4212 wave=6 phase=3 lives=0 gold=38 score=377 offered=209 finished=101 dropped=91 live=17 left=25 pace=12 towers=6 danger-job-ticks=15485 residual=5
+PASS every-tick conservation, slots, road limits and health context=2 plan=4 pace=12
+CONTEXT 2 POLICY 4 | ticks=4357 wave=6 phase=3 lives=0 gold=39 score=367 offered=220 finished=103 dropped=101 live=16 left=14 pace=12 towers=6 danger-job-ticks=14280 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=3 pace=12
+CONTEXT 2 POLICY 3 | ticks=3801 wave=5 phase=3 lives=0 gold=632 score=300 offered=180 finished=84 dropped=90 live=6 left=0 pace=12 towers=2 danger-job-ticks=15600 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=2 pace=12
+CONTEXT 2 POLICY 2 | ticks=3657 wave=5 phase=3 lives=0 gold=468 score=215 offered=167 finished=51 dropped=100 live=16 left=13 pace=12 towers=2 danger-job-ticks=14439 residual=39
+PASS every-tick conservation, slots, road limits and health context=2 plan=1 pace=12
+CONTEXT 2 POLICY 1 | ticks=3747 wave=5 phase=3 lives=0 gold=485 score=215 offered=180 finished=55 dropped=113 live=12 left=0 pace=12 towers=2 danger-job-ticks=12939 residual=99
+PASS every-tick conservation, slots, road limits and health context=2 plan=0 pace=12
+CONTEXT 2 POLICY 0 | ticks=3701 wave=5 phase=3 lives=0 gold=464 score=151 offered=167 finished=43 dropped=108 live=16 left=13 pace=12 towers=0 danger-job-ticks=13551 residual=111
+PASS every-tick conservation, slots, road limits and health context=2 plan=8 pace=18
+CONTEXT 2 POLICY 8 | ticks=6063 wave=6 phase=2 lives=7 gold=784 score=785 offered=234 finished=213 dropped=21 live=0 left=0 pace=18 towers=6 danger-job-ticks=23077 residual=37
+PASS every-tick conservation, slots, road limits and health context=2 plan=7 pace=18
+CONTEXT 2 POLICY 7 | ticks=4706 wave=5 phase=3 lives=0 gold=795 score=385 offered=180 finished=105 dropped=63 live=12 left=0 pace=18 towers=2 danger-job-ticks=18841 residual=1
+PASS every-tick conservation, slots, road limits and health context=2 plan=6 pace=18
+CONTEXT 2 POLICY 6 | ticks=5580 wave=6 phase=3 lives=0 gold=622 score=554 offered=220 finished=154 dropped=52 live=14 left=14 pace=18 towers=4 danger-job-ticks=20165 residual=5
+PASS every-tick conservation, slots, road limits and health context=2 plan=5 pace=18
+CONTEXT 2 POLICY 5 | ticks=5526 wave=6 phase=3 lives=0 gold=366 score=554 offered=219 finished=162 dropped=45 live=12 left=15 pace=18 towers=6 danger-job-ticks=21120 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=4 pace=18
+CONTEXT 2 POLICY 4 | ticks=5500 wave=6 phase=3 lives=0 gold=290 score=516 offered=214 finished=140 dropped=60 live=14 left=20 pace=18 towers=6 danger-job-ticks=19217 residual=17
+PASS every-tick conservation, slots, road limits and health context=2 plan=3 pace=18
+CONTEXT 2 POLICY 3 | ticks=4738 wave=5 phase=3 lives=0 gold=874 score=439 offered=180 finished=123 dropped=42 live=15 left=0 pace=18 towers=2 danger-job-ticks=21366 residual=6
+PASS every-tick conservation, slots, road limits and health context=2 plan=2 pace=18
+CONTEXT 2 POLICY 2 | ticks=4545 wave=5 phase=3 lives=0 gold=559 score=250 offered=167 finished=78 dropped=76 live=13 left=13 pace=18 towers=2 danger-job-ticks=17387 residual=107
+PASS every-tick conservation, slots, road limits and health context=2 plan=1 pace=18
+CONTEXT 2 POLICY 1 | ticks=4653 wave=5 phase=3 lives=0 gold=608 score=284 offered=174 finished=76 dropped=86 live=12 left=6 pace=18 towers=2 danger-job-ticks=16143 residual=63
+PASS every-tick conservation, slots, road limits and health context=2 plan=0 pace=18
+CONTEXT 2 POLICY 0 | ticks=4373 wave=5 phase=3 lives=0 gold=578 score=217 offered=152 finished=61 dropped=80 live=11 left=28 pace=18 towers=0 danger-job-ticks=16848 residual=48
+PASS every-tick conservation, slots, road limits and health context=2 plan=8 pace=28
+CONTEXT 2 POLICY 8 | ticks=8082 wave=6 phase=2 lives=55 gold=904 score=853 offered=234 finished=233 dropped=1 live=0 left=0 pace=28 towers=6 danger-job-ticks=19737 residual=57
+PASS every-tick conservation, slots, road limits and health context=2 plan=7 pace=28
+CONTEXT 2 POLICY 7 | ticks=6141 wave=5 phase=3 lives=0 gold=1042 score=528 offered=171 finished=144 dropped=15 live=12 left=9 pace=28 towers=2 danger-job-ticks=24606 residual=6
+PASS every-tick conservation, slots, road limits and health context=2 plan=6 pace=28
+CONTEXT 2 POLICY 6 | ticks=7515 wave=6 phase=3 lives=0 gold=947 score=744 offered=215 finished=204 dropped=0 live=11 left=19 pace=28 towers=4 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=5 pace=28
+CONTEXT 2 POLICY 5 | ticks=8288 wave=6 phase=2 lives=5 gold=881 score=852 offered=234 finished=232 dropped=2 live=0 left=0 pace=28 towers=6 danger-job-ticks=25584 residual=24
+PASS every-tick conservation, slots, road limits and health context=2 plan=4 pace=28
+CONTEXT 2 POLICY 4 | ticks=8264 wave=6 phase=2 lives=11 gold=862 score=833 offered=234 finished=229 dropped=5 live=0 left=0 pace=28 towers=6 danger-job-ticks=24551 residual=71
+PASS every-tick conservation, slots, road limits and health context=2 plan=3 pace=28
+CONTEXT 2 POLICY 3 | ticks=6078 wave=5 phase=3 lives=0 gold=1085 score=563 offered=167 finished=155 dropped=0 live=12 left=13 pace=28 towers=2 danger-job-ticks=26401 residual=1
+PASS every-tick conservation, slots, road limits and health context=2 plan=2 pace=28
+CONTEXT 2 POLICY 2 | ticks=5582 wave=5 phase=3 lives=0 gold=762 score=376 offered=146 finished=104 dropped=32 live=10 left=34 pace=28 towers=2 danger-job-ticks=22560 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=1 pace=28
+CONTEXT 2 POLICY 1 | ticks=6203 wave=5 phase=3 lives=0 gold=749 score=345 offered=172 finished=113 dropped=51 live=8 left=8 pace=28 towers=2 danger-job-ticks=20282 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=0 pace=28
+CONTEXT 2 POLICY 0 | ticks=5437 wave=5 phase=3 lives=0 gold=708 score=293 offered=138 finished=81 dropped=51 live=6 left=42 pace=28 towers=0 danger-job-ticks=20280 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=8 pace=12
+CONTEXT 1 POLICY 8 | ticks=5740 wave=6 phase=2 lives=38 gold=853 score=822 offered=234 finished=226 dropped=8 live=0 left=0 pace=12 towers=6 danger-job-ticks=20886 residual=6
+PASS every-tick conservation, slots, road limits and health context=1 plan=7 pace=12
+CONTEXT 1 POLICY 7 | ticks=4146 wave=5 phase=3 lives=0 gold=937 score=465 offered=180 finished=129 dropped=36 live=15 left=0 pace=12 towers=2 danger-job-ticks=22082 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=6 pace=12
+CONTEXT 1 POLICY 6 | ticks=5043 wave=6 phase=3 lives=0 gold=812 score=657 offered=234 finished=189 dropped=24 live=21 left=0 pace=12 towers=4 danger-job-ticks=23521 residual=1
+PASS every-tick conservation, slots, road limits and health context=1 plan=5 pace=12
+CONTEXT 1 POLICY 5 | ticks=5453 wave=6 phase=3 lives=0 gold=671 score=735 offered=234 finished=207 dropped=10 live=17 left=0 pace=12 towers=6 danger-job-ticks=25201 residual=1
+PASS every-tick conservation, slots, road limits and health context=1 plan=4 pace=12
+CONTEXT 1 POLICY 4 | ticks=5645 wave=6 phase=2 lives=10 gold=766 score=780 offered=234 finished=212 dropped=22 live=0 left=0 pace=12 towers=6 danger-job-ticks=22587 residual=27
+PASS every-tick conservation, slots, road limits and health context=1 plan=3 pace=12
+CONTEXT 1 POLICY 3 | ticks=4455 wave=5 phase=3 lives=0 gold=890 score=449 offered=180 finished=125 dropped=36 live=19 left=0 pace=12 towers=2 danger-job-ticks=22140 residual=60
+PASS every-tick conservation, slots, road limits and health context=1 plan=2 pace=12
+CONTEXT 1 POLICY 2 | ticks=3657 wave=5 phase=3 lives=0 gold=666 score=316 offered=169 finished=92 dropped=56 live=21 left=11 pace=12 towers=2 danger-job-ticks=19684 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=1 pace=12
+CONTEXT 1 POLICY 1 | ticks=3741 wave=5 phase=3 lives=0 gold=704 score=337 offered=179 finished=93 dropped=65 live=21 left=1 pace=12 towers=2 danger-job-ticks=18604 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=0 pace=12
+CONTEXT 1 POLICY 0 | ticks=3480 wave=5 phase=3 lives=0 gold=621 score=243 offered=157 finished=67 dropped=72 live=18 left=23 pace=12 towers=0 danger-job-ticks=17760 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=8 pace=18
+CONTEXT 1 POLICY 8 | ticks=5980 wave=6 phase=2 lives=60 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=19212 residual=12
+PASS every-tick conservation, slots, road limits and health context=1 plan=7 pace=18
+CONTEXT 1 POLICY 7 | ticks=5455 wave=6 phase=3 lives=0 gold=1293 score=661 offered=192 finished=181 dropped=0 live=11 left=42 pace=18 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=6 pace=18
+CONTEXT 1 POLICY 6 | ticks=6098 wave=6 phase=2 lives=34 gold=1162 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=4 danger-job-ticks=22332 residual=12
+PASS every-tick conservation, slots, road limits and health context=1 plan=5 pace=18
+CONTEXT 1 POLICY 5 | ticks=6104 wave=6 phase=2 lives=43 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=21262 residual=22
+PASS every-tick conservation, slots, road limits and health context=1 plan=4 pace=18
+CONTEXT 1 POLICY 4 | ticks=6024 wave=6 phase=2 lives=46 gold=883 score=847 offered=234 finished=231 dropped=3 live=0 left=0 pace=18 towers=6 danger-job-ticks=20625 residual=105
+PASS every-tick conservation, slots, road limits and health context=1 plan=3 pace=18
+CONTEXT 1 POLICY 3 | ticks=5707 wave=5 phase=3 lives=0 gold=1226 score=645 offered=180 finished=177 dropped=0 live=3 left=0 pace=18 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=2 pace=18
+CONTEXT 1 POLICY 2 | ticks=4473 wave=5 phase=3 lives=0 gold=882 score=437 offered=167 finished=129 dropped=21 live=17 left=13 pace=18 towers=2 danger-job-ticks=23883 residual=3
+PASS every-tick conservation, slots, road limits and health context=1 plan=1 pace=18
+CONTEXT 1 POLICY 1 | ticks=4611 wave=5 phase=3 lives=0 gold=930 score=473 offered=176 finished=125 dropped=36 live=15 left=4 pace=18 towers=2 danger-job-ticks=22082 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=0 pace=18
+CONTEXT 1 POLICY 0 | ticks=4289 wave=5 phase=3 lives=0 gold=833 score=365 offered=148 finished=101 dropped=34 live=13 left=32 pace=18 towers=0 danger-job-ticks=22324 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=8 pace=28
+CONTEXT 1 POLICY 8 | ticks=8038 wave=6 phase=2 lives=71 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=17978 residual=98
+PASS every-tick conservation, slots, road limits and health context=1 plan=7 pace=28
+CONTEXT 1 POLICY 7 | ticks=7663 wave=6 phase=3 lives=0 gold=1459 score=756 offered=218 finished=208 dropped=0 live=10 left=16 pace=28 towers=2 danger-job-ticks=26404 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=6 pace=28
+CONTEXT 1 POLICY 6 | ticks=8206 wave=6 phase=2 lives=25 gold=1162 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=4 danger-job-ticks=23510 residual=110
+PASS every-tick conservation, slots, road limits and health context=1 plan=5 pace=28
+CONTEXT 1 POLICY 5 | ticks=8134 wave=6 phase=2 lives=52 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=20276 residual=116
+PASS every-tick conservation, slots, road limits and health context=1 plan=4 pace=28
+CONTEXT 1 POLICY 4 | ticks=8097 wave=6 phase=2 lives=50 gold=902 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=20442 residual=42
+PASS every-tick conservation, slots, road limits and health context=1 plan=3 pace=28
+CONTEXT 1 POLICY 3 | ticks=7133 wave=6 phase=3 lives=0 gold=1295 score=673 offered=196 finished=185 dropped=0 live=11 left=38 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=2 pace=28
+CONTEXT 1 POLICY 2 | ticks=5893 wave=5 phase=3 lives=0 gold=1039 score=536 offered=159 finished=148 dropped=0 live=11 left=21 pace=28 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=1 pace=28
+CONTEXT 1 POLICY 1 | ticks=6873 wave=6 phase=3 lives=0 gold=1280 score=660 offered=188 finished=180 dropped=0 live=8 left=46 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=0 pace=28
+CONTEXT 1 POLICY 0 | ticks=5415 wave=5 phase=3 lives=0 gold=1036 score=484 offered=139 finished=132 dropped=0 live=7 left=41 pace=28 towers=0 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=8 pace=12
+CONTEXT 0 POLICY 8 | ticks=5726 wave=6 phase=2 lives=57 gold=860 score=829 offered=234 finished=225 dropped=9 live=0 left=0 pace=12 towers=6 danger-job-ticks=18549 residual=69
+PASS every-tick conservation, slots, road limits and health context=0 plan=7 pace=12
+CONTEXT 0 POLICY 7 | ticks=4824 wave=6 phase=3 lives=0 gold=1094 score=541 offered=221 finished=153 dropped=46 live=22 left=13 pace=12 towers=2 danger-job-ticks=20884 residual=4
+PASS every-tick conservation, slots, road limits and health context=0 plan=6 pace=12
+CONTEXT 0 POLICY 6 | ticks=5840 wave=6 phase=2 lives=32 gold=1100 score=821 offered=234 finished=225 dropped=9 live=0 left=0 pace=12 towers=4 danger-job-ticks=21486 residual=6
+PASS every-tick conservation, slots, road limits and health context=0 plan=5 pace=12
+CONTEXT 0 POLICY 5 | ticks=5791 wave=6 phase=2 lives=28 gold=816 score=814 offered=234 finished=222 dropped=12 live=0 left=0 pace=12 towers=6 danger-job-ticks=21643 residual=43
+PASS every-tick conservation, slots, road limits and health context=0 plan=4 pace=12
+CONTEXT 0 POLICY 4 | ticks=5428 wave=6 phase=2 lives=30 gold=734 score=760 offered=234 finished=208 dropped=26 live=0 left=0 pace=12 towers=6 danger-job-ticks=19754 residual=74
+PASS every-tick conservation, slots, road limits and health context=0 plan=3 pace=12
+CONTEXT 0 POLICY 3 | ticks=5202 wave=6 phase=3 lives=0 gold=1043 score=526 offered=215 finished=146 dropped=47 live=22 left=19 pace=12 towers=2 danger-job-ticks=20766 residual=6
+PASS every-tick conservation, slots, road limits and health context=0 plan=2 pace=12
+CONTEXT 0 POLICY 2 | ticks=3924 wave=5 phase=3 lives=0 gold=779 score=384 offered=180 finished=108 dropped=66 live=6 left=0 pace=12 towers=2 danger-job-ticks=18481 residual=1
+PASS every-tick conservation, slots, road limits and health context=0 plan=1 pace=12
+CONTEXT 0 POLICY 1 | ticks=4072 wave=5 phase=3 lives=0 gold=822 score=423 offered=180 finished=99 dropped=80 live=1 left=0 pace=12 towers=2 danger-job-ticks=16800 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=0 pace=12
+CONTEXT 0 POLICY 0 | ticks=3659 wave=5 phase=3 lives=0 gold=676 score=273 offered=180 finished=77 dropped=84 live=19 left=0 pace=12 towers=0 danger-job-ticks=16324 residual=4
+PASS every-tick conservation, slots, road limits and health context=0 plan=8 pace=18
+CONTEXT 0 POLICY 8 | ticks=5923 wave=6 phase=2 lives=78 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=17159 residual=119
+PASS every-tick conservation, slots, road limits and health context=0 plan=7 pace=18
+CONTEXT 0 POLICY 7 | ticks=5946 wave=6 phase=3 lives=0 gold=1435 score=741 offered=222 finished=205 dropped=0 live=17 left=12 pace=18 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=0 plan=6 pace=18
+CONTEXT 0 POLICY 6 | ticks=6066 wave=6 phase=2 lives=46 gold=1162 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=4 danger-job-ticks=20906 residual=26
+PASS every-tick conservation, slots, road limits and health context=0 plan=5 pace=18
+CONTEXT 0 POLICY 5 | ticks=6015 wave=6 phase=2 lives=59 gold=884 score=853 offered=234 finished=233 dropped=1 live=0 left=0 pace=18 towers=6 danger-job-ticks=19230 residual=30
+PASS every-tick conservation, slots, road limits and health context=0 plan=4 pace=18
+CONTEXT 0 POLICY 4 | ticks=5963 wave=6 phase=2 lives=58 gold=872 score=841 offered=234 finished=229 dropped=5 live=0 left=0 pace=18 towers=6 danger-job-ticks=18959 residual=119
+PASS every-tick conservation, slots, road limits and health context=0 plan=3 pace=18
+CONTEXT 0 POLICY 3 | ticks=6314 wave=6 phase=3 lives=0 gold=1358 score=708 offered=214 finished=196 dropped=0 live=18 left=20 pace=18 towers=2 danger-job-ticks=26403 residual=3
+PASS every-tick conservation, slots, road limits and health context=0 plan=2 pace=18
+CONTEXT 0 POLICY 2 | ticks=5112 wave=6 phase=3 lives=0 gold=1070 score=535 offered=188 finished=155 dropped=25 live=8 left=46 pace=18 towers=2 danger-job-ticks=23400 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=1 pace=18
+CONTEXT 0 POLICY 1 | ticks=5282 wave=6 phase=3 lives=0 gold=1065 score=537 offered=200 finished=145 dropped=40 live=15 left=34 pace=18 towers=2 danger-job-ticks=21647 residual=47
+PASS every-tick conservation, slots, road limits and health context=0 plan=0 pace=18
+CONTEXT 0 POLICY 0 | ticks=4583 wave=5 phase=3 lives=0 gold=907 score=406 offered=170 finished=114 dropped=40 live=16 left=10 pace=18 towers=0 danger-job-ticks=21691 residual=91
+PASS every-tick conservation, slots, road limits and health context=0 plan=8 pace=28
+CONTEXT 0 POLICY 8 | ticks=7988 wave=6 phase=2 lives=86 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=16090 residual=10
+PASS every-tick conservation, slots, road limits and health context=0 plan=7 pace=28
+CONTEXT 0 POLICY 7 | ticks=8199 wave=6 phase=3 lives=0 gold=1600 score=838 offered=234 finished=230 dropped=0 live=4 left=0 pace=28 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=6 pace=28
+CONTEXT 0 POLICY 6 | ticks=8174 wave=6 phase=2 lives=34 gold=1162 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=4 danger-job-ticks=22358 residual=38
+PASS every-tick conservation, slots, road limits and health context=0 plan=5 pace=28
+CONTEXT 0 POLICY 5 | ticks=8066 wave=6 phase=2 lives=71 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=17962 residual=82
+PASS every-tick conservation, slots, road limits and health context=0 plan=4 pace=28
+CONTEXT 0 POLICY 4 | ticks=8046 wave=6 phase=2 lives=66 gold=902 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=18589 residual=109
+PASS every-tick conservation, slots, road limits and health context=0 plan=3 pace=28
+CONTEXT 0 POLICY 3 | ticks=7416 wave=6 phase=3 lives=0 gold=1371 score=717 offered=208 finished=197 dropped=0 live=11 left=26 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=0 plan=2 pace=28
+CONTEXT 0 POLICY 2 | ticks=6463 wave=5 phase=3 lives=0 gold=1191 score=624 offered=180 finished=172 dropped=0 live=8 left=0 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=0 plan=1 pace=28
+CONTEXT 0 POLICY 1 | ticks=7198 wave=6 phase=3 lives=0 gold=1335 score=690 offered=201 finished=190 dropped=0 live=11 left=33 pace=28 towers=2 danger-job-ticks=26405 residual=5
+PASS every-tick conservation, slots, road limits and health context=0 plan=0 pace=28
+CONTEXT 0 POLICY 0 | ticks=5908 wave=5 phase=3 lives=0 gold=1129 score=536 offered=160 finished=148 dropped=0 live=12 left=20 pace=28 towers=0 danger-job-ticks=26403 residual=3
+
+BASELINE SOURCE HASHES
+RoadModel.bend 1c5aefde9b10b86cd279214c3bd39cf7c56f4d15f017af52b05d560d3cd4f47f
+RoadGame.bend 9b38ea46bac98aa188c91cfcf1fc15093cb565a1675b05c236332defd2188388
+RoadScenario.bend 8539cffa05e967a1021e925c467f81a72b611dd5bdabb00158f8cd95690491f6
+RoadHeadless.bend 088bb5859f2bad43f18623f709ea3287c3d58f751ee6c6a86d182e60a382bff9
+
+POST-EXECUTION CALIBRATION: ONE SCRATCH CANDIDATE
+Baseline108 showed reinforced rapid bridges strongest across profiles. One candidate kept batch cost55 and reload18; changed batch base power9 to14 (level1 work13 to18) and base range88 to110 (level1 range98 to120). Candidate policies3/6 also moved rapid-left from112,208 to144,240 and batch-right from368,208 to368,240; policy6 upgrade selection follows the new locations. These changes form one tested package, not separate causal experiments. No parameter search followed.
+The scratch harness inherited the baseline LIMITATIONS sentence about rapid dominance; it is stale interpretation for this candidate, superseded by the comparison after its raw output.
+DECLARATION: 108 native campaigns: four displayed profiles, nine actual click/key construction policies, pacing 12/18/28, same 234-ticket demand. Plans: 0 undefended; 1 mixed bridge; 2 center relays; 3 batch review + rapid capture; 4/5/6 same with income reinvestment; 7 two rapid bridges; 8 rapid bridges with reinvestment. All costs, ranges and service come from RoadGame. No engagement or proof claim.
+PASS REGRESSION resident plus two simultaneous arrivals reserves exactly two slots; ordinary third remains safe on road
+PASS immediate third arrival refuses once with exact identity accounting
+PASS 112-pixel road at4pixels/tick stays safe through27ticks
+PASS arrival at tick28 starts building danger integral
+PASS unprocessed arrived packet causes recurring damage:30jobticks/10=3
+PASS two arrived packets double pressure area:60jobticks/10=6
+PASS held output remains dangerous while consuming a building resource
+PASS pressure fixture conserved and within resource/health bounds
+MATH WITNESS travel slack ceil(112/4)=28ticks; road integral0; one arrived30ticks area30 damage3; two area60 damage6. Finite exact witnesses, not a general theorem.
+PASS out-of-range tower adds no work to an inside packet
+PASS near rapid tower adds12 work; packet identity survives
+PASS towers process at buildings and never shoot safe approach work
+PASS capture completion transfers same ticket to review road instead of killing it
+PASS clear review completes terminal route and bypasses advice/output
+PASS finding review preserves ticket on advice approach
+PASS legal rapid construction costs35 from120gold
+PASS construction on architecture road spends no gold
+PASS selected rapid upgrade costs40 and raises level
+PASS unaffordable60gold upgrade preserves complete state
+PASS pause freezes complete road, work, pressure and economy state
+PASS same exact tick count is independent of batching
+PASS reset restores exact initial state
+PASS right-bridge rapid level1 range106 cannot reach advice109pixels away
+PASS right-bridge rapid level2 range116 reaches advice and adds16work
+PASS right-bridge relay reaches advice immediately but adds only6work
+PASS same first six demand IDs and classes at actual pacing6 and18
+PASS competent actual-click construction and reinvestment finishes all234tickets through six waves
+PASS winning campaign health and residual match exact accumulated building-danger area
+PASS undefended six-wave attempt loses under recurrent building pressure
+PASS rapid-left and relay-right bridge placement covers graph for80gold leaving40
+LIMITATIONS: finite deterministic policies only; reinforced rapid bridges remain strongest across the displayed profiles. Pace 28 improves health but increases mission duration. Investment timing and unused gold leave other strategies unsearched. Human engagement, general optimality and proofs remain unvalidated.
+PASS every-tick conservation, slots, road limits and health context=3 plan=8 pace=12
+CONTEXT 3 POLICY 8 | ticks=6682 wave=6 phase=2 lives=17 gold=844 score=819 offered=234 finished=223 dropped=11 live=0 left=0 pace=12 towers=6 danger-job-ticks=23128 residual=88
+PASS every-tick conservation, slots, road limits and health context=3 plan=7 pace=12
+CONTEXT 3 POLICY 7 | ticks=5313 wave=6 phase=3 lives=0 gold=1050 score=517 offered=204 finished=145 dropped=42 live=17 left=30 pace=12 towers=2 danger-job-ticks=21360 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=6 pace=12
+CONTEXT 3 POLICY 6 | ticks=6810 wave=6 phase=2 lives=17 gold=857 score=837 offered=234 finished=229 dropped=5 live=0 left=0 pace=12 towers=6 danger-job-ticks=23849 residual=89
+PASS every-tick conservation, slots, road limits and health context=3 plan=5 pace=12
+CONTEXT 3 POLICY 5 | ticks=6380 wave=6 phase=3 lives=0 gold=692 score=749 offered=234 finished=209 dropped=12 live=13 left=0 pace=12 towers=6 danger-job-ticks=24960 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=4 pace=12
+CONTEXT 3 POLICY 4 | ticks=6402 wave=6 phase=3 lives=0 gold=709 score=756 offered=234 finished=208 dropped=24 live=2 left=0 pace=12 towers=6 danger-job-ticks=23521 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=3 pace=12
+CONTEXT 3 POLICY 3 | ticks=5237 wave=6 phase=3 lives=0 gold=1042 score=521 offered=220 finished=149 dropped=49 live=22 left=14 pace=12 towers=2 danger-job-ticks=20525 residual=5
+PASS every-tick conservation, slots, road limits and health context=3 plan=2 pace=12
+CONTEXT 3 POLICY 2 | ticks=4095 wave=5 phase=3 lives=0 gold=720 score=348 offered=180 finished=100 dropped=64 live=16 left=0 pace=12 towers=2 danger-job-ticks=18720 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=1 pace=12
+CONTEXT 3 POLICY 1 | ticks=4197 wave=5 phase=3 lives=0 gold=726 score=363 offered=180 finished=87 dropped=78 live=15 left=0 pace=12 towers=2 danger-job-ticks=17081 residual=41
+PASS every-tick conservation, slots, road limits and health context=3 plan=0 pace=12
+CONTEXT 3 POLICY 0 | ticks=3832 wave=5 phase=3 lives=0 gold=649 score=257 offered=175 finished=73 dropped=81 live=21 left=5 pace=12 towers=0 danger-job-ticks=16682 residual=2
+PASS every-tick conservation, slots, road limits and health context=3 plan=8 pace=18
+CONTEXT 3 POLICY 8 | ticks=6979 wave=6 phase=2 lives=50 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=20487 residual=87
+PASS every-tick conservation, slots, road limits and health context=3 plan=7 pace=18
+CONTEXT 3 POLICY 7 | ticks=6413 wave=6 phase=3 lives=0 gold=1321 score=675 offered=203 finished=187 dropped=0 live=16 left=31 pace=18 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=6 pace=18
+CONTEXT 3 POLICY 6 | ticks=7032 wave=6 phase=2 lives=47 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=20857 residual=97
+PASS every-tick conservation, slots, road limits and health context=3 plan=5 pace=18
+CONTEXT 3 POLICY 5 | ticks=7062 wave=6 phase=2 lives=33 gold=884 score=853 offered=234 finished=233 dropped=1 live=0 left=0 pace=18 towers=6 danger-job-ticks=22390 residual=70
+PASS every-tick conservation, slots, road limits and health context=3 plan=4 pace=18
+CONTEXT 3 POLICY 4 | ticks=6984 wave=6 phase=2 lives=34 gold=880 score=846 offered=234 finished=230 dropped=4 live=0 left=0 pace=18 towers=6 danger-job-ticks=21882 residual=42
+PASS every-tick conservation, slots, road limits and health context=3 plan=3 pace=18
+CONTEXT 3 POLICY 3 | ticks=6224 wave=6 phase=3 lives=0 gold=1265 score=656 offered=211 finished=180 dropped=14 live=17 left=23 pace=18 towers=2 danger-job-ticks=24720 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=2 pace=18
+CONTEXT 3 POLICY 2 | ticks=4940 wave=5 phase=3 lives=0 gold=945 score=472 offered=180 finished=140 dropped=24 live=16 left=0 pace=18 towers=2 danger-job-ticks=23525 residual=5
+PASS every-tick conservation, slots, road limits and health context=3 plan=1 pace=18
+CONTEXT 3 POLICY 1 | ticks=4984 wave=5 phase=3 lives=0 gold=971 score=496 offered=180 finished=132 dropped=38 live=10 left=0 pace=18 towers=2 danger-job-ticks=21841 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=0 pace=18
+CONTEXT 3 POLICY 0 | ticks=4753 wave=5 phase=3 lives=0 gold=869 score=384 offered=162 finished=108 dropped=38 live=16 left=18 pace=18 towers=0 danger-job-ticks=21943 residual=103
+PASS every-tick conservation, slots, road limits and health context=3 plan=8 pace=28
+CONTEXT 3 POLICY 8 | ticks=8131 wave=6 phase=2 lives=60 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=19245 residual=45
+PASS every-tick conservation, slots, road limits and health context=3 plan=7 pace=28
+CONTEXT 3 POLICY 7 | ticks=7612 wave=6 phase=3 lives=0 gold=1440 score=745 offered=215 finished=205 dropped=0 live=10 left=19 pace=28 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=6 pace=28
+CONTEXT 3 POLICY 6 | ticks=8146 wave=6 phase=2 lives=50 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=20434 residual=34
+PASS every-tick conservation, slots, road limits and health context=3 plan=5 pace=28
+CONTEXT 3 POLICY 5 | ticks=8183 wave=6 phase=2 lives=45 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=21083 residual=83
+PASS every-tick conservation, slots, road limits and health context=3 plan=4 pace=28
+CONTEXT 3 POLICY 4 | ticks=8189 wave=6 phase=2 lives=39 gold=902 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=21780 residual=60
+PASS every-tick conservation, slots, road limits and health context=3 plan=3 pace=28
+CONTEXT 3 POLICY 3 | ticks=7545 wave=6 phase=3 lives=0 gold=1401 score=734 offered=212 finished=202 dropped=0 live=10 left=22 pace=28 towers=2 danger-job-ticks=26404 residual=4
+PASS every-tick conservation, slots, road limits and health context=3 plan=2 pace=28
+CONTEXT 3 POLICY 2 | ticks=6165 wave=5 phase=3 lives=0 gold=1096 score=569 offered=169 finished=157 dropped=0 live=12 left=11 pace=28 towers=2 danger-job-ticks=26401 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=1 pace=28
+CONTEXT 3 POLICY 1 | ticks=6493 wave=5 phase=3 lives=0 gold=1209 score=629 offered=180 finished=173 dropped=0 live=7 left=0 pace=28 towers=2 danger-job-ticks=26401 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=0 pace=28
+CONTEXT 3 POLICY 0 | ticks=5737 wave=5 phase=3 lives=0 gold=1061 score=497 offered=149 finished=137 dropped=0 live=12 left=31 pace=28 towers=0 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=8 pace=12
+CONTEXT 2 POLICY 8 | ticks=4696 wave=6 phase=3 lives=0 gold=303 score=510 offered=234 finished=146 dropped=86 live=2 left=0 pace=12 towers=6 danger-job-ticks=16080 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=7 pace=12
+CONTEXT 2 POLICY 7 | ticks=3805 wave=5 phase=3 lives=0 gold=596 score=272 offered=180 finished=72 dropped=100 live=8 left=0 pace=12 towers=2 danger-job-ticks=14402 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=6 pace=12
+CONTEXT 2 POLICY 6 | ticks=4758 wave=6 phase=2 lives=3 gold=390 score=560 offered=234 finished=160 dropped=74 live=0 left=0 pace=12 towers=6 danger-job-ticks=17213 residual=53
+PASS every-tick conservation, slots, road limits and health context=2 plan=5 pace=12
+CONTEXT 2 POLICY 5 | ticks=4212 wave=6 phase=3 lives=0 gold=38 score=377 offered=209 finished=101 dropped=91 live=17 left=25 pace=12 towers=6 danger-job-ticks=15485 residual=5
+PASS every-tick conservation, slots, road limits and health context=2 plan=4 pace=12
+CONTEXT 2 POLICY 4 | ticks=4357 wave=6 phase=3 lives=0 gold=39 score=367 offered=220 finished=103 dropped=101 live=16 left=14 pace=12 towers=6 danger-job-ticks=14280 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=3 pace=12
+CONTEXT 2 POLICY 3 | ticks=4174 wave=6 phase=3 lives=0 gold=641 score=287 offered=204 finished=87 dropped=102 live=15 left=30 pace=12 towers=2 danger-job-ticks=14163 residual=3
+PASS every-tick conservation, slots, road limits and health context=2 plan=2 pace=12
+CONTEXT 2 POLICY 2 | ticks=3657 wave=5 phase=3 lives=0 gold=468 score=215 offered=167 finished=51 dropped=100 live=16 left=13 pace=12 towers=2 danger-job-ticks=14439 residual=39
+PASS every-tick conservation, slots, road limits and health context=2 plan=1 pace=12
+CONTEXT 2 POLICY 1 | ticks=3747 wave=5 phase=3 lives=0 gold=485 score=215 offered=180 finished=55 dropped=113 live=12 left=0 pace=12 towers=2 danger-job-ticks=12939 residual=99
+PASS every-tick conservation, slots, road limits and health context=2 plan=0 pace=12
+CONTEXT 2 POLICY 0 | ticks=3701 wave=5 phase=3 lives=0 gold=464 score=151 offered=167 finished=43 dropped=108 live=16 left=13 pace=12 towers=0 danger-job-ticks=13551 residual=111
+PASS every-tick conservation, slots, road limits and health context=2 plan=8 pace=18
+CONTEXT 2 POLICY 8 | ticks=6063 wave=6 phase=2 lives=7 gold=784 score=785 offered=234 finished=213 dropped=21 live=0 left=0 pace=18 towers=6 danger-job-ticks=23077 residual=37
+PASS every-tick conservation, slots, road limits and health context=2 plan=7 pace=18
+CONTEXT 2 POLICY 7 | ticks=4706 wave=5 phase=3 lives=0 gold=795 score=385 offered=180 finished=105 dropped=63 live=12 left=0 pace=18 towers=2 danger-job-ticks=18841 residual=1
+PASS every-tick conservation, slots, road limits and health context=2 plan=6 pace=18
+CONTEXT 2 POLICY 6 | ticks=6084 wave=6 phase=2 lives=24 gold=824 score=819 offered=234 finished=223 dropped=11 live=0 left=0 pace=18 towers=6 danger-job-ticks=22206 residual=6
+PASS every-tick conservation, slots, road limits and health context=2 plan=5 pace=18
+CONTEXT 2 POLICY 5 | ticks=5526 wave=6 phase=3 lives=0 gold=366 score=554 offered=219 finished=162 dropped=45 live=12 left=15 pace=18 towers=6 danger-job-ticks=21120 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=4 pace=18
+CONTEXT 2 POLICY 4 | ticks=5500 wave=6 phase=3 lives=0 gold=290 score=516 offered=214 finished=140 dropped=60 live=14 left=20 pace=18 towers=6 danger-job-ticks=19217 residual=17
+PASS every-tick conservation, slots, road limits and health context=2 plan=3 pace=18
+CONTEXT 2 POLICY 3 | ticks=4874 wave=5 phase=3 lives=0 gold=855 score=435 offered=180 finished=115 dropped=61 live=4 left=0 pace=18 towers=2 danger-job-ticks=19080 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=2 pace=18
+CONTEXT 2 POLICY 2 | ticks=4545 wave=5 phase=3 lives=0 gold=559 score=250 offered=167 finished=78 dropped=76 live=13 left=13 pace=18 towers=2 danger-job-ticks=17387 residual=107
+PASS every-tick conservation, slots, road limits and health context=2 plan=1 pace=18
+CONTEXT 2 POLICY 1 | ticks=4653 wave=5 phase=3 lives=0 gold=608 score=284 offered=174 finished=76 dropped=86 live=12 left=6 pace=18 towers=2 danger-job-ticks=16143 residual=63
+PASS every-tick conservation, slots, road limits and health context=2 plan=0 pace=18
+CONTEXT 2 POLICY 0 | ticks=4373 wave=5 phase=3 lives=0 gold=578 score=217 offered=152 finished=61 dropped=80 live=11 left=28 pace=18 towers=0 danger-job-ticks=16848 residual=48
+PASS every-tick conservation, slots, road limits and health context=2 plan=8 pace=28
+CONTEXT 2 POLICY 8 | ticks=8082 wave=6 phase=2 lives=55 gold=904 score=853 offered=234 finished=233 dropped=1 live=0 left=0 pace=28 towers=6 danger-job-ticks=19737 residual=57
+PASS every-tick conservation, slots, road limits and health context=2 plan=7 pace=28
+CONTEXT 2 POLICY 7 | ticks=6141 wave=5 phase=3 lives=0 gold=1042 score=528 offered=171 finished=144 dropped=15 live=12 left=9 pace=28 towers=2 danger-job-ticks=24606 residual=6
+PASS every-tick conservation, slots, road limits and health context=2 plan=6 pace=28
+CONTEXT 2 POLICY 6 | ticks=8138 wave=6 phase=2 lives=34 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=22382 residual=62
+PASS every-tick conservation, slots, road limits and health context=2 plan=5 pace=28
+CONTEXT 2 POLICY 5 | ticks=8288 wave=6 phase=2 lives=5 gold=881 score=852 offered=234 finished=232 dropped=2 live=0 left=0 pace=28 towers=6 danger-job-ticks=25584 residual=24
+PASS every-tick conservation, slots, road limits and health context=2 plan=4 pace=28
+CONTEXT 2 POLICY 4 | ticks=8264 wave=6 phase=2 lives=11 gold=862 score=833 offered=234 finished=229 dropped=5 live=0 left=0 pace=28 towers=6 danger-job-ticks=24551 residual=71
+PASS every-tick conservation, slots, road limits and health context=2 plan=3 pace=28
+CONTEXT 2 POLICY 3 | ticks=6796 wave=6 phase=3 lives=0 gold=1126 score=570 offered=185 finished=162 dropped=18 live=5 left=49 pace=28 towers=2 danger-job-ticks=24240 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=2 pace=28
+CONTEXT 2 POLICY 2 | ticks=5582 wave=5 phase=3 lives=0 gold=762 score=376 offered=146 finished=104 dropped=32 live=10 left=34 pace=28 towers=2 danger-job-ticks=22560 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=1 pace=28
+CONTEXT 2 POLICY 1 | ticks=6203 wave=5 phase=3 lives=0 gold=749 score=345 offered=172 finished=113 dropped=51 live=8 left=8 pace=28 towers=2 danger-job-ticks=20282 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=0 pace=28
+CONTEXT 2 POLICY 0 | ticks=5437 wave=5 phase=3 lives=0 gold=708 score=293 offered=138 finished=81 dropped=51 live=6 left=42 pace=28 towers=0 danger-job-ticks=20280 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=8 pace=12
+CONTEXT 1 POLICY 8 | ticks=5740 wave=6 phase=2 lives=38 gold=853 score=822 offered=234 finished=226 dropped=8 live=0 left=0 pace=12 towers=6 danger-job-ticks=20886 residual=6
+PASS every-tick conservation, slots, road limits and health context=1 plan=7 pace=12
+CONTEXT 1 POLICY 7 | ticks=4146 wave=5 phase=3 lives=0 gold=937 score=465 offered=180 finished=129 dropped=36 live=15 left=0 pace=12 towers=2 danger-job-ticks=22082 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=6 pace=12
+CONTEXT 1 POLICY 6 | ticks=5806 wave=6 phase=2 lives=37 gold=844 score=828 offered=234 finished=228 dropped=6 live=0 left=0 pace=12 towers=6 danger-job-ticks=21257 residual=17
+PASS every-tick conservation, slots, road limits and health context=1 plan=5 pace=12
+CONTEXT 1 POLICY 5 | ticks=5453 wave=6 phase=3 lives=0 gold=671 score=735 offered=234 finished=207 dropped=10 live=17 left=0 pace=12 towers=6 danger-job-ticks=25201 residual=1
+PASS every-tick conservation, slots, road limits and health context=1 plan=4 pace=12
+CONTEXT 1 POLICY 4 | ticks=5645 wave=6 phase=2 lives=10 gold=766 score=780 offered=234 finished=212 dropped=22 live=0 left=0 pace=12 towers=6 danger-job-ticks=22587 residual=27
+PASS every-tick conservation, slots, road limits and health context=1 plan=3 pace=12
+CONTEXT 1 POLICY 3 | ticks=4419 wave=6 phase=3 lives=0 gold=997 score=499 offered=192 finished=139 dropped=41 live=12 left=42 pace=12 towers=2 danger-job-ticks=21481 residual=1
+PASS every-tick conservation, slots, road limits and health context=1 plan=2 pace=12
+CONTEXT 1 POLICY 2 | ticks=3657 wave=5 phase=3 lives=0 gold=666 score=316 offered=169 finished=92 dropped=56 live=21 left=11 pace=12 towers=2 danger-job-ticks=19684 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=1 pace=12
+CONTEXT 1 POLICY 1 | ticks=3741 wave=5 phase=3 lives=0 gold=704 score=337 offered=179 finished=93 dropped=65 live=21 left=1 pace=12 towers=2 danger-job-ticks=18604 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=0 pace=12
+CONTEXT 1 POLICY 0 | ticks=3480 wave=5 phase=3 lives=0 gold=621 score=243 offered=157 finished=67 dropped=72 live=18 left=23 pace=12 towers=0 danger-job-ticks=17760 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=8 pace=18
+CONTEXT 1 POLICY 8 | ticks=5980 wave=6 phase=2 lives=60 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=19212 residual=12
+PASS every-tick conservation, slots, road limits and health context=1 plan=7 pace=18
+CONTEXT 1 POLICY 7 | ticks=5455 wave=6 phase=3 lives=0 gold=1293 score=661 offered=192 finished=181 dropped=0 live=11 left=42 pace=18 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=6 pace=18
+CONTEXT 1 POLICY 6 | ticks=6006 wave=6 phase=2 lives=58 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=19556 residual=116
+PASS every-tick conservation, slots, road limits and health context=1 plan=5 pace=18
+CONTEXT 1 POLICY 5 | ticks=6104 wave=6 phase=2 lives=43 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=21262 residual=22
+PASS every-tick conservation, slots, road limits and health context=1 plan=4 pace=18
+CONTEXT 1 POLICY 4 | ticks=6024 wave=6 phase=2 lives=46 gold=883 score=847 offered=234 finished=231 dropped=3 live=0 left=0 pace=18 towers=6 danger-job-ticks=20625 residual=105
+PASS every-tick conservation, slots, road limits and health context=1 plan=3 pace=18
+CONTEXT 1 POLICY 3 | ticks=5269 wave=6 phase=3 lives=0 gold=1200 score=625 offered=194 finished=165 dropped=16 live=13 left=40 pace=18 towers=2 danger-job-ticks=24481 residual=1
+PASS every-tick conservation, slots, road limits and health context=1 plan=2 pace=18
+CONTEXT 1 POLICY 2 | ticks=4473 wave=5 phase=3 lives=0 gold=882 score=437 offered=167 finished=129 dropped=21 live=17 left=13 pace=18 towers=2 danger-job-ticks=23883 residual=3
+PASS every-tick conservation, slots, road limits and health context=1 plan=1 pace=18
+CONTEXT 1 POLICY 1 | ticks=4611 wave=5 phase=3 lives=0 gold=930 score=473 offered=176 finished=125 dropped=36 live=15 left=4 pace=18 towers=2 danger-job-ticks=22082 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=0 pace=18
+CONTEXT 1 POLICY 0 | ticks=4289 wave=5 phase=3 lives=0 gold=833 score=365 offered=148 finished=101 dropped=34 live=13 left=32 pace=18 towers=0 danger-job-ticks=22324 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=8 pace=28
+CONTEXT 1 POLICY 8 | ticks=8038 wave=6 phase=2 lives=71 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=17978 residual=98
+PASS every-tick conservation, slots, road limits and health context=1 plan=7 pace=28
+CONTEXT 1 POLICY 7 | ticks=7663 wave=6 phase=3 lives=0 gold=1459 score=756 offered=218 finished=208 dropped=0 live=10 left=16 pace=28 towers=2 danger-job-ticks=26404 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=6 pace=28
+CONTEXT 1 POLICY 6 | ticks=8040 wave=6 phase=2 lives=62 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=19039 residual=79
+PASS every-tick conservation, slots, road limits and health context=1 plan=5 pace=28
+CONTEXT 1 POLICY 5 | ticks=8134 wave=6 phase=2 lives=52 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=20276 residual=116
+PASS every-tick conservation, slots, road limits and health context=1 plan=4 pace=28
+CONTEXT 1 POLICY 4 | ticks=8097 wave=6 phase=2 lives=50 gold=902 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=20442 residual=42
+PASS every-tick conservation, slots, road limits and health context=1 plan=3 pace=28
+CONTEXT 1 POLICY 3 | ticks=7582 wave=6 phase=3 lives=0 gold=1428 score=750 offered=216 finished=206 dropped=0 live=10 left=18 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=2 pace=28
+CONTEXT 1 POLICY 2 | ticks=5893 wave=5 phase=3 lives=0 gold=1039 score=536 offered=159 finished=148 dropped=0 live=11 left=21 pace=28 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=1 pace=28
+CONTEXT 1 POLICY 1 | ticks=6873 wave=6 phase=3 lives=0 gold=1280 score=660 offered=188 finished=180 dropped=0 live=8 left=46 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=0 pace=28
+CONTEXT 1 POLICY 0 | ticks=5415 wave=5 phase=3 lives=0 gold=1036 score=484 offered=139 finished=132 dropped=0 live=7 left=41 pace=28 towers=0 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=8 pace=12
+CONTEXT 0 POLICY 8 | ticks=5726 wave=6 phase=2 lives=57 gold=860 score=829 offered=234 finished=225 dropped=9 live=0 left=0 pace=12 towers=6 danger-job-ticks=18549 residual=69
+PASS every-tick conservation, slots, road limits and health context=0 plan=7 pace=12
+CONTEXT 0 POLICY 7 | ticks=4824 wave=6 phase=3 lives=0 gold=1094 score=541 offered=221 finished=153 dropped=46 live=22 left=13 pace=12 towers=2 danger-job-ticks=20884 residual=4
+PASS every-tick conservation, slots, road limits and health context=0 plan=6 pace=12
+CONTEXT 0 POLICY 6 | ticks=5763 wave=6 phase=2 lives=56 gold=857 score=837 offered=234 finished=229 dropped=5 live=0 left=0 pace=12 towers=6 danger-job-ticks=19094 residual=14
+PASS every-tick conservation, slots, road limits and health context=0 plan=5 pace=12
+CONTEXT 0 POLICY 5 | ticks=5791 wave=6 phase=2 lives=28 gold=816 score=814 offered=234 finished=222 dropped=12 live=0 left=0 pace=12 towers=6 danger-job-ticks=21643 residual=43
+PASS every-tick conservation, slots, road limits and health context=0 plan=4 pace=12
+CONTEXT 0 POLICY 4 | ticks=5428 wave=6 phase=2 lives=30 gold=734 score=760 offered=234 finished=208 dropped=26 live=0 left=0 pace=12 towers=6 danger-job-ticks=19754 residual=74
+PASS every-tick conservation, slots, road limits and health context=0 plan=3 pace=12
+CONTEXT 0 POLICY 3 | ticks=4703 wave=6 phase=3 lives=0 gold=1100 score=552 offered=234 finished=160 dropped=56 live=18 left=0 pace=12 towers=2 danger-job-ticks=19782 residual=102
+PASS every-tick conservation, slots, road limits and health context=0 plan=2 pace=12
+CONTEXT 0 POLICY 2 | ticks=3924 wave=5 phase=3 lives=0 gold=779 score=384 offered=180 finished=108 dropped=66 live=6 left=0 pace=12 towers=2 danger-job-ticks=18481 residual=1
+PASS every-tick conservation, slots, road limits and health context=0 plan=1 pace=12
+CONTEXT 0 POLICY 1 | ticks=4072 wave=5 phase=3 lives=0 gold=822 score=423 offered=180 finished=99 dropped=80 live=1 left=0 pace=12 towers=2 danger-job-ticks=16800 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=0 pace=12
+CONTEXT 0 POLICY 0 | ticks=3659 wave=5 phase=3 lives=0 gold=676 score=273 offered=180 finished=77 dropped=84 live=19 left=0 pace=12 towers=0 danger-job-ticks=16324 residual=4
+PASS every-tick conservation, slots, road limits and health context=0 plan=8 pace=18
+CONTEXT 0 POLICY 8 | ticks=5923 wave=6 phase=2 lives=78 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=17159 residual=119
+PASS every-tick conservation, slots, road limits and health context=0 plan=7 pace=18
+CONTEXT 0 POLICY 7 | ticks=5946 wave=6 phase=3 lives=0 gold=1435 score=741 offered=222 finished=205 dropped=0 live=17 left=12 pace=18 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=0 plan=6 pace=18
+CONTEXT 0 POLICY 6 | ticks=5959 wave=6 phase=2 lives=73 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=17711 residual=71
+PASS every-tick conservation, slots, road limits and health context=0 plan=5 pace=18
+CONTEXT 0 POLICY 5 | ticks=6015 wave=6 phase=2 lives=59 gold=884 score=853 offered=234 finished=233 dropped=1 live=0 left=0 pace=18 towers=6 danger-job-ticks=19230 residual=30
+PASS every-tick conservation, slots, road limits and health context=0 plan=4 pace=18
+CONTEXT 0 POLICY 4 | ticks=5963 wave=6 phase=2 lives=58 gold=872 score=841 offered=234 finished=229 dropped=5 live=0 left=0 pace=18 towers=6 danger-job-ticks=18959 residual=119
+PASS every-tick conservation, slots, road limits and health context=0 plan=3 pace=18
+CONTEXT 0 POLICY 3 | ticks=5762 wave=6 phase=3 lives=0 gold=1325 score=704 offered=218 finished=180 dropped=21 live=17 left=16 pace=18 towers=2 danger-job-ticks=23880 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=2 pace=18
+CONTEXT 0 POLICY 2 | ticks=5112 wave=6 phase=3 lives=0 gold=1070 score=535 offered=188 finished=155 dropped=25 live=8 left=46 pace=18 towers=2 danger-job-ticks=23400 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=1 pace=18
+CONTEXT 0 POLICY 1 | ticks=5282 wave=6 phase=3 lives=0 gold=1065 score=537 offered=200 finished=145 dropped=40 live=15 left=34 pace=18 towers=2 danger-job-ticks=21647 residual=47
+PASS every-tick conservation, slots, road limits and health context=0 plan=0 pace=18
+CONTEXT 0 POLICY 0 | ticks=4583 wave=5 phase=3 lives=0 gold=907 score=406 offered=170 finished=114 dropped=40 live=16 left=10 pace=18 towers=0 danger-job-ticks=21691 residual=91
+PASS every-tick conservation, slots, road limits and health context=0 plan=8 pace=28
+CONTEXT 0 POLICY 8 | ticks=7988 wave=6 phase=2 lives=86 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=16090 residual=10
+PASS every-tick conservation, slots, road limits and health context=0 plan=7 pace=28
+CONTEXT 0 POLICY 7 | ticks=8199 wave=6 phase=3 lives=0 gold=1600 score=838 offered=234 finished=230 dropped=0 live=4 left=0 pace=28 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=6 pace=28
+CONTEXT 0 POLICY 6 | ticks=7994 wave=6 phase=2 lives=77 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=17250 residual=90
+PASS every-tick conservation, slots, road limits and health context=0 plan=5 pace=28
+CONTEXT 0 POLICY 5 | ticks=8066 wave=6 phase=2 lives=71 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=17962 residual=82
+PASS every-tick conservation, slots, road limits and health context=0 plan=4 pace=28
+CONTEXT 0 POLICY 4 | ticks=8046 wave=6 phase=2 lives=66 gold=902 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=18589 residual=109
+PASS every-tick conservation, slots, road limits and health context=0 plan=3 pace=28
+CONTEXT 0 POLICY 3 | ticks=8070 wave=6 phase=3 lives=0 gold=1553 score=822 offered=234 finished=226 dropped=0 live=8 left=0 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=0 plan=2 pace=28
+CONTEXT 0 POLICY 2 | ticks=6463 wave=5 phase=3 lives=0 gold=1191 score=624 offered=180 finished=172 dropped=0 live=8 left=0 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=0 plan=1 pace=28
+CONTEXT 0 POLICY 1 | ticks=7198 wave=6 phase=3 lives=0 gold=1335 score=690 offered=201 finished=190 dropped=0 live=11 left=33 pace=28 towers=2 danger-job-ticks=26405 residual=5
+PASS every-tick conservation, slots, road limits and health context=0 plan=0 pace=28
+CONTEXT 0 POLICY 0 | ticks=5908 wave=5 phase=3 lives=0 gold=1129 score=536 offered=160 finished=148 dropped=0 live=12 left=20 pace=28 towers=0 danger-job-ticks=26403 residual=3
+
+CANDIDATE SOURCE HASHES
+RoadModel.bend 1c5aefde9b10b86cd279214c3bd39cf7c56f4d15f017af52b05d560d3cd4f47f
+RoadGame.bend 1f23c923744024d0108beb383a0d7e506d54ef39e99332e1bb632ff351ad9a8e
+RoadScenario.bend 8539cffa05e967a1021e925c467f81a72b611dd5bdabb00158f8cd95690491f6
+RoadHeadless.bend ec4ba741ddf2912234780a2ed52b5afa884eb17dcd3923769c771dea9762deac
+COMPARISON: 40/108 candidate wins versus35/108 baseline. Heavy-review atpace18: batch policy6 finishes223, drops11, health24, ticks6084; rapid policy8 finishes213, drops21, health7, ticks6063. Defaultpace18: batch all234, health73, ticks5959; rapid all234, health78, ticks5923. Heavycapturepace18: batch health58/ticks6006; rapid health60/ticks5980. Candidate package creates a contextual throughput/health/time tradeoff; no proof of balance, optimality or engagement.
+
+BASELINE EXPLICIT NATIVE RESERVATION MUTANT exit1
+Replace reserved=inside_in(snapshot)+newly_inside(jobs,snapshot) with max(inside_in(snapshot),inside_in(jobs)); fails resident-plus-two-arrivals fixture.
+DECLARATION: 108 native campaigns: four displayed profiles, nine actual click/key construction policies, pacing 12/18/28, same 234-ticket demand. Plans: 0 undefended; 1 mixed bridge; 2 center relays; 3 batch review + rapid capture; 4/5/6 same with income reinvestment; 7 two rapid bridges; 8 rapid bridges with reinvestment. All costs, ranges and service come from RoadGame. No engagement or proof claim.
+FAIL REGRESSION resident plus two simultaneous arrivals reserves exactly two slots; ordinary third remains safe on road
+
+ADOPTION AMENDMENT AND FINAL NATIVE VERIFICATION
+Root accepted the single candidate package after comparison. Canonical RoadGame now uses batch base power14/range110; canonical policy3/6 construction and upgrades use rapid-left144,240 and batch-right368,240. All other prices, cooldowns, graph and demand unchanged. The original declaration, baseline output and scratch candidate remain above as evidence, not rewritten history.
+DECLARATION: 108 native campaigns: four displayed profiles, nine actual click/key construction policies, pacing 12/18/28, same 234-ticket demand. Plans: 0 undefended; 1 mixed bridge; 2 center relays; 3 rapid-left and batch-right bridge; 4/5/6 same with income reinvestment; 7 two rapid bridges; 8 rapid bridges with reinvestment. All costs, ranges and service come from RoadGame. No engagement or proof claim.
+PASS REGRESSION resident plus two simultaneous arrivals reserves exactly two slots; ordinary third remains safe on road
+PASS immediate third arrival refuses once with exact identity accounting
+PASS 112-pixel road at4pixels/tick stays safe through27ticks
+PASS arrival at tick28 starts building danger integral
+PASS unprocessed arrived packet causes recurring damage:30jobticks/10=3
+PASS two arrived packets double pressure area:60jobticks/10=6
+PASS held output remains dangerous while consuming a building resource
+PASS pressure fixture conserved and within resource/health bounds
+MATH WITNESS travel slack ceil(112/4)=28ticks; road integral0; one arrived30ticks area30 damage3; two area60 damage6. Finite exact witnesses, not a general theorem.
+PASS out-of-range tower adds no work to an inside packet
+PASS near rapid tower adds12 work; packet identity survives
+PASS towers process at buildings and never shoot safe approach work
+PASS capture completion transfers same ticket to review road instead of killing it
+PASS clear review completes terminal route and bypasses advice/output
+PASS finding review preserves ticket on advice approach
+PASS legal rapid construction costs35 from120gold
+PASS construction on architecture road spends no gold
+PASS selected rapid upgrade costs40 and raises level
+PASS unaffordable60gold upgrade preserves complete state
+PASS pause freezes complete road, work, pressure and economy state
+PASS same exact tick count is independent of batching
+PASS reset restores exact initial state
+PASS right-bridge rapid level1 range106 cannot reach advice109pixels away
+PASS right-bridge rapid level2 range116 reaches advice and adds16work
+PASS right-bridge relay reaches advice immediately but adds only6work
+PASS same first six demand IDs and classes at actual pacing6 and18
+PASS competent actual-click construction and reinvestment finishes all234tickets through six waves
+PASS winning campaign health and residual match exact accumulated building-danger area
+PASS undefended six-wave attempt loses under recurrent building pressure
+PASS rapid-left and relay-right bridge placement covers graph for80gold leaving40
+LIMITATIONS: finite deterministic policies only; the adopted batch bridge package improves heavy-review results; rapid bridges retain advantages in default and capture profiles. Pace 28 improves health but increases mission duration. Investment timing and unused gold leave other strategies unsearched. Human engagement, general optimality and proofs remain unvalidated.
+PASS every-tick conservation, slots, road limits and health context=3 plan=8 pace=12
+CONTEXT 3 POLICY 8 | ticks=6682 wave=6 phase=2 lives=17 gold=844 score=819 offered=234 finished=223 dropped=11 live=0 left=0 pace=12 towers=6 danger-job-ticks=23128 residual=88
+PASS every-tick conservation, slots, road limits and health context=3 plan=7 pace=12
+CONTEXT 3 POLICY 7 | ticks=5313 wave=6 phase=3 lives=0 gold=1050 score=517 offered=204 finished=145 dropped=42 live=17 left=30 pace=12 towers=2 danger-job-ticks=21360 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=6 pace=12
+CONTEXT 3 POLICY 6 | ticks=6810 wave=6 phase=2 lives=17 gold=857 score=837 offered=234 finished=229 dropped=5 live=0 left=0 pace=12 towers=6 danger-job-ticks=23849 residual=89
+PASS every-tick conservation, slots, road limits and health context=3 plan=5 pace=12
+CONTEXT 3 POLICY 5 | ticks=6380 wave=6 phase=3 lives=0 gold=692 score=749 offered=234 finished=209 dropped=12 live=13 left=0 pace=12 towers=6 danger-job-ticks=24960 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=4 pace=12
+CONTEXT 3 POLICY 4 | ticks=6402 wave=6 phase=3 lives=0 gold=709 score=756 offered=234 finished=208 dropped=24 live=2 left=0 pace=12 towers=6 danger-job-ticks=23521 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=3 pace=12
+CONTEXT 3 POLICY 3 | ticks=5237 wave=6 phase=3 lives=0 gold=1042 score=521 offered=220 finished=149 dropped=49 live=22 left=14 pace=12 towers=2 danger-job-ticks=20525 residual=5
+PASS every-tick conservation, slots, road limits and health context=3 plan=2 pace=12
+CONTEXT 3 POLICY 2 | ticks=4095 wave=5 phase=3 lives=0 gold=720 score=348 offered=180 finished=100 dropped=64 live=16 left=0 pace=12 towers=2 danger-job-ticks=18720 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=1 pace=12
+CONTEXT 3 POLICY 1 | ticks=4197 wave=5 phase=3 lives=0 gold=726 score=363 offered=180 finished=87 dropped=78 live=15 left=0 pace=12 towers=2 danger-job-ticks=17081 residual=41
+PASS every-tick conservation, slots, road limits and health context=3 plan=0 pace=12
+CONTEXT 3 POLICY 0 | ticks=3832 wave=5 phase=3 lives=0 gold=649 score=257 offered=175 finished=73 dropped=81 live=21 left=5 pace=12 towers=0 danger-job-ticks=16682 residual=2
+PASS every-tick conservation, slots, road limits and health context=3 plan=8 pace=18
+CONTEXT 3 POLICY 8 | ticks=6979 wave=6 phase=2 lives=50 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=20487 residual=87
+PASS every-tick conservation, slots, road limits and health context=3 plan=7 pace=18
+CONTEXT 3 POLICY 7 | ticks=6413 wave=6 phase=3 lives=0 gold=1321 score=675 offered=203 finished=187 dropped=0 live=16 left=31 pace=18 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=6 pace=18
+CONTEXT 3 POLICY 6 | ticks=7032 wave=6 phase=2 lives=47 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=20857 residual=97
+PASS every-tick conservation, slots, road limits and health context=3 plan=5 pace=18
+CONTEXT 3 POLICY 5 | ticks=7062 wave=6 phase=2 lives=33 gold=884 score=853 offered=234 finished=233 dropped=1 live=0 left=0 pace=18 towers=6 danger-job-ticks=22390 residual=70
+PASS every-tick conservation, slots, road limits and health context=3 plan=4 pace=18
+CONTEXT 3 POLICY 4 | ticks=6984 wave=6 phase=2 lives=34 gold=880 score=846 offered=234 finished=230 dropped=4 live=0 left=0 pace=18 towers=6 danger-job-ticks=21882 residual=42
+PASS every-tick conservation, slots, road limits and health context=3 plan=3 pace=18
+CONTEXT 3 POLICY 3 | ticks=6224 wave=6 phase=3 lives=0 gold=1265 score=656 offered=211 finished=180 dropped=14 live=17 left=23 pace=18 towers=2 danger-job-ticks=24720 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=2 pace=18
+CONTEXT 3 POLICY 2 | ticks=4940 wave=5 phase=3 lives=0 gold=945 score=472 offered=180 finished=140 dropped=24 live=16 left=0 pace=18 towers=2 danger-job-ticks=23525 residual=5
+PASS every-tick conservation, slots, road limits and health context=3 plan=1 pace=18
+CONTEXT 3 POLICY 1 | ticks=4984 wave=5 phase=3 lives=0 gold=971 score=496 offered=180 finished=132 dropped=38 live=10 left=0 pace=18 towers=2 danger-job-ticks=21841 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=0 pace=18
+CONTEXT 3 POLICY 0 | ticks=4753 wave=5 phase=3 lives=0 gold=869 score=384 offered=162 finished=108 dropped=38 live=16 left=18 pace=18 towers=0 danger-job-ticks=21943 residual=103
+PASS every-tick conservation, slots, road limits and health context=3 plan=8 pace=28
+CONTEXT 3 POLICY 8 | ticks=8131 wave=6 phase=2 lives=60 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=19245 residual=45
+PASS every-tick conservation, slots, road limits and health context=3 plan=7 pace=28
+CONTEXT 3 POLICY 7 | ticks=7612 wave=6 phase=3 lives=0 gold=1440 score=745 offered=215 finished=205 dropped=0 live=10 left=19 pace=28 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=3 plan=6 pace=28
+CONTEXT 3 POLICY 6 | ticks=8146 wave=6 phase=2 lives=50 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=20434 residual=34
+PASS every-tick conservation, slots, road limits and health context=3 plan=5 pace=28
+CONTEXT 3 POLICY 5 | ticks=8183 wave=6 phase=2 lives=45 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=21083 residual=83
+PASS every-tick conservation, slots, road limits and health context=3 plan=4 pace=28
+CONTEXT 3 POLICY 4 | ticks=8189 wave=6 phase=2 lives=39 gold=902 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=21780 residual=60
+PASS every-tick conservation, slots, road limits and health context=3 plan=3 pace=28
+CONTEXT 3 POLICY 3 | ticks=7545 wave=6 phase=3 lives=0 gold=1401 score=734 offered=212 finished=202 dropped=0 live=10 left=22 pace=28 towers=2 danger-job-ticks=26404 residual=4
+PASS every-tick conservation, slots, road limits and health context=3 plan=2 pace=28
+CONTEXT 3 POLICY 2 | ticks=6165 wave=5 phase=3 lives=0 gold=1096 score=569 offered=169 finished=157 dropped=0 live=12 left=11 pace=28 towers=2 danger-job-ticks=26401 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=1 pace=28
+CONTEXT 3 POLICY 1 | ticks=6493 wave=5 phase=3 lives=0 gold=1209 score=629 offered=180 finished=173 dropped=0 live=7 left=0 pace=28 towers=2 danger-job-ticks=26401 residual=1
+PASS every-tick conservation, slots, road limits and health context=3 plan=0 pace=28
+CONTEXT 3 POLICY 0 | ticks=5737 wave=5 phase=3 lives=0 gold=1061 score=497 offered=149 finished=137 dropped=0 live=12 left=31 pace=28 towers=0 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=8 pace=12
+CONTEXT 2 POLICY 8 | ticks=4696 wave=6 phase=3 lives=0 gold=303 score=510 offered=234 finished=146 dropped=86 live=2 left=0 pace=12 towers=6 danger-job-ticks=16080 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=7 pace=12
+CONTEXT 2 POLICY 7 | ticks=3805 wave=5 phase=3 lives=0 gold=596 score=272 offered=180 finished=72 dropped=100 live=8 left=0 pace=12 towers=2 danger-job-ticks=14402 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=6 pace=12
+CONTEXT 2 POLICY 6 | ticks=4758 wave=6 phase=2 lives=3 gold=390 score=560 offered=234 finished=160 dropped=74 live=0 left=0 pace=12 towers=6 danger-job-ticks=17213 residual=53
+PASS every-tick conservation, slots, road limits and health context=2 plan=5 pace=12
+CONTEXT 2 POLICY 5 | ticks=4212 wave=6 phase=3 lives=0 gold=38 score=377 offered=209 finished=101 dropped=91 live=17 left=25 pace=12 towers=6 danger-job-ticks=15485 residual=5
+PASS every-tick conservation, slots, road limits and health context=2 plan=4 pace=12
+CONTEXT 2 POLICY 4 | ticks=4357 wave=6 phase=3 lives=0 gold=39 score=367 offered=220 finished=103 dropped=101 live=16 left=14 pace=12 towers=6 danger-job-ticks=14280 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=3 pace=12
+CONTEXT 2 POLICY 3 | ticks=4174 wave=6 phase=3 lives=0 gold=641 score=287 offered=204 finished=87 dropped=102 live=15 left=30 pace=12 towers=2 danger-job-ticks=14163 residual=3
+PASS every-tick conservation, slots, road limits and health context=2 plan=2 pace=12
+CONTEXT 2 POLICY 2 | ticks=3657 wave=5 phase=3 lives=0 gold=468 score=215 offered=167 finished=51 dropped=100 live=16 left=13 pace=12 towers=2 danger-job-ticks=14439 residual=39
+PASS every-tick conservation, slots, road limits and health context=2 plan=1 pace=12
+CONTEXT 2 POLICY 1 | ticks=3747 wave=5 phase=3 lives=0 gold=485 score=215 offered=180 finished=55 dropped=113 live=12 left=0 pace=12 towers=2 danger-job-ticks=12939 residual=99
+PASS every-tick conservation, slots, road limits and health context=2 plan=0 pace=12
+CONTEXT 2 POLICY 0 | ticks=3701 wave=5 phase=3 lives=0 gold=464 score=151 offered=167 finished=43 dropped=108 live=16 left=13 pace=12 towers=0 danger-job-ticks=13551 residual=111
+PASS every-tick conservation, slots, road limits and health context=2 plan=8 pace=18
+CONTEXT 2 POLICY 8 | ticks=6063 wave=6 phase=2 lives=7 gold=784 score=785 offered=234 finished=213 dropped=21 live=0 left=0 pace=18 towers=6 danger-job-ticks=23077 residual=37
+PASS every-tick conservation, slots, road limits and health context=2 plan=7 pace=18
+CONTEXT 2 POLICY 7 | ticks=4706 wave=5 phase=3 lives=0 gold=795 score=385 offered=180 finished=105 dropped=63 live=12 left=0 pace=18 towers=2 danger-job-ticks=18841 residual=1
+PASS every-tick conservation, slots, road limits and health context=2 plan=6 pace=18
+CONTEXT 2 POLICY 6 | ticks=6084 wave=6 phase=2 lives=24 gold=824 score=819 offered=234 finished=223 dropped=11 live=0 left=0 pace=18 towers=6 danger-job-ticks=22206 residual=6
+PASS every-tick conservation, slots, road limits and health context=2 plan=5 pace=18
+CONTEXT 2 POLICY 5 | ticks=5526 wave=6 phase=3 lives=0 gold=366 score=554 offered=219 finished=162 dropped=45 live=12 left=15 pace=18 towers=6 danger-job-ticks=21120 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=4 pace=18
+CONTEXT 2 POLICY 4 | ticks=5500 wave=6 phase=3 lives=0 gold=290 score=516 offered=214 finished=140 dropped=60 live=14 left=20 pace=18 towers=6 danger-job-ticks=19217 residual=17
+PASS every-tick conservation, slots, road limits and health context=2 plan=3 pace=18
+CONTEXT 2 POLICY 3 | ticks=4874 wave=5 phase=3 lives=0 gold=855 score=435 offered=180 finished=115 dropped=61 live=4 left=0 pace=18 towers=2 danger-job-ticks=19080 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=2 pace=18
+CONTEXT 2 POLICY 2 | ticks=4545 wave=5 phase=3 lives=0 gold=559 score=250 offered=167 finished=78 dropped=76 live=13 left=13 pace=18 towers=2 danger-job-ticks=17387 residual=107
+PASS every-tick conservation, slots, road limits and health context=2 plan=1 pace=18
+CONTEXT 2 POLICY 1 | ticks=4653 wave=5 phase=3 lives=0 gold=608 score=284 offered=174 finished=76 dropped=86 live=12 left=6 pace=18 towers=2 danger-job-ticks=16143 residual=63
+PASS every-tick conservation, slots, road limits and health context=2 plan=0 pace=18
+CONTEXT 2 POLICY 0 | ticks=4373 wave=5 phase=3 lives=0 gold=578 score=217 offered=152 finished=61 dropped=80 live=11 left=28 pace=18 towers=0 danger-job-ticks=16848 residual=48
+PASS every-tick conservation, slots, road limits and health context=2 plan=8 pace=28
+CONTEXT 2 POLICY 8 | ticks=8082 wave=6 phase=2 lives=55 gold=904 score=853 offered=234 finished=233 dropped=1 live=0 left=0 pace=28 towers=6 danger-job-ticks=19737 residual=57
+PASS every-tick conservation, slots, road limits and health context=2 plan=7 pace=28
+CONTEXT 2 POLICY 7 | ticks=6141 wave=5 phase=3 lives=0 gold=1042 score=528 offered=171 finished=144 dropped=15 live=12 left=9 pace=28 towers=2 danger-job-ticks=24606 residual=6
+PASS every-tick conservation, slots, road limits and health context=2 plan=6 pace=28
+CONTEXT 2 POLICY 6 | ticks=8138 wave=6 phase=2 lives=34 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=22382 residual=62
+PASS every-tick conservation, slots, road limits and health context=2 plan=5 pace=28
+CONTEXT 2 POLICY 5 | ticks=8288 wave=6 phase=2 lives=5 gold=881 score=852 offered=234 finished=232 dropped=2 live=0 left=0 pace=28 towers=6 danger-job-ticks=25584 residual=24
+PASS every-tick conservation, slots, road limits and health context=2 plan=4 pace=28
+CONTEXT 2 POLICY 4 | ticks=8264 wave=6 phase=2 lives=11 gold=862 score=833 offered=234 finished=229 dropped=5 live=0 left=0 pace=28 towers=6 danger-job-ticks=24551 residual=71
+PASS every-tick conservation, slots, road limits and health context=2 plan=3 pace=28
+CONTEXT 2 POLICY 3 | ticks=6796 wave=6 phase=3 lives=0 gold=1126 score=570 offered=185 finished=162 dropped=18 live=5 left=49 pace=28 towers=2 danger-job-ticks=24240 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=2 pace=28
+CONTEXT 2 POLICY 2 | ticks=5582 wave=5 phase=3 lives=0 gold=762 score=376 offered=146 finished=104 dropped=32 live=10 left=34 pace=28 towers=2 danger-job-ticks=22560 residual=0
+PASS every-tick conservation, slots, road limits and health context=2 plan=1 pace=28
+CONTEXT 2 POLICY 1 | ticks=6203 wave=5 phase=3 lives=0 gold=749 score=345 offered=172 finished=113 dropped=51 live=8 left=8 pace=28 towers=2 danger-job-ticks=20282 residual=2
+PASS every-tick conservation, slots, road limits and health context=2 plan=0 pace=28
+CONTEXT 2 POLICY 0 | ticks=5437 wave=5 phase=3 lives=0 gold=708 score=293 offered=138 finished=81 dropped=51 live=6 left=42 pace=28 towers=0 danger-job-ticks=20280 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=8 pace=12
+CONTEXT 1 POLICY 8 | ticks=5740 wave=6 phase=2 lives=38 gold=853 score=822 offered=234 finished=226 dropped=8 live=0 left=0 pace=12 towers=6 danger-job-ticks=20886 residual=6
+PASS every-tick conservation, slots, road limits and health context=1 plan=7 pace=12
+CONTEXT 1 POLICY 7 | ticks=4146 wave=5 phase=3 lives=0 gold=937 score=465 offered=180 finished=129 dropped=36 live=15 left=0 pace=12 towers=2 danger-job-ticks=22082 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=6 pace=12
+CONTEXT 1 POLICY 6 | ticks=5806 wave=6 phase=2 lives=37 gold=844 score=828 offered=234 finished=228 dropped=6 live=0 left=0 pace=12 towers=6 danger-job-ticks=21257 residual=17
+PASS every-tick conservation, slots, road limits and health context=1 plan=5 pace=12
+CONTEXT 1 POLICY 5 | ticks=5453 wave=6 phase=3 lives=0 gold=671 score=735 offered=234 finished=207 dropped=10 live=17 left=0 pace=12 towers=6 danger-job-ticks=25201 residual=1
+PASS every-tick conservation, slots, road limits and health context=1 plan=4 pace=12
+CONTEXT 1 POLICY 4 | ticks=5645 wave=6 phase=2 lives=10 gold=766 score=780 offered=234 finished=212 dropped=22 live=0 left=0 pace=12 towers=6 danger-job-ticks=22587 residual=27
+PASS every-tick conservation, slots, road limits and health context=1 plan=3 pace=12
+CONTEXT 1 POLICY 3 | ticks=4419 wave=6 phase=3 lives=0 gold=997 score=499 offered=192 finished=139 dropped=41 live=12 left=42 pace=12 towers=2 danger-job-ticks=21481 residual=1
+PASS every-tick conservation, slots, road limits and health context=1 plan=2 pace=12
+CONTEXT 1 POLICY 2 | ticks=3657 wave=5 phase=3 lives=0 gold=666 score=316 offered=169 finished=92 dropped=56 live=21 left=11 pace=12 towers=2 danger-job-ticks=19684 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=1 pace=12
+CONTEXT 1 POLICY 1 | ticks=3741 wave=5 phase=3 lives=0 gold=704 score=337 offered=179 finished=93 dropped=65 live=21 left=1 pace=12 towers=2 danger-job-ticks=18604 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=0 pace=12
+CONTEXT 1 POLICY 0 | ticks=3480 wave=5 phase=3 lives=0 gold=621 score=243 offered=157 finished=67 dropped=72 live=18 left=23 pace=12 towers=0 danger-job-ticks=17760 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=8 pace=18
+CONTEXT 1 POLICY 8 | ticks=5980 wave=6 phase=2 lives=60 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=19212 residual=12
+PASS every-tick conservation, slots, road limits and health context=1 plan=7 pace=18
+CONTEXT 1 POLICY 7 | ticks=5455 wave=6 phase=3 lives=0 gold=1293 score=661 offered=192 finished=181 dropped=0 live=11 left=42 pace=18 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=6 pace=18
+CONTEXT 1 POLICY 6 | ticks=6006 wave=6 phase=2 lives=58 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=19556 residual=116
+PASS every-tick conservation, slots, road limits and health context=1 plan=5 pace=18
+CONTEXT 1 POLICY 5 | ticks=6104 wave=6 phase=2 lives=43 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=21262 residual=22
+PASS every-tick conservation, slots, road limits and health context=1 plan=4 pace=18
+CONTEXT 1 POLICY 4 | ticks=6024 wave=6 phase=2 lives=46 gold=883 score=847 offered=234 finished=231 dropped=3 live=0 left=0 pace=18 towers=6 danger-job-ticks=20625 residual=105
+PASS every-tick conservation, slots, road limits and health context=1 plan=3 pace=18
+CONTEXT 1 POLICY 3 | ticks=5269 wave=6 phase=3 lives=0 gold=1200 score=625 offered=194 finished=165 dropped=16 live=13 left=40 pace=18 towers=2 danger-job-ticks=24481 residual=1
+PASS every-tick conservation, slots, road limits and health context=1 plan=2 pace=18
+CONTEXT 1 POLICY 2 | ticks=4473 wave=5 phase=3 lives=0 gold=882 score=437 offered=167 finished=129 dropped=21 live=17 left=13 pace=18 towers=2 danger-job-ticks=23883 residual=3
+PASS every-tick conservation, slots, road limits and health context=1 plan=1 pace=18
+CONTEXT 1 POLICY 1 | ticks=4611 wave=5 phase=3 lives=0 gold=930 score=473 offered=176 finished=125 dropped=36 live=15 left=4 pace=18 towers=2 danger-job-ticks=22082 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=0 pace=18
+CONTEXT 1 POLICY 0 | ticks=4289 wave=5 phase=3 lives=0 gold=833 score=365 offered=148 finished=101 dropped=34 live=13 left=32 pace=18 towers=0 danger-job-ticks=22324 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=8 pace=28
+CONTEXT 1 POLICY 8 | ticks=8038 wave=6 phase=2 lives=71 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=17978 residual=98
+PASS every-tick conservation, slots, road limits and health context=1 plan=7 pace=28
+CONTEXT 1 POLICY 7 | ticks=7663 wave=6 phase=3 lives=0 gold=1459 score=756 offered=218 finished=208 dropped=0 live=10 left=16 pace=28 towers=2 danger-job-ticks=26404 residual=4
+PASS every-tick conservation, slots, road limits and health context=1 plan=6 pace=28
+CONTEXT 1 POLICY 6 | ticks=8040 wave=6 phase=2 lives=62 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=19039 residual=79
+PASS every-tick conservation, slots, road limits and health context=1 plan=5 pace=28
+CONTEXT 1 POLICY 5 | ticks=8134 wave=6 phase=2 lives=52 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=20276 residual=116
+PASS every-tick conservation, slots, road limits and health context=1 plan=4 pace=28
+CONTEXT 1 POLICY 4 | ticks=8097 wave=6 phase=2 lives=50 gold=902 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=20442 residual=42
+PASS every-tick conservation, slots, road limits and health context=1 plan=3 pace=28
+CONTEXT 1 POLICY 3 | ticks=7582 wave=6 phase=3 lives=0 gold=1428 score=750 offered=216 finished=206 dropped=0 live=10 left=18 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=2 pace=28
+CONTEXT 1 POLICY 2 | ticks=5893 wave=5 phase=3 lives=0 gold=1039 score=536 offered=159 finished=148 dropped=0 live=11 left=21 pace=28 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=1 plan=1 pace=28
+CONTEXT 1 POLICY 1 | ticks=6873 wave=6 phase=3 lives=0 gold=1280 score=660 offered=188 finished=180 dropped=0 live=8 left=46 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=1 plan=0 pace=28
+CONTEXT 1 POLICY 0 | ticks=5415 wave=5 phase=3 lives=0 gold=1036 score=484 offered=139 finished=132 dropped=0 live=7 left=41 pace=28 towers=0 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=8 pace=12
+CONTEXT 0 POLICY 8 | ticks=5726 wave=6 phase=2 lives=57 gold=860 score=829 offered=234 finished=225 dropped=9 live=0 left=0 pace=12 towers=6 danger-job-ticks=18549 residual=69
+PASS every-tick conservation, slots, road limits and health context=0 plan=7 pace=12
+CONTEXT 0 POLICY 7 | ticks=4824 wave=6 phase=3 lives=0 gold=1094 score=541 offered=221 finished=153 dropped=46 live=22 left=13 pace=12 towers=2 danger-job-ticks=20884 residual=4
+PASS every-tick conservation, slots, road limits and health context=0 plan=6 pace=12
+CONTEXT 0 POLICY 6 | ticks=5763 wave=6 phase=2 lives=56 gold=857 score=837 offered=234 finished=229 dropped=5 live=0 left=0 pace=12 towers=6 danger-job-ticks=19094 residual=14
+PASS every-tick conservation, slots, road limits and health context=0 plan=5 pace=12
+CONTEXT 0 POLICY 5 | ticks=5791 wave=6 phase=2 lives=28 gold=816 score=814 offered=234 finished=222 dropped=12 live=0 left=0 pace=12 towers=6 danger-job-ticks=21643 residual=43
+PASS every-tick conservation, slots, road limits and health context=0 plan=4 pace=12
+CONTEXT 0 POLICY 4 | ticks=5428 wave=6 phase=2 lives=30 gold=734 score=760 offered=234 finished=208 dropped=26 live=0 left=0 pace=12 towers=6 danger-job-ticks=19754 residual=74
+PASS every-tick conservation, slots, road limits and health context=0 plan=3 pace=12
+CONTEXT 0 POLICY 3 | ticks=4703 wave=6 phase=3 lives=0 gold=1100 score=552 offered=234 finished=160 dropped=56 live=18 left=0 pace=12 towers=2 danger-job-ticks=19782 residual=102
+PASS every-tick conservation, slots, road limits and health context=0 plan=2 pace=12
+CONTEXT 0 POLICY 2 | ticks=3924 wave=5 phase=3 lives=0 gold=779 score=384 offered=180 finished=108 dropped=66 live=6 left=0 pace=12 towers=2 danger-job-ticks=18481 residual=1
+PASS every-tick conservation, slots, road limits and health context=0 plan=1 pace=12
+CONTEXT 0 POLICY 1 | ticks=4072 wave=5 phase=3 lives=0 gold=822 score=423 offered=180 finished=99 dropped=80 live=1 left=0 pace=12 towers=2 danger-job-ticks=16800 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=0 pace=12
+CONTEXT 0 POLICY 0 | ticks=3659 wave=5 phase=3 lives=0 gold=676 score=273 offered=180 finished=77 dropped=84 live=19 left=0 pace=12 towers=0 danger-job-ticks=16324 residual=4
+PASS every-tick conservation, slots, road limits and health context=0 plan=8 pace=18
+CONTEXT 0 POLICY 8 | ticks=5923 wave=6 phase=2 lives=78 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=17159 residual=119
+PASS every-tick conservation, slots, road limits and health context=0 plan=7 pace=18
+CONTEXT 0 POLICY 7 | ticks=5946 wave=6 phase=3 lives=0 gold=1435 score=741 offered=222 finished=205 dropped=0 live=17 left=12 pace=18 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=0 plan=6 pace=18
+CONTEXT 0 POLICY 6 | ticks=5959 wave=6 phase=2 lives=73 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=18 towers=6 danger-job-ticks=17711 residual=71
+PASS every-tick conservation, slots, road limits and health context=0 plan=5 pace=18
+CONTEXT 0 POLICY 5 | ticks=6015 wave=6 phase=2 lives=59 gold=884 score=853 offered=234 finished=233 dropped=1 live=0 left=0 pace=18 towers=6 danger-job-ticks=19230 residual=30
+PASS every-tick conservation, slots, road limits and health context=0 plan=4 pace=18
+CONTEXT 0 POLICY 4 | ticks=5963 wave=6 phase=2 lives=58 gold=872 score=841 offered=234 finished=229 dropped=5 live=0 left=0 pace=18 towers=6 danger-job-ticks=18959 residual=119
+PASS every-tick conservation, slots, road limits and health context=0 plan=3 pace=18
+CONTEXT 0 POLICY 3 | ticks=5762 wave=6 phase=3 lives=0 gold=1325 score=704 offered=218 finished=180 dropped=21 live=17 left=16 pace=18 towers=2 danger-job-ticks=23880 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=2 pace=18
+CONTEXT 0 POLICY 2 | ticks=5112 wave=6 phase=3 lives=0 gold=1070 score=535 offered=188 finished=155 dropped=25 live=8 left=46 pace=18 towers=2 danger-job-ticks=23400 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=1 pace=18
+CONTEXT 0 POLICY 1 | ticks=5282 wave=6 phase=3 lives=0 gold=1065 score=537 offered=200 finished=145 dropped=40 live=15 left=34 pace=18 towers=2 danger-job-ticks=21647 residual=47
+PASS every-tick conservation, slots, road limits and health context=0 plan=0 pace=18
+CONTEXT 0 POLICY 0 | ticks=4583 wave=5 phase=3 lives=0 gold=907 score=406 offered=170 finished=114 dropped=40 live=16 left=10 pace=18 towers=0 danger-job-ticks=21691 residual=91
+PASS every-tick conservation, slots, road limits and health context=0 plan=8 pace=28
+CONTEXT 0 POLICY 8 | ticks=7988 wave=6 phase=2 lives=86 gold=912 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=16090 residual=10
+PASS every-tick conservation, slots, road limits and health context=0 plan=7 pace=28
+CONTEXT 0 POLICY 7 | ticks=8199 wave=6 phase=3 lives=0 gold=1600 score=838 offered=234 finished=230 dropped=0 live=4 left=0 pace=28 towers=2 danger-job-ticks=26400 residual=0
+PASS every-tick conservation, slots, road limits and health context=0 plan=6 pace=28
+CONTEXT 0 POLICY 6 | ticks=7994 wave=6 phase=2 lives=77 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=17250 residual=90
+PASS every-tick conservation, slots, road limits and health context=0 plan=5 pace=28
+CONTEXT 0 POLICY 5 | ticks=8066 wave=6 phase=2 lives=71 gold=892 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=17962 residual=82
+PASS every-tick conservation, slots, road limits and health context=0 plan=4 pace=28
+CONTEXT 0 POLICY 4 | ticks=8046 wave=6 phase=2 lives=66 gold=902 score=858 offered=234 finished=234 dropped=0 live=0 left=0 pace=28 towers=6 danger-job-ticks=18589 residual=109
+PASS every-tick conservation, slots, road limits and health context=0 plan=3 pace=28
+CONTEXT 0 POLICY 3 | ticks=8070 wave=6 phase=3 lives=0 gold=1553 score=822 offered=234 finished=226 dropped=0 live=8 left=0 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=0 plan=2 pace=28
+CONTEXT 0 POLICY 2 | ticks=6463 wave=5 phase=3 lives=0 gold=1191 score=624 offered=180 finished=172 dropped=0 live=8 left=0 pace=28 towers=2 danger-job-ticks=26402 residual=2
+PASS every-tick conservation, slots, road limits and health context=0 plan=1 pace=28
+CONTEXT 0 POLICY 1 | ticks=7198 wave=6 phase=3 lives=0 gold=1335 score=690 offered=201 finished=190 dropped=0 live=11 left=33 pace=28 towers=2 danger-job-ticks=26405 residual=5
+PASS every-tick conservation, slots, road limits and health context=0 plan=0 pace=28
+CONTEXT 0 POLICY 0 | ticks=5908 wave=5 phase=3 lives=0 gold=1129 score=536 offered=160 finished=148 dropped=0 live=12 left=20 pace=28 towers=0 danger-job-ticks=26403 residual=3
+
+FINAL SOURCE HASHES
+RoadModel.bend 1c5aefde9b10b86cd279214c3bd39cf7c56f4d15f017af52b05d560d3cd4f47f
+RoadGame.bend 1f23c923744024d0108beb383a0d7e506d54ef39e99332e1bb632ff351ad9a8e
+RoadScenario.bend 8539cffa05e967a1021e925c467f81a72b611dd5bdabb00158f8cd95690491f6
+RoadHeadless.bend 1ea030be0575945348a231747591fb2356440771e53b7f11efdef6bd2e358378
+FINAL RESULT: native exit0; 108/108 matrix state/resource audits passed; 40/108 campaign wins. All108 final campaign metric lines exactly match the scratch candidate. Directed safe-road, recurrent danger, held danger, reservation/refusal, transfer/routing, range/upgrade/economy, pause/batching, immutable demand and defended/undefended witnesses pass. These are bounded execution evidence, not mathematical proofs or engagement validation.

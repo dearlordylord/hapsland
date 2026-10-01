@@ -1,0 +1,19 @@
+Final native launcher: DISPLAY=:119 ./run-road.sh
+Environment: Linux ARM64; Bend2.0.34; X11/Xvfb; fourCPUthreads. macOS not executed.
+Five-second type and second-kernel checks: RoadMain/RoadHeadless --check-only and --verdict all exit0. Semantic laws remain proposed/unproved.
+Initial: Bend road defense | WAVE=0 PHASE=0 LIFE=220 GOLD=120 SCORE=0 DONE=0 LOST=0 ENEMIES=0 TICK=0
+Tab capture reset: Bend road defense | WAVE=0 PHASE=0 LIFE=220 GOLD=120 SCORE=0 DONE=0 LOST=0 ENEMIES=0 TICK=0
+Tab review reset: Bend road defense | WAVE=0 PHASE=0 LIFE=220 GOLD=120 SCORE=0 DONE=0 LOST=0 ENEMIES=0 TICK=0
+Tab output reset: Bend road defense | WAVE=0 PHASE=0 LIFE=220 GOLD=120 SCORE=0 DONE=0 LOST=0 ENEMIES=0 TICK=0
+Tab default reset: Bend road defense | WAVE=0 PHASE=0 LIFE=220 GOLD=120 SCORE=0 DONE=0 LOST=0 ENEMIES=0 TICK=0
+Rapid+Batch bridge construction (35+55gold), selectedBatch: Bend road defense | WAVE=0 PHASE=0 LIFE=220 GOLD=30 SCORE=0 DONE=0 LOST=0 ENEMIES=0 TICK=0
+Initial safe approach sample: Bend road defense | WAVE=1 PHASE=1 LIFE=220 GOLD=30 SCORE=0 DONE=0 LOST=0 ENEMIES=1 TICK=15
+Live road/building pressure sample: Bend road defense | WAVE=1 PHASE=1 LIFE=211 GOLD=55 SCORE=13 DONE=5 LOST=1 ENEMIES=15 TICK=366
+Paused sample1: Bend road defense | WAVE=1 PHASE=1 LIFE=211 GOLD=55 SCORE=13 DONE=5 LOST=1 ENEMIES=15 TICK=368
+Paused sample2: Bend road defense | WAVE=1 PHASE=1 LIFE=211 GOLD=55 SCORE=13 DONE=5 LOST=1 ENEMIES=15 TICK=368
+Paused tick/state-title stable: True
+Paused selectedBatch beforeupgrade: Bend road defense | WAVE=1 PHASE=1 LIFE=211 GOLD=55 SCORE=13 DONE=5 LOST=1 ENEMIES=15 TICK=368
+Paused selectedBatch afterupgrade: Bend road defense | WAVE=1 PHASE=1 LIFE=211 GOLD=15 SCORE=13 DONE=5 LOST=1 ENEMIES=15 TICK=368
+R reset preserves selecteddefault context: Bend road defense | WAVE=0 PHASE=0 LIFE=220 GOLD=120 SCORE=0 DONE=0 LOST=0 ENEMIES=0 TICK=0
+Escape requested close; native exit observed separately.
+Native launcher process subsequently completed with exit code 0.
