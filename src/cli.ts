@@ -2,6 +2,7 @@
 import * as Schedule from "effect/Schedule";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
+import * as Fiber from "effect/Fiber";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { homedir } from "node:os";
@@ -29,18 +30,13 @@ import {
 import { isCodexHostVersion, type CodexHostVersion } from "./direct-event/model.ts";
 import type { DirectObservation } from "./direct-event/model.ts";
 import {
-  claudeHostOutputText,
-  encodeClaudeHostOutputLine,
   type ClaudeHostOutput,
 } from "./direct-event/claude-output.ts";
-import { attemptCodexHostOutput } from "./direct-event/writer.ts";
+import { directHookSubmissionLayer, submitDirectHookOutput } from "./resident/direct-hook-output.ts";
 import {
-  acknowledgeAdvice,
   admitObservationEffect,
   admitTicketedObservationEffect,
   collectOutcomeEffect,
-  beginComposedSubmission,
-  releaseComposedSubmission,
   ensureResidentEffect,
   inspectResidentEffect,
   makeResidentDispatchContextEffect,
@@ -348,37 +344,6 @@ const composedHost: ComposedHookHost = process.argv.includes("--composed-host=cl
 const directHookStartedAt = performance.now();
 const directHookDeadline = directHookStartedAt +
   (isCodexHook && isComposedEditHook ? 9_000 : 3_900);
-const directHookWatchdog = isClaudeHook || isOpenCodeHook
-  ? setTimeout(() => process.exit(0), 4_500)
-  : undefined;
-let keepDirectHookWatchdog = false;
-
-type HostOutputWriteResult = "written" | "error" | "timed-out";
-
-const writeHostOutputWithinHookBudget = (encoded: string): Promise<HostOutputWriteResult> => {
-  const remaining = directHookDeadline - performance.now();
-  if (remaining <= 0) return Promise.resolve("timed-out");
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = (result: HostOutputWriteResult, keepErrorListener = false) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      if (!keepErrorListener) process.stdout.removeListener("error", onError);
-      resolve(result);
-    };
-    const onError = () => finish("error");
-    const timer = setTimeout(() => finish("timed-out", true), remaining);
-    process.stdout.once("error", onError);
-    try {
-      process.stdout.write(encoded, (error?: Error | null) => {
-        finish(error === undefined || error === null ? "written" : "error", error !== undefined && error !== null);
-      });
-    } catch {
-      finish("error", true);
-    }
-  });
-};
 const hookVersionArgument = process.argv.find((argument) => argument.startsWith("--codex-version="));
 const requestedHookVersion = hookVersionArgument?.slice("--codex-version=".length);
 if (isCodexHook && (isComposedEditHook || composedKind !== undefined) && requestedHookVersion !== undefined && !isCodexHostVersion(requestedHookVersion)) {
@@ -503,6 +468,7 @@ const isDirectEventReady = (
   "_tag" in value &&
   value._tag === "DirectEventReady" &&
   "value" in value;
+
 
 const runOperation = (
   operation: ReviewOperation,
@@ -1282,9 +1248,24 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
     process.exitCode = 6;
   }
 } else {
+const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
+  const watchdog = isClaudeHook || isOpenCodeHook
+    ? yield* Effect.sleep(Math.max(0, directHookStartedAt + 4_500 - performance.now())).pipe(
+        Effect.andThen(Effect.sync(() => { process.exit(0); })),
+        Effect.forkScoped,
+      )
+    : undefined;
+  const output = yield* program;
+  const writeResult = isDirectEventReady(output)
+    ? yield* submitDirectHookOutput(output, { composed: isComposedEditHook, claude: isClaudeHook, deadlineAt: directHookDeadline })
+    : undefined;
+  const timedOut = writeResult === "timed-out";
+  if (timedOut && watchdog !== undefined) yield* Fiber.join(watchdog);
+  return output;
+}, Effect.scoped);
 const output = isCredentialCommand
   ? await runCredentialCommand()
-  : await Effect.runPromise(program.pipe(Effect.provide(composedHookRuntimeLayer), Effect.provide(hookOutputLayer)));
+  : await Effect.runPromise(runReviewProgram().pipe(Effect.provide(directHookSubmissionLayer), Effect.provide(composedHookRuntimeLayer), Effect.provide(hookOutputLayer)));
 if (composedKind === undefined && !isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "object" && output !== null) {
   const record = output as Readonly<Record<string, unknown>>;
   process.exitCode = record.status === "unsupported"
@@ -1310,38 +1291,7 @@ if (composedKind === undefined && !isCodexHook && !isClaudeHook && !isOpenCodeHo
           ? 2
           : 0;
 }
-if (isDirectEventReady(output)) {
-  const composedSubmission = isComposedEditHook && output.collected.findingCount > 0;
-  const submissionReady = !composedSubmission ||
-    await beginComposedSubmission(output.collected, "edit").catch(() => false);
-  if (!submissionReady) await releaseComposedSubmission(output.collected).catch(() => false);
-  const hostWriteResult = !submissionReady ? "error"
-    : isClaudeHook || composedSubmission
-      ? await writeHostOutputWithinHookBudget(encodeClaudeHostOutputLine(output.value))
-      : "written";
-  if (hostWriteResult === "timed-out") keepDirectHookWatchdog = true;
-  if (submissionReady && (!isClaudeHook || hostWriteResult === "written") &&
-      (!composedSubmission || hostWriteResult === "written")) {
-    if (!isClaudeHook && !composedSubmission && "hookSpecificOutput" in output.value) attemptCodexHostOutput(output.value, (encoded) => {
-      process.stdout.write(encoded);
-    });
-    recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, output.collected.root, output.collected.advicee, {
-      kind: "delivery",
-      ruleIds: [...claudeHostOutputText(output.value).matchAll(/\[([a-z0-9_/-]+), p=/g)].map((match) => match[1] ?? ""),
-    });
-    recordActivity({
-      statePath: output.collected.activityPath,
-      root: output.collected.root,
-      advicee: output.collected.advicee,
-      lifetime: output.collected.lifetime,
-      stage: "submitted",
-      submittedFindings: output.collected.findingCount,
-    });
-    await acknowledgeAdvice(output.collected);
-  } else if (composedSubmission && hostWriteResult === "error") {
-    await releaseComposedSubmission(output.collected).catch(() => false);
-  }
-} else {
+if (!isDirectEventReady(output)) {
   if (isOpenCodeHook || composedKind !== undefined) {
     // The plugin treats empty stdout as a quiet skip.
   } else
@@ -1369,5 +1319,4 @@ if (isDirectEventReady(output)) {
     process.stdout.write(typeof output === "string" ? output : `${JSON.stringify(output)}\n`);
   }
 }
-if (directHookWatchdog !== undefined && !keepDirectHookWatchdog) clearTimeout(directHookWatchdog);
 }

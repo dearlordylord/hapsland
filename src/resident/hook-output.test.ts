@@ -2,11 +2,13 @@ import { it } from "@effect/vitest";
 import { expect } from "vitest";
 import { Deferred, Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { makeHookOutput } from "./hook-output.ts";
+import { Writable } from "node:stream";
+import { makeHookOutput, makeWritableHookOutput } from "./hook-output.ts";
 
 it.effect("refuses output before writing when the native deadline or stream is unavailable", () => Effect.gen(function* () {
   let writes = 0;
   const output = makeHookOutput({
+    settleErrors: () => Effect.void,
     writable: () => false,
     write: () => { writes += 1; },
     onError: () => { throw new Error("no listener should be acquired"); },
@@ -20,6 +22,7 @@ it.effect("records native callback completion and releases its error observer", 
   let encoded = "";
   let observers = 0;
   const output = makeHookOutput({
+    settleErrors: () => Effect.void,
     writable: () => true,
     write: (value, complete) => { encoded = value; complete(); },
     onError: () => { observers += 1; return () => { observers -= 1; }; },
@@ -35,6 +38,7 @@ it.effect("keeps submitted bytes uncertain on deadline and ignores a late callba
   let observers = 0;
   let writes = 0;
   const output = makeHookOutput({
+    settleErrors: () => Effect.void,
     writable: () => true,
     write: (_encoded, callback) => {
       writes += 1;
@@ -58,6 +62,7 @@ it.effect("interrupts observation without retrying or treating submitted bytes a
   let observers = 0;
   let writes = 0;
   const output = makeHookOutput({
+    settleErrors: () => Effect.void,
     writable: () => true,
     write: () => { writes += 1; Deferred.doneUnsafe(started, Effect.void); },
     onError: () => { observers += 1; return () => { observers -= 1; }; },
@@ -67,4 +72,12 @@ it.effect("interrupts observation without retrying or treating submitted bytes a
   yield* Fiber.interrupt(writing);
   expect(observers).toBe(0);
   expect(writes).toBe(1);
+}));
+
+it.live("settles a native Writable error event before removing its observer", () => Effect.gen(function* () {
+  const stream = new Writable({ write: (_chunk, _encoding, complete) => complete(new Error("fixture write failure")) });
+  const output = makeWritableHookOutput(stream);
+  expect(yield* output.writeEncoded("fixture\n", performance.now() + 1_000)).toBe("error");
+  expect(stream.listenerCount("error")).toBe(0);
+  expect(stream.destroyed).toBe(true);
 }));

@@ -50,7 +50,7 @@ it.effect("finishes the acquired Stop attempt when collection is interrupted", (
   });
   const hook = yield* runComposedHookEffect(input("stop")).pipe(
     Effect.provideService(ComposedHookRuntime, service),
-    Effect.provideService(HookOutput, HookOutput.of({ write: unused })),
+    Effect.provideService(HookOutput, HookOutput.of({ writeEncoded: unused, write: unused })),
     Effect.forkChild,
   );
   yield* Deferred.await(collecting);
@@ -73,7 +73,7 @@ it.effect("releases a background claim even when interrupted during its acquisit
   });
   const hook = yield* runComposedHookEffect(input("background")).pipe(
     Effect.provideService(ComposedHookRuntime, service),
-    Effect.provideService(HookOutput, HookOutput.of({ write: unused })),
+    Effect.provideService(HookOutput, HookOutput.of({ writeEncoded: unused, write: unused })),
     Effect.forkChild,
   );
   yield* Deferred.await(claiming);
@@ -97,6 +97,7 @@ it.effect("preserves Stop continuation when output observation is interrupted af
   const hook = yield* runComposedHookEffect(input("stop")).pipe(
     Effect.provideService(ComposedHookRuntime, service),
     Effect.provideService(HookOutput, HookOutput.of({
+      writeEncoded: unused,
       write: () => Deferred.succeed(writing, undefined).pipe(Effect.andThen(Effect.never)),
     })),
     Effect.forkChild,
@@ -120,7 +121,7 @@ it.effect("releases a refused submission and closes its Stop attempt", () => Eff
   });
   yield* runComposedHookEffect(input("stop")).pipe(
     Effect.provideService(ComposedHookRuntime, service),
-    Effect.provideService(HookOutput, HookOutput.of({ write: () => Effect.succeed("failed") })),
+    Effect.provideService(HookOutput, HookOutput.of({ writeEncoded: unused, write: () => Effect.succeed("failed") })),
   );
   expect(releases).toBe(1);
   expect(finished).toEqual([true]);

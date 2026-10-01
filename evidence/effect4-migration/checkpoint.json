@@ -44,7 +44,12 @@
     "Composed prompt/edit/background/Stop hooks compose client Effects directly and use scoped acquisition finalizers for Stop attempts and background claims; the obsolete async workflow was deleted",
     "Composed hooks consume explicit runtime and output services; CLI root supplies production layers and controlled tests supply clock/identity/client/output ports without native timers or IPC",
     "HookOutput owns stdout error observers through acquireUseRelease on success, error, deadline and interruption; submitted bytes remain uncertain after deadline or cancellation",
-    "Stop output interruption preserves continuation conservatively; only a proven pre-write refusal closes the attempt and releases the submission"
+    "Stop output interruption preserves continuation conservatively; only a proven pre-write refusal closes the attempt and releases the submission",
+    "Direct CLI submission, output acknowledgement and original-owner finalization now compose in the root Effect workflow through DirectHookSubmission and HookOutput services; removed the Promise write workflow and imperative post-program submission path",
+    "The direct hook watchdog is a scoped Effect fiber bound to the original absolute host deadline; a timed-out write retains the watchdog until its process exit boundary",
+    "Direct submission finalizers release an original lease on interruption before output handoff and retain uncertainty once writing may have started; refused admission and reported write errors release once without recording or acknowledging",
+    "Encoded and composed JSON output share one callback/resource owner; the native Writable adapter keeps its error observer through the queued error event before removing it",
+    "Direct submission trace configuration is acquired through Config in its production layer; controlled submission services test write/record/acknowledgement ordering and original resident identity"
   ],
   "verification": [
     {
@@ -481,11 +486,59 @@
         "Native output success/deadline/interruption observer cleanup",
         "Existing CLI and composed delivery contracts"
       ]
+    },
+    {
+      "stage": "Direct CLI submission and scoped watchdog",
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    {
+      "stage": "Direct CLI submission and scoped watchdog",
+      "command": "npm run build",
+      "exitCode": 0
+    },
+    {
+      "stage": "Direct CLI submission and scoped watchdog",
+      "commands": [
+        "check-canonical-authority",
+        "check-production-authority",
+        "check-capacity-boundary",
+        "check-permit-boundary",
+        "check-review-boundary",
+        "check-dispatch-boundary",
+        "check-stop-boundary",
+        "check-collection-boundary",
+        "check-delivery-boundary",
+        "check-revision-boundary",
+        "check-ticket-boundary",
+        "check-reuse-boundary",
+        "check-notice-boundary",
+        "check-retention-boundary",
+        "git diff --check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "stage": "Direct CLI submission and scoped watchdog",
+      "command": "vitest run --maxWorkers=1 src/resident/direct-hook-output.test.ts src/resident/hook-output.test.ts src/resident/composed-hook.test.ts src/direct-event/claude-cli.test.ts src/cli.test.ts src/resident/claude-delivery.test.ts src/resident/terminal-collection.test.ts",
+      "exitCode": 0,
+      "tests": 71,
+      "files": 7,
+      "covers": [
+        "Interrupted pre-write lease release",
+        "Interrupted uncertain output avoids rollback/acknowledgement",
+        "Refused admission and known write-error cleanup",
+        "Successful write then record then original-owner acknowledgement",
+        "Timed-out output remains unacknowledged",
+        "Native Writable callback failure and queued error observer cleanup",
+        "Broken-stdout Claude CLI regression",
+        "Existing CLI and composed delivery contracts"
+      ]
     }
   ],
   "next": [
     "Consolidate remaining server ticket/advice/notice/round records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
-    "Migrate remaining direct CLI output and host workflows to scoped Effects, replace client fixture ports and launch ownership with services, and remove intermediate synchronous server/class ownership bridges",
+    "Consolidate client lifecycle and fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",
