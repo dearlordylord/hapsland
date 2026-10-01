@@ -60,8 +60,8 @@ try {
     "a finding's retain command is visible");
   assert.ok(!steps[26].after.collection.ready.includes(4),
     "retain command does not assert stored advice");
-  assert.ok(has(28, "native fact", "outcomes", "advice"),
-    "later native readiness visibly brings advice to the pending-advice square");
+  assert.ok(has(28, "state", "outcomes", "advice", "work:4"),
+    "Bend links the ready advice to checked finding work");
   assert.ok(steps[27].after.collection.ready.includes(4));
   assert.ok(!flow.projectFlowStep(steps[10]).changedStages.includes("observation"),
     "preparing one item does not highlight an unrelated queued observation");
@@ -73,6 +73,8 @@ try {
     "a clear result releases the third item's charge");
   assert.ok(!has(36, "command", "outcomes", "advice"),
     "clear does not issue a retain-finding command");
+  assert.ok(has(38, "state", "outcomes", "advice", "work:6"),
+    "the second finding becomes ready only after its sibling review clears");
   assert.ok(has(40, "state", "advice", "collection", "advice:4"),
     "a new lease is linked to its ready advice even while readiness remains visible");
   assert.ok(steps[39].after.collection.ready.includes(4),

@@ -1,0 +1,51 @@
+Purpose: Independently review visible enemy work and dynamic build snapshots for truthful architectural teaching.
+Status: Completed bounded source and native visual review; no unresolved blocking finding within the implemented snapshot scope.
+Authority: Advisory implementation/validation evidence, not an accepted product contract, formal proof, owner acceptance or measured learning result.
+Expected use: Inspect current enemy stats beside hypothetical effects and distinguish immediate frozen-state calculations from future trajectories.
+Lifecycle: Temporary. At the dynamic-preview direction decision, consolidate accepted teaching decisions and useful evidence into the prototype README or replacement specification, then delete this report. Re-review after snapshot semantics, targeting, rendering, input modes or evidence changes.
+Reviewer: /root/astra_auto_review, requested with gpt-6-astra override according to coordinator spawn evidence; this records requested model selection, not provider introspection. Reviewer changed only this report.
+
+VERDICT
+PASS within scope: current enemy remaining work is visible before colored hypothetical reductions; direct processor shots, Coordinator readiness, Shield pressure/charge and Packager eligible-now selection reuse actual mechanics helpers. Current game state and committed reservations remain unchanged by hover. Dynamic values are snapshots, not forecasts of full ticks, future throughput, HP saved or player learning. Construction and upgrades remain explicit player inputs; existing tower activations remain automatic.
+
+SOURCE AND EXECUTABLE REVIEW
+Read RoadDynamicPreview, RoadDynamicPreviewTests, RoadPreview gating, renderer integration and relevant RoadGame mechanics. The new tower is a pure hypothetical value; the snapshot applies only its shot to current eligible jobs through autotowers_step. It does not run natural service, movement or the other towers. Coordinator uses real active unfinished sibling targeting and edit_ready_at after that shot; other live blockers are not confused with unoffered siblings or required future stages.
+Shield compares exact shield_step before/after prospective construction, preserving global and per-site half-pressure accounting and existing charge depletion. New tower charge spending is shown separately from marginal total prevention: overlap may substitute for another shield while preventing no additional pressure. It does not predict health loss, which also depends on accumulated pressure and other events.
+Packager compares exact eligible prefixes and batch_dispatch eligibility under current versus prospective policy. Committed writer IDs are excluded from the next candidate list, and existing reservation bytes/membership are retained separately. Empty prefix bytes are normalized to zero rather than exposing an envelope-only phantom batch. Flush timer remaining is a threshold observation, not a promise of dispatch while busy or ineligible.
+The implementation worker's recorded16 directed checks pass. They discriminate active versus queued Batch targets, Rapid/Relay range and effort clipping, reserved writer membership, cooldown, held findings, true last-Review release, other/unoffered siblings, Capture completion still requiring future Review, shared Shield overlap, exact byte fitting, higher target delaying dispatch, busy commitment preservation, empty/road samples, flush boundary and oversize exclusion. This reviewer read the checks and execution record rather than independently rerunning the native suite. Finite examples are not universal proofs.
+
+VISIBLE ENEMY STATS AND PROCESSOR EXAMPLES
+Inspected all six final1024x768 PNGs directly. Unit rows show UNIT id, edit id, stage and current REMAIN before the cyan reduction/NEXT value; the map highlights the same identities. The row list prioritizes affected units, dependents and candidate members, then other inside units, with a visible five-unit limit. This resolves the prior absence of readable current enemy work for the displayed units. It is not a complete all-enemy inspector: only the first two edit summaries and first five prioritized/hot units are shown, while crowded map labels remain small.
+Rapid/Batch/Relay captures are organic paused gameplay with the same live jobs. Rapid displays unit1 current31, minus12, next19. Batch displays the three active jobs31/37/43, minus18 each, next13/19/25; queued work remains without a fabricated hit. Relay displays current31, minus6, next25. Panels say NEXT SHOT / SNAPSHOT and explicitly freeze current jobs without movement or natural service. These numbers are work reduction, not damage or guaranteed next-tick state.
+
+COORDINATOR
+preview-dynamic-coordinator.png shows active target unit2 in Review, current work1, reduction1 to0, and purple waiting same-edit finding unit1. Unit3 still has Review work7; OTHER LIVE BLOCKERS1 and AFTER SHOT EDIT READY NO correctly prevent a false release promise. The positive release and unoffered/future-Review negative cases are executable fixtures, not separately captured native scenes. The teaching cue is dependency-specific assistance, with readiness still conditional on the complete edit boundary.
+
+SHIELD
+preview-dynamic-shield.png shows the affected Review site's current pressure8 versus6 with the new shield, and the global panel's current hot15/pressure15 versus13. Extra prevention2 and new charge spending2 leave238/240; current backlog/work remain visible. The panel explicitly excludes HP/backlog prediction. The overlap case in the directed suite demonstrates the additional boundary not pictured here: new charge may be spent with zero marginal prevention. This is one frozen pressure-sampling step, not a forecast of the next complete game tick.
+
+PACKAGER AND EVIDENCE PROVENANCE
+preview-dynamic-packager.png is a directed paused native fixture using the actual Main loop and renderer, not organically reached gameplay. It shows eligible IDs1/2/3 at7724 modeled bytes versus prospective IDs1/2/3/4 at10192, below the unchanged10240 cap. The next-batch policy row shows overhead32−16 and target3+1; committed writer bytes/members remain0 and unchanged. FLUSH TIMER LEFT800MS and dispatch NOW YES/WITH GHOST YES are separate, correctly showing that reaching the target can dispatch before the flush threshold. Unit rows show the four Output jobs' current remaining work0.
+The organic Packager observation attempt timed out after30 seconds without a rendered idle-writer/nonempty-candidate opportunity; the wave settled normally. It is not counted as an organic Packager pass. The native evidence records this limitation and includes the exact directed fixture source and diagnostic title. The fixture held its paused title unchanged for one second and exited0. The other five screenshots came from actual live-wave progression without construction by the driver.
+
+RESOLVED REVIEW POINTS AND LIMITS
+The review prompted zero bytes for empty hypothetical prefixes, explicit other-live-blocker semantics with future/unoffered readiness tests, FLUSH TIMER LEFT instead of a promised FLUSH IN time, and preservation of static no-target/saturated Packager explanations when dynamic panels are suppressed. Existing exact static permit/overhead/cost previews remain intact. The pause overlay is now a compact strip, exposing the target map during inspection.
+The six captures support source-to-display numeric agreement and readable selected cases. Small auxiliary typography, truncation to five prioritized units, and dense identity labels remain presentation limits. Full trajectories, strategic balance, enjoyment, participant learning, all dynamic edge cases on screen and macOS execution remain unvalidated. LinuxARM64 native evidence and passing checks do not imply proof of the proposed behavioral laws.
+
+REVIEWED SNAPSHOT SHA256
+5aec573cf4198fa098f66d0242943c5fbfd50d0153fbaf665dd6c7a1667bf820  RoadDynamicPreview.bend
+b9996c8ecbe459286b8023f28172b4598e353147352750ecc87b54fc792e42d3  RoadDynamicPreviewTests.bend
+39ee2acdb5fc833c3f497812bb7ef5250f52d83c1010965a7205446579e48d38  RoadPreview.bend
+847b55e5ca64e25c445443454614f6faa66518139da1cb5fd8bb2432c47e33f5  RoadRender.bend
+b2325bc25ffb6b140d19cee6eebae040e994a14936f2ada87d455753e1abf5a9  RoadMain.bend
+243ebc7243809b5c2cc0087ab708e853a34e8959ee366e839bcb1888183ab392  RoadGame.bend
+d834c2e153e239dd09de80ab7301579accb8ac9632748145dac030ed4b3bc7a3  RoadModel.bend
+ae79fd35d1d4cacf5ba6b30b9cda27e1b625e99e3fb20a34df2a0551756db538  RoadScenario.bend
+b351e7b68f688ed95e5d6e683ce50f5a78396faf86bc316bae01094a353977bf  validation-dynamic-headless.txt
+4b9954f5ba51401576a7f99dd3bfaa10641366a0d638183c187d8208908f8045  validation-dynamic-native.txt
+23f8417bb6c53aaf79ad2b6d59de5d3d2bc8a157a9ea43c6f632c4642bcbbdfd  preview-dynamic-rapid.png
+d8a88f3da4f388840419c7ed397af4d4e382ce1cf44e19653ac1251d10e5a7f6  preview-dynamic-batch.png
+0547ae9d3c3b3bcd05af38f176b9d9d6683bcc1c2351fa63b81f9de8288c4e1d  preview-dynamic-relay.png
+abfa51d818df2bab667fc49cf5fd8b73351b505389f151b8a39549524374d42f  preview-dynamic-coordinator.png
+623947f48e67db130d9435826b171b77f98d61e8fc61c750dc17c7b054fbef42  preview-dynamic-shield.png
+9857b256bf6389df743163fcc92ae6b3aed1c711f68d9a53ab6ddc8a84d70abb  preview-dynamic-packager.png

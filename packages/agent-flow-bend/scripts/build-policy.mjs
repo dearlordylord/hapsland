@@ -217,8 +217,8 @@ export const bendCollectionOrder = (leftSequence, rightSequence) =>
   run_loop($Collection$order$(nat(leftSequence), nat(rightSequence)));
 export const bendCollectionCredentialDisposition = (sameScope, generationValid) =>
   run_loop($Collection$credential_disposition$(sameScope, generationValid));
-export const bendCollectionEligible = (already, turnEnd, editComplete) =>
-  run_loop($Collection$eligible$(already, turnEnd, editComplete));
+export const bendCollectionEligible = (stopDeciding, editComplete) =>
+  run_loop($Collection$eligible$(stopDeciding, editComplete));
 export const bendCollectionExpired = (elapsed, lifetime) =>
   run_loop($Collection$expired$(nat(elapsed), nat(lifetime)));
 export const bendDeliveryTransition = (current, requested) =>

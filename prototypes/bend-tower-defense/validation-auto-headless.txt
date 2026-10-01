@@ -1,0 +1,20 @@
+PASS manual fixture really constructs Rapid and Shield;85gold spent
+PASS auto default OFF with one prepared shared Task
+PASS shared Session.next produced Task1
+PASS OFF never starts or changes full game including towers/gold
+PASS 149 ticks preserve every game field and20ms of grace
+PASS exact boundary does ONLY ordinary G.start including legitimate wave recharge
+PASS one start consumes pending slot once
+PASS manual N consumes slot without duplicate start or resource changes
+PASS pause freezes entire game and countdown for500ticks
+PASS toggle OFF clears pending start
+PASS toggle rearm retains Task identity without ghost tasks
+PASS synthetic completed-phase fixture uses shared on_finish false Task2 pause3000
+PASS next intermission starts exactly once after150ticks
+PASS won finite campaign never restarts even after toggle
+PASS lost or incomplete run disarms without restart
+PASS six-wave cap also guards preparation fixtures
+PASS host ticks enabled preparation but freezes paused clocks
+PASS R/Tab deterministic reset resets session and auto OFF
+PASS real constructed wave completes Stop4 before one shared Task2 is scheduled
+AUTO WAVES:19 directed checks complete

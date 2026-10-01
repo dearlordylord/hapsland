@@ -212,7 +212,7 @@ def main() -> Smoke:
     Notice.advance(Some{0n}, 1n, 64n, 3n, Some{2n}, False{}, 5n),
     Collection.order(2n, 3n),
     Collection.credential_disposition(True{}, False{}),
-    Collection.eligible(False{}, False{}, True{}),
+    Collection.eligible(False{}, True{}),
     Collection.expired(600000n, 600000n),
     Delivery.transition(Delivery.Authorized{}, Delivery.Uncertain{}),
     Delivery.expired(Delivery.Authorized{}, 1000n, 1000n),

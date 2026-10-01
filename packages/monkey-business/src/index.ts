@@ -33,7 +33,7 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:6fe2a38668aa10787a74b45667d2f9c0a4082852f29557a9c2f8bf8787c9c9c7";
+  "canonical-source-sha256:f089c4c09a281cb6f046ece5ef6fe34a60e23fe029c193f94cdfe9133cd9fe77";
 export const PREPARATION_IDENTITY = "import-preparation-sha256:812ca7a89d0f7b39ea4b4aa68e220b744bc0f6c2a7e1c1dcf2e5374919ca11ae";
 export type RunInput =
   | SessionInput
@@ -576,17 +576,6 @@ export class Run {
           const lifetime = this.config.adviceLifetime ?? 600_000;
           this.event({ kind: "collectionExpiryCheck", elapsed: lifetime, lifetime },
             lifetime, undefined, advice);
-          this.event({
-            kind: "collectionReady",
-            advice,
-            already: false,
-            turnEnd: false,
-            partition: scope.partition,
-            lifetime: scope.lifetime,
-            round: scope.round,
-            observation: work.parent,
-            joinedPending: false,
-          });
           break;
         }
         case "collectionEligible": {
@@ -852,7 +841,7 @@ export class Run {
       }
     }
     if (["completeObservation", "jevRequestSettled", "reviewCompleted", "interruptObservation",
-      "interruptPreparation"].includes(event.kind)) this.refreshAdviceReadiness();
+      "interruptPreparation", "stopPolled"].includes(event.kind)) this.refreshAdviceReadiness();
     if (
       this.finish?.waiting &&
       [
@@ -935,7 +924,7 @@ export class Run {
       if (projection.collection.ready.includes(finding.operation)) continue;
       const work = projection.work.find((entry) => entry.operation === finding.operation);
       if (!work || work.parent === 0) continue;
-      this.event({ kind: "collectionReady", advice: work.operation, already: false, turnEnd: false,
+      this.event({ kind: "collectionReady", advice: work.operation,
         partition: work.partition, lifetime: work.lifetime, round: work.round,
         observation: work.parent, joinedPending: false });
     }

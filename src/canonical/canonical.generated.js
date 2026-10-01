@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:6fe2a38668aa10787a74b45667d2f9c0a4082852f29557a9c2f8bf8787c9c9c7
+// hapsland-bend-source-sha256:f089c4c09a281cb6f046ece5ef6fe34a60e23fe029c193f94cdfe9133cd9fe77
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -450,14 +450,12 @@ function $Canonical$step_unchecked$(_state_0, _event_0) {
     return $Canonical$stop_group_end$(_state_0, _group_1, _lifetime_29, _round_24, _scopes_1);
   } else if (_event_0.$ === "Canonical.CollectionReady") {
     const _advice_0 = _event_0["advice"];
-    const _already_0 = _event_0["already"];
-    const _turn_end_0 = _event_0["turn_end"];
     const _partition_29 = _event_0["partition"];
     const _lifetime_30 = _event_0["lifetime"];
     const _round_25 = _event_0["round"];
     const _observation_4 = _event_0["observation"];
     const _joined_pending_0 = _event_0["joined_pending"];
-    return $Canonical$collection_ready$(_state_0, _advice_0, _already_0, _turn_end_0, _partition_29, _lifetime_30, _round_25, _observation_4, _joined_pending_0);
+    return $Canonical$collection_ready$(_state_0, _advice_0, _partition_29, _lifetime_30, _round_25, _observation_4, _joined_pending_0);
   } else if (_event_0.$ === "Canonical.CollectionCredentialCheck") {
     const _same_scope_0 = _event_0["same_scope"];
     const _generation_valid_0 = _event_0["generation_valid"];
@@ -1455,18 +1453,18 @@ function $Canonical$stop_group_end$(_state_0, _group_0, _lifetime_0, _round_0, _
   return $Canonical$stop_group_end_checked$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": __1, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": _collection_0, "history": _history_0}, _group_0, _lifetime_0, _round_0, _scopes_0, ($Canonical$find_round$(_group_0, _rounds_0)));
 }
 
-function $Canonical$collection_ready$(_state_0, _advice_0, _already_0, _turn_end_0, _partition_0, _lifetime_0, _round_0, _observation_0, _joined_pending_0) {
+function $Canonical$collection_ready$(_state_0, _advice_0, _partition_0, _lifetime_0, _round_0, _observation_0, _joined_pending_0) {
   const __0 = _state_0["ledger"];
-  const __1 = _state_0["rounds"];
+  const _rounds_0 = _state_0["rounds"];
   const _work_0 = _state_0["work"];
-  const __2 = _state_0["next_round"];
-  const __3 = _state_0["next_operation"];
-  const __4 = _state_0["admissions"];
-  const __5 = _state_0["dispatch"];
+  const __1 = _state_0["next_round"];
+  const __2 = _state_0["next_operation"];
+  const __3 = _state_0["admissions"];
+  const __4 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
   const _x_0 = ($Canonical$unfinished_for_observation$(_work_0, _partition_0, _lifetime_0, _round_0, _observation_0));
-  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": _work_0, "next_round": __2, "next_operation": __3, "admissions": __4, "dispatch": __5, "collection": _collection_0, "history": _history_0}, ($CollectionState$mark_ready$(_collection_0, _advice_0, ($Bool$and$(($Canonical$finding_for_observation$(_work_0, _partition_0, _lifetime_0, _round_0, _observation_0, _advice_0)), ($Collection$eligible$(_already_0, _turn_end_0, ($Bool$not$((_joined_pending_0 || _x_0))))))))), {$: "Canonical.CollectionEligible"}, {$: "Canonical.CollectionWaiting"});
+  return $Canonical$collection_decision$({$: "Canonical.State", "ledger": __0, "rounds": _rounds_0, "work": _work_0, "next_round": __1, "next_operation": __2, "admissions": __3, "dispatch": __4, "collection": _collection_0, "history": _history_0}, ($CollectionState$mark_ready$(_collection_0, _advice_0, ($Bool$and$(($Canonical$finding_for_observation$(_work_0, _partition_0, _lifetime_0, _round_0, _observation_0, _advice_0)), ($Collection$eligible$(($Canonical$deciding_round$(($Canonical$find_round$(_partition_0, _rounds_0)), _partition_0, _lifetime_0, _round_0)), ($Bool$not$((_joined_pending_0 || _x_0))))))))), {$: "Canonical.CollectionEligible"}, {$: "Canonical.CollectionWaiting"});
 }
 
 function $Canonical$collection_credential_result$(_state_0, _decision_0) {
@@ -3468,9 +3466,25 @@ function $Canonical$finding_for_observation$($0, $1, $2, $3, $4, $5) {
   }
 }
 
-function $Collection$eligible$(_already_0, _turn_end_0, _edit_complete_0) {
-  const _x_0 = (_turn_end_0 || _edit_complete_0);
-  return (_already_0 || _x_0);
+function $Collection$eligible$(_stop_deciding_0, _edit_complete_0) {
+  return (_stop_deciding_0 || _edit_complete_0);
+}
+
+function $Canonical$deciding_round$(_found_0, _group_0, _lifetime_0, _round_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const __0 = _t_0["partition"];
+    const __1 = _t_0["lifetime"];
+    const __2 = _t_0["id"];
+    const __3 = _t_0["waiting"];
+    const _deciding_0 = _t_0["deciding"];
+    const __4 = _t_0["write"];
+    const __5 = _t_0["uncertain"];
+    const _quiet_since_0 = _t_0["quiet_since"];
+    return $Bool$and$(_deciding_0, ($Canonical$same_round$(_group_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": __3, "deciding": _deciding_0, "write": __4, "uncertain": __5, "quiet_since": _quiet_since_0})));
+  } else {
+    return false;
+  }
 }
 
 function $Canonical$unfinished_for_observation$($0, $1, $2, $3, $4) {
@@ -3636,23 +3650,6 @@ function $List$length$(_xs_0) {
   } else {
     const _t_0 = _xs_0["tail"];
     return nat_chk(($List$length$(_t_0)) + 1);
-  }
-}
-
-function $Canonical$deciding_round$(_found_0, _group_0, _lifetime_0, _round_0) {
-  if (_found_0.$ === "Some") {
-    const _t_0 = _found_0["value"];
-    const __0 = _t_0["partition"];
-    const __1 = _t_0["lifetime"];
-    const __2 = _t_0["id"];
-    const __3 = _t_0["waiting"];
-    const _deciding_0 = _t_0["deciding"];
-    const __4 = _t_0["write"];
-    const __5 = _t_0["uncertain"];
-    const _quiet_since_0 = _t_0["quiet_since"];
-    return $Bool$and$(_deciding_0, ($Canonical$same_round$(_group_0, _lifetime_0, _round_0, {$: "Canonical.Round", "partition": __0, "lifetime": __1, "id": __2, "waiting": __3, "deciding": _deciding_0, "write": __4, "uncertain": __5, "quiet_since": _quiet_since_0})));
-  } else {
-    return false;
   }
 }
 

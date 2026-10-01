@@ -3028,7 +3028,7 @@ describe("resident bounded advice batches", () => {
     }
   });
 
-  it("returns only the ready subset for bounded turn-end collection without draining", async () => {
+  it("returns only the ready subset after the checked Stop deadline", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
@@ -3049,7 +3049,7 @@ describe("resident bounded advice batches", () => {
       afterAdvicePending: () => { ready.resolve(); },
     });
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
     await bothEntered.promise;
     releases.get("a.ts")?.();
     await ready.promise;
@@ -3059,12 +3059,11 @@ describe("resident bounded advice batches", () => {
       dispatch,
       "ordinary",
     )).resolves.toMatchObject({ status: "empty" });
-    const turnEnd = await server.collect(
-      root,
-      advicee({ turnId: "turn-end", toolUseId: "turn-end" }),
-      dispatch,
-      "turn-end",
-    );
+    expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "partial-stop" })).status).toBe("advanced");
+    const turnEnd = await server.handle({ requestRoute: "shared", operation: "collect",
+      lifetime: server.lifetime, root, advicee: observation.advicee, dispatch, mode: "turn-end",
+      composed: true, finish: { token: "partial-stop", deadlineReached: true } });
     expect(turnEnd.status).toBe("advice");
     expect(server.stats()).toMatchObject({ running: 1, pendingAdvice: 1 });
     if (turnEnd.status === "advice") server.releaseDelivery(turnEnd.token);

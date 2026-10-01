@@ -146,7 +146,7 @@ export type CanonicalEvent =
   | { readonly kind: "stopPolled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly deadline: boolean }
   | { readonly kind: "stopGroupPolled"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[]; readonly deadline: boolean; readonly extraPending: boolean; readonly continuations: number }
   | { readonly kind: "stopGroupEnded"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[] }
-  | { readonly kind: "collectionReady"; readonly advice: number; readonly already: boolean; readonly turnEnd: boolean; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number; readonly joinedPending: boolean }
+  | { readonly kind: "collectionReady"; readonly advice: number; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number; readonly joinedPending: boolean }
   | { readonly kind: "collectionCredentialCheck"; readonly sameScope: boolean; readonly generationValid: boolean }
   | { readonly kind: "collectionCandidateCheck"; readonly samePartition: boolean; readonly unleased: boolean; readonly hasUnsuppressed: boolean; readonly ticketOwns: boolean }
   | { readonly kind: "collectionOrderCheck"; readonly leftSequence: number; readonly rightSequence: number }
@@ -471,7 +471,7 @@ const encode = (event: CanonicalEvent): unknown => {
       return polled ? { $: "Canonical.StopGroupPolled", ...common, deadline: bool(event.deadline), extra_pending: bool(event.extraPending), continuations: nat(event.continuations) }
         : { $: "Canonical.StopGroupEnded", ...common };
     }
-    case "collectionReady": inputFields(event, ["kind", "advice", "already", "turnEnd", "partition", "lifetime", "round", "observation", "joinedPending"]); return { $: "Canonical.CollectionReady", advice: nat(event.advice, true), already: bool(event.already), turn_end: bool(event.turnEnd), partition: nat(event.partition, true), lifetime: nat(event.lifetime, true), round: nat(event.round, true), observation: nat(event.observation, true), joined_pending: bool(event.joinedPending) };
+    case "collectionReady": inputFields(event, ["kind", "advice", "partition", "lifetime", "round", "observation", "joinedPending"]); return { $: "Canonical.CollectionReady", advice: nat(event.advice, true), partition: nat(event.partition, true), lifetime: nat(event.lifetime, true), round: nat(event.round, true), observation: nat(event.observation, true), joined_pending: bool(event.joinedPending) };
     case "collectionCredentialCheck": inputFields(event, ["kind", "sameScope", "generationValid"]); return { $: "Canonical.CollectionCredentialCheck", same_scope: bool(event.sameScope), generation_valid: bool(event.generationValid) };
     case "collectionCandidateCheck": inputFields(event, ["kind", "samePartition", "unleased", "hasUnsuppressed", "ticketOwns"]); return { $: "Canonical.CollectionCandidateCheck", same_partition: bool(event.samePartition), unleased: bool(event.unleased), has_unsuppressed: bool(event.hasUnsuppressed), ticket_owns: bool(event.ticketOwns) };
     case "collectionOrderCheck": inputFields(event, ["kind", "leftSequence", "rightSequence"]); return { $: "Canonical.CollectionOrderCheck", left_sequence: nat(event.leftSequence), right_sequence: nat(event.rightSequence) };

@@ -1,0 +1,18 @@
+PASS Rapid empty eligible site temporaryzero
+PASS Batch empty temporaryzero
+PASS Relay empty temporaryzero
+PASS Coordinator empty temporaryzero
+PASS Shield no hot pressure temporaryzero
+PASS Packager policy useful despite empty candidates
+PASS Parallelizer extra permit
+PASS Rapid no building in range persistentzero
+PASS Coordinator only postreview sites persistentzero
+PASS Parallelizer no eligible site persistentzero
+PASS Shield no site structuralzero
+PASS Supported worker cap persistentzero
+PASS Unfunded blockedred
+PASS Invalid site blockedred
+PASS Actual nextshot benefit cyan
+PASS Hot pressure alreadycapped remains transientzero, not nohotclaim
+PASS Hot pressure alreadycapped remains transientzero, not nohotclaim
+PASS Inspection hides buildghost

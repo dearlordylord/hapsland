@@ -128,8 +128,7 @@ type CanonicalEvent is Data:
     continuations: Nat}
   StopGroupEnded{group: Nat, lifetime: Nat, round: Nat,
     scopes: List<&2, StopScope>}
-  CollectionReady{advice: Nat, already: Bool, turn_end: Bool,
-    partition: Nat, lifetime: Nat, round: Nat, observation: Nat,
+  CollectionReady{advice: Nat, partition: Nat, lifetime: Nat, round: Nat, observation: Nat,
     joined_pending: Bool}
   CollectionCredentialCheck{same_scope: Bool, generation_valid: Bool}
   CollectionCandidateCheck{same_partition: Bool, unleased: Bool,
@@ -2362,15 +2361,26 @@ def finding_for_observation(items: List<&2, Work>, +partition: Nat,
     case _ <> rest:
       finding_for_observation(rest, partition, lifetime, round, observation, advice)
 
-def collection_ready(+state: State, +advice: Nat, already: Bool, turn_end: Bool,
+def deciding_round(found: Maybe<&2, Round>, group: Nat,
+    lifetime: Nat, round: Nat) -> Bool:
+  match found:
+    case Some{+current}:
+      match current:
+        case Round{_, _, _, _, deciding, _, _, +quiet_since}:
+          Bool.and(deciding, same_round(group, lifetime, round, current))
+    case None{}:
+      False{}
+
+def collection_ready(+state: State, +advice: Nat,
     +partition: Nat, +lifetime: Nat, +round: Nat, +observation: Nat,
     joined_pending: Bool) -> Step:
   match state:
-    case State{_, _, work, _, _, _, _, collection, +history}:
+    case State{_, rounds, work, _, _, _, _, collection, +history}:
       collection_decision(state,
         CollectionState.mark_ready(collection, advice,
           Bool.and(finding_for_observation(work, partition, lifetime, round, observation, advice),
-            Collection.eligible(already, turn_end,
+            Collection.eligible(deciding_round(find_round(partition, rounds),
+                partition, lifetime, round),
               Bool.not(Bool.or(joined_pending,
                 unfinished_for_observation(work, partition, lifetime, round, observation)))))),
         CollectionEligible{}, CollectionWaiting{})
@@ -2528,16 +2538,6 @@ def selected_valid(+all: List<&2, Nat>, remaining: List<&2, Nat>,
 
 def selected_pending(+selected: List<&2, Nat>, work: List<&2, Work>) -> Bool:
   selected_valid(selected, selected, work)
-
-def deciding_round(found: Maybe<&2, Round>, group: Nat,
-    lifetime: Nat, round: Nat) -> Bool:
-  match found:
-    case Some{+current}:
-      match current:
-        case Round{_, _, _, _, deciding, _, _, +quiet_since}:
-          Bool.and(deciding, same_round(group, lifetime, round, current))
-    case None{}:
-      False{}
 
 def finish_reserve_decision(+state: State, group: Nat, round: Nat,
     attempt: Nat, token: Nat, selected: List<&2, Nat>) -> Step:
@@ -3072,9 +3072,9 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
         continuations)
     case StopGroupEnded{group, lifetime, round, scopes}:
       stop_group_end(state, group, lifetime, round, scopes)
-    case CollectionReady{advice, already, turn_end, partition, lifetime, round,
+    case CollectionReady{advice, partition, lifetime, round,
         observation, joined_pending}:
-      collection_ready(state, advice, already, turn_end, partition, lifetime, round,
+      collection_ready(state, advice, partition, lifetime, round,
         observation, joined_pending)
     case CollectionCredentialCheck{same_scope, generation_valid}:
       collection_credential_result(state,

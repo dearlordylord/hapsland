@@ -1,0 +1,21 @@
+Purpose: retained native UI witness for the standalone Bend tower-defense prototype.
+Environment: Linux ARM64, Bend 2.0.34, native executable compiled with bend Main.bend -o /tmp/hapsland-bend-td-mission; four CPU threads; Xvfb :118 at 24-bit color; xdotool input injection; ImageMagick window capture.
+This is execution evidence, not macOS validation or human engagement evidence.
+
+Preparation: native window opens, initial wave=0 phase=0 lives=15 gold=120 tick=0.
+Input: three left-clicks at (224,192), (352,192), (224,352), then N.
+After approximately three seconds:
+  wave=1 phase=1 lives=15 gold=40 kills=2 remaining=2 tick=150
+Observed moving runner/basic/tank sprites, health bars, tower sprites and dotted firing lines. Combat preview retained.
+First wave settles naturally:
+  wave=1 phase=0 lives=15 gold=96 kills=7 remaining=0 tick=361
+Input: left click (224,192), U, N. Selected tower upgrades to level two, gold falls by 40.
+Input after two seconds: Space. Pause window overlay appears.
+Two paused samples one second apart are identical:
+  wave=2 phase=1 lives=15 gold=56 kills=7 remaining=6 tick=461
+  wave=2 phase=1 lives=15 gold=56 kills=7 remaining=6 tick=461
+Paused preview retained. Native Escape returns normally.
+
+Authored game files are all Bend: Model, Game, Render, Font and Main. Bend Base supplies its native window, clock and IO backend. No custom JS/C effects or Hapsland reducer are used.
+The input tool printed XGetInputFocus warnings in the headless X server; requested native key events still produced the observed state changes. No crash or native game error occurred.
+The macOS Cocoa/Metal path is documented by the installed Bend runtime and official guide but was not executed in this Linux environment.

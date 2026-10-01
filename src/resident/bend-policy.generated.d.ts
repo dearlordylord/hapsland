@@ -253,8 +253,7 @@ export function bendCollectionCredentialDisposition(sameScope: boolean,
   generationValid: boolean): BendCollectionCredentialDisposition;
 export function bendCollectionOrder(leftSequence: number | bigint,
   rightSequence: number | bigint): BendCollectionOrder;
-export function bendCollectionEligible(already: boolean, turnEnd: boolean,
-  editComplete: boolean): boolean;
+export function bendCollectionEligible(stopDeciding: boolean, editComplete: boolean): boolean;
 export function bendCollectionExpired(elapsed: number | bigint,
   lifetime: number | bigint): boolean;
 

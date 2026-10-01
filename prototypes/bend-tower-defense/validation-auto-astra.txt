@@ -1,0 +1,44 @@
+Purpose: Review automatic waves and shared session scheduling for truthful architectural teaching.
+Status: Completed bounded code and evidence review; no unresolved blocking finding in the reviewed scope.
+Authority: Independent implementation/validation evidence, not an accepted product contract, formal proof, owner acceptance, or participant learning result.
+Expected use: Judge whether automatic session pacing preserves manual investment and visibly waits for the existing Stop lifecycle.
+Lifecycle: Temporary. At the automatic-wave prototype direction decision, consolidate accepted teaching decisions and useful evidence references into the prototype README or replacement specification, then delete this review. Re-review after scheduler, shared event mapping, HUD, or lifecycle changes.
+Reviewer: /root/astra_auto_review, independently requested with gpt-6-astra model override according to coordinator spawn evidence. This records requested model selection, not provider introspection. This reviewer changed only this report.
+
+VERDICT
+PASS within scope: automation starts waves only. RoadAuto calls the ordinary G.start and G.advance boundaries; it contains no click, construction, upgrade, gold injection, outcome selection, or enemy-generation policy. Player investment remains consequential. The recurring session supplies task timing; RoadGame retains fixed arrivals, work, findings, writer/acknowledgment, pressure, Stop and terminal outcomes.
+
+ACTUAL SHARED REUSE
+RoadAuto imports ../../packages/session-bend/Session.bend. The Monkey Business adapter imports compiler-generated packages/session-bend/session.mjs. Session.initial/next prepares the first Task; Session.on_finish(false) prepares each subsequent task after a completed wave. The independent generated-artifact hash check passed. The initial shared Task has delay zero; the native adapter intentionally adds a three-second initial/rearm grace. Subsequent three-second intermissions consume the actual shared task pause. Native use is task scheduling only, not the shared edit, repair, finish-event or jitter policy. No claim of full workload parity is supported or needed.
+The shared worker reports 79 Monkey Business tests and typechecking passed, including 4,800 differential mixed transitions against the test-only pre-port reference. This reviewer inspected the source and adapter and reran the artifact hash gate; it did not independently rerun that regression suite. Host validation bounds relative-delay arithmetic; absolute timestamps stay in JavaScript.
+
+LIFECYCLE EVIDENCE
+Read RoadAuto, RoadMain, relevant RoadGame gates, RoadAutoHeadless and the final native/headless records. The 19 recorded directed checks pass: default OFF, genuine manual construction fixture, unchanged full game during preparation, exact grace boundary matching G.start, single consumption, manual start, pause freeze, toggle cancellation/rearm, synthetic completion/terminal/cap cases, reset, and one real constructed wave reaching Stop4 before Task2 is scheduled. Synthetic phase fixtures remain distinct from actual wave evidence.
+The actual Linux ARM64 native trace independently shows manual three-tower construction, automatic first start, wave1 phase0 Stop4 with zero enemies and Task2 pending, then one automatic second start. R and Tab reset auto OFF; pause freezes remaining grace; switching OFF does not stop an already active wave. Terminal toggle clamps OFF. Source phase gating admits recurrence only after the existing engine returns preparation; that return requires settled Stop and no enemies. These finite examples and source review are not universal proofs.
+
+TEACHING AND VISIBLE EVIDENCE
+Inspected preview-auto-startup.png, preview-auto-paused.png, preview-auto-intermission.png and preview-auto-playing.png. Startup visibly says AUTO WAVES OFF. The paused grace panel says AUTO WAVES ON, NEXT, TASK1 and PAUSED while wave0, gold120 and empty architecture remain visible. The intermission panel shows wave1/6, Task2 countdown and STOP RESPONSE COMPLETE together. This is the clearest causal lesson: the next session waits for the previous response lifecycle; it does not purchase a better solution for the player.
+The final playing screenshot shows AUTO WAVES ON / WAIT FOR STOP / TASK1 / PAUSED during an actual manually started wave, directly validating the waiting cue. All screenshots retain separate storage/work/dependency/write/Stop counters. Small bitmap text and the pause overlay limit readability; no participant comprehension or engagement study was performed.
+Final UI delta reviewed: in preview-auto-intermission.png, the controls row at y503 now includes A AUTO WAVES between SPACE PAUSE and R RESET; the former row omitted that toggle hint. All four recaptured images visibly include it. This makes the toggle discoverable even while automation is ON. Renderer and screenshot fingerprints below identify this final UI, with mechanics unchanged.
+The final native appendix records a UI recapture observer failure: after 3.3 wall-clock seconds, 460ms of simulation countdown remained under display load. This is not counted as another lifecycle pass. The earlier complete automatic Task2-to-wave2 trace still applies to unchanged mechanics; the final playing screenshot validates WAIT FOR STOP using manual N. Countdown evidence is simulation time, not a wall-clock responsiveness guarantee.
+
+RESOLVED FINDINGS AND LIMITS
+Review feedback replaced misleading NEXT0MS during active/off states with explicit OFF/countdown/WAIT FOR STOP, added terminal-toggle disarming, and distinguished synthetic phase fixtures from a real Stop recurrence witness. Initial/rearm grace is documented separately from shared emitted delay.
+No automatic AI player is implemented or implied by the bounded claim. Automated session pacing reduces repeated N presses and exposes the lifecycle, while architecture lessons about permits, readiness, encoding and pressure remain owned by the existing game mechanics and their prior evidence. Broad balance, enjoyment, human learning, all strategy paths, macOS execution and production runtime equivalence remain unvalidated. Proposed laws remain unapproved and unproved.
+
+REVIEWED SNAPSHOT SHA256
+97d8c87aab34273dbda1b44b188060676c0c3287908ea6a0f89fb97df7575038  packages/session-bend/Session.bend
+c40a53ff332ca50f2d64db31ede0462c6dfab9c69f7374fd01c5deecbece2a07  packages/session-bend/session.mjs
+2be8a422c711e9a9fd338ec54498433be29ef0775fe70dc8e9a8533db3cc731c  packages/session-bend/build.mjs
+63eb1428be1cedca21654695b081e5294b1b357dd5569c441669b7e136205bf5  packages/monkey-business/src/session.ts
+cf3ae3ce0d5cf51ea4020cf229c7607ada1499c099075cb68eb97f1bba3af139  prototypes/bend-tower-defense/RoadAuto.bend
+a105bd3e2a0202074db74f4e754b7f48e9016d4733249e01fdbf9985f143c742  prototypes/bend-tower-defense/RoadAutoHeadless.bend
+6b82d8ba68e3ee0bd66e00e8b12a4e59435b5d2cd15450b58bdafa69794ceb0f  prototypes/bend-tower-defense/RoadMain.bend
+f78779ce69a6e263fc2bb3be465dcb08d75c6a253a4d811c0d6f8bd208574d96  prototypes/bend-tower-defense/RoadRender.bend
+243ebc7243809b5c2cc0087ab708e853a34e8959ee366e839bcb1888183ab392  prototypes/bend-tower-defense/RoadGame.bend
+7a24e7d74d6bfb6275b45d6025e25f269218dcdd7add4b98fc9ee3e479d2eb94  prototypes/bend-tower-defense/validation-auto-headless.txt
+d7e3d1f036a3a696821961900072dd401aa025a1db52c8853a0cdcf76441ebac  prototypes/bend-tower-defense/validation-auto-native.txt
+95d305f24ab5ad74aa979b6e96578f99a3ed7ac8b6eedb237b4efd4e239852dd  prototypes/bend-tower-defense/preview-auto-startup.png
+389f769d4df8abf1150562a3897a8d6845ef99e4cbce18514748507acfb014f8  prototypes/bend-tower-defense/preview-auto-paused.png
+2c9cc7cda1c4ee03b0020df6a78ab62f19f1c6dc0346935a0ffc9660b2683e8b  prototypes/bend-tower-defense/preview-auto-intermission.png
+a58287364a46d36e023afb632f629c7a6162e8acdba93971ae7088681626c23b  prototypes/bend-tower-defense/preview-auto-playing.png

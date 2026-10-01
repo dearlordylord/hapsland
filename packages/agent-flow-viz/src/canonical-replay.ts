@@ -59,9 +59,8 @@ export const SHOWCASE_SCENARIO = {
     { kind: "jevRequestReady", ...showcaseReady, operation: 6 },
     { kind: "jevRequestStarted", ...showcaseScope, operation: 6, request: 9 },
     { kind: "jevRequestSettled", ...showcaseScope, operation: 4, request: 8, outcome: "finding", currentWork: true },
-    // Native storage is represented by a later supplied readiness fact, not
-    // by the reducer's retainFinding command alone.
-    { kind: "collectionReady", advice: 4, already: false, turnEnd: false,
+    // Readiness is a later Bend decision linked to the retained finding and its edit.
+    { kind: "collectionReady", advice: 4,
       ...showcaseScope, observation: 1, joinedPending: false },
     { kind: "dispatchSettled", ...showcaseScope, operation: 4 },
     { kind: "jevRequestSettled", ...showcaseScope, operation: 6, request: 9, outcome: "finding", currentWork: true },
@@ -72,7 +71,7 @@ export const SHOWCASE_SCENARIO = {
     { kind: "jevRequestStarted", ...showcaseScope, operation: 7, request: 10 },
     { kind: "jevRequestSettled", ...showcaseScope, operation: 7, request: 10, outcome: "clear", currentWork: true },
     { kind: "dispatchSettled", ...showcaseScope, operation: 7 },
-    { kind: "collectionReady", advice: 6, already: false, turnEnd: false,
+    { kind: "collectionReady", advice: 6,
       ...showcaseScope, observation: 2, joinedPending: false },
     { kind: "stopPolled", ...showcaseScope, deadline: false },
     { kind: "collectionReserveLease", advice: 4, token: 8 },

@@ -1,0 +1,54 @@
+Implementation/validation evidence; not product specification, formal proof, engagement evidence, or macOS validation.
+Actual Linux ARM64 Bend native1024x768 window captured with XGetImage under owned Xvfb121.
+No towers were built or upgraded by the driver. Hover calculations are read-only.
+
+Five organic live-wave snapshots, default scenario, fixed120gold/no towers, accelerated within-wavepace6:
+Rapid/Batch/Relay: pausedtick146,24enemies,health215; same live jobs. Rapid hit1, Batch hit3, Relay hit1. Remaining work is enemy_effort, not completed work. Batch actual remaining31/37/43 minus18 =>13/19/25.
+Coordinator: pausedtick182,24enemies,health210,findingsreviewed1; activeunit2,waitingfindingunit1, target remaining1->0, other live blocker remains7, aftershot readinessNO.
+Shield: same pausedtick182; currenthot pressure15 -> hypothetical13; newshield spends2 of240charge. This is ONE PRESSURE TICK, not HP/throughput prediction; backlog unchanged.
+Files: preview-dynamic-rapid.png, preview-dynamic-batch.png, preview-dynamic-relay.png, preview-dynamic-coordinator.png, preview-dynamic-shield.png.
+
+Organic Packager observation limitation:30second wait for nonempty unreserved eligible prefix while writeridle timedout. Native wave settledtick651 phase0Stop4,12findingsreviewed/12submitted,0enemies,health174,gold254. Atomic ordinary/Stop reservation left no rendered opportunity in this run. No organic Packager candidate claim.
+
+Packager directed paused native fixture, clearly separate from organic play:
+Temporary testdriver imports actual RoadMain.loop/renderer and RoadHeadless.packet/fixture; no runtime scenario/debug edits.
+Four eligible Outputfinding packets IDs1,2,3(edit1),4(edit2),remainingwork0,immutable2500content each; offered6,clear2,findingsreviewed4,submitted0; no writer reservation/towers. Default config; choicePackager; hover112432; pausedtick0.
+Actual candidate IDs1/2/3,7724bytes -> hypothetical IDs1/2/3/4,10192bytes, unchanged10240cap. Itemoverhead32->16,target3->4; dispatch NOW YES and WITH GHOST YES separately from flush threshold800ms.
+Native screenshot preview-dynamic-packager.png; paused complete diagnostic title unchanged over1second; native exits0. Snapshot is eligible-now/prefix policy, not a forecast of future movement or guaranteed batch trajectory. Committed writer bytes/members remain unchanged.
+
+Exact directed fixture title:
+Bend road defense | WAVE=1 PHASE=1 LIFE=220 GOLD=120 SCORE=0 DONE=2 LOST=0 ENEMIES=4 TICK=0 STOP=0 ACK=0 FINDINGS=4 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 SELECTED=0 KIND=5 LEVEL=1 CHARGE=0 ABSORBED=0 BATCH_BYTES=0 BATCH_MEMBERS=0 CONTENT=0 COORD_TARGET=0 PREVIEW=1 TARGET=3 WORKERS_NOW=1 WORKERS_PLUS=0 OVERHEAD_NOW=32 OVERHEAD_MINUS=16 TARGET_NOW=3 TARGET_PLUS=1 GOLD_MINUS=60 DYN=YES HITS=0 COORD_ID=0 DEPENDENTS=0 RELEASE_READY=NO PRESSURE_NOW=4 PRESSURE_WITH=4 CHARGE_SPEND=0 ELIGIBLE=4 CANDIDATE_NOW=7724 CANDIDATE_WITH=10192 WRITER_BUSY=NO AUTO=OFF AUTO_PENDING=OFF AUTO_LEFT=3000 AUTO_TASK=1
+Paused title unchanged over one second; actual native renderer directed fixture, not organic play.
+
+Static checks: timeout5 bend RoadRender.bend --check-only and RoadMain.bend --check-only both exit0. Temporary fixture checkexit0 and nativecompileexit0. Pure dynamic16directedchecks separately owned/run by session_port; no universal-proof claim.
+
+SHA256 at final capture:
+847b55e5ca64e25c445443454614f6faa66518139da1cb5fd8bb2432c47e33f5  RoadRender.bend
+b2325bc25ffb6b140d19cee6eebae040e994a14936f2ada87d455753e1abf5a9  RoadMain.bend
+243ebc7243809b5c2cc0087ab708e853a34e8959ee366e839bcb1888183ab392  RoadGame.bend
+5aec573cf4198fa098f66d0242943c5fbfd50d0153fbaf665dd6c7a1667bf820  RoadDynamicPreview.bend
+d8a88f3da4f388840419c7ed397af4d4e382ce1cf44e19653ac1251d10e5a7f6  preview-dynamic-batch.png
+abfa51d818df2bab667fc49cf5fd8b73351b505389f151b8a39549524374d42f  preview-dynamic-coordinator.png
+9857b256bf6389df743163fcc92ae6b3aed1c711f68d9a53ab6ddc8a84d70abb  preview-dynamic-packager.png
+23f8417bb6c53aaf79ad2b6d59de5d3d2bc8a157a9ea43c6f632c4642bcbbdfd  preview-dynamic-rapid.png
+0547ae9d3c3b3bcd05af38f176b9d9d6683bcc1c2351fa63b81f9de8288c4e1d  preview-dynamic-relay.png
+623947f48e67db130d9435826b171b77f98d61e8fc61c750dc17c7b054fbef42  preview-dynamic-shield.png
+
+Reproducible directed native fixture source (temporary /tmp/hapsland-road-dynamic-fixture.bend; imports point to checkout, compile with bend -o):
+import Base
+import /workspace/typescript/jev-worktrees/bend-tower-defense/prototypes/bend-tower-defense/RoadMain.bend as Main
+import /workspace/typescript/jev-worktrees/bend-tower-defense/prototypes/bend-tower-defense/RoadModel.bend as M
+import /workspace/typescript/jev-worktrees/bend-tower-defense/prototypes/bend-tower-defense/RoadGame.bend as G
+import /workspace/typescript/jev-worktrees/bend-tower-defense/prototypes/bend-tower-defense/RoadHeadless.bend as H
+import /workspace/typescript/jev-worktrees/bend-tower-defense/prototypes/bend-tower-defense/RoadAuto.bend as A
+import /workspace/typescript/jev-worktrees/bend-tower-defense/prototypes/bend-tower-defense/RoadScenario.bend as S
+
+def main() -> IO(Unit):
+  +jobs : List<&2,M.Enemy> = [H.packet(1,3,0,1,2500),H.packet(2,3,0,1,2500),H.packet(3,3,0,1,2500),H.packet(4,3,0,2,2500)]
+  +runtime : M.Runtime = M.Run{0,0,0,M.Output{Nil{},0,0,0},0,0,0,0,2,4,0,False{}}
+  +game = G.move(G.choose(G.key(S.select(0),H.fixture(jobs,6,1,runtime),32),5),112,432)
+  do IO<Unit>:
+    IO.print("DIRECTED PAUSED NATIVE FIXTURE: four eligible 2500-byte findings; same renderer, no organic-play claim.")
+    now : Nat <- IO.now()
+    window : Window <- IO.try(Window, Window.open("Hapsland — Bend road defense fixture",1024,768))
+    Main.loop(4294967295n,window,Main.Frame{0,game,A.initial(),now,0,False{}})

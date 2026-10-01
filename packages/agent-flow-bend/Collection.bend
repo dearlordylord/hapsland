@@ -19,11 +19,11 @@ def order(+left_sequence: Nat, +right_sequence: Nat) -> Order:
   Bool.pick(Order, Nat.is_lt(left_sequence, right_sequence), Before{},
     Bool.pick(Order, Nat.is_gt(left_sequence, right_sequence), After{}, Equal{}))
 
-def eligible(already: Bool, turn_end: Bool, edit_complete: Bool) -> Bool:
-  Bool.or(already, Bool.or(turn_end, edit_complete))
+def eligible(stop_deciding: Bool, edit_complete: Bool) -> Bool:
+  Bool.or(stop_deciding, edit_complete)
 
 def expired(elapsed: Nat, lifetime: Nat) -> Bool:
   Nat.is_ge(elapsed, lifetime)
 
 def main() -> Bool:
-  eligible(False{}, False{}, True{})
+  eligible(False{}, True{})

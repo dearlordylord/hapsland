@@ -1,0 +1,16 @@
+Native launcher: DISPLAY=:119 ./run-flow.sh
+Environment: Linux ARM64; Bend2.0.34; X11/Xvfb; CPU4threads; macOS not executed.
+Initial: Bend flow watch | WAVE=0 PHASE=0 LIFE=24 GOLD=80 SCORE=0 DONE=0 LOST=0 JOBS=0 TICK=0
+Tab capture-profile reset: Bend flow watch | WAVE=0 PHASE=0 LIFE=24 GOLD=80 SCORE=0 DONE=0 LOST=0 JOBS=0 TICK=0
+Tab review-profile reset: Bend flow watch | WAVE=0 PHASE=0 LIFE=24 GOLD=80 SCORE=0 DONE=0 LOST=0 JOBS=0 TICK=0
+Tab advice-profile reset: Bend flow watch | WAVE=0 PHASE=0 LIFE=24 GOLD=80 SCORE=0 DONE=0 LOST=0 JOBS=0 TICK=0
+Tab default-profile reset: Bend flow watch | WAVE=0 PHASE=0 LIFE=24 GOLD=80 SCORE=0 DONE=0 LOST=0 JOBS=0 TICK=0
+Assigned two reserve workers (review/advice), selected output, started wave, paused.
+Paused sample1: Bend flow watch | WAVE=1 PHASE=1 LIFE=24 GOLD=82 SCORE=2 DONE=2 LOST=0 JOBS=6 TICK=95
+Paused sample2: Bend flow watch | WAVE=1 PHASE=1 LIFE=24 GOLD=82 SCORE=2 DONE=2 LOST=0 JOBS=6 TICK=95
+Pause title stable: True
+Paused upgrade selected review: Bend flow watch | WAVE=1 PHASE=1 LIFE=24 GOLD=32 SCORE=2 DONE=2 LOST=0 JOBS=6 TICK=95
+R resets current profile: Bend flow watch | WAVE=0 PHASE=0 LIFE=24 GOLD=80 SCORE=0 DONE=0 LOST=0 JOBS=0 TICK=0
+Escape requested close; process exit observed separately.
+Observed process exit:0 after Escape.
+FlowMain and FlowHeadless --check-only and --verdict passed under separate5second limits. Open proposed semantic laws remain unproved.

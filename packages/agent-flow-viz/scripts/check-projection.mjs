@@ -206,8 +206,8 @@ try {
       assert.match(admission, /NOW · Unit charge #1 → stored/);
     }
     if (index === 27) {
-      assert.deepEqual(step.after.collection.ready, [4], "ready advice follows its native storage fact");
-      assert.ok(active.some((route) => labels(route).includes("Advice #1/operation 4 supplied ready by native storage")));
+      assert.deepEqual(step.after.collection.ready, [4], "Bend links ready advice to its finding work and edit");
+      assert.ok(active.some((route) => labels(route).includes("Bend marked Advice #1/operation 4 ready from Review item #1/operation 4")));
     }
     if (index === 30) assert.deepEqual(step.after.collection.ready, [4], "advice for edit #2 waits for its other review item");
     if (index === 35) {

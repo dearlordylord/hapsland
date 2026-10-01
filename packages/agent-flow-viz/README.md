@@ -158,8 +158,8 @@ state, stage inference, or possible routes.
 
 In the default guided example, step 27 shows Review item #1's finding. The
 Admission & capacity square displays its unit charge becoming a stored result
-charge. The retain-finding route is a command; advice is first visibly ready at
-step 28, after the supplied native storage fact. Step 36 shows Review item #3's
+charge. The retain-finding route is a command; Bend first marks the advice ready
+at step 28 after checking its finding, edit, and remaining work. Step 36 shows Review item #3's
 `clear` in Review outcomes and releases its unit charge without making advice.
 The finding from the same edit becomes ready advice at step 38, after both
 review items have finished. These are interactive replay cases for #147 owner

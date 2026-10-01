@@ -1,0 +1,49 @@
+Purpose: Independently review build stat previews for truthful causal architecture teaching and read-only behavior.
+Status: Completed bounded source, directed-test-record and native screenshot review. No unresolved blocking finding in the reviewed scope.
+Authority: Advisory implementation/validation evidence, not an accepted product contract, universal proof, design acceptance, or measured learning result.
+Expected use: Compare displayed current stats and prospective marginal changes with actual legal purchases, including existing bonuses, caps, floors and invalid states.
+Lifecycle: Temporary. At the placement-preview direction decision, consolidate accepted teaching decisions and useful evidence links into the prototype README or replacement specification, then delete this report. Re-review after effect math, target selection, build-input mode, preview presentation or evidence changes.
+Reviewer: /root/astra_auto_review, requested with gpt-6-astra override according to coordinator spawn evidence; requested model selection is not provider introspection. This reviewer changed only this report.
+
+VERDICT AND SCOPE
+PASS for build-time direct capacity/policy previews: current effective values remain visible, proposed changes use a separate color, legal purchase cost remains explicit, and the same affected building appears on the map and architecture panel. This is construction preview, not upgrade preview. Automatic tower activation and auto-wave mechanics are unchanged. No throughput, learning, engagement or platform-support claim follows from these views.
+
+SOURCE REVIEW
+RoadPreview compares RoadGame.supported_config before and after an ordinary pure hypothetical G.click. It never returns that hypothetical game state to the driver. Thus displayed marginal changes include existing tower bonuses, mechanics-selected nearest eligible site, the Parallelizer two-extra-permit cap, Packager support cap and overhead floor. Derived configurations are not passed back through helpers that would apply buffs twice. Legality uses snapped placement plus the real raw-click existing-tower selection boundary; insufficient gold and terminal state suppress actionable changes.
+The renderer retains current occupancy, active work, storage and committed writer statistics. Only the prospective capacity/policy delta is appended. Packager text says NEXT BATCH ITEM OVERHEAD, preserving the distinction between future policy and an already committed reservation. Number keys1–7 explicitly return from inspection to build mode; moving the mouse alone preserves inspection, while U retains the selected tower for ordinary upgrading.
+Positive deltas are cyan, zero deltas amber, cost red. Legal no-target and saturated purchases retain their actual cost, preventing the false inference that no benefit means a free purchase. Dynamic processor, Coordinator and Shield effects receive an explicit no-fixed-capacity/throughput-delta explanation.
+
+BOUNDED EXECUTABLE EVIDENCE
+Reviewed RoadPreviewTests and its recorded18 passing checks; the implementation worker compiled and ran the native executable, rather than this reviewer independently repeating the run. Tests cover effective3+1 matching actual click, partial4+1 and saturated5+0 permits, moving the nearest target from Capture to Review, Packager32−16/target3+1 matching purchase, independent overhead0−0 while target5+1 remains possible, full cap, clipped8−8 floor, no target, invalid road/site, affordability, occupied hover after purchase, inspection/build-mode controls, pause, terminal, conditional Shield scope and preservation of committed writer bytes/membership and work contents.
+These are finite fixtures and actual-purchase comparisons, not proofs for every configuration. The genuine native window trace additionally records hover then explicit purchase, inspection then numbered build intent, insufficient gold and out-of-range writer targeting. Hover preserves live clock and gold; only explicit clicks spend.
+
+VISUAL BEFORE/AFTER CASES INSPECTED
+1. preview-workers-before.png versus preview-workers-after.png: Capture map and architecture row change from current WORKERS0/3 with cyan+1 to actual0/4 with no proposed delta. Gold120 with red−70 becomes actual50. Storage12, active jobs0 and other buildings do not gain fictional capacity. The link/highlight identifies Capture as the actual affected building.
+2. preview-packager-before.png versus preview-packager-after.png: Output map, Output architecture row and byte-policy panel show current overhead32 with cyan−16 and target3 with cyan+1. After the actual purchase, the next-batch policy is16 and4, with no pending delta; gold120−60 becomes60. Actual reserved bytes/members remain0 in this preparation case, so it demonstrates policy rather than an active-batch rewrite.
+3. preview-packager-existing-bonus.png: a second legal hover correctly starts from overhead16 and target4, proposing−16 and+1, rather than repeating the base32/3. This also visibly exercises return from inspection to construction intent.
+4. preview-build-unaffordable.png: gold50 cannot buy a70-gold Parallelizer. Capture remains0/4, no optimistic building delta appears, and the build panel explains insufficient gold.
+5. preview-build-no-target.png: a legal60-gold Packager hover far from Output retains red−60 but no target link or building delta; the panel explicitly says no eligible building in range/no buff.
+All seven screenshots were inspected directly. Saturated amber-zero and overhead-floor rendering are supported by source and executable cases, not claimed as separately captured native screenshots. Small map typography remains a readability limitation; the larger worker row provides a second view. No participant comprehension was measured.
+
+ARCHITECTURAL LESSON AND REMAINING LIMITS
+The observable lesson is a controlled prediction and purchase: an extra permit changes capacity without increasing storage or proving another job will be active, while lower per-item overhead and a larger flush target change future batching policy without promising an additional member or lower latency. Existing bonuses visibly affect the next marginal purchase.
+Rapid/Batch/Relay delivered work and throughput still depend on available targets, active permits, remaining effort and cooldowns. Coordinator benefit depends on an active blocker and the full sibling-readiness condition. Shield prevention depends on local occupancy, charge, overlap and the half-pressure bound. Actual Packager batch membership, flush latency, Stop outcomes and committed reservation size are not forecast. The README correctly records prospective dynamic visuals as proposals rather than implemented guarantees.
+The finite wave denominator was preserved after review of the revised gold row. No changes to RoadGame mechanics were needed. LinuxARM64 native evidence does not validate macOS, comparative balance, human learning or universal correctness.
+
+REVIEWED SNAPSHOT SHA256
+39ee2acdb5fc833c3f497812bb7ef5250f52d83c1010965a7205446579e48d38  RoadPreview.bend
+8c79ae4f77659fb41bcb0ab05029acae074c8d8d7b2b1463c789fa9c3cbace60  RoadPreviewTests.bend
+34e7937d05760119ecb8ac21c60124ca486ac559a172feb2492afdc5201888bc  RoadRender.bend
+b2325bc25ffb6b140d19cee6eebae040e994a14936f2ada87d455753e1abf5a9  RoadMain.bend
+243ebc7243809b5c2cc0087ab708e853a34e8959ee366e839bcb1888183ab392  RoadGame.bend
+d834c2e153e239dd09de80ab7301579accb8ac9632748145dac030ed4b3bc7a3  RoadModel.bend
+ae79fd35d1d4cacf5ba6b30b9cda27e1b625e99e3fb20a34df2a0551756db538  RoadScenario.bend
+3edbbd5da680a3c6d3443d40ec6e3ddc117b15858cd93253855f809cd9423fb7  validation-preview-headless.txt
+7ffd90511da7ef2074cf0b76534e54b719010632dd77b1a0f8d9350b932f24ba  validation-preview-native.txt
+93ebfdc88305057cf4123babf10115f955881952f8ff9aca5584ce648e5dccc1  preview-workers-before.png
+9a9dda6ee686ef3e95c820df6037e644ca065f7115209325048acc63715206f7  preview-workers-after.png
+a0da6822e6946583c860bacda7fe1b90bb28565514368eaa167fe8fc2f09ca34  preview-packager-before.png
+f6a9faa3543c13d1c3f366c3e854c6687e229adafdbc63a04af36c8d41eab09e  preview-packager-after.png
+fdb5dabdcd1b50adb59b0ae7d2e739d41389e2719ade9e9eff4c757dfed44d07  preview-packager-existing-bonus.png
+7173b13eeccdbece42fa493f255cf79232ec4e9457bfdc60f848ced495416f7b  preview-build-unaffordable.png
+04132500c2c91dc9dc27c999ddb2b79f2de85d17ba0f5efcd7600337b3870666  preview-build-no-target.png

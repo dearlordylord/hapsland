@@ -1,0 +1,324 @@
+PASS REGRESSION immutable ticket IDs and finding sequence at pacing8/12/28 use demand ordinal
+PASS REGRESSION elapsed-zero reservation prevents removing its last worker when queue capacity is zero
+PASS REGRESSION blocked ready packet reserves middle capacity before upstream transfer
+PASS pause freezes complete state
+PASS batching same number of ticks preserves complete state
+PASS initial accounting
+DECLARATION policies0..3 static stage-heavy 3/1/1/1;4 balanced1/2/2/1;5 greedy-largest-queue every30ticks. Three service/hold contexts, two pacing choices, same demand graph. All six workers conserved. No engagement or proof claim.
+AMENDMENT after initial native smoke: owner fixed outcome assignment to immutable demand ordinal and transfer resource reservations; prior core binary is not final evidence. Added balanced investment policy6 at pace16 after original extreme-context policies all lost. Default budgets and service/hold costs unchanged.
+AMENDMENT policy7 added after balanced-investment smoke could win contexts0/2 but lost slow-review context1: review-heavy allocation with same investment rule, pace16 and six workers. This is an explicit exploration addition, not an optimality claim. Final timer correction uses exact pace, not pace+1.
+PASS queued full target retains upstream packet and its resource
+PASS immediate refusal drops once, counts target refusal and releases upstream resource
+PASS successful transfer releases source and acquires target
+PASS hold retains resource for two ticks then terminal completion releases it
+PASS two-stage SORT PACK config runs unchanged generic engine
+GENERIC TWO-STAGE | ticks=4 wave=1 phase=2 lives=24 gold=39 score=1 offered=1 finished=1 dropped=0 live=0 demandleft=0 pace=10 workers=0/1/0/1/0;1/1/0/1/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=4 plan=4 pace=16
+PASS campaign conservation
+CONTEXT 4 POLICY 4 | ticks=3786 wave=6 phase=2 lives=24 gold=827 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/0/198/0;1/2/0/198/0;2/2/0/132/0;3/1/0/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=4 plan=6 pace=16
+PASS campaign conservation
+CONTEXT 4 POLICY 6 | ticks=3598 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/2/2/198/0;2/2/3/132/0;3/1/2/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=5 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 5 | ticks=754 wave=2 phase=3 lives=0 gold=108 score=10 offered=42 finished=10 dropped=24 live=8 demandleft=0 pace=8 workers=0/1/0/42/0;1/1/0/31/11;2/4/0/4/0;3/0/0/0/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=4 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 4 | ticks=810 wave=2 phase=3 lives=0 gold=147 score=61 offered=42 finished=13 dropped=24 live=5 demandleft=0 pace=8 workers=0/1/0/42/0;1/2/0/26/16;2/2/0/18/0;3/1/0/12/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=3 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 3 | ticks=532 wave=2 phase=3 lives=0 gold=110 score=15 offered=32 finished=3 dropped=24 live=5 demandleft=10 pace=8 workers=0/1/0/32/0;1/1/0/10/21;2/1/0/6/0;3/3/0/3/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=2 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 2 | ticks=452 wave=2 phase=3 lives=0 gold=122 score=30 offered=36 finished=6 dropped=24 live=6 demandleft=6 pace=8 workers=0/1/0/36/0;1/1/0/11/24;2/3/0/8/0;3/1/0/6/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=1 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 1 | ticks=882 wave=2 phase=3 lives=0 gold=128 score=34 offered=42 finished=18 dropped=24 live=0 demandleft=0 pace=8 workers=0/1/0/42/0;1/3/0/35/7;2/1/0/8/0;3/1/0/4/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=0 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 0 | ticks=532 wave=2 phase=3 lives=0 gold=110 score=15 offered=32 finished=3 dropped=24 live=5 demandleft=10 pace=8 workers=0/3/0/32/0;1/1/0/10/21;2/1/0/6/0;3/1/0/3/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=5 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 5 | ticks=1498 wave=2 phase=3 lives=0 gold=112 score=14 offered=42 finished=14 dropped=24 live=4 demandleft=0 pace=28 workers=0/1/0/42/0;1/1/0/42/0;2/4/0/19/0;3/0/0/0/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=4 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 4 | ticks=5429 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/2/0/170/0;2/2/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=3 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 3 | ticks=2247 wave=3 phase=3 lives=0 gold=187 score=80 offered=63 finished=32 dropped=24 live=7 demandleft=9 pace=28 workers=0/1/0/63/0;1/1/0/62/0;2/1/0/21/0;3/3/0/12/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=2 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 2 | ticks=5429 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/1/0/170/0;2/3/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=1 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 1 | ticks=2247 wave=3 phase=3 lives=0 gold=187 score=80 offered=63 finished=32 dropped=24 live=7 demandleft=9 pace=28 workers=0/1/0/63/0;1/3/0/62/0;2/1/0/21/0;3/1/0/12/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=0 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 0 | ticks=2247 wave=3 phase=3 lives=0 gold=187 score=80 offered=63 finished=32 dropped=24 live=7 demandleft=9 pace=28 workers=0/3/0/63/0;1/1/0/62/0;2/1/0/21/0;3/1/0/12/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=6 pace=16
+PASS campaign conservation
+CONTEXT 2 POLICY 6 | ticks=3760 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/2/2/198/0;2/2/3/132/0;3/1/2/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=7 pace=16
+PASS campaign conservation
+CONTEXT 2 POLICY 7 | ticks=4173 wave=6 phase=2 lives=16 gold=75 score=686 offered=198 finished=190 dropped=8 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/3/2/198/0;2/1/3/132/0;3/1/2/124/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=5 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 5 | ticks=524 wave=2 phase=3 lives=0 gold=99 score=1 offered=30 finished=1 dropped=24 live=5 demandleft=12 pace=8 workers=0/1/0/30/0;1/5/0/7/18;2/0/0/5/0;3/0/0/0/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=4 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 4 | ticks=406 wave=2 phase=3 lives=0 gold=114 score=20 offered=30 finished=4 dropped=24 live=2 demandleft=12 pace=8 workers=0/1/0/30/0;1/2/0/4/24;2/2/0/4/0;3/1/0/4/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=3 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 3 | ticks=374 wave=2 phase=3 lives=0 gold=106 score=10 offered=27 finished=2 dropped=24 live=1 demandleft=15 pace=8 workers=0/1/0/27/0;1/1/0/2/24;2/1/0/2/0;3/3/0/2/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=2 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 2 | ticks=374 wave=2 phase=3 lives=0 gold=106 score=10 offered=27 finished=2 dropped=24 live=1 demandleft=15 pace=8 workers=0/1/0/27/0;1/1/0/2/24;2/3/0/2/0;3/1/0/2/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=1 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 1 | ticks=464 wave=2 phase=3 lives=0 gold=117 score=23 offered=36 finished=7 dropped=24 live=5 demandleft=6 pace=8 workers=0/1/0/36/0;1/3/0/9/24;2/1/0/6/0;3/1/0/4/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=0 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 0 | ticks=374 wave=2 phase=3 lives=0 gold=106 score=10 offered=27 finished=2 dropped=24 live=1 demandleft=15 pace=8 workers=0/3/0/27/0;1/1/0/2/24;2/1/0/2/0;3/1/0/2/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=5 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 5 | ticks=1441 wave=2 phase=3 lives=0 gold=115 score=18 offered=42 finished=14 dropped=24 live=4 demandleft=0 pace=28 workers=0/1/0/42/0;1/1/0/40/2;2/4/0/22/0;3/0/0/1/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=4 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 4 | ticks=1653 wave=3 phase=3 lives=0 gold=186 score=82 offered=50 finished=22 dropped=24 live=4 demandleft=22 pace=28 workers=0/1/0/50/0;1/2/0/24/24;2/2/0/17/0;3/1/0/15/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=3 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 3 | ticks=1054 wave=2 phase=3 lives=0 gold=124 score=32 offered=33 finished=8 dropped=24 live=1 demandleft=9 pace=28 workers=0/1/0/33/0;1/1/0/8/24;2/1/0/6/0;3/3/0/6/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=2 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 2 | ticks=1054 wave=2 phase=3 lives=0 gold=124 score=32 offered=33 finished=8 dropped=24 live=1 demandleft=9 pace=28 workers=0/1/0/33/0;1/1/0/8/24;2/3/0/6/0;3/1/0/6/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=1 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 1 | ticks=3232 wave=4 phase=3 lives=0 gold=352 score=255 offered=100 finished=71 dropped=24 live=5 demandleft=8 pace=28 workers=0/1/0/100/0;1/3/0/73/24;2/1/0/48/0;3/1/0/46/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=0 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 0 | ticks=1054 wave=2 phase=3 lives=0 gold=124 score=32 offered=33 finished=8 dropped=24 live=1 demandleft=9 pace=28 workers=0/3/0/33/0;1/1/0/8/24;2/1/0/6/0;3/1/0/6/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=6 pace=16
+PASS campaign conservation
+CONTEXT 1 POLICY 6 | ticks=1370 wave=3 phase=3 lives=0 gold=47 score=210 offered=72 finished=42 dropped=24 live=6 demandleft=0 pace=16 workers=0/1/1/72/0;1/2/1/46/24;2/2/2/46/0;3/1/1/42/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=7 pace=16
+PASS campaign conservation
+CONTEXT 1 POLICY 7 | ticks=3778 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/3/2/198/0;2/1/3/132/0;3/1/2/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=5 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 5 | ticks=518 wave=2 phase=3 lives=0 gold=98 score=0 offered=30 finished=0 dropped=24 live=6 demandleft=12 pace=8 workers=0/4/0/27/0;1/1/0/9/17;2/1/0/6/0;3/0/0/0/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=4 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 4 | ticks=1075 wave=3 phase=3 lives=0 gold=195 score=92 offered=66 finished=28 dropped=24 live=14 demandleft=6 pace=8 workers=0/1/0/41/14;1/2/0/40/0;2/2/0/24/0;3/1/0/16/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=3 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 3 | ticks=686 wave=2 phase=3 lives=0 gold=123 score=30 offered=42 finished=10 dropped=24 live=8 demandleft=0 pace=8 workers=0/1/0/28/8;1/1/0/14/14;2/1/0/8/0;3/3/0/5/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=2 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 2 | ticks=686 wave=2 phase=3 lives=0 gold=123 score=30 offered=42 finished=10 dropped=24 live=8 demandleft=0 pace=8 workers=0/1/0/28/8;1/1/0/14/14;2/3/0/8/0;3/1/0/5/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=1 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 1 | ticks=1075 wave=3 phase=3 lives=0 gold=195 score=92 offered=66 finished=28 dropped=24 live=14 demandleft=6 pace=8 workers=0/1/0/41/14;1/3/0/40/0;2/1/0/24/0;3/1/0/16/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=0 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 0 | ticks=434 wave=2 phase=3 lives=0 gold=126 score=35 offered=39 finished=7 dropped=24 live=8 demandleft=3 pace=8 workers=0/3/0/36/0;1/1/0/11/24;2/1/0/10/0;3/1/0/7/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=5 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 5 | ticks=5254 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/2/0/169/0;2/2/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=4 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 4 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/2/0/169/0;2/2/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=3 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 3 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/1/0/169/0;2/1/0/112/0;3/3/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=2 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 2 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/1/0/169/0;2/3/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=1 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 1 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/3/0/169/0;2/1/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=0 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 0 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/3/0/170/0;1/1/0/169/0;2/1/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=6 pace=16
+PASS campaign conservation
+CONTEXT 0 POLICY 6 | ticks=3775 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/2/2/198/0;2/2/3/132/0;3/1/2/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=7 pace=16
+PASS campaign conservation
+CONTEXT 0 POLICY 7 | ticks=3775 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/3/2/198/0;2/1/3/132/0;3/1/2/132/0;
+
+SOURCE HASHES
+FlowModel.bend 1148880a104e5410e90c3a0721995faa67a6214570b7dd2724f31bcb3a574f65
+FlowGame.bend d917db212ae99fb82c8e99f2f05b6df1d5f1954b32916c561e5fbc6ecfeb7fbe
+FlowScenario.bend 2ec1eb05b340cd293905574d85736c48c2542389cbc151a43c506ba181805be6
+FlowHeadless.bend d9a8634123885e5849f66aa13ba32ac8f95a042c67b26bb88a11ff22b2a6182b
+
+EXPLICIT NATIVE MUTANTS (temporary copies; production core unchanged)
+MUTANT clock-findings exit=1 | replace finding criterion ((ordinal+1)%3)==0 with clock%3==0
+FAIL REGRESSION immutable ticket IDs and finding sequence at pacing8/12/28 use demand ordinal
+
+MUTANT missing-reservations exit=1 | replace kept+all-ready reservation list with kept only before transfer batch
+PASS REGRESSION immutable ticket IDs and finding sequence at pacing8/12/28 use demand ordinal
+PASS REGRESSION elapsed-zero reservation prevents removing its last worker when queue capacity is zero
+FAIL REGRESSION blocked ready packet reserves middle capacity before upstream transfer
+
+MUTANT elapsed-zero-worker exit=1 | replace removal guard with workers>0 && active_in<workers, ignoring nonheld elapsed-zero occupancy
+PASS REGRESSION immutable ticket IDs and finding sequence at pacing8/12/28 use demand ordinal
+FAIL REGRESSION elapsed-zero reservation prevents removing its last worker when queue capacity is zero
+
+
+FINAL ROOT REPLAY AFTER PLAYABLE SCENARIO SELECTORS ADDED
+Command: bend FlowHeadless.bend -o /tmp/hapsland-flow-final-headless; /tmp/hapsland-flow-final-headless --threads 4
+Native exit:0
+PASS REGRESSION immutable ticket IDs and finding sequence at pacing8/12/28 use demand ordinal
+PASS REGRESSION elapsed-zero reservation prevents removing its last worker when queue capacity is zero
+PASS REGRESSION blocked ready packet reserves middle capacity before upstream transfer
+PASS pause freezes complete state
+PASS batching same number of ticks preserves complete state
+PASS initial accounting
+DECLARATION policies0..3 static stage-heavy 3/1/1/1;4 balanced1/2/2/1;5 greedy-largest-queue every30ticks. Three service/hold contexts, two pacing choices, same demand graph. All six workers conserved. No engagement or proof claim.
+AMENDMENT after initial native smoke: owner fixed outcome assignment to immutable demand ordinal and transfer resource reservations; prior core binary is not final evidence. Added balanced investment policy6 at pace16 after original extreme-context policies all lost. Default budgets and service/hold costs unchanged.
+AMENDMENT policy7 added after balanced-investment smoke could win contexts0/2 but lost slow-review context1: review-heavy allocation with same investment rule, pace16 and six workers. This is an explicit exploration addition, not an optimality claim. Final timer correction uses exact pace, not pace+1.
+PASS queued full target retains upstream packet and its resource
+PASS immediate refusal drops once, counts target refusal and releases upstream resource
+PASS successful transfer releases source and acquires target
+PASS hold retains resource for two ticks then terminal completion releases it
+PASS two-stage SORT PACK config runs unchanged generic engine
+GENERIC TWO-STAGE | ticks=4 wave=1 phase=2 lives=24 gold=39 score=1 offered=1 finished=1 dropped=0 live=0 demandleft=0 pace=10 workers=0/1/0/1/0;1/1/0/1/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=4 plan=4 pace=16
+PASS campaign conservation
+CONTEXT 4 POLICY 4 | ticks=3786 wave=6 phase=2 lives=24 gold=827 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/0/198/0;1/2/0/198/0;2/2/0/132/0;3/1/0/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=4 plan=6 pace=16
+PASS campaign conservation
+CONTEXT 4 POLICY 6 | ticks=3598 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/2/2/198/0;2/2/3/132/0;3/1/2/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=5 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 5 | ticks=754 wave=2 phase=3 lives=0 gold=108 score=10 offered=42 finished=10 dropped=24 live=8 demandleft=0 pace=8 workers=0/1/0/42/0;1/1/0/31/11;2/4/0/4/0;3/0/0/0/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=4 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 4 | ticks=810 wave=2 phase=3 lives=0 gold=147 score=61 offered=42 finished=13 dropped=24 live=5 demandleft=0 pace=8 workers=0/1/0/42/0;1/2/0/26/16;2/2/0/18/0;3/1/0/12/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=3 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 3 | ticks=532 wave=2 phase=3 lives=0 gold=110 score=15 offered=32 finished=3 dropped=24 live=5 demandleft=10 pace=8 workers=0/1/0/32/0;1/1/0/10/21;2/1/0/6/0;3/3/0/3/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=2 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 2 | ticks=452 wave=2 phase=3 lives=0 gold=122 score=30 offered=36 finished=6 dropped=24 live=6 demandleft=6 pace=8 workers=0/1/0/36/0;1/1/0/11/24;2/3/0/8/0;3/1/0/6/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=1 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 1 | ticks=882 wave=2 phase=3 lives=0 gold=128 score=34 offered=42 finished=18 dropped=24 live=0 demandleft=0 pace=8 workers=0/1/0/42/0;1/3/0/35/7;2/1/0/8/0;3/1/0/4/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=0 pace=8
+PASS campaign conservation
+CONTEXT 2 POLICY 0 | ticks=532 wave=2 phase=3 lives=0 gold=110 score=15 offered=32 finished=3 dropped=24 live=5 demandleft=10 pace=8 workers=0/3/0/32/0;1/1/0/10/21;2/1/0/6/0;3/1/0/3/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=5 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 5 | ticks=1498 wave=2 phase=3 lives=0 gold=112 score=14 offered=42 finished=14 dropped=24 live=4 demandleft=0 pace=28 workers=0/1/0/42/0;1/1/0/42/0;2/4/0/19/0;3/0/0/0/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=4 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 4 | ticks=5429 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/2/0/170/0;2/2/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=3 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 3 | ticks=2247 wave=3 phase=3 lives=0 gold=187 score=80 offered=63 finished=32 dropped=24 live=7 demandleft=9 pace=28 workers=0/1/0/63/0;1/1/0/62/0;2/1/0/21/0;3/3/0/12/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=2 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 2 | ticks=5429 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/1/0/170/0;2/3/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=1 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 1 | ticks=2247 wave=3 phase=3 lives=0 gold=187 score=80 offered=63 finished=32 dropped=24 live=7 demandleft=9 pace=28 workers=0/1/0/63/0;1/3/0/62/0;2/1/0/21/0;3/1/0/12/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=0 pace=28
+PASS campaign conservation
+CONTEXT 2 POLICY 0 | ticks=2247 wave=3 phase=3 lives=0 gold=187 score=80 offered=63 finished=32 dropped=24 live=7 demandleft=9 pace=28 workers=0/3/0/63/0;1/1/0/62/0;2/1/0/21/0;3/1/0/12/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=6 pace=16
+PASS campaign conservation
+CONTEXT 2 POLICY 6 | ticks=3760 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/2/2/198/0;2/2/3/132/0;3/1/2/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=2 plan=7 pace=16
+PASS campaign conservation
+CONTEXT 2 POLICY 7 | ticks=4173 wave=6 phase=2 lives=16 gold=75 score=686 offered=198 finished=190 dropped=8 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/3/2/198/0;2/1/3/132/0;3/1/2/124/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=5 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 5 | ticks=524 wave=2 phase=3 lives=0 gold=99 score=1 offered=30 finished=1 dropped=24 live=5 demandleft=12 pace=8 workers=0/1/0/30/0;1/5/0/7/18;2/0/0/5/0;3/0/0/0/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=4 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 4 | ticks=406 wave=2 phase=3 lives=0 gold=114 score=20 offered=30 finished=4 dropped=24 live=2 demandleft=12 pace=8 workers=0/1/0/30/0;1/2/0/4/24;2/2/0/4/0;3/1/0/4/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=3 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 3 | ticks=374 wave=2 phase=3 lives=0 gold=106 score=10 offered=27 finished=2 dropped=24 live=1 demandleft=15 pace=8 workers=0/1/0/27/0;1/1/0/2/24;2/1/0/2/0;3/3/0/2/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=2 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 2 | ticks=374 wave=2 phase=3 lives=0 gold=106 score=10 offered=27 finished=2 dropped=24 live=1 demandleft=15 pace=8 workers=0/1/0/27/0;1/1/0/2/24;2/3/0/2/0;3/1/0/2/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=1 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 1 | ticks=464 wave=2 phase=3 lives=0 gold=117 score=23 offered=36 finished=7 dropped=24 live=5 demandleft=6 pace=8 workers=0/1/0/36/0;1/3/0/9/24;2/1/0/6/0;3/1/0/4/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=0 pace=8
+PASS campaign conservation
+CONTEXT 1 POLICY 0 | ticks=374 wave=2 phase=3 lives=0 gold=106 score=10 offered=27 finished=2 dropped=24 live=1 demandleft=15 pace=8 workers=0/3/0/27/0;1/1/0/2/24;2/1/0/2/0;3/1/0/2/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=5 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 5 | ticks=1441 wave=2 phase=3 lives=0 gold=115 score=18 offered=42 finished=14 dropped=24 live=4 demandleft=0 pace=28 workers=0/1/0/42/0;1/1/0/40/2;2/4/0/22/0;3/0/0/1/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=4 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 4 | ticks=1653 wave=3 phase=3 lives=0 gold=186 score=82 offered=50 finished=22 dropped=24 live=4 demandleft=22 pace=28 workers=0/1/0/50/0;1/2/0/24/24;2/2/0/17/0;3/1/0/15/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=3 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 3 | ticks=1054 wave=2 phase=3 lives=0 gold=124 score=32 offered=33 finished=8 dropped=24 live=1 demandleft=9 pace=28 workers=0/1/0/33/0;1/1/0/8/24;2/1/0/6/0;3/3/0/6/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=2 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 2 | ticks=1054 wave=2 phase=3 lives=0 gold=124 score=32 offered=33 finished=8 dropped=24 live=1 demandleft=9 pace=28 workers=0/1/0/33/0;1/1/0/8/24;2/3/0/6/0;3/1/0/6/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=1 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 1 | ticks=3232 wave=4 phase=3 lives=0 gold=352 score=255 offered=100 finished=71 dropped=24 live=5 demandleft=8 pace=28 workers=0/1/0/100/0;1/3/0/73/24;2/1/0/48/0;3/1/0/46/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=0 pace=28
+PASS campaign conservation
+CONTEXT 1 POLICY 0 | ticks=1054 wave=2 phase=3 lives=0 gold=124 score=32 offered=33 finished=8 dropped=24 live=1 demandleft=9 pace=28 workers=0/3/0/33/0;1/1/0/8/24;2/1/0/6/0;3/1/0/6/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=6 pace=16
+PASS campaign conservation
+CONTEXT 1 POLICY 6 | ticks=1370 wave=3 phase=3 lives=0 gold=47 score=210 offered=72 finished=42 dropped=24 live=6 demandleft=0 pace=16 workers=0/1/1/72/0;1/2/1/46/24;2/2/2/46/0;3/1/1/42/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=1 plan=7 pace=16
+PASS campaign conservation
+CONTEXT 1 POLICY 7 | ticks=3778 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/3/2/198/0;2/1/3/132/0;3/1/2/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=5 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 5 | ticks=518 wave=2 phase=3 lives=0 gold=98 score=0 offered=30 finished=0 dropped=24 live=6 demandleft=12 pace=8 workers=0/4/0/27/0;1/1/0/9/17;2/1/0/6/0;3/0/0/0/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=4 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 4 | ticks=1075 wave=3 phase=3 lives=0 gold=195 score=92 offered=66 finished=28 dropped=24 live=14 demandleft=6 pace=8 workers=0/1/0/41/14;1/2/0/40/0;2/2/0/24/0;3/1/0/16/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=3 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 3 | ticks=686 wave=2 phase=3 lives=0 gold=123 score=30 offered=42 finished=10 dropped=24 live=8 demandleft=0 pace=8 workers=0/1/0/28/8;1/1/0/14/14;2/1/0/8/0;3/3/0/5/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=2 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 2 | ticks=686 wave=2 phase=3 lives=0 gold=123 score=30 offered=42 finished=10 dropped=24 live=8 demandleft=0 pace=8 workers=0/1/0/28/8;1/1/0/14/14;2/3/0/8/0;3/1/0/5/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=1 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 1 | ticks=1075 wave=3 phase=3 lives=0 gold=195 score=92 offered=66 finished=28 dropped=24 live=14 demandleft=6 pace=8 workers=0/1/0/41/14;1/3/0/40/0;2/1/0/24/0;3/1/0/16/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=0 pace=8
+PASS campaign conservation
+CONTEXT 0 POLICY 0 | ticks=434 wave=2 phase=3 lives=0 gold=126 score=35 offered=39 finished=7 dropped=24 live=8 demandleft=3 pace=8 workers=0/3/0/36/0;1/1/0/11/24;2/1/0/10/0;3/1/0/7/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=5 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 5 | ticks=5254 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/2/0/169/0;2/2/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=4 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 4 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/2/0/169/0;2/2/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=3 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 3 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/1/0/169/0;2/1/0/112/0;3/3/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=2 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 2 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/1/0/169/0;2/3/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=1 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 1 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/1/0/170/0;1/3/0/169/0;2/1/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=0 pace=28
+PASS campaign conservation
+CONTEXT 0 POLICY 0 | ticks=5249 wave=6 phase=3 lives=0 gold=696 score=606 offered=198 finished=166 dropped=27 live=5 demandleft=0 pace=28 workers=0/3/0/170/0;1/1/0/169/0;2/1/0/112/0;3/1/0/110/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=6 pace=16
+PASS campaign conservation
+CONTEXT 0 POLICY 6 | ticks=3775 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/2/2/198/0;2/2/3/132/0;3/1/2/132/0;
+PASS per-tick first-wave conservation and resource/worker accounting context=0 plan=7 pace=16
+PASS campaign conservation
+CONTEXT 0 POLICY 7 | ticks=3775 wave=6 phase=2 lives=24 gold=107 score=726 offered=198 finished=198 dropped=0 live=0 demandleft=0 pace=16 workers=0/1/3/198/0;1/3/2/198/0;2/1/3/132/0;3/1/2/132/0;
+
+Final source fingerprints:
+FlowModel.bend 1148880a104e5410e90c3a0721995faa67a6214570b7dd2724f31bcb3a574f65
+FlowGame.bend d917db212ae99fb82c8e99f2f05b6df1d5f1954b32916c561e5fbc6ecfeb7fbe
+FlowScenario.bend e141058fa239a512a575d5eeba0a24b477354035a26004a8c20c3f7165ef2831
+FlowHeadless.bend d9a8634123885e5849f66aa13ba32ac8f95a042c67b26bb88a11ff22b2a6182b

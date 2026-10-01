@@ -68,3 +68,37 @@ it("same-time completion and deadline follow recorded insertion order", () => {
   ]);
   expect(afterCompletion.observations.find((item) => item.event.kind === "jevRequestSettled")?.commands.map((command) => command.kind)).toContain("retainFinding");
 });
+
+it("offers one ordinary delivery attempt for a completed single-unit edit", () => {
+  const run = createRun({ inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5], outcome: "finding" }], jevDelay: 5 });
+  run.advance({ untilTime: 20 });
+  expect(run.observations.filter((item) => item.event.kind === "collectionReady")).toHaveLength(1);
+  expect(run.observations.filter((item) => item.event.kind === "collectionReserveLease")).toHaveLength(1);
+  expect(run.observations.filter((item) => item.rejection)).toEqual([]);
+});
+
+it("readies completed findings after a Stop deadline cancels sibling work", () => {
+  const run = createRun({
+    inputs: [
+      { at: 0, kind: "edit", bytes: 10, unitBytes: [5, 5], outcome: "finding" },
+      { at: 5, kind: "finish" },
+    ],
+    jevDelay: 1000,
+    finishDeadline: 5,
+  });
+  run.advance({ untilTime: 3 });
+  const issued = run.observations.flatMap((item) => item.commands.filter((command) => command.kind === "jevRequestIssued"));
+  expect(issued).toHaveLength(2);
+  const { kind: _kind, ...binding } = issued[0]!;
+  run.schedule({ at: 4, kind: "canonical", event: { kind: "jevRequestSettled", ...binding, outcome: "finding", currentWork: true } });
+  run.advance({ untilTime: 20 });
+  const deadline = run.observations.find((item) => item.event.kind === "stopPolled" && item.time === 10);
+  expect(deadline?.commands.map((command) => command.kind)).toContain("finishReady");
+  expect(run.observations.some((item) => item.event.kind === "collectionReady" && item.time === 10 &&
+    item.commands.some((command) => command.kind === "collectionEligible"))).toBe(true);
+  expect(run.observations.filter((item) => item.event.kind === "collectionReserveLease")).toHaveLength(1);
+  expect(run.observations.filter((item) => item.event.kind === "submissionBegin")).toHaveLength(1);
+  expect(run.observations.some((item) => item.commands.some((command) => command.kind === "submissionBegun"))).toBe(true);
+  expect(run.observations.filter((item) => item.event.kind === "collectionReserveLease" && item.rejection)).toEqual([]);
+  expect(run.observations.filter((item) => item.event.kind === "submissionBegin" && item.rejection)).toEqual([]);
+});

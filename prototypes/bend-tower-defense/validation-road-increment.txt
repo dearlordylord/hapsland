@@ -1,0 +1,117 @@
+Purpose: Native executable evidence for the recommended architectural-defense increment.
+Status: Validation evidence; throwaway prototype, not product contract or engagement evidence.
+Authority: Bounded native execution of RoadGame.bend; no formal proof claim.
+Expected use: Inspect automatic service, resource contracts, Stop boundaries and policy feasibility.
+Lifecycle: Consolidate useful decisions into accepted prototype design when this increment is accepted; delete this temporary trace when prototype is retired. Historical validation-road.txt remains separate.
+
+PRE-EXECUTION DECLARATION
+36 cases: four scenario profiles x pace12/18/28 x three policies.
+Policy0: construct nothing. Policy1: rapid at left/right bridges. Policy2: rapid left, batch right.
+Only actual key/click construction and upgrades between waves; no manual service/activation.
+All start with canonical120 gold; spending is actual engine-controlled, not equal ex-post capital.
+Investment: upgrade right then left; construct/upgrade rapid reinforcement at368208,112208,176400.
+Common maximum fuel14000 ticks; stop immediately when terminal. Every executed active tick audits conservation, unique IDs, storage/road/worker bounds, health, pressure, writer byte capacity and live membership. Terminal state audited and active fuel exhaustion fails.
+Finding-review completions overlap submitted findings; conservation uses finished=clear+acknowledged, not findings+acknowledged.
+Policies are feasibility witnesses and choice proxies, not proof of optimal strategy or human enjoyment.
+
+POST-EXECUTION HARNESS AMENDMENT
+Initial harness unnecessarily audited unchanged terminal state to full14000 fuel and evaluated discarded construction branch each tick. Run stopped before first case printed; no campaign outcome used. Added terminal early exit, phase-matched construction branch and explicit final-state/fuel audit, without changing policy decisions or engine.
+
+DIRECTED MUTATION EVIDENCE
+Before-budget-fix native snapshot /tmp/hapsland-road-increment-before-frontier-fixes:
+PASS completed Review finding survives cutoff (fix already present by snapshot time).
+FAIL REGRESSION exhausted response budget becomes frozen incomplete and N cannot replenish.
+Current core: both PASS.
+Single-condition lane mutant /tmp/hapsland-road-increment-lane-mutant:
+Removed selected-member exception from endpoint entry, retaining eight pending output slots.
+FAIL REGRESSION byte-reserved writer lane admits selected member despite eight pending output slots.
+Current core: PASS.
+These are teaching-prototype regressions, not production Hapsland defect witnesses.
+
+HARNESS CORRECTION (post-execution)
+First invalid campaign cases profile0 pace12 policies0/1 were identical because primary-click argument was1 (engine requires0). This is a harness error, not an engine defect or strategy result. Stopped run, corrected construction/upgrade clicks to0, and added actual two-bridge construction/cost fixture (70rapid,90mixed). Invalid stdout preserved at /tmp/road-increment-invalid-click-output.txt. No initial campaign conclusion retained.
+
+BEFORE FINAL RUN AMENDMENT (root-approved)
+Reduce36 declared cases to12 representative cases: allfour profiles x policies0/2 atpace18 (8), default atpaces12/28 x policies1/2 (4). Full initial no-op and pre-chain-fix attempts preserved separately, not balance evidence. Conservation and identity uniqueness audited every tick; full resources/worker/byte bounds every20ticks and first/final states, plus simultaneous full-capacity directed fixtures. This reduces expensive full invariant computation while retaining direct transient boundary witnesses. Core now reserves writer transit through the entire intermediate chain, so add completed-review/full-advice-road and selected-arrival/full-advice-storage fixtures before final run.
+
+FINAL FIXTURE STRENGTHENING
+Full-chain fixture advances150ticks against240tick writer expiry and requires selected ID1 acknowledged, absent from live ownership, no limited outcome. Identity fixture observes firstthree ordinals at57ticks for paces12/28, including clear third outcome; this distinguishes a clock-based classification mutant even if ordinal IDs are retained. Native directed fixtures33PASS.
+Chain admission mutant removes reserved-ID road-cap bypass, restores blocked handoff and fails selected completed-review/full-advice-road witness. Earlier output-only lane mutant and four-response snapshot failure remain distinct evidence.
+
+RECONSTRUCTED CLOCK-PATTERN MUTANT (isolated native run)
+Retains immutable ordinal IDs but changes finding classification to (ordinal*pace+1)%3, reproducing first-wave clock-pattern dependence. Checked and compiled /tmp/hapsland-road-increment-clock-mutant.
+FAIL same demand identities and findings across12/28 pacing with different offer counts.
+Current native core same strengthened fixture PASS. This is an intentional scratch mutation, not a new production incident.
+
+FINAL SOURCE SHA256
+5b64f684d3cbc82402df9e49a95b432eb62f35a60863111b35f612cbb4872833  RoadModel.bend
+44337b302babd01decc38165edd255489157b7eec545b24c10b71e0a5857392a  RoadGame.bend
+619183719f564b067aaefbe4cc70484d2d28467685c37045151c430e554b0c09  RoadScenario.bend
+b71f1de5f954cfbc76b139ef6cd488dff5513004ea09c9ba750031ed050d426a  RoadHeadless.bend
+
+FINAL NATIVE STDOUT (exit0;33 directed fixtures and12 campaign terminal audits)
+PASS two stored packets share one worker; only first has a service permit
+PASS natural service never decrements queued work without a permit
+PASS completed work releases permit immediately while both storage resources remain occupied
+PASS batch tower accelerates active permit only and cannot hit queued siblings
+PASS fixed three-member group waits for siblings not yet offered
+PASS offering all members does not bypass a live source/review sibling
+PASS unrelated complete edit group obtains permit despite older blocked group
+PASS synthetic group fixture has truthful complete outcome accounting
+PASS byte prefix fits exactly cap52 including12header and8per-item, retains third overflow
+PASS exclusive byte prefix contains no duplicate member IDs
+PASS single53byte record cannot fit52cap and is explicitly oversized, next record remains selectable
+PASS unrelated complete group actually departs earlier while older group waits
+PASS writer acknowledges only its exclusive byte-selected members
+PASS completed writer cannot acknowledge members twice
+PASS partial batch flushes automatically at fixed age without manual activation
+PASS selected member still outside writer prevents acknowledgement
+PASS oversized finding is limited and never reclassified clear
+PASS Stop waits for unfinished upstream before absolute deadline
+PASS cutoff cancels upstream truthfully and releases partial authored advice
+PASS cutoff retains original absolute deadline
+PASS Stop also waits for an active writer
+PASS pause freezes complete state including deadlines writer and outcomes
+PASS tick batching is deterministic
+PASS REGRESSION byte-reserved writer lane admits selected member despite eight pending output slots
+PASS REGRESSION selected completed review traverses full pending advice road
+PASS REGRESSION writer reservation spans full intermediate advice storage and roads without ghost ownership
+PASS REGRESSION full reserved review-advice-output route acknowledges selected finding before240tick expiry
+PASS REGRESSION completed review finding survives cutoff despite blocked physical handoff
+PASS REGRESSION exhausted response budget becomes frozen incomplete and N cannot replenish
+PASS same demand identities and findings across12/28 pacing with different offer counts
+PASS final authored arrival automatically starts Stop without manual activation
+PASS cutoff and terminal freeze admit no late work or late acknowledgement
+PASS actual primary clicks construct two bridges at declared costs70 and90
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=18 policy=0 WAVE=5 PHASE=3 LIFE=0 GOLD=1159 SCORE=553 DONE=153 LOST=0 ENEMIES=18 TICK=4521 STOP=0 ACK=100 FINDINGS=106 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=171 ACK=100 CANCEL=0 LIMIT=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=18 policy=2 WAVE=6 PHASE=2 LIFE=118 GOLD=1027 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=5429 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 OFFERED=234 ACK=156 CANCEL=0 LIMIT=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=1 pace=18 policy=0 WAVE=5 PHASE=3 LIFE=0 GOLD=1042 SCORE=486 DONE=134 LOST=0 ENEMIES=17 TICK=4260 STOP=0 ACK=88 FINDINGS=93 CANCELLED=0 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=151 ACK=88 CANCEL=0 LIMIT=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=1 pace=18 policy=2 WAVE=6 PHASE=2 LIFE=100 GOLD=1027 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=5488 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 OFFERED=234 ACK=156 CANCEL=0 LIMIT=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=2 pace=18 policy=0 WAVE=3 PHASE=3 LIFE=0 GOLD=467 SCORE=177 DONE=49 LOST=24 ENEMIES=17 TICK=2847 STOP=1 ACK=32 FINDINGS=34 CANCELLED=6 LIMITED=0 ATTEMPTS=0 BYTES=0 OFFERED=90 ACK=32 CANCEL=6 LIMIT=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=2 pace=18 policy=2 WAVE=6 PHASE=2 LIFE=42 GOLD=1027 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=5832 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 OFFERED=234 ACK=156 CANCEL=0 LIMIT=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=3 pace=18 policy=0 WAVE=5 PHASE=3 LIFE=0 GOLD=1024 SCORE=473 DONE=133 LOST=5 ENEMIES=17 TICK=4401 STOP=0 ACK=85 FINDINGS=96 CANCELLED=0 LIMITED=5 ATTEMPTS=0 BYTES=0 OFFERED=155 ACK=85 CANCEL=0 LIMIT=5
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=3 pace=18 policy=2 WAVE=6 PHASE=2 LIFE=104 GOLD=955 SCORE=813 DONE=225 LOST=9 ENEMIES=0 TICK=5468 STOP=4 ACK=147 FINDINGS=156 CANCELLED=0 LIMITED=9 ATTEMPTS=1 BYTES=0 OFFERED=234 ACK=147 CANCEL=0 LIMIT=9
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=12 policy=1 WAVE=6 PHASE=2 LIFE=107 GOLD=1047 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=4228 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 OFFERED=234 ACK=156 CANCEL=0 LIMIT=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=12 policy=2 WAVE=6 PHASE=2 LIFE=102 GOLD=1027 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=4182 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 OFFERED=234 ACK=156 CANCEL=0 LIMIT=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=28 policy=1 WAVE=6 PHASE=2 LIFE=127 GOLD=1047 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=7595 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 OFFERED=234 ACK=156 CANCEL=0 LIMIT=0
+PASS campaign terminates within fuel and final state satisfies audits
+CASE profile=0 pace=28 policy=2 WAVE=6 PHASE=2 LIFE=123 GOLD=1027 SCORE=858 DONE=234 LOST=0 ENEMIES=0 TICK=7619 STOP=4 ACK=156 FINDINGS=156 CANCELLED=0 LIMITED=0 ATTEMPTS=1 BYTES=0 OFFERED=234 ACK=156 CANCEL=0 LIMIT=0
+
+RESULT INTERPRETATION AND LIMITATIONS
+8/12 campaigns win; allfour undefended pace18 contexts lose. Both defended policies win default pace12/28; mixed policy wins allfour pace18 contexts.
+Default mixed pace18:234 offered=234 finished+0 live+0 dropped;78 clear+156 acknowledged findings;156 authored findings. Six waves complete at5429ticks with118health.
+Capture-heavy mixed health100; Review-heavy mixed health42; Output-batching mixed health104,225finished+9limited=234offered. Oversized findings remain findings/limited, not clear.
+Default pace12: rapid health107/time4228, mixed health102/time4182. Default pace28: rapid health127/time7595, mixed health123/time7619. Mixed does not dominate both objectives; slower pace retains more health but takes longer. These are bounded policy witnesses, not optimization proof.
+Defended initial capital differs: rapid70, mixed90 out of common120 budget. Final gold differs accordingly. Do not attribute joint placement/type/investment outcomes to a single parameter independently or call these equal-spend causal comparisons.
+Full capacity checks sampled every20ticks plus first/final and directed worst-case simultaneous occupancy fixtures; conservation/ID uniqueness every executed tick. This is not exhaustive state coverage. Human engagement and teaching effectiveness remain untested. No live Hapsland/Jev requests, formal proof approval, or product specification acceptance implied.

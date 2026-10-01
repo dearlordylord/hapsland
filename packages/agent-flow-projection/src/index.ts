@@ -195,13 +195,18 @@ export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: Recor
       identity: `advice:${lease.advice}` });
     changedStages.add("advice"); changedStages.add("collection");
   }
-  if (step.event.kind === "collectionReady") for (const id of step.after.collection.ready) if (!step.before.collection.ready.includes(id)) {
-    evidence.push({ from: "outcomes", to: "advice", source: "native fact",
-      description: `${recordLabel("advice", id, numbers)} supplied ready by native storage; producing work ID is not projected`, identity: `ready-advice:${id}` });
+  const event = step.event;
+  if (event.kind === "collectionReady") for (const id of step.after.collection.ready) if (
+    id === event.advice && !step.before.collection.ready.includes(id) &&
+    step.before.work.some((work) => work.operation === id && work.kind === "pendingFinding" &&
+      work.parent === event.observation && work.partition === event.partition &&
+      work.lifetime === event.lifetime && work.round === event.round)) {
+    evidence.push({ from: "outcomes", to: "advice", source: "state", relation: "linked record",
+      description: `Bend marked ${recordLabel("advice", id, numbers)} ready from ${recordLabel("review", id, numbers)} for edit observation ${event.observation}; joined work status was supplied by the resident`,
+      identity: `work:${id}` });
     changedStages.add("outcomes"); changedStages.add("advice");
   }
   const kinds = commandKinds(step.commands);
-  const event = step.event;
   const clearedReview = event.kind === "jevRequestSettled" && event.outcome === "clear" &&
     step.commands.some((command) => command.kind === "reviewRecorded" && command.outcome === "clear") &&
     step.before.work.some((work) => work.operation === event.operation && work.kind === "atJev" &&

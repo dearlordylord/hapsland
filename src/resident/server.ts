@@ -888,12 +888,11 @@ export class ResidentServer {
     }
   }
 
-  #collectionReady(advice: Advice, mode: CollectionMode): boolean {
+  #collectionReady(advice: Advice): boolean {
     const joinedPending = [...this.#joinedReviews.values()].some((reviews) =>
       reviews.some((review) => review.admission === advice.admissionId));
     const result = this.#ledger.transition({ kind: "collectionReady",
-      advice: advice.canonicalOperationId, already: advice.collectionEligible,
-      turnEnd: mode === "turn-end", partition: this.#ledger.partitionId(advice.partition),
+      advice: advice.canonicalOperationId, partition: this.#ledger.partitionId(advice.partition),
       lifetime: this.#ledger.canonicalLifetime, round: advice.canonicalRound,
       observation: advice.admissionId, joinedPending });
     if (result.rejection !== undefined) throw new Error("canonical collection readiness refused");
@@ -1033,7 +1032,7 @@ export class ResidentServer {
       return result.commands[0]?.kind === "collectionCandidate";
     });
     for (const item of available) {
-      if (this.#collectionReady(item, mode)) item.collectionEligible = true;
+      if (this.#collectionReady(item)) item.collectionEligible = true;
     }
     const eligible = available.filter((item) => item.collectionEligible)
       .sort((left, right) => this.#collectionOrder(left, right))

@@ -1032,13 +1032,13 @@ law collection_orders_later_sequence_after_earlier:
   {Collection.order(9n, 4n) == Collection.After{} : Collection.Order}
 
 law collection_waits_for_edit_completion:
-  {Collection.eligible(False{}, False{}, False{}) == False{} : Bool}
+  {Collection.eligible(False{}, False{}) == False{} : Bool}
 
 law collection_edit_completion_unblocks:
-  {Collection.eligible(False{}, False{}, True{}) == True{} : Bool}
+  {Collection.eligible(False{}, True{}) == True{} : Bool}
 
 law collection_stop_may_send_ready_part:
-  {Collection.eligible(False{}, True{}, False{}) == True{} : Bool}
+  {Collection.eligible(True{}, False{}) == True{} : Bool}
 
 law pending_advice_expires_at_boundary:
   {Collection.expired(600000n, 600000n) == True{} : Bool}
