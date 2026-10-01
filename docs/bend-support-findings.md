@@ -147,3 +147,15 @@ new attempt declaration and record paths before running
 send requests. Run package conformance with
 `node scripts/run-clean-package-conformance.mjs` using the repository's pinned
 Node runtime.
+
+The cross-file amendment has separate [split-file live evidence](../evidence/cross-file-support/paired-designs-1.json)
+and a [preexecution declaration](../evidence/cross-file-support/declaration-1.json).
+Eight bounded requests used actual observation preparation and rendering: Rust
+bad probabilities 0.87/0.84 versus good 0.06/0.06; Bend bad 0.78/0.79 versus good
+0.07/0.06, with a 0.7 threshold. All four synthetic fixtures passed compiler
+checks. Supporting-file mutation invalidated each preparation; restoration made
+it current again. [Linux installed-package evidence](../evidence/cross-file-support/linux-package.json)
+separately verifies Rust and Bend cross-file preparation in production-only
+installations. These results establish these cases, not general review accuracy
+or native-agent response to cross-file advice. The declared request cap was
+respected and no source-bearing responses were retained.

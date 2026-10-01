@@ -567,6 +567,60 @@ console.log(JSON.stringify({ status: "passed", cargoAuthority: true, supportingF
     "installed Rust cross-file preparation");
   if (rustPreparation.status !== "passed") throw new Error("installed Rust cross-file check did not pass");
 
+  progress("installed-bend-cross-file-preparation");
+  const bendRepository = join(temporary, "bend-cross-file-repository");
+  await mkdir(join(bendRepository, "src"), { recursive: true });
+  await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: bendRepository });
+  const bendRootSource = "import Base\nimport ./receipt.bend as R\ntype Root is Data:\n  Root{receipt: R.Receipt}\n";
+  await writeFile(join(bendRepository, "src/model.bend"), bendRootSource);
+  await writeFile(join(bendRepository, "src/receipt.bend"), "import Base\ntype Receipt is Data:\n  Receipt{id: String}\n");
+  const bendPreparationHelper = join(installation, "bend-cross-file-check.mjs");
+  await writeFile(bendPreparationHelper, `
+import * as Effect from "effect/Effect";
+import { pathToFileURL } from "node:url";
+import { join } from "node:path";
+const [installed, repository] = process.argv.slice(2);
+const load = (path) => import(pathToFileURL(join(installed, "dist", path)).href);
+const { adaptCodexAdd } = await load("direct-event/adapter.js");
+const { prepareObservation, preparedProviderInput, preparedUnitStillCurrent } = await load("direct-event/pipeline.js");
+const { compileRulePack } = await load("rules/compiler.js");
+const { TYPE_INPUT_CONTRACT } = await load("rules/targets.js");
+const { DEFAULT_BACKEND, DEFAULT_DESTINATION } = await load("runtime/review-config.js");
+const rules = compileRulePack({ schemaVersion: 1, id: "bend-package", contentVersion: "1", rules: [{
+  id: "shape", question: "Does this type admit invalid states?", criteria: { false: "No", true: "Yes" },
+  message: "Use a datatype", reviewTargets: [{ artifactKind: "typeShape", inputContract: TYPE_INPUT_CONTRACT,
+    capabilities: ["root-declaration", "resolved-outbound-types"] }],
+}] }, "package-conformance");
+await Effect.runPromise(Effect.gen(function* () {
+  const observation = yield* adaptCodexAdd({ hook_event_name: "PostToolUse", tool_name: "apply_patch",
+    session_id: "bend-package-session", turn_id: "bend-package-turn", tool_use_id: "bend-package-add",
+    cwd: repository, tool_input: { command: ${JSON.stringify(`*** Begin Patch\n*** Add File: src/model.bend\n${bendRootSource.trim().split("\n").map((line) => `+${line}`).join("\n")}\n*** End Patch`)} }, tool_response: {} });
+  if (observation === undefined) throw new Error("installed Bend observation adaptation failed");
+  const reads = [];
+  const context = { controlledWriter: true, advicee: observation.advicee,
+    settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules,
+    captureHooks: { sourceRead: (path) => reads.push(path) } };
+  const result = yield* prepareObservation(observation, context);
+  const ready = result.outcomes.find((outcome) => outcome.status === "ready");
+  if (ready?.status !== "ready") throw new Error("installed Bend cross-file preparation failed");
+  const rendered = preparedProviderInput(ready.prepared);
+  if (rendered?.artifact.name !== "Root" || rendered.artifact.domain !== "src/model.bend" ||
+      !rendered.evidence.nodes.some((node) => node.name === "Receipt" && node.domain === "src/receipt.bend") ||
+      !rendered.evidence.edges.some((edge) => edge.symbol === "R.Receipt" && edge.kind === "expanded") ||
+      reads.filter((path) => path === "src/receipt.bend").length !== 2 ||
+      JSON.stringify(ready.prepared.input.sourceFingerprints?.map((source) => source.path)) !==
+        JSON.stringify(["src/model.bend", "src/receipt.bend"]) ||
+      !(yield* preparedUnitStillCurrent(observation, ready.prepared, context))) {
+    throw new Error("installed Bend cross-file rendering or source authority failed");
+  }
+}));
+console.log(JSON.stringify({ status: "passed", qualifiedImportResolved: true, stableCaptures: true, supportingFileResolved: true, rendered: true }));
+`);
+  const bendPreparation = parseJson((await mustRun(process.execPath,
+    [bendPreparationHelper, packageDirectory, bendRepository], { cwd: temporary })).stdout,
+    "installed Bend cross-file preparation");
+  if (bendPreparation.status !== "passed") throw new Error("installed Bend cross-file check did not pass");
+
   const answers = Object.fromEntries([
     "r1_inferred_case", "r2_meaningless_combinations", "r3_split_correlations",
     "r4_duplicate_encoding", "r5_absence_confusion", "r6_bare_domain_value",
@@ -1382,6 +1436,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
     isolation: { temporaryInstallation: true, developmentDependencies: false, checkoutPathUsedAtRuntime: false, retainedSyntheticSource: false },
     entryPoints: { cli: "passed", parser: "passed", resident: "passed", hook: "passed" },
     rustPreparation,
+    bendPreparation,
     installation: {
       preview: "passed",
       installed: "passed",
