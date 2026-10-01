@@ -1,3 +1,4 @@
+import { residentTicketInput } from "../test-support/resident-ticket.ts";
 import { it } from "@effect/vitest";
 import { expect } from "vitest";
 import { Effect } from "effect";
@@ -7,8 +8,8 @@ const revision = Object.freeze({ subject: "fixture", token: "revision-token", ge
 
 it.effect("publishes canonical unit progress and immutable native metadata together", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  owner.transition({ kind: "ticketOpen", id: 1 });
-  const unit = owner.ticketUnits.add(1);
+  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const unit = owner.ticketUnits.add(ticket);
   expect(Object.isFrozen(unit)).toBe(true);
   expect(unit.stage()?.stage).toBe("pending");
   expect(unit.step("findingResult", "lost", { revision, adviceId: "advice" })).toBe(true);
@@ -22,8 +23,8 @@ it.effect("publishes canonical unit progress and immutable native metadata toget
 
 it.effect("rolls back canonical progress when native metadata fails validation", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  owner.transition({ kind: "ticketOpen", id: 1 });
-  const unit = owner.ticketUnits.add(1);
+  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const unit = owner.ticketUnits.add(ticket);
   const before = owner.canonicalProjection();
   expect(() => unit.step("findingResult", "lost", { revision })).toThrow("native ticket unit metadata");
   expect(owner.canonicalProjection()).toEqual(before);
@@ -32,27 +33,29 @@ it.effect("rolls back canonical progress when native metadata fails validation",
   expect(unit.step("findingResult", "lost", { revision, adviceId: "advice" })).toBe(true);
 }));
 
-it.effect("does not consume a native unit identity on rejected canonical admission", () => Effect.gen(function* () {
+it.effect("does not consume a native unit identity when its parent capability is rejected", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  expect(() => owner.ticketUnits.add(99)).toThrow("canonical ticket unit admission refused");
+  const foreign = { ...residentTicketInput(owner.residentLifetime), generation: 99 };
+  expect(() => owner.ticketUnits.add(foreign)).toThrow("ticket capability");
   expect(owner.ticketUnits.values()).toEqual([]);
-  owner.transition({ kind: "ticketOpen", id: 1 });
-  expect(owner.ticketUnits.add(1).id).toBe(1);
+  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  expect(owner.ticketUnits.add(ticket).id).toBe(1);
 }));
 
 it.effect("fences forgotten and cleared capabilities when numeric unit identities are reused", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  owner.transition({ kind: "ticketOpen", id: 1 });
-  const old = owner.ticketUnits.add(1);
+  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const old = owner.ticketUnits.add(ticket);
   old.step("clearResult", "lost", { revision });
-  owner.ticketUnits.forget(1);
+  owner.tickets.forget(ticket);
   expect(old.current).toEqual({});
   expect(old.stage()).toBeUndefined();
   expect(old.step("failUnit", "lost", {})).toBe(false);
   owner.clear();
-  owner.transition({ kind: "ticketOpen", id: 1 });
-  const replacement = owner.ticketUnits.add(1);
+  const replacementTicket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const replacement = owner.ticketUnits.add(replacementTicket);
   expect(replacement.id).toBe(old.id);
+  expect(() => owner.ticketUnits.add(ticket)).toThrow("ticket capability");
   expect(old.step("findingResult", "lost", { revision, adviceId: "stale" })).toBe(false);
   expect(replacement.stage()?.stage).toBe("pending");
   expect(replacement.current).toEqual({});

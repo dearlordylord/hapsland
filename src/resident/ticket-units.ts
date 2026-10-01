@@ -1,3 +1,4 @@
+import type { TicketRecord } from "./ticket-records.ts";
 import type { CanonicalCommand, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import type { CapacityLedger } from "./capacity.ts";
 import type { WorkRevision } from "./revision.ts";
@@ -65,7 +66,6 @@ export const ticketUnitOperations = (draft: ReturnType<typeof draftTicketUnits>,
   };
 };
 export interface TicketUnits {
-  readonly add: (ticketId: number) => TicketUnit;
+  readonly add: (record: TicketRecord) => TicketUnit;
   readonly values: () => ReadonlyArray<TicketUnit>;
-  readonly forget: (ticketId: number) => void;
 }

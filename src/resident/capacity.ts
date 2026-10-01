@@ -1,3 +1,4 @@
+import { initialTicketRecords, draftTicketRecords, ticketRecordOperations, type TicketRecordsState, type TicketRecords } from "./ticket-records.ts";
 import { initialTicketUnits, draftTicketUnits, ticketUnitOperations, ticketUnitView, emptyTicketUnitCurrent, type TicketUnitsState, type TicketUnit, type TicketUnits } from "./ticket-units.ts";
 import { initialRevision, draftRevision, revisionOperations, type RevisionState, type RevisionOperations } from "./revision.ts";
 import { initialDispatchRegistry, type DispatchRegistry, type DispatchState } from "./dispatch.ts";
@@ -112,6 +113,7 @@ type ResidentRecords<Pending, Key, Value> = {
   readonly dispatch: DispatchRegistry<Key, Value>;
   readonly revision: RevisionState;
   readonly ticketUnits: TicketUnitsState;
+  readonly tickets: TicketRecordsState;
 };
 type CapacityState = {
   readonly residentLifetime: string;
@@ -150,7 +152,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
     records: { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
-      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits() },
+      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords() },
   });
   const read = <A>(operation: (current: CapacityState) => A): A =>
     Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
@@ -172,39 +174,62 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
   const commit = <A>(operation: (draft: CapacityDraft) => A): A =>
     commitAll((draft, records) => [operation(draft), records]);
   const capacity = capacityOperations(commit, read, residentLifetime);
-  const unitCommit = <A>(operation: (operations: ReturnType<typeof ticketUnitOperations>) => A): A =>
+  const unitCommit = <A>(operation: (operations: ReturnType<typeof ticketUnitOperations>, tickets: TicketRecordsState) => A): A =>
     commitAll((draft, records) => {
       const ticketUnits = draftTicketUnits(records.ticketUnits);
       const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
-      const value = operation(ticketUnitOperations(ticketUnits, owner));
+      const value = operation(ticketUnitOperations(ticketUnits, owner), records.tickets);
       return [value, { ...records, ticketUnits }];
     });
   const ticketUnits: TicketUnits = {
-    add: (ticketId) => unitCommit((operations) => operations.add(ticketId, (id, ticketId) => {
-      const capability: TicketUnit = Object.freeze<TicketUnit>({
-        id, ticketId,
-        get current() {
-          const entry = Ref.getUnsafe(state).records.ticketUnits.entries.get(id);
-          return entry?.capability === capability ? entry.current : emptyTicketUnitCurrent;
-        },
-        stage: () => commitAll((draft, records) => {
-          const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
-          return [ticketUnitView(records.ticketUnits, owner).stage(capability), records];
-        }),
-        step: (event, reason, current) => unitCommit((operations) => operations.step(capability, event, reason, current)),
+    add: (record) => unitCommit((operations, tickets) => {
+      if (tickets.entries.get(record.ticket.nonce) !== record) {
+        throw new Error("native ticket unit admission lost its ticket capability");
+      }
+      return operations.add(record.generation, (id, ticketId) => {
+        const capability: TicketUnit = Object.freeze<TicketUnit>({
+          id, ticketId,
+          get current() {
+            const entry = Ref.getUnsafe(state).records.ticketUnits.entries.get(id);
+            return entry?.capability === capability ? entry.current : emptyTicketUnitCurrent;
+          },
+          stage: () => commitAll((draft, records) => {
+            const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+            return [ticketUnitView(records.ticketUnits, owner).stage(capability), records];
+          }),
+          step: (event, reason, current) => unitCommit((operations) => operations.step(capability, event, reason, current)),
+        });
+        return capability;
       });
-      return capability;
-    })),
+    }),
     values: () => [...Ref.getUnsafe(state).records.ticketUnits.entries.values()].map((entry) => entry.capability),
-    forget: (ticketId) => unitCommit((operations) => operations.forget(ticketId)),
+  };
+  const ticketCommit = <A>(operation: (operations: ReturnType<typeof ticketRecordOperations>) => A): A =>
+    commitAll((draft, records) => {
+      const tickets = draftTicketRecords(records.tickets);
+      const ticketUnits = draftTicketUnits(records.ticketUnits);
+      const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+      const units = ticketUnitOperations(ticketUnits, owner);
+      const operations = ticketRecordOperations(tickets, owner, units.forget);
+      const value = operation(operations);
+      operations.assert();
+      return [value, { ...records, tickets, ticketUnits }];
+    });
+  const tickets: TicketRecords = {
+    open: (input) => ticketCommit((operations) => operations.open(input)),
+    get: (nonce) => Ref.getUnsafe(state).records.tickets.entries.get(nonce),
+    forget: (record) => ticketCommit((operations) => operations.forget(record)),
+    discardPartition: (partition) => ticketCommit((operations) => operations.discardPartition(partition)),
+    retain: (limit) => ticketCommit((operations) => operations.retain(limit)),
   };
   return {
     ...capacity,
     ticketUnits,
+    tickets,
     clear: () => commitAll((draft, records) => {
       const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
-      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(),
+      return [clear(draft), { reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(),
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     }),
     revision: (() => {

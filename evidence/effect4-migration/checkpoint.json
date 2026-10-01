@@ -54,7 +54,12 @@
     "Native ticket-unit identities and immutable revision/advice metadata now share the canonical/capacity/reuse/delivery/dispatch/revision Ref; deleted the server unit Set, unit counter and mutable current-field assignments",
     "Ticket unit admission and progress stage canonical transitions and native metadata in one commit; metadata validation failure rolls back both state owners and rejected admission consumes no native identity",
     "Frozen ticket-unit capabilities fence forgotten handles and numeric identity reuse after shared-owner clearing; stage views avoid cloning the native unit map",
-    "Shutdown retains ticket-unit ownership through physical dispatch settlement and clears it with the canonical owner; no separate native unit clear path remains"
+    "Shutdown retains ticket-unit ownership through physical dispatch settlement and clears it with the canonical owner; no separate native unit clear path remains",
+    "Parent ticket records, immutable nonce/lifetime metadata and admission generation allocation now share the canonical/capacity/reuse/delivery/dispatch/revision/unit Ref; deleted the server ticket Map and admission counter",
+    "Ticket opening, retention eviction and partition retirement stage canonical admission state, native ticket records and unit binding retirement in one commit; validate native/canonical admission membership before publication",
+    "Unit admission requires its retained parent capability; stale parent records cannot attach work to a replacement using the same nonce or generation after clear",
+    "Removed the public metadata-only unit forget path; parent retirement and whole-owner clearing fence ticket and unit handles together",
+    "Ticket and retention boundary checks follow the new native metadata owner while preserving canonical event and retired-policy guards"
   ],
   "verification": [
     {
@@ -634,10 +639,64 @@
         "Forgotten/cleared native capability fences",
         "Existing ticketed collection and resident lifecycle contracts"
       ]
+    },
+    {
+      "stage": "Shared parent ticket ownership",
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared parent ticket ownership",
+      "command": "npm run build",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared parent ticket ownership",
+      "command": "Initial 14 boundary scripts",
+      "exitCode": 1,
+      "failure": "Retention checker searched the old server source for ticketRetentionCheck after that event moved to ticket-records.ts",
+      "resolution": "Updated the checker source owner and required the server delegation; canonical retention event and retired-policy checks remain enforced"
+    },
+    {
+      "stage": "Shared parent ticket ownership",
+      "commands": [
+        "check-canonical-authority",
+        "check-production-authority",
+        "check-capacity-boundary",
+        "check-permit-boundary",
+        "check-review-boundary",
+        "check-dispatch-boundary",
+        "check-stop-boundary",
+        "check-collection-boundary",
+        "check-delivery-boundary",
+        "check-revision-boundary",
+        "check-ticket-boundary",
+        "check-reuse-boundary",
+        "check-notice-boundary",
+        "check-retention-boundary",
+        "git diff --check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared parent ticket ownership",
+      "command": "vitest run --maxWorkers=1 src/resident/ticket-records.test.ts src/resident/ticket-units.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/claude-delivery.test.ts src/resident/terminal-collection.test.ts src/resident/capacity.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts",
+      "exitCode": 0,
+      "tests": 156,
+      "files": 9,
+      "covers": [
+        "Immutable native ticket snapshots",
+        "Duplicate nonce admission rollback",
+        "Native construction failure after canonical opening rolls back state and generation allocation",
+        "Atomic oldest-ticket and native-unit eviction",
+        "Partition retirement isolation",
+        "Stale ticket and unit capability fences after clear",
+        "Existing ticketed and shared delivery/lifecycle behavior"
+      ]
     }
   ],
   "next": [
-    "Consolidate remaining server ticket/advice/notice/round records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
+    "Consolidate remaining server advice/notice/round/joined-review records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
     "Consolidate client lifecycle and fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -645,7 +704,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Remaining ticket/advice/notice/round records and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
+    "Remaining advice/notice/round/joined-review records, statistics and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"

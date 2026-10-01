@@ -1,3 +1,4 @@
+import type { TicketRecord } from "./ticket-records.ts";
 import type { TicketUnit } from "./ticket-units.ts";
 import { workSubject, type WorkRevision } from "./revision.ts";
 import { recordRoundClosure, type RoundCloseReason } from "../activity/status.ts";
@@ -258,12 +259,6 @@ const unitFinding = (unit: TicketUnit, revision: WorkRevision, adviceId: string)
   if (!unit.step("findingResult", "lost", { revision, adviceId })) return;
   if (ticketUnitStage(unit).stage !== "finding") throw new Error("invalid canonical ticket finding stage");
 };
-type TicketRecord = { readonly ticket: ResidentCollectionTicket; readonly generation: number;
-  readonly partition: string; readonly editAuthority: string; readonly credentialGeneration: number | null;
-  readonly root: string; readonly userConfigPath: string | null; readonly claudeFeedbackMode: ClaudeOutputMode;
-  readonly credentialStatePath: string | null; readonly credentialRequired: boolean;
-  readonly credentialEnvironmentOnly: boolean;
-  readonly expiresAt: number };
 const TICKET_RETENTION_MS = 600_000;
 const MAX_TICKETS = 256;
 
@@ -527,9 +522,7 @@ export class ResidentServer {
   readonly lifetime = randomUUID();
   readonly #advice: Array<Advice> = [];
   readonly #noticeCooldowns = new Map<string, NoticeCooldown>();
-  readonly #tickets = new Map<string, TicketRecord>();
   readonly #joinedReviews = new Map<string, Array<JoinedReview>>();
-  #nextAdmissionGeneration = 1;
   readonly #ledger = makeCapacityLedger<UnitJob, string, Job>(undefined, this.lifetime);
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatchScope = Scope.makeUnsafe();
@@ -685,20 +678,7 @@ export class ResidentServer {
    * part of ending this lifetime; they never authorize source reconstruction.
    */
   #evictRetainedTickets(limit: number): void {
-    while (true) {
-      const result = this.#ledger.transition({ kind: "ticketRetentionCheck", limit });
-      const command = result.commands[0];
-      if (result.rejection !== undefined || command === undefined) throw new Error("canonical ticket retention refused");
-      if (command.kind === "ticketKept") return;
-      if (command.kind !== "ticketEvicted") throw new Error("invalid canonical ticket retention");
-      const retained = [...this.#tickets].find(([, ticket]) => ticket.generation === command.id);
-      if (retained === undefined) throw new Error("canonical ticket eviction lost native handle");
-      if (retained[0] !== this.#tickets.keys().next().value) {
-        throw new Error("canonical ticket admission order differs from native retention");
-      }
-      this.#tickets.delete(retained[0]);
-      this.#ledger.ticketUnits.forget(command.id);
-    }
+    this.#ledger.tickets.retain(limit);
   }
 
   cleanup(): "busy" | "cleaned" {
@@ -783,9 +763,9 @@ export class ResidentServer {
       this.#ledger.release(reservation);
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
-    const ticket: TicketRecord | undefined = ticketed ? {
+    const ticket: TicketRecord | undefined = ticketed ? this.#ledger.tickets.open({
       ticket: { nonce: randomUUID(), lifetime: this.lifetime },
-      generation: this.#nextAdmissionGeneration++, partition,
+      partition,
       editAuthority: editAuthority(observation.root, observation.advicee),
       root: observation.root, userConfigPath: dispatch.userConfigPath,
       claudeFeedbackMode: this.#currentClaudeFeedbackMode(observation.root, dispatch.userConfigPath),
@@ -794,11 +774,7 @@ export class ResidentServer {
       credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
       credentialEnvironmentOnly: dispatch.credential?.environmentOnly ?? false,
       expiresAt: now + TICKET_RETENTION_MS,
-    } : undefined;
-    if (ticket !== undefined && this.#ledger.transition({ kind: "ticketOpen",
-      id: ticket.generation }).commands[0]?.kind !== "ticketOpened") {
-      throw new Error("canonical ticket open refused");
-    }
+    }) : undefined;
     const job = {
       kind: "ingress" as const,
       canonicalRound,
@@ -812,7 +788,7 @@ export class ResidentServer {
       ...(ticket === undefined ? {} : { ticket }),
     };
     if (!Effect.runSync(this.#dispatcher.enqueue(partition, job))) {
-      if (ticket !== undefined) this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
+      if (ticket !== undefined) this.#ledger.tickets.forget(ticket);
       this.#ledger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound);
       this.#ledger.release(reservation);
       this.#rejectedCapacity += 1;
@@ -820,7 +796,6 @@ export class ResidentServer {
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
     if (ticket !== undefined) {
-      this.#tickets.set(ticket.ticket.nonce, ticket);
       this.#evictRetainedTickets(this.#maximumTickets);
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
@@ -1923,11 +1898,7 @@ export class ResidentServer {
       if (notice.partition === round.group) this.#releaseNoticeCooldown(key);
     }
     this.#reuse.discardPartition(round.group);
-    for (const [key, ticket] of this.#tickets) if (ticket.partition === round.group) {
-      this.#tickets.delete(key);
-      this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
-      this.#ledger.ticketUnits.forget(ticket.generation);
-    }
+    this.#ledger.tickets.discardPartition(round.group);
     this.#ledger.retireRound(round.group, round.canonicalRound);
   }
 
@@ -2114,7 +2085,7 @@ export class ResidentServer {
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
-          const ticketUnit = job.ticket === undefined ? undefined : server.#ledger.ticketUnits.add(job.ticket.generation);
+          const ticketUnit = job.ticket === undefined ? undefined : server.#ledger.ticketUnits.add(job.ticket);
           if (ticketUnit !== undefined) {
             ticketUnitsByPlan.set(item, ticketUnit);
           }
@@ -3056,7 +3027,7 @@ export class ResidentServer {
 
   #ticketFor(ticket: ResidentCollectionTicket, root: string, advicee: DirectAdvicee,
     composed = false): TicketRecord | undefined {
-    const retained = this.#tickets.get(ticket.nonce);
+    const retained = this.#ledger.tickets.get(ticket.nonce);
     const basePartition = adviceePartition(root, advicee);
     return retained?.ticket.lifetime === this.lifetime && ticket.lifetime === this.lifetime &&
       retained.ticket.nonce === ticket.nonce && retained.generation > 0 &&
