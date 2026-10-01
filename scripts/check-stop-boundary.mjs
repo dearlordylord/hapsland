@@ -26,3 +26,15 @@ if (!server.includes("residentLedger.rounds.replaceWork") || !server.includes("r
 if (/Effect\.runSync\(residentDispatcher\.(?:snapshotWhere|hasWorkWhere|discardWhere)\(/u.test(server)) {
   throw new Error("round and collection operations must compose dispatcher Effects in their owning fiber");
 }
+
+const capacity = readFileSync(resolve(root, "src/resident/capacity.ts"), "utf8");
+if (/const runtimeCommit\s*=/u.test(capacity) || server.includes("responseFiber")) {
+  throw new Error("runtime mutations and IPC responses must compose Effects without synchronous mutation bridges");
+}
+for (const ownership of [
+  "Effect.forkIn(residentAccept(socket), residentIpcScope",
+  "Scope.close(residentIpcScope, Exit.void)",
+  "(connection) => port.close.pipe(Effect.andThen",
+]) {
+  if (!server.includes(ownership)) throw new Error(`missing scoped IPC ownership: ${ownership}`);
+}

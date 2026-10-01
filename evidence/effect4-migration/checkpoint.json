@@ -108,7 +108,10 @@
     "Finish-stop and final authorization-to-socket handoff preserve uninterruptible ownership boundaries; Stop boundary rejects synchronous dispatcher bridges",
     "Peak retained bytes now update inside every canonical/native Ref publication, capturing transient capture workspaces; removed server sampling helper and runtime observeCapacity API",
     "Declared and executed deterministic eight-effect non-cooperative physical-retirement workload against fixed baseline and current, with explicit native gates and corrected edit/callback identity ordering",
-    "Current deterministic workload passes all eight ownership invariants across eight measured iterations: saturated refusal, physical settlement fencing, permit reuse, pending shutdown and final canonical/accounting settlement"
+    "Current deterministic workload passes all eight ownership invariants across eight measured iterations: saturated refusal, physical settlement fencing, permit reuse, pending shutdown and final canonical/accounting settlement",
+    "Runtime connection admission/release, counters, authority sequence and retirement scheduling compose named Effects; removed synchronous runtime mutation wrapper",
+    "Native IPC framing moved to a bounded UTF-8 adapter with explicit success/interruption listener cleanup and acknowledged physical close",
+    "IPC connection and response fibers belong to resident IPC scope; listener stops before closing that scope; connection leases release only after native closure; retirement fiber belongs to parent runtime scope"
   ],
   "verification": [
     {
@@ -1328,6 +1331,48 @@
       "budgetsMet": true,
       "peakRetainedBytes": 17625630,
       "limitation": "Ordinary workload reaches four physical effects; deterministic retirement separately proves eight. Final full-migration rerun remains required."
+    },
+    {
+      "stage": "Scoped IPC and runtime mutation Effects",
+      "command": "Focused runtime/server/terminal/client suite before framing checks",
+      "exitCode": 0,
+      "tests": 127
+    },
+    {
+      "stage": "Scoped IPC framing",
+      "command": "Socket/subprocess/security/Jev suite",
+      "exitCode": 1,
+      "testsPassed": 29,
+      "testsFailed": 1,
+      "reason": "Successful frame left its data listener registered: Effect.callback cancellation cleanup does not run on success",
+      "resolution": "Explicit idempotent listener cleanup on frame completion; affected suites rerun successfully"
+    },
+    {
+      "stage": "Scoped IPC and runtime mutation Effects",
+      "command": "Socket framing/runtime records/server/security suites after cleanup fix",
+      "exitCode": 0,
+      "tests": 97
+    },
+    {
+      "stage": "Scoped IPC and runtime mutation Effects",
+      "command": "Typecheck, build and all boundary scripts",
+      "exitCode": 0
+    },
+    {
+      "stage": "Scoped IPC and runtime mutation Effects",
+      "command": "Unchanged original benchmark",
+      "exitCode": 0,
+      "evidence": "benchmark-ipc-effects-comparison.json",
+      "budgetsMet": true
+    },
+    {
+      "stage": "Scoped IPC and runtime mutation Effects",
+      "command": "Deterministic physical-retirement benchmark",
+      "exitCode": 0,
+      "evidence": "physical-retirement-ipc-effects.json",
+      "measuredIterations": 8,
+      "invariants": 8,
+      "limitation": "Baseline shutdown duration remains noncomparable; no comparative physical-retirement latency acceptance"
     }
   ],
   "next": [
@@ -1340,7 +1385,7 @@
     "Rerun original and deterministic physical-retirement workloads after remaining service migrations and final validation gates"
   ],
   "limitations": [
-    "Shared state owns lifecycle and statistics; native IPC handles and mutable per-job callback metadata remain executor resources, and intermediate synchronous domain bridges still need removal",
+    "Native IPC fibers now have scoped ownership and acknowledged socket closure; mutable per-job callback metadata remains an executor resource and synchronous domain bridges still need removal",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "Exploratory full suite had 1078 passes and one subsequently corrected test failure; final full suite/package/host/live gates remain pending",
     "Original workload now passes every unchanged budget with automatically observed peak 17625630 bytes (strict baseline 17807985). Deterministic workload reaches eight and passes all ownership fences. Physical-retirement shutdown latency comparison remains unproven because the fixed baseline shuts down before held callbacks complete; final full-migration reruns remain required.",

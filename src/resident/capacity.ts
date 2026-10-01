@@ -285,17 +285,16 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       const value = operation(runtimeRecordOperations(runtime, residentLifetime));
       return [value, { ...records, runtime }];
     });
-  const runtimeCommit = <A>(operation: Parameters<typeof runtimeCommitEffect<A>>[0]): A => Effect.runSync(runtimeCommitEffect(operation));
   return {
     ...capacity,
     runtime: {
       snapshot: () => runtimeRecordView(Ref.getUnsafe(state).records.runtime),
-      openConnection: (maximum: number) => runtimeCommit((operations) => operations.openConnection(maximum)),
-      releaseConnection: (connection: Parameters<ReturnType<typeof runtimeRecordOperations>["releaseConnection"]>[0]) => runtimeCommit((operations) => operations.releaseConnection(connection)),
-      rejectCapacity: () => runtimeCommit((operations) => operations.rejectCapacity()),
-      observePreparedUnits: (units: number) => runtimeCommit((operations) => operations.observePreparedUnits(units)),
-      nextAuthoritySequence: () => runtimeCommit((operations) => operations.nextAuthoritySequence()),
-      scheduleRetirement: () => runtimeCommit((operations) => operations.scheduleRetirement()),
+      openConnection: Effect.fn("ResidentState.openConnection")((maximum: number) => runtimeCommitEffect((operations) => operations.openConnection(maximum))),
+      releaseConnection: Effect.fn("ResidentState.releaseConnection")((connection: Parameters<ReturnType<typeof runtimeRecordOperations>["releaseConnection"]>[0]) => runtimeCommitEffect((operations) => operations.releaseConnection(connection))),
+      rejectCapacity: Effect.fn("ResidentState.rejectCapacity")(() => runtimeCommitEffect((operations) => operations.rejectCapacity())),
+      observePreparedUnits: Effect.fn("ResidentState.observePreparedUnits")((units: number) => runtimeCommitEffect((operations) => operations.observePreparedUnits(units))),
+      nextAuthoritySequence: Effect.fn("ResidentState.nextAuthoritySequence")(() => runtimeCommitEffect((operations) => operations.nextAuthoritySequence())),
+      scheduleRetirement: Effect.fn("ResidentState.scheduleRetirement")(() => runtimeCommitEffect((operations) => operations.scheduleRetirement())),
       close: () => runtimeCommitEffect((operations) => operations.close()),
       cleanup: (logicalBytes: (value: unknown) => number): Effect.Effect<"busy" | "cleaned"> => commitAllEffect((draft, records) => {
         if (records.runtime.lifecycle !== "active") return ["busy", records];
