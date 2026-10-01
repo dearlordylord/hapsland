@@ -1,3 +1,4 @@
+import type { TicketUnit } from "./ticket-units.ts";
 import { workSubject, type WorkRevision } from "./revision.ts";
 import { recordRoundClosure, type RoundCloseReason } from "../activity/status.ts";
 import { monotonicNow } from "./hook-clock.ts";
@@ -218,11 +219,6 @@ type IngressJob = {
   readonly ticket?: TicketRecord;
 };
 
-type TicketUnitState = { readonly revision?: WorkRevision; readonly adviceId?: string };
-type TicketUnit = { readonly id: number;
-  /** Admission capability generation, distinct from the canonical observation ID. */
-  readonly ticketId: number;
-  readonly ledger: CapacityLedger; current: TicketUnitState };
 type JoinedReview = {
   readonly admission: number;
   readonly evaluationKey: string;
@@ -232,11 +228,7 @@ type JoinedReview = {
   revision?: WorkRevision;
 };
 const ticketUnitStageOrUndefined = (unit: TicketUnit) => {
-  const command = unit.ledger.transition({ kind: "ticketUnitCheck", id: unit.ticketId,
-    unit: unit.id }).commands[0];
-  if (command?.kind === "ticketUnitSnapshot") return command;
-  if (command?.kind === "ticketUnitMissing") return undefined;
-  throw new Error("canonical ticket unit check refused");
+  return unit.stage();
 };
 const ticketUnitStage = (unit: TicketUnit) => {
   const stage = ticketUnitStageOrUndefined(unit);
@@ -245,36 +237,26 @@ const ticketUnitStage = (unit: TicketUnit) => {
 };
 const ticketUnitTransition = (unit: TicketUnit, event: TicketUnitEvent,
   reason: TicketReason = "lost"): boolean => {
-  if (ticketUnitStageOrUndefined(unit) === undefined) return false;
-  const result = unit.ledger.transition({ kind: "ticketStepUnit", id: unit.ticketId,
-    unit: unit.id, event, reason });
-  const command = result.commands[0]?.kind;
-  if (command === "ticketUnitUpdated") return true;
-  if (command === "ticketRefused") return false;
-  throw new Error("canonical ticket unit transition refused");
+  return unit.step(event, reason);
 };
 const unitUnavailable = (unit: TicketUnit, reason: ResidentUnavailableReason): void => {
   const before = ticketUnitStageOrUndefined(unit);
   if (before === undefined || before.stage === "unavailable") return;
-  if (!ticketUnitTransition(unit, "failUnit", reason) || ticketUnitStage(unit).stage !== "unavailable") {
+  if (!unit.step("failUnit", reason, {}) || ticketUnitStage(unit).stage !== "unavailable") {
     throw new Error("canonical ticket unit failure refused");
   }
-  unit.current = {};
 };
 const unitRevision = (unit: TicketUnit, revision: WorkRevision): void => {
-  if (!ticketUnitTransition(unit, "revise")) return;
+  if (!unit.step("revise", "lost", { revision })) return;
   if (ticketUnitStage(unit).stage !== "pending") throw new Error("invalid canonical ticket revision stage");
-  unit.current = { revision };
 };
 const unitClear = (unit: TicketUnit, revision: WorkRevision): void => {
-  if (!ticketUnitTransition(unit, "clearResult")) return;
+  if (!unit.step("clearResult", "lost", { revision })) return;
   if (ticketUnitStage(unit).stage !== "clear") throw new Error("invalid canonical ticket clear stage");
-  unit.current = { revision };
 };
 const unitFinding = (unit: TicketUnit, revision: WorkRevision, adviceId: string): void => {
-  if (!ticketUnitTransition(unit, "findingResult")) return;
+  if (!unit.step("findingResult", "lost", { revision, adviceId })) return;
   if (ticketUnitStage(unit).stage !== "finding") throw new Error("invalid canonical ticket finding stage");
-  unit.current = { revision, adviceId };
 };
 type TicketRecord = { readonly ticket: ResidentCollectionTicket; readonly generation: number;
   readonly partition: string; readonly editAuthority: string; readonly credentialGeneration: number | null;
@@ -546,10 +528,8 @@ export class ResidentServer {
   readonly #advice: Array<Advice> = [];
   readonly #noticeCooldowns = new Map<string, NoticeCooldown>();
   readonly #tickets = new Map<string, TicketRecord>();
-  readonly #ticketUnits = new Set<TicketUnit>();
   readonly #joinedReviews = new Map<string, Array<JoinedReview>>();
   #nextAdmissionGeneration = 1;
-  #nextTicketUnitId = 1;
   readonly #ledger = makeCapacityLedger<UnitJob, string, Job>(undefined, this.lifetime);
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatchScope = Scope.makeUnsafe();
@@ -717,9 +697,7 @@ export class ResidentServer {
         throw new Error("canonical ticket admission order differs from native retention");
       }
       this.#tickets.delete(retained[0]);
-      for (const unit of this.#ticketUnits) {
-        if (unit.ticketId === command.id) this.#ticketUnits.delete(unit);
-      }
+      this.#ledger.ticketUnits.forget(command.id);
     }
   }
 
@@ -1364,7 +1342,7 @@ export class ResidentServer {
         continue;
       }
       if (disposition.commands[0]?.kind === "deliveryRetireAdvice") {
-        for (const unit of this.#ticketUnits) {
+        for (const unit of this.#ledger.ticketUnits.values()) {
           if (ticketUnitStage(unit).stage === "finding" && unit.current.adviceId === item.id) {
             ticketUnitTransition(unit, "markDelivered");
           }
@@ -1765,7 +1743,7 @@ export class ResidentServer {
     const superseded = (revision: WorkRevision): boolean => this.#ledger.revision.superseded(subject, revision);
     if (this.#currentRevisionGeneration(subject) !== generation) throw new Error("canonical revision changed");
     if (includeTickets) {
-      for (const unit of this.#ticketUnits) {
+      for (const unit of this.#ledger.ticketUnits.values()) {
         const revision = unit.current.revision;
         if (revision !== undefined && superseded(revision)) unitUnavailable(unit, "stale");
       }
@@ -1819,7 +1797,7 @@ export class ResidentServer {
         removed.round.policyWork().retire(removed.workUnitId);
       }
       this.#composedDelivery.forget(id);
-      for (const unit of this.#ticketUnits) {
+      for (const unit of this.#ledger.ticketUnits.values()) {
         const stage = ticketUnitStage(unit);
         if (stage.stage === "finding" && unit.current.adviceId === id && !stage.delivered) {
           unitUnavailable(unit, this.#adviceExpired(removed, this.#now()) ? "expired" : "stale");
@@ -1948,9 +1926,7 @@ export class ResidentServer {
     for (const [key, ticket] of this.#tickets) if (ticket.partition === round.group) {
       this.#tickets.delete(key);
       this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
-      for (const unit of this.#ticketUnits) {
-        if (unit.ticketId === ticket.generation) this.#ticketUnits.delete(unit);
-      }
+      this.#ledger.ticketUnits.forget(ticket.generation);
     }
     this.#ledger.retireRound(round.group, round.canonicalRound);
   }
@@ -2138,16 +2114,8 @@ export class ResidentServer {
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
-          const ticketUnit: TicketUnit | undefined = job.ticket === undefined ? undefined : {
-            id: server.#nextTicketUnitId++, ticketId: job.ticket.generation,
-            ledger: server.#ledger, current: {},
-          };
-          if (ticketUnit !== undefined && server.#ledger.transition({ kind: "ticketAddUnit",
-            id: ticketUnit.ticketId, unit: ticketUnit.id }).commands[0]?.kind !== "ticketUnitAdded") {
-            throw new Error("canonical ticket unit admission refused");
-          }
+          const ticketUnit = job.ticket === undefined ? undefined : server.#ledger.ticketUnits.add(job.ticket.generation);
           if (ticketUnit !== undefined) {
-            server.#ticketUnits.add(ticketUnit);
             ticketUnitsByPlan.set(item, ticketUnit);
           }
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
@@ -3559,7 +3527,6 @@ export class ResidentServer {
       }
       for (const key of [...owner.#noticeCooldowns.keys()]) owner.#releaseNoticeCooldown(key);
       owner.#joinedReviews.clear();
-      owner.#ticketUnits.clear();
       // Running work may be interrupted by process exit or finish later. Clear
       // its logical ownership after native effects settle. Issued Jev permits
       // remain reserved through an interruption attempt.

@@ -50,7 +50,11 @@
     "Direct submission finalizers release an original lease on interruption before output handoff and retain uncertainty once writing may have started; refused admission and reported write errors release once without recording or acknowledging",
     "Encoded and composed JSON output share one callback/resource owner; the native Writable adapter keeps its error observer through the queued error event before removing it",
     "Direct submission trace configuration is acquired through Config in its production layer; controlled submission services test write/record/acknowledgement ordering and original resident identity",
-    "Finding selection uses the bounded shared resident partition identity registry; deleted the server-local partition map/counter and collection-side identity allocation, with an explicit missing-ownership check"
+    "Finding selection uses the bounded shared resident partition identity registry; deleted the server-local partition map/counter and collection-side identity allocation, with an explicit missing-ownership check",
+    "Native ticket-unit identities and immutable revision/advice metadata now share the canonical/capacity/reuse/delivery/dispatch/revision Ref; deleted the server unit Set, unit counter and mutable current-field assignments",
+    "Ticket unit admission and progress stage canonical transitions and native metadata in one commit; metadata validation failure rolls back both state owners and rejected admission consumes no native identity",
+    "Frozen ticket-unit capabilities fence forgotten handles and numeric identity reuse after shared-owner clearing; stage views avoid cloning the native unit map",
+    "Shutdown retains ticket-unit ownership through physical dispatch settlement and clears it with the canonical owner; no separate native unit clear path remains"
   ],
   "verification": [
     {
@@ -562,6 +566,74 @@
       "exitCode": 0,
       "tests": 138,
       "files": 6
+    },
+    {
+      "stage": "Shared ticket-unit ownership",
+      "command": "Initial six-file resident suite",
+      "exitCode": 1,
+      "testsPassed": 135,
+      "testsExpected": 138,
+      "filesPassed": 5,
+      "filesExpected": 6,
+      "failure": "Three existing server saturation/reuse cases exceeded their 5s/10s fixture timeouts; root cause not established",
+      "observedHostLoadAverage": [
+        14.86,
+        18.09,
+        12.61
+      ],
+      "note": "Host load was observed after the failure; it does not establish causation"
+    },
+    {
+      "stage": "Shared ticket-unit ownership",
+      "command": "Isolated server saturation/reuse cases",
+      "exitCode": 0,
+      "tests": 3,
+      "note": "The three timed-out cases passed in isolation after stage reads were changed to avoid native map cloning"
+    },
+    {
+      "stage": "Shared ticket-unit ownership",
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared ticket-unit ownership",
+      "command": "npm run build",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared ticket-unit ownership",
+      "commands": [
+        "check-canonical-authority",
+        "check-production-authority",
+        "check-capacity-boundary",
+        "check-permit-boundary",
+        "check-review-boundary",
+        "check-dispatch-boundary",
+        "check-stop-boundary",
+        "check-collection-boundary",
+        "check-delivery-boundary",
+        "check-revision-boundary",
+        "check-ticket-boundary",
+        "check-reuse-boundary",
+        "check-notice-boundary",
+        "check-retention-boundary",
+        "git diff --check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared ticket-unit ownership",
+      "command": "vitest run --maxWorkers=1 src/resident/ticket-units.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/claude-delivery.test.ts src/resident/terminal-collection.test.ts src/resident/capacity.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts",
+      "exitCode": 0,
+      "tests": 152,
+      "files": 8,
+      "covers": [
+        "Atomic ticket unit progress and metadata",
+        "Metadata validation rollback",
+        "Rejected admission identity rollback",
+        "Forgotten/cleared native capability fences",
+        "Existing ticketed collection and resident lifecycle contracts"
+      ]
     }
   ],
   "next": [
