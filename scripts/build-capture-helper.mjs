@@ -53,6 +53,11 @@ if (process.platform === "linux") {
 
 const parserBindings = [
   {
+    packageName: "tree-sitter-rust",
+    localBuild: "tree_sitter_rust_binding.node",
+    publishedPrebuild: "tree-sitter-rust.node",
+  },
+  {
     packageName: "tree-sitter",
     localBuild: "tree_sitter_runtime_binding.node",
     publishedPrebuild: "tree-sitter.node",
@@ -79,13 +84,14 @@ for (const binding of parserBindings) {
 }
 
 const parserProbe = spawnSync(process.execPath, ["-e",
-  "const Parser = require('tree-sitter'); const { typescript } = require('tree-sitter-typescript'); const parser = new Parser(); parser.setLanguage(typescript); parser.parse('type Probe = string');",
+  "const Parser = require('tree-sitter'); const { typescript } = require('tree-sitter-typescript'); const parser = new Parser(); parser.setLanguage(typescript); parser.parse('type Probe = string'); const Rust = require('tree-sitter-rust'); parser.setLanguage(Rust); const tree = parser.parse('struct Probe { value: Option<String> }'); if (tree.rootNode.hasError) process.exit(1);",
 ], {
   cwd: root,
   env: {
     ...process.env,
     TREE_SITTER_PREBUILD: resolve(nativeDirectory, "tree-sitter"),
     TREE_SITTER_TYPESCRIPT_PREBUILD: resolve(nativeDirectory, "tree-sitter-typescript"),
+    TREE_SITTER_RUST_PREBUILD: resolve(nativeDirectory, "tree-sitter-rust"),
   },
   stdio: "pipe",
 });

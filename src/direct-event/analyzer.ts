@@ -6,6 +6,10 @@ import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit, TypeDec
 
 const nativeRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../native/prebuilt", `${process.platform}-${process.arch}`);
 const parserRuntime = resolve(nativeRoot, "tree-sitter");
+const rustLanguage = resolve(nativeRoot, "tree-sitter-rust");
+if (existsSync(resolve(rustLanguage, "build/Release/tree_sitter_rust_binding.node"))) {
+  process.env.TREE_SITTER_RUST_PREBUILD = rustLanguage;
+}
 const parserLanguage = resolve(nativeRoot, "tree-sitter-typescript");
 if (existsSync(resolve(parserRuntime, "build/Release/tree_sitter_runtime_binding.node")) &&
     existsSync(resolve(parserLanguage, "build/Release/tree_sitter_typescript_binding.node"))) {
@@ -14,9 +18,13 @@ if (existsSync(resolve(parserRuntime, "build/Release/tree_sitter_runtime_binding
 }
 const { default: Parser } = await import("tree-sitter");
 const { default: TypeScript } = await import("tree-sitter-typescript");
+const { default: Rust } = await import("tree-sitter-rust");
 
 type SyntaxNode = {
   readonly type: string;
+  readonly startIndex: number;
+  readonly endIndex: number;
+  childForFieldName(name: string): SyntaxNode | null;
   readonly text: string;
   readonly namedChildren: ReadonlyArray<SyntaxNode>;
   readonly startPosition: { readonly row: number; readonly column: number };
@@ -67,7 +75,7 @@ export const MAX_TYPE_DECLARATIONS = 64;
 /** The root is deliberately excluded from this count. */
 export const MAX_REFERENCED_NAMES = 16;
 
-const supported = new Set([".ts", ".tsx", ".mts", ".cts"]);
+const supported = new Set([".ts", ".tsx", ".mts", ".cts", ".rs"]);
 const importSyntax = new Set([
   "import",
   "import_alias",
@@ -141,10 +149,65 @@ const referencesOf = (declaration: SyntaxNode, nameNode: SyntaxNode): ParsedDecl
   });
 };
 
+const rustBuiltins = new Set(["String", "str", "Option", "Result", "Vec", "Box"]);
+
+/** Rust facts intentionally stay in one top-level scope without expansion. */
+const rustDeclarations = (path: string, source: string): TypeFileAnalysis | ReadonlyArray<ParsedDeclaration> => {
+  const parser = new Parser();
+  parser.setLanguage(Rust);
+  const root = (parser.parse(source) as unknown as { readonly rootNode: SyntaxNode }).rootNode;
+  if (root.hasError) return { status: "unsupported", reason: "parse", units: [] };
+  const declarations = root.namedChildren.filter((node) => ["struct_item", "enum_item", "type_item"].includes(node.type));
+  if (declarations.length === 0) return { status: "unsupported", reason: "no-declarations", units: [] };
+  if (declarations.length > MAX_TYPE_DECLARATIONS) return { status: "unsupported", reason: "declaration-limit", units: [] };
+  const localNames = new Set(root.namedChildren.filter((node) => ["struct_item", "enum_item", "type_item", "union_item", "trait_item"].includes(node.type))
+    .map((node) => declarationNameNode(node)?.text));
+  // Imports, modules, macros and file attributes can change name resolution or
+  // emitted declarations. Keep explicit roots, but never claim their closure.
+  const uncertainScope = [root, ...descendants(root)].some((node) => ["use_declaration", "mod_item", "macro_definition", "macro_invocation", "inner_attribute_item", "attribute_item", "extern_crate_declaration", "foreign_mod_item"].includes(node.type));
+  const parsed: ParsedDeclaration[] = [];
+  let attributes: SyntaxNode[] = [];
+  for (const node of root.namedChildren) {
+    if (node.type === "attribute_item") { attributes.push(node); continue; }
+    if (node.type === "line_comment" || node.type === "block_comment") continue;
+    if (!declarations.includes(node)) { attributes = []; continue; }
+    const nameNode = declarationNameNode(node);
+    if (nameNode === undefined || !/^[\p{ID_Start}_][\p{ID_Continue}]*$/u.test(nameNode.text)) return { status: "unsupported", reason: "parse", units: [] };
+    const kind = node.type === "struct_item" ? "struct" : node.type === "enum_item" ? "enum" : "type-alias";
+    const start = attributes[0]?.startPosition ?? node.startPosition;
+    const rendered = source.slice(attributes[0]?.startIndex ?? node.startIndex, node.endIndex);
+    const parameters = new Set(node.namedChildren.find((child) => child.type === "type_parameters")?.namedChildren
+      .filter((child) => child.type === "type_parameter").map((child) => child.childForFieldName("name")?.text) ?? []);
+    const references: ParsedDeclaration["references"][number][] = [];
+    if (uncertainScope || attributes.length > 0) references.push({ kind: "unsupported", name: nameNode.text });
+    for (const child of descendants(node)) {
+      if (["attribute_item", "macro_invocation", "scoped_type_identifier", "qualified_type", "trait_bounds", "where_clause", "const_parameter", "dynamic_type", "abstract_type"].includes(child.type)) {
+        references.push({ kind: "unsupported", name: nameNode.text });
+      }
+      if ((child.type === "array_type" && child.childForFieldName("length")?.type !== "integer_literal") ||
+        (child.type === "enum_variant" && child.childForFieldName("value") !== null && child.childForFieldName("value")?.type !== "integer_literal") ||
+        (child.parent?.type === "type_arguments" && !["type_identifier", "primitive_type", "generic_type", "reference_type", "tuple_type", "array_type", "scoped_type_identifier", "lifetime", "unit_type", "pointer_type", "function_type"].includes(child.type))) {
+        references.push({ kind: "unsupported", name: nameNode.text });
+      }
+      if (child.type !== "type_identifier" || child === nameNode || (child === child.parent?.childForFieldName("name") && child.parent?.type === "type_parameter") || parameters.has(child.text)) continue;
+      if (child.text === "Self") references.push({ kind: "named", name: nameNode.text });
+      else if (localNames.has(child.text) || !rustBuiltins.has(child.text)) references.push({ kind: "named", name: child.text });
+    }
+    const unique = [...new Map(references.map((reference) => [`${reference.kind}:${reference.name}`, reference])).values()];
+    parsed.push({ node: { ...node, startPosition: start, endPosition: node.endPosition }, nameNode,
+      artifact: { id: `${path}:${kind}:${nameNode.text}`, kind, name: nameNode.text, source: rendered,
+        sourceHash: createHash("sha256").update(rendered, "utf8").digest("hex") }, references: unique });
+    attributes = [];
+  }
+  if (new Set(parsed.map(({ artifact }) => artifact.name)).size !== parsed.length) return { status: "unsupported", reason: "declaration-merge", units: [] };
+  return parsed;
+};
+
 const parsedDeclarations = (path: string, source: string, allowImports = false): TypeFileAnalysis | ReadonlyArray<ParsedDeclaration> => {
   const extension = extname(path).toLowerCase();
   if (!supported.has(extension)) return { status: "unsupported", reason: "extension", units: [] };
   try {
+    if (extension === ".rs") return rustDeclarations(path, source);
     const parser = new Parser();
     parser.setLanguage(extension === ".tsx" ? TypeScript.tsx : TypeScript.typescript);
     const tree = parser.parse(source) as unknown as { readonly rootNode: SyntaxNode };
@@ -193,6 +256,13 @@ const parsedDeclarations = (path: string, source: string, allowImports = false):
 export const inspectGraphFile = (path: string, source: string): GraphFile | undefined => {
   const parsed = parsedDeclarations(path, source, true);
   if ("status" in parsed) return undefined;
+  if (extname(path).toLowerCase() === ".rs") return {
+    declarations: new Map(parsed.map(({ artifact, references, node }) => [artifact.name, {
+      artifact: { ...artifact, path }, references, exported: true,
+      location: { start: { line: node.startPosition.row + 1, column: node.startPosition.column + 1 },
+        end: { line: node.endPosition.row + 1, column: node.endPosition.column + 1 } },
+    }])), imports: new Map(),
+  };
   const parser = new Parser();
   parser.setLanguage(extname(path).toLowerCase() === ".tsx" ? TypeScript.tsx : TypeScript.typescript);
   const tree = parser.parse(source) as unknown as { readonly rootNode: SyntaxNode };
@@ -348,6 +418,7 @@ export const combinedAnalyzerMaterializationPreflight = (
   source: string,
 ): AnalyzerMaterializationPreflight | undefined => {
   const extension = extname(path).toLowerCase();
+  if (extension === ".rs") return analyzerMaterializationPreflight(path, source);
   if (!supported.has(extension)) return undefined;
   try {
     const parser = new Parser();

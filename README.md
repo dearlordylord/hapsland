@@ -36,7 +36,12 @@ Coincidentally, models are pretty bad at those decisions by default and need con
 
 The restriction that comes with this idea is that we have to implement context extraction per-language.
 
-Currently supported is TypeScript.
+TypeScript is supported. Rust support is bounded to explicit top-level `struct`,
+`enum`, and `type` declarations in `.rs` files, with same-file type context.
+Rust functions, module resolution, macros, and conditional compilation are deferred.
+Unsupported or unresolved evidence produces no advice for rules that need it.
+See the [review contract](./docs/type-function-review-proposal.md#branch-contracts)
+for the extraction boundary.
 
 TODO contribution guide
 
@@ -99,7 +104,7 @@ artifact verification.
    input. Effective file settings select otherwise eligible files; with no file settings,
    all otherwise eligible files are selected when Jev credentials are available.
 3. Start Codex normally, review its repository and hook trust prompts, and make a supported
-   TypeScript edit. Follow the [status guide](./docs/status.md) to check observed review activity
+   TypeScript or supported Rust type edit. Follow the [status guide](./docs/status.md) to check observed review activity
    with the host session ID; installation alone does not establish that a review ran.
 
 The [Codex installation guide](./docs/codex-installation.md) covers update, disable, logout,
@@ -137,7 +142,7 @@ npm test
 npm run conformance:package
 ```
 
-`npm pack` builds JavaScript release entry points for the review CLI, TypeScript parser,
+`npm pack` builds JavaScript release entry points for the review CLI, source parsers,
 resident process, and offline package doctor. The tested installed profile is exactly Node
 24.20.0 on Linux arm64 with Git and `/proc/self/fd`, plus Node 24.20.0 on macOS arm64 with
 Git and a packaged `openat` capture helper. The macOS controlled package path and authenticated

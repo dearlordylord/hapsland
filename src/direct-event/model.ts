@@ -73,7 +73,7 @@ export type DirectObservation = {
 export type TypeDeclaration = {
   readonly path?: string;
   readonly id: string;
-  readonly kind: "interface" | "type-alias";
+  readonly kind: "interface" | "type-alias" | "struct" | "enum";
   readonly name: string;
   readonly source: string;
   readonly sourceHash: string;

@@ -24,7 +24,6 @@
     "docs/codex-installation.md",
     "docs/claude-installation.md",
     "docs/opencode-installation.md",
-    "docs/npm-quickstart.md",
     "docs/direct-event-v1-supported-profile.md",
     "docs/installed-release-compatibility.md",
     "docs/status.md",
@@ -68,6 +67,7 @@
     "effect": "4.0.0-rc.116",
     "smol-toml": "1.8.0",
     "tree-sitter": "0.25.1",
+    "tree-sitter-rust": "0.24.0",
     "tree-sitter-typescript": "0.23.2"
   },
   "optionalDependencies": {

@@ -7,10 +7,12 @@ const targets = [
   ["linux-arm64", "credential-secret-service"],
   ["linux-arm64", "tree-sitter/build/Release/tree_sitter_runtime_binding.node"],
   ["linux-arm64", "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node"],
+  ["linux-arm64", "tree-sitter-rust/build/Release/tree_sitter_rust_binding.node"],
   ["darwin-arm64", "credential-secret-service"],
   ["darwin-arm64", "capture-open"],
   ["darwin-arm64", "tree-sitter/build/Release/tree_sitter_runtime_binding.node"],
   ["darwin-arm64", "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node"],
+  ["darwin-arm64", "tree-sitter-rust/build/Release/tree_sitter_rust_binding.node"],
 ];
 
 for (const [profile, relativePath] of targets) {

@@ -440,7 +440,7 @@ try {
   }
   const installedManifest = parseJson(await readFile(join(packageDirectory, "package.json"), "utf8"), "installed manifest");
   for (const documentation of ["README.md", "docs/codex-installation.md", "docs/claude-installation.md",
-    "docs/opencode-installation.md", "docs/npm-quickstart.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
+    "docs/opencode-installation.md", "docs/status.md", "docs/installed-release-compatibility.md"]) {
     const contents = await readFile(join(packageDirectory, documentation), "utf8");
     if (contents.trim().length === 0) throw new Error(`packaged documentation is empty: ${documentation}`);
   }
@@ -483,6 +483,17 @@ try {
   });
   const parserResult = parseJson(parserRun.stdout, "packaged parser");
   if (parserResult.status !== "analyzed") throw new Error("packaged parser did not analyze the fixture");
+  const rustParserRun = await mustRun(parser, [], {
+    cwd: temporary,
+    input: JSON.stringify({ path: "fixture.rs", source: "struct Receipt { id: String }\nenum Delivery { Pending, Delivered(Receipt) }" }),
+  });
+  const rustParserResult = parseJson(rustParserRun.stdout, "packaged Rust parser");
+  if (rustParserResult.status !== "analyzed" ||
+      !rustParserResult.units.some((unit) => unit.status === "ready" && unit.unit.root.artifact.kind === "enum" &&
+        unit.unit.root.artifact.name === "Delivery" &&
+        unit.unit.root.references.some((reference) => reference.kind === "expanded" && reference.node.artifact.name === "Receipt"))) {
+    throw new Error("packaged Rust parser did not resolve the same-file enum payload");
+  }
 
   progress("create-isolated-repository");
   await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository });
@@ -747,6 +758,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       updatePreview.trust?.status !== "renewal-required" || updatePreview.trust?.modified !== false) {
     throw new Error("local package update preview did not expose runtime, hook, trust, and restart changes");
   }
+  const hooksBeforeUpdate = await readFile(join(codexHome, "hooks.json"), "utf8");
   const partialUpdateRun = await run(targetPackage.cli, ["--update"], {
     cwd: temporary,
     env: { ...env, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" },
@@ -762,7 +774,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const hooksAfterPartial = await readFile(join(codexHome, "hooks.json"), "utf8");
   if (partialUpdateRun.code !== 5 || partialUpdate.status !== "partial" ||
       partialUpdate.recovery?.command?.request?.proposalDigest !== updatePreview.proposal.digest ||
-      hooksAfterPartial !== hooksBeforeIncompatible) {
+      hooksAfterPartial !== hooksBeforeUpdate) {
     throw new Error("partial local package update did not retain the previous working hook and exact recovery request");
   }
   const updateRun = await mustRun(targetPackage.cli, ["--update"], {
@@ -798,7 +810,7 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const installedHostEnvironment = { ...env, INDEPENDENT_HOOK_LOG: independentLog };
   await runInstalledHooks(codexHome, { ...addEvent, hook_event_name: "PreToolUse" },
     { cwd: temporary, env: installedHostEnvironment });
-  await runInstalledHooks(codexHome, addEvent, { cwd: temporary, env: installedHostEnvironment });
+  const postToolOutputs = await runInstalledHooks(codexHome, addEvent, { cwd: temporary, env: installedHostEnvironment });
   const ownerAfterAdmission = await readFile(join(runtime, "owner.json"), "utf8").catch(() => undefined);
   if (ownerAfterAdmission === undefined) {
     const diagnostic = await readFile(join(runtime, "owner.lock.startup-error"), "utf8").catch(() => "no resident diagnostic was produced");
@@ -811,11 +823,20 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
   const stopOutputs = await runInstalledHooks(codexHome, {
     ...addEvent, hook_event_name: "Stop", stop_hook_active: false,
   }, { cwd: temporary, env: installedHostEnvironment });
-  const hookOutput = stopOutputs.find((output) => output.decision === "block") ?? {};
+  // The installed async PostToolUse collector can deliver advice before Stop.
+  // This fixture awaits each installed command, so validate both supported delivery paths.
+  const deliveredAdvice = [...postToolOutputs, ...stopOutputs].flatMap((output) => {
+    const context = output.decision === "block" ? output.reason
+      : output.hookSpecificOutput?.hookEventName === "PostToolUse"
+        ? output.hookSpecificOutput.additionalContext : undefined;
+    return typeof context === "string" &&
+      context.split("\n").some((line) => /^profile\.ts :: Delivery \[r[1-9]_[a-z_]+, p=0\.91\]: /.test(line))
+      ? [context] : [];
+  });
   let submissions = (await readFile(calls, "utf8")).trim().split("\n").filter(Boolean).length;
   if (submissions !== 1) throw new Error(`expected one controlled backend submission, observed ${submissions}`);
-  if (hookOutput.decision !== "block" || typeof hookOutput.reason !== "string") {
-    throw new Error(`packaged Stop hook did not return review advice; outputs=${JSON.stringify(stopOutputs.map((output) => ({
+  if (deliveredAdvice.length !== 1) {
+    throw new Error(`packaged installed hooks did not deliver the expected finding exactly once; deliveries=${deliveredAdvice.length}; outputs=${JSON.stringify([...postToolOutputs, ...stopOutputs].map((output) => ({
       keys: Object.keys(output), decision: output.decision ?? null,
     })))}`);
   }
@@ -990,7 +1011,9 @@ appendFileSync(process.env.INDEPENDENT_HOOK_LOG, JSON.stringify(record) + "\\n")
       command: `*** Begin Patch\n*** Add File: restart-pending.ts\n+${restartSource.trim()}\n*** End Patch`,
     },
   };
-  await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer"], {
+  await runInstalledHooks(codexHome, { ...restartEvent, hook_event_name: "PreToolUse" },
+    { cwd: temporary, env: restartEnvironment });
+  await mustRun(activeCli, ["--codex-hook", "--controlled-reviewer", "--controlled-writer", "--composed-edit-hook"], {
     cwd: temporary,
     env: restartEnvironment,
     input: JSON.stringify(restartEvent),

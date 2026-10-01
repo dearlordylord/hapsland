@@ -1,7 +1,7 @@
 # Issue #93: diff-selected type and function review target specification
 
 **Purpose:** Define the direct-edit type and function review behavior.
-**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling.
+**Status:** Accepted target, amended by owner decisions on 2026-09-29 to restore rule-level evidence checks and remove the total-request byte ceiling, and by the 2026-09-30 request to add bounded Rust support.
 **Authority:** Accepted product contract. Implementation and tests are separate evidence.
 **Expected use:** Build and review the supported direct-edit path.
 **Lifecycle:** Maintained as that path changes; review after a new owner decision or a changed runtime boundary.
@@ -89,6 +89,7 @@ partial or unstable capture.
 | Contract | Artifact root | Proposed evidence projection | Inapplicable examples |
 | --- | --- | --- | --- |
 | `direct-event/type-shape/v1` | One uniquely named TypeScript `interface` or `type` alias in `.ts`, `.tsx`, `.mts`, or `.cts` | Exact root declaration and bounded outbound named-type reference graph with marked omissions, following supported local imports across selected files | Declaration merging, ambiguous binding, unsupported graph syntax, unresolved or excluded evidence needed by a selected rule |
+| `direct-event/type-shape/v1` | One uniquely named, explicit top-level Rust `struct`, `enum`, or `type` alias in `.rs` | Exact root declaration and bounded outbound named-type references resolved within the same file | Conditional compilation, macro-dependent declarations, unsupported type syntax, ambiguous binding, unresolved module/external paths, or missing evidence needed by a selected rule |
 | `direct-event/function/v1` | One uniquely named, top-level TypeScript function declaration in those extensions | Exact signature and body and bounded directly referenced type and named-function graph with marked omissions, following supported local imports across selected files | Anonymous functions, methods, overload groups without unique implementation, dynamic/computed calls, unresolved or excluded evidence needed by a selected rule |
 
 These contract IDs replace the former production
@@ -99,8 +100,34 @@ and independently selected cross-file roots are deferred. A referenced declarati
 in another file is supporting evidence, not a new changed root. The function branch must identify its body and
 signature together; signature-only input cannot answer body-dependent rules.
 
-The candidate projection walks outbound references from the root, including
-statically bound local imports of supported declarations. Resolve an import to a
+Rust uses the active type-shape v1 input, with a same-file projection. Rust
+functions and cross-module or external-crate resolution are deferred. Parsing a
+file does not establish Rust compiler validity or macro expansion. Unsupported
+syntax and unresolved references must remain explicit limitations; rules needing
+that evidence cannot run. Rust source does not authorize a separate legacy
+named-type route or a new format version.
+
+Rust primitive types, unqualified `String`, `str`, `Option`, `Result`, `Vec`,
+and `Box`, and declared type parameters may contribute type context; generic
+payloads and defaults still require reference resolution. Same-file declarations
+take precedence over these wrapper names; same-file trait and union names cannot
+be treated as builtins and remain unresolved supporting evidence. Qualified type
+paths, trait bounds, `where` clauses, const generics, and dynamic or abstract
+types are unsupported evidence. Arrays require integer-literal lengths; named
+constants and computed lengths are omitted. Non-integer enum discriminants and
+const generic arguments are also unsupported evidence. Raw identifiers are
+conservatively rejected by this parser profile. A `use`, `mod`, extern-crate
+declaration, foreign extern block, macro definition/invocation, or attribute
+anywhere in the file makes the scope uncertain for every root. This includes
+`derive`, `cfg`, and attributes on unrelated functions: procedural expansion can
+introduce type bindings. Ordinary doc comments do not create this uncertainty.
+These roots remain selectable, but only rules whose declared evidence needs
+permit the omissions can run; root-declaration-only rules may review partial
+evidence, while rules requiring complete type closure cannot.
+
+The TypeScript candidate projection walks outbound references from the root,
+including statically bound local imports of supported TypeScript declarations.
+Cross-language imports do not provide supporting evidence. Resolve an import to a
 canonical repository-relative path and declaration identity; a text-name match
 alone never establishes a binding. Before reading **each** newly discovered
 source file, check root containment,

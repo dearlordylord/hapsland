@@ -207,6 +207,14 @@ export const resolveGraphUnit = Effect.fn("DirectEvent.resolveGraphUnit")(functi
         continue;
       }
       const extension = extname(base);
+      const supportedExtension = sourceExtensions.some((candidate) => candidate === extension) ||
+        extension === "" || extension === ".js" || extension === ".mjs" || extension === ".cjs";
+      if (!supportedExtension) {
+        transition = stepImportGraph(state, { kind: "resolved", target: nextTargetId++, result: "unsupported" });
+        state = transition.state;
+        command = transition.command;
+        continue;
+      }
       const choices = extension === "" ? sourceExtensions.map((candidate) => `${base}${candidate}`)
         : extension === ".js" ? [base.slice(0, -3) + ".ts", base.slice(0, -3) + ".tsx"]
         : extension === ".mjs" ? [base.slice(0, -4) + ".mts"]
