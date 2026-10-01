@@ -96,9 +96,12 @@ The product does not run this compiler command on users' files.
 [Linux arm64 package conformance](../evidence/bend-support/package-linux.json)
 checks a clean production installation, actual packaged Bend extraction and
 same-file payload expansion, package doctor, and the existing controlled host
-lifecycle. No Bend-native model acknowledgement, unprompted repair experiment,
-normal host trust, or macOS Bend package run is claimed here. The Rust parent
-PR's native and platform evidence remains evidence for that parent revision.
+lifecycle. [macOS arm64 package conformance](https://github.com/dearlordylord/hapsland/actions/runs/36814156108)
+also passed at code commit `68f358a1fc4614ee794ce3fe8a7f587fdd06665c`,
+including the installed Bend payload check and packaged setup journeys. No
+Bend-native model acknowledgement, unprompted repair experiment, or normal host
+trust is claimed here. The Rust parent PR's native evidence remains evidence
+for that parent revision.
 
 Reproduce the local compiler checks with
 `node scripts/check-bend-support-fixtures.mjs`. A new paid experiment needs a
