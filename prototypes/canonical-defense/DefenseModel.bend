@@ -10,6 +10,49 @@ type Timer is Data:
   Timer{id: Nat, phase: U32, age: U32, family: Nat, risk: U32, seed: U32, boost: U32}
 type Output is Data:
   Output{age: U32, attempt: Nat, token: Nat, selected: List<&2, Nat>, flushAge: U32, span: U32}
+# Host controls stay boxed, including the shared scheduler, to preserve the native ABI.
+type Control is Data:
+  Control{schedule: List<&2,A.State>, pace: U32, stopAt: U32, stopBudget: U32,
+    stopState: U32, cancelled: List<&2,Nat>, cleanupLeft: U32, profile: U32}
+def initial_control() -> Control:
+  Control{[A.initial()],0,0,4000,0,[],0,0}
+def control_value(items: List<&2,Control>) -> Control:
+  match items:
+    case value <> _: value
+    case Nil{}: initial_control()
+def auto_value(items: List<&2,A.State>) -> A.State:
+  match items:
+    case value <> _: value
+    case Nil{}: A.initial()
+def control_schedule(control: Control) -> A.State:
+  match control:
+    case Control{items,_,_,_,_,_,_,profile}: auto_value(items)
+def control_with_schedule(control: Control,schedule: A.State) -> Control:
+  match control:
+    case Control{_,pace,at,budget,status,cuts,left,profile}: Control{[schedule],pace,at,budget,status,cuts,left,profile}
+def control_begin(control: Control,schedule: A.State) -> Control:
+  match control:
+    case Control{_,pace,_,budget,_,_,_,profile}: Control{[schedule],pace,0,budget,0,[],0,profile}
+def control_pace(control: Control) -> U32:
+  match control:
+    case Control{_,pace,_,_,_,_,_,profile}: pace
+def control_with_pace(control: Control,pace: U32) -> Control:
+  match control:
+    case Control{schedule,_,at,budget,status,cuts,left,profile}: Control{schedule,pace,at,budget,status,cuts,left,profile}
+def control_stop(control: Control,at: U32,status: U32,cuts: List<&2,Nat>,left: U32) -> Control:
+  match control:
+    case Control{schedule,pace,_,budget,_,_,_,profile}: Control{schedule,pace,at,budget,status,cuts,left,profile}
+def control_with_budget(control: Control,budget: U32) -> Control:
+  match control:
+    case Control{schedule,pace,at,_,status,cuts,left,profile}: Control{schedule,pace,at,budget,status,cuts,left,profile}
+
+def control_profile(value: Control) -> U32:
+  match value:
+    case Control{_,_,_,_,_,_,_,profile}: profile
+def control_with_profile(value: Control,profile: U32) -> Control:
+  match value:
+    case Control{schedule,pace,at,budget,status,cuts,left,_}: Control{schedule,pace,at,budget,status,cuts,left,profile}
+
 # Keep the shared scheduler in a singleton list: Bend boxes recursive lists.
 # Inlining Session into World widens every native continuation (102 to 119 arguments).
 # Construction and schedule replacement always preserve exactly one scheduler.
@@ -17,7 +60,7 @@ type World is Data:
   World{core: C.State, clock: U32, paused: Bool, layout: U32, choice: U32,
     gold: U32, hp: U32, towers: List<&2, Tower>, timers: List<&2, Timer>,
     active: Bool, offered: U32, rejected: U32, clear: U32, delivered: U32,
-    output: Output, auto: List<&2, A.State>, mouseX: U32, mouseY: U32, selected: U32, damageWork: U32, damageFlash: U32}
+    output: Output, auto: List<&2, Control>, mouseX: U32, mouseY: U32, selected: U32, damageWork: U32, damageFlash: U32}
 def number(n: Nat) -> U32:
   U32.from_nat(Nat.min(n, 4294967295n))
 def sub(+a: U32, +b: U32) -> U32:
@@ -83,11 +126,43 @@ def output(world: World) -> Output:
   match world:
     case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _, _}: v
 
-def schedule_value(items: List<&2, A.State>) -> A.State:
-  match items:
-    case value <> _: value
-    case Nil{}: A.initial()
-
+def schedule_value(items: List<&2, Control>) -> A.State:
+  control_schedule(control_value(items))
+def control(world: World) -> Control:
+  match world:
+    case World{_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,items,_,_,_,_,_}: control_value(items)
+def with_control(world: World,value: Control) -> World:
+  match world:
+    case World{core,t,p,l,c,g,h,ts,ms,a,o,r,cl,d,out,_,x,y,selected,damage,flash}:
+      World{core,t,p,l,c,g,h,ts,ms,a,o,r,cl,d,out,[value],x,y,selected,damage,flash}
+def profile(world: World) -> U32: control_profile(control(world))
+def profile_name_value(profile: U32) -> String:
+  match profile:
+    case 1: "READ / PREP X2"
+    case 2: "LARGE JEV SIBLING X2"
+    case 3: "OUTPUT ACK +160 TICKS"
+    case _: "BASELINE"
+def profile_name(world: World) -> String: profile_name_value(profile(world))
+def stop_at_value(value: Control) -> U32:
+  match value:
+    case Control{_,_,at,_,_,_,_,profile}: at
+def stop_at(world: World) -> U32: stop_at_value(control(world))
+def stop_budget_value(value: Control) -> U32:
+  match value:
+    case Control{_,_,_,budget,_,_,_,profile}: budget
+def stop_budget(world: World) -> U32: stop_budget_value(control(world))
+def stop_state_value(value: Control) -> U32:
+  match value:
+    case Control{_,_,_,_,status,_,_,profile}: status
+def stop_state(world: World) -> U32: stop_state_value(control(world))
+def cancelled_value(value: Control) -> List<&2,Nat>:
+  match value:
+    case Control{_,_,_,_,_,cuts,_,profile}: cuts
+def cancelled(world: World) -> List<&2,Nat>: cancelled_value(control(world))
+def cleanup_left_value(value: Control) -> U32:
+  match value:
+    case Control{_,_,_,_,_,_,left,profile}: left
+def cleanup_left(world: World) -> U32: cleanup_left_value(control(world))
 def auto(world: World) -> Bool:
   match world:
     case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: A.enabled(schedule_value(v))
@@ -206,10 +281,10 @@ def damage_flash(world: World) -> U32:
 def schedule(world: World) -> A.State:
   match world:
     case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: schedule_value(v)
-def with_schedule(world: World, schedule: A.State) -> World:
+def with_schedule(+world: World, schedule: A.State) -> World:
   match world:
     case World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, _, x, y, selected, damage, flash}:
-      World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, [schedule], x, y, selected, damage, flash}
+      World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, [control_with_schedule(control(world),schedule)], x, y, selected, damage, flash}
 def wave(world: World) -> U32:
   A.wave(schedule(world))
 def wave_count() -> U32: 6
@@ -224,4 +299,5 @@ def current_round(items: List<&2, C.Round>) -> Nat:
     case Nil{}: 0n
 def round(world: World) -> Nat: current_round(rounds(core(world)))
 def wave_interval(+world: World) -> U32:
-  sub(220, (20 * U32.min(wave(world), 6) : U32))
+  +pace = control_pace(control(world))
+  Bool.pick(U32,U32.is_eq(pace,0),sub(220, (20 * U32.min(wave(world), 6) : U32)),pace)

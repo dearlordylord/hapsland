@@ -109,10 +109,10 @@ def anchor(+world: M.World, +work: C.Work) -> Map.Point:
 def duration(+world: M.World, +work: C.Work) -> U32:
   match work:
     case C.Work{_, _, _, _, _, C.AwaitingSourceRead{}, _}: Map.path_length(Map.source_route(M.layout(world)))
-    case C.Work{_, _, _, _, _, C.SourceReading{}, _}: 60
-    case C.Work{_, _, _, _, _, C.Preparing{}, _}: 176
+    case C.Work{_, _, _, _, _, C.SourceReading{}, _}: Bool.pick(U32,U32.is_eq(M.profile(world),1),120,60)
+    case C.Work{_, _, _, _, _, C.Preparing{}, _}: Bool.pick(U32,U32.is_eq(M.profile(world),1),352,176)
     case C.Work{_, _, _, _, _, C.Reviewing{}, _}: Map.path_length(Map.review_route(M.layout(world), lane(world, work)))
-    case C.Work{_, _, _, _, _, C.AtJev{}, _}: Bool.pick(U32, U32.is_eq(lane(world, work), 0), 160, 240)
+    case C.Work{_, _, _, _, _, C.AtJev{}, _}: Bool.pick(U32, U32.is_eq(lane(world, work), 0), 160, Bool.pick(U32,U32.is_eq(M.profile(world),2),480,240))
     case _: 0
 
 # Road progress and service effort share the same permanent acceleration.
@@ -124,7 +124,7 @@ def remaining(+world: M.World, +work: C.Work) -> U32:
   M.sub((duration(world, work) + Bool.pick(U32, U32.is_eq(kind(work), 2), Map.path_length(Map.preparation_route(M.layout(world))), 0) : U32), progress(world, work))
 def inside_world(+world: M.World, +work: C.Work) -> Bool:
   Bool.and(inside(M.core(world), work),
-    Bool.pick(Bool, U32.is_eq(kind(work), 1), (effort(world, work) < 60 : U32),
+    Bool.pick(Bool, U32.is_eq(kind(work), 1), (effort(world, work) < duration(world,work) : U32),
       Bool.pick(Bool, U32.is_eq(kind(work), 2), (progress(world, work) >= Map.path_length(Map.preparation_route(M.layout(world))) : U32),
         Bool.pick(Bool, U32.is_eq(kind(work), 5), (age(id(work), 5, M.timers(world)) >= Map.path_length(Map.retained_route(M.layout(world))) : U32), True{}))))
 

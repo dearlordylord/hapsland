@@ -15,9 +15,12 @@ With Bend and native graphics prerequisites installed:
 ```
 
 - **1–7:** choose a tower; **click ground:** build; **click a tower:** select; **U:** upgrade.
-- **N / Enter:** start the next wave; **Space:** pause; **R:** reset.
+- **N / Enter:** start the next wave; **Space / P:** pause; **R:** reset.
 - **Tab:** choose a map while there are no towers, active workload or owned work. Reset before changing an invested map.
 - **A:** toggle automatic waves using the shared Monkey Business Session scheduler; three-second countdowns pause with the game. Construction stays manual.
+- **[ / ]:** speed up / slow down arrivals (20–400 ticks); the chosen pace persists between waves.
+- **F:** choose a workload latency profile before a wave; independent of **Tab** geometry.
+- **D:** choose the Stop window before a wave: normal 80 seconds or short 4.2 seconds after admission closes. These are host demonstration timings.
 - **Escape:** close the window.
 
 Initial gold is 160 and shared health is 100. Towers fire or provide support automatically. There are six finite waves. Each has eight files and sixteen review units; arrival intervals shorten from 200 to 100 ticks. Completing a survived wave grants 20 gold once. Towers, gold and health persist; defeat stops new waves while outstanding ownership drains. The shell compiles and runs the Bend application directly; there is no archive extraction step.
@@ -96,21 +99,23 @@ Targeting and rendering share `DefenseEffects.point_work`; there is no second po
 
 The old version also restricted projectile targets to worker-active jobs and used building centers. Road targeting is a new correction to the requested spatial behavior, rather than an assertion that those old selectors already handled road units.
 
-| Feature | Last old game | Current canonical game | Remaining difference |
-| --- | --- | --- | --- |
-| Seven automatic towers, manual construction/upgrades | Present | Present; road shots verified | Preserved; no manual activation |
-| Arrival pacing controls | `[` / `]`, live interval display | Cadence tightens automatically between waves | Manual control missing |
-| Pause shortcut | Space or P | Space | P alias missing |
-| Workload profiles | Four profiles: baseline, Capture, Review, Output pressure | Three geometries over one workload | Distinct mechanical profiles missing |
-| Escalating demand | 24–54 review units per wave | Eight files / sixteen units each wave | Changed fixture; core baseline allows four Finish reservations |
-| Local storage/backpressure | Separate room slots and road limits, explicit refusal/holding | Actual shared ledger/dispatch limits and host service permits | Old per-room caps and physical downstream spillback not reproduced |
-| Stop timing and failure play | Deadline, cutoff, cancellation, drain deadline and incomplete terminal | Real Stop/Finish ownership and budget, successful fixture drain | Timed cutoff/failure gameplay missing |
-| Rapid/Relay scope after Review | Active Advice and reserved Output work can be accelerated | Approach roads, read/preparation/Jev service | No projectile acceleration of pending/output serialization |
-| Per-unit work/risk display | Five priority units plus two edit readiness summaries | Four listed units with remaining work/risk | Priority selection and explicit edit readiness summary missing |
-| Shot/dependency ghost | Hit list and before/after work; Coordinator waiting dependents | Actual mobile target link and numeric next shot | Dependent highlights and readiness forecast missing |
-| Packager preview | Candidate IDs/bytes before/after, flush state and fixed committed writer | Next target, item work, committed count/bytes and flush timer | Candidate composition/bytes ghost missing; effect is serialization time, not encoding-byte savings |
-| Shield preview | Pressure now/with shield, marginal charges spent | Next damage-work delta and remaining charges | Explicit raw/protected pressure and marginal charge-cost preview missing |
-| Shield replenishment | Charges reset at each wave start | Remaining charges carry across waves | Balance differs: campaign-wide finite supply |
-| Score and economy | Per-unit/delivery rewards and score | Twenty gold per survived completed wave | Earlier reward loop/score missing |
+## Architecture teaching increment
 
-These differences are an implementation inventory, not accepted requirements or a claim that every synthetic old policy should become Canonical behavior. The highest teaching-value presentation gaps are the Coordinator dependency forecast, Packager candidate ghost and Shield pressure/charge preview. Local queue caps and Stop failure scenarios require an explicit host scenario over real facts, rather than a copied reducer.
+This increment restores manual arrival pacing and the P pause alias. It adds explicit Stop deadline/cancellation/cleanup behavior through the imported reducer, rather than reproducing the old game's Stop implementation. The normal 4,000-tick window preserves complete baseline campaign drainage; the short 210-tick window deliberately demonstrates an incomplete result. Pausing freezes the window and cancellation settlement. Cancellation is not acknowledged delivery: retained findings and bytes survive, and auto mode starts another wave only after actual ownership drains. A refused Finish reservation stops new work visibly with ownership retained.
+
+The workload profile and map are separate selectors. All three maps can run all four profiles. Geometry changes travel distances and tower coverage; profiles change only synthetic effect latency, not reducer rules or workload size. Baseline has the existing timings; Read/Prep doubles reading and preparation; Large Jev Sibling doubles the second child's review time; Output ACK adds 160 ticks to acknowledgement latency. These are demonstration assumptions, not measured production workloads. Read/Prep demonstrates intake latency; Large Jev Sibling makes family waiting visible; Output ACK demonstrates retention after writer work. Profiles cannot change during an active wave.
+
+| Feature | Decision / visible behavior | Architecture lesson |
+| --- | --- | --- |
+| Manual wave pace | Restored `[ / ]`, live interval; N/Enter and A preserved | Arrival rate is distinct from processing capacity |
+| Local queue caps | No invented room caps; actual shared ledger, partition limits, preparation and Jev pools shown | Both preparation rooms consume one shared pool; concurrency and retained bytes differ |
+| Stop and incomplete completion | Waiting, deadline, actual cancellation IDs, delayed effect settlement, retained output drainage | Closing admission, cancelling work, releasing permits and acknowledging findings are different events |
+| Rapid/Relay after Review | No acceleration of retained PendingFinding; road/service targets preserved | Retained ownership is not an active processing task; Packager targets actual output policy |
+| Coordinator | Target and waiting sibling links; exact last-sibling forecast | Finishing a sibling, becoming collection-ready, starting a batch and receiving ACK are separate |
+| Family summaries | Focus target then blocked families; work/finding counts, unique owned bytes, ready and committed counts | Fan-out creates related units; shared charges must not be double-counted |
+| Packager ghost | Actual candidate IDs/count/bytes and writer ticks before/after; immutable committed IDs | Larger batches preserve bytes, reserve fixed membership and affect the next writer |
+| Flush hint | Counts down only when actual scenario eligibility permits output; otherwise explains waiting | The all-work readiness gate is this scenario's policy, not a universal core requirement |
+| Shield | Raw pressure, marginal protection, next charge cost and unchanged ledger | Explicit game metaphor: damage protection never implies processing or capacity gains |
+| Economy | Existing costs/rewards retained without new balancing work | No additional synthetic mechanic introduced |
+
+[Astra design input](validation-teaching-astra.txt) and final visual review informed the retained-work distinction, dependency forecast, family summaries and output ghost. [Combined directed validation](validation-business-features.txt) passes the existing suites plus 27 new business/presentation checks: Stop commands and permit settlement, retained acknowledged output after cutoff, unsafe Finish refusal, pacing bounds, all profile effects, exact candidate membership and bytes, deduplicated family ownership, and marginal shield charges. These bounded checks do not establish human learning or engagement. [Stop/input evidence](validation-teaching-native.txt) record actual inputs and captures for this increment; Linux execution is not a fresh macOS test. [Validation provenance](teaching-validation.json) records source fingerprints and compilation parameters. Root also checked the final wording correction natively: explicit DOES NOT MEAN and TO replace unsupported symbolic glyphs. The native application remains at 102 common ABI arguments and `WL_RESW=60`. A follow-up sample at sixteen retained findings measured 6.3 ms scene construction and 29.4 ms image preparation, excluding presentation; the additional teaching text costs rendering time and this is not a performance improvement claim.

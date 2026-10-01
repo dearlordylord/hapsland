@@ -1,4 +1,5 @@
 import Base
+import ./DefenseBusinessTests.bend as BusinessTests
 import ./DefenseTests.bend as HostTests
 import ./DefensePreviewTests.bend as T0
 import ./DefenseOutputTests.bend as T1
@@ -8,6 +9,7 @@ import ./DefenseRasterTests.bend as T4
 
 def main() -> IO(Unit):
   do IO<Unit>:
+    BusinessTests.main()
     HostTests.main()
     T0.main()
     T1.main()

@@ -1,0 +1,162 @@
+PASS brackets restore independent manual source arrival pacing
+PASS manual pace persists into real next wave
+PASS manual pace changes and saturates at twenty ticks
+PASS P toggles the same pause as Space
+PASS D selects short observed Stop window only before active work
+PASS Stop scenario and map selection are orthogonal
+PASS large sibling profile changes observed host Jev latency, not its canonical stage
+PASS read/preparation profile exposes host service bottleneck
+PASS output profile delays ACK independently of item serialization work
+PASS same workload profile launches on another authored map
+PASS active ownership prevents changing workload timings mid-flight
+PASS actual StopGroupPolled waits for unfinished sibling before deadline
+PASS deadline cancels unfinished work while observed finding and its real charge survive
+PASS cancel command interrupts actual request but permit remains until native settlement
+PASS native cancellation settlement releases dispatch permits without fabricating delivery or freeing finding charge
+PASS cutoff never credits cancelled work as clear or acknowledged
+PASS pause freezes cancellation settlement host clock
+PASS retained finding can still be actually acknowledged after cutoff
+PASS Packager ghost derives real candidate IDs/count/bytes without compression or ownership changes
+PASS future ghost excludes leased members and keeps actual committed writer locked
+PASS inactive eligibility wait is distinct from real flush countdown
+PASS family summary reads actual unfinished sibling and retained finding
+PASS family reservation summary deduplicates shared source/preparation charge
+PASS Coordinator predicts final sibling completion only when this shot actually finishes its remaining work
+PASS rooms project actual shared pools and partition ledger instead of fictional room caps
+PASS Shield charge preview uses actual marginal allocation including overlapping cap
+PASS incomplete Finish refusal holds real findings and disables unsafe new waves
+CANONICAL BUSINESS TEACHING:27 directed checks complete
+PASS direct reducer admits observed preparation
+PASS direct reducer splits and replaces byte reservations
+PASS real sibling dependency blocks collection and Stop
+PASS completed sibling permits actual collection
+PASS cannot construct on sidebar
+PASS manual spatial construction spends original Rapid35
+PASS cannot construct in building footprint
+PASS cannot construct on road
+PASS overlapping tower construction rejected
+PASS selected upgrade spends40
+PASS Rapid actual active work shot12
+PASS out-of-range processor cannot affect active work
+PASS Refiner shot permanently removes20 percentage points
+PASS preparation prevention carries to future child source metadata
+PASS Refiner never accelerates service work
+PASS Relay has original lower power6
+PASS Coordinator targets actual unfinished sibling holding findings
+PASS Coordinator has no effect without held sibling findings
+PASS Parallelizer changes covered host source permits only
+PASS canonical limits remain original eight
+PASS Packager changes actual next batch target and host item work
+PASS Packager preview exact serialization reduction
+PASS Rapid preview matches exact remaining-work marginal shot
+PASS empty range explicitly has zero effect
+PASS inside hot pressure generates actual damage cadence
+PASS local finite Shield reduces damage work
+PASS shield charging happens only protection not work firing
+PASS Shield never changes real ledger occupancy
+PASS pause freezes pressure damage
+PASS map cannot relocate constructed towers
+PASS map cannot relocate an active wave
+PASS automatic wave mode never constructs towers
+PASS source road distance gates actual source-start fact
+PASS review road distance gates actual backend request fact
+PASS every real backend request retains actual dispatch ownership
+PASS baseline future findings chance100 never authored clear
+PASS finite baseline drains sixteen real acknowledged findings
+PASS completed wave releases request and delivery ownership
+PASS zero future risk resolves clear only at actual backend completion
+PASS Refiner never targets already observed PendingFinding
+PASS Shield spends one finite charge per useful hot tick
+PASS zero-marginal new Shield remains idle behind existing capped protection
+PASS Rapid acquires road mob even when source building is outside radius
+PASS Rapid road shot changes the rendered authoritative travel position
+PASS Refiner reduces future findings risk on road without movement acceleration
+PASS Relay accelerates roads; Coordinator still requires active Jev blocker
+PASS preparation and review approach roads are targetable
+PASS road-only placement preview advertises real shot effect
+PASS road targeting respects spatial range and does not grant worker permits
+PASS road shot advances actual core source-start fact before unboosted arrival
+PASS empty but covered road is suitable scope with no current effect
+CANONICAL SPATIAL DEFENSE:51 directed checks complete
+PASS structural absence differs from temporary inactivity
+PASS eligible site without current marginal effect is amber
+PASS positive current marginal effect is effective
+PASS invalid placement takes priority over effect
+PASS unfunded placement takes priority over effect
+PASS selected tower inspection suppresses build preview
+PASS risk preview is permanent reduction in percentage points
+PASS parallelizer preview adds host service slots
+PASS pressure protection preview saturates at zero
+PASS hover uses actual host cost and level-one radius
+PASS paused hover does not spend gold or advance host clock
+PASS hover risk delta matches exact next actual Refiner shot
+PASS preview classification and read-only snapshot checks complete
+PASS all-clear workload never reserves an empty writer
+PASS acknowledged partial batches drain findings=0
+PASS acknowledged partial batches drain findings=1
+PASS acknowledged partial batches drain findings=2
+PASS acknowledged partial batches drain findings=3
+PASS acknowledged partial batches drain findings=4
+PASS acknowledged partial batches drain findings=5
+PASS acknowledged partial batches drain findings=6
+PASS acknowledged partial batches drain findings=7
+PASS acknowledged partial batches drain findings=8
+PASS acknowledged partial batches drain findings=9
+PASS acknowledged partial batches drain findings=10
+PASS acknowledged partial batches drain findings=11
+PASS acknowledged partial batches drain findings=12
+PASS acknowledged partial batches drain findings=13
+PASS acknowledged partial batches drain findings=14
+PASS acknowledged partial batches drain findings=15
+PASS acknowledged partial batches drain findings=16
+PASS all 17 retained-count cases drain within four actual reservations
+PASS sixteen retained findings use four real baseline batches
+PASS Packager level two drains same findings with three real batches
+PASS terminal before authorization retains work, bytes, leases and delivery credit
+PASS wrong authorization owner cannot retire the committed selection
+PASS upgrade changes next target while committed membership, bytes and timing stay fixed
+PASS actual fifth reservation refusal retains remaining findings without delivery credit
+CANONICAL OUTPUT:24 directed checks complete
+PASS first wave drains before retiring its canonical round
+PASS Enter starts a distinct actual second round
+PASS next wave retains towers gold and HP
+PASS two rounds drain thirty-two real findings using eight actual reservations
+PASS manual completion awards exactly twenty gold once per survived wave
+PASS A grants three seconds prep
+PASS countdown advances by the fixed twenty millisecond tick
+PASS pause freezes the shared Task countdown
+PASS resumed countdown starts exactly one wave
+PASS shared Session automatic defended campaign drains six actual rounds
+PASS automatic waves retain manual tower levels and award exactly twenty gold per completed survived wave
+PASS campaign settles ninety-six actual review outcomes with at most twenty-four real reservations
+PASS finite campaign ends recurring Tasks after six waves
+PASS every observed actual delivery counter remains within the real four-reservation budget
+PASS undefended defeat settles all real ownership and disables automatic starts
+PASS defeat prevents further manual and automatic waves
+PASS defeat gives no completion reward for the lost wave
+PASS defeated campaign also obeys each actual round finish budget
+PASS restart resets campaign and disables automatic waves
+PASS restart resets resources and delivered count
+PASS manual start cannot overlap real ownership
+PASS wave completion requests the next recurring Task from shared Session.on_finish
+CANONICAL CAMPAIGN:7 directed checks complete
+PASS District: every road enters/exits wall normally; finite simple room paths
+PASS Campus: both review branches enter normally and merge into shared serpent
+PASS Junction: corrected preparation and review entrances are perpendicular
+PASS tangent road along a wall is rejected
+PASS corner attachment is rejected
+PASS diagonal wall approach is rejected
+PASS diagonal interior segment is rejected
+PASS crossing interior path is rejected
+PASS returning to an earlier vertex is rejected
+PASS five horizontal passes and four turns are authored
+PASS long horizontal road advances exactly one pixel without percentage rounding
+PASS elbow continues exact distance without a teleport
+CANONICAL GEOMETRY:12 directed checks complete
+PASS empty scene background
+PASS opaque front tile hides all later layers
+PASS overlap priority and quadrant boundaries
+PASS half-open rectangle edges
+PASS clipping outside canvas
+PASS zero-width foreground has no pixels
+RASTER: 6144 pixels match independent oracle

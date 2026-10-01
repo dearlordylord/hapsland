@@ -3,6 +3,7 @@ import Base
 import ./DefenseModel.bend as M
 import ./DefenseProjection.bend as P
 import ./DefenseEffects.bend as E
+import ./DefenseAuto.bend as A
 import ../../packages/agent-flow-bend/Canonical.bend as C
 import ../../packages/agent-flow-bend/CollectionState.bend as Collection
 import ../../packages/agent-flow-bend/Handoff.bend as Handoff
@@ -22,6 +23,7 @@ def command(commands: List<&2,C.Command>, +kind: U32) -> Bool:
     case C.FinishReserved{} <> rest: U32.is_eq(kind,1) || command(rest,kind)
     case C.FinishAuthorized{} <> rest: U32.is_eq(kind,2) || command(rest,kind)
     case C.FinishRecorded{C.Acknowledged{}} <> rest: U32.is_eq(kind,3) || command(rest,kind)
+    case C.FinishRefused{} <> rest: U32.is_eq(kind,4) || command(rest,kind)
     case _ <> rest: command(rest,kind)
 
 def accepted(result: C.Step, kind: U32) -> Bool:
@@ -55,6 +57,12 @@ def batch_target(world: M.World) -> U32:
 def item_work(+world: M.World) -> U32:
   +levels = E.levels(M.towers(world),world,5,5)
   Bool.pick(U32,U32.is_eq(levels,0),8,U32.max(2,M.sub(5,levels)))
+
+# Host acknowledgement latency is explicit scenario metadata, not encoded bytes.
+def acknowledgement_work(world: M.World) -> U32:
+  Bool.pick(U32,U32.is_eq(M.profile(world),3),200,40)
+def bundle_work(+world: M.World,count: U32) -> U32:
+  (acknowledgement_work(world) + item_work(world) * count : U32)
 
 def selection_members(world: M.World) -> List<&2,Nat>:
   members(M.output(world))
@@ -93,9 +101,10 @@ def selection_bytes(+world: M.World) -> U32:
   M.number(selected_bytes(selection_members(world),M.core(world)))
 
 def choose(ids: List<&2,Nat>, +core: C.State, +left: U32, +count: Nat, +bytes: Nat) -> List<&2,Nat>:
-  match ids:
-    case Nil{}: []
-    case +id <> rest:
+  match ids left:
+    case _ 0: []
+    case Nil{} _: []
+    case +id <> rest _:
       +size = bytes_for(id,M.work(core),core)
       +fits = accepted(C.step(core,C.CollectionFitCheck{(count + 1n : Nat),(bytes + size : Nat)}),0)
       +take = (left > 0 : U32) && fits
@@ -143,7 +152,7 @@ def retire_acknowledged(ids: List<&2,Nat>, +core: C.State) -> C.State:
 
 def terminal_result(result: C.Step, +output: M.Output, +round: Nat) -> C.State:
   match result:
-    case C.Advanced{+core,commands}:
+    case C.Advanced{+core,+commands}:
       Bool.pick(C.State,command(commands,3),
         event(retire_acknowledged(members(output),core),
           C.FinishEnd{1n,round,attempt(output),token(output)}),core)
@@ -175,18 +184,24 @@ def advance(+world: M.World, output: M.Output) -> M.World:
       +done = (next_age >= span : U32) && output_done(ids,core)
       update(world,core,Bool.pick(M.Output,done,M.Output{0,attempt,owner,[],0,0},out),M.sub(before,after))
 
+def finish_refused(+world: M.World,refused: Bool) -> M.World:
+  match refused:
+    case False{}: world
+    case True{}:
+      +stopped = M.with_control(world,M.control_stop(M.control(world),M.stop_at(world),4,M.cancelled(world),M.cleanup_left(world)))
+      M.with_schedule(stopped,A.disarm(M.schedule(stopped)))
 def commit_result(+world: M.World, result: C.Step, +out: M.Output) -> M.World:
   match result:
-    case C.Advanced{+core,commands}:
+    case C.Advanced{+core,+commands}:
       Bool.pick(M.World,command(commands,1),
-        update(world,reserve_submissions(members(out),core,token(out)),out,0),M.with_core(world,core))
+        update(world,reserve_submissions(members(out),core,token(out)),out,0),finish_refused(M.with_core(world,core),command(commands,4)))
     case C.Rejected{core,_}: M.with_core(world,core)
 
 def begin(+world: M.World, +ids: List<&2,Nat>) -> M.World:
   +attempt = (attempt(M.output(world)) + 1n : Nat)
   +owner = (1000n + attempt : Nat)
-  +duration = (40 + item_work(world) * M.number(List.length(&2,Nat,ids)) : U32)
-  commit_result(world,C.step(M.core(world),C.FinishReserve{1n,1n,M.round(world),attempt,owner,ids,False{},False{},True{},True{},False{}}),
+  +duration = bundle_work(world,M.number(List.length(&2,Nat,ids)))
+  commit_result(world,C.step(M.core(world),C.FinishReserve{1n,1n,M.round(world),attempt,owner,ids,False{},False{},True{},True{},U32.is_eq(M.stop_state(world),3)}),
     M.Output{0,attempt,owner,ids,0,duration})
 
 def all_ready(ids: List<&2,Nat>, +ready: List<&2,Nat>) -> Bool:
