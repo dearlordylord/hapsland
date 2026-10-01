@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractBendDeclarations } from "./bend-extractor.ts";
+import { extractBendDeclarations } from "./languages/bend/extractor.ts";
 import { analyzeTypeFile, inspectGraphFile, combinedAnalyzerMaterializationPreflight } from "./analyzer.ts";
 
 const analyze = (source: string) => {

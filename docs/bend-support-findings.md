@@ -41,6 +41,18 @@ Bend modules share datatype/def/law bindings, while constructors have their own
 namespace. Documentation and source inspection establish these design facts;
 only the fixture checks below establish observed compiler behavior.
 
+## Adapter boundary
+
+Bend extraction, declaration/reference normalization, and relative `.bend`
+import candidate generation belong together in `src/direct-event/languages/bend/`.
+The adapter returns common declaration, source location, export, and import facts;
+it does not fabricate TypeScript parser nodes. The static language registry selects
+the adapter. Shared traversal owns capture eligibility, budgets, freshness, and
+review-unit assembly without interpreting Bend syntax or filenames.
+
+This boundary amendment changes code ownership, not the supported syntax or import
+scope. External dependencies and hub imports remain outside supported resolution.
+
 ## Assumptions and counterexamples
 
 The supported profile treats a short, explicit set of Base names as leaves only
