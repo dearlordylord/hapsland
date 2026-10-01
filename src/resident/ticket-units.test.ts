@@ -8,7 +8,7 @@ const revision = Object.freeze({ subject: "fixture", token: "revision-token", ge
 
 it.effect("publishes canonical unit progress and immutable native metadata together", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = owner.ticketUnits.add(ticket);
   expect(Object.isFrozen(unit)).toBe(true);
   expect(unit.stage()?.stage).toBe("pending");
@@ -23,7 +23,7 @@ it.effect("publishes canonical unit progress and immutable native metadata toget
 
 it.effect("rolls back canonical progress when native metadata fails validation", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = owner.ticketUnits.add(ticket);
   const before = owner.canonicalProjection();
   expect(() => unit.step("findingResult", "lost", { revision })).toThrow("native ticket unit metadata");
@@ -38,21 +38,21 @@ it.effect("does not consume a native unit identity when its parent capability is
   const foreign = { ...residentTicketInput(owner.residentLifetime), generation: 99 };
   expect(() => owner.ticketUnits.add(foreign)).toThrow("ticket capability");
   expect(owner.ticketUnits.values()).toEqual([]);
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   expect(owner.ticketUnits.add(ticket).id).toBe(1);
 }));
 
 it.effect("fences forgotten and cleared capabilities when numeric unit identities are reused", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const old = owner.ticketUnits.add(ticket);
   old.step("clearResult", "lost", { revision });
-  owner.tickets.forget(ticket);
+  (yield* owner.tickets.forget(ticket));
   expect(old.current).toEqual({});
   expect(old.stage()).toBeUndefined();
   expect(old.step("failUnit", "lost", {})).toBe(false);
   owner.clear();
-  const replacementTicket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const replacementTicket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const replacement = owner.ticketUnits.add(replacementTicket);
   expect(replacement.id).toBe(old.id);
   expect(() => owner.ticketUnits.add(ticket)).toThrow("ticket capability");

@@ -83,7 +83,7 @@ it.effect("rolls back retention and lease updates when native payload snapshotti
 
 it.effect("retires advice, ticket bindings and leases while retaining active capture workspace", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = owner.ticketUnits.add(ticket);
   unit.step("findingResult", "lost", { revision: initial.revision, adviceId: initial.id });
   const advice = owner.advice.insert(initial);
@@ -150,7 +150,7 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
 
 it.effect("publishes the owner result and independent joined subscribers together", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const ownerUnit = owner.ticketUnits.add(ticket);
   const subscriber = owner.ticketUnits.add(ticket);
   const joined = owner.joinedReviews(() => 1);

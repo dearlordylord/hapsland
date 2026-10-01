@@ -228,8 +228,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     }),
     values: () => [...Ref.getUnsafe(state).records.ticketUnits.entries.values()].map((entry) => entry.capability),
   };
-  const ticketCommit = <A>(operation: (operations: ReturnType<typeof ticketRecordOperations>) => A): A =>
-    commitAll((draft, records) => {
+  const ticketCommit = <A>(operation: (operations: ReturnType<typeof ticketRecordOperations>) => A): Effect.Effect<A> =>
+    commitAllEffect((draft, records) => {
       const tickets = draftTicketRecords(records.tickets);
       const ticketUnits = draftTicketUnits(records.ticketUnits);
       const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
@@ -240,11 +240,11 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       return [value, { ...records, tickets, ticketUnits }];
     });
   const tickets: TicketRecords = {
-    open: (input) => ticketCommit((operations) => operations.open(input)),
-    get: (nonce) => Ref.getUnsafe(state).records.tickets.entries.get(nonce),
-    forget: (record) => ticketCommit((operations) => operations.forget(record)),
-    discardPartition: (partition) => ticketCommit((operations) => operations.discardPartition(partition)),
-    retain: (limit) => ticketCommit((operations) => operations.retain(limit)),
+    open: Effect.fn("ResidentState.openTicket")((input) => ticketCommit((operations) => operations.open(input))),
+    get: Effect.fn("ResidentState.getTicket")((nonce) => Ref.get(state).pipe(Effect.map((current) => current.records.tickets.entries.get(nonce)))),
+    forget: Effect.fn("ResidentState.forgetTicket")((record) => ticketCommit((operations) => operations.forget(record))),
+    discardPartition: Effect.fn("ResidentState.discardPartitionTickets")((partition) => ticketCommit((operations) => operations.discardPartition(partition))),
+    retain: Effect.fn("ResidentState.retainTickets")((limit) => ticketCommit((operations) => operations.retain(limit))),
   };
   const roundCommit = <A>(operation: (operations: ReturnType<typeof roundRecordOperations>) => A): A =>
     commitAll((draft, records) => {

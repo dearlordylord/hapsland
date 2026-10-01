@@ -20,13 +20,13 @@ it.effect("bounds connection leases and fences foreign and duplicate release", (
 
 it.effect("publishes canonical cleanup, ticket eviction and retirement together", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = owner.ticketUnits.add(ticket);
   const outcome = yield* owner.runtime.cleanup(() => 10);
   expect(outcome).toBe("cleaned");
   expect(owner.runtime.snapshot().lifecycle).toBe("retiring");
   expect(owner.canonicalProjection().dispatch.closed).toBe(true);
-  expect(owner.tickets.get(ticket.ticket.nonce)).toBeUndefined();
+  expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBeUndefined();
   expect(unit.stage()).toBeUndefined();
   expect((yield* owner.runtime.scheduleRetirement())).toBe(true);
   expect((yield* owner.runtime.scheduleRetirement())).toBe(false);
@@ -35,13 +35,13 @@ it.effect("publishes canonical cleanup, ticket eviction and retirement together"
 
 it.effect("busy ownership does not retire the runtime or evict tickets", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const reservation = owner.reserve("fixture", 10, "preparation")!;
   const before = owner.canonicalProjection();
   const outcome = yield* owner.runtime.cleanup(() => 10);
   expect(outcome).toBe("busy");
   expect(owner.canonicalProjection()).toEqual(before);
-  expect(owner.tickets.get(ticket.ticket.nonce)).toBe(ticket);
+  expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBe(ticket);
   expect(owner.runtime.snapshot().lifecycle).toBe("active");
   expect((yield* owner.runtime.scheduleRetirement())).toBe(false);
   expect(owner.release(reservation)).toBe(true);
@@ -81,7 +81,7 @@ it.effect("two connected clients keep cleanup busy until one physically closes",
 
 it.effect("rolls back staged ticket eviction and retirement if native validation fails", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = owner.ticketUnits.add(ticket);
   // Seed a mismatched canonical admission to exercise failure after the first
   // eviction has staged; normal ticket admission validates this invariant.
@@ -90,7 +90,7 @@ it.effect("rolls back staged ticket eviction and retirement if native validation
   const outcome = yield* Effect.exit(owner.runtime.cleanup(() => 10));
   expect(outcome._tag).toBe("Failure");
   expect(owner.canonicalProjection()).toEqual(before);
-  expect(owner.tickets.get(ticket.ticket.nonce)).toBe(ticket);
+  expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBe(ticket);
   expect(unit.stage()?.stage).toBe("pending");
   expect(owner.runtime.snapshot().lifecycle).toBe("active");
 }));

@@ -1,3 +1,4 @@
+import type { Effect } from "effect";
 import type { ResidentCollectionTicket } from "./protocol.ts";
 import type { ClaudeOutputMode } from "./collection.ts";
 import type { CapacityLedger } from "./capacity.ts";
@@ -75,9 +76,9 @@ export const ticketRecordOperations = (
   };
 };
 export interface TicketRecords {
-  readonly open: (input: Omit<TicketRecord, "generation">) => TicketRecord;
-  readonly get: (nonce: string) => TicketRecord | undefined;
-  readonly forget: (record: TicketRecord) => boolean;
-  readonly discardPartition: (partition: string) => void;
-  readonly retain: (limit: number) => void;
+  readonly open: (input: Omit<TicketRecord, "generation">) => Effect.Effect<TicketRecord>;
+  readonly get: (nonce: string) => Effect.Effect<TicketRecord | undefined>;
+  readonly forget: (record: TicketRecord) => Effect.Effect<boolean>;
+  readonly discardPartition: (partition: string) => Effect.Effect<void>;
+  readonly retain: (limit: number) => Effect.Effect<void>;
 }

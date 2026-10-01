@@ -2,7 +2,7 @@ import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit, type Typ
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { it } from "@effect/vitest";
 import { expect } from "vitest";
-import { Effect } from "effect";
+import { Cause, Effect } from "effect";
 import { makeResidentState } from "./capacity.ts";
 import { residentTicketInput } from "../test-support/resident-ticket.ts";
 import { advicee } from "../direct-event/test-fixtures.ts";
@@ -15,7 +15,7 @@ it.effect("attaches one owner and independently settles all joining ticket units
   const owner = yield* makeResidentState<{ readonly id: number }>();
   const reuse = owner.reuse(measure);
   const joined = owner.joinedReviews(measure);
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const first = owner.ticketUnits.add(ticket);
   const second = owner.ticketUnits.add(ticket);
   expect(reuse.claim("key")).toBe(true);
@@ -42,7 +42,7 @@ it.effect("releases unbound subscribers with the claim while retaining attached 
   const owner = yield* makeResidentState();
   const reuse = owner.reuse(measure);
   const joined = owner.joinedReviews(measure);
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unbound = owner.ticketUnits.add(ticket);
   const attached = owner.ticketUnits.add(ticket);
   reuse.claim("key");
@@ -60,7 +60,7 @@ it.effect("releases unbound subscribers with the claim while retaining attached 
 it.effect("rolls back unit attachment when native subscriber construction fails", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const joined = owner.joinedReviews(measure);
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = owner.ticketUnits.add(ticket);
   const before = owner.canonicalProjection();
   expect(() => joined.append({ admission: 1, evaluationKey: "key", activityPath: undefined, ticketUnit: unit, revision,
@@ -77,9 +77,9 @@ it.effect("clears joined membership with its owner and keeps independent acquisi
   const second = yield* recipe;
   expect(second.residentLifetime).not.toBe(first.residentLifetime);
   const input = residentTicketInput(first.residentLifetime);
-  first.tickets.open(input);
+  (yield* first.tickets.open(input));
   const before = second.canonicalProjection();
-  expect(() => second.tickets.open(input)).toThrow("ticket admission identity refused");
+  expect(yield* second.tickets.open(input).pipe(Effect.sandbox, Effect.flip, Effect.map(Cause.pretty))).toContain("ticket admission identity refused");
   expect(second.canonicalProjection()).toEqual(before);
   const joined = first.joinedReviews(measure);
   joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, revision });
@@ -93,7 +93,7 @@ it.effect("rolls back owner and subscriber attachment together when the native c
   const owner = yield* makeResidentState<number | undefined>();
   const reuse = owner.reuse(measure);
   const joined = owner.joinedReviews(measure);
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = owner.ticketUnits.add(ticket);
   reuse.claim("key");
   joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unit });
@@ -116,7 +116,7 @@ it.effect("retires superseded subscribers without changing another subject's mem
   const owner = yield* makeResidentState<{ readonly token: string }>();
   const joined = owner.joinedReviews(measure);
   const reuse = owner.reuse(measure);
-  const ticket = owner.tickets.open(residentTicketInput(owner.residentLifetime));
+  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const oldUnit = owner.ticketUnits.add(ticket);
   const independentUnit = owner.ticketUnits.add(ticket);
   const item = prepare("type Count = number");

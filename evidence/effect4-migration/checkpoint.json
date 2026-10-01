@@ -111,7 +111,9 @@
     "Current deterministic workload passes all eight ownership invariants across eight measured iterations: saturated refusal, physical settlement fencing, permit reuse, pending shutdown and final canonical/accounting settlement",
     "Runtime connection admission/release, counters, authority sequence and retirement scheduling compose named Effects; removed synchronous runtime mutation wrapper",
     "Native IPC framing moved to a bounded UTF-8 adapter with explicit success/interruption listener cleanup and acknowledged physical close",
-    "IPC connection and response fibers belong to resident IPC scope; listener stops before closing that scope; connection leases release only after native closure; retirement fiber belongs to parent runtime scope"
+    "IPC connection and response fibers belong to resident IPC scope; listener stops before closing that scope; connection leases release only after native closure; retirement fiber belongs to parent runtime scope",
+    "Ticket admission, lookup, retirement, partition retirement and retention compose named Effect operations over the shared Ref; deleted synchronous ticket commit/read bridges",
+    "Ticketed admission and final handoff lookup compose ticket Effects; competing same-nonce admissions publish one ticket and rejected admissions consume no generations"
   ],
   "verification": [
     {
@@ -1373,9 +1375,67 @@
       "measuredIterations": 8,
       "invariants": 8,
       "limitation": "Baseline shutdown duration remains noncomparable; no comparative physical-retirement latency acceptance"
+    },
+    {
+      "stage": "Ticket service Effects",
+      "command": "Typecheck, production build, all boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Ticket service Effects",
+      "command": "Combined state/server suite with default parallel workers",
+      "exitCode": 1,
+      "testsPassed": 94,
+      "error": "Native server test worker SIGSEGV; prior intermittent failure recurred; root cause unproven"
+    },
+    {
+      "stage": "Ticket service Effects",
+      "command": "State/server suite with one worker",
+      "exitCode": 1,
+      "testsPassed": 107,
+      "testsFailed": 2,
+      "failures": [
+        "successful reuse stress case timeout at 5000ms",
+        "six-finding collection stress case timeout at 5000ms"
+      ],
+      "resolution": "Both cases passed in isolation with original unchanged timeout; full isolated server rerun pending"
+    },
+    {
+      "stage": "Ticket service Effects",
+      "command": "Affected state suites with one worker",
+      "exitCode": 0,
+      "tests": 29
+    },
+    {
+      "stage": "Ticket service Effects",
+      "command": "Two timed-out server cases in isolation",
+      "exitCode": 0,
+      "tests": 2,
+      "limitation": "Does not establish full server-suite success or eliminate native worker SIGSEGV"
+    },
+    {
+      "stage": "Ticket service Effects",
+      "command": "Full isolated server suite rerun with original timeouts",
+      "exitCode": 1,
+      "testsPassed": 77,
+      "testsFailed": 3,
+      "failures": [
+        "unsupported collection/acknowledgement IPC timeout",
+        "OpenCode IPC rejection timeout",
+        "installed PreToolUse permit timeout"
+      ],
+      "limitation": "Full server gate remains failing; a different set of cases timed out from the preceding run; isolated diagnostics do not establish full-suite success"
+    },
+    {
+      "stage": "Ticket service Effects",
+      "command": "Three newly timed-out IPC/permit cases in isolation with unchanged timeouts",
+      "exitCode": 0,
+      "tests": 3,
+      "limitation": "Full server suite is still unresolved; these are diagnostic passes"
     }
   ],
   "next": [
+    "Investigate full server-suite varying timeout failures and intermittent native worker SIGSEGV without widening existing limits; state-stage diagnostic passes do not satisfy the final server gate",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
     "Replace remaining synchronous domain commit/read bridges with service operations and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
@@ -1391,7 +1451,8 @@
     "Original workload now passes every unchanged budget with automatically observed peak 17625630 bytes (strict baseline 17807985). Deterministic workload reaches eight and passes all ownership fences. Physical-retirement shutdown latency comparison remains unproven because the fixed baseline shuts down before held callbacks complete; final full-migration reruns remain required.",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied",
     "Intermittent Vitest server worker SIGSEGV recurred during this stage; isolated final suites passed, but root cause is unproven",
-    "Previous server-sampled peak figures can omit transient capture reservations; retain them as historical diagnostic evidence, not final peak-retention validation"
+    "Previous server-sampled peak figures can omit transient capture reservations; retain them as historical diagnostic evidence, not final peak-retention validation",
+    "Ticket Effect stage state checks pass, but full isolated server suite hit varying five-second timeouts; full server gate remains unresolved alongside intermittent native worker SIGSEGV"
   ],
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",

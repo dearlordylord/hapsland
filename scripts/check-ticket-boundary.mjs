@@ -30,3 +30,10 @@ for (const event of ["ticketFail", "ticketClose", "ticketTerminal"]) {
 for (const owner of ["#ticketUnits", "#nextTicketUnitId", "unit.current =", "#tickets", "#nextAdmissionGeneration"]) {
   if (server.includes(owner)) throw new Error(`independent native ticket owner returned: ${owner}`);
 }
+
+const state = readFileSync(resolve(root, "src/resident/capacity.ts"), "utf8");
+const ticketCommit = state.slice(state.indexOf("const ticketCommit ="), state.indexOf("const roundCommit ="));
+if (!ticketCommit.includes("commitAllEffect(") || /\bcommitAll\(/u.test(ticketCommit) ||
+    ticketCommit.includes("Ref.getUnsafe")) {
+  throw new Error("ticket operations must compose atomic Effects for commits and reads");
+}
