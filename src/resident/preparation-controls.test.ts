@@ -54,3 +54,32 @@ it.effect("resident close retires its preparation layer while the caller scope r
   yield* runtime.closeEffect;
   yield* controls.retired;
 })));
+
+it.effect("reports preparation order while holding only the selected completion", () => Effect.scoped(Effect.gen(function* () {
+  const controls = yield* makePreparationControls();
+  const service = Context.get(yield* Layer.build(controls.layer), ResidentPreparationControls);
+  const completed = yield* Ref.make(false);
+  yield* controls.holdNextPreparation;
+  const first = yield* Effect.forkChild(service.afterPrepare.pipe(
+    Effect.andThen(Ref.set(completed, true))), { startImmediately: true });
+  expect(yield* controls.nextPreparation).toBe(1);
+  expect(yield* Ref.get(completed)).toBe(false);
+  yield* service.afterPrepare;
+  expect(yield* controls.nextPreparation).toBe(2);
+  expect(yield* controls.preparationCount).toBe(2);
+  yield* controls.releasePreparation;
+  yield* Fiber.join(first);
+  expect(yield* Ref.get(completed)).toBe(true);
+})));
+
+it.effect("retiring the layer releases a held completion and retires its notifications", () => Effect.gen(function* () {
+  const controls = yield* makePreparationControls();
+  const scope = yield* Scope.make();
+  const service = Context.get(yield* Layer.buildWithScope(controls.layer, scope), ResidentPreparationControls);
+  yield* controls.holdNextPreparation;
+  const preparation = yield* Effect.forkChild(service.afterPrepare, { startImmediately: true });
+  expect(yield* controls.nextPreparation).toBe(1);
+  yield* Scope.close(scope, Exit.void);
+  yield* controls.retired;
+  yield* Fiber.join(preparation);
+}));

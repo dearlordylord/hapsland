@@ -1,5 +1,5 @@
 import { Layer, Ref } from "effect";
-import { ResidentPreparationControls, PreparationControlError } from "./preparation-controls.ts";
+import { ResidentPreparationControls, PreparationControlError, defaultPreparationControls } from "./preparation-controls.ts";
 import { makePreparationControls } from "../test-support/preparation-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it } from "vitest";
@@ -154,6 +154,7 @@ describe("Claude terminal collection", () => {
     const failOnce = await Effect.runPromise(Ref.make(true));
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => 1_000, {
       preparationControls: Layer.succeed(ResidentPreparationControls, ResidentPreparationControls.of({
+        ...defaultPreparationControls,
         afterReuseBoundary: Effect.fn("PreparationFailureFixture.afterReuseBoundary")(function* (phase) {
           if (yield* Ref.getAndSet(failOnce, false)) yield* Effect.fail(new PreparationControlError({ phase }));
         }),

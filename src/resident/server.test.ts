@@ -1,5 +1,5 @@
 import { Layer } from "effect";
-import { ResidentPreparationControls, PreparationControlError } from "./preparation-controls.ts";
+import { ResidentPreparationControls, PreparationControlError, defaultPreparationControls } from "./preparation-controls.ts";
 import { makePreparationControls } from "../test-support/preparation-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { monotonicNow } from "./hook-clock.ts";
@@ -1527,9 +1527,10 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const held = deferred();
+    const controls = await Effect.runPromise(makePreparationControls());
+    await Effect.runPromise(controls.holdNextPreparation);
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-      afterPrepare: () => held.promise,
+      preparationControls: controls.layer,
     });
     const dispatch = findingDispatch(statePath);
     expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
@@ -1541,7 +1542,7 @@ describe("resident delivery lease", () => {
     expect(await collect(observation.advicee)).toEqual({ status: "empty" });
     expect(await collect(observation.advicee, true)).toEqual({ status: "pending" });
     expect(await collect({ ...observation.advicee, sessionId: "other" }, true)).toEqual({ status: "empty" });
-    held.resolve();
+    await Effect.runPromise(controls.releasePreparation);
     await server.whenIdle();
     expect((await collect(observation.advicee, true)).status).toBe("advice");
   });
@@ -1985,25 +1986,16 @@ describe("resident delivery lease", () => {
     expect(first).toBeDefined();
     if (first === undefined) return;
     const dispatch = findingDispatch(statePath);
-    const firstPrepared = deferred();
-    const replacementPrepared = deferred();
-    const releaseFirstPrepare = deferred();
+    const controls = await Effect.runPromise(makePreparationControls());
+    await Effect.runPromise(controls.holdNextPreparation);
     const oldEvaluationEntered = deferred();
     const releaseOldEvaluation = deferred();
-    let preparation = 0;
     let heldOldEvaluation = false;
     const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
       {
-        afterPrepare: async () => {
-          preparation += 1;
-          if (preparation === 1) {
-            firstPrepared.resolve();
-            await releaseFirstPrepare.promise;
-          }
-          if (preparation === 2) replacementPrepared.resolve();
-        },
+        preparationControls: controls.layer,
         beforeEvaluate: async (prepared) => {
           if (!heldOldEvaluation && prepared.input.declaration.source.includes("number")) {
             heldOldEvaluation = true;
@@ -2014,7 +2006,7 @@ describe("resident delivery lease", () => {
       },
     );
     expect(server.admit(first, dispatch).status).toBe("accepted");
-    await firstPrepared.promise;
+    expect(await Effect.runPromise(controls.nextPreparation)).toBe(1);
     await put(root, "type.ts", "type OrderCount = string\n");
     const replacement = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
       tool_use_id: "replacement",
@@ -2022,9 +2014,9 @@ describe("resident delivery lease", () => {
     expect(replacement).toBeDefined();
     if (replacement === undefined) return;
     expect(server.admit(replacement, dispatch).status).toBe("accepted");
-    releaseFirstPrepare.resolve();
+    await Effect.runPromise(controls.releasePreparation);
     await oldEvaluationEntered.promise;
-    await replacementPrepared.promise;
+    expect(await Effect.runPromise(controls.nextPreparation)).toBe(2);
     releaseOldEvaluation.resolve();
     await server.whenIdle();
 
@@ -3153,6 +3145,32 @@ describe("resident bounded advice batches", () => {
 
 
 describe("Effect preparation ownership", () => {
+  it.each(["owner", "prepared"] as const)("closes a held %s barrier without an external gate release", async (phase) => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const controls = await Effect.runPromise(makePreparationControls());
+    await Effect.runPromise(phase === "owner" ? controls.holdNextOwner : controls.holdNextPreparation);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined,
+      { preparationControls: controls.layer });
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      expect(server.admit(observation, findingDispatch(join(root, "consent"))).status).toBe("accepted");
+      await Effect.runPromise(phase === "owner" ? controls.ownerEntered : controls.nextPreparation.pipe(Effect.asVoid));
+      // Bound failure cleanup without releasing the gate on the success path.
+      await Promise.race([server.close(), new Promise<never>((_, reject) => {
+        deadline = setTimeout(() => reject(new Error("resident did not cancel its held preparation")), 2_000);
+      })]);
+      await Effect.runPromise(controls.retired);
+      expect(server.stats()).toMatchObject({ queued: 0, running: 0, retainedBytes: 0, pendingEvaluations: 0 });
+    } finally {
+      clearTimeout(deadline);
+      await Effect.runPromise(controls.releaseOwner.pipe(Effect.andThen(controls.releasePreparation)));
+      await server.close();
+    }
+  });
+
   it("releases preparation workspace and reuse claims after a claim barrier fails", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type OrderCount = number\n");
@@ -3160,6 +3178,7 @@ describe("Effect preparation ownership", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       preparationControls: Layer.succeed(ResidentPreparationControls, ResidentPreparationControls.of({
+        ...defaultPreparationControls,
         afterReuseBoundary: Effect.fn("PreparationFailureFixture.afterReuseBoundary")((phase) => Effect.fail(new PreparationControlError({ phase }))),
       })),
     });

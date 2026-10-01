@@ -119,7 +119,9 @@
     "Retained sanitized server CPU/memory/event-loop diagnostics and reusable diagnostic setup; raw profiles are disposable and test limits stay unchanged",
     "Replaced the optional Promise/void reuse-boundary callback with the ResidentPreparationControls Context service and a scoped Layer; no legacy callback remains",
     "Resident owns a preparation scope built through Layer.buildWithScope and retires it in close after dispatch physically settles, even if the caller scope stays open",
-    "Controlled owner/joined fixture coordination uses Effect Deferred and Ref with layer finalizers; tests cover one-shot release, independent joining, interruption without external release, typed barrier failure cleanup, and resident-owned layer retirement"
+    "Controlled owner/joined fixture coordination uses Effect Deferred and Ref with layer finalizers; tests cover one-shot release, independent joining, interruption without external release, typed barrier failure cleanup, and resident-owned layer retirement",
+    "Preparation completion is owned by ResidentPreparationControls; removed the Promise afterPrepare option and converted its callers to scoped Ref/Deferred/Queue controls.",
+    "Owner, joined and completion preparation barriers now observe owning-work cancellation inside the dispatcher uninterruptible region; actual resident-close tests prove held barriers retire without external gate release."
   ],
   "verification": [
     {
@@ -1529,10 +1531,41 @@
       "allNumericFormulasPass": true,
       "allComparativeBudgetsVerified": false,
       "limitation": "Current measured shutdown P95 9.739744ms is below the unchanged numeric formula limit, but baseline physical retirement remains noncomparable"
+    },
+    {
+      "stage": "Preparation completion and cancellation",
+      "command": "Final preparation/server/terminal/Jev-request/security suite",
+      "exitCode": 0,
+      "tests": 122,
+      "files": 5
+    },
+    {
+      "stage": "Preparation completion and cancellation",
+      "command": "Typecheck, build, all boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Preparation completion and cancellation",
+      "command": "Unchanged original benchmark",
+      "exitCode": 0,
+      "evidence": "benchmark-preparation-completion-comparison.json",
+      "budgetsMet": true
+    },
+    {
+      "stage": "Preparation completion and cancellation",
+      "command": "Deterministic physical-retirement benchmark",
+      "exitCode": 0,
+      "evidence": "physical-retirement-preparation-completion-comparison.json",
+      "measuredIterations": 8,
+      "invariants": 8,
+      "comparableBudgetsMet": true,
+      "allNumericFormulasPass": true,
+      "allComparativeBudgetsVerified": false,
+      "limitation": "Fixed baseline shutdown violates physical settlement; no valid comparative retirement latency claim."
     }
   ],
   "next": [
-    "Finish remaining scoped fixture ports and deterministic coordination; reuse preparation controls are now scoped and the complete 106-test server/terminal/control suite passes",
+    "Finish remaining scoped fixture ports and deterministic coordination; preparation ownership/cancellation suite now passes 122 tests",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
     "Replace remaining synchronous domain commit/read bridges with service operations and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",

@@ -1,3 +1,4 @@
+import { makePreparationControls } from "../test-support/preparation-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it, vi } from "vitest";
 import * as Effect from "effect/Effect";
@@ -222,9 +223,9 @@ describe("canonical Jev request boundary", () => {
     const ninthUnavailable = deferred();
     const observations: JevRequestObservation[] = [];
     let effectsEntered = 0;
-    let preparations = 0;
+    const controls = await Effect.runPromise(makePreparationControls());
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-      afterPrepare: async () => { preparations += 1; },
+      preparationControls: controls.layer,
       controlledRequestEffect: async () => {
         effectsEntered += 1;
         if (effectsEntered === 8) eightEntered.resolve();
@@ -244,7 +245,7 @@ describe("canonical Jev request boundary", () => {
 
       expect(server.admit(await observe([paths[8]!]), dispatch).status).toBe("accepted");
       await ninthUnavailable.promise;
-      expect(preparations).toBe(2);
+      expect(await Effect.runPromise(controls.preparationCount)).toBe(2);
       expect(effectsEntered).toBe(8);
       expect(observations.filter((item) => item.stage === "unavailable")).toHaveLength(1);
 

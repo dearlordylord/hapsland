@@ -136,6 +136,8 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     const statePath = join(temporary, "consent");
     const script = [
       "import * as Effect from 'effect/Effect';",
+      "import {Layer} from 'effect';",
+      "import {ResidentPreparationControls,PreparationControlError,defaultPreparationControls} from './src/resident/preparation-controls.ts';",
       "import {adaptCodexDirectEvent} from './src/direct-event/adapter.ts';",
       "import {updateEvent} from './src/direct-event/test-fixtures.ts';",
       "import {makeResidentRuntime} from './src/resident/server.ts';",
@@ -146,7 +148,8 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
       `const runtime=${JSON.stringify(join(temporary, "runtime"))};`,
       "const observation=await Effect.runPromise(adaptCodexDirectEvent(updateEvent(root,'type.ts',[`type OrderCount = number // ${marker}`])));",
       "await Effect.runPromise(Effect.scoped(Effect.gen(function*(){",
-      "const server=yield* makeResidentRuntime(residentPaths(runtime),undefined,{afterPrepare:async()=>{throw new Error(marker)}});",
+      "const preparationControls=Layer.succeed(ResidentPreparationControls,{...defaultPreparationControls,afterPrepare:Effect.fail(new PreparationControlError({phase:'prepared',cause:new Error(marker)}))});",
+      "const server=yield* makeResidentRuntime(residentPaths(runtime),undefined,{preparationControls});",
       "server.admit(observation,{statePath,userConfigPath:null,credential:null,controlled:{}});",
       "for(let i=0;i<200;i++){const s=server.stats();if(s.running===0&&s.queued===0)break;yield* Effect.promise(()=>new Promise(r=>setTimeout(r,10)))}",
       "console.log('done');",

@@ -412,7 +412,6 @@ const decodeControlledOptions = (
 
 export type ResidentRuntimeOptions = {
   readonly beforeRevalidate?: (adviceId: string) => Promise<void>;
-  readonly afterPrepare?: () => Promise<void>;
   readonly beforeEvaluate?: (prepared: PreparedUnit) => Promise<void>;
   /** Fixture-only source effect; never supplied by resident IPC. */
   readonly captureSource?: DirectReviewContext["captureSource"];
@@ -570,7 +569,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentNow = now;
   const residentNotices = residentLedger.notices(maximumOperationalNoticeKeys, OPERATIONAL_NOTICE_COOLDOWN_MS, PENDING_ADVICE_EXPIRY_MS, logicalBytes);
   const residentBeforeRevalidate = options.beforeRevalidate;
-  const residentAfterPrepare = options.afterPrepare;
   const residentBeforeEvaluate = options.beforeEvaluate;
   const residentCaptureSource = options.captureSource;
   const residentAfterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
@@ -1728,8 +1726,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
         });
         if (planned.some((item) => item.kind === "owner")) {
-          yield* residentPreparationControls.afterReuseBoundary("ownerClaimed").pipe(
-            Effect.mapError(() => new ResidentAdapterError({ operation: "owner claim barrier" })));
+          yield* withinWork(residentPreparationControls.afterReuseBoundary("ownerClaimed").pipe(
+            Effect.mapError(() => new ResidentAdapterError({ operation: "owner claim barrier" }))),
+          job.work?.controller.signal ?? residentLifetimeController.signal);
         }
         if (!residentJobActive(job)) { residentLedger.release(workspace); return; }
         const ticketUnitsByPlan = new Map<(typeof planned)[number], TicketUnit>();
@@ -1786,8 +1785,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
         }
         if (planned.some((item) => item.kind === "joined" && item.join === "claimed")) {
-          yield* residentPreparationControls.afterReuseBoundary("claimJoined").pipe(
-            Effect.mapError(() => new ResidentAdapterError({ operation: "joined claim barrier" })));
+          yield* withinWork(residentPreparationControls.afterReuseBoundary("claimJoined").pipe(
+            Effect.mapError(() => new ResidentAdapterError({ operation: "joined claim barrier" }))),
+          job.work?.controller.signal ?? residentLifetimeController.signal);
         }
         for (const [index, item] of retained.entries()) {
           if (!residentJobActive(job)) {
@@ -1901,7 +1901,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         throw new Error("canonical observation completion refused");
       }
       job.completed = true;
-      yield* residentAdapter("preparation barrier", () => Promise.resolve(residentAfterPrepare?.()));
+      yield* withinWork(residentPreparationControls.afterPrepare.pipe(
+        Effect.mapError(() => new ResidentAdapterError({ operation: "preparation barrier" }))),
+      job.work?.controller.signal ?? residentLifetimeController.signal);
       return;
     }).pipe(
       Effect.catch(() => Effect.sync(() => {
