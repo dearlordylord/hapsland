@@ -8,7 +8,7 @@
 
 This page replays source-free example events through the same checked
 `src/canonical/adapter.ts` and compiled `Canonical.step` used by the resident.
-The main flow has 13 distinct places from agent-runtime observation through
+The main flow has 14 distinct places from agent-runtime observation through
 preparation, Jev authorization/attempt/response, advice, delivery, and round
 closure. A connected SVG draws numbered paths between those places, following
 the earlier Flow.bend diagram's spatial layout. The
@@ -17,10 +17,17 @@ reducer projections and assigns identified items to conceptual flow stages.
 The FoldKit view maps those stages to named, positioned squares and draws
 possible connections. The package compares checked state before and after each replay step to locate
 work, dispatch entries, requests, advice, and delivery by stable identity.
+The view numbers source reads, preparations, review items, Jev requests,
+advice, and each capacity-charge purpose separately in creation order. These presentation numbers come from
+accepted reducer transitions. Square details retain the canonical operation
+or request ID used to connect records. If a simulation's retained history
+starts after the run began, the view shows the canonical ID without guessing
+a presentation number.
 Connections that cannot be established from that comparison use explicit
 event, command, or supplied-fact rules in the projection package, with their evidence type
 shown to the viewer. Dashed paths show commands, which do not prove that a
-native effect happened or that the destination holds data. A step with no
+native effect happened or that the destination holds data. Checked relations without a drawn route are disclosed in decision details
+instead of crashing or inventing a connection. A step with no
 cross-square movement explains its changed square or decision instead of
 inventing an arrow. `collectionFindingRetained` stays at the collection
 step because it keeps an existing finding for a later batch. The `finishAllowed`
@@ -75,19 +82,64 @@ from the checked projection. The preparation result strip reads ordered
 commands and intermediate capacity snapshots emitted by one atomic Bend
 transition; its frames are explanations, not additional resident states.
 
-The import graph remains a separate checked Bend model for source reference
-exploration. Native timing panels retain the recorded host observations and
+The default guided showcase and seeded simulation compose checked ImportGraph
+steps inside the main flow's **Read & prepare source** stage. **Next** or
+**Single step** advances root facts, resolve, path gate, read authorization,
+capture facts and graph completion before `preparationCompleted`. The compact state machine inside the preparation square identifies its
+canonical operation and artifact; inner steps preserve
+canonical work and capacity and do not light outer movement arrows. Previous,
+redo, history selection and replay reconstruct the graph at the selected step.
+The first edit's illustrative A → B graph uses source-free facts (1,000 source
+bytes and 400 evidence bytes per file). The second edit's Preparation #2
+(canonical operation 5) reuses
+the standalone **Branching tree budget** facts. Its terminal graph has seven
+files read and 20 KiB of accepted tree bytes, with denied X unread and E/G
+contributions skipped by the tree budget. The mini square shows files read and
+accepted evidence-tree bytes. Click **Read & prepare source** to reuse the
+file-graph and tree-budget widgets for that operation's own selected history;
+artifact, complete and incomplete counts distinguish tree count from byte size.
+The standalone controls remain independent. An incomplete graph does not
+itself determine per-rule eligibility; the demo supplies its unit offer separately. Synthetic review-unit reservation sizes are
+separate supplied measurements; this does not validate native artifact sizing,
+parsing, per-rule selection, or filesystem capture. Other canonical conformance
+cases retain their declared event boundaries without added graph facts.
+The standalone import examples retain path-denial and tree-budget cases for
+component inspection. Native timing panels retain the recorded host observations and
 unknown intervals without mapping old simplified Flow states onto production.
+
+Disclosure headers use shared pointer, hover, spacing and keyboard-focus styles
+throughout the dashboard. Buttons, selectors and sliders share control states;
+disabled buttons retain a default cursor. Interactive diagram squares are named,
+focusable buttons supporting Enter and Space, alongside the keyboard stage
+selector. Long disclosure labels wrap at narrow widths. Run
+`npm run test:usability` for the browser check of these interactions and layout.
+
+The simulator's **Generated import trees** panel configures minimum/maximum
+candidate files, maximum imports per file, maximum import depth (root 0),
+denied import targets, and source/evidence byte ranges. **Balanced trees** and
+**Tree budget pressure** draft presets; **Start / reset** applies the draft,
+while **Apply to future preparations** affects only preparations that start
+later. The applied profile and unapplied drafts are shown separately. Recorded
+replay blocks new controls until its endpoint. Invalid ranges or shapes that
+cannot contain the requested file count are rejected without changing the
+applied profile. Import permissions differ from final-source readability.
+
+The existing run seed reproduces each generated artifact independently of Jev
+outcomes and playback. Click **Read & prepare source** to inspect generated-file
+count, reached file graph, observed permission denials, and checked graph bytes.
+Unread descendants do not acquire outcomes. Generation can exceed checked caps
+(8 file reads, depth 4, 20 KiB evidence) for pressure cases; reservation bytes
+remain a separate synthetic admission fact.
 
 The pre-#119 Flow.bend diagram's connected routes, numbered arrows, and
 separate finish decision view informed this production diagram. Its retired
 illustrative reducer and TypeScript page were removed from the active source.
 The current
-view projects thirteen canonical places, checked operation/request identities
+view projects fourteen canonical places, checked operation/request identities
 and queue order, highlighted paths, outcome branches, and a finish/output
 decision card. Source capture and Jev/host I/O remain labeled native boundaries.
-The separate import section replays ImportGraph.bend decisions from source-free
-fixtures; it is not a second production reducer. The dashboard's coverage disclosure
+Both the composed preparation detail and standalone import section replay
+ImportGraph.bend decisions from source-free facts; neither is a second production reducer. The dashboard's coverage disclosure
 calculates guided event-kind coverage per transition family from the loaded
 fixtures, names manual-only families, and links Bend source and native
 boundaries.
@@ -104,18 +156,14 @@ orange to gold when the external clear result is supplied. A `neverSent` result
 does not light that gold connection. This color change does not alter reducer
 state, stage inference, or possible routes.
 
-In the default guided example, inspect step 25, `collectionReady` for advice
-`#10`: [before the inferred projection](docs/assets/production-flow-before-inference-step-25.png)
-and [after](docs/assets/production-flow-inferred-step-25.png). The earlier view
-showed `ready #10` but left the Review outcomes → Advice ready / retained connection
-inactive. The current view lights connection 14 from the checked new ready
-advice and labels its source as a supplied native fact. Connection 16 separately
-shows Bend's `collectionEligible` command. [Step 24](docs/assets/production-flow-inferred-step-24.png)
-shows the preceding `retainFinding` command as purple while Pending advice
-still says `ready none`; it does not claim storage happened yet. The exact
-producing work ID for advice `#10` is not projected, so that relationship is
-disclosed rather than inferred. These images document this code change; #147
-design acceptance still requires owner inspection of the interactive cases.
+In the default guided example, step 27 shows Review item #1's finding. The
+Admission & capacity square displays its unit charge becoming a stored result
+charge. The retain-finding route is a command; advice is first visibly ready at
+step 28, after the supplied native storage fact. Step 36 shows Review item #3's
+`clear` in Review outcomes and releases its unit charge without making advice.
+The finding from the same edit becomes ready advice at step 38, after both
+review items have finished. These are interactive replay cases for #147 owner
+inspection.
 The other named owner-review panels are [ninth Jev request refusal](docs/assets/production-flow-inferred-jev-refusal.png)
 (guided step 29/34: eight in flight, immediate unavailable command, no Jev
 queue) and [Stop wait](docs/assets/production-flow-inferred-stop-wait.png)
@@ -126,11 +174,30 @@ Run `npm run build` for TypeScript, checked connection evidence, projection, com
 checks. Run `npm run test:browser` for Chromium controls. The workspace may
 need the Chromium system libraries listed by Playwright.
 
+## Guided replay navigation
+
+Left/Right moves through one retained history event at a time; holding either key uses keyboard repeat for fast movement. Right replays existing future events before adding the next guided event, preserving manual entries. Shift+Left/Right jumps to the previous/next guided step, skipping manual entries and preparation trace events between guided boundaries. At the recorded frontier, Shift+Right completes the preparation trace and advances to the next guided boundary after retained history.
+
+The **History timeline** covers the complete planned scenario from the start,
+including inner preparation events (104 events for the default 63-step scenario).
+Recorded manual events add positions; invalid event shapes add none, while checked
+rejected events remain visible. The progress line distinguishes the planned
+horizon from the recorded event count. Dragging beyond the recorded frontier
+executes the remaining guided facts through the same checked reducers in one
+pass. Seeking within recorded history preserves its future and resets the
+selected capacity frame. If manual facts invalidate a later preparation,
+seeking stops at the last checked event and explains the blocked continuation;
+the slider keeps the planned horizon. Rewind and replace the conflicting manual
+branch, or reset, to continue. Arrow shortcuts are suppressed while editing a
+form field; focused sliders retain their native keyboard behavior.
+
+Run `npm run test:replay-browser` for repeated-key events, guided boundaries with several manual events per step, mouse seeking, retained future preservation and input focus checks.
+
 ## Seeded simulation walkthrough
 
 The `Monkey-business · seeded simulation` panel consumes the public
-`monkey-business` run API. It maps checked frames onto the existing 13 places
-and routes. It adds controls without changing diagram layout or product policy.
+`monkey-business` run API. It maps checked canonical frames onto the existing places and routes, with
+checked graph frames inside preparation. It adds controls without changing diagram layout or product policy.
 All Jev observations are simulated; no credentials or source files are needed.
 The simulation has its own **Review capacity** bar and per-agent item/byte totals,
 using the same presentation as the canonical examples. It follows the displayed

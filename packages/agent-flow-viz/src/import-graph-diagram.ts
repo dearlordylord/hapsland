@@ -85,13 +85,13 @@ export const importTreeBudgetView = <Message>(h: HtmlBuilder<Message>, units: re
     const used = states[unit]!.treeBytes;
     const treeLimitBytes = states[unit]!.limits.treeBytes;
     const remaining = treeLimitBytes - used;
-    const name = (node: FileNode) => names[node.target] ?? `target #${node.target}`;
+    const name = (node: FileNode) => names[node.target] ? `File ${names[node.target]}` : `File #${node.target}`;
     const contributions = accepted.map((node) => `${name(node)}: ${treeSize(node.treeBytes!)} accepted; cumulative ${treeSize(node.acceptedTotal!)}`);
     const summary = `${units[unit]} tree budget: ${treeSize(used)} of ${treeSize(treeLimitBytes)} accepted; ${treeSize(remaining)} remaining`;
     return h.div([h.Class("import-tree-budget")], [
       h.h3([], [summary]),
       h.div([h.Class("import-tree-bar"), h.Role("img"), h.AriaLabel([summary, ...contributions].join(". "))], [
-        ...accepted.map((node) => h.span([h.Class("import-tree-segment"), h.Style({ width: `${node.treeBytes! / treeLimitBytes * 100}%` })], [name(node).replace(/\.ts$/, "")])),
+        ...accepted.map((node) => h.span([h.Class("import-tree-segment"), h.Style({ width: `${node.treeBytes! / treeLimitBytes * 100}%` })], [node.treeBytes! / treeLimitBytes >= 0.08 ? (names[node.target] ?? `File #${node.target}`).replace(/\.ts$/, "") : ""])),
         ...(remaining > 0 ? [h.span([h.Class("import-tree-remaining"), h.Style({ width: `${remaining / treeLimitBytes * 100}%` })], ["Free"])] : []),
       ]),
       h.ul([h.Class("import-tree-contributions"), h.AriaLabel("Accepted tree contributions in traversal order")], contributions.map((label) => h.li([], [label]))),
@@ -99,7 +99,7 @@ export const importTreeBudgetView = <Message>(h: HtmlBuilder<Message>, units: re
     ]);
   }));
 
-const fileGraph = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
+export const importReferenceGraph = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
   names: Readonly<Record<number, string>>, history: readonly HistoryStep[], states: readonly ImportGraphProjection[]) => {
   const graphs = projectFileGraphs(units.length, history);
   let rowTop = 50;
@@ -168,7 +168,7 @@ const fileGraph = <Message>(h: HtmlBuilder<Message>, units: readonly string[],
         const completeRoot = node?.target === graph.root && states[unit]?.phase === "complete";
         const fill = blocked ? "#fff0eb" : completeRoot ? "#e3f3eb" : node?.status === "captured" ? "#e5efff" : "#f5f7fa";
         const stroke = blocked ? "#d76546" : completeRoot ? "#31836a" : node?.status === "captured" ? "#527cc4" : "#a3afbf";
-        const name = node === undefined ? `import #${edge!.id}` : names[node.target] ?? `target #${node.target}`;
+        const name = node === undefined ? `import #${edge!.id}` : names[node.target] ? `File ${names[node.target]}` : `File #${node.target}`;
         const detail = node?.reason ?? edge?.reason ?? (node?.status === "captured" ? node.target === graph.root ? "captured root" : "captured support" : node?.status ?? "pending resolution");
         const sizeKind = node?.sizeAccepted === false ? "reported" : "accepted";
         const treeSize = node?.treeBytes === undefined ? "tree size unknown" : `${sizeKind} tree +${node.treeBytes} B`;
@@ -198,7 +198,7 @@ const nodes = [
 
 export const importGraphDiagram = <Message>(h: HtmlBuilder<Message>, active: ImportGraphStage | null, units: readonly string[], names: Readonly<Record<number, string>>, history: readonly HistoryStep[], states: readonly ImportGraphProjection[], unitLabel: string) =>
   h.div([h.Class("chart-scroll import-graph-diagram")], [
-    fileGraph(h, units, names, history, states),
+    importReferenceGraph(h, units, names, history, states),
     h.p([h.Class("import-graph-diagram-caption")], [`Import process schematic · highlighted Bend phase for ${unitLabel}`]),
     h.svg([h.ViewBox("0 0 920 505"), h.Role("img"), h.AriaLabel(`Import process schematic. Bend skips denied paths before reading source and continues pending edges. It accepts or skips captured import contributions against the ${states[0]?.limits.treeBytes ?? 0} byte tree bound, then ends a unit with skipped imports incomplete.`)], [
       h.defs([], [h.marker([h.Id("import-arrow"), h.ViewBox("0 0 10 10"), h.RefX("9"), h.RefY("5"), h.MarkerWidth("7"), h.MarkerHeight("7"), h.Orient("auto")], [h.path([h.D("M 0 0 L 10 5 L 0 10 z"), h.Fill("#687e98")], [])])]),

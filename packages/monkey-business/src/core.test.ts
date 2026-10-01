@@ -41,7 +41,7 @@ describe("deterministic driver and replay", () => {
       ],
     };
     const run = createRun(config);
-    run.advance({ maxEvents: 12 });
+    while (!run.observations.some(frame => frame.commands.some(command => command.kind === "jevRequestIssued"))) run.step();
     run.applyControl({ kind: "jevProfile", delayMs: 12, outcome: "clear" });
     run.advance();
     const replay = replayRun(run.exportReplay());
@@ -124,7 +124,8 @@ it("time advancement never crosses a workload metadata boundary", () => {
   expect(run.observations).toEqual([]);
   expect(run.now).toBe(0);
   run.advance({ untilTime: 100, maxEvents: 100 });
-  expect(run.observations.map((x) => x.time)).toEqual([100, 100, 100, 100, 100]);
+  expect(run.observations.filter(frame => frame.event.kind !== "preparationGraph").map((x) => x.time)).toEqual([100, 100, 100, 100, 100]);
+  expect(run.observations.every(frame => frame.time === 100)).toBe(true);
 });
 it("ordinary capacity refusals remain observable successful transitions", () => {
   const run = createRun({
@@ -265,7 +266,8 @@ it("restores controls applied after metadata-only clock advancement at the viewi
   run.advance({ untilTime: 100 });
   run.applyControl({ kind: "suspendArrivals", suspended: false });
   const exported = run.exportReplay();
-  expect(exported.endpoint).toEqual({ eventCount: 14, now: 20 });
+  expect(exported.endpoint.now).toBe(20);
+  expect(run.observations.filter(frame => frame.event.kind !== "preparationGraph")).toHaveLength(14);
   const restored = restoreReplay(exported);
   expect(restored.observations).toEqual(run.observations);
   expect(restored.now).toBe(20);

@@ -62,12 +62,11 @@ import {
   type CapacityPurpose,
   type CapacityReservation,
 } from "./capacity.ts";
-import { DispatchCycles } from "./dispatch.ts";
+import { DispatchQueue } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
 import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
 import {
-  ADVICE_COLLECTION_WINDOW_MS,
   PENDING_ADVICE_EXPIRY_MS,
   combinedClaudeOutput,
   combinedReviewOutput,
@@ -289,14 +288,12 @@ type Advice = Omit<UnitJob, "dispatch" | "kind" | "work" | "completed"> & {
   readonly id: string;
   evaluations: ReadonlyArray<EvaluatedUnit>;
   findings: ReadonlyArray<Finding>;
-  readonly cycle: number;
   readonly sequence: number;
   readonly credentialGeneration: number | null;
   readonly credentialStatePath: string | null;
   readonly credentialRequired: boolean;
   readonly credentialEnvironmentOnly: boolean;
   readonly pendingAt: number;
-  cycleComplete: boolean;
   collectionEligible: boolean;
   retired: boolean;
   revalidationActive: boolean;
@@ -535,7 +532,7 @@ export class ResidentServer {
   #nextTicketUnitId = 1;
   readonly #ledger = new CapacityLedger(undefined, this.lifetime);
   readonly #reuse: EvaluationReuse<UnitJob>;
-  readonly #dispatcher: DispatchCycles<string, Job>;
+  readonly #dispatcher: DispatchQueue<string, Job>;
   readonly #roundActivity = new Map<string, { root: string; advicee: DirectAdvicee; activityPath: string | undefined }>();
   readonly #stopTimers = new Map<string, ReturnType<typeof setTimeout>>();
   readonly #rounds = new Map<string, RoundWork>();
@@ -653,19 +650,11 @@ export class ResidentServer {
       ledger: this.#ledger,
       logicalBytes,
     });
-    this.#dispatcher = new DispatchCycles(
+    this.#dispatcher = new DispatchQueue(
       this.#ledger,
       (job) => ({ operation: job.kind === "ingress" ? job.canonicalObservationId : job.canonicalOperationId,
         round: job.canonicalRound }),
-      async (entry) => this.#run(entry.value, entry.cycle, entry.sequence),
-      (cycle) => {
-        for (const advice of this.#advice) {
-          if (advice.cycle === cycle) {
-            advice.cycleComplete = true;
-            advice.collectionEligible = true;
-          }
-        }
-      },
+      async (entry) => this.#run(entry.value, entry.sequence),
     );
   }
 
@@ -886,11 +875,10 @@ export class ResidentServer {
     return command === "collectionExpired";
   }
 
-  #collectionOrder(left: Pick<Advice, "cycle" | "sequence">,
-    right: Pick<Advice, "cycle" | "sequence">): number {
+  #collectionOrder(left: Pick<Advice, "sequence">,
+    right: Pick<Advice, "sequence">): number {
     const result = this.#ledger.transition({ kind: "collectionOrderCheck",
-      leftCycle: left.cycle, leftSequence: left.sequence,
-      rightCycle: right.cycle, rightSequence: right.sequence });
+      leftSequence: left.sequence, rightSequence: right.sequence });
     if (result.rejection !== undefined) throw new Error("canonical collection order refused");
     switch (result.commands[0]?.kind) {
       case "collectionBefore": return -1;
@@ -900,13 +888,14 @@ export class ResidentServer {
     }
   }
 
-  #collectionReady(advice: Advice, now: number, mode: CollectionMode,
-    oldestPendingAt: number): boolean {
+  #collectionReady(advice: Advice, mode: CollectionMode): boolean {
+    const joinedPending = [...this.#joinedReviews.values()].some((reviews) =>
+      reviews.some((review) => review.admission === advice.admissionId));
     const result = this.#ledger.transition({ kind: "collectionReady",
       advice: advice.canonicalOperationId, already: advice.collectionEligible,
-      turnEnd: mode === "turn-end", cycleComplete: advice.cycleComplete,
-      elapsed: this.#collectionElapsed(now, oldestPendingAt, ADVICE_COLLECTION_WINDOW_MS),
-      window: ADVICE_COLLECTION_WINDOW_MS });
+      turnEnd: mode === "turn-end", partition: this.#ledger.partitionId(advice.partition),
+      lifetime: this.#ledger.canonicalLifetime, round: advice.canonicalRound,
+      observation: advice.admissionId, joinedPending });
     if (result.rejection !== undefined) throw new Error("canonical collection readiness refused");
     const command = result.commands[0]?.kind;
     if (command !== "collectionEligible" && command !== "collectionWaiting") throw new Error("invalid canonical collection readiness");
@@ -1043,20 +1032,8 @@ export class ResidentServer {
       }
       return result.commands[0]?.kind === "collectionCandidate";
     });
-    const cycles = new Map<number, Array<Advice>>();
     for (const item of available) {
-      const cohort = cycles.get(item.cycle) ?? [];
-      cohort.push(item);
-      cycles.set(item.cycle, cohort);
-    }
-    for (const cohort of cycles.values()) {
-      const oldestPendingAt = cohort.reduce(
-        (oldest, item) => Math.min(oldest, item.pendingAt),
-        Number.POSITIVE_INFINITY,
-      );
-      for (const item of cohort) {
-        if (this.#collectionReady(item, now, mode, oldestPendingAt)) item.collectionEligible = true;
-      }
+      if (this.#collectionReady(item, mode)) item.collectionEligible = true;
     }
     const eligible = available.filter((item) => item.collectionEligible)
       .sort((left, right) => this.#collectionOrder(left, right))
@@ -1482,9 +1459,7 @@ export class ResidentServer {
   pendingAdviceMetadata(): ReadonlyArray<{
     readonly id: string;
     readonly partition: string;
-    readonly cycle: number;
-    readonly sequence: number;
-    readonly cycleComplete: boolean;
+      readonly sequence: number;
     readonly pendingAt: number;
     readonly collectionEligible: boolean;
     readonly retainedBytes: number;
@@ -1498,9 +1473,7 @@ export class ResidentServer {
     return this.#advice.map((advice) => ({
       id: advice.id,
       partition: advice.partition,
-      cycle: advice.cycle,
       sequence: advice.sequence,
-      cycleComplete: advice.cycleComplete,
       pendingAt: advice.pendingAt,
       collectionEligible: advice.collectionEligible,
       retainedBytes: advice.reservation.bytes,
@@ -2029,9 +2002,9 @@ export class ResidentServer {
     this.#ledger.retireRound(round.group, round.canonicalRound);
   }
 
-  async #run(job: Job, cycle: number, sequence: number): Promise<void> {
-    if (job.kind === "ingress") return this.#prepare(job, cycle, sequence);
-    return this.#evaluateUnit(job, cycle, sequence);
+  async #run(job: Job, sequence: number): Promise<void> {
+    if (job.kind === "ingress") return this.#prepare(job, sequence);
+    return this.#evaluateUnit(job, sequence);
   }
 
   #observeDispatchAuthority(
@@ -2063,7 +2036,7 @@ export class ResidentServer {
     }
   }
 
-  async #prepare(job: IngressJob, cycle: number, sequence: number): Promise<void> {
+  async #prepare(job: IngressJob, sequence: number): Promise<void> {
     const expectedActivityUnits: Array<string> = [];
     const unassignedClaims = new Set<string>();
     try {
@@ -2341,7 +2314,7 @@ export class ResidentServer {
               await this.#retainAdvice(unit, {
                 prepared: item.outcome.prepared,
                 findings: item.cached.evaluation.findings,
-              }, cycle, sequence);
+              }, sequence);
             } finally {
               if (!unit.completed && job.round !== undefined && workUnitId !== undefined) {
                 job.round.policyWork.retire(workUnitId);
@@ -2397,7 +2370,7 @@ export class ResidentServer {
     }
   }
 
-  async #evaluateUnit(job: UnitJob, cycle: number, sequence: number): Promise<void> {
+  async #evaluateUnit(job: UnitJob, sequence: number): Promise<void> {
     let issuedRequest: number | undefined;
     let requestStarted = false;
     let requestSettled = false;
@@ -2717,7 +2690,7 @@ export class ResidentServer {
           await recordOutcome();
           return;
         }
-        await this.#retainAdvice(job, evaluation, cycle, sequence);
+        await this.#retainAdvice(job, evaluation, sequence);
         await recordOutcome();
         return;
       }
@@ -2856,7 +2829,6 @@ export class ResidentServer {
   #retainAdvice(
     job: UnitJob,
     evaluation: EvaluatedUnit,
-    cycle: number,
     sequence: number,
   ): Promise<void> | void {
     if (!this.#jobActive(job)) {
@@ -2895,14 +2867,12 @@ export class ResidentServer {
       evaluationKey: job.evaluationKey,
       evaluations: [evaluation],
       findings: evaluation.findings,
-      cycle,
       sequence,
       credentialGeneration: job.dispatch.credential?.generation ?? null,
       credentialStatePath: job.dispatch.credential?.statePath ?? null,
       credentialRequired: job.dispatch.controlled === null || job.dispatch.controlled.requireCredential === true,
       credentialEnvironmentOnly: job.dispatch.credential?.environmentOnly ?? false,
       pendingAt: this.#now(),
-      cycleComplete: false,
       collectionEligible: false,
       retired: false,
       revalidationActive: false,

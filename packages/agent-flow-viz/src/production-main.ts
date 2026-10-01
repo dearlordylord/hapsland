@@ -1,3 +1,5 @@
+import { preparationDetails } from "./preparation-details";
+import { preparationSnapshot } from "./preparation-mini";
 import { reviewCapacityView } from "./review-capacity-view";
 import { SimulationModel, initialSimulation, actSimulation, changeSimulation, tickSimulation, simulationView } from "./simulation";
 import { Schema } from "effect";
@@ -8,8 +10,9 @@ import { IMPORT_GRAPH_SCENARIOS, importGraphView } from "./import-graph-view";
 import { TIMELINE_CASES } from "./timeline";
 import { timelineView } from "./timeline-view";
 import { CAPACITY_INVENTORY } from "./capacity-inventory.generated";
-import { CANONICAL_SCENARIOS, guidedIndex, nextGuidedEvent, replayCanonical, tryAppendCanonical, type ReplayEvent } from "./canonical-replay";
+import { CANONICAL_SCENARIOS, adjacentGuidedPosition, historyTimelineLength, extendGuidedHistory, guidedIndex, nextGuidedEvent, replayCanonical, tryAppendCanonical, type ReplayEvent } from "./canonical-replay";
 import { productionFlowView } from "./production-flow-view";
+import { numberRecords, recordLabel, type RecordNumbers } from "@hapsland/agent-flow-projection";
 import { PLACE_ORDER, SQUARES } from "./production-flow-presentation";
 import type { CapacityPurpose, CanonicalCommand } from "../../../src/canonical/adapter";
 
@@ -37,6 +40,8 @@ export const Message = defineMessageUnion({
   SelectedTimeline: { index: Schema.Number },
   SelectedScenario: { index: Schema.Number },
   Advanced: {},
+  HistoryForward: {},
+  GuidedMoved: { direction: Schema.Number },
   Rewound: {},
   Redid: {},
   Jumped: { position: Schema.Number },
@@ -63,6 +68,34 @@ const append = (model: Model, event: unknown, origin: ReplayEvent["origin"]): Mo
       ? "Event accepted by Bend." : `Bend rejected this event: ${next.rejection}.`) };
 };
 
+const advance = (model: Model): Model => {
+  const event = nextGuidedEvent(model.history as readonly ReplayEvent[], model.position, model.scenario);
+  return event === undefined ? model : append(model, event, "guided");
+};
+
+const advanceGuided = (model: Model): Model => {
+  let current = { ...model, position: model.history.length };
+  const prior = guidedIndex(current.history as readonly ReplayEvent[], current.position);
+  while (guidedIndex(current.history as readonly ReplayEvent[], current.position) === prior) {
+    const next = advance(current);
+    if (next.position <= current.position) return next;
+    current = next;
+  }
+  return current;
+};
+
+/** Seeking preserves recorded future; only new positions generate checked guided events. */
+const seekHistory = (model: Model, requested: number): Model => {
+  const horizon = historyTimelineLength(model.history as readonly ReplayEvent[], model.scenario);
+  const target = Math.max(0, Math.min(horizon, Number.isFinite(requested) ? Math.trunc(requested) : model.position));
+  if (target <= model.history.length) return { ...model, position: target, frame: 0 };
+  const next = extendGuidedHistory(model.history as readonly ReplayEvent[], target, model.scenario);
+  return { ...model, history: [...next.history], position: next.position, frame: 0,
+    feedback: next.error ? `Cannot reach timeline event ${target}. Stopped at event ${next.position}: ${next.error}`
+      : next.rejection ? `Bend rejected this event: ${next.rejection}.` : "Event accepted by Bend.",
+  };
+};
+
 export const update = (model: Model, message: Message) => Message.match<Update.Return<Model, Message>>(message, {
   SimulationAction: ({ action }) => ({ model: { ...model, simulation: actSimulation(model.simulation, action) } }),
   SimulationChanged: ({ field, raw }) => ({ model: { ...model, simulation: changeSimulation(model.simulation, field, raw) } }),
@@ -74,13 +107,18 @@ export const update = (model: Model, message: Message) => Message.match<Update.R
   SelectedTimeline: ({ index }) => ({ model: { ...model, timeline: index >= 0 && index < TIMELINE_CASES.length ? index : 0 } }),
   SelectedScenario: ({ index }) => ({ model: { ...model, scenario: index >= 0 && index < CANONICAL_SCENARIOS.length ? index : 0,
     history: [], position: 0, frame: 0, feedback: "Scenario selected." } }),
-  Advanced: () => {
-    const event = nextGuidedEvent(model.history as readonly ReplayEvent[], model.position, model.scenario);
-    return { model: event === undefined ? model : append(model, event, "guided") };
+  Advanced: () => ({ model: advance(model) }),
+  HistoryForward: () => ({ model: model.position < model.history.length
+    ? { ...model, position: model.position + 1, frame: 0 } : advance(model) }),
+  GuidedMoved: ({ direction }) => {
+    const position = adjacentGuidedPosition(model.history as readonly ReplayEvent[], model.position, direction < 0 ? -1 : 1);
+    if (position !== undefined) return { model: { ...model, position, frame: 0 } };
+    // A new guided step follows all retained manual events instead of branching history.
+    return { model: advanceGuided(model) };
   },
   Rewound: () => ({ model: { ...model, position: Math.max(0, model.position - 1), frame: 0 } }),
   Redid: () => ({ model: { ...model, position: Math.min(model.history.length, model.position + 1), frame: 0 } }),
-  Jumped: ({ position }) => ({ model: { ...model, position: Math.max(0, Math.min(model.history.length, position)), frame: 0 } }),
+  Jumped: ({ position }) => ({ model: seekHistory(model, position) }),
   MovedFrame: ({ frame }) => ({ model: { ...model, frame } }),
   DraftChanged: ({ raw }) => ({ model: { ...model, draft: raw } }),
   Submitted: () => {
@@ -125,17 +163,17 @@ type CapacityFrameCommand = Extract<CanonicalCommand, { readonly kind:
 const isCapacityFrame = (command: CanonicalCommand): command is CapacityFrameCommand =>
   command.kind === "preparationReleased" || command.kind === "unitAdmitted" || command.kind === "unitRefused" ||
   command.kind === "capacityUnitAdmitted" || command.kind === "capacityUnitRefused";
-const frameLabel = (command: CapacityFrameCommand): string => {
+const frameLabel = (command: CapacityFrameCommand, numbers: RecordNumbers): string => {
   switch (command.kind) {
-    case "preparationReleased": return `Preparation space released · reservation #${command.id}`;
-    case "capacityUnitAdmitted": return `Unit ${command.position}: accepted · ${command.bytes} B · reservation #${command.reservation}`;
+    case "preparationReleased": return `Preparation space released · ${recordLabel("charge:preparation", command.id, numbers)}`;
+    case "capacityUnitAdmitted": return `Unit ${command.position}: accepted · ${command.bytes} B · ${recordLabel("charge:reviewUnit", command.reservation, numbers)}`;
     case "capacityUnitRefused": return `Unit ${command.position}: no capacity · ${command.bytes} B · ${command.reason}`;
-    case "unitAdmitted": return `Unit ${command.position}: accepted · ${command.bytes} B · reservation #${command.reservation}`;
+    case "unitAdmitted": return `Unit ${command.position}: accepted · ${command.bytes} B · ${recordLabel("charge:reviewUnit", command.reservation, numbers)}`;
     case "unitRefused": return `Unit ${command.position}: no capacity · ${command.bytes} B · ${command.reason}`;
   }
 };
-const commandLabel = (command: CanonicalCommand): string => {
-  if (isCapacityFrame(command)) return frameLabel(command);
+const commandLabel = (command: CanonicalCommand, numbers: RecordNumbers): string => {
+  if (isCapacityFrame(command)) return frameLabel(command, numbers);
   const details = Object.entries(command).filter(([key]) => key !== "kind" && key !== "after")
     .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : String(value)}`);
   return [command.kind, ...details].join(" · ");
@@ -145,6 +183,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const history = model.history as readonly ReplayEvent[];
   const replay = replayCanonical(history, model.position, CANONICAL_SCENARIOS[model.scenario].limits);
   const projection = replay.projection;
+  const numbers = numberRecords(replay.steps);
   const last = replay.steps.at(-1);
   const frames = last?.commands.filter(isCapacityFrame) ?? [];
   const frame = frames[Math.min(Math.max(model.frame, 0), Math.max(0, frames.length - 1))];
@@ -153,6 +192,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const scenario = CANONICAL_SCENARIOS[model.scenario];
   const next = nextGuidedEvent(history, model.position, model.scenario);
   const guided = guidedIndex(history, model.position);
+  const timelineLength = historyTimelineLength(history, model.scenario);
   const flowStage = PLACE_ORDER.find((stage) => stage === model.flowStage);
   return {
     title: "Hapsland · guided replay",
@@ -172,11 +212,19 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.button([h.OnClick(Message.Rewound()), h.Disabled(model.position === 0)], ["Previous step"]),
           h.button([h.OnClick(Message.Redid()), h.Disabled(model.position === history.length)], ["Redo step"]),
           h.button([h.OnClick(Message.Advanced()), h.Disabled(next === undefined)], [
-            next === undefined ? "Replay complete" : `Next: ${next.kind}`,
+            next === undefined ? "Replay complete" : `Next: ${next.kind === "preparationGraph" ? `preparation · ${next.fact.kind}` : next.kind}`,
           ]),
           h.button([h.OnClick(Message.Reset())], ["Reset replay"]),
           ]),
-          h.p([h.Class("canonical-progress")], [`Guided step ${guided} of ${scenario.events.length} · history ${model.position}/${history.length}`]),
+          h.p([h.Class("canonical-progress")], [`Guided step ${guided} of ${scenario.events.length} · history ${model.position}/${timelineLength} · ${history.length} recorded events`]),
+          h.label([h.Class("canonical-scrubber")], ["History timeline", h.input([
+            h.Type("range"), h.AriaLabel("Guided replay history"), h.Min("0"), h.Max(String(timelineLength)), h.Step("1"),
+            h.Value(String(model.position)), h.Disabled(timelineLength === 0),
+            h.AriaValuetext(`Event ${model.position} of ${timelineLength}; ${history.length} recorded events`),
+            h.OnInput(raw => Message.Jumped({ position: Number(raw) })),
+            h.Style({ width: "100%" }),
+          ])]),
+          h.p([h.Class("canonical-shortcuts")], ["← / → history (hold to move quickly) · Shift+← / → guided steps · drag the timeline to seek"]),
           h.p([h.Class("canonical-feedback")], [model.feedback]),
           h.details([h.Class("manual-event")], [h.summary([], ["Manual event"]),
           h.form([h.OnSubmit(Message.Submitted())], [
@@ -189,8 +237,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         ]),
 
         productionFlowView(h, projection, last, model.scenario === 0,
-          (stage) => Message.SelectedFlowStage({ stage })),
-        h.section([h.Class("flow-stage-inspector")], [
+          (stage) => Message.SelectedFlowStage({ stage }), preparationSnapshot(replay.steps), numbers),
+        h.section([h.Class(`flow-stage-inspector${flowStage === "preparation" ? " preparation-selected" : ""}`)], [
           h.h3([], ["Square details at this step"]),
           h.label([], ["Square", h.select([h.AriaLabel("Inspect square"), h.Value(flowStage ?? ""),
             h.OnChange((stage) => Message.SelectedFlowStage({ stage }))], [
@@ -200,9 +248,10 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           ...(flowStage === undefined ? [h.p([], ["Select a square or click one in the diagram to inspect its records."])]
             : [h.button([h.Type("button"), h.OnClick(Message.SelectedFlowStage({ stage: "" }))], ["Close square details"]),
               h.h4([], [SQUARES[flowStage].title]),
-              ...(SQUARES[flowStage].facets(projection).length === 0
+              ...(flowStage === "preparation" ? [preparationDetails(h, preparationSnapshot(replay.steps), numbers)] : []),
+              ...(SQUARES[flowStage].facets(projection, numbers).length === 0
                 ? [h.p([], ["This square represents a supplied event; it has no retained state records."])] : []),
-              h.ul([], SQUARES[flowStage].facets(projection).map((facet) => h.li([], [
+              h.ul([], SQUARES[flowStage].facets(projection, numbers).map((facet) => h.li([], [
                 h.strong([], [`${facet.label}: ${facet.count}`]),
                 ...(facet.references.length === 0 ? [] : [h.ul([], facet.references.map((reference) => h.li([], [reference.replaceAll("/", " · ")])))]),
               ])))]),
@@ -235,7 +284,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.p([], [`Before event · ${eventBefore.items} shared items · ${eventBefore.bytes} shared bytes`]),
           h.div([], frames.map((command, index) => h.button([
             h.OnClick(Message.MovedFrame({ frame: index })), h.Class(index === model.frame ? "selected" : ""),
-          ], [commandLabel(command)]))),
+          ], [commandLabel(command, numbers)]))),
           h.p([], [`Frame ${Math.min(model.frame + 1, frames.length)} of ${frames.length} · ${frame.after.global.items} shared items · ${frame.after.global.bytes} shared bytes · ${frame.after.local.items} items and ${frame.after.local.bytes} bytes for this agent`]),
           h.p([], [`After event · ${eventAfter.items} shared items · ${eventAfter.bytes} shared bytes`]),
           h.div([h.Class("capacity-bar"), h.Role("img"), h.AriaLabel(`${frame.after.global.bytes} of ${projection.limits.globalBytes} reserved review bytes within transition`)],
@@ -245,7 +294,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         h.details([h.Class("replay-history")], [h.summary([], ["Replay history"]), h.div([h.Class("history")], [
           h.button([h.OnClick(Message.Jumped({ position: 0 }))], ["Start"]),
           ...history.map((entry, index) => h.button([h.OnClick(Message.Jumped({ position: index + 1 })),
-            h.Class(index + 1 === model.position ? "selected" : "")], [`${index + 1}. ${entry.event.kind} · ${entry.origin}`])),
+            h.Class(index + 1 === model.position ? "selected" : "")], [`${index + 1}. ${entry.event.kind === "preparationGraph" ? `preparation · ${entry.event.fact.kind}` : entry.event.kind} · ${entry.origin}`])),
         ])]),
       ]),
       importGraphView(h, model.importScenario, model.importCursor,

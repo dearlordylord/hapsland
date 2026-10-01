@@ -1,39 +1,40 @@
 {
   "traces": [
     {
-      "name": "finite FIFO cohorts start two units and settle reordered callbacks",
+      "name": "available preparation starts immediately and reordered callbacks settle",
       "events": [
         { "kind": "openRound", "partition": 1, "lifetime": 1, "expect": "roundStarted:1" },
         { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:1" },
-        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 1, "expect": "dispatchStarted:1:0:1" },
+        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 1, "expect": "dispatchStarted:1:0" },
         { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:2" },
-        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "" },
+        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "dispatchStarted:2:1" },
         { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "rejected:StaleOperation" },
         { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:3" },
-        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "expect": "" },
+        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "expect": "dispatchStarted:3:2" },
         { "kind": "dispatchSettled", "partition": 1, "lifetime": 2, "round": 1, "operation": 1, "expect": "rejected:StaleOperation" },
-        { "kind": "dispatchSettled", "partition": 1, "lifetime": 1, "round": 1, "operation": 1, "expect": "dispatchCycleCompleted:1,dispatchStarted:2:1:2,dispatchStarted:3:2:2" },
+        { "kind": "dispatchSettled", "partition": 1, "lifetime": 1, "round": 1, "operation": 1, "expect": "" },
         { "kind": "dispatchSettled", "partition": 1, "lifetime": 1, "round": 1, "operation": 3, "expect": "" },
-        { "kind": "dispatchSettled", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "dispatchCycleCompleted:2" },
+        { "kind": "dispatchSettled", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "" },
         { "kind": "dispatchSettled", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "rejected:StaleOperation" }
       ],
-      "dispatch": { "pending": [], "active": [], "running": [], "nextSequence": 3, "cycle": 2, "closed": false }
+      "dispatch": { "queued": [], "running": [], "nextSequence": 3, "closed": false }
     },
     {
       "name": "cooperative discard distinguishes queued and running then closes",
       "events": [
         { "kind": "openRound", "partition": 1, "lifetime": 1, "expect": "roundStarted:1" },
         { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:1" },
-        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 1, "expect": "dispatchStarted:1:0:1" },
+        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 1, "expect": "dispatchStarted:1:0" },
         { "kind": "admitObservation", "partition": 1, "lifetime": 1, "round": 1, "expect": "observationAdmitted:2" },
-        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "" },
-        { "kind": "discardDispatch", "operations": [1, 2], "expect": "dispatchDiscarded:2:false,dispatchDiscarded:1:true" },
+        { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "dispatchStarted:2:1" },
+        { "kind": "discardDispatch", "operations": [1, 2], "expect": "dispatchDiscarded:1:true,dispatchDiscarded:2:true" },
         { "kind": "discardDispatch", "operations": [1, 2], "expect": "" },
         { "kind": "closeDispatch", "expect": "" },
         { "kind": "queueDispatch", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "rejected:StaleOperation" },
-        { "kind": "dispatchSettled", "partition": 1, "lifetime": 1, "round": 1, "operation": 1, "expect": "dispatchCycleCompleted:1" }
+        { "kind": "dispatchSettled", "partition": 1, "lifetime": 1, "round": 1, "operation": 1, "expect": "" },
+        { "kind": "dispatchSettled", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "expect": "" }
       ],
-      "dispatch": { "pending": [], "active": [], "running": [], "nextSequence": 2, "cycle": 1, "closed": true }
+      "dispatch": { "queued": [], "running": [], "nextSequence": 2, "closed": true }
     }
   ]
 }

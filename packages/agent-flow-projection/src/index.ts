@@ -13,12 +13,61 @@ export type FlowStepInput = Readonly<{
   after: CanonicalProjection;
   rejection?: string;
 }>;
+/** Human-facing sequence numbers derived from accepted reducer transitions. Keys remain canonical IDs. */
+export type ChargeKind = `charge:${CanonicalProjection["charges"][number]["purpose"]}`;
+export type RecordKind = "source" | "preparation" | "review" | "request" | "advice" | ChargeKind;
+export type RecordNumbers = Readonly<Record<RecordKind, ReadonlyMap<number, number>>>;
+type NumberingStep = Pick<FlowStepInput, "before" | "after" | "rejection">;
+const createdWorkKind = (kind: CanonicalProjection["work"][number]["kind"]): RecordKind | undefined =>
+  kind === "awaitingSourceRead" ? "source" : kind === "preparing" ? "preparation" : kind === "reviewing" ? "review" : undefined;
+export const numberRecords = (steps: readonly NumberingStep[]): RecordNumbers => {
+  const numbers: Record<RecordKind, Map<number, number>> = {
+    source: new Map(), preparation: new Map(), review: new Map(), request: new Map(), advice: new Map(),
+    "charge:observationDispatch": new Map(), "charge:preparation": new Map(),
+    "charge:reviewUnit": new Map(), "charge:storedResult": new Map(),
+    "charge:operationalNotice": new Map(), "charge:adviceRecheck": new Map(),
+  };
+  const assign = (kind: RecordKind, id: number) => {
+    if (!numbers[kind].has(id)) numbers[kind].set(id, numbers[kind].size + 1);
+  };
+  for (const step of steps) {
+    if (step.rejection !== undefined) continue;
+    for (const item of [...step.after.work].sort((a, b) => a.operation - b.operation)) {
+      if (step.before.work.some((prior) => prior.operation === item.operation)) continue;
+      const kind = createdWorkKind(item.kind);
+      if (kind !== undefined) assign(kind, item.operation);
+    }
+    for (const item of step.after.dispatch.requests)
+      if (!step.before.dispatch.requests.some((prior) => prior.request === item.request)) assign("request", item.request);
+    for (const item of step.after.pendingFindings)
+      if (!step.before.pendingFindings.some((prior) => prior.operation === item.operation)) assign("advice", item.operation);
+    for (const item of step.after.charges)
+      if (!step.before.charges.some((prior) => prior.id === item.id && prior.purpose === item.purpose))
+        assign(`charge:${item.purpose}`, item.id);
+  }
+  return numbers;
+};
+const recordNames: Record<RecordKind, string> = {
+  source: "Source read", preparation: "Preparation", review: "Review item", request: "Jev request", advice: "Advice",
+  "charge:observationDispatch": "Observation charge", "charge:preparation": "Preparation charge",
+  "charge:reviewUnit": "Unit charge", "charge:storedResult": "Stored result charge",
+  "charge:operationalNotice": "Notice charge", "charge:adviceRecheck": "Advice recheck charge",
+};
+export const recordLabel = (kind: RecordKind, id: number, numbers?: RecordNumbers): string => {
+  const ordinal = numbers?.[kind].get(id);
+  const internalKind = kind === "request" ? "request" : kind.startsWith("charge:") ? "charge" : "operation";
+  return ordinal === undefined ? `${recordNames[kind]}/${internalKind} ${id}`
+    : `${recordNames[kind]} #${ordinal}/${internalKind} ${id}`;
+};
 /** Identified checked record assigned to a conceptual stage. */
 export type Located = Readonly<{ key: string; stage: FlowStage; description: string }>;
-const locatedWork = (state: CanonicalProjection, kinds: readonly CanonicalProjection["work"][number]["kind"][], stage: FlowStage) =>
-  state.work.filter((item) => kinds.includes(item.kind)).map((item) => ({ key: `work:${item.operation}`, stage, description: `work #${item.operation} (${item.kind})` }));
-const locatedDispatch = (state: CanonicalProjection, fields: readonly ("pending" | "active" | "running")[], stage: FlowStage) =>
-  fields.flatMap((field) => state.dispatch[field].map((item) => ({ key: `dispatch:${item.operation}`, stage, description: `dispatch #${item.operation} (${field})` })));
+const workKind = (kind: CanonicalProjection["work"][number]["kind"]): RecordKind =>
+  kind === "awaitingSourceRead" || kind === "sourceReading" ? "source" : kind === "preparing" ? "preparation" : "review";
+const locatedWork = (state: CanonicalProjection, kinds: readonly CanonicalProjection["work"][number]["kind"][], stage: FlowStage, numbers?: RecordNumbers) =>
+  state.work.filter((item) => kinds.includes(item.kind)).map((item) => ({ key: `work:${item.operation}`, stage, description: `${recordLabel(workKind(item.kind), item.operation, numbers)} (${item.kind})` }));
+const locatedDispatch = (state: CanonicalProjection, fields: readonly ("queued" | "running")[], stage: FlowStage, numbers?: RecordNumbers) =>
+  fields.flatMap((field) => state.dispatch[field].map((item) => ({ key: `dispatch:${item.operation}`, stage,
+    description: `${recordLabel(item.preparation ? "source" : "review", item.operation, numbers)} job (${field})` })));
 
 /** Only checked fields that this flow assigns to a conceptual stage. */
 const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown => {
@@ -26,7 +75,7 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
     case "observation": return [];
     case "admission": return [state.charges, state.global, state.partitions, state.admissions];
     case "sourcePending": return state.work.filter((item) => item.kind === "awaitingSourceRead").map((item) => item.operation);
-    case "scheduling": return [state.dispatch.pending, state.dispatch.active, state.dispatch.running];
+    case "scheduling": return [state.dispatch.queued, state.dispatch.running];
     case "preparation": return state.work.filter((item) => item.kind === "sourceReading" || item.kind === "preparing").map((item) => [item.operation, item.kind]);
     case "units": return [state.work.filter((item) => item.kind === "reviewing").map((item) => item.operation), state.charges.filter((item) => item.purpose === "reviewUnit").length];
     case "authorization": return state.dispatch.requests.filter((item) => !item.started).map((item) => item.request);
@@ -40,22 +89,22 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
   }
 };
 /** Locate identified work and records in the conceptual flow. */
-export const locateFlow = (state: CanonicalProjection): readonly Located[] => [
-  ...locatedWork(state, ["awaitingSourceRead"], "sourcePending"),
-  ...locatedDispatch(state, ["pending", "active", "running"], "scheduling"),
-  ...locatedWork(state, ["sourceReading", "preparing"], "preparation"),
-  ...locatedWork(state, ["reviewing"], "units"),
-  ...state.dispatch.requests.filter((item) => !item.started).map((item) => ({ key: `request:${item.request}`, stage: "authorization" as const, description: `request #${item.request} (issued)` })),
-  ...state.dispatch.requests.filter((item) => item.started).map((item) => ({ key: `request:${item.request}`, stage: "effect" as const, description: `request #${item.request} (${item.interrupted ? "interrupted" : "started"})` })),
-  ...locatedWork(state, ["atJev"], "jev"),
-  ...locatedWork(state, ["pendingFinding"], "outcomes"),
-  ...state.collection.ready.map((id) => ({ key: `ready-advice:${id}`, stage: "advice" as const, description: `advice #${id} (ready)` })),
-  ...state.collection.leases.map((item) => ({ key: `lease-advice:${item.advice}`, stage: "collection" as const, description: `advice #${item.advice} (leased)` })),
+export const locateFlow = (state: CanonicalProjection, numbers?: RecordNumbers): readonly Located[] => [
+  ...locatedWork(state, ["awaitingSourceRead"], "sourcePending", numbers),
+  ...locatedDispatch(state, ["queued", "running"], "scheduling", numbers),
+  ...locatedWork(state, ["sourceReading", "preparing"], "preparation", numbers),
+  ...locatedWork(state, ["reviewing"], "units", numbers),
+  ...state.dispatch.requests.filter((item) => !item.started).map((item) => ({ key: `request:${item.request}`, stage: "authorization" as const, description: `${recordLabel("request", item.request, numbers)} (issued)` })),
+  ...state.dispatch.requests.filter((item) => item.started).map((item) => ({ key: `request:${item.request}`, stage: "effect" as const, description: `${recordLabel("request", item.request, numbers)} (${item.interrupted ? "interrupted" : "started"})` })),
+  ...locatedWork(state, ["atJev"], "jev", numbers),
+  ...locatedWork(state, ["pendingFinding"], "outcomes", numbers),
+  ...state.collection.ready.map((id) => ({ key: `ready-advice:${id}`, stage: "advice" as const, description: `${recordLabel("advice", id, numbers)} (ready)` })),
+  ...state.collection.leases.map((item) => ({ key: `lease-advice:${item.advice}`, stage: "collection" as const, description: `${recordLabel("advice", item.advice, numbers)} (leased)` })),
   ...state.delivery.slots.map((item) => ({ key: `slot:${item.group}`, stage: "delivery" as const, description: `finish #${item.group} (${item.phase})` })),
-  ...state.delivery.submissions.batches.map((item) => ({ key: `batch:${item.advice}:${item.token}`, stage: "delivery" as const, description: `advice #${item.advice} (${item.phase})` })),
+  ...state.delivery.submissions.batches.map((item) => ({ key: `batch:${item.advice}:${item.token}`, stage: "delivery" as const, description: `${recordLabel("advice", item.advice, numbers)} (${item.phase})` })),
   ...state.rounds.map((item) => ({ key: `round:${item.id}`, stage: "round" as const, description: `round #${item.id}` })),
 ];
-const placements = (state: CanonicalProjection) => new Map(locateFlow(state).map((item) => [item.key, item] as const));
+const placements = (state: CanonicalProjection, numbers?: RecordNumbers) => new Map(locateFlow(state, numbers).map((item) => [item.key, item] as const));
 const commandKinds = (commands: readonly CanonicalCommand[]) => new Set(commands.map((command) => command.kind));
 
 type Rule = Readonly<{ from: FlowStage; to: FlowStage; source: EvidenceSource; description: string; commands?: readonly CanonicalCommand["kind"][]; events?: readonly CanonicalEvent["kind"][] }>;
@@ -79,12 +128,18 @@ const FACT_RULES: readonly Rule[] = [
   { from: "collection", to: "delivery", source: "command", description: "output authorized; host write not established", commands: ["finishAuthorized", "submissionAuthorized", "writeAuthorized"] },
 ];
 
-export type FlowProjection = Readonly<{ evidence: readonly FlowEvidence[]; changedStages: readonly FlowStage[]; projectionChanged: boolean; rejection?: string }>;
-export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection => {
-  if (step === undefined) return { evidence: [], changedStages: [], projectionChanged: false, rejection: undefined };
-  if (step.rejection !== undefined) return { evidence: [], changedStages: [], projectionChanged: false, rejection: step.rejection };
-  const before = placements(step.before);
-  const after = placements(step.after);
+export type SourceCompletion = Readonly<{
+  observation: number;
+  linkedReviews: readonly Readonly<{ operation: number; kind: CanonicalProjection["work"][number]["kind"] }>[];
+  jobRunning: boolean;
+}>;
+export type StoredResultConversion = Readonly<{ charge: number }>;
+export type FlowProjection = Readonly<{ evidence: readonly FlowEvidence[]; changedStages: readonly FlowStage[]; projectionChanged: boolean; sourceCompletion?: SourceCompletion; storedResultConversions: readonly StoredResultConversion[]; clearedReview?: number; rejection?: string }>;
+export const projectFlowStep = (step: FlowStepInput | undefined, numbers?: RecordNumbers): FlowProjection => {
+  if (step === undefined) return { evidence: [], changedStages: [], projectionChanged: false, storedResultConversions: [], rejection: undefined };
+  if (step.rejection !== undefined) return { evidence: [], changedStages: [], projectionChanged: false, storedResultConversions: [], rejection: step.rejection };
+  const before = placements(step.before, numbers);
+  const after = placements(step.after, numbers);
   const evidence: FlowEvidence[] = [];
   const changedStages = new Set<FlowStage>();
   for (const stage of FLOW_STAGES) if (JSON.stringify(stageSignature(step.before, stage)) !== JSON.stringify(stageSignature(step.after, stage))) changedStages.add(stage);
@@ -106,21 +161,20 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
     next.operation === admitted.id && next.kind === "awaitingSourceRead" &&
     !step.before.work.some((prior) => prior.operation === next.operation)) {
     evidence.push({ from: "admission", to: "sourcePending", source: "state",
-      description: `observation admitted as source work #${next.operation}; source read not started`,
+      description: `${recordLabel("source", next.operation, numbers)} admitted; source read not started`,
       identity: `work:${next.operation}` });
     changedStages.add("admission"); changedStages.add("sourcePending");
   }
   // QueueDispatch creates a dispatch record for existing work. The work stays
   // at its stage; the scheduling link denotes shared identity, not movement.
-  for (const field of ["pending", "active", "running"] as const) for (const next of step.after.dispatch[field]) if (
-    !step.before.dispatch.pending.some((prior) => prior.operation === next.operation) &&
-    !step.before.dispatch.active.some((prior) => prior.operation === next.operation) &&
+  for (const field of ["queued", "running"] as const) for (const next of step.after.dispatch[field]) if (
+    !step.before.dispatch.queued.some((prior) => prior.operation === next.operation) &&
     !step.before.dispatch.running.some((prior) => prior.operation === next.operation)) {
     if (step.event.kind !== "queueDispatch" || step.event.operation !== next.operation) continue;
     const source = before.get(`work:${next.operation}`);
     if (source?.stage === "sourcePending" || source?.stage === "units") {
       evidence.push({ from: source.stage, to: "scheduling", source: "state", relation: "linked record",
-        description: `work #${next.operation} scheduled; dispatch entered ${field}; work state unchanged`, identity: `work:${next.operation}` });
+        description: `${recordLabel(next.preparation ? "source" : "review", next.operation, numbers)} scheduled; dispatch entered ${field}; work state unchanged`, identity: `work:${next.operation}` });
       changedStages.add(source.stage);
     }
     changedStages.add("scheduling");
@@ -128,7 +182,7 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
   for (const next of step.after.work) if (next.kind === "reviewing" && !step.before.work.some((prior) => prior.operation === next.operation)) {
     const parent = step.before.work.find((prior) => prior.operation === next.parent);
     if (parent !== undefined && (parent.kind === "preparing" || parent.kind === "sourceReading")) {
-      evidence.push({ from: "preparation", to: "units", source: "state", description: `prepared work #${parent.operation} produced review #${next.operation}`, identity: `work:${next.operation}` });
+      evidence.push({ from: "preparation", to: "units", source: "state", description: `${recordLabel("preparation", parent.operation, numbers)} produced ${recordLabel("review", next.operation, numbers)}`, identity: `work:${next.operation}` });
       changedStages.add("preparation"); changedStages.add("units");
     }
   }
@@ -137,16 +191,41 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
   for (const lease of step.after.collection.leases) if (!step.before.collection.leases.some((prior) => prior.advice === lease.advice) &&
     step.before.collection.ready.includes(lease.advice)) {
     evidence.push({ from: "advice", to: "collection", source: "state",
-      description: `advice #${lease.advice} leased${step.after.collection.ready.includes(lease.advice) ? "; still ready" : ""}`,
+      description: `${recordLabel("advice", lease.advice, numbers)} leased${step.after.collection.ready.includes(lease.advice) ? "; still ready" : ""}`,
       identity: `advice:${lease.advice}` });
     changedStages.add("advice"); changedStages.add("collection");
   }
   if (step.event.kind === "collectionReady") for (const id of step.after.collection.ready) if (!step.before.collection.ready.includes(id)) {
     evidence.push({ from: "outcomes", to: "advice", source: "native fact",
-      description: `advice #${id} supplied ready by native storage; producing work ID is not projected`, identity: `ready-advice:${id}` });
+      description: `${recordLabel("advice", id, numbers)} supplied ready by native storage; producing work ID is not projected`, identity: `ready-advice:${id}` });
     changedStages.add("outcomes"); changedStages.add("advice");
   }
   const kinds = commandKinds(step.commands);
+  const event = step.event;
+  const clearedReview = event.kind === "jevRequestSettled" && event.outcome === "clear" &&
+    step.commands.some((command) => command.kind === "reviewRecorded" && command.outcome === "clear") &&
+    step.before.work.some((work) => work.operation === event.operation && work.kind === "atJev" &&
+      work.partition === event.partition && work.lifetime === event.lifetime && work.round === event.round) &&
+    !step.after.work.some((work) => work.operation === event.operation)
+    ? event.operation : undefined;
+  const storedResultConversions = step.before.charges.filter((before) => before.purpose === "reviewUnit" &&
+    step.after.charges.some((after) => after.id === before.id && after.partition === before.partition &&
+      after.purpose === "storedResult" && after.bytes === before.bytes))
+    .map((charge) => ({ charge: charge.id }));
+  const sourceCompletion = event.kind === "completeObservation" && kinds.has("observationCompleted") &&
+    step.before.work.some((work) => work.operation === event.observation && work.kind === "sourceReading" &&
+      work.partition === event.partition && work.lifetime === event.lifetime && work.round === event.round) &&
+    !step.after.work.some((work) => work.operation === event.observation)
+    ? {
+        observation: event.observation,
+        linkedReviews: step.after.work.filter((work) => work.parent === event.observation &&
+          work.partition === event.partition && work.lifetime === event.lifetime && work.round === event.round &&
+          (work.kind === "reviewing" || work.kind === "atJev" || work.kind === "pendingFinding"))
+          .map((work) => ({ operation: work.operation, kind: work.kind })),
+        jobRunning: step.after.dispatch.running.some((job) => job.operation === event.observation &&
+          job.partition === event.partition && job.lifetime === event.lifetime && job.round === event.round && job.preparation),
+      }
+    : undefined;
   for (const rule of FACT_RULES) {
     const matchedCommands = rule.commands?.filter((kind) => kinds.has(kind)) ?? [];
     if (!(rule.events?.includes(step.event.kind) ?? false) && matchedCommands.length === 0) continue;
@@ -200,5 +279,7 @@ export const projectFlowStep = (step: FlowStepInput | undefined): FlowProjection
     }
   }
   const projectionChanged = JSON.stringify(step.before) !== JSON.stringify(step.after);
-  return { evidence, changedStages: [...changedStages], projectionChanged };
+  return { evidence, changedStages: [...changedStages], projectionChanged, storedResultConversions,
+    ...(clearedReview === undefined ? {} : { clearedReview }),
+    ...(sourceCompletion === undefined ? {} : { sourceCompletion }) };
 };

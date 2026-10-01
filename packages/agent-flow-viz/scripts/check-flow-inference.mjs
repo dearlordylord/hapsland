@@ -40,32 +40,44 @@ try {
     "a running dispatch does not yet mean source reading began");
   assert.ok(has(8, "state", "sourcePending", "scheduling", "work:2"),
     "the second source job enters scheduling while the first runs");
-  assert.equal(steps[7].after.dispatch.pending.length, 1);
+  assert.equal(steps[7].after.dispatch.queued.length, 0);
   assert.ok(has(19, "state", "units", "scheduling", "work:4"));
-  assert.ok(has(13, "state", "scheduling", "scheduling", "dispatch:2"),
-    "the same dispatch ID changes from pending to running within scheduling");
+  assert.ok(has(8, "state", "sourcePending", "scheduling", "work:2"),
+    "the second job starts while preparation capacity remains");
   assert.ok(has(11, "state", "preparation", "units", "work:4"),
     "a prepared work item's child review unit has an explicit parent link");
+  assert.deepEqual(flow.projectFlowStep(steps[11]).sourceCompletion,
+    { observation: 1, linkedReviews: [{ operation: 4, kind: "reviewing" }], jobRunning: true },
+    "source completion is derived from checked removal, surviving child review, and source-job state");
+  assert.deepEqual(evidenceAt(12), [], "source completion does not invent a destination arrow");
   assert.ok(has(21, "command", "authorization", "effect"),
     "Jev request issue is displayed as permission");
   assert.ok(!has(21, "native fact", "authorization", "effect"),
     "request issue does not claim an observed attempt");
-  assert.ok(has(22, "state", "authorization", "effect", "request:7"),
+  assert.ok(has(22, "state", "authorization", "effect", "request:8"),
     "the observed request start moves its stable request ID");
   assert.ok(has(27, "command", "outcomes", "advice"),
     "a finding's retain command is visible");
-  assert.ok(!steps[26].after.collection.ready.includes(10),
+  assert.ok(!steps[26].after.collection.ready.includes(4),
     "retain command does not assert stored advice");
   assert.ok(has(28, "native fact", "outcomes", "advice"),
     "later native readiness visibly brings advice to the pending-advice square");
-  assert.ok(steps[27].after.collection.ready.includes(10));
+  assert.ok(steps[27].after.collection.ready.includes(4));
   assert.ok(!flow.projectFlowStep(steps[10]).changedStages.includes("observation"),
     "preparing one item does not highlight an unrelated queued observation");
-  assert.ok(has(34, "state", "advice", "collection", "advice:10"),
+  assert.equal(steps[35].event.kind, "jevRequestSettled");
+  assert.equal(steps[35].event.outcome, "clear");
+  assert.ok(!steps[35].after.work.some((work) => work.operation === 7),
+    "a clear result completes the third review item without pending advice");
+  assert.ok(!steps[35].after.charges.some((charge) => charge.id === 5),
+    "a clear result releases the third item's charge");
+  assert.ok(!has(36, "command", "outcomes", "advice"),
+    "clear does not issue a retain-finding command");
+  assert.ok(has(40, "state", "advice", "collection", "advice:4"),
     "a new lease is linked to its ready advice even while readiness remains visible");
-  assert.ok(steps[33].after.collection.ready.includes(10),
+  assert.ok(steps[39].after.collection.ready.includes(4),
     "lease creation does not invent removal of the ready advice");
-  assert.ok(has(53, "state", "round", "round", "round:1"),
+  assert.ok(has(59, "state", "round", "round", "round:1"),
     "checked retirement marks the round's end");
   assert.ok(steps.every((step) => step.rejection === undefined), "the complete showcase is accepted");
   const settled = steps.at(-1).after;

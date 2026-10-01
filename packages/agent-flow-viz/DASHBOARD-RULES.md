@@ -9,7 +9,7 @@
 The dashboard is a **projection of compiled Bend transitions**. It contains no
 Hapsland decision backbone. `Canonical.step` drives the production decision
 replay through the same checked adapter as the resident. `ImportGraph.bend`
-drives the separate import exploration section. Native effects and Jev
+drives the inner preparation trace and standalone import exploration examples. Native effects and Jev
 responses remain outside Bend state and are identified as example facts.
 The import section initializes the same versioned limits value passed to
 compiled Bend, and budget labels read the limits projected from Bend state.
@@ -58,6 +58,18 @@ limit for a replay using a changed profile.
 - Inferring a Jev finding, clear result, or request from graph completion.
   `UnitComplete` means eligible for later rule selection, not an observed Jev
   call.
+
+## Composed preparation boundary
+
+The default guided showcase and simulator identify each graph by canonical
+partition, lifetime, round, preparation operation and artifact index. Graph
+steps share main replay controls and chronological history. They execute the
+compiled graph adapter while preserving canonical state, work and capacity;
+they do not invent outer movement or Jev requests. Supplied root/capture facts
+remain synthetic native observations. Graph completion is followed by a separate
+supplied preparation result and checked canonical unit admission. This trace
+does not execute native parsing or per-rule evidence selection. Graph byte
+facts and synthetic reservation sizes are distinct measurements.
 
 ## Current projection boundary
 

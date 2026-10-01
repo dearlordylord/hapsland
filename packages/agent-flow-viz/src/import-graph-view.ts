@@ -1,3 +1,4 @@
+import { BRANCHING_TREE_BUDGET } from "../../monkey-business/src/preparation";
 import type { HtmlBuilder } from "foldkit/html";
 import { GRAPH_LIMIT_CEILINGS, initialImportGraph, projectImportGraph, stepImportGraph } from "../../agent-flow-bend/import-graph-adapter";
 import type { GraphLimits } from "../../agent-flow-bend/import-graph-adapter";
@@ -13,17 +14,7 @@ const allowed = () => step("Native: target path allowed; Bend decides whether to
 const captured = (edges: number[] = [], treeBytes = 400, sourceBytes = 1000) => step("Native: bounded capture and ordered outgoing edges supplied", { kind: "captured", sourceBytes, treeBytes, edges });
 export const IMPORT_GRAPH_SCENARIOS = [
   { title: "C path gate", description: "The fixture supplies A.ts as root, an A→B→C edge chain, and a path-denied fact for C. The trace shows which facts Bend reaches under the effective limits.", units: ["A.ts"], targetNames: { 1: "A.ts", 2: "B.ts", 3: "C.ts" }, steps: [root([10]), next(), resolved(2), allowed(), captured([20]), next(), resolved(3), step("Native: C permission fact denied", { kind: "pathChecked", allowed: false }), next()] },
-  { title: "Branching tree budget", description: "The fixture supplies A→B,C,X; B→D,E; C→F,G, with X path-denied. Encoded contributions are A/B/C 5 KiB each, D 4 KiB, E/G 2 KiB each, and F 1 KiB. The trace shows Bend's acceptance and terminal reason under the effective limits.", units: ["A.ts"], targetNames: { 1: "A.ts", 2: "B.ts", 3: "C.ts", 4: "D.ts", 5: "E.ts", 6: "F.ts", 7: "G.ts", 8: "X.ts" }, steps: [
-    root([10, 20, 70], 5120),
-    next(), resolved(2), allowed(), captured([30, 40], 5120),
-    next(), resolved(3), allowed(), captured([50, 60], 5120),
-    next(), resolved(8), step("Native: X.ts permission fact denied", { kind: "pathChecked", allowed: false }),
-    next(), resolved(4), allowed(), captured([], 4096),
-    next(), resolved(5), allowed(), step("Native: E capture reports 1,000 B source and 2 KiB tree", { kind: "captured", sourceBytes: 1000, treeBytes: 2048, edges: [] }),
-    next(), resolved(6), allowed(), captured([], 1024),
-    next(), resolved(7), allowed(), step("Native: G capture reports 1,000 B source and 2 KiB tree", { kind: "captured", sourceBytes: 1000, treeBytes: 2048, edges: [] }),
-    next(),
-  ] },
+  BRANCHING_TREE_BUDGET,
 ] as const;
 
 export const projectImportExample = (scenarioIndex: number, cursor: number, limits: GraphLimits = GRAPH_LIMIT_CEILINGS) => {

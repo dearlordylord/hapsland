@@ -7,34 +7,30 @@ import ../Canonical.bend as Canonical
 # Matching settlement must free a permit regardless of start/interruption flags.
 # An arbitrary finite cohort resolves under one matching response per request.
 law request_cohort_resolves:
-  for +pending: List<&2, Dispatch.Entry>
-  for +active: List<&2, Dispatch.Entry>
+  for +queued: List<&2, Dispatch.Entry>
   for +running: List<&2, Dispatch.Entry>
   for +sequence: Nat
-  for +cycle: Nat
   for +closed: Bool
   for +requests: List<&2, Dispatch.Request>
-  {Dispatch.RequestAccepted{Dispatch.State{pending, active, running,
-    sequence, cycle, closed, Nil{}}} == Core.resolve_requests(requests,
-      Dispatch.State{pending, active, running, sequence, cycle, closed, requests}) : Dispatch.RequestResult}
+  {Dispatch.RequestAccepted{Dispatch.State{queued, running,
+    sequence, closed, Nil{}}} == Core.resolve_requests(requests,
+      Dispatch.State{queued, running, sequence, closed, requests}) : Dispatch.RequestResult}
 
 # Recovery applies to open dispatchers; deliberate shutdown stays closed.
 law settled_failures_allow_fresh_request:
-  for +pending: List<&2, Dispatch.Entry>
-  for +active: List<&2, Dispatch.Entry>
+  for +queued: List<&2, Dispatch.Entry>
   for +running: List<&2, Dispatch.Entry>
   for +sequence: Nat
-  for +cycle: Nat
   for +requests: List<&2, Dispatch.Request>
   for +partition: Nat
   for +lifetime: Nat
   for +round: Nat
   for +operation: Nat
   for +request: Nat
-  {Core.recover_requests(requests, Dispatch.State{pending, active, running,
-    sequence, cycle, False{}, requests}, partition, lifetime, round, operation,
-    request) == Dispatch.RequestAccepted{Dispatch.State{pending, active, running,
-      sequence, cycle, False{}, Dispatch.Request{partition, lifetime, round,
+  {Core.recover_requests(requests, Dispatch.State{queued, running,
+    sequence, False{}, requests}, partition, lifetime, round, operation,
+    request) == Dispatch.RequestAccepted{Dispatch.State{queued, running,
+      sequence, False{}, Dispatch.Request{partition, lifetime, round,
         operation, request, False{}, False{}} <> Nil{}}} : Dispatch.RequestResult}
 
 # A continuously eligible, unleased finding reaches recorded handoff under a

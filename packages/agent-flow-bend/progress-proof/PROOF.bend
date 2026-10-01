@@ -19,37 +19,35 @@ def request_matches_self(+partition: Nat, +lifetime: Nat, +round: Nat, +operatio
   %nat_eq_self(request) : {True{} == _ : Bool}
   {==}
 
-def request_head_phase(+rest: List<&2, Dispatch.Request>, +partition: Nat, +lifetime: Nat, +round: Nat, +operation: Nat, +request: Nat, +started: Bool, +interrupted: Bool) -> {Some{Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted}} == 
+def request_head_phase(+rest: List<&2, Dispatch.Request>, +partition: Nat, +lifetime: Nat, +round: Nat, +operation: Nat, +request: Nat, +started: Bool, +interrupted: Bool) -> {Some{Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted}} ==
   Dispatch.request_phase(Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted} <> rest, partition, lifetime, round, operation, request) : Maybe<&2, Dispatch.Request>}:
-  %request_matches_self(partition, lifetime, round, operation, request, started, interrupted) : {Some{Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted}} == 
+  %request_matches_self(partition, lifetime, round, operation, request, started, interrupted) : {Some{Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted}} ==
     Bool.pick(Maybe<&2, Dispatch.Request>, _, Some{Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted}},
       Dispatch.request_phase(rest, partition, lifetime, round, operation, request)) : Maybe<&2, Dispatch.Request>}
   {==}
 
-def request_head_remove(+rest: List<&2, Dispatch.Request>, +partition: Nat, +lifetime: Nat, +round: Nat, +operation: Nat, +request: Nat, +started: Bool, +interrupted: Bool) -> {rest == 
+def request_head_remove(+rest: List<&2, Dispatch.Request>, +partition: Nat, +lifetime: Nat, +round: Nat, +operation: Nat, +request: Nat, +started: Bool, +interrupted: Bool) -> {rest ==
   Dispatch.request_remove(Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted} <> rest, partition, lifetime, round, operation, request) : List<&2, Dispatch.Request>}:
-  %request_matches_self(partition, lifetime, round, operation, request, started, interrupted) : {rest == 
+  %request_matches_self(partition, lifetime, round, operation, request, started, interrupted) : {rest ==
     Bool.pick(List<&2, Dispatch.Request>, _, rest,
       Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted} <> Dispatch.request_remove(rest, partition, lifetime, round, operation, request)) : List<&2, Dispatch.Request>}
   {==}
 
-def request_head_resolves(+pending: List<&2, Dispatch.Entry>,
-    +active: List<&2, Dispatch.Entry>, +running: List<&2, Dispatch.Entry>,
-    +sequence: Nat, +cycle: Nat, +closed: Bool, +rest: List<&2, Dispatch.Request>,
-    +partition: Nat, +lifetime: Nat, +round: Nat, +operation: Nat, +request: Nat, +started: Bool, +interrupted: Bool) -> {Dispatch.RequestAccepted{Dispatch.State{pending, active, running,
-        sequence, cycle, closed, rest}} == 
-      Dispatch.request_update(Dispatch.State{pending, active, running,
-        sequence, cycle, closed, Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted} <> rest},
+def request_head_resolves(+queued: List<&2, Dispatch.Entry>, +running: List<&2, Dispatch.Entry>,
+    +sequence: Nat, +closed: Bool, +rest: List<&2, Dispatch.Request>,
+    +partition: Nat, +lifetime: Nat, +round: Nat, +operation: Nat, +request: Nat, +started: Bool, +interrupted: Bool) -> {Dispatch.RequestAccepted{Dispatch.State{queued, running,
+        sequence, closed, rest}} ==
+      Dispatch.request_update(Dispatch.State{queued, running,
+        sequence, closed, Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted} <> rest},
         partition, lifetime, round, operation, request, False{}, False{}, True{}) : Dispatch.RequestResult}:
-  %request_head_phase(rest, partition, lifetime, round, operation, request, started, interrupted) : {Dispatch.RequestAccepted{Dispatch.State{pending, active, running,
-      sequence, cycle, closed, rest}} == 
-    Dispatch.request_update_found(Dispatch.State{pending, active, running,
-      sequence, cycle, closed, Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted} <> rest},
+  %request_head_phase(rest, partition, lifetime, round, operation, request, started, interrupted) : {Dispatch.RequestAccepted{Dispatch.State{queued, running,
+      sequence, closed, rest}} ==
+    Dispatch.request_update_found(Dispatch.State{queued, running,
+      sequence, closed, Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted} <> rest},
       partition, lifetime, round, operation, request, False{}, False{}, True{}, _) : Dispatch.RequestResult}
-  %request_head_remove(rest, partition, lifetime, round, operation, request, started, interrupted) : {Dispatch.RequestAccepted{Dispatch.State{pending,
-      active, running, sequence, cycle, closed, rest}} == 
-    Dispatch.RequestAccepted{Dispatch.State{pending, active, running,
-      sequence, cycle, closed, _}} : Dispatch.RequestResult}
+  %request_head_remove(rest, partition, lifetime, round, operation, request, started, interrupted) : {Dispatch.RequestAccepted{Dispatch.State{queued, running, sequence, closed, rest}} ==
+    Dispatch.RequestAccepted{Dispatch.State{queued, running,
+      sequence, closed, _}} : Dispatch.RequestResult}
   {==}
 
 def offer_available(+item: Nat, +round: Nat, +reoffered: Bool, +token: Nat,
@@ -75,7 +73,7 @@ def terminal_authorized(+item: Nat, +round: Nat, +reoffered: Bool, +token: Nat,
   {==}
 
 def offer_uncertain(+item: Nat, +round: Nat, +token: Nat) -> {Handoff.Granted{Handoff.Lease{item, round, False{}, True{},
-    Handoff.Reserved{token, Handoff.Stop{}}}} == 
+    Handoff.Reserved{token, Handoff.Stop{}}}} ==
   Handoff.lease.offer(Handoff.Lease{item, round, False{}, False{},
     Handoff.Uncertain{Handoff.Background{}}}, round, token, Handoff.Stop{}, True{}) : Handoff.LeaseResult}:
   %nat_eq_self(round) : {Handoff.Granted{Handoff.Lease{item, round, False{},
@@ -94,37 +92,37 @@ def true_false_absurd(e: {True{} == False{} : Bool}) -> Empty:
   Unit{}
 
 # ---- request_cohort_resolves ----
-def Laws.request_cohort_resolves(pending, active, running, sequence, cycle, closed, requests):
+def Laws.request_cohort_resolves(queued, running, sequence, closed, requests):
   match requests:
     case Nil{}: {==}
     case Dispatch.Request{partition, lifetime, round, operation, request, started, interrupted} <> rest:
-      %request_head_resolves(pending, active, running, sequence, cycle, closed, rest,
-        partition, lifetime, round, operation, request, started, interrupted) : {Dispatch.RequestAccepted{Dispatch.State{pending, active, running,
-            sequence, cycle, closed, Nil{}}} == 
+      %request_head_resolves(queued, running, sequence, closed, rest,
+        partition, lifetime, round, operation, request, started, interrupted) : {Dispatch.RequestAccepted{Dispatch.State{queued, running,
+            sequence, closed, Nil{}}} ==
           Core.resolved(_, next => Core.resolve_requests(rest, next)) : Dispatch.RequestResult}
-      Laws.request_cohort_resolves(pending, active, running, sequence, cycle, closed, rest)
+      Laws.request_cohort_resolves(queued, running, sequence, closed, rest)
 
 # ---- settled_failures_allow_fresh_request ----
-def Laws.settled_failures_allow_fresh_request(pending, active, running, sequence, cycle,
+def Laws.settled_failures_allow_fresh_request(queued, running, sequence,
     requests, partition, lifetime, round, operation, request):
-  %Laws.request_cohort_resolves(pending, active, running, sequence, cycle, False{}, requests) : {
+  %Laws.request_cohort_resolves(queued, running, sequence, False{}, requests) : {
     Core.recover_result(partition, lifetime, round, operation, request, _) ==
-    Dispatch.RequestAccepted{Dispatch.State{pending, active, running,
-      sequence, cycle, False{}, Dispatch.Request{partition, lifetime, round,
+    Dispatch.RequestAccepted{Dispatch.State{queued, running,
+      sequence, False{}, Dispatch.Request{partition, lifetime, round,
         operation, request, False{}, False{}} <> Nil{}}} : Dispatch.RequestResult}
   {==}
 
 # ---- eligible_advice_reaches_handoff ----
 def Laws.eligible_advice_reaches_handoff(item, round, reoffered, token, surface):
   %offer_available(item, round, reoffered, token, surface) : {Handoff.Granted{Handoff.Lease{item, round, False{}, reoffered, Handoff.Submitted{surface}}} == Core.authorize(_, round, token) : Handoff.LeaseResult}
-  %authorize_reserved(item, round, reoffered, token, surface) : {Handoff.Granted{Handoff.Lease{item, round, False{}, reoffered, Handoff.Submitted{surface}}} == 
+  %authorize_reserved(item, round, reoffered, token, surface) : {Handoff.Granted{Handoff.Lease{item, round, False{}, reoffered, Handoff.Submitted{surface}}} ==
     Core.acknowledge(_, round, token) : Handoff.LeaseResult}
   terminal_authorized(item, round, reoffered, token, surface)
 
 # ---- uncertain_background_reaches_stop_handoff ----
 def Laws.uncertain_background_reaches_stop_handoff(item, round, token):
   %offer_uncertain(item, round, token) : {Handoff.Granted{Handoff.Lease{item, round, False{}, True{}, Handoff.Submitted{Handoff.Stop{}}}} == Core.authorize(_, round, token) : Handoff.LeaseResult}
-  %authorize_reserved(item, round, True{}, token, Handoff.Stop{}) : {Handoff.Granted{Handoff.Lease{item, round, False{}, True{}, Handoff.Submitted{Handoff.Stop{}}}} == 
+  %authorize_reserved(item, round, True{}, token, Handoff.Stop{}) : {Handoff.Granted{Handoff.Lease{item, round, False{}, True{}, Handoff.Submitted{Handoff.Stop{}}}} ==
     Core.acknowledge(_, round, token) : Handoff.LeaseResult}
   terminal_authorized(item, round, True{}, token, Handoff.Stop{})
 

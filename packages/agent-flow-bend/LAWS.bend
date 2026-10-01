@@ -85,16 +85,42 @@ law canonical_source_without_charge_blocks_finish:
     Canonical.Work{1n, 1n, 1n, 2n, 0n, Canonical.SourceReading{}, 0n} <> Nil{}) ==
     True{} : Bool}
 
-law dispatch_first_item_starts_cycle_one:
+law dispatch_first_item_starts_immediately:
   {Dispatch.enqueue(Dispatch.initial(), 1n, 1n, 1n, 7n, True{}) ==
-    Dispatch.Advanced{Dispatch.State{Nil{}, Nil{},
-      Dispatch.Entry{1n, 1n, 1n, 7n, 0n, 1n, False{}, True{}} <> Nil{},
-      1n, 1n, False{}, Nil{}},
-      Dispatch.Started{7n, 0n, 1n} <> Nil{}} : Dispatch.DispatchResult}
+    Dispatch.Advanced{Dispatch.State{Nil{},
+      Dispatch.Entry{1n, 1n, 1n, 7n, 0n, False{}, True{}} <> Nil{},
+      1n, False{}, Nil{}},
+      Dispatch.Started{7n, 0n} <> Nil{}} : Dispatch.DispatchResult}
 
 law dispatch_has_eight_shared_slots:
   {Bool.and(Nat.is_eq(Dispatch.max_running(), 8n),
     Nat.is_eq(Dispatch.max_requests(), 8n)) == True{} : Bool}
+
+law dispatch_review_passes_full_preparation_queue:
+  {Dispatch.pump_queued(
+    Dispatch.Entry{1n, 1n, 1n, 9n, 9n, False{}, True{}} <>
+      Dispatch.Entry{1n, 1n, 1n, 10n, 10n, False{}, False{}} <> Nil{},
+    Dispatch.Entry{1n, 1n, 1n, 1n, 1n, False{}, True{}} <>
+      Dispatch.Entry{1n, 1n, 1n, 2n, 2n, False{}, True{}} <>
+      Dispatch.Entry{1n, 1n, 1n, 3n, 3n, False{}, True{}} <>
+      Dispatch.Entry{1n, 1n, 1n, 4n, 4n, False{}, True{}} <>
+      Dispatch.Entry{1n, 1n, 1n, 5n, 5n, False{}, True{}} <>
+      Dispatch.Entry{1n, 1n, 1n, 6n, 6n, False{}, True{}} <>
+      Dispatch.Entry{1n, 1n, 1n, 7n, 7n, False{}, True{}} <>
+      Dispatch.Entry{1n, 1n, 1n, 8n, 8n, False{}, True{}} <> Nil{},
+    11n, False{}, Nil{}) ==
+    Dispatch.Advanced{Dispatch.State{
+      Dispatch.Entry{1n, 1n, 1n, 9n, 9n, False{}, True{}} <> Nil{},
+      Dispatch.Entry{1n, 1n, 1n, 1n, 1n, False{}, True{}} <>
+        Dispatch.Entry{1n, 1n, 1n, 2n, 2n, False{}, True{}} <>
+        Dispatch.Entry{1n, 1n, 1n, 3n, 3n, False{}, True{}} <>
+        Dispatch.Entry{1n, 1n, 1n, 4n, 4n, False{}, True{}} <>
+        Dispatch.Entry{1n, 1n, 1n, 5n, 5n, False{}, True{}} <>
+        Dispatch.Entry{1n, 1n, 1n, 6n, 6n, False{}, True{}} <>
+        Dispatch.Entry{1n, 1n, 1n, 7n, 7n, False{}, True{}} <>
+        Dispatch.Entry{1n, 1n, 1n, 8n, 8n, False{}, True{}} <>
+        Dispatch.Entry{1n, 1n, 1n, 10n, 10n, False{}, False{}} <> Nil{},
+      11n, False{}, Nil{}}, Dispatch.Started{10n, 10n} <> Nil{}} : Dispatch.DispatchResult}
 
 law canonical_deadline_releases_exact_charge:
   {Canonical.release_round_charges(
@@ -999,17 +1025,20 @@ law live_background_cannot_reoffer:
 law submitted_edit_cannot_reoffer_at_stop:
   {Delivery.background_reofferable(Delivery.Submitted{}, Delivery.Edit{}) == False{} : Bool}
 
-law collection_orders_cycle_before_sequence:
-  {Collection.order(2n, 99n, 3n, 1n) == Collection.Before{} : Collection.Order}
+law collection_orders_by_dispatch_sequence:
+  {Collection.order(2n, 3n) == Collection.Before{} : Collection.Order}
 
-law collection_orders_sequence_inside_cycle:
-  {Collection.order(2n, 9n, 2n, 4n) == Collection.After{} : Collection.Order}
+law collection_orders_later_sequence_after_earlier:
+  {Collection.order(9n, 4n) == Collection.After{} : Collection.Order}
 
-law collection_waits_until_exact_window:
-  {Collection.eligible(False{}, False{}, False{}, 49n, 50n) == False{} : Bool}
+law collection_waits_for_edit_completion:
+  {Collection.eligible(False{}, False{}, False{}) == False{} : Bool}
 
-law collection_cycle_completion_unblocks_early:
-  {Collection.eligible(False{}, False{}, True{}, 0n, 50n) == True{} : Bool}
+law collection_edit_completion_unblocks:
+  {Collection.eligible(False{}, False{}, True{}) == True{} : Bool}
+
+law collection_stop_may_send_ready_part:
+  {Collection.eligible(False{}, True{}, False{}) == True{} : Bool}
 
 law pending_advice_expires_at_boundary:
   {Collection.expired(600000n, 600000n) == True{} : Bool}

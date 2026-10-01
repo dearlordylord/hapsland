@@ -17,9 +17,36 @@ while (replay.step()) {}
 
 Run `node --experimental-strip-types packages/monkey-business/src/example.ts` from the repository root. Run `npm run typecheck --prefix packages/monkey-business` and `npx vitest run packages/monkey-business/src` for package checks. The core has no UI dependency, credentials, private source, real transport or wall-clock timers.
 
+Preparation generates a seeded source-free import tree for every synthetic
+review artifact. `fileTrees` configures candidate file count, branching, depth,
+path permissions and source/evidence byte ranges. The defaults generate 3–8
+files, up to 3 imports per file, depth up to 3 (root depth 0), 15% denied import
+targets, 512–4096 source bytes and 256–2048 evidence bytes per file. The root is
+always allowed. Requested file counts must fit branching/depth capacity;
+invalid or reversed ranges fail validation. The bounded generator permits
+pressure inputs above the checked graph caps, without changing those caps.
+
+Each artifact has a dedicated stream derived from the run seed, preparation
+operation and artifact index. It does not consume Jev outcome draws. Native
+facts respond to compiled ImportGraph commands until checked completion or
+incompleteness; generated shape does not bypass permission or budget decisions.
+`Observation.event.kind === "preparationGraph"` identifies an inner step;
+`preparation` contains its checked graph before/after projections and command.
+Canonical before/after projections stay unchanged at those steps. Generated
+metadata names candidate files and depth; the graph displays reached files.
+All graph steps fit within the declared preparation interval, including
+zero-delay intervals. `{kind:"fileTrees",profile}` atomically changes future
+preparations; already started preparations retain their captured facts.
+Configuration and recorded controls reproduce exact replay, including endpoints
+inside preparation. Replay format stays at 1 and requires `preparationIdentity`
+covering the import reducer, composition and tree generator.
+
+`unitBytes` remains a separate synthetic native result, not a derived or measured
+encoding size. The graph does not execute source parsing or rule selection.
+
 `createRun()` initializes one scripted synthetic edit and finish attempt; the sampled review outcome determines whether advice exists. `inputs` accepts timed `{kind:"canonical",at,event}` facts, synthetic `edit` inputs with preparation reservation `bytes`, `unitBytes`, optional injected Jev `outcome`, and `finish` attempts. `session` enables an ongoing seeded single-agent workload instead. Configuration `limits` uses the checked canonical ledger fields; `preparationDelay` and `jevDelay` set integer synthetic durations. These illustrative defaults are not empirical usage measurements.
 
-`step()` processes the next canonical transition, following workload metadata as necessary. `advance({untilTime,maxEvents})` advances the same ongoing run and returns `timeLimit`, `eventLimit` or `idle`, the number of canonical events and current virtual time. A bound never invents a finish attempt or closes a round. Time is one nonnegative integer clock; equal-time scheduled items follow insertion order, including effects added by transitions. Time bounds do not force the clock to a boundary with no activity. Driver playback speed and pauses do not enter the core.
+`step()` processes the next checked canonical or inner preparation transition, following workload metadata as necessary. `advance({untilTime,maxEvents})` advances the same ongoing run and returns `timeLimit`, `eventLimit` or `idle`, the number of canonical events and current virtual time. A bound never invents a finish attempt or closes a round. Time is one nonnegative integer clock; equal-time scheduled items follow insertion order, including effects added by transitions. Time bounds do not force the clock to a boundary with no activity. Driver playback speed and pauses do not enter the core.
 
 `applyControl` validates built-in controls at a step boundary and records their time, canonical-event boundary and a shared sequence across controls and explicitly scheduled inputs. Edit pace and arrival suspension replace obsolete recurring arrivals; finite bursts and delayed repairs survive changes. `jevProfile` changes new requests; requests already scheduled keep their due time. Replay stores initial config/inputs, seed, random algorithms, outcome-stream identity and ordered distribution, consumed Bend source identity, explicit outcomes and the complete control timeline. `replayRun` reconstructs initial state and rejects incompatible identities; it does not hydrate opaque Bend state. Exported replay is input-oriented: advance the reconstructed run to the desired boundary.
 

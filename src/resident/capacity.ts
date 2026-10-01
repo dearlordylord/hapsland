@@ -165,8 +165,7 @@ export class CapacityLedger {
       state.rounds.some((item) => item.partition === id) ||
       state.work.some((item) => item.partition === id) ||
       state.charges.some((item) => item.partition === id) ||
-      state.dispatch.pending.some((item) => item.partition === id) ||
-      state.dispatch.active.some((item) => item.partition === id) ||
+      state.dispatch.queued.some((item) => item.partition === id) ||
       state.dispatch.running.some((item) => item.partition === id) ||
       state.dispatch.requests.some((item) => item.partition === id) ||
       state.delivery.slots.some((item) => item.group === id) ||

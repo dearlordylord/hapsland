@@ -6,7 +6,6 @@ import { initialCanonical, stepCanonical, type CanonicalEvent } from "../canonic
 import { GLOBAL_BYTE_LIMIT, GLOBAL_ITEM_LIMIT, PARTITION_BYTE_LIMIT, PARTITION_ITEM_LIMIT } from "./capacity.ts";
 export type { ClaudeBlockOutput, ClaudeHostOutput } from "../direct-event/claude-output.ts";
 
-export const ADVICE_COLLECTION_WINDOW_MS = 50;
 export const PENDING_ADVICE_EXPIRY_MS = 600_000;
 export const MAX_COMBINED_RESPONSE_BYTES = 10 * 1024;
 
@@ -24,11 +23,8 @@ const CLAUDE_BLOCK_HEADING =
   "Hapsland found a current rule finding after this edit succeeded. Repair the listed finding(s) in the file, then continue.";
 
 export type CollectionCandidate = {
-  readonly cycle: number;
   readonly sequence: number;
-  readonly cycleComplete: boolean;
   readonly pendingAt: number;
-  readonly collectionEligible?: boolean;
 };
 
 export type CollectionMode = "ordinary" | "turn-end";
@@ -44,13 +40,12 @@ const canonicalCollectionCommand = (event: CanonicalEvent): string => {
   return result.commands[0]!.kind;
 };
 
-export const collectionOrder = <A extends Pick<CollectionCandidate, "cycle" | "sequence">>(
+export const collectionOrder = <A extends Pick<CollectionCandidate, "sequence">>(
   left: A,
   right: A,
 ): number => {
   switch (canonicalCollectionCommand({ kind: "collectionOrderCheck",
-    leftCycle: left.cycle, leftSequence: left.sequence,
-    rightCycle: right.cycle, rightSequence: right.sequence })) {
+    leftSequence: left.sequence, rightSequence: right.sequence })) {
     case "collectionBefore": return -1;
     case "collectionEqual": return 0;
     case "collectionAfter": return 1;
@@ -62,17 +57,6 @@ const elapsedForBend = (now: number, started: number, limit: number): number => 
   const bounded = Math.min(limit, Math.max(0, now - started));
   return Number.isNaN(bounded) ? 0 : Math.floor(bounded);
 };
-
-export const isCollectionEligible = (
-  candidate: CollectionCandidate,
-  now: number,
-  mode: CollectionMode = "ordinary",
-  oldestPendingAt: number = candidate.pendingAt,
-): boolean => canonicalCollectionCommand({ kind: "collectionReady", advice: 1,
-  already: candidate.collectionEligible === true, turnEnd: mode === "turn-end",
-  cycleComplete: candidate.cycleComplete,
-  elapsed: elapsedForBend(now, oldestPendingAt, ADVICE_COLLECTION_WINDOW_MS),
-  window: ADVICE_COLLECTION_WINDOW_MS }) === "collectionEligible";
 
 export const isPendingAdviceExpired = (
   candidate: Pick<CollectionCandidate, "pendingAt">,

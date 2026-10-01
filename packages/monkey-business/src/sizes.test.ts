@@ -62,7 +62,7 @@ describe("checked size capacity through the public run", () => {
       limits: { globalItems: 10, partitionItems: 10, globalBytes: 100, partitionBytes: 100 },
       inputs: [{ at: 0, kind: "edit", ...sizePreparationInput(facts) }], jevDelay: 100,
     });
-    run.advance({ maxEvents: 50 });
+    run.advance({ maxEvents: 200 });
     const commands = run.observations.flatMap(frame => frame.commands);
     expect(commands.filter(command => command.kind === "unitAdmitted").map(command => command.bytes)).toEqual([60, 20]);
     expect(commands.filter(command => command.kind === "unitRefused").map(command => command.bytes)).toEqual([60]);
@@ -84,7 +84,7 @@ it("applies live reservation sizes only to future generated edits and replays th
   const run = createRun({ session: { variationMs: 0, editIntervalMs: 10, bytes: 10, unitBytes: [5], editsPerTask: 3 } });
   run.step(); // First edit is observed; the second is already queued with original facts.
   run.applyControl({ kind: "sizes", reservationBytes: 30, reviewUnitBytes: [7, 9] });
-  run.advance({ maxEvents: 50, untilTime: 35 });
+  run.advance({ maxEvents: 100, untilTime: 35 });
   const edits = run.observations.filter(frame => frame.event.kind === "beginObservedPreparation");
   expect(edits.map(frame => frame.event.kind === "beginObservedPreparation" ? frame.event.bytes : -1)).toEqual([10, 10, 30]);
   const replay = replayRun(run.exportReplay());

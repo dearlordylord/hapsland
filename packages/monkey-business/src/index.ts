@@ -1,3 +1,7 @@
+import { generateFileTree, validateFileTreeProfile, DEFAULT_FILE_TREE_PROFILE, type FileTreeProfile } from "./file-trees.ts";
+export * from "./file-trees.ts";
+import { PreparationReplay, type PreparationEvent, type PreparationFrame } from "./preparation.ts";
+export * from "./preparation.ts";
 import { DEFAULT_OUTCOME_WEIGHTS, JEV_OUTCOME_ORDER, OUTCOME_RANDOM_ALGORITHM, OUTCOME_RANDOM_STREAM, SeededOutcomeSampler, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
 export * from "./outcomes.ts";
 import { validateLiveControl, type LiveControl, type EnvironmentProfile, type OutputProfile, type OutcomeChoice } from "./controls.ts";
@@ -29,7 +33,8 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:0e9a7f2397c60ad13c9e39c664944e6ae0d85e9e34b59b2b579c49b4eccac458";
+  "canonical-source-sha256:6fe2a38668aa10787a74b45667d2f9c0a4082852f29557a9c2f8bf8787c9c9c7";
+export const PREPARATION_IDENTITY = "import-preparation-sha256:812ca7a89d0f7b39ea4b4aa68e220b744bc0f6c2a7e1c1dcf2e5374919ca11ae";
 export type RunInput =
   | SessionInput
   | ({ readonly at: number; readonly generation?: number } & (
@@ -92,7 +97,8 @@ export type EffectObservation =
 export type Observation = {
   readonly sequence: number;
   readonly time: number;
-  readonly event: CanonicalEvent;
+  readonly event: CanonicalEvent | PreparationEvent;
+  readonly preparation?: PreparationFrame;
   readonly commands: readonly CanonicalCommand[];
   readonly before: CanonicalProjection;
   readonly after: CanonicalProjection;
@@ -109,6 +115,7 @@ export type RunConfig = {
   readonly limits?: Parameters<typeof initialCanonical>[0];
   readonly inputs?: readonly RunInput[];
   readonly preparationDelay?: number;
+  readonly fileTrees?: FileTreeProfile;
   readonly finishDeadline?: number;
   /** Synthetic retention clock; defaults to the resident’s ten-minute pending advice lifetime. */
   readonly adviceLifetime?: number;
@@ -123,6 +130,7 @@ export type Replay = {
   readonly format: typeof REPLAY_FORMAT;
   readonly randomAlgorithm: typeof RANDOM_ALGORITHM;
   readonly logicIdentity: typeof LOGIC_IDENTITY;
+  readonly preparationIdentity: typeof PREPARATION_IDENTITY;
   readonly outcomeSampling: { readonly algorithm: typeof OUTCOME_RANDOM_ALGORITHM; readonly stream: typeof OUTCOME_RANDOM_STREAM; readonly order: typeof JEV_OUTCOME_ORDER };
   readonly config: RunConfig;
   readonly controls: readonly ControlRecord[];
@@ -144,6 +152,9 @@ type Scheduled = {
 } & ({ input: RunInput; candidate?: never } | {
   input: { kind: "canonical"; at: number; event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" }>; generation?: number };
   candidate: CandidateContext;
+} | {
+  input: { kind: "preparationGraph"; at: number; event: PreparationEvent };
+  candidate?: never;
 });
 const integer = (n: number, name: string) => {
   if (!Number.isSafeInteger(n) || n < 0 || n > 2 ** 48 - 1)
@@ -161,6 +172,7 @@ const defaults = {
 /** Equal-time items follow insertion order; effects appended by a transition follow already queued items. */
 export class Run {
   private state: unknown;
+  private preparation = new PreparationReplay();
   private canonicalAllowed = true;
   private queue: Scheduled[] = [];
   private order = 0;
@@ -203,7 +215,9 @@ export class Run {
   private adviceCredentials = new Map<number, number>();
   private requestCredentials = new Map<number, number>();
   private outputProfile: OutputProfile;
+  private fileTrees: FileTreeProfile;
   constructor(config: RunConfig = {}) {
+    this.fileTrees = validateFileTreeProfile(config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE);
     this.environment = copy(config.environment ?? { currentWork: true, credentialReady: true });
     this.outputProfile = copy(config.outputProfile ?? { outcome: "certain", delayMs: 0, leaseMs: 30000 });
     validateLiveControl({ kind: "environment", ...this.environment });
@@ -221,6 +235,7 @@ export class Run {
     this.config = copy({
       ...baseConfig,
       seed: config.seed ?? 1,
+      fileTrees: this.fileTrees,
       ...(config.outcome === undefined ? { outcomeWeights: this.outcomeWeights } : { outcome: config.outcome }),
       inputs:
         config.inputs ??
@@ -297,7 +312,9 @@ export class Run {
   }
   applyControl(control: Control): ControlRecord {
     const value = validateLiveControl(control);
-    if (value.kind === "environment") {
+    if (value.kind === "fileTrees") {
+      this.fileTrees = validateFileTreeProfile(value.profile);
+    } else if (value.kind === "environment") {
       this.environment = { currentWork: value.currentWork, credentialReady: value.credentialReady,
         credentialGeneration: value.credentialGeneration ?? this.environment.credentialGeneration ?? 1,
         sourceReadable: value.sourceReadable ?? this.environment.sourceReadable ?? true };
@@ -329,11 +346,22 @@ export class Run {
       this.queue[0].at > untilTime
     )
       return;
-    if (!this.canonicalAllowed && this.queue[0]?.input.kind === "canonical")
+    if (!this.canonicalAllowed && ["canonical", "preparationGraph"].includes(this.queue[0]?.input.kind ?? ""))
       return;
     const item = this.queue.shift();
     if (!item) return;
     this.clock = item.at;
+    if (item.input.kind === "preparationGraph") {
+      const event = item.input.event;
+      const before = this.projection;
+      if (!before.work.some(work => work.operation === event.operation && work.kind === "preparing")) {
+        this.preparation.retire(event.operation);
+        return this.step(untilTime);
+      }
+      const preparation = this.preparation.step(event);
+      return this.record({ sequence: this.count++, time: this.clock, event,
+        preparation, before, after: before, commands: [], effects: [] });
+    }
     if (this.session && !this.session.valid(item.input))
       return this.step(untilTime);
     if (
@@ -477,6 +505,18 @@ export class Run {
             operation: command.operation,
             due: this.clock + (this.config.preparationDelay ?? 2),
           });
+          const facts = item.job.unitBytes.flatMap((_bytes, unit) => {
+            const tree = generateFileTree(this.config.seed!, command.operation, unit, this.fileTrees);
+            return tree.facts.map((fact, step): PreparationEvent => ({
+              kind: "preparationGraph", example: "generated", ...scope, operation: command.operation, unit, step, fact,
+              generatedTree: { targetNames: tree.targetNames, files: tree.files.length, depth: tree.depth },
+            }));
+          });
+          facts.forEach((preparation, index) => {
+            // Inner facts share the operation's virtual interval, including zero-delay cases.
+            const at = this.clock + Math.floor((this.config.preparationDelay ?? 2) * index / Math.max(1, facts.length));
+            this.queue.push({ at, order: this.order++, input: { kind: "preparationGraph", at, event: preparation }, generated: true });
+          });
           this.event(
             {
               kind: "preparationCompleted",
@@ -529,6 +569,8 @@ export class Run {
           if (!scope || !("operation" in event))
             throw new Error("unhandled required command: retainFinding");
           const advice = event.operation;
+          const work = this.projection.work.find((entry) => entry.operation === advice);
+          if (!work || work.parent === 0) throw new Error("retained finding lacks its edit observation");
           this.adviceCredentials.set(advice, this.requestCredentials.get(advice) ?? this.environment.credentialGeneration ?? 1);
           effects.push({ kind: "advice", phase: "supplied", advice });
           const lifetime = this.config.adviceLifetime ?? 600_000;
@@ -539,12 +581,17 @@ export class Run {
             advice,
             already: false,
             turnEnd: false,
-            cycleComplete: true,
-            elapsed: 0,
-            window: 200,
+            partition: scope.partition,
+            lifetime: scope.lifetime,
+            round: scope.round,
+            observation: work.parent,
+            joinedPending: false,
           });
-          if (this.finish) break;
-          this.validateAdvice(advice, scope.round, advice, this.session ? "background" : "edit");
+          break;
+        }
+        case "collectionEligible": {
+          if (event.kind === "collectionReady" && !this.finish)
+            this.validateAdvice(event.advice, event.round, event.advice, this.session ? "background" : "edit");
           break;
         }
         case "submissionBegun":
@@ -804,6 +851,8 @@ export class Run {
         this.jobs.delete(parent);
       }
     }
+    if (["completeObservation", "jevRequestSettled", "reviewCompleted", "interruptObservation",
+      "interruptPreparation"].includes(event.kind)) this.refreshAdviceReadiness();
     if (
       this.finish?.waiting &&
       [
@@ -823,6 +872,7 @@ export class Run {
       for (const input of this.session.onAdvice(this.clock))
         this.enqueue(input);
     if (event.kind === "preparationCompleted") {
+      this.preparation.retire(event.operation);
       this.jobs.delete(event.operation);
       effects.push({
         kind: "preparation",
@@ -863,6 +913,9 @@ export class Run {
       ...(result.rejection ? { rejection: result.rejection } : {}),
       effects,
     };
+    return this.record(observation);
+  }
+  private record(observation: Observation): Observation {
     this.history.push(observation);
     const retention = this.config.retention ?? 1000;
     if (this.history.length > retention)
@@ -875,6 +928,17 @@ export class Run {
     if (!f) return;
     this.event({ kind: "roundContinuationBudgetCheck", active: true,
       count: this.projection.delivery.counters.find(counter => counter.group === 1 && counter.round === f.round)?.used ?? 0 });
+  }
+  private refreshAdviceReadiness() {
+    const projection = this.projection;
+    for (const finding of projection.pendingFindings) {
+      if (projection.collection.ready.includes(finding.operation)) continue;
+      const work = projection.work.find((entry) => entry.operation === finding.operation);
+      if (!work || work.parent === 0) continue;
+      this.event({ kind: "collectionReady", advice: work.operation, already: false, turnEnd: false,
+        partition: work.partition, lifetime: work.lifetime, round: work.round,
+        observation: work.parent, joinedPending: false });
+    }
   }
   private candidateEvent(event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" }>, candidate: CandidateContext) {
     this.queue.push({ at: this.clock, order: this.order++, generated: true,
@@ -992,6 +1056,7 @@ export class Run {
       format: REPLAY_FORMAT,
       randomAlgorithm: RANDOM_ALGORITHM,
       logicIdentity: LOGIC_IDENTITY,
+      preparationIdentity: PREPARATION_IDENTITY,
       outcomeSampling: { algorithm: OUTCOME_RANDOM_ALGORITHM, stream: OUTCOME_RANDOM_STREAM, order: JEV_OUTCOME_ORDER },
       config: this.config,
       controls: this.controls,
@@ -1005,6 +1070,7 @@ export const replayRun = (replay: Replay) => {
     replay.format !== REPLAY_FORMAT ||
     replay.randomAlgorithm !== RANDOM_ALGORITHM ||
     replay.logicIdentity !== LOGIC_IDENTITY ||
+    replay.preparationIdentity !== PREPARATION_IDENTITY ||
     replay.outcomeSampling?.algorithm !== OUTCOME_RANDOM_ALGORITHM ||
     replay.outcomeSampling?.stream !== OUTCOME_RANDOM_STREAM ||
     JSON.stringify(replay.outcomeSampling?.order) !== JSON.stringify(JEV_OUTCOME_ORDER)

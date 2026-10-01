@@ -1,8 +1,10 @@
+import { Option } from "effect";
+import { preparationMini, type PreparationSnapshot } from "./preparation-mini";
 import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalCommand, CanonicalProjection } from "../../../src/canonical/adapter";
 import type { ReplayStep } from "./canonical-replay";
-import { projectFlowStep, type FlowEvidence } from "@hapsland/agent-flow-projection";
-import { CONNECTIONS, PLACE_ORDER, SQUARES, squareFacetLine } from "./production-flow-presentation";
+import { projectFlowStep, recordLabel, type FlowEvidence, type RecordNumbers } from "@hapsland/agent-flow-projection";
+import { CONNECTIONS, PLACE_ORDER, SQUARES, squareFacetLine, squareFacetFontSize } from "./production-flow-presentation";
 
 type ArrowKind = FlowEvidence["source"] | "possible" | "mixed" | "mixed external";
 type Route = (typeof CONNECTIONS)[number] & Readonly<{ active: boolean; kind: ArrowKind; linked: boolean; evidence: string }>;
@@ -123,6 +125,12 @@ const routeGeometry = (route: Route, offset: number) => {
     return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L ${startX} ${y} L ${laneX} ${y} L ${laneX} ${endY} L ${endX} ${endY}`,
       badge: { x: 1060, y }, tip: { x: endX, y: endY }, toward: { x: -1, y: 0 } };
   }
+  if (route.from === "units" && route.to === "jev") {
+    const startX = from.x + NODE_WIDTH / 2;
+    const endX = to.x + NODE_WIDTH / 2;
+    return { path: `M ${startX} ${from.y + NODE_HEIGHT + 9} L 1118 ${from.y + NODE_HEIGHT + 9} L 1118 334 L ${endX} 334 L ${endX} ${to.y - 9}`,
+      badge: { x: 950, y: 334 }, tip: { x: endX, y: to.y - 9 }, toward: { x: 0, y: 1 } };
+  }
   if (route.from === "collection" && route.to === "preparation") {
     const y = from.y + NODE_HEIGHT / 2;
     const targetX = to.x + NODE_WIDTH / 2;
@@ -170,6 +178,8 @@ export const productionFlowView = <Message>(
   h: HtmlBuilder<Message>, projection: CanonicalProjection, last: ReplayStep | undefined,
   showcase: boolean,
   inspect?: (place: (typeof PLACE_ORDER)[number]) => Message,
+  preparation: PreparationSnapshot = {},
+  numbers?: RecordNumbers,
 ) => {
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
   const event = last?.rejection === undefined ? last?.event.kind : undefined;
@@ -178,13 +188,26 @@ export const productionFlowView = <Message>(
     ? { tool: last.event.tool, token: last.event.token } : undefined;
   const stopEvent = event === "stopPolled" || event === "stopGroupPolled";
   const requests = projection.dispatch.requests;
-  const flow = projectFlowStep(last);
+  const flow = projectFlowStep(last && last.event.kind !== "preparationGraph" ? { ...last, event: last.event } : undefined, numbers);
+  const sourceCompletion = flow.sourceCompletion;
+  const sourceLabel = sourceCompletion === undefined ? undefined
+    : recordLabel("source", sourceCompletion.observation, numbers).split("/")[0];
+  const linkedReviewStatus = sourceCompletion?.linkedReviews.map((work) =>
+    `${recordLabel("review", work.operation, numbers).split("/")[0]} ${work.kind === "reviewing" ? "continues" : work.kind === "atJev" ? "awaits Jev" : "has a retained finding"}`) ?? [];
+  const completionContext = sourceCompletion === undefined ? undefined : [
+    linkedReviewStatus.length > 0 ? linkedReviewStatus.join(", ") : "no linked review work remains",
+    sourceCompletion.jobRunning ? "source preparation job still marked running" : "source preparation job already settled",
+  ].join("; ");
+  const storedResultConversion = flow.storedResultConversions[0];
+  const storedResultTransition = storedResultConversion === undefined ? undefined
+    : `${recordLabel("charge:reviewUnit", storedResultConversion.charge, numbers).split("/")[0]} → stored`;
+  const clearedReviewLabel = flow.clearedReview === undefined ? undefined
+    : recordLabel("review", flow.clearedReview, numbers).split("/")[0];
+  const changedStages = last?.preparation ? ["preparation", ...flow.changedStages] : flow.changedStages;
   const declaredRoutes = new Set(CONNECTIONS.map(({ from, to }) => `${from}:${to}`));
   if (declaredRoutes.size !== CONNECTIONS.length) throw new Error("duplicate dashboard arrow route");
-  for (const item of flow.evidence) if (!declaredRoutes.has(`${item.from}:${item.to}`)) {
-    throw new Error(`undeclared dashboard arrow route: ${item.from}:${item.to}`);
-  }
-  const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection), facets: SQUARES[id].facets(projection) }));
+  const unmapped = flow.evidence.filter(item => !declaredRoutes.has(`${item.from}:${item.to}`));
+  const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection, numbers), facets: SQUARES[id].facets(projection, numbers) }));
   const routes: readonly Route[] = CONNECTIONS.map((connection): Route => {
     const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
     return { ...connection, active: evidence.length > 0, kind: arrowKind(evidence),
@@ -208,7 +231,7 @@ export const productionFlowView = <Message>(
   return h.div([h.Class("production-topology")], [
     h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"]),
     h.div([h.Class("topology-scroll")], [
-      h.svg([h.ViewBox("0 0 1400 830"), h.Role("img"),
+      h.svg([h.ViewBox("0 0 1400 830"), h.Role(inspect ? "group" : "img"),
         h.AriaLabel("Connected production flow from agent edit through Jev review to advice and round decision")], [
         ...routes.map((route, index) => {
           const same = routeMultiplicity.get(`${route.from}:${route.to}`) ?? 1;
@@ -234,18 +257,35 @@ export const productionFlowView = <Message>(
           const point = PLACES[node.id];
           const palette = node.owner.includes("NATIVE") ? { fill: "#edf1f6", stroke: "#7d8da2" }
             : { fill: "#e9f1ff", stroke: "#547dc0" };
-          return h.g([h.Class(`topology-node ${flow.changedStages.includes(node.id) ? "active" : ""}`), ...(inspect ? [h.OnClick(inspect(node.id))] : [])], [
+          return h.g([h.Class(`topology-node ${changedStages.includes(node.id) ? "active" : ""}`), ...(inspect ? [h.Role("button"), h.Tabindex(0), h.AriaLabel(`Inspect ${node.title}`), h.OnClick(inspect(node.id)),
+              h.OnKeyDownSelfPreventDefault(key => key === "Enter" || key === " " ? Option.some(inspect(node.id)) : Option.none())] : [])], [
             h.title([], [`${node.title}: ${node.detail}`]),
             h.rect([h.X(String(point.x)), h.Y(String(point.y)), h.Width(String(NODE_WIDTH)),
-              h.Height(String(NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
-              h.Stroke(palette.stroke), h.StrokeWidth(flow.changedStages.includes(node.id) ? "4" : "2")], []),
+              h.Height(String(node.id === "preparation" ? 270 : NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
+              h.Stroke(palette.stroke), h.StrokeWidth(changedStages.includes(node.id) ? "4" : "2")], []),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 25)), h.FontSize("10"),
               h.FontWeight("700"), h.Fill("#52647d")], [node.owner]),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 49)), h.FontSize("14"),
               h.FontWeight("700"), h.Fill("#1e3048")], [node.title]),
             ...node.facets.map((facet, index) =>
-              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + index * 13)), h.FontSize("10"), h.FontWeight("600"), h.Class("topology-facet"),
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + index * 13)), h.FontSize(squareFacetFontSize(facet)), h.FontWeight("600"), h.Class("topology-facet"),
                 h.Fill("#435670")], [squareFacetLine(facet)])),
+            ...(node.id === "preparation" ? [preparationMini(h, point.x, point.y, preparation, numbers)] : []),
+            ...(node.id === "preparation" && sourceLabel !== undefined ? [
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 264)), h.FontSize("10"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                [`NOW · ${sourceLabel} completed`]),
+            ] : []),
+            ...(node.id === "admission" && storedResultTransition !== undefined ? [
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("8"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                [`NOW · ${storedResultTransition}`]),
+            ] : []),
+            ...(node.id === "outcomes" && clearedReviewLabel !== undefined ? [
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("10"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                [`NOW · ${clearedReviewLabel} clear`]),
+            ] : []),
             ...(editAccepted === undefined ? [] : node.id === "observation"
               ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("10"),
                 h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
@@ -282,6 +322,7 @@ export const productionFlowView = <Message>(
     h.details([h.Class("topology-step")], [h.summary([], ["Decision details"]),
       h.p([], [last === undefined ? "Choose a guided or manual event." : last.rejection !== undefined
         ? `${last.event.kind} rejected: ${last.rejection}. Bend state and item locations did not change.`
+        : last.preparation ? `ImportGraph: ${last.preparation.event.fact.kind} → ${last.preparation.command.kind} · ${recordLabel("preparation", last.preparation.event.operation, numbers)}`
         : `${last.event.kind} accepted · ${commands.length} command(s): ${commands.map((command) => command.kind).join(", ") || "none"}`]),
       ...(showcase && last?.origin === "guided" && last.event.kind === "issuePermit" ?
         [h.p([h.Class("flow-provenance")], ["Before the edit: a source-free pre-edit request supplies its timing and identity facts. Bend issued a permit. No virtual round is open yet."])] : []),
@@ -292,13 +333,18 @@ export const productionFlowView = <Message>(
       ...(last?.event.kind === "openRound" ? [h.p([h.Class("flow-provenance")], [last.origin === "manual"
         ? "You supplied this openRound event in the replay."
         : "This guided fixture supplies openRound directly. Its native trigger is not represented in the replay."])] : []),
+      ...(sourceCompletion === undefined ? [] : [h.p([h.Class("flow-provenance")], [
+        `${sourceLabel} completed. ${completionContext}.`,
+      ])]),
       h.p([], [last === undefined ? "Choose a reducer event to inspect its checked effects."
+        : last?.preparation ? `Inner preparation: ${last.preparation.event.fact.kind} → ${last.preparation.command.kind}. Canonical work and capacity stay at preparation.`
         : flow.rejection !== undefined ? `Rejected: ${flow.rejection}. No movement is shown.`
-          : flow.evidence.length ? `${flow.evidence.length} connection(s) have checked evidence.`
+          : flow.evidence.length ? `${flow.evidence.length} relation(s) have checked evidence.`
             : flow.changedStages.length ? `State changed in ${flow.changedStages.map((stage) => SQUARES[stage].title).join(", ")}; no item crossed a displayed connection.`
               : flow.projectionChanged ? "Checked reducer state changed outside the displayed square details; no displayed movement is established."
                 : commands.length ? `Decision emitted ${commands.map((command) => command.kind).join(", ")}; no displayed item movement is established.`
                   : "Accepted event; no displayed item movement or square change is established."]),
+      ...(unmapped.length ? [h.p([h.Class("topology-unmapped-relations")], [`Checked relations outside drawn connections: ${unmapped.map(item => `${SQUARES[item.from].title} → ${SQUARES[item.to].title}: ${item.description}`).join("; ")}.`])] : []),
       h.p([], [`Branches at this step: ${commands.filter((command) => /Refused|Unavailable|Interrupted|Ignored|Stale|Cancel|Clear|Finding|Waiting|Allowed|Expired|Lease|Reoffer|Unknown|Recorded|Terminal/.test(command.kind)).map((command) => command.kind).join(", ") || "none"}.`]),
     ]),
   ]);

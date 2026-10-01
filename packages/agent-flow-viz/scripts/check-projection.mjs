@@ -57,6 +57,7 @@ try {
   const compiled = canonical.projectCanonical(canonical.initialCanonical(fixture.limits));
   const presentation = await server.ssrLoadModule("/src/production-flow-presentation.ts");
   const flowView = await server.ssrLoadModule("/src/production-flow-view.ts");
+  const numbering = await server.ssrLoadModule(`/@fs${resolve(import.meta.dirname, "../../agent-flow-projection/src/index.ts")}`);
   const driver = await server.ssrLoadModule(`/@fs${resolve(import.meta.dirname, "../../monkey-business/src/index.ts")}`);
   for (const square of Object.values(presentation.SQUARES)) for (const facet of square.facets(compiled)) {
     assert.equal(facet.count, 0, "initial checked records have explicit zero facets");
@@ -65,7 +66,7 @@ try {
       const row = presentation.squareFacetLine({ ...facet, count, references: Array.from({ length: count }, (_, index) => `#${Number.MAX_SAFE_INTEGER - index}`) });
       assert.ok(row.startsWith(`${count} `));
       if (count === 0) assert.doesNotMatch(row, /none|#|more/);
-      assert.ok(row.length <= 28, "identity samples cannot crowd out exact facet counts");
+      assert.ok(row.length <= 42, "identity samples cannot crowd out exact facet counts");
     }
   }
   for (const count of [1, 50, 100]) {
@@ -79,9 +80,9 @@ try {
       if (frame.after.work.filter((work) => work.kind === "awaitingSourceRead").length === count) { observed = frame.after; break; }
     }
     assert.ok(observed, `checked burst reaches ${count} queued sources`);
-    const facet = presentation.SQUARES.sourcePending.facets(observed).find((item) => item.label === "source work waiting");
+    const facet = presentation.SQUARES.sourcePending.facets(observed).find((item) => item.label === "pending source reads");
     assert.equal(facet.count, count);
-    assert.match(JSON.stringify(flowView.productionFlowView(inertHtml, observed, undefined, false)), new RegExp(`${count} source work waiting`));
+    assert.match(JSON.stringify(flowView.productionFlowView(inertHtml, observed, undefined, false)), new RegExp(`${count} pending source read`));
     assert.equal(presentation.SQUARES.scheduling.facets(observed)[2].count, observed.dispatch.running.filter((entry) => entry.preparation).length);
     assert.equal(presentation.SQUARES.scheduling.facets(observed)[3].count, observed.dispatch.running.filter((entry) => !entry.preparation).length);
   }
@@ -105,14 +106,27 @@ try {
   const showcasedRoutes = new Set();
   for (const [index, event] of canonical.SHOWCASE_SCENARIO.events.entries()) {
     showcase = send(showcase, main.Message.Advanced());
-    const step = canonical.replayCanonical(showcase.history, showcase.position).steps.at(-1);
+    let step = canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps.at(-1);
+    while (step.event.kind === "preparationGraph") {
+      assert.deepEqual(step.before, step.after, "inner graph steps must preserve canonical state");
+      assert.equal(elements(showcase, "topology-route").filter(node => node.data.class.active).length, 0);
+      assert.match(labels(main.view(showcase, inertHtml).body), /tree [12]/);
+      assert.equal(elements(showcase, "preparation-mini").length, 1);
+      assert.equal(elements(showcase, "preparation-subprocess").length, 0, "the main diagram must not duplicate the large graph panel");
+      if (step.preparation.after.phase === "capturing")
+        assert.ok(elements(showcase, "preparation-mini-node").some(node => node.data.class.active && labels(node).includes("Capture")));
+      if (step.preparation.after.phase === "complete")
+        assert.ok(elements(showcase, "preparation-mini-node").some(node => node.data.class.active && labels(node).includes("Complete")));
+      showcase = send(showcase, main.Message.Advanced());
+      step = canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps.at(-1);
+    }
     assert.deepEqual(step.event, event);
     assert.equal(step.rejection, undefined, `showcase step ${index + 1} must be accepted`);
     const active = elements(showcase, "topology-route").filter((node) => node.data.class.active);
     for (const route of active) showcasedRoutes.add(labels(route));
     if (index === 0) {
       assert.equal(step.after.rounds.length, 0, "pre-edit permit alone must not open a round");
-      assert.match(labels(main.view(showcase, inertHtml).body), /1 edit permit: #1/);
+      assert.match(labels(main.view(showcase, inertHtml).body), /1 edit permit: Permit #1/);
       assert.match(labels(main.view(showcase, inertHtml).body), /Before the edit.*Bend issued a permit.*No virtual round is open yet/);
     }
     if (index === 1) {
@@ -128,12 +142,10 @@ try {
       assert.equal(step.after.work.length, 1, "the accepted edit has no second source work until admission");
     }
     if (index === 7) {
-      assert.equal(step.after.dispatch.pending.length, 1, "the second edit waits in the queue");
-      assert.ok(active.some((route) => labels(route).includes("work #2 scheduled; dispatch entered pending")));
+      assert.equal(step.after.dispatch.queued.length, 0, "the second edit starts while a preparation slot is free");
       showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "scheduling" }));
       const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
-      assert.match(detail, /waiting next batch: 1.*#2 · agent 1 · round 1 · seq 1 · cycle 0 · preparation/s);
-      assert.match(detail, /running preparation jobs: 1.*#1 · agent 1 · round 1 · seq 0 · cycle 1 · preparation/s);
+      assert.match(detail, /running preparation jobs: 2.*Source read #1 · operation 1 · agent 1 · round 1 · seq 0 · preparation.*Source read #2 · operation 2 · agent 1 · round 1 · seq 1 · preparation/s);
       const unselected = send(showcase, main.Message.SelectedFlowStage({ stage: "" }));
       for (const stage of presentation.PLACE_ORDER) {
         const selected = send(unselected, main.Message.SelectedFlowStage({ stage }));
@@ -148,24 +160,82 @@ try {
     if (index === 8) {
       showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "sourcePending" }));
       const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
-      assert.match(detail, /source work waiting: 1.*#2/s);
-      assert.doesNotMatch(detail, /source work waiting: 2/);
+      assert.match(detail, /pending source reads: 1.*#2/s);
+      assert.doesNotMatch(detail, /pending source reads: 2/);
     }
-    if (index === 12) assert.ok(active.some((route) => labels(route).includes("dispatch #2 (pending) → dispatch #2 (running)")));
+    if (index === 12) assert.equal(step.after.dispatch.running.length, 1, "the second preparation remains active after the first settles");
+    if (index === 11) {
+      assert.equal(active.length, 0, "source completion has no invented movement arrow");
+      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Read & prepare source"))),
+        /NOW · Source read #1 completed/);
+      assert.match(labels(elements(showcase, "flow-provenance")[0]),
+        /Source read #1 completed.*Review item #1 continues; source preparation job still marked running/);
+    }
+    if (index === 12) assert.doesNotMatch(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Read & prepare source"))),
+      /Source read #1 completed/, "the completion marker is transient");
+    if (index === 15) {
+      showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "" }));
+      showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "units" }));
+      const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
+      assert.match(detail, /Review item #1 · operation 4/);
+      assert.match(detail, /Review item #2 · operation 6/);
+      assert.match(detail, /Unit charge #1 · charge 2/);
+      assert.match(detail, /Unit charge #2 · charge 4/);
+    }
+    if (index === 10) {
+      const numbered = numbering.numberRecords(canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps);
+      assert.equal(numbered.source.get(1), 1);
+      assert.equal(numbered.source.get(2), 2);
+      assert.equal(numbered.preparation.get(3), 1);
+      assert.equal(numbered.review.get(4), 1);
+      assert.equal(numbered["charge:preparation"].get(1), 1);
+      assert.equal(numbered["charge:reviewUnit"].get(2), 1);
+      showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "units" }));
+      const detail = labels(elements(showcase, "flow-stage-inspector")[0]);
+      assert.match(detail, /Review item #1 · operation 4/);
+      assert.match(detail, /Unit charge #1 · charge 2/);
+      assert.doesNotMatch(detail, /Review item #4/);
+      assert.doesNotMatch(detail, /Unit charge #2/);
+    }
     if (index === 20) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
     if (index === 25) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
-    if (index === 26) assert.ok(active.some((route) => labels(route).includes("retain finding command")));
-    if (index === 27) {
-      assert.deepEqual(step.after.collection.ready, [10], "ready advice follows its native storage fact");
-      assert.ok(active.some((route) => labels(route).includes("advice #10 supplied ready by native storage")));
+    if (index === 26) {
+      assert.ok(active.some((route) => labels(route).includes("retain finding command")));
+      const admission = labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity")));
+      assert.match(admission, /1 stored result charge: Stored result charge #1/);
+      assert.match(admission, /NOW · Unit charge #1 → stored/);
     }
-    if (index === 30) assert.deepEqual(step.after.collection.ready, [11, 10]);
-    if (index === 33) assert.ok(active.some((route) => labels(route).includes("advice #10 leased; still ready")));
-    if (index === 38) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
-    if (index === 44) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
-    if (index === 52) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
+    if (index === 27) {
+      assert.deepEqual(step.after.collection.ready, [4], "ready advice follows its native storage fact");
+      assert.ok(active.some((route) => labels(route).includes("Advice #1/operation 4 supplied ready by native storage")));
+    }
+    if (index === 30) assert.deepEqual(step.after.collection.ready, [4], "advice for edit #2 waits for its other review item");
+    if (index === 35) {
+      assert.equal(step.event.kind, "jevRequestSettled");
+      assert.equal(step.event.outcome, "clear");
+      assert.ok(!active.some((route) => labels(route).includes("retain finding command")));
+      assert.ok(!step.after.work.some((work) => work.operation === 7));
+      assert.ok(!step.after.charges.some((charge) => charge.id === 5));
+      assert.deepEqual(step.after.collection.ready, [4]);
+      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+        /NOW · Review item #3 clear/);
+    }
+    if (index === 36) assert.doesNotMatch(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+      /Review item #3 clear/, "the clear marker is transient");
+    if (index === 37) assert.deepEqual(step.after.collection.ready, [6, 4],
+      "advice for edit #2 becomes ready after its clear sibling settles");
+    if (index === 39) assert.ok(active.some((route) => labels(route).includes("Advice #1/operation 4 leased; still ready")));
+    if (index === 44) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
+    if (index === 50) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
+    if (index === 58) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
   }
   assert.ok(showcasedRoutes.size >= 12, "the opening replay should expose a broad connected route set");
+  const allNumbers = numbering.numberRecords(canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps);
+  assert.deepEqual([...allNumbers.review], [[4, 1], [6, 2], [7, 3]], "review ordinals survive the disappearance of work records");
+  assert.deepEqual([...allNumbers.request], [[8, 1], [9, 2], [10, 3]], "Jev requests have their own sequence");
+  assert.deepEqual([...allNumbers.advice], [[4, 1], [6, 2]], "advice has its own sequence despite sharing canonical operation IDs");
+  assert.equal(numbering.recordLabel("review", 4, numbering.numberRecords([])), "Review item/operation 4",
+    "a clipped history must not invent a display ordinal");
   const replayAt = (name, count) => {
     const index = canonical.CANONICAL_SCENARIOS.findIndex((scenario) => scenario.name === name);
     assert.notEqual(index, -1, `${name}: source-free scenario exists`);
@@ -286,6 +356,48 @@ try {
   assert.deepEqual(canonical.replayCanonical(model.history, model.position).projection.global, { items: 3, bytes: 70 });
   model = send(model, main.Message.Jumped({ position: 0 }));
   assert.equal(model.position, 0);
+  // The planned timeline is present before execution and seeking is the same checked replay.
+  let timelineModel = main.init().model;
+  assert.equal(canonical.historyTimelineLength(timelineModel.history), 104);
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 104 }));
+  assert.equal(timelineModel.position, 104);
+  assert.equal(canonical.guidedIndex(timelineModel.history, timelineModel.position), 63);
+  assert.equal(timelineModel.history.filter(entry => entry.event.kind === "preparationGraph").length, 41);
+  const completeHistory = timelineModel.history;
+  assert.deepEqual(completeHistory, showcase.history, "single-pass seeking matches ordinary checked step-by-step replay");
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 5 }));
+  assert.deepEqual(timelineModel.history, completeHistory, "backward seek preserves the recorded future");
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 104 }));
+  assert.deepEqual(timelineModel.history, completeHistory, "forward seek reuses recorded events");
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 0 }));
+  const harmlessManual = { kind: "fileSelectionCheck", protected: false, excluded: false, includesEmpty: false, included: true };
+  timelineModel = send(timelineModel, main.Message.DraftChanged({ raw: JSON.stringify(harmlessManual) }));
+  timelineModel = send(timelineModel, main.Message.Submitted());
+  assert.equal(canonical.historyTimelineLength(timelineModel.history), 105);
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 105 }));
+  assert.equal(timelineModel.position, 105);
+  assert.deepEqual(timelineModel.history[0].event, harmlessManual);
+  assert.equal(canonical.guidedIndex(timelineModel.history, timelineModel.position), 63);
+  timelineModel = send(timelineModel, main.Message.DraftChanged({ raw: '{"kind":"madeUp"}' }));
+  timelineModel = send(timelineModel, main.Message.Submitted());
+  assert.equal(canonical.historyTimelineLength(timelineModel.history), 105, "invalid shapes add no timeline positions");
+  timelineModel = send(timelineModel, main.Message.DraftChanged({ raw: '{"kind":"interruptPreparation","partition":1,"lifetime":1,"round":1,"operation":999}' }));
+  timelineModel = send(timelineModel, main.Message.Submitted());
+  assert.equal(canonical.historyTimelineLength(timelineModel.history), 106, "checked rejected events remain in history");
+  assert.match(timelineModel.feedback, /Bend rejected/);
+  timelineModel = send(main.init().model, main.Message.Jumped({ position: 10 }));
+  timelineModel = send(timelineModel, main.Message.DraftChanged({ raw: '{"kind":"interruptPreparation","partition":1,"lifetime":1,"round":1,"operation":3}' }));
+  timelineModel = send(timelineModel, main.Message.Submitted());
+  const cancelledHistory = timelineModel.history;
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 105 }));
+  assert.equal(timelineModel.position, 11);
+  assert.deepEqual(timelineModel.history, cancelledHistory, "unreachable graph facts never enter checked history");
+  assert.match(timelineModel.feedback, /Cannot reach timeline event 105.*active enclosing preparation/);
+  // Every declared scenario advertises its complete event horizon without being played first.
+  for (let scenario = 1; scenario < canonical.CANONICAL_SCENARIOS.length; scenario++) {
+    const selected = send(main.init().model, main.Message.SelectedScenario({ index: scenario }));
+    assert.equal(canonical.historyTimelineLength(selected.history, scenario), canonical.CANONICAL_SCENARIOS[scenario].events.length);
+  }
   const malformed = canonical.tryAppendCanonical([], 0,
     { kind: "reserveCapacity", partition: 1, bytes: 1, purpose: "invented" }, "manual");
   assert.ok(malformed.error);
@@ -312,9 +424,9 @@ try {
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
     Scene.click(Scene.getByRole("button", { name: "Next: issuePermit", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 57/)),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 63/)),
     Scene.click(Scene.getByRole("button", { name: "Previous step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 57/)));
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 63/)));
   console.log("Checked the opening connected replay, compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
 } finally {
   await server.close();

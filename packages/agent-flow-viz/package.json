@@ -7,7 +7,9 @@
     "dev": "vite --host 127.0.0.1",
     "build": "node --experimental-strip-types scripts/build-capacity-inventory.mjs && npm --prefix ../agent-flow-projection run typecheck && tsc --noEmit && node scripts/check-flow-inference.mjs && node scripts/check-projection.mjs && vite build",
     "test:browser": "node scripts/check-browser.mjs",
-    "test:simulation-browser": "node scripts/check-simulation-browser.mjs"
+    "test:simulation-browser": "node scripts/check-simulation-browser.mjs",
+    "test:replay-browser": "node scripts/check-replay-navigation.mjs",
+    "test:usability": "node scripts/check-usability.mjs"
   },
   "dependencies": {
     "@hapsland/agent-flow-projection": "file:../agent-flow-projection",

@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { DispatchCycles } from "./dispatch.ts";
+import { DispatchQueue } from "./dispatch.ts";
 import { CapacityLedger } from "./capacity.ts";
 
 const createDispatch = (
-  run: (entry: { readonly key: string; readonly value: number; readonly sequence: number; readonly cycle: number }) => Promise<void>,
-  onCycleComplete?: (cycle: number) => void) => {
+  run: (entry: { readonly key: string; readonly value: number; readonly sequence: number }) => Promise<void>) => {
   const ledger = new CapacityLedger();
   const ids = new Map<number, { operation: number; round: number }>();
-  const dispatch = new DispatchCycles<string, number>(ledger, (value) => ids.get(value)!, run, onCycleComplete);
+  const dispatch = new DispatchQueue<string, number>(ledger, (value) => ids.get(value)!, run);
   return {
     enqueue: (key: string, value: number) => {
       ids.set(value, { operation: ledger.admitObservation(key), round: ledger.roundId(key) });
@@ -33,7 +32,7 @@ const eventually = async (predicate: () => boolean) => {
   expect(predicate()).toBe(true);
 };
 
-describe("resident finite dispatch cycles", () => {
+describe("resident work-conserving dispatch", () => {
   it("uses the queued job's originating round after a successor opens", async () => {
     const ledger = new CapacityLedger();
     const oldRound = ledger.roundId("agent");
@@ -41,7 +40,7 @@ describe("resident finite dispatch cycles", () => {
     const round = ledger.roundId("agent");
     const operation = ledger.admitObservation("agent", round);
     const seen: number[] = [];
-    const dispatch = new DispatchCycles<string, { operation: number; round: number }>(
+    const dispatch = new DispatchQueue<string, { operation: number; round: number }>(
       ledger, (job) => job, async ({ value }) => { seen.push(value.operation); });
     expect(dispatch.enqueue("agent", { operation, round: oldRound })).toBe(false);
     expect(dispatch.enqueue("agent", { operation, round })).toBe(true);
@@ -65,23 +64,24 @@ describe("resident finite dispatch cycles", () => {
     expect(dispatcher.hasWork("b")).toBe(false);
   });
 
-  it("dispatches an idle lone item immediately and puts sustained later arrivals in later cycles", async () => {
-    const first = gate();
-    const started: Array<{ value: number; cycle: number }> = [];
-    const dispatcher = createDispatch(async ({ value, cycle }) => {
-      started.push({ value, cycle });
-      if (value === 0) await first.wait();
+  it("starts later preparation while capacity is free", async () => {
+    const releases: Array<() => void> = [];
+    const started: number[] = [];
+    const dispatcher = createDispatch(async ({ value }) => {
+      started.push(value);
+      await new Promise<void>((resolve) => releases.push(resolve));
     });
 
     expect(dispatcher.enqueue("partition", 0)).toBe(true);
-    expect(started).toEqual([{ value: 0, cycle: 1 }]);
+    expect(started).toEqual([0]);
     for (let value = 1; value <= 20; value += 1) dispatcher.enqueue("partition", value);
-    expect(started).toEqual([{ value: 0, cycle: 1 }]);
-
-    first.open();
+    expect(started).toEqual([...Array(8).keys()]);
+    while (dispatcher.snapshot().running > 0 || dispatcher.snapshot().queued > 0) {
+      releases.splice(0).forEach((release) => release());
+      await Promise.resolve();
+    }
     await dispatcher.whenIdle();
-    expect(started.map(({ value }) => value)).toEqual([...Array(21).keys()]);
-    expect(started.slice(1).every(({ cycle }) => cycle === 2)).toBe(true);
+    expect(started).toEqual([...Array(21).keys()]);
   });
 
   it("never exceeds eight running resident jobs", async () => {
@@ -97,7 +97,7 @@ describe("resident finite dispatch cycles", () => {
 
     dispatcher.enqueue("one", 0);
     for (let value = 1; value < 12; value += 1) dispatcher.enqueue(value % 2 === 0 ? "one" : "two", value);
-    await eventually(() => releases.length === 1);
+    await eventually(() => releases.length === 8);
     releases.shift()?.();
     await eventually(() => releases.length === 8);
     while (dispatcher.snapshot().running > 0 || dispatcher.snapshot().queued > 0) {
@@ -109,29 +109,26 @@ describe("resident finite dispatch cycles", () => {
   });
 
   it("returns every not-yet-running item on lifecycle close", async () => {
-    const first = gate();
+    let release!: () => void;
+    const hold = new Promise<void>((resolve) => { release = resolve; });
     const dispatcher = createDispatch(async ({ value }) => {
-      if (value === 1) await first.wait();
+      if (value <= 8) await hold;
     });
-    dispatcher.enqueue("partition", 1);
-    dispatcher.enqueue("partition", 2);
-    dispatcher.enqueue("partition", 3);
-    expect(dispatcher.close()).toEqual([2, 3]);
-    expect(dispatcher.enqueue("partition", 4)).toBe(false);
-    first.open();
+    for (let value = 1; value <= 10; value += 1) dispatcher.enqueue("partition", value);
+    expect(dispatcher.close()).toEqual([9, 10]);
+    expect(dispatcher.enqueue("partition", 11)).toBe(false);
+    release();
     await dispatcher.whenIdle();
   });
 
-  it("carries keyed FIFO sequence metadata and reports finite cycle completion", async () => {
+  it("carries keyed FIFO sequence metadata across concurrent starts", async () => {
     const first = gate();
-    const entries: Array<{ key: string; value: number; sequence: number; cycle: number }> = [];
-    const completed: Array<number> = [];
+    const entries: Array<{ key: string; value: number; sequence: number }> = [];
     const dispatcher = createDispatch(
-      async ({ key, value, sequence, cycle }) => {
-        entries.push({ key, value, sequence, cycle });
+      async ({ key, value, sequence }) => {
+        entries.push({ key, value, sequence });
         if (value === 0) await first.wait();
       },
-      (cycle) => completed.push(cycle),
     );
     dispatcher.enqueue("a", 0);
     dispatcher.enqueue("b", 1);
@@ -140,10 +137,9 @@ describe("resident finite dispatch cycles", () => {
     await dispatcher.whenIdle();
 
     expect(entries).toEqual([
-      { key: "a", value: 0, sequence: 0, cycle: 1 },
-      { key: "b", value: 1, sequence: 1, cycle: 2 },
-      { key: "a", value: 2, sequence: 2, cycle: 2 },
+      { key: "a", value: 0, sequence: 0 },
+      { key: "b", value: 1, sequence: 1 },
+      { key: "a", value: 2, sequence: 2 },
     ]);
-    expect(completed).toEqual([1, 2]);
   });
 });

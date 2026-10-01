@@ -30,11 +30,40 @@ try {
   };
   assert.equal(await outcomeSlider("finding").inputValue(), "50");
   assert.equal(await outcomeSlider("clear").inputValue(), "50");
+  await panel.locator(".simulation-file-trees summary").click();
+  assert.equal(await panel.getByLabel("Generated files per artifact · minimum", { exact: true }).inputValue(), "3");
+  await panel.getByRole("button", { name: "Tree budget pressure", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="Generated files per artifact · maximum"]')?.value === "16");
+  assert.equal(await panel.getByLabel("Generated files per artifact · maximum", { exact: true }).inputValue(), "16");
+  assert.match(await panel.locator(".simulation-tree-draft").innerText(), /evidence 2048–5120/);
+  await panel.getByRole("button", { name: "Balanced trees", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="Generated files per artifact · maximum"]')?.value === "8");
   await panel.getByLabel("Seed", { exact: true }).fill("7");
   await panel
     .getByRole("button", { name: "Start / reset", exact: true })
     .click();
   await status("Seeded session started");
+  assert.match(await panel.locator(".simulation-tree-active").innerText(), /3–8 files/);
+  await panel.getByLabel("Generated files per artifact · maximum", { exact: true }).fill("9");
+  await panel.getByLabel("Evidence-tree bytes per file · maximum", { exact: true }).fill("3000");
+  await page.waitForFunction(() => document.querySelector(".simulation-tree-draft")?.textContent.includes("evidence 256–3000"));
+  assert.match(await panel.locator(".simulation-tree-draft").innerText(), /evidence 256–3000.*Unapplied changes/);
+  assert.match(await panel.locator(".simulation-tree-active").innerText(), /3–8 files.*256–2048/);
+  await panel.getByRole("button", { name: "Apply to future preparations", exact: true }).click();
+  await status("Tree generation applied to future preparations");
+  await page.waitForFunction(() => document.querySelector(".simulation-tree-active")?.textContent.includes("3–9 files"));
+  assert.match(await panel.locator(".simulation-tree-active").innerText(), /3–9 files.*256–3000/);
+  await panel.getByLabel("Maximum import depth", { exact: true }).fill("0");
+  await page.waitForFunction(() => document.querySelector(".simulation-tree-draft")?.textContent.includes("capacity"));
+  assert.match(await panel.locator(".simulation-tree-draft").innerText(), /Cannot apply:.*capacity/);
+  await panel.getByRole("button", { name: "Apply to future preparations", exact: true }).click();
+  await status("Cannot apply");
+  assert.match(await panel.locator(".simulation-tree-active").innerText(), /depth ≤ 3/);
+  await panel.getByRole("button", { name: "Balanced trees", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('[aria-label="Generated files per artifact · maximum"]')?.value === "8");
+  await panel.getByRole("button", { name: "Apply to future preparations", exact: true }).click();
+  await status("Tree generation applied to future preparations");
+
   await panel.getByRole("button", { name: "Single step", exact: true }).click();
   await status("One checked transition advanced");
   assert.match(await panel.locator(".simulation-status").innerText(), /Paused/);
@@ -190,7 +219,7 @@ try {
   await panel.getByLabel("Edit interval (virtual ms)", { exact: true }).press("Enter");
   await status("Edit pace must be an integer");
   await status("Running");
-  await panel.locator(".simulation-history button").first().click();
+  await panel.getByRole("button", { name: "Inspect oldest retained event", exact: true }).click();
   await status("Paused");
   assert.match(await panel.locator(".simulation-inspection").innerText(), /Inspecting event 0/);
   await panel.getByRole("button", { name: "Next event", exact: true }).click();
@@ -245,6 +274,8 @@ try {
   await panel.getByRole("button", { name: "Replay from start", exact: true }).click();
   await status("Replay reset to initial inputs");
   await status("virtual time 0 ms");
+  await panel.getByRole("button", { name: "Apply to future preparations", exact: true }).click();
+  await status("finish recorded replay before applying new environment controls");
   const appliedTimeline = panel.getByText("Control history", { exact: true }).locator("..").locator("pre");
   assert.deepEqual(JSON.parse(await appliedTimeline.textContent()).controls, []);
   await panel.getByLabel("Simulated Jev delay (virtual ms)", { exact: true }).fill("23");
@@ -298,12 +329,17 @@ try {
   await panel.getByRole("button", { name: "Slow Jev scenario", exact: true }).click();
   await panel.getByRole("button", { name: "Start / reset", exact: true }).click();
   await status("Seeded session started");
-  for (let index = 0; index < 20; index++) await panel.getByRole("button", { name: "Single step", exact: true }).click();
+  for (let index = 0; index < 100; index++) {
+    if (/[1-9]\d* at Jev work/.test(await panel.locator(".topology-node").filter({ hasText: "Awaiting Jev result" }).textContent())) break;
+    const prior = await panel.locator(".simulation-history button").last().textContent().catch(() => "");
+    await panel.getByRole("button", { name: "Single step", exact: true }).click();
+    await page.waitForFunction(previous => [...document.querySelectorAll("#monkey-business .simulation-history button")].at(-1)?.textContent !== previous, prior);
+  }
   if (!(await panel.getByLabel("Diagram stage", { exact: true }).isVisible())) await panel.getByText("Inspect a diagram stage by keyboard", { exact: true }).click();
   await panel.getByLabel("Diagram stage", { exact: true }).selectOption("jev");
   await panel.getByRole("button", { name: "Inspect selected stage", exact: true }).click();
-  await page.waitForFunction(() => [...document.querySelectorAll("#monkey-business button")].some((button) => /^request #/.test(button.textContent ?? "")));
-  await panel.getByRole("button", { name: /^request #/ }).first().click();
+  await page.waitForFunction(() => [...document.querySelectorAll("#monkey-business button")].some((button) => /^Jev request #/.test(button.textContent ?? "")));
+  await panel.getByRole("button", { name: /^Jev request #/ }).first().click();
   await page.waitForFunction(() => document.querySelector("#monkey-business")?.textContent.includes("Following request:"));
   const diagramTop = () => panel.locator(".production-topology").evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
   const stableTop = await diagramTop();
@@ -454,7 +490,7 @@ try {
   await panel.screenshot({ path: "/tmp/astra-ux-lifecycle-controls.png" });
   const suspension = await page.evaluate(async (view) => {
     const { initialSimulation, actSimulation, tickSimulation } = await import(view);
-    let model = actSimulation({ ...initialSimulation, appliedSpeed: 1000 }, "start");
+    let model = actSimulation({ ...initialSimulation, speed: "1000", appliedSpeed: 1000 }, "start");
     model = actSimulation(model, "play");
     model = tickSimulation(model, 100);
     model = actSimulation(model, "suspend");
@@ -477,6 +513,28 @@ try {
   assert.ok(suspension.resumed.events > suspension.waiting.events);
   assert.match(suspension.resumed.feedback, /Playback advanced/);
   assert.equal(suspension.manuallyPaused, true);
+  const generatedTreeReplay = await page.evaluate(async (core) => {
+    const { createRun, DEFAULT_FILE_TREE_PROFILE } = await import(core);
+    const run = createRun({ seed: 7, fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 7, maxFiles: 7, maxImports: 1, maxDepth: 6, deniedPercent: 0 },
+      inputs: [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5] }], outcome: "clear" });
+    while (run.observations.at(-1)?.preparation?.after.phase !== "incomplete") run.step();
+    return run.exportReplay();
+  }, publicModule);
+  await panel.getByLabel("Replay JSON", { exact: true }).fill(JSON.stringify(generatedTreeReplay));
+  await panel.getByRole("button", { name: "Load replay", exact: true }).click();
+  await status("Replay reconstructed");
+  await page.waitForFunction(() => document.querySelector(".simulation-tree-active")?.textContent.includes("7–7 files") && document.querySelector(".simulation-tree-active")?.textContent.includes("depth ≤ 6"));
+  assert.match(await panel.locator(".preparation-mini-counts").textContent(), /5\/7 files read/);
+  if (!(await panel.getByLabel("Diagram stage", { exact: true }).isVisible())) await panel.getByText("Inspect a diagram stage by keyboard", { exact: true }).click();
+  await panel.getByLabel("Diagram stage", { exact: true }).selectOption("preparation");
+  await panel.getByRole("button", { name: "Inspect selected stage", exact: true }).click();
+  await page.waitForFunction(() => document.querySelector("#monkey-business .preparation-generated-counts")?.textContent.includes("7 generated files"));
+  const treeDetails = panel.locator(".preparation-reference-details");
+  assert.match(await treeDetails.locator("h4").innerText(), /Generated import tree/);
+  assert.match(await treeDetails.locator(".preparation-generated-counts").innerText(), /7 generated files.*depth 6.*0 permission denials/);
+  assert.match(await treeDetails.locator(".preparation-reference-command").innerText(), /DepthLimit/);
+  assert.match(await treeDetails.locator("svg").textContent(), /File entry.ts/);
+  await panel.getByRole("button", { name: "Inspect selected stage", exact: true }).click();
   const queuedBurstReplay = await page.evaluate(async (core) => {
     const { createRun } = await import(core);
     const run = createRun({ outcome: "clear", session: { editIntervalMs: 1000000 } });
@@ -492,14 +550,14 @@ try {
   await panel.getByRole("button", { name: "Load replay", exact: true }).click();
   await status("Replay reconstructed");
   const waitingSourceSquare = panel.locator(".topology-node").filter({ hasText: "Awaiting source read" });
-  assert.match(await waitingSourceSquare.locator(".topology-facet").first().textContent(), /^50 source work waiting/);
+  assert.match(await waitingSourceSquare.locator(".topology-facet").first().textContent(), /^50 pending source reads/);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Read & prepare source" }).locator(".topology-facet").count(), 2);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Advice ready / retained" }).locator(".topology-facet").count(), 3);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Host output" }).locator(".topology-facet").count(), 4);
   const presentationModule = `/@fs${fileURLToPath(new URL("../src/production-flow-presentation.ts", import.meta.url))}`;
   const metrics = await page.evaluate(async ({ core, presentation }) => {
     const { createRun } = await import(core);
-    const { SQUARES, squareFacetLine } = await import(presentation);
+    const { SQUARES, squareFacetLine, squareFacetFontSize } = await import(presentation);
     const initial = createRun().projection;
     const facets = Object.values(SQUARES).flatMap((square) => square.facets(initial));
     let measured = 0;
@@ -513,9 +571,10 @@ try {
         // These are presentation fixtures, independent of capacity/admission behavior.
         const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
         text.setAttribute("class", "topology-facet");
-        text.setAttribute("font-size", "10");
         text.setAttribute("font-weight", "600");
-        const line = squareFacetLine({ ...facet, count, references: Array.from({ length: count }, (_, index) => `#${longId ? Number.MAX_SAFE_INTEGER - index : index + 1}`) });
+        const sample = { ...facet, count, references: Array.from({ length: count }, (_, index) => `Preparation #${longId ? Number.MAX_SAFE_INTEGER - index : index + 1}`) };
+        const line = squareFacetLine(sample);
+        text.setAttribute("font-size", squareFacetFontSize(sample));
         if (!line.startsWith(`${count} `)) throw new Error("Facet count lost from visible row");
         text.textContent = line;
         scratch.appendChild(text);

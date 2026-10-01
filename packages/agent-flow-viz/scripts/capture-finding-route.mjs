@@ -61,7 +61,7 @@ try {
     await replay.getByLabel("Event JSON").press("Tab");
     await replay.getByRole("button", { name: "Apply event" }).click();
     await page.waitForFunction(() =>
-      document.querySelector(".canonical-progress")?.textContent?.includes("history 1/1"));
+      document.querySelector(".canonical-progress")?.textContent?.includes("history 1/"));
   };
   await applyManual({ kind: "collectionFindingCheck", selectionPartition: 1, selectionRound: 1,
     unit: 1, partition: 1, round: 1, snapshot: 1, currentSnapshot: 1,

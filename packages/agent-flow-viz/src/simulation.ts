@@ -1,5 +1,7 @@
+import { preparationDetails } from "./preparation-details";
+import { preparationSnapshot } from "./preparation-mini";
 import { reviewCapacityView } from "./review-capacity-view";
-import { locateFlow, projectFlowStep } from "@hapsland/agent-flow-projection";
+import { locateFlow, numberRecords, projectFlowStep } from "@hapsland/agent-flow-projection";
 import { Schema } from "effect";
 import type { HtmlBuilder } from "foldkit/html";
 import {
@@ -9,6 +11,10 @@ import {
   type Replay,
   type Control,
   type Observation,
+  DEFAULT_FILE_TREE_PROFILE,
+  FILE_TREE_LABELS,
+  validateFileTreeProfile,
+  type FileTreeProfile,
   DEFAULT_OUTCOME_WEIGHTS,
   JEV_OUTCOME_ORDER,
   normalizeOutcomeWeights,
@@ -31,6 +37,16 @@ export const SimulationModel = Schema.Struct({
   weightInterrupted: Schema.String,
 
   bytes: Schema.String,
+  treeMinFiles: Schema.String,
+  treeMaxFiles: Schema.String,
+  treeMaxImports: Schema.String,
+  treeMaxDepth: Schema.String,
+  treeDeniedPercent: Schema.String,
+  treeMinSourceBytes: Schema.String,
+  treeMaxSourceBytes: Schema.String,
+  treeMinTreeBytes: Schema.String,
+  treeMaxTreeBytes: Schema.String,
+
   currentWork: Schema.String,
   credentialReady: Schema.String,
   credentialGeneration: Schema.String,
@@ -65,6 +81,16 @@ export const initialSimulation: SimulationModel = {
   weightTimeout: String(DEFAULT_OUTCOME_WEIGHTS.timeout),
   weightInterrupted: String(DEFAULT_OUTCOME_WEIGHTS.interrupted),
   bytes: "100",
+  treeMinFiles: String(DEFAULT_FILE_TREE_PROFILE.minFiles),
+  treeMaxFiles: String(DEFAULT_FILE_TREE_PROFILE.maxFiles),
+  treeMaxImports: String(DEFAULT_FILE_TREE_PROFILE.maxImports),
+  treeMaxDepth: String(DEFAULT_FILE_TREE_PROFILE.maxDepth),
+  treeDeniedPercent: String(DEFAULT_FILE_TREE_PROFILE.deniedPercent),
+  treeMinSourceBytes: String(DEFAULT_FILE_TREE_PROFILE.minSourceBytes),
+  treeMaxSourceBytes: String(DEFAULT_FILE_TREE_PROFILE.maxSourceBytes),
+  treeMinTreeBytes: String(DEFAULT_FILE_TREE_PROFILE.minTreeBytes),
+  treeMaxTreeBytes: String(DEFAULT_FILE_TREE_PROFILE.maxTreeBytes),
+
   currentWork: "current",
   credentialReady: "ready",
   credentialGeneration: "1",
@@ -102,6 +128,24 @@ const completeReplay = () => {
   return false;
 };
 class InputError extends Error {}
+const treeFields = {
+  minFiles: "treeMinFiles",
+  maxFiles: "treeMaxFiles",
+  maxImports: "treeMaxImports",
+  maxDepth: "treeMaxDepth",
+  deniedPercent: "treeDeniedPercent",
+  minSourceBytes: "treeMinSourceBytes",
+  maxSourceBytes: "treeMaxSourceBytes",
+  minTreeBytes: "treeMinTreeBytes",
+  maxTreeBytes: "treeMaxTreeBytes",
+} as const;
+const treeDrafts = (profile: FileTreeProfile) => Object.fromEntries(Object.entries(treeFields).map(([key, field]) => [field, String(profile[key as keyof FileTreeProfile])])) as Pick<SimulationModel, typeof treeFields[keyof typeof treeFields]>;
+const treeProfile = (model: SimulationModel): FileTreeProfile => {
+  try {
+    return validateFileTreeProfile(Object.fromEntries(Object.entries(treeFields).map(([key, field]) => [key, number(model[field], FILE_TREE_LABELS[key as keyof FileTreeProfile], 0, 1048576)])) as FileTreeProfile);
+  } catch (error) { throw new InputError(error instanceof Error ? error.message : String(error)); }
+};
+const treeSummary = (profile: FileTreeProfile) => `${profile.minFiles}–${profile.maxFiles} files/artifact · up to ${profile.maxImports} imports/file · depth ≤ ${profile.maxDepth} · ${profile.deniedPercent}% denied`;
 const recordIdentity = (key: string) => {
   const [kind, id] = key.split(":");
   return `${["ready-advice", "lease-advice", "batch"].includes(kind) ? "advice" : ["work", "dispatch"].includes(kind) ? "operation" : kind}:${id}`;
@@ -187,6 +231,16 @@ export const changeSimulation = (
       "weightTimeout",
       "weightInterrupted",
       "bytes",
+      "treeMinFiles",
+      "treeMaxFiles",
+      "treeMaxImports",
+      "treeMaxDepth",
+      "treeDeniedPercent",
+      "treeMinSourceBytes",
+      "treeMaxSourceBytes",
+      "treeMinTreeBytes",
+      "treeMaxTreeBytes",
+
       "currentWork",
       "credentialReady",
       "credentialGeneration",
@@ -229,6 +283,11 @@ export const actSimulation = (
       wallBudget = 0;
       return { ...model, selected: -1, playing: false, suspended: false, revision: model.revision + 1, feedback: "Replay reset to initial inputs. Resume or Single step to replay recorded controls to its endpoint." };
     }
+    if (action === "trees:balanced" || action === "trees:pressure") return {
+      ...model, ...treeDrafts(action === "trees:balanced" ? DEFAULT_FILE_TREE_PROFILE : {
+        ...DEFAULT_FILE_TREE_PROFILE, minFiles: 10, maxFiles: 16, maxDepth: 4, minTreeBytes: 2048, maxTreeBytes: 5120,
+      }), feedback: "Tree generation drafted. Start / reset or Apply to future preparations to use it.",
+    };
     if (action.startsWith("item:")) return { ...model, item: action.slice(5) };
     if (action === "focus-stage") return { ...model, focus: model.focus === model.stage ? "" : model.stage, item: "" };
     if (action === "download" && run) {
@@ -255,7 +314,7 @@ export const actSimulation = (
       picker.click();
       return { ...model, feedback: "Choose a replay file, then Load replay to validate and reconstruct it." };
     }
-    if (replaySource && ["pace", "burst", "suspend", "sizes", "environment", "output"].includes(action)) {
+    if (replaySource && ["pace", "burst", "suspend", "sizes", "environment", "output", "fileTrees"].includes(action)) {
       return { ...model, feedback: "Cannot apply: finish recorded replay before applying new environment controls. Draft fields remain editable." };
     }
     if (action.startsWith("preset:")) {
@@ -295,6 +354,7 @@ export const actSimulation = (
         seed: number(model.seed, "Seed", 0, 0xffffffff),
         jevDelay: number(model.delay, "Jev delay", 0, 1_000_000),
         outcomeWeights: draftWeights(model),
+        fileTrees: treeProfile(model),
         session: {
           editIntervalMs: number(model.pace, "Edit pace", 1, 1_000_000),
           bytes: number(model.bytes, "Reservation bytes", 1, 1_000_000),
@@ -343,6 +403,7 @@ export const actSimulation = (
           );
       suspended = latest("suspendArrivals")?.suspended === true;
       loadedFields = {
+        ...treeDrafts(latest("fileTrees")?.profile ?? inputs.config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE),
         bookmark: (inputs as Replay & { dashboard?: { bookmark?: number } }).dashboard?.bookmark ?? -1,
         currentWork: (latest("environment")?.currentWork ?? inputs.config.environment?.currentWork ?? true) ? "current" : "stale",
         credentialReady: (latest("environment")?.credentialReady ?? inputs.config.environment?.credentialReady ?? true) ? "ready" : "unavailable",
@@ -419,6 +480,10 @@ export const actSimulation = (
           feedback = suspended
             ? "Future edits suspended. Existing synthetic work continues; playback will wait when settled."
             : "Future edit generation resumed.";
+          break;
+        case "fileTrees":
+          run.applyControl({ kind: "fileTrees", profile: treeProfile(model) });
+          feedback = "Tree generation applied to future preparations. In-flight trees keep their captured facts.";
           break;
         case "sizes":
           run.applyControl({
@@ -540,10 +605,24 @@ export const simulationView = <Message>(
   const observations = run?.observations ?? [];
   const activeReplay = run?.exportReplay();
   const latestControl = <Kind extends Control["kind"]>(kind: Kind) => activeReplay?.controls.map((entry) => entry.control).findLast((control): control is Extract<Control, { kind: Kind }> => control.kind === kind);
+  const activeTrees = activeReplay ? latestControl("fileTrees")?.profile ?? activeReplay.config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE : undefined;
+  let treeDraftStatus: string;
+  try {
+    const draft = treeProfile(model);
+    const unapplied = activeTrees && (Object.keys(treeFields) as (keyof FileTreeProfile)[]).some(key => draft[key] !== activeTrees[key]);
+    treeDraftStatus = `Draft: ${treeSummary(draft)} · source ${draft.minSourceBytes}–${draft.maxSourceBytes} B/file · evidence ${draft.minTreeBytes}–${draft.maxTreeBytes} B/file.${unapplied ? " Unapplied changes." : ""}`;
+  }
+  catch (error) { treeDraftStatus = `Cannot apply: ${error instanceof Error ? error.message : String(error)}`; }
+  const treeInput = (field: typeof treeFields[keyof typeof treeFields], label: string, min: number, max: number, shortLabel = label) => h.label([], [shortLabel,
+    h.input([h.Type("number"), h.AriaLabel(label), h.Min(String(min)), h.Max(String(max)), h.Step("1"), h.Value(model[field]), h.OnInput(raw => changed(field, raw))]),
+  ]);
   const current =
     model.selected < 0
       ? observations.at(-1)
       : observations.find((item) => item.sequence === model.selected);
+  // A clipped observation history cannot establish the first ordinal of each kind.
+  const numbers = numberRecords(observations[0]?.sequence === 0
+    ? observations.filter((item) => item.sequence <= (current?.sequence ?? -1)) : []);
   const last: ReplayStep | undefined = current
     ? {
         event: current.event,
@@ -552,6 +631,7 @@ export const simulationView = <Message>(
         after: current.after,
         rejection: current.rejection,
         origin: "manual",
+        preparation: current.preparation,
       }
     : undefined;
   return h.section(
@@ -604,6 +684,25 @@ export const simulationView = <Message>(
           controlForm("sizes", [input("bytes", "Reservation bytes per edit", model.bytes), submit("Apply reservation size")]),
         ],
       ),
+      h.details([h.Class("simulation-file-trees")], [
+        h.summary([], ["Generated import trees"]),
+        h.p([], ["File counts include the allowed root. Import depth starts at 0. Permissions are sampled per imported file; the seed reproduces each artifact's tree."]),
+        h.div([h.Class("simulation-controls")], [button("Balanced trees", "trees:balanced"), button("Tree budget pressure", "trees:pressure")]),
+        controlForm("fileTrees", [
+          h.fieldset([h.Class("simulation-tree-range")], [h.legend([], ["Generated files per artifact"]),
+            treeInput("treeMinFiles", "Generated files per artifact · minimum", 1, 64, "Minimum"), treeInput("treeMaxFiles", "Generated files per artifact · maximum", 1, 64, "Maximum")]),
+          treeInput("treeMaxImports", "Maximum imports per file", 0, 16), treeInput("treeMaxDepth", "Maximum import depth", 0, 12),
+          treeInput("treeDeniedPercent", "Denied import targets (%)", 0, 100),
+          h.fieldset([h.Class("simulation-tree-range")], [h.legend([], ["Source bytes per file"]),
+            treeInput("treeMinSourceBytes", "Source bytes per file · minimum", 1, 1048576, "Minimum"), treeInput("treeMaxSourceBytes", "Source bytes per file · maximum", 1, 1048576, "Maximum")]),
+          h.fieldset([h.Class("simulation-tree-range")], [h.legend([], ["Evidence-tree bytes per file"]),
+            treeInput("treeMinTreeBytes", "Evidence-tree bytes per file · minimum", 1, 1048576, "Minimum"), treeInput("treeMaxTreeBytes", "Evidence-tree bytes per file · maximum", 1, 1048576, "Maximum")]),
+          submit("Apply to future preparations"),
+        ]),
+        h.p([h.Class("simulation-tree-draft")], [treeDraftStatus]),
+        h.p([h.Class("simulation-tree-active")], [activeTrees ? `Applied to new preparations: ${treeSummary(activeTrees)} · source ${activeTrees.minSourceBytes}–${activeTrees.maxSourceBytes} B/file · evidence ${activeTrees.minTreeBytes}–${activeTrees.maxTreeBytes} B/file.` : "Start / reset applies the draft generation settings."]),
+        h.p([], ["Changes apply when a preparation starts. In-flight trees stay fixed. Checked graph budgets remain 8 files read, depth 4 and 20 KiB of accepted evidence. Generation may exceed those budgets. Reservation bytes are a separate review admission fact."]),
+      ]),
       h.details([h.Class("simulation-outcome-mix")], [
         h.summary([], ["Simulated Jev outcome mix · " + draftMix]),
         h.p([], ["Changes affect new requests. Relative weights determine the displayed probabilities." ]),
@@ -636,15 +735,15 @@ export const simulationView = <Message>(
       h.p([h.Class("simulation-outcomes")], [`Run outcomes: ${totals.checked} checked events · ${totals.admitted} observations admitted · ${totals.refused} refusals · ${totals.failed} failures/timeouts · ${totals.advice} confirmed host submissions · ${totals.uncertain} uncertain advice submissions · ${totals.released} released output attempts. ${run && model.suspended && !run.projection.work.some((work) => work.kind !== "pendingFinding") && run.projection.dispatch.requests.length === 0 && run.projection.collection.leases.length === 0 && !run.projection.delivery.slots.some((slot) => ["reserved", "authorized", "uncertain"].includes(slot.phase)) && !run.projection.delivery.submissions.batches.some((batch) => ["reserved", "authorized", "uncertain"].includes(batch.phase)) ? `Transient work settled; ${run.projection.collection.ready.length} retained advice records; arrivals suspended.` : "Work or future arrivals remain."}`]),
       h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · active mix ${mixSummary(appliedWeights(activeReplay))} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.session?.bytes ?? 100} bytes.` : "Start a run to apply environment settings."]),
       ...(run
-        ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`))]
+        ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`), preparationSnapshot(observations.filter(frame => frame.sequence <= (current?.sequence ?? -1)).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)]
         : []),
       ...(run ? [reviewCapacityView(h, current?.after ?? run.projection)] : []),
       h.p([h.Class("simulation-active-effects")], [activeReplay ? `Active facts: work ${(latestControl("environment")?.currentWork ?? activeReplay.config.environment?.currentWork ?? true) ? "current" : "stale"} · credential ${(latestControl("environment")?.credentialReady ?? activeReplay.config.environment?.credentialReady ?? true) ? "ready" : "unavailable"} (generation ${latestControl("environment")?.credentialGeneration ?? activeReplay.config.environment?.credentialGeneration ?? 1}) · source ${(latestControl("environment")?.sourceReadable ?? activeReplay.config.environment?.sourceReadable ?? true) ? "readable" : "unreadable"}. Future host output: ${latestControl("outputProfile")?.outcome ?? activeReplay.config.outputProfile?.outcome ?? "certain"} · delay ${latestControl("outputProfile")?.delayMs ?? activeReplay.config.outputProfile?.delayMs ?? 0} ms · lease ${latestControl("outputProfile")?.leaseMs ?? activeReplay.config.outputProfile?.leaseMs ?? 30000} ms. In-flight output keeps its captured profile.` : "No active synthetic environment."]),
       h.details([], [h.summary([], ["Control history"]), h.pre([], [activeReplay ? JSON.stringify({ initial: activeReplay.config, controls: activeReplay.controls.map((entry) => ({ time: entry.time, ...entry.control })) }, null, 2) : "No run started."])]),
-      h.div([h.Class("simulation-stage-inspector")], [
+      h.div([h.Class(`simulation-stage-inspector${model.focus === "preparation" ? " preparation-selected" : ""}`)], [
       h.details([], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
       ...(model.focus ? [button("Clear lifecycle filter", "focus:")] : []),
-      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after) ?? ""]), h.ul([], locateFlow(current.after).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
+      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(current.after, numbers) ?? ""]), ...(model.focus === "preparation" ? [preparationDetails(h, preparationSnapshot(observations.filter(frame => frame.sequence <= current.sequence).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)] : []), h.ul([], locateFlow(current.after, numbers).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
       ]),
       h.details(
         [h.Class("simulation-details")],
@@ -681,12 +780,12 @@ export const simulationView = <Message>(
         [h.Class("simulation-history")],
         observations
           .filter((item) => !model.item || followsRecord(item, model.item))
-          .filter((item) => !model.focus || model.item || projectFlowStep({ event: item.event, commands: item.commands, before: item.before, after: item.after, rejection: item.rejection }).changedStages.includes(model.focus as (typeof PLACE_ORDER)[number]))
+          .filter((item) => !model.focus || model.item || (item.event.kind === "preparationGraph" ? model.focus === "preparation" : projectFlowStep({ event: item.event, commands: item.commands, before: item.before, after: item.after, rejection: item.rejection }).changedStages.includes(model.focus as (typeof PLACE_ORDER)[number])))
           .filter((item) => model.filter === "all" || item.rejection || item.commands.some((command) => /Refused$|Denied$|Unavailable$/.test(command.kind)) || item.event.kind === "submissionTerminal" && !item.event.certain || item.event.kind === "submissionRelease" || item.event.kind === "collectionLeaseCheck" && item.event.expired || /fail|timeout/i.test(JSON.stringify(item.event)))
           .slice(-100)
           .map((item) =>
             h.button([h.Type("button"), h.Class(item.sequence === current?.sequence ? "selected" : ""), h.OnClick(action(`inspect:${item.sequence}`))], [
-              `${item.sequence}. ${item.time} ms · ${item.event.kind}${item.rejection ? ` · refusal: ${item.rejection}` : ""}`,
+              `${item.sequence}. ${item.time} ms · ${item.event.kind === "preparationGraph" ? `preparation · ${item.event.fact.kind} · operation #${item.event.operation}` : item.event.kind}${item.rejection ? ` · refusal: ${item.rejection}` : ""}`,
             ]),
           ),
       ),

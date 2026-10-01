@@ -14,7 +14,7 @@ const laws = new Map([...source.matchAll(/^law (\w+):\n([\s\S]*?)(?=^(?:law |def
 const nat = n => `${n}n`;
 const bool = n => n ? "True{}" : "False{}";
 const list = items => items.length ? `${items.join(" <> ")} <> Nil{}` : "Nil{}";
-const entry = (i, seed) => `Dispatch.Entry{${nat(seed)}, 1n, 2n, ${nat(i)}, ${nat(i)}, 1n, False{}, ${bool(i % 2)}}`;
+const entry = (i, seed) => `Dispatch.Entry{${nat(seed)}, 1n, 2n, ${nat(i)}, ${nat(i)}, False{}, ${bool(i % 2)}}`;
 const request = (i, seed) => `Dispatch.Request{${nat(seed)}, 1n, 2n, ${nat(i)}, ${nat(i + 1)}, ${bool(i % 2)}, ${bool(i % 2)}}`;
 const responsiveWitness = n => n === 0 ? "Unit{}" : `({==}, ${responsiveWitness(n - 1)})`;
 const instances = [];
@@ -33,8 +33,8 @@ const add = (law, at) => {
   instances.push({ law, claim: claim.replace(pattern, name => at[name]), hypotheses });
 };
 for (const seed of [0, 1, 7, 42]) for (let count = 0; count <= 9; count++) {
-  const context = { pending: list([entry(11, seed)]), active: list([entry(12, seed)]),
-    running: list([entry(13, seed)]), sequence: nat(seed), cycle: nat(seed + 1),
+  const context = { queued: list([entry(11, seed), entry(12, seed)]),
+    running: list([entry(13, seed)]), sequence: nat(seed),
     requests: list(Array.from({ length: count }, (_, i) => request(i, seed))) };
   for (const closed of [false, true]) add("request_cohort_resolves", { ...context, closed: bool(closed) });
   add("settled_failures_allow_fresh_request", { ...context, partition: nat(seed), lifetime: "1n", round: "2n", operation: "99n", request: "100n" });

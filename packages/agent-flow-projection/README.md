@@ -13,6 +13,12 @@ current stage of identified work, dispatch entries, Jev requests, advice, output
 and rounds. An emitted command is evidence of a decision, not evidence that a
 native effect or storage succeeded.
 
+`numberRecords` derives separate source-read, preparation, review-item,
+Jev-request, advice, and per-purpose capacity-charge ordinals from accepted state transitions. These are
+presentation identities. The canonical operation and request IDs remain the
+stable keys for record links and events; callers may show both. A consumer
+with incomplete history must omit an ordinal it cannot establish.
+
 The stages describe the process. They are not Bend states and do not add a
 second reducer. The package has no FoldKit dependency, square titles or
 coordinates, route geometry, SVG, or visual style. A consumer can draw the

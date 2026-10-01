@@ -11,12 +11,14 @@ const subscriptions = Subscription.make<Model, Message>()((entry) => ({
     {
       modelToDependencies: (model) => ({
         canRewind: model.position > 0,
-        canAdvance: guidedIndex(model.history as Parameters<typeof guidedIndex>[0], model.position) < CANONICAL_SCENARIOS[model.scenario].events.length,
+        canAdvance: model.position < model.history.length || guidedIndex(model.history as Parameters<typeof guidedIndex>[0], model.position) < CANONICAL_SCENARIOS[model.scenario].events.length,
       }),
       dependenciesToStream: ({ canRewind, canAdvance }) => Subscription.keyBindings<Message>({
         bindings: [
-          { keys: "ArrowLeft", isEnabled: canRewind, mapEvent: () => Message.Rewound() },
-          { keys: "ArrowRight", isEnabled: canAdvance, mapEvent: () => Message.Advanced() },
+          { keys: "ArrowLeft", isEnabled: canRewind, whenRepeated: "Allow", mapEvent: () => Message.Rewound() },
+          { keys: "ArrowRight", isEnabled: canAdvance, whenRepeated: "Allow", mapEvent: () => Message.HistoryForward() },
+          { keys: "Shift+ArrowLeft", isEnabled: canRewind, mapEvent: () => Message.GuidedMoved({ direction: -1 }) },
+          { keys: "Shift+ArrowRight", isEnabled: canAdvance, mapEvent: () => Message.GuidedMoved({ direction: 1 }) },
         ],
       }),
     },

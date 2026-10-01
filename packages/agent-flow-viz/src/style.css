@@ -1,7 +1,17 @@
 :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #1e3048; background: #f5f7fa; }
 * { box-sizing: border-box; }
 body { margin: 0; }
-button { font: inherit; cursor: pointer; }
+/* Shared native controls and disclosures across every dashboard panel. */
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; border: 1px solid #b8c7d9; border-radius: 6px; padding: 6px 10px; background: #fff; color: #264365; max-width: 100%; }
+button:not(:disabled):hover { background: #eaf1ff; }
+button:disabled, input:disabled, select:disabled { cursor: default; opacity: .5; }
+select, input[type="range"] { cursor: pointer; }
+input[type="text"], input[type="number"], textarea { cursor: text; }
+summary { cursor: pointer; font-weight: 600; min-height: 36px; padding: 7px 8px; border-radius: 6px; overflow-wrap: anywhere; }
+summary:hover { background: #eef4ff; }
+:where(button, summary, input, select, textarea, a, [role="button"]):focus-visible { outline: 2px solid #245bb8; outline-offset: 3px; }
+
 .page { max-width: 1540px; margin: auto; padding: 30px 24px 80px; }
 .page-header { margin-bottom: 24px; }
 .eyebrow { margin: 0 0 8px; color: #a35c24; font-size: .75rem; font-weight: 800; letter-spacing: .12em; }
@@ -80,7 +90,7 @@ p { line-height: 1.5; }
 .import-tree-budget h3 { margin: 0 0 12px; font-size: .95rem; }
 .import-tree-bar { display: flex; height: 40px; overflow: hidden; border: 1px solid #687e98; border-radius: 6px; }
 .import-tree-segment, .import-tree-remaining { display: flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 0; overflow: hidden; box-sizing: border-box; font-size: .8rem; font-weight: 700; }
-.import-tree-segment { color: #fff; background: #294976; box-shadow: inset -2px 0 #fff; }
+.import-tree-segment { white-space: nowrap; color: #fff; background: #294976; box-shadow: inset -2px 0 #fff; }
 .import-tree-segment:nth-child(2n) { background: #205f4a; }
 .import-tree-segment:nth-child(3n) { background: #65438a; }
 .import-tree-remaining { color: #425570; background: repeating-linear-gradient(135deg, #edf1f6, #edf1f6 5px, #fff 5px, #fff 10px); }
@@ -97,7 +107,6 @@ p { line-height: 1.5; }
 .topology-route.active.external path { filter: drop-shadow(0 0 3px #d8b35c); }
 .topology-node text { pointer-events: none; }
 .topology-route-key { margin: 12px 0; padding: 9px 12px; border: 1px solid #dce5ef; border-radius: 7px; font-size: .8rem; }
-.topology-route-key summary { cursor: pointer; font-weight: 700; }
 .topology-route-key ol { columns: 2; margin: 12px 0 0; padding-left: 23px; }
 .topology-route-key li { break-inside: avoid; margin-bottom: 5px; color: #52647d; }
 .topology-route-key li.active { color: #a9431f; font-weight: 700; }
@@ -146,8 +155,8 @@ p { line-height: 1.5; }
 .simulation-history button { text-align: left; }
 
 .simulation-history button.selected { background: #dce9ff; border: 2px solid #547dc0; }
-.simulation-panel .topology-node { cursor: pointer; }
-.canonical-replay .topology-node { cursor: pointer; }
+.topology-node[role="button"] { cursor: pointer; }
+.topology-node[role="button"]:hover > rect, .topology-node[role="button"]:focus-visible > rect { stroke: #245bb8; }
 .flow-stage-inspector { max-height: 360px; overflow: auto; padding: 12px; border: 1px solid #bac9dc; border-radius: 8px; margin: 12px 0; }
 .flow-stage-inspector h3, .flow-stage-inspector h4 { margin: 0 0 8px; }
 .flow-stage-inspector select { margin-left: 8px; }
@@ -161,7 +170,6 @@ p { line-height: 1.5; }
 .simulation-outcome-slider { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(120px, 2fr) minmax(140px, 1fr); gap: 12px; align-items: center; margin: 12px 0; }
 @media (max-width: 600px) { .simulation-outcome-slider { grid-template-columns: 1fr; gap: 4px; } }
 
-.simulation-outcome-mix > summary { height: 3em; overflow: auto; }
 
 .topology-facet { font-variant-numeric: tabular-nums; }
 
@@ -169,3 +177,15 @@ p { line-height: 1.5; }
 .canonical-step-controls button { margin: 0; height: 4em; overflow: hidden; overflow-wrap: anywhere; }
 .canonical-feedback { height: 3em; overflow: auto; }
 @media (min-width: 1000px) { .canonical-step-controls { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.preparation-mini { pointer-events: none; }
+
+.flow-stage-inspector.preparation-selected { max-height: none; }
+.simulation-stage-inspector.preparation-selected { height: auto; }
+.preparation-reference-details { margin: 14px 0; }
+.preparation-reference-counts { font-variant-numeric: tabular-nums; }
+
+.simulation-tree-range { display: flex; gap: 12px; min-width: 0; border: 1px solid #a3b3c7; border-radius: 6px; padding: 8px 12px; }
+.simulation-tree-range legend { font-size: 12px; font-weight: 600; padding: 0 4px; }
+.simulation-tree-range input { width: 100px; }
+.simulation-file-trees { margin: 14px 0; }
