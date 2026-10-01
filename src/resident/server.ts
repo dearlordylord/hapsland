@@ -1,3 +1,4 @@
+import { makeResidentRuntimeConfiguration } from "./runtime-configuration.ts";
 import type { Advice } from "./advice-records.ts";
 import type { PendingNoticeSnapshot as PendingNotice } from "./notice-records.ts";
 import type { RoundWork, WorkCohort } from "./round-records.ts";
@@ -523,6 +524,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   now: () => number = monotonicNow,
   options: ResidentRuntimeOptions = {},
 ) {
+  const runtimeConfiguration = yield* makeResidentRuntimeConfiguration().pipe(
+    Effect.mapError(() => new ResidentAdapterError({ operation: "resident runtime configuration" })),
+  );
   const residentLedger = yield* makeResidentState<UnitJob, string, Job>();
   const lifetime = residentLedger.residentLifetime;
   const residentJoined = residentLedger.joinedReviews(logicalBytes);
@@ -722,10 +726,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (ticket !== undefined) {
       residentEvictRetainedTickets(residentMaximumTickets);
     }
-    const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
+    const acceptedPath = runtimeConfiguration.admissionAcceptedPath;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
-    const admissionTracePath = process.env.REVIEW_RESIDENT_ADMISSION_TRACE_PATH;
-    const admissionSalt = process.env.HAPSLAND_94_SALT;
+    const admissionTracePath = runtimeConfiguration.admissionTracePath;
+    const admissionSalt = runtimeConfiguration.admissionSalt;
     if (admissionTracePath !== undefined && admissionSalt !== undefined) {
       const key = (value: string) => createHash("sha256").update(`${admissionSalt}:${value}`).digest("hex");
       const { sessionId, toolUseId } = observation.advicee;
@@ -1924,7 +1928,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return;
     }).pipe(
       Effect.catch(() => Effect.sync(() => {
-        if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident preparation unavailable");
+        if (runtimeConfiguration.debug) console.error("resident preparation unavailable");
         residentLedger.release(job.reservation);
         if (residentLedger.runtime.snapshot().lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
@@ -2318,7 +2322,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         }
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
         residentSettleJoined(job.evaluationKey, "unavailable", "backend");
-        if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident evaluation unavailable");
+        if (runtimeConfiguration.debug) console.error("resident evaluation unavailable");
         if (residentLedger.runtime.snapshot().lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable", unitIdentity: job.evaluationKey });
@@ -2933,7 +2937,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (responseFiber !== undefined) Effect.runFork(Fiber.interrupt(responseFiber));
       residentLedger.runtime.releaseConnection(connection);
       residentScheduleIdleCheck();
-      const closedPath = process.env.REVIEW_RESIDENT_COLLECT_DISCONNECT_PATH;
+      const closedPath = runtimeConfiguration.collectDisconnectPath;
       if (
         closedPath !== undefined && request?.operation === "collect" &&
         request.advicee.toolUseId === "disconnect"

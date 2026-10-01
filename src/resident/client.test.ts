@@ -1,5 +1,6 @@
+import { makeGitFixture } from "../direct-event/test-fixtures.ts";
 import { it as effectIt } from "@effect/vitest";
-import { Deferred, Effect, Fiber, Layer } from "effect";
+import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { chmod, mkdtemp, rm, symlink } from "node:fs/promises";
 import { createServer, type Server } from "node:net";
@@ -8,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   ResidentIpcError,
+  makeResidentDispatchContextEffect,
   ensureResident,
   admitTicketedObservation,
   admitObservation,
@@ -401,3 +403,23 @@ describe("resident client trust boundary", () => {
     expect(received).toBe(0);
   });
 });
+
+effectIt.effect("dispatch credentials and paths use the supplied configuration provider", () => Effect.gen(function* () {
+  const root = yield* Effect.promise(makeGitFixture);
+  directories.push(root);
+  const credentialStatePath = join(root, "credential-state.json");
+  const acquire = makeResidentDispatchContextEffect(root, join(root, "consent"), join(root, "activity"), undefined, undefined);
+  const configured = yield* acquire.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
+    TYPESAFE_API_KEY: "synthetic-fixture-credential",
+    REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath,
+    REVIEW_DEMO_BUDGET_PATH: join(root, "budget"),
+  }))));
+  expect(configured.credential?.environmentValue).toBe("synthetic-fixture-credential");
+  expect(configured.credential?.statePath).toBe(credentialStatePath);
+  expect(configured.demoBudgetPath).toBe(join(root, "budget"));
+  const absent = yield* acquire.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
+    REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath,
+  }))));
+  expect(absent.credential?.environmentValue).toBeNull();
+  expect(absent.demoBudgetPath).toBeNull();
+}));

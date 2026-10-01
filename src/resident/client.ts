@@ -1,7 +1,7 @@
 import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
-import { Context, Layer, ManagedRuntime, Ref, Schema } from "effect";
+import { Config, Context, Layer, ManagedRuntime, Option, Redacted, Ref, Schema } from "effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
 import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -276,8 +276,12 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
       syntheticR6BrandedRepair: controlledOptions.syntheticR6BrandedRepair,
     }),
   };
-  const credentialValue = process.env[settings.credentialEnvVar];
-  const credentialStatePath = resolve(process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH);
+  const configuration = yield* Config.all({
+    credential: Config.option(Config.Redacted(settings.credentialEnvVar)),
+    credentialStatePath: Config.String("REVIEW_CREDENTIAL_STATE_PATH").pipe(Config.withDefault(DEFAULT_CREDENTIAL_STATE_PATH)),
+    demoBudgetPath: Config.option(Config.String("REVIEW_DEMO_BUDGET_PATH")),
+  }).pipe(Effect.mapError(() => new ResidentIpcError({ message: "resident dispatch configuration unavailable" })));
+  const credentialStatePath = resolve(configuration.credentialStatePath);
   const credentialState = yield* Effect.try({
     try: () => readCredentialState(credentialStatePath),
     catch: () => new ResidentIpcError({ message: "resident credential metadata unavailable" }),
@@ -287,12 +291,12 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
     statePath: resolve(statePath),
     activityPath: resolve(activityPath),
     userConfigPath: userConfigPath === undefined ? null : resolve(userConfigPath),
-    demoBudgetPath: process.env.REVIEW_DEMO_BUDGET_PATH === undefined
+    demoBudgetPath: Option.isNone(configuration.demoBudgetPath)
       ? null
-      : resolve(process.env.REVIEW_DEMO_BUDGET_PATH),
+      : resolve(configuration.demoBudgetPath.value),
     credential: controlled !== null && controlled.requireCredential !== true ? null : {
       name: settings.credentialEnvVar,
-      environmentValue: credentialValue === undefined ? null : credentialValue,
+      environmentValue: Option.isNone(configuration.credential) ? null : Redacted.value(configuration.credential.value),
       environmentOnly,
       generation: credentialState.generation,
       statePath: credentialStatePath,

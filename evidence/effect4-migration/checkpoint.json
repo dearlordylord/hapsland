@@ -96,7 +96,10 @@
     "Separate-process admission fixture keeps its socket connected until the declared response barrier before explicit SIGKILL, removing premature process-exit race",
     "Runtime lifecycle, native connection leases, retirement scheduling, diagnostic counters, retention peaks and authority sequence now reside in the shared ResidentState Ref; deleted independent mutable runtime scalar owners",
     "Canonical cleanup permission, cache/ticket eviction and native retiring phase publish together; cleanup refuses outstanding physical dispatcher handles and connection pressure; late connection release remains fenced and owned through physical endpoint closure",
-    "Runtime owner proofs cover bounded connection membership, foreign/duplicate releases, isolated acquisition, busy cleanup, successful canonical retirement and rollback after staged native ticket validation failure"
+    "Runtime owner proofs cover bounded connection membership, foreign/duplicate releases, isolated acquisition, busy cleanup, successful canonical retirement and rollback after staged native ticket validation failure",
+    "Resident diagnostics and source-free subprocess observation configuration acquire immutable values through Effect Config; production resident has no process.env reads",
+    "Client dispatch credentials, credential metadata path and demo budget path use the supplied ConfigProvider; credential remains Redacted until constructing the authorized IPC dispatch context",
+    "Configuration boundary checks reject restored resident environment reads and unredacted client credential configuration"
   ],
   "verification": [
     {
@@ -1128,10 +1131,36 @@
       "command": "Initial new runtime-records fixtures",
       "exitCode": 1,
       "failure": "Two fixtures omitted required capacity purpose; corrected fixture calls and passed subsequent 96-test and 39-test runs."
+    },
+    {
+      "stage": "Resident and client Effect configuration",
+      "command": "Resident configuration, runtime scopes and security-sinks tests",
+      "exitCode": 0,
+      "tests": 7,
+      "files": 3
+    },
+    {
+      "stage": "Resident and client Effect configuration",
+      "command": "Client, resident configuration and security-sinks tests",
+      "exitCode": 0,
+      "tests": 19,
+      "files": 3
+    },
+    {
+      "stage": "Resident and client Effect configuration",
+      "command": "Separate-process lifecycle, security-queued and credential secret-service tests",
+      "exitCode": 0,
+      "tests": 37,
+      "files": 3
+    },
+    {
+      "stage": "Resident and client Effect configuration",
+      "command": "Typecheck, build, all boundary scripts and git diff --check",
+      "exitCode": 0
     }
   ],
   "next": [
-    "Consolidate remaining job execution metadata and remove internal synchronous owner/dispatcher bridges; supply remaining runtime configuration and fixture controls through scoped Effect services",
+    "Compose remaining round closure/cutoff, quiet sweeping and collection work-state helpers as named Effects; remove their internal synchronous dispatcher bridges and finish scoped fixture controls",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
