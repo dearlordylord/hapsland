@@ -108,13 +108,16 @@ artifact verification.
    "$HOME/.local/bin/hapsland-doctor"
    ```
 
-2. In the Git repository you want reviewed, run the guided setup for your client:
+2. In the Git repository you want reviewed, run:
 
    ```sh
-   "$HOME/.local/bin/hapsland" setup claude
-   # Or:
-   "$HOME/.local/bin/hapsland" setup codex
+   "$HOME/.local/bin/hapsland" setup
    ```
+
+   Select Claude Code, Codex CLI, or both with the checkboxes (arrows to move,
+   Space to toggle, Enter to continue). Installed clients are checked and labeled.
+   Unchecking a client leaves its installation intact. To skip the selector, use
+   `hapsland setup claude` or `hapsland setup codex`.
 
    Setup previews owned hooks, asks before applying them, accepts a missing Jev key
    through masked input, and reports offline readiness. The hooks apply to the selected
@@ -123,12 +126,23 @@ artifact verification.
    edit. Follow the [status guide](./docs/status.md) to inspect observed review activity;
    installation alone does not establish that a review ran.
 
-Update with `hapsland update claude` or `hapsland update codex`. Add `--channel=next`
+Update every installed client integration with `hapsland update`. It acquires one target,
+previews each installed client, and asks once before applying the available changes.
+Use `hapsland update claude` or `hapsland update codex` for a specific client. Add `--channel=next`
 to opt into a published candidate. Updates stage a separate package, preview hook changes,
 and ask before applying them. See the [four installation lanes](./docs/installation-workflows.md)
 for stable/candidate installation, development builds, recovery, and removal. The
 [Claude guide](./docs/claude-installation.md) and [Codex guide](./docs/codex-installation.md)
 retain exact host support limits and automation contracts.
+
+`hapsland doctor` checks every installed client without changing files. Use `hapsland repair`
+to restore deleted hooks, `hapsland reinstall` to replace damaged marked Hapsland entries
+without losing user settings or credentials, and `hapsland uninstall` to remove integrations.
+Each accepts `claude` or `codex` to limit its scope. Changed or duplicate marked hooks require
+explicit reinstall; malformed client JSON/TOML must be corrected first. Repeating update
+with the same verified release does not rewrite hooks. Public lifecycle commands follow
+the active package after an update. See [recovery and removal](./docs/installation-workflows.md#disablement-removal-and-recovery).
+
 
 <!-- configuration-readme:start -->
 
@@ -162,7 +176,7 @@ npm run dev-install -- --host=codex
 ```
 
 For installing a freshly packed snapshot into your own Claude Code or Codex profile,
-see [installation and development workflows](./docs/installation-workflows.md#current-personal-development-candidate-lane).
+see [installation and development workflows](./docs/installation-workflows.md#personal-development-on-your-own-clients).
 
 
 ```sh

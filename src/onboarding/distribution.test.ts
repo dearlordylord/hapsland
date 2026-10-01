@@ -23,11 +23,12 @@ const fixture = (version: string) => {
   };
   return { directory, calls, run };
 };
-it("resolves next once, installs the exact version in fresh prefixes and retains identity", async () => {
+it("resolves next once, reuses the verified immutable release and retains identity", async () => {
   const test = fixture("0.2.0-next.3");
   const first = await Effect.runPromise(stageRelease({ kind: "registry", channel: "next" }, test));
   const second = await Effect.runPromise(stageRelease({ kind: "registry", channel: "next" }, test));
-  expect(second.prefix).not.toBe(first.prefix);
+  expect(second.prefix).toBe(first.prefix);
+  expect(test.calls.filter(call => call.args[0] === "install")).toHaveLength(1);
   const install = test.calls.find(call => call.args[0] === "install");
   expect(install?.args).toContain("@hapsland/hapsland@0.2.0-next.3");
   expect(install?.args).toContain("--ignore-scripts=true");

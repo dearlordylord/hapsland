@@ -150,3 +150,39 @@ describe("Claude installation lifecycle", () => {
     expect(doctor.checks.find((check) => check.stage === "file-selection")?.status).toBe("unknown");
   });
 });
+
+it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit", "foreground", "background"])("repairs deleted Claude %s without losing user settings", async (missing) => {
+  const { home, claudeExecutable } = fixture();
+  const request = { claudeHome: home, claudeExecutable };
+  writeFileSync(join(home, "settings.json"), JSON.stringify({ permissions: { allow: ["Read"] }, custom: 42 }));
+  await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+  const changed = settings(home) as { hooks: Record<string, Array<{ hooks: unknown[] }>>; permissions: unknown; custom: number };
+  if (missing === "foreground" || missing === "background") changed.hooks.PostToolUse![0]!.hooks.splice(missing === "foreground" ? 0 : 1, 1);
+  else delete changed.hooks[missing];
+  writeFileSync(join(home, "settings.json"), JSON.stringify(changed));
+  expect(inspectClaudeInstallation(request).status).toBe("conflict");
+  const proposal = previewClaudeUpdate(request);
+  expect(proposal.status).toBe("preview");
+  expect((await updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+  expect(inspectClaudeInstallation(request)).toMatchObject({ installed: true });
+  expect(settings(home)).toMatchObject({ permissions: { allow: ["Read"] }, custom: 42 });
+  expect(previewClaudeUpdate(request)).toMatchObject({ alreadyCurrent: true, proposal: { changes: [] } });
+});
+
+it("explicit Claude reinstall replaces changed and duplicate marked handlers while preserving independent handlers", async () => {
+  const { home, claudeExecutable } = fixture();
+  const request = { claudeHome: home, claudeExecutable };
+  await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+  const changed = settings(home) as { hooks: Record<string, Array<{ hooks: Array<{ command: string; timeout?: number }> }>> };
+  changed.hooks.PostToolUse![0]!.hooks[0]!.timeout = 99;
+  changed.hooks.PostToolUse![0]!.hooks.push({ command: "independent-handler" });
+  changed.hooks.Stop!.push(structuredClone(changed.hooks.Stop![0]!));
+  writeFileSync(join(home, "settings.json"), JSON.stringify(changed));
+  expect(previewClaudeUpdate(request).status).toBe("conflict");
+  const reinstall = { ...request, reinstall: true };
+  const proposal = previewClaudeInstallation(reinstall);
+  expect((await installClaudeIntegration({ ...reinstall, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+  expect(inspectClaudeInstallation(request)).toMatchObject({ installed: true });
+  expect(JSON.stringify(settings(home))).toContain("independent-handler");
+  expect(JSON.stringify(settings(home))).not.toContain('"timeout":99');
+});

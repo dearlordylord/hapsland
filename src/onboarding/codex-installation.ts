@@ -6,13 +6,10 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  readdirSync,
-  readlinkSync,
   realpathSync,
   renameSync,
   rmSync,
   statSync,
-  symlinkSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -20,6 +17,9 @@ import { homedir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import { isCodexHostVersion } from "../direct-event/model.ts";
+
+import { withInstallationLock } from "./installation-lock.ts";
+import { canonicalJson as stableJson, reconcileOwnedEvent, removeMarkedHandlers, retainedHookSubset } from "./hook-reconciliation.ts";
 
 const OWNERSHIP_VERSION = 1 as const;
 const RESULT_VERSION = 1 as const;
@@ -36,6 +36,7 @@ export interface InstallationRequest {
   readonly codexHome?: string;
   readonly proposalDigest?: string;
   readonly codexExecutable?: string;
+  readonly reinstall?: boolean;
 }
 
 interface FileSnapshot {
@@ -65,6 +66,7 @@ interface OwnershipRecord {
   readonly entrypoint: string;
   readonly marker: typeof OWNED_MARKER;
   readonly hookFingerprint: string;
+  readonly hookGroups?: Record<string, unknown>;
   readonly composedFingerprints?: { readonly stop: string; readonly prompt: string; readonly subagentStop?: string; readonly preToolUse?: string };
   readonly owned: ReadonlyArray<{
     readonly file: string;
@@ -78,6 +80,8 @@ interface Journal {
   readonly operation: "install" | "update" | "uninstall";
   readonly proposalDigest: string;
   readonly completed: ReadonlyArray<number>;
+  readonly reinstall?: boolean;
+  readonly replacedJournalDigest?: string;
   readonly mutations: ReadonlyArray<Mutation>;
 }
 
@@ -157,14 +161,6 @@ const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1"
   }],
 });
 
-const stableJson = (value: unknown): string => {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
-  if (isObject(value)) {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
-};
-
 const hookFingerprint = (value: unknown) => sha256(`installation-v1:hook\0${stableJson(value)}`);
 
 const markerCount = (value: unknown): number => {
@@ -187,30 +183,20 @@ const withComposedGroups = (
   root: JsonObject,
   target: ReturnType<typeof composedGroups> | undefined,
   expected: OwnershipRecord["composedFingerprints"],
+  restoreMissing = false,
+  expectedGroups?: Record<string, unknown>,
 ): JsonObject => {
-  const hooks = root.hooks === undefined ? {} : root.hooks;
-  if (!isObject(hooks)) throw new Error("hooks.json field 'hooks' must be an object");
-  const nextHooks = { ...hooks };
+  let next = root;
   for (const [event, key] of [["PreToolUse", "preToolUse"], ["Stop", "stop"], ["SubagentStop", "subagentStop"], ["UserPromptSubmit", "prompt"]] as const) {
-    const existing = nextHooks[event];
-    if (existing !== undefined && !Array.isArray(existing)) throw new Error(`hooks.json ${event} must be an array`);
-    const groups: unknown[] = existing === undefined ? [] : [...existing];
-    const indexes = groups.flatMap((group, index) =>
-      stableJson(group).includes(COMPOSED_MARKER) ? [index] : []);
-    const expectedFingerprint = expected?.[key];
-    if (indexes.length > 1 || (expectedFingerprint === undefined && indexes.length !== 0) ||
-        (expectedFingerprint !== undefined && (indexes.length !== 1 ||
-          hookFingerprint(groups[indexes[0]!]) !== expectedFingerprint))) {
-      throw new Error(`owned Codex ${event} hook is missing, duplicated, or locally modified`);
-    }
-    if (indexes.length === 1) groups.splice(indexes[0]!, 1);
-    if (target !== undefined) groups.push(target[event]);
-    if (groups.length === 0) delete nextHooks[event];
-    else nextHooks[event] = groups;
+    next = reconcileOwnedEvent(next, event, target?.[event], {
+      marker: COMPOSED_MARKER,
+      fingerprint: hookFingerprint,
+      expectedFingerprint: expected?.[key],
+      expectedGroup: expectedGroups?.[event],
+      restoreMissing,
+      label: "Codex",
+    });
   }
-  const next = { ...root };
-  if (Object.keys(nextHooks).length === 0) delete next.hooks;
-  else next.hooks = nextHooks;
   return next;
 };
 
@@ -230,11 +216,14 @@ const addOwnedHook = (root: JsonObject, group: unknown): JsonObject => {
   };
 };
 
+const isOwnedPostGroup = (group: unknown) => markerCount(group) > 0 || stableJson(group).includes(COMPOSED_MARKER);
+
 const replaceOwnedHook = (root: JsonObject, group: unknown): JsonObject => {
+  if (!postToolUseGroups(root).some(isOwnedPostGroup)) return addOwnedHook(root, group);
   const hooks = root.hooks;
   if (!isObject(hooks)) throw new Error("owned Codex hook is missing or locally modified");
   const groups = postToolUseGroups(root);
-  const ownedIndexes = groups.flatMap((candidate, index) => markerCount(candidate) > 0 ? [index] : []);
+  const ownedIndexes = groups.flatMap((candidate, index) => isOwnedPostGroup(candidate) ? [index] : []);
   if (ownedIndexes.length !== 1) throw new Error("owned Codex hook is missing, duplicated, or locally modified");
   const ownedIndex = ownedIndexes[0];
   if (ownedIndex === undefined) throw new Error("owned Codex hook is missing");
@@ -247,14 +236,15 @@ const replaceOwnedHook = (root: JsonObject, group: unknown): JsonObject => {
   };
 };
 
-const removeOwnedHook = (root: JsonObject, expectedFingerprint: string): JsonObject => {
+const removeOwnedHook = (root: JsonObject, expectedFingerprint: string, expectedGroup?: unknown): JsonObject => {
+  if (!postToolUseGroups(root).some(isOwnedPostGroup)) return root;
   const hooks = root.hooks;
   if (!isObject(hooks)) throw new Error("owned Codex hook is missing or locally modified");
   const groups = postToolUseGroups(root);
-  const ownedIndexes = groups.flatMap((group, index) => markerCount(group) > 0 ? [index] : []);
+  const ownedIndexes = groups.flatMap((group, index) => isOwnedPostGroup(group) ? [index] : []);
   if (ownedIndexes.length !== 1) throw new Error("owned Codex hook is missing, duplicated, or locally modified");
   const index = ownedIndexes[0];
-  if (index === undefined || hookFingerprint(groups[index]) !== expectedFingerprint) {
+  if (index === undefined || (hookFingerprint(groups[index]) !== expectedFingerprint && !retainedHookSubset(groups[index], expectedGroup))) {
     throw new Error("owned Codex hook was locally modified; reconcile it before uninstalling");
   }
   const nextGroups = groups.filter((_, candidate) => candidate !== index);
@@ -463,6 +453,7 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
     entrypoint: value.entrypoint,
     marker: OWNED_MARKER,
     hookFingerprint: value.hookFingerprint,
+    ...(isObject(value.hookGroups) ? { hookGroups: value.hookGroups } : {}),
     ...(value.composedFingerprints === undefined ? {} : {
       composedFingerprints: {
         stop: (value.composedFingerprints as JsonObject).stop as string,
@@ -474,6 +465,8 @@ const readOwnership = (path: string): OwnershipRecord | undefined => {
     owned,
   };
 };
+
+const reinstallDigest = (baseDigest: string, replacedJournalDigest?: string) => replacedJournalDigest === undefined ? baseDigest : sha256(stableJson({ version: 1, baseDigest, replacedJournalDigest }));
 
 const pathsFor = (home: string) => ({
   config: join(home, "config.toml"),
@@ -734,6 +727,7 @@ const makeOwnershipRecord = (
   entrypoint: inputs.entrypoint,
   marker: OWNED_MARKER,
   hookFingerprint: fingerprint,
+  hookGroups: { PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version), ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version) },
   composedFingerprints: {
     preToolUse: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).PreToolUse),
     stop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).Stop),
@@ -753,43 +747,45 @@ const makeInstallPlan = (request: InstallationRequest) => {
   const config = snapshot(inputs.paths.config);
   const hooks = snapshot(inputs.paths.hooks);
   const ownership = snapshot(inputs.paths.ownership);
-  const existingRecord = readOwnership(inputs.paths.ownership);
+  const resetJournal = request.reinstall ? snapshot(inputs.paths.journal) : undefined;
+  let existingRecord: OwnershipRecord | undefined;
+  try { existingRecord = readOwnership(inputs.paths.ownership); } catch (cause) { if (!request.reinstall) throw cause; }
   const group = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
   const fingerprint = hookFingerprint(group);
-  const hookRoot = parseJsonObject(hooks);
+  const originalRoot = parseJsonObject(hooks);
+  const hookRoot = request.reinstall ? removeMarkedHandlers(originalRoot, [OWNED_MARKER, COMPOSED_MARKER]) : originalRoot;
   const count = markerCount(hookRoot);
-  if (count > 1) throw new Error("duplicate owned Codex hook representations require manual reconciliation");
+  if (count > 1 || postToolUseGroups(hookRoot).filter(isOwnedPostGroup).length > 1) throw new Error("duplicate owned Codex hook representations require manual reconciliation");
   if (existingRecord !== undefined) {
     if (existingRecord.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
-    if (count !== 1) throw new Error("owned Codex hook is missing or locally modified");
-    const currentGroup = postToolUseGroups(hookRoot).find((candidate) => markerCount(candidate) > 0);
-    if (hookFingerprint(currentGroup) !== existingRecord.hookFingerprint) {
+    if (count > 1) throw new Error("owned Codex hook is duplicated");
+    const currentGroup = postToolUseGroups(hookRoot).find(isOwnedPostGroup);
+    if (!request.reinstall && currentGroup !== undefined && hookFingerprint(currentGroup) !== existingRecord.hookFingerprint &&
+        !retainedHookSubset(currentGroup, existingRecord.hookGroups?.PostToolUse)) {
       throw new Error("owned Codex hook was locally modified; reconcile before reinstalling");
     }
-  } else if (count !== 0) {
+  } else if (count !== 0 || postToolUseGroups(hookRoot).some(isOwnedPostGroup)) {
     throw new Error("an unrecorded owned-marker hook requires manual reconciliation");
   }
   const nextConfig = enableHooksFeature(config);
-  if (existingRecord?.owned.some((entry) => entry.kind === "feature") === true && nextConfig !== config.content) {
-    throw new Error("owned Codex feature entry is missing or locally modified");
-  }
+
   const nextHooksRoot = existingRecord === undefined
     ? addOwnedHook(hookRoot, group)
     : replaceOwnedHook(hookRoot, group);
   const nextHooks = encodeJson(withComposedGroups(nextHooksRoot,
     composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version),
-    existingRecord?.composedFingerprints));
-  const featureOwned = existingRecord?.owned.some((entry) =>
+    request.reinstall ? undefined : existingRecord?.composedFingerprints, true, existingRecord?.hookGroups));
+  const featureOwned = (existingRecord?.owned.some((entry) =>
     entry.kind === "feature" && entry.file === inputs.paths.config
-  ) ?? nextConfig !== config.content;
+  ) ?? false) || nextConfig !== config.content;
   const record = makeOwnershipRecord(inputs, fingerprint, featureOwned);
   const nextOwnership = encodeJson(record);
   const mutations = [
     ...(nextConfig === config.content ? [] : [mutation(config, nextConfig, "enable Codex's native hooks feature")]),
     ...(nextHooks === hooks.content ? [] : [mutation(hooks, nextHooks, "append the owned PostToolUse adapter hook")]),
-    ...(nextOwnership === ownership.content ? [] : [mutation(ownership, nextOwnership, "write the versioned ownership record")]),
+    ...(nextOwnership === ownership.content && nextHooks === hooks.content && nextConfig === config.content && resetJournal?.exists !== true ? [] : [mutation(ownership, nextOwnership, "write the versioned ownership record")]),
   ];
-  return { inputs, mutations, digest: installationDigest("install", inputs.home, mutations), alreadyInstalled: mutations.length === 0 };
+  return { inputs, mutations, resetJournal, digest: reinstallDigest(installationDigest("install", inputs.home, mutations), resetJournal?.exists ? resetJournal.digest : undefined), alreadyInstalled: mutations.length === 0 };
 };
 
 const makeUpdatePlan = (request: InstallationRequest) => {
@@ -801,31 +797,27 @@ const makeUpdatePlan = (request: InstallationRequest) => {
   const config = snapshot(inputs.paths.config);
   const parsedConfig = validateToml(config);
   const ownedFeature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config);
-  if (ownedFeature !== undefined) {
-    if (ownedFeature.fingerprint !== HOOKS_FEATURE_FINGERPRINT ||
-        !isObject(parsedConfig.features) || parsedConfig.features.hooks !== true) {
-      throw new Error("owned Codex feature value was locally modified; the installed version was preserved");
-    }
-  } else if (!isObject(parsedConfig.features) || parsedConfig.features.hooks !== true) {
-    throw new Error("preexisting Codex hooks feature is no longer enabled; the installed version was preserved");
-  }
+  if (ownedFeature !== undefined && ownedFeature.fingerprint !== HOOKS_FEATURE_FINGERPRINT) throw new Error("owned Codex feature record was locally modified");
+  const nextConfig = enableHooksFeature(config);
   const hooks = snapshot(inputs.paths.hooks);
   const hookRoot = parseJsonObject(hooks);
-  const currentGroup = postToolUseGroups(hookRoot).find((candidate) => markerCount(candidate) > 0);
-  if (markerCount(hookRoot) !== 1 || hookFingerprint(currentGroup) !== record.hookFingerprint) {
+  const currentGroup = postToolUseGroups(hookRoot).find(isOwnedPostGroup);
+  if (postToolUseGroups(hookRoot).filter(isOwnedPostGroup).length > 1 || markerCount(hookRoot) > 1 || (currentGroup !== undefined && hookFingerprint(currentGroup) !== record.hookFingerprint &&
+      !retainedHookSubset(currentGroup, record.hookGroups?.PostToolUse))) {
     throw new Error("owned Codex hook was locally modified; the installed version was preserved");
   }
   const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
   const targetFingerprint = hookFingerprint(targetGroup);
   const nextHooks = encodeJson(withComposedGroups(replaceOwnedHook(hookRoot, targetGroup),
     composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version),
-    record.composedFingerprints));
+    record.composedFingerprints, true, record.hookGroups));
   const ownership = snapshot(inputs.paths.ownership);
-  const nextOwnership = encodeJson(makeOwnershipRecord(inputs, targetFingerprint, ownedFeature !== undefined));
+  const nextOwnership = encodeJson(makeOwnershipRecord(inputs, targetFingerprint, ownedFeature !== undefined || nextConfig !== config.content));
   const mutations = [
     // Recording the target first retains the previous working hook if a later
     // per-file write fails. The journal reports and safely resumes this exact state.
-    ...(nextOwnership === ownership.content ? [] : [mutation(ownership, nextOwnership, "record the target packaged runtime")]),
+    ...(nextOwnership === ownership.content && nextHooks === hooks.content && nextConfig === config.content ? [] : [mutation(ownership, nextOwnership, "record the target packaged runtime")]),
+    ...(nextConfig === config.content ? [] : [mutation(config, nextConfig, "enable Codex's native hooks feature")]),
     ...(nextHooks === hooks.content ? [] : [mutation(hooks, nextHooks, "replace only the owned PostToolUse adapter hook")]),
   ];
   return {
@@ -850,21 +842,21 @@ const makeUninstallPlan = (request: InstallationRequest) => {
   const ownership = snapshot(inputs.paths.ownership);
   const parsedConfig = validateToml(config);
   const hookRoot = parseJsonObject(hooks);
-  const nextHookRoot = withComposedGroups(removeOwnedHook(hookRoot, record.hookFingerprint),
-    undefined, record.composedFingerprints);
+  const nextHookRoot = withComposedGroups(removeOwnedHook(hookRoot, record.hookFingerprint, record.hookGroups?.PostToolUse),
+    undefined, record.composedFingerprints, true, record.hookGroups);
   const nextHooks = encodeJson(nextHookRoot);
   const ownedFeature = record.owned.find((entry) => entry.kind === "feature" && entry.file === inputs.paths.config);
   const featureWasOwned = ownedFeature !== undefined;
   if (featureWasOwned) {
     const features = parsedConfig.features;
     if (ownedFeature.fingerprint !== HOOKS_FEATURE_FINGERPRINT ||
-        !isObject(features) || features.hooks !== true) {
+        (isObject(features) && features.hooks !== undefined && features.hooks !== true)) {
       throw new Error("owned Codex feature value was locally modified; it was preserved");
     }
   }
   const unrelatedHooksRemain = markerCount(nextHookRoot) === 0 &&
     isObject(nextHookRoot.hooks) && Object.values(nextHookRoot.hooks).some((value) => Array.isArray(value) && value.length > 0);
-  const nextConfig = featureWasOwned && !unrelatedHooksRemain
+  const nextConfig = featureWasOwned && isObject(parsedConfig.features) && parsedConfig.features.hooks === true && !unrelatedHooksRemain
     ? disableOwnedFeature(config.content)
     : config.content;
   const mutations = [
@@ -933,208 +925,12 @@ const readJournal = (path: string): Journal | undefined => {
       operation: value.operation,
       proposalDigest: value.proposalDigest,
       completed,
+      ...(value.reinstall === true ? { reinstall: true } : {}),
+      ...(typeof value.replacedJournalDigest === "string" && /^[a-f0-9]{64}$/.test(value.replacedJournalDigest) ? { replacedJournalDigest: value.replacedJournalDigest } : {}),
       mutations,
     };
   } catch {
     throw new Error("recovery journal is malformed; inspect it before making further changes");
-  }
-};
-
-const sleep = (milliseconds: number) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds));
-
-const LOCK_STALE_MS = 5_000;
-const LOCK_GENERATION_WIDTH = 16;
-const LOCK_GENERATION_RETENTION = 8;
-
-interface LockRecord {
-  readonly version: 1;
-  readonly pid: number;
-  readonly createdAt: string;
-  readonly owner: string;
-}
-
-const decodeLockRecord = (content: string): LockRecord | undefined => {
-  try {
-    const value: unknown = JSON.parse(content);
-    if (!isObject(value) || value.version !== 1 || typeof value.pid !== "number" ||
-        !Number.isSafeInteger(value.pid) || value.pid <= 0 || typeof value.createdAt !== "string" ||
-        !Number.isFinite(Date.parse(value.createdAt)) || typeof value.owner !== "string" ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.owner)) {
-      return undefined;
-    }
-    return { version: 1, pid: value.pid, createdAt: value.createdAt, owner: value.owner };
-  } catch {
-    return undefined;
-  }
-};
-
-const processIsAlive = (pid: number) => {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (cause) {
-    return !isNodeError(cause, "ESRCH");
-  }
-};
-
-interface LockGeneration {
-  readonly number: bigint;
-  readonly name: string;
-  readonly ownerDirectory: string;
-  readonly record: LockRecord;
-  readonly released: boolean;
-  readonly reclaimed: boolean;
-}
-
-const readCurrentLockGeneration = (path: string): LockGeneration | undefined => {
-  const generations = join(path, "generations");
-  const names = readdirSync(generations)
-    .filter((name) => /^\d{16}$/.test(name))
-    .sort();
-  const name = names.at(-1);
-  if (name === undefined) return undefined;
-  const generationPath = join(generations, name);
-  const target = readlinkSync(generationPath);
-  const match = /^\.\.\/owners\/([0-9a-f-]{36})$/i.exec(target);
-  if (match === null) throw new Error("configuration lock generation has an invalid owner target");
-  const ownerDirectory = join(path, "owners", match[1] ?? "");
-  const record = decodeLockRecord(readFileSync(join(ownerDirectory, "record.json"), "utf8"));
-  if (record === undefined || record.owner !== match[1]) {
-    throw new Error("configuration lock generation has an invalid owner record");
-  }
-  return {
-    number: BigInt(name),
-    name,
-    ownerDirectory,
-    record,
-    released: existsSync(join(ownerDirectory, "released")),
-    reclaimed: existsSync(join(ownerDirectory, "reclaimed")),
-  };
-};
-
-const removeOwnerDirectoryIfInactive = (ownerDirectory: string) => {
-  const released = existsSync(join(ownerDirectory, "released"));
-  const reclaimed = existsSync(join(ownerDirectory, "reclaimed"));
-  let record: LockRecord | undefined;
-  try {
-    record = decodeLockRecord(readFileSync(join(ownerDirectory, "record.json"), "utf8"));
-  } catch (cause) {
-    if (!isNodeError(cause, "ENOENT")) throw cause;
-  }
-  if (!released && !reclaimed) {
-    if (record !== undefined && processIsAlive(record.pid)) return;
-    const modifiedAt = statSync(ownerDirectory).mtimeMs;
-    const createdAt = record === undefined ? modifiedAt : Date.parse(record.createdAt);
-    if (Date.now() - createdAt < LOCK_STALE_MS) return;
-  }
-  rmSync(ownerDirectory, { recursive: true, force: true });
-};
-
-const compactLockHistory = (path: string, current: LockGeneration) => {
-  const generationsPath = join(path, "generations");
-  const names = readdirSync(generationsPath)
-    .filter((name) => /^\d{16}$/.test(name))
-    .sort();
-  const retainedNames = names.slice(-LOCK_GENERATION_RETENTION);
-  const retainedOwners = new Set<string>();
-  for (const name of retainedNames) {
-    try {
-      const target = readlinkSync(join(generationsPath, name));
-      const match = /^\.\.\/owners\/([0-9a-f-]{36})$/i.exec(target);
-      if (match?.[1] !== undefined) retainedOwners.add(match[1]);
-    } catch (cause) {
-      if (!isNodeError(cause, "ENOENT")) throw cause;
-    }
-  }
-  for (const name of names.slice(0, -LOCK_GENERATION_RETENTION)) {
-    if (name === current.name) continue;
-    try {
-      unlinkSync(join(generationsPath, name));
-    } catch (cause) {
-      if (!isNodeError(cause, "ENOENT")) throw cause;
-    }
-  }
-  const ownersPath = join(path, "owners");
-  for (const owner of readdirSync(ownersPath)) {
-    if (owner === current.record.owner || retainedOwners.has(owner)) continue;
-    removeOwnerDirectoryIfInactive(join(ownersPath, owner));
-  }
-};
-
-const claimStaleGeneration = (generation: LockGeneration, claimer: string): boolean => {
-  if (generation.released || generation.reclaimed) return true;
-  if (Date.now() - Date.parse(generation.record.createdAt) < LOCK_STALE_MS ||
-      processIsAlive(generation.record.pid)) return false;
-  try {
-    writeFileSync(
-      join(generation.ownerDirectory, "reclaimed"),
-      `${JSON.stringify({ version: 1, claimer, createdAt: new Date().toISOString() })}\n`,
-      { flag: "wx", mode: 0o600 },
-    );
-  } catch (cause) {
-    if (!isNodeError(cause, "EEXIST")) throw cause;
-  }
-  return true;
-};
-
-const withLock = async <A>(path: string, use: () => Promise<A>): Promise<A> => {
-  mkdirSync(join(path, "owners"), { recursive: true, mode: 0o700 });
-  mkdirSync(join(path, "generations"), { recursive: true, mode: 0o700 });
-  const deadline = Date.now() + 1_500;
-  const owner = randomUUID();
-  const ownerDirectory = join(path, "owners", owner);
-  mkdirSync(ownerDirectory, { mode: 0o700 });
-  const record: LockRecord = {
-    version: 1,
-    pid: process.pid,
-    createdAt: new Date().toISOString(),
-    owner,
-  };
-  writeFileSync(join(ownerDirectory, "record.json"), `${JSON.stringify(record)}\n`, { flag: "wx", mode: 0o600 });
-  let acquired = false;
-  try {
-    while (!acquired) {
-      try {
-        const current = readCurrentLockGeneration(path);
-        if (current !== undefined && !claimStaleGeneration(current, owner)) {
-          if (Date.now() >= deadline) throw new Error("configuration lock remained busy for 1500ms");
-          await sleep(25);
-          continue;
-        }
-        if (Date.now() >= deadline) throw new Error("configuration lock acquisition exceeded 1500ms");
-        const next = (current?.number ?? 0n) + 1n;
-        if (next >= 10n ** BigInt(LOCK_GENERATION_WIDTH)) {
-          throw new Error("configuration lock generation limit reached");
-        }
-        const generationName = String(next).padStart(LOCK_GENERATION_WIDTH, "0");
-        symlinkSync(`../owners/${owner}`, join(path, "generations", generationName));
-        acquired = true;
-      } catch (cause) {
-        if (cause instanceof Error && cause.message === "configuration lock remained busy for 1500ms") throw cause;
-        if (!isNodeError(cause, "EEXIST") && !isNodeError(cause, "ENOENT")) throw cause;
-        if (Date.now() >= deadline) throw new Error("configuration lock remained busy for 1500ms");
-        await sleep(25);
-      }
-    }
-  } catch (cause) {
-    rmSync(ownerDirectory, { recursive: true, force: true });
-    throw cause;
-  }
-  try {
-    const current = readCurrentLockGeneration(path);
-    if (current === undefined || current.record.owner !== owner) {
-      throw new Error("configuration lock generation was not published as current");
-    }
-    compactLockHistory(path, current);
-    const holdMilliseconds = Number(process.env.REVIEW_INSTALL_TEST_HOLD_LOCK_MS ?? "0");
-    if (Number.isFinite(holdMilliseconds) && holdMilliseconds > 0) await sleep(holdMilliseconds);
-    return await use();
-  } finally {
-    try {
-      writeFileSync(join(ownerDirectory, "released"), "\n", { flag: "wx", mode: 0o600 });
-    } catch (cause) {
-      if (!isNodeError(cause, "EEXIST")) throw cause;
-    }
   }
 };
 
@@ -1216,7 +1012,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
       throw new Error(`concurrent change detected for ${change.path}; no stale content was restored`);
     }
   }
-  if (installationDigest(journal.operation, inputs.home, journal.mutations) !== journal.proposalDigest) {
+  if (reinstallDigest(installationDigest(journal.operation, inputs.home, journal.mutations), journal.replacedJournalDigest) !== journal.proposalDigest) {
     throw new Error("recovery journal proposal digest does not match its declared changes");
   }
 
@@ -1242,25 +1038,27 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
   );
 
   if (journal.operation === "update") {
-    if (configChange !== undefined || ownershipChange === undefined || journal.mutations[0]?.path !== inputs.paths.ownership ||
+    if (ownershipChange === undefined || journal.mutations[0]?.path !== inputs.paths.ownership ||
         ownershipChange.description !== "record the target packaged runtime" ||
         (hooksChange !== undefined && hooksChange.description !== "replace only the owned PostToolUse adapter hook")) {
       throw new Error("recovery journal is not an exact owned update plan");
     }
-    const expectedOwnership = encodeJson(makeOwnershipRecord(inputs, targetFingerprint, priorFeatureOwned));
+    if (configChange !== undefined && (configChange.description !== "enable Codex's native hooks feature" ||
+        configChange.afterContent !== enableHooksFeature(mutationBeforeFile(configChange)))) throw new Error("recovery journal contains an unexpected Codex feature change");
+    const expectedOwnership = encodeJson(makeOwnershipRecord(inputs, targetFingerprint, priorFeatureOwned || configChange !== undefined));
     if (ownershipChange.afterContent !== expectedOwnership) {
       throw new Error("recovery journal ownership does not match the exact target package");
     }
     if (hooksChange !== undefined) {
       const beforeRoot = parseJsonObject(mutationBeforeFile(hooksChange));
       const expectedHooks = encodeJson(withComposedGroups(replaceOwnedHook(beforeRoot, targetGroup),
-        targetComposed, priorComposed));
+        targetComposed, priorComposed, true, isObject(priorOwnership?.hookGroups) ? priorOwnership.hookGroups : undefined));
       if (hooksChange.afterContent !== expectedHooks) {
         throw new Error("recovery journal hook change does not preserve the exact unrelated hook state");
       }
     } else {
       const currentRoot = parseJsonObject(snapshot(inputs.paths.hooks));
-      const currentGroup = postToolUseGroups(currentRoot).find((candidate) => markerCount(candidate) > 0);
+      const currentGroup = postToolUseGroups(currentRoot).find(isOwnedPostGroup);
       if (markerCount(currentRoot) !== 1 || stableJson(currentGroup) !== stableJson(targetGroup)) {
         throw new Error("recovery journal does not bind the exact target owned hook");
       }
@@ -1284,17 +1082,18 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
       }
     }
     if (hooksChange !== undefined) {
-      const beforeRoot = parseJsonObject(mutationBeforeFile(hooksChange));
-      const expectedRoot = markerCount(beforeRoot) === 0
-        ? addOwnedHook(beforeRoot, targetGroup)
-        : replaceOwnedHook(beforeRoot, targetGroup);
+      const originalRoot = parseJsonObject(mutationBeforeFile(hooksChange));
+      const beforeRoot = journal.reinstall ? removeMarkedHandlers(originalRoot, [OWNED_MARKER, COMPOSED_MARKER]) : originalRoot;
+      const expectedRoot = postToolUseGroups(beforeRoot).some(isOwnedPostGroup)
+        ? replaceOwnedHook(beforeRoot, targetGroup)
+        : addOwnedHook(beforeRoot, targetGroup);
       if (hooksChange.description !== "append the owned PostToolUse adapter hook" ||
-          hooksChange.afterContent !== encodeJson(withComposedGroups(expectedRoot, targetComposed, priorComposed))) {
+          hooksChange.afterContent !== encodeJson(withComposedGroups(expectedRoot, targetComposed, journal.reinstall ? undefined : priorComposed, true, isObject(priorOwnership?.hookGroups) ? priorOwnership.hookGroups : undefined))) {
         throw new Error("recovery journal install hook does not preserve unrelated hooks");
       }
     } else {
       const currentRoot = parseJsonObject(snapshot(inputs.paths.hooks));
-      const currentGroup = postToolUseGroups(currentRoot).find((candidate) => markerCount(candidate) > 0);
+      const currentGroup = postToolUseGroups(currentRoot).find(isOwnedPostGroup);
       if (markerCount(currentRoot) !== 1 || stableJson(currentGroup) !== stableJson(targetGroup)) {
         throw new Error("recovery journal install plan does not bind the exact owned hook");
       }
@@ -1322,8 +1121,8 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
   if (hooksChange !== undefined) {
     if (installedFingerprint === undefined || hooksChange.description !== "remove only the owned PostToolUse adapter hook" ||
         hooksChange.afterContent !== encodeJson(withComposedGroups(removeOwnedHook(
-          parseJsonObject(mutationBeforeFile(hooksChange)), installedFingerprint,
-        ), undefined, priorComposed))) {
+          parseJsonObject(mutationBeforeFile(hooksChange)), installedFingerprint, isObject(priorOwnership?.hookGroups) ? priorOwnership.hookGroups.PostToolUse : undefined,
+        ), undefined, priorComposed, true, isObject(priorOwnership?.hookGroups) ? priorOwnership.hookGroups : undefined))) {
       throw new Error("recovery journal uninstall hook does not preserve unrelated hooks");
     }
   }
@@ -1348,7 +1147,7 @@ const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolv
       throw new Error("preexisting Codex hooks feature changed during recovery; the current config was preserved");
     }
   }
-  if (journal.operation === "update") {
+  if (journal.operation === "update" && !journal.mutations.some(change => change.path === inputs.paths.config)) {
     const config = validateToml(snapshot(inputs.paths.config));
     if (!isObject(config.features) || config.features.hooks !== true) {
       throw new Error("Codex hooks feature changed during update recovery; the current config was preserved");
@@ -1449,7 +1248,8 @@ const ownedChanges = (inputs: ReturnType<typeof resolveInputs>) => ({
     file: inputs.paths.hooks,
     event: "PostToolUse",
     matcher: OWNED_MATCHER,
-    handlers: [ownedHook(inputs.executable, inputs.entrypoint, inputs.codex.version)],
+    handlers: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version).hooks,
+    groups: { PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version), ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version) },
   },
   ownership: {
     file: inputs.paths.ownership,
@@ -1458,13 +1258,23 @@ const ownedChanges = (inputs: ReturnType<typeof resolveInputs>) => ({
   },
 });
 
+const installationJournal = (inputs: ReturnType<typeof resolveInputs>, request: InstallationRequest): Journal | undefined => {
+  if (!request.reinstall) return readJournal(inputs.paths.journal);
+  try {
+    const journal = readJournal(inputs.paths.journal);
+    if (journal?.reinstall !== true) return undefined;
+    validateJournalScope(journal, inputs);
+    return journal;
+  } catch { return undefined; }
+};
+
 export const previewCodexInstallation = (request: InstallationRequest): InstallationResult => {
   const home = resolveInputs(request).home;
   try {
     const inputs = resolveInputs(request);
     const host = compatibility(inputs);
     if (!host.supported) return unsupportedResult("install-preview", inputs, host);
-    const pendingJournal = readJournal(inputs.paths.journal);
+    const pendingJournal = installationJournal(inputs, request);
     if (pendingJournal !== undefined) {
       validateJournalScope(pendingJournal, inputs);
       return {
@@ -1498,6 +1308,7 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
         digest: plan.digest,
         changes: previewChanges(plan.mutations),
         ownedChanges: ownedChanges(plan.inputs),
+        ...(plan.resetJournal?.exists ? { journalReplacement: { file: inputs.paths.journal, action: "back up the interrupted journal and rebuild from current settings" } } : {}),
       },
       installed: plan.alreadyInstalled,
             recovery: { required: false },
@@ -1518,6 +1329,14 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
 };
 
 /** Read-only ownership/configuration inspection independent of host compatibility. */
+/** Discover owned registration state without requiring this package or host version to be current. */
+export const hasCodexRegistration = (request: InstallationRequest): boolean => {
+  const paths = pathsFor(resolve(request.codexHome ?? join(homedir(), ".codex")));
+  if (snapshot(paths.ownership).exists || snapshot(paths.journal).exists) return true;
+  const hooks = snapshot(paths.hooks).content;
+  return hooks.includes(OWNED_MARKER) || hooks.includes(COMPOSED_MARKER);
+};
+
 export const inspectCodexInstallation = (request: InstallationRequest): InstallationResult => {
   const inputs = resolveInputs(request);
   try {
@@ -1540,21 +1359,21 @@ export const inspectCodexInstallation = (request: InstallationRequest): Installa
     }
     const ownership = readOwnership(inputs.paths.ownership);
     const installed = ownership !== undefined && (() => {
-      if (ownership.codexHome !== inputs.home || ownership.entrypoint !== inputs.entrypoint ||
-          ownership.packageVersion !== inputs.packageVersion ||
-          ownership.residentProtocol !== inputs.residentProtocol) return false;
+      if (ownership.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
       const config = validateToml(snapshot(inputs.paths.config));
-      if (!isObject(config.features) || config.features.hooks !== true) return false;
+      if (!isObject(config.features) || config.features.hooks !== true) throw new Error("Codex hooks feature is missing or disabled");
       const hooks = parseJsonObject(snapshot(inputs.paths.hooks));
-      if (markerCount(hooks) !== 1) throw new Error("owned Codex hook is missing or duplicated");
-      const group = postToolUseGroups(hooks).find((candidate) => markerCount(candidate) > 0);
+      if (markerCount(hooks) !== 1 || postToolUseGroups(hooks).filter(isOwnedPostGroup).length !== 1) throw new Error("owned Codex hook is missing or duplicated");
+      const group = postToolUseGroups(hooks).find(isOwnedPostGroup);
       if (hookFingerprint(group) !== ownership.hookFingerprint) {
         throw new Error("owned Codex hook was locally modified");
       }
       if (ownership.composedFingerprints !== undefined) {
         withComposedGroups(hooks, undefined, ownership.composedFingerprints);
       }
-      const pinnedInputs = { ...inputs, executable: ownership.executable };
+      const pinnedInputs = resolveInputs({ ...request });
+      pinnedInputs.executable = ownership.executable;
+      pinnedInputs.entrypoint = ownership.entrypoint;
       return compatibility(pinnedInputs).supported && ownership.runtimeVersion === `v${inputs.runtimeVersion}`;
     })();
     return {
@@ -1675,7 +1494,7 @@ export const updateCodexIntegration = async (request: InstallationRequest): Prom
   const initialCompatibility = compatibility(inputs);
   if (!initialCompatibility.supported) return unsupportedResult("update", inputs, initialCompatibility);
   try {
-    return await withLock(inputs.paths.lock, async () => {
+    return await withInstallationLock(inputs.paths.lock, async () => {
       const currentCompatibility = compatibility(inputs);
       if (!currentCompatibility.supported) return unsupportedResult("update", inputs, currentCompatibility);
       const existingJournal = readJournal(inputs.paths.journal);
@@ -1805,10 +1624,10 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
   const initialCompatibility = compatibility(inputs);
   if (!initialCompatibility.supported) return unsupportedResult("install", inputs, initialCompatibility);
   try {
-    return await withLock(inputs.paths.lock, async () => {
+    return await withInstallationLock(inputs.paths.lock, async () => {
       const currentCompatibility = compatibility(inputs);
       if (!currentCompatibility.supported) return unsupportedResult("install", inputs, currentCompatibility);
-      const existingJournal = readJournal(inputs.paths.journal);
+      const existingJournal = installationJournal(inputs, request);
       if (existingJournal !== undefined) {
         try {
           validateJournalScope(existingJournal, inputs);
@@ -1868,8 +1687,9 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
           pending: ["make Jev credentials available and configure file settings if desired"],
         };
       }
-      const journal: Journal = { version: 1, operation: "install", proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
+      const journal: Journal = { version: 1, operation: "install", ...(request.reinstall ? { reinstall: true } : {}), ...(plan.resetJournal?.exists ? { replacedJournalDigest: plan.resetJournal.digest } : {}), proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
       try {
+        if (plan.resetJournal?.exists) atomicWrite(`${inputs.paths.journal}.reinstall-backup.${randomUUID()}`, plan.resetJournal.content);
         applyJournal(inputs.paths.journal, journal);
       } catch (cause) {
         const current = readJournal(inputs.paths.journal);
@@ -1902,7 +1722,7 @@ export const installCodexIntegration = async (request: InstallationRequest): Pro
 export const uninstallCodexIntegration = async (request: InstallationRequest): Promise<InstallationResult> => {
   const inputs = resolveInputs(request);
   try {
-    return await withLock(inputs.paths.lock, async () => {
+    return await withInstallationLock(inputs.paths.lock, async () => {
       const existingJournal = readJournal(inputs.paths.journal);
       if (existingJournal !== undefined) {
         try {
@@ -1927,6 +1747,12 @@ export const uninstallCodexIntegration = async (request: InstallationRequest): P
             remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
           };
         }
+        if (existingJournal.operation === "uninstall" && request.proposalDigest === undefined) return {
+          version: RESULT_VERSION, operation: "uninstall", status: "partial",
+          host: { adapter: "codex", home: inputs.home },
+          proposal: { digest: existingJournal.proposalDigest, changes: previewChanges(existingJournal.mutations) },
+          recovery: { operation: "uninstall", proposalDigest: existingJournal.proposalDigest },
+        };
         throw new Error("another journaled operation requires recovery before uninstall");
       }
       const plan = makeUninstallPlan(request);
@@ -1948,7 +1774,7 @@ export const uninstallCodexIntegration = async (request: InstallationRequest): P
           operation: "uninstall",
           status: "preview",
           host: { adapter: "codex", home: inputs.home },
-          proposal: { digest: plan.digest, changes: previewChanges(plan.mutations) },
+          proposal: { digest: plan.digest, changes: previewChanges(plan.mutations), ownedChanges: { hooks: { file: inputs.paths.hooks, groups: readOwnership(inputs.paths.ownership)?.hookGroups ?? {} } } },
           completed: [],
           pending: ["rerun uninstall with this proposal digest"],
           remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],

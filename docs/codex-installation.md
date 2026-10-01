@@ -8,16 +8,21 @@
 
 ## Guided setup and updates
 
+`hapsland setup` opens a checkbox selector for Claude Code and Codex CLI. Installed clients are checked by default. Choose either or both; unchecking a client preserves its installation. Each selected client gets its own preview and confirmation. The named commands below bypass selection. `hapsland update` updates every registered Claude/Codex client with one target and one confirmation of the previewed changes; `hapsland update codex` limits the operation to this client.
+
 After acquiring a verified package through the [installation lanes](installation-workflows.md):
 
 ```sh
 hapsland setup codex
 hapsland doctor codex
+hapsland repair codex
+hapsland reinstall codex
+hapsland uninstall codex
 hapsland update codex
 hapsland update codex --channel=next
 ```
 
-Setup previews owned changes, asks before installation, offers masked entry for a missing saved key, and reports offline readiness without a Jev call. Updates stage the target in a separate prefix, preview its registration, and apply the digest after confirmation. Finish current client work, restart, and complete native trust review. For local builds, use `npm run dev-install -- --host=codex`; add `--update` for an existing registration. Both client profiles default to user scope; effective file settings bound review across repositories.
+Setup previews owned changes, asks before installation, offers masked entry for a missing saved key, and reports offline readiness without a Jev call. Updates reuse a verified identical target or stage it in a separate prefix, preview every owned hook, and apply the digest after confirmation. Public lifecycle commands follow the active package. Repair restores missing hooks; explicit reinstall replaces changed marked handlers while preserving user settings and credentials. Doctor and the other bare commands cover all registered Claude/Codex profiles. Finish current client work, restart, and complete native trust review. For local builds, use `npm run dev-install -- --host=codex`; add `--update` for an existing registration. Both client profiles default to user scope; effective file settings bound review across repositories.
 
 ## Lifecycle automation
 
@@ -166,7 +171,7 @@ The preview names both package versions, runtime and entrypoint paths, resident 
 new owned hook, and the exact files that would change. Update accepts only a compatible resident
 protocol and requires the target package to contain a nonempty package version plus valid,
 versioned runtime metadata; missing or malformed metadata is rejected before any mutation.
-Update changes only the ownership record and owned hook group. Old grant files,
+Update changes the ownership record and owned hook groups and can restore a missing hooks-feature entry. Old grant files,
 credentials, user rules, independent hooks, current source work and running resident processes
 remain untouched. A changed hook reports that Codex must be restarted after current work finishes
 and that native hook trust may need renewal; the updater does not edit trust state or stop a
@@ -193,8 +198,10 @@ runtime and requires it to report Node 24.20.0 on Linux arm64 or macOS arm64. `/
 executable file is not accepted as a runtime. The CLI, parser, and resident packaged entrypoints
 must all be readable regular files, and a declared Codex CLI version must be ready. The
 installer validates `config.toml` and `hooks.json`, preserves object and array order, and
-rejects malformed or unreadable files, duplicate owned markers, explicit hook disablement, and
-locally changed owned entries. TOML edits locate parsed table/key spans, including quoted table
+ordinary installation/update rejects malformed or unreadable files, duplicate owned markers, explicit hook disablement, and
+locally changed owned entries. Missing recorded hooks can be restored by repair/update. Explicit
+reinstall replaces marked handlers and unusable journals while preserving independent handlers
+and current user settings. Explicit hook disablement remains authoritative. TOML edits locate parsed table/key spans, including quoted table
 names, and ignore table-like text inside multiline strings; the resulting TOML and hooks semantic
 state are parsed again before writing. It uses a bounded 1.5-second configuration lock, digest-based
 concurrent-change checks, atomic per-file replacement, and a versioned journal. The lock is a
@@ -218,7 +225,7 @@ Codex owns repository and hook trust. The installer does not edit trust records 
 flags. Start Codex normally in the enabled repository and approve the native repository and hook
 review prompts. Managed policy or an explicit `features.hooks = false` remains authoritative.
 Uninstall removes an owned feature entry only when its recorded semantic fingerprint still
-matches `features.hooks = true`; a false, missing, or commented-out value produces a conflict and
+matches `features.hooks = true`; an explicitly false value produces a conflict and
 is preserved.
 
 ## Optional first-review demo
@@ -262,3 +269,5 @@ attempt. To abandon a preview without a Jev call, send `selection: "cancel"` wit
 The preview reports fixture setup actions and time independently from live review latency. A live
 run still requires an authenticated Codex profile, completed native trust, and a Jev credential
 available to the real hook context.
+
+For automation, `install-preview` and `install` accept `reinstall: true` with the same proposal-digest authorization. This explicitly replaces marked Hapsland entries and can replace damaged ownership metadata. See [recovery and removal](installation-workflows.md#disablement-removal-and-recovery) for journal recovery and the limits of safe reconstruction.

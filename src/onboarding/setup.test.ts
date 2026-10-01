@@ -190,7 +190,7 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
           hook: {
             file: join(test.codexHome, "hooks.json"),
             matcher: "^(apply_patch|Edit|Write|Bash)$",
-            handlers: [expect.objectContaining({ command: expect.any(String), timeout: 10 })],
+            handlers: [expect.objectContaining({ command: expect.any(String), timeout: 10 }), expect.objectContaining({ command: expect.any(String), timeout: 25, async: true })],
           },
           ownership: { file: join(test.codexHome, ".realtime-review-tool", "installation-v1.json") },
         },
@@ -233,6 +233,14 @@ describe("public resumable setup operation", { timeout: 30_000 }, () => {
       }),
     ]));
     expect(existsSync(join(test.codexHome, ".realtime-review-tool", "journal-v1.json"))).toBe(true);
+
+    const pending = invoke(test, {});
+    expect(pending.stages).toEqual(expect.arrayContaining([
+      expect.objectContaining({ stage: "installation", status: "partial", observed: expect.objectContaining({
+        recovery: expect.any(Object),
+        proposal: expect.objectContaining({ digest: approvals.installProposalDigest, changes: expect.any(Array), ownedChanges: expect.any(Object) }),
+      }) }),
+    ]));
 
     const resumed = invoke(test, approvals);
     expect(resumed.stages).toEqual(expect.arrayContaining([
