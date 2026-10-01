@@ -90,7 +90,10 @@
     "Advice publication commits the owner ticket result and independently joined subscriber bindings/outcomes together after the retention barrier; deleted mutable advice types, array mutation and the superseded unitFinding helper",
     "Collection and retention boundary checks include the advice owner and reject a restored server advice array or direct mutations of published advice payloads and delivery snapshots",
     "Deleted ResidentServer class; runtime acquisition is a named scoped Effect with ResidentRuntimeService and layer; process root consumes the layer, fixtures and offline witnesses acquire scoped runtimes",
-    "Runtime scope conformance proves isolated lifetimes, shared layer identity, owned endpoint removal and retired lifetime fencing"
+    "Runtime scope conformance proves isolated lifetimes, shared layer identity, owned endpoint removal and retired lifetime fencing",
+    "ResidentRuntimeService exposes named Effect operations; process consumes direct listen, protocol statistics/admission/cleanup and idle cleanup compose dispatcher Effects instead of nested sync runtime calls",
+    "Stable Effect regex export retains the existing credential-name JSON Schema pattern using the Unicode regex form; generated contracts remain unchanged",
+    "Separate-process admission fixture keeps its socket connected until the declared response barrier before explicit SIGKILL, removing premature process-exit race"
   ],
   "verification": [
     {
@@ -1062,6 +1065,41 @@
       "exitCode": 1,
       "passedTests": 137,
       "limitations": "One subprocess fixture syntax failure subsequently fixed; operational-notices worker exited with native SIGSEGV, isolated rerun passed. Earlier test/build sessions lost during permission interruption were rerun; lost results are not evidence."
+    },
+    {
+      "stage": "Resident Effect operation surface",
+      "command": "Typecheck, production build, all boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Stable credential schema contract",
+      "command": "Configuration and generator tests",
+      "exitCode": 0,
+      "tests": 49,
+      "files": 2
+    },
+    {
+      "stage": "Resident Effect operation surface",
+      "command": "npm test exploratory full run",
+      "exitCode": 1,
+      "passedTests": 1078,
+      "skippedTests": 2,
+      "passedFiles": 107,
+      "skippedFiles": 1,
+      "failure": "New runtime service test expression failed at runtime; subsequently corrected and verified in focused rerun. No native worker error in this run."
+    },
+    {
+      "stage": "Resident Effect operation surface",
+      "command": "Runtime scope and separate-process lifecycle focused rerun",
+      "exitCode": 0,
+      "tests": 13,
+      "files": 2
+    },
+    {
+      "stage": "Resident Effect operation surface",
+      "command": "Earlier overlapping runtime/subprocess/server suite",
+      "exitCode": 1,
+      "limitations": "Subprocess response-barrier timeout exposed premature client exit, corrected and verified in isolated rerun; server worker native SIGSEGV remains unexplained. Full suite subsequently ran without native worker error."
     }
   ],
   "next": [
@@ -1075,7 +1113,7 @@
   "limitations": [
     "Statistics, native IPC/lifecycle resources and mutable job callback metadata still have closure or executor ownership; combined state exposes synchronous bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
-    "No full suite/package/host/live validation results yet",
+    "Exploratory full suite had 1078 passes and one subsequently corrected test failure; final full suite/package/host/live gates remain pending",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied"
   ],

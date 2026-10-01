@@ -48,7 +48,7 @@ const run = Effect.fn("ResidentProcess.run")(function* () {
   const runtimeLayer = residentRuntimeLayer({ directory, socket: join(directory, "resident.sock"), lock, owner: join(directory, "owner.json") }, now);
   yield* Effect.gen(function* () {
     const server = yield* ResidentRuntimeService;
-    yield* server.listenEffect().pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident socket" })));
+    yield* server.listen().pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident socket" })));
     yield* processEffect("clear startup diagnostic", () => rm(`${lock}.startup-error`, { force: true }));
     yield* Effect.never;
   }).pipe(Effect.provide(runtimeLayer));

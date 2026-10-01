@@ -19,6 +19,10 @@ it.effect("a provided layer shares one runtime within its scope", () => Effect.s
     const first = yield* ResidentRuntimeService;
     const second = yield* ResidentRuntimeService;
     expect(first).toBe(second);
+    const hello = yield* first.handle({ requestRoute: "shared", operation: "hello" });
+    expect(hello).toMatchObject({ status: "ready", lifetime: first.lifetime });
+    expect((yield* first.stats()).running).toBe(0);
+    yield* first.whenIdle();
   }).pipe(Effect.provide(residentRuntimeLayer(residentPaths()))),
 ));
 

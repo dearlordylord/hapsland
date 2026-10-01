@@ -347,7 +347,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       "const registered=await residentRequest(paths,{requestRoute:'shared',operation:'register-edit',lifetime,root:observation.root,advicee:observation.advicee,startedAt:monotonicNow()});",
       "if(registered.status!=='advanced')throw new Error('edit permit was not registered');",
       "const socket=connect(socketPath);",
-      "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch,composed:true})+'\\n',()=>process.exit(0)));",
+      "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch,composed:true})+'\\n'));",
     ].join("");
     const admitGate = env.REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH;
     await writeFile(`${admitGate}.enabled`, "enabled\n");

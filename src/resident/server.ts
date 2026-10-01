@@ -457,7 +457,19 @@ export type ResidentRuntimeOptions = {
   readonly maximumTickets?: number;
 };
 
+/** Effect operations consumed by the process and protocol services. */
+export interface ResidentRuntimeOperations {
+  readonly lifetime: string;
+  readonly paths: ResidentPaths;
+  readonly listen: () => Effect.Effect<void, ResidentAdapterError>;
+  readonly close: Effect.Effect<void, ResidentAdapterError>;
+  readonly handle: (request: ResidentRequest) => Effect.Effect<ResidentResponse, ResidentAdapterError>;
+  readonly stats: () => Effect.Effect<Extract<ResidentResponse, { status: "stats" }>>;
+  readonly whenIdle: () => Effect.Effect<void>;
+}
+
 export interface ResidentRuntime {
+  readonly operations: ResidentRuntimeOperations;
   readonly lifetime: string;
   readonly paths: ResidentPaths;
   readonly listenEffect: () => Effect.Effect<void, ResidentAdapterError>;
@@ -504,7 +516,7 @@ export interface ResidentRuntime {
   close(): Promise<void>;
 }
 
-export class ResidentRuntimeService extends Context.Service<ResidentRuntimeService, ResidentRuntime>()("@hapsland/ResidentRuntime") {}
+export class ResidentRuntimeService extends Context.Service<ResidentRuntimeService, ResidentRuntimeOperations>()("@hapsland/ResidentRuntime") {}
 
 export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   paths: ResidentPaths = residentPaths(),
@@ -598,11 +610,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentAdvice = (): ReadonlyArray<Advice> => { return residentLedger.advice.values(); };
 
-  function stats(): Extract<ResidentResponse, { status: "stats" }> {
+  const statsEffect = Effect.fn("ResidentRuntime.stats")(function* (): Effect.fn.Return<Extract<ResidentResponse, { status: "stats" }>> {
     const now = residentNow();
     residentExpirePending(now);
     residentPruneNoticeCooldowns(now);
-    const dispatch = Effect.runSync(residentDispatcher.snapshot());
+    const dispatch = yield* residentDispatcher.snapshot();
     const capacity = residentLedger.snapshot();
     const reuse = residentReuse.snapshot();
     return {
@@ -619,18 +631,22 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       noticeCooldowns: residentNotices.entries().length,
       currentWork: residentRevisionCount(),
     };
+  });
+
+  function stats(): Extract<ResidentResponse, { status: "stats" }> {
+    return Effect.runSync(statsEffect());
   }
 
   function residentEvictRetainedTickets(limit: number): void {
     residentLedger.tickets.retain(limit);
   }
 
-  function cleanup(): "busy" | "cleaned" {
+  const cleanupEffect = Effect.fn("ResidentRuntime.cleanup")(function* (): Effect.fn.Return<"busy" | "cleaned"> {
     if (residentLifecycle !== "active") return "busy";
     const now = residentNow();
     residentExpirePending(now);
     residentPruneNoticeCooldowns(now);
-    const dispatch = Effect.runSync(residentDispatcher.snapshot());
+    const dispatch = yield* residentDispatcher.snapshot();
     const reuse = residentReuse.snapshot();
     const capacity = residentLedger.snapshot();
     const check = residentLedger.transition({ kind: "cleanupCheck", facts: {
@@ -657,6 +673,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     // same synchronous turn. Subsequent callbacks cannot acquire ownership.
     residentLifecycle = "retiring";
     return "cleaned";
+  });
+
+  function cleanup(): "busy" | "cleaned" {
+    return Effect.runSync(cleanupEffect());
   }
 
   function residentPruneCollectionTokenIds(): void {
@@ -668,7 +688,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     residentLedger.pruneCollectionTokenIds(live);
   }
 
-  function admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): ResidentResponse {
+  const admitEffect = Effect.fn("ResidentRuntime.admit")(function* (observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
     residentExpirePending(now);
     // Reclaim cooldown state whose active guarantee and pending notice have
@@ -724,7 +744,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       dispatch,
       ...(ticket === undefined ? {} : { ticket }),
     };
-    if (!Effect.runSync(residentDispatcher.enqueue(partition, job))) {
+    if (!(yield* residentDispatcher.enqueue(partition, job))) {
       if (ticket !== undefined) residentLedger.tickets.forget(ticket);
       residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound);
       residentLedger.release(reservation);
@@ -750,6 +770,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "pending" });
     return ticket === undefined ? { status: "accepted" } : { requestRoute: "ticketed", status: "accepted", ticket: ticket.ticket };
+  }, Effect.uninterruptible);
+
+  function admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): ResidentResponse {
+    return Effect.runSync(admitEffect(observation, dispatch, ticketed, composed, requirePermit));
   }
 
   function residentCollectionElapsed(now: number, started: number, limit: number): number {
@@ -2556,7 +2580,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
       if (request.operation === "admit") {
         if (request.composed !== true) return residentResponse({ status: "unsupported" });
-        return residentResponse(server.admit(request.observation, request.dispatch, request.requestRoute === "ticketed", true, true));
+        return residentResponse(yield* admitEffect(request.observation, request.dispatch, request.requestRoute === "ticketed", true, true));
       }
       if (request.operation === "collect") {
         if (request.composed !== true || (request.mode === "turn-end" &&
@@ -2638,9 +2662,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           !residentComposedDelivery.hasToken(request.token)) return residentResponse({ status: "empty" });
       if (request.operation === "acknowledge") return residentResponse(server.acknowledge(request.token));
       if (request.operation === "finalize") return residentResponse(server.finalize(request.token));
-      if (request.operation === "stats") return residentResponse(server.stats());
+      if (request.operation === "stats") return residentResponse(yield* server.operations.stats());
       if (request.operation === "cleanup") {
-        const status = server.cleanup();
+        const status = yield* cleanupEffect();
         return residentResponse({ status });
       }
       return residentResponse({ status: "unsupported" });
@@ -3016,9 +3040,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   function residentScheduleIdleCheck(): void {
     if (residentLifecycle !== "active") return;
     const server = runtime;
-    const pass = Effect.sync(() => {
+    const pass = Effect.gen(function* () {
       if (residentLifecycle !== "active") return true;
-      if (residentConnections === 0 && server.cleanup() === "cleaned") {
+      if (residentConnections === 0 && (yield* cleanupEffect()) === "cleaned") {
         residentScheduleRetirementClose();
         return true;
       }
@@ -3131,10 +3155,19 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       round: job.canonicalRound }),
     (entry) => residentRun(entry.value, entry.sequence),
   ).pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
-  const runtime: ResidentRuntime = Object.freeze({ lifetime, paths, listenEffect, closeEffect, stats, cleanup, admit, collect, acknowledge, finalize, releaseDelivery, beginComposedSubmission, releaseComposedSubmission, whenIdle, pendingAdviceMetadata, accountingMetrics, sweepQuietRounds, handle, listen, close });
+  const operations = Object.freeze(ResidentRuntimeService.of({
+    lifetime,
+    paths,
+    listen: listenEffect,
+    close: closeEffect,
+    handle: residentHandle,
+    stats: statsEffect,
+    whenIdle: Effect.fn("ResidentRuntime.whenIdle")(() => residentDispatcher.whenIdle()),
+  }));
+  const runtime: ResidentRuntime = Object.freeze({ operations, lifetime, paths, listenEffect, closeEffect, stats, cleanup, admit, collect, acknowledge, finalize, releaseDelivery, beginComposedSubmission, releaseComposedSubmission, whenIdle, pendingAdviceMetadata, accountingMetrics, sweepQuietRounds, handle, listen, close });
   yield* Effect.addFinalizer(() => closeEffect.pipe(Effect.orDie));
   return runtime;
 });
 
 export const residentRuntimeLayer = (paths: ResidentPaths, now: () => number = monotonicNow, options: ResidentRuntimeOptions = {}) =>
-  Layer.effect(ResidentRuntimeService, makeResidentRuntime(paths, now, options));
+  Layer.effect(ResidentRuntimeService, makeResidentRuntime(paths, now, options).pipe(Effect.map((runtime) => runtime.operations)));
