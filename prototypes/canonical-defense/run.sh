@@ -7,9 +7,10 @@ if ! command -v bend >/dev/null 2>&1; then
   exit 1
 fi
 prototype_binary="${TMPDIR:-/tmp}/hapsland-canonical-defense-${UID:-user}-$$"
-# LLVM 14 on Linux ARM64 cannot optimize the generated large musttail graph.
+# LLVM 14 (Linux) and Apple clang 21 (macOS) fail on this ARM64 musttail graph.
 # Let Bend retain ownership of native platform flags while lowering optimization.
-if [[ "$(uname -s)" == Linux && "$(uname -m)" == aarch64 ]]; then
+prototype_platform="$(uname -s)-$(uname -m)"
+if [[ "$prototype_platform" == Linux-aarch64 || "$prototype_platform" == Darwin-arm64 ]]; then
   prototype_cc="$(mktemp "${TMPDIR:-/tmp}/hapsland-defense-cc.XXXXXX")"
   trap 'rm -f "$prototype_cc"' EXIT
   cat > "$prototype_cc" <<'COMPILER'
