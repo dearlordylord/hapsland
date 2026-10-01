@@ -35,14 +35,15 @@ import {
 import { attemptCodexHostOutput } from "./direct-event/writer.ts";
 import {
   acknowledgeAdvice,
-  admitObservation,
+  admitObservationEffect,
   admitTicketedObservation,
   collectOutcome,
   beginComposedSubmission,
   releaseComposedSubmission,
-  ensureResident,
-  inspectResident,
+  ensureResidentEffect,
+  inspectResidentEffect,
   makeResidentDispatchContext,
+  makeResidentDispatchContextEffect,
   type CollectedAdvice,
 } from "./resident/client.ts";
 import { runComposedHook, type ComposedHookKind, type ComposedHookHost } from "./resident/composed-hook.ts";
@@ -404,7 +405,7 @@ const runDirectCodexHook = (
   Effect.gen(function* () {
     if (!isCodexNativeApplyPatch(nativeEvent)) return { handled: false } as const;
     const reply = yield* adaptCodexReply(nativeEvent, hostVersion);
-    const owner = yield* Effect.tryPromise(() => ensureResident()).pipe(Effect.option);
+    const owner = yield* ensureResidentEffect().pipe(Effect.option);
     if (Option.isNone(owner)) {
       if (reply !== undefined) {
         recordActivity({ statePath: activityPath, root: reply.root, advicee: reply.advicee, lifetime: "resident-unavailable", stage: "unavailable" });
@@ -413,13 +414,13 @@ const runDirectCodexHook = (
     }
     const dispatch = reply === undefined
       ? undefined
-      : yield* Effect.tryPromise(() => makeResidentDispatchContext(
+      : yield* makeResidentDispatchContextEffect(
           reply.root,
           statePath,
           activityPath,
           userConfigPath,
           controlled,
-        )).pipe(Effect.catch(() => Effect.succeed(undefined)));
+        ).pipe(Effect.catch(() => Effect.succeed(undefined)));
     const observation = yield* adaptCodexDirectEvent(nativeEvent, hostVersion);
     if (observation !== undefined) {
       recordDemoTrace(process.env.REVIEW_DEMO_BUDGET_PATH, observation.root, observation.advicee, { kind: "edit" });
@@ -439,7 +440,7 @@ const runDirectCodexHook = (
     } else if (!isControlledWriter) {
       recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
     } else {
-      yield* Effect.tryPromise(() => admitObservation(observation, true, dispatch, undefined, isComposedEditHook)).pipe(
+      yield* admitObservationEffect(observation, true, dispatch, undefined, isComposedEditHook).pipe(
         Effect.catch(() => {
           recordActivity({ statePath: activityPath, root: observation.root, advicee: observation.advicee, lifetime: owner.value.lifetime, stage: "unavailable" });
           return Effect.void;
@@ -537,7 +538,7 @@ const runOperation = (
         credentials && !selectionOff
           ? "ready"
           : "not-ready";
-      const resident = yield* Effect.promise(() => inspectResident());
+      const resident = yield* inspectResidentEffect();
       const residentActivity = readActivity({
         statePath: activityPath,
         root,

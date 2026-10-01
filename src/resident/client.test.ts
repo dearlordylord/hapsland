@@ -1,3 +1,4 @@
+import { Effect, Fiber } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { chmod, mkdtemp, rm, symlink } from "node:fs/promises";
 import { createServer, type Server } from "node:net";
@@ -11,6 +12,7 @@ import {
   admitObservation,
   collectOutcome,
   residentRequest,
+  residentRequestEffect,
   type EnsureResidentDependencies,
 } from "./client.ts";
 import {
@@ -230,6 +232,38 @@ describe("resident client trust boundary", () => {
       "private user-owned socket",
     );
     expect(connections).toBe(0);
+  });
+
+  it("closes a connected native socket when the request fiber is interrupted", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "resident-interruption-test-"));
+    directories.push(directory);
+    await chmod(directory, 0o700);
+    const paths = residentPaths(directory);
+    let entered!: () => void;
+    let closed!: () => void;
+    const requestEntered = new Promise<void>((resolve) => { entered = resolve; });
+    const connectionClosed = new Promise<void>((resolve) => { closed = resolve; });
+    const server = createServer((socket) => {
+      sockets.push(socket);
+      socket.once("data", entered);
+      socket.once("close", closed);
+    });
+    servers.push(server);
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(paths.socket, resolve);
+    });
+    await chmod(paths.socket, 0o600);
+    const request = Effect.runFork(residentRequestEffect(paths,
+      { requestRoute: "shared", operation: "hello" }, 5_000));
+    try {
+      await requestEntered;
+      await Effect.runPromise(Fiber.interrupt(request));
+      await connectionClosed;
+      expect(sockets[0]?.destroyed).toBe(true);
+    } finally {
+      await Effect.runPromise(Fiber.interrupt(request));
+    }
   });
 
   it("bounds a collect response when the connected server never responds", async () => {

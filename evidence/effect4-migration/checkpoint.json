@@ -35,7 +35,11 @@
     "Revision identity mappings and current native work handles moved from ResidentServer fields into the shared canonical/native Ref, with draft registration/reuse/supersession/release operations",
     "Revision commits check native subject, input identity and generation agreement before publication; immutable revision tokens fence stale native handles after numeric generation reuse",
     "Resident native domains are grouped into one explicit records object; discarded unused server revision helpers and redundant current-work input references",
-    "Revision boundary check requires domain operations in their owner and rejects independent server revision fields or a separate revision Ref"
+    "Revision boundary check requires domain operations in their owner and rejects independent server revision fields or a separate revision Ref",
+    "Client request transport uses Effect.callback with acquireUseRelease socket ownership and one absolute verification/response deadline; interruption destroys the connected native socket",
+    "Client readiness, dispatch context, admission, shared and ticketed collection, acknowledgement/finalization and composed protocol workflows compose directly as named Effects; public Promise bridges preserve host call sites",
+    "Codex direct dispatch and status workflows consume client Effects directly, removing nested Promise runtimes at those Effect call sites",
+    "Client launch throttling uses monotonic expiry pruning without native expiry timers; fixture Promise ports remain pending controlled-service conversion"
   ],
   "verification": [
     {
@@ -371,11 +375,57 @@
       "exitCode": 0,
       "stage": "Combined state with native revision records; clean broad rerun after isolated native worker crash",
       "note": "No concurrent build during rerun; native SIGSEGV did not reproduce. Root cause of first-run crash remains unknown."
+    },
+    {
+      "stage": "Client Effect workflows",
+      "command": "Initial selected client/subprocess/delivery/terminal suite",
+      "exitCode": 1,
+      "testsPassed": 51,
+      "testsExpected": 52,
+      "failure": "Subprocess did not reach gated collect request within fixture readiness window; cause unresolved"
+    },
+    {
+      "stage": "Client Effect workflows",
+      "command": "Isolated request interruption and subprocess convergence cases",
+      "exitCode": 0,
+      "tests": 2,
+      "files": 2
+    },
+    {
+      "stage": "Final client/CLI Effect workflows",
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0
+    },
+    {
+      "stage": "Final client/CLI Effect workflows",
+      "command": "npm run build",
+      "exitCode": 0
+    },
+    {
+      "stage": "Client Effect workflows",
+      "command": "vitest run --maxWorkers=1 src/resident/client.test.ts src/resident/subprocess.test.ts src/resident/claude-delivery.test.ts src/resident/terminal-collection.test.ts",
+      "exitCode": 0,
+      "tests": 52,
+      "files": 4,
+      "note": "Clean broad rerun; initial gated collection readiness failure did not reproduce"
+    },
+    {
+      "stage": "Final client native error adapters",
+      "command": "vitest run --maxWorkers=1 src/resident/client.test.ts",
+      "exitCode": 0,
+      "tests": 13
+    },
+    {
+      "stage": "CLI direct client Effects",
+      "command": "vitest run --maxWorkers=1 src/cli.test.ts src/direct-event/claude-cli.test.ts",
+      "exitCode": 0,
+      "tests": 27,
+      "files": 2
     }
   ],
   "next": [
     "Consolidate remaining server ticket/advice/notice/round records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
-    "Migrate client/host edges and remove intermediate synchronous server/class ownership bridges",
+    "Migrate remaining imperative host workflows to client Effects, replace client fixture ports and launch ownership with scoped services, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",
