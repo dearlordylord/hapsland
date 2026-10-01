@@ -3,8 +3,10 @@
 ## Supported source languages
 
 Hapsland reviews TypeScript interfaces, type aliases, and named functions, plus
-Rust structs, enums, and type aliases. Rust context is limited to the same file;
-Rust functions, modules, macros, and conditional compilation are unsupported.
+Rust structs, enums, and type aliases. Rust type context follows explicit local
+module bindings whose crate and module roles are verified from Cargo metadata
+and `mod` declarations. External crates, re-exports, inline modules, functions,
+macros, and conditional compilation are unsupported.
 See the [supported-language table](../README.md#supported-languages) for file
 extensions and limitations. An eligible file can still be skipped when its
 syntax or supporting evidence is unsupported; a skipped edit is not a clean

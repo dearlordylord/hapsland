@@ -7,6 +7,10 @@ import { adaptCodexAdd } from "./adapter.ts";
 import { prepareObservation, preparedProviderInput, preparedUnitStillCurrent, evaluatePrepared } from "./pipeline.ts";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 import { configuredRules } from "../policy/rules.ts";
+import { resolveRustModuleContext } from "./rust-module-context.ts";
+import { captureStable } from "./capture.ts";
+import { eligibleNamedPath, DEFAULT_DIRECT_FILE_POLICY } from "./selection.ts";
+import { GRAPH_LIMIT_CEILINGS } from "../configuration/graph-limits.ts";
 import { addEvent, makeGitFixture, put, updateEvent } from "./test-fixtures.ts";
 
 const rules = (closure: boolean) => compileRulePack({ schemaVersion: 1, id: "rust", contentVersion: "1", rules: [{
@@ -175,6 +179,147 @@ describe("Rust direct review integration", () => {
     const ready = result.outcomes.find((outcome) => outcome.status === "ready");
     if (ready?.status !== "ready") throw new Error("transitive Rust unit was not ready");
     expect(preparedProviderInput(ready.prepared)?.evidence.nodes.map((node) => node.domain)).toEqual(["src/outer.rs", "src/outer/leaf.rs"]);
+  }));
+
+  it.effect("rejects unsupported Cargo authority rather than infer a crate role", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "src/lib.rs", "mod receipt; struct Root { value: receipt::Receipt }"));
+    yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { value: u8 }"));
+    const packageHeader = '[package]\nname = "fixture"\nversion = "0.1.0"\n';
+    for (const manifest of [
+      packageHeader + 'edition = 2021\n',
+      packageHeader + 'edition = "2015"\n',
+      packageHeader + 'edition = "2021"\n[lib]\nedition = "2021"\n',
+      packageHeader + 'edition = "2021"\n[[bin]]\nname = 42\npath = "src/main.rs"\n',
+      packageHeader + 'edition = "2021"\n[[bin]]\nname = "tool"\npath = 42\n',
+      packageHeader + 'edition = "2021"\n[[bin]]\nname = "tool"\npath = "src/main.rs"\nedition = "2024"\n',
+      packageHeader + 'edition = "2021"\nbuild = "custom-build.rs"\n',
+      ...["test", "example", "bench"].map((kind) => packageHeader + `edition = "2021"\n[[${kind}]]\nname = "target"\npath = "other.rs"\n`),
+    ]) {
+      yield* Effect.promise(() => put(root, "Cargo.toml", manifest));
+      const prepared = yield* prepare(addEvent(root, ["src/lib.rs"]));
+      expect(prepared.outcomes.some((outcome) => outcome.status === "ready"), manifest).toBe(false);
+    }
+  }));
+
+  it.effect("does not revive dormant main.rs when explicit binary targets exist", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n[[bin]]\nname = "fixture"\npath = "custom.rs"\n'));
+    yield* Effect.promise(() => put(root, "custom.rs", "fn main() {}"));
+    yield* Effect.promise(() => put(root, "src/main.rs", "mod receipt; struct Root { value: receipt::Receipt }"));
+    yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { value: u8 }"));
+    const prepared = yield* prepare(addEvent(root, ["src/main.rs"]));
+    expect(prepared.outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
+  }));
+
+  it.effect("uses an explicit custom library root without guessing its child directory", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2024"\n[lib]\npath = "custom.rs"\n'));
+    yield* Effect.promise(() => put(root, "custom.rs", "mod receipt; struct Root { value: receipt::Receipt }"));
+    yield* Effect.promise(() => put(root, "receipt.rs", "pub struct Receipt { value: u8 }"));
+    yield* Effect.promise(() => put(root, "custom/receipt.rs", "pub struct Receipt { trap: bool }"));
+    const prepared = yield* prepare(addEvent(root, ["custom.rs"]));
+    const ready = prepared.outcomes.find((outcome) => outcome.status === "ready");
+    if (ready?.status !== "ready") throw new Error("custom Cargo library was not ready");
+    expect(preparedProviderInput(ready.prepared)?.evidence.nodes.map((node) => node.domain)).toEqual(["receipt.rs"]);
+  }));
+
+  it.effect("requires unique Cargo and external-module evidence", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    const source = "mod receipt; struct Root { value: receipt::Receipt }";
+    yield* Effect.promise(() => put(root, "src/lib.rs", source));
+    yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { value: u8 }"));
+    expect((yield* prepare(addEvent(root, ["src/lib.rs"]))).outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+    yield* Effect.promise(() => put(root, "src/receipt/mod.rs", "pub struct Receipt { value: u16 }"));
+    expect((yield* prepare(addEvent(root, ["src/lib.rs"]))).outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
+  }));
+
+  it.effect("checks metadata exclusion and the Cargo graph reservation before reading", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+    yield* Effect.promise(() => put(root, "src/lib.rs", "mod receipt; struct Root { value: receipt::Receipt }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["src/lib.rs"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const selected = yield* eligibleNamedPath(root, "src/lib.rs", DEFAULT_DIRECT_FILE_POLICY, observation.rootIdentity);
+    if (selected === undefined) throw new Error("root path not eligible");
+    const capture = yield* captureStable(root, selected, {}, observation.rootIdentity);
+    if (capture === undefined) throw new Error("capture failed");
+    for (const denied of ["exclusion", "budget"] as const) {
+      const reads: string[] = [];
+      const resolved = yield* resolveRustModuleContext("src/lib.rs", capture, {
+        root, rootIdentity: observation.rootIdentity,
+        policy: denied === "exclusion" ? { includes: ["**/*"], excludes: ["Cargo.toml"] } : DEFAULT_DIRECT_FILE_POLICY,
+        captureHooks: { sourceRead: (path) => { reads.push(path); } },
+      }, denied === "budget" ? { ...GRAPH_LIMIT_CEILINGS, files: 1 } : GRAPH_LIMIT_CEILINGS, () => false);
+      expect(resolved.options).toBeUndefined();
+      expect(reads).toEqual([]);
+    }
+  }));
+
+  it.effect("resolves an explicit binary target with declared string name and path", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2018"\n[[bin]]\nname = "tool"\npath = "custom.rs"\n'));
+    yield* Effect.promise(() => put(root, "custom.rs", "mod receipt; struct Root { value: receipt::Receipt } fn main() {}"));
+    yield* Effect.promise(() => put(root, "receipt.rs", "pub struct Receipt { value: u8 }"));
+    expect((yield* prepare(addEvent(root, ["custom.rs"]))).outcomes.some((outcome) => outcome.status === "ready")).toBe(true);
+  }));
+
+  it.effect("refuses unsupported target directories even when listed as custom library paths", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    for (const path of ["build.rs", "tests/root.rs", "examples/root.rs", "benches/root.rs"]) {
+      yield* Effect.promise(() => put(root, "Cargo.toml", `[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n[lib]\npath = "${path}"\n`));
+      yield* Effect.promise(() => put(root, path, "mod receipt; struct Root { value: receipt::Receipt }"));
+      const prefix = path.includes("/") ? path.slice(0, path.lastIndexOf("/") + 1) : "";
+      yield* Effect.promise(() => put(root, `${prefix}receipt.rs`, "pub struct Receipt { value: u8 }"));
+      expect((yield* prepare(addEvent(root, [path]))).outcomes.some((outcome) => outcome.status === "ready"), path).toBe(false);
+    }
+  }));
+
+  it.effect("invalidates a child review when its captured parent module link changes", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+    yield* Effect.promise(() => put(root, "src/lib.rs", "mod model; mod receipt;"));
+    yield* Effect.promise(() => put(root, "src/model.rs", "use crate::receipt::Receipt; struct Root { value: Receipt }"));
+    yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { value: u8 }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["src/model.rs"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const context = { controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: rules(true) };
+    const result = yield* prepareObservation(observation, context);
+    const ready = result.outcomes.find((outcome) => outcome.status === "ready");
+    if (ready?.status !== "ready") throw new Error("child review was not ready");
+    yield* Effect.promise(() => put(root, "src/lib.rs", "mod receipt;"));
+    expect(yield* preparedUnitStillCurrent(observation, ready.prepared, context)).toBe(false);
+  }));
+
+  it.effect("does not choose between multiple crate roots reaching one edited module", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+    for (const path of ["src/lib.rs", "src/main.rs"]) yield* Effect.promise(() => put(root, path, "mod model; mod receipt;"));
+    yield* Effect.promise(() => put(root, "src/model.rs", "use crate::receipt::Receipt; struct Root { value: Receipt }"));
+    yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { value: u8 }"));
+    expect((yield* prepare(addEvent(root, ["src/model.rs"]))).outcomes.some((outcome) => outcome.status === "ready")).toBe(false);
+  }));
+
+  it.effect("revalidates module-candidate uniqueness and nearest Cargo authority", () => Effect.gen(function* () {
+    for (const mutation of ["duplicate-module", "nearer-manifest"] as const) {
+      const root = yield* Effect.promise(makeGitFixture);
+      yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+      yield* Effect.promise(() => put(root, "src/lib.rs", "mod model; mod receipt;"));
+      yield* Effect.promise(() => put(root, "src/model.rs", "use crate::receipt::Receipt; struct Root { value: Receipt }"));
+      yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { value: u8 }"));
+      const observation = yield* adaptCodexAdd(addEvent(root, ["src/model.rs"]));
+      if (observation === undefined) throw new Error("fixture adaptation failed");
+      const context = { controlledWriter: true, advicee: observation.advicee,
+        settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: rules(true) };
+      const result = yield* prepareObservation(observation, context);
+      const ready = result.outcomes.find((outcome) => outcome.status === "ready");
+      if (ready?.status !== "ready") throw new Error("child review was not ready");
+      if (mutation === "duplicate-module") yield* Effect.promise(() => put(root, "src/receipt/mod.rs", "pub struct Receipt { value: u16 }"));
+      else yield* Effect.promise(() => put(root, "src/Cargo.toml", '[package]\nname = "shadow"\nversion = "0.1.0"\nedition = "2021"\n'));
+      expect(yield* preparedUnitStillCurrent(observation, ready.prepared, context), mutation).toBe(false);
+    }
   }));
 
 });
