@@ -440,6 +440,59 @@ describe("shared Hapsland rounds", () => {
     expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
   });
 
+  it("records a two-advice Stop output as one checked terminal transition", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 0);
+    const first = canonicalFinding(state);
+    const second = canonicalFinding(state);
+    state.beginStop("agent", "attempt");
+    state.finishGate("agent", "attempt", 0, true);
+    expect(state.reserveFinishOutput("agent", "attempt", "output", [
+      { id: "first", unit: first, findings: [{ rule: "a", advice: "first" }] },
+      { id: "second", unit: second, findings: [{ rule: "b", advice: "second" }] },
+    ], 1)).toBe(true);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
+    const before = state.canonical.canonicalProjection();
+    expect(before.delivery.submissions.batches.map((batch) => batch.phase)).toEqual(["authorized", "authorized"]);
+    const firstBatch = before.delivery.submissions.batches[0];
+    if (firstBatch === undefined) throw new Error("expected first Stop advice record");
+    expect(state.canonical.transition({ kind: "submissionTerminal", advice: firstBatch.advice,
+      token: firstBatch.token, certain: true }).commands[0]?.kind).toBe("submissionRefused");
+    expect(state.canonical.transition({ kind: "submissionRelease", advice: firstBatch.advice,
+      token: firstBatch.token }).commands[0]?.kind).toBe("submissionRefused");
+    const slot = before.delivery.slots[0];
+    if (slot === undefined) throw new Error("expected Stop output slot");
+    expect(state.canonical.transition({ kind: "finishEnd", group: slot.group,
+      round: slot.round, attempt: slot.attempt, token: slot.token }).commands[0]?.kind).toBe("finishRefused");
+    expect(state.canonical.transition({ kind: "submissionForget", advice: firstBatch.advice }).rejection).toBeDefined();
+    expect(state.canonical.transition({ kind: "collectionRetireAdvice", advice: firstBatch.advice }).rejection).toBeDefined();
+    expect(state.canonical.canonicalProjection()).toEqual(before);
+    expect(state.markSubmitted("output", [first])).toBe(false);
+    expect(state.canonical.canonicalProjection()).toEqual(before);
+    expect(state.markSubmitted("output", [first, second])).toBe(true);
+    const after = state.canonical.canonicalProjection();
+    expect(after.delivery.submissions.batches.map((batch) => batch.phase)).toEqual(["submitted", "submitted"]);
+    expect(after.delivery.slots.map((slot) => slot.phase)).toEqual(["submitted"]);
+  });
+
+  it("marks both advice records uncertain with their shared Stop output", () => {
+    const state = new ComposedDelivery();
+    state.admitEdit("agent", "edit", 0);
+    const first = canonicalFinding(state);
+    const second = canonicalFinding(state);
+    state.beginStop("agent", "attempt");
+    state.finishGate("agent", "attempt", 0, true);
+    expect(state.reserveFinishOutput("agent", "attempt", "output", [
+      { id: "first", unit: first, findings: [{ rule: "a", advice: "first" }] },
+      { id: "second", unit: second, findings: [{ rule: "b", advice: "second" }] },
+    ], 1)).toBe(true);
+    expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
+    expect(state.markUncertain("output")).toBe(true);
+    const after = state.canonical.canonicalProjection();
+    expect(after.delivery.submissions.batches.map((batch) => batch.phase)).toEqual(["uncertain", "uncertain"]);
+    expect(after.delivery.slots.map((slot) => slot.phase)).toEqual(["uncertain"]);
+  });
+
   it("refuses a prepared Stop output when one selected advice is retired before authorization", () => {
     const state = new ComposedDelivery();
     state.admitEdit("agent", "edit", 0);

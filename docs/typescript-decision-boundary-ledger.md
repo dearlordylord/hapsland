@@ -8,8 +8,6 @@
 
 This ledger records **decisions**, not every measurement or external effect. Each entry must name the concrete choice, its TypeScript owner, what Bend receives, why the choice stays outside Bend, and the scope of its review. A new runtime adapter or a move into Bend requires review of the affected entry.
 
-The separate [temporary diagram walkthrough](issue-147-default-replay-walkthrough.md) remains available for later visual review.
-
 ## TS-001 — Recognize a runtime event as a direct edit
 
 | Field | Reviewed boundary |

@@ -98,6 +98,7 @@ try {
   const elements = (model, name) => descendants(main.view(model, inertHtml).body)
     .filter((node) => node.data?.class?.[name]);
   const labels = (node) => descendants(node).map((child) => child.text ?? "").join(" ");
+  const visibleLabels = (node) => (node.children ?? []).slice(1).map(labels).join(" "); // SVG title is first child.
   assert.equal(elements(initial, "topology-node").length, 14);
   assert.equal(elements(initial, "topology-route").length, 25);
   assert.equal(elements(initial, "topology-route").filter((node) => node.data.class.active).length, 0);
@@ -105,7 +106,7 @@ try {
   let showcase = initial;
   const showcasedRoutes = new Set();
   for (const [index, event] of canonical.SHOWCASE_SCENARIO.events.entries()) {
-    showcase = send(showcase, main.Message.Advanced());
+    showcase = send(showcase, main.Message.HistoryForward());
     let step = canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps.at(-1);
     while (step.event.kind === "preparationGraph") {
       assert.deepEqual(step.before, step.after, "inner graph steps must preserve canonical state");
@@ -117,7 +118,7 @@ try {
         assert.ok(elements(showcase, "preparation-mini-node").some(node => node.data.class.active && labels(node).includes("Capture")));
       if (step.preparation.after.phase === "complete")
         assert.ok(elements(showcase, "preparation-mini-node").some(node => node.data.class.active && labels(node).includes("Complete")));
-      showcase = send(showcase, main.Message.Advanced());
+      showcase = send(showcase, main.Message.HistoryForward());
       step = canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps.at(-1);
     }
     assert.deepEqual(step.event, event);
@@ -128,16 +129,21 @@ try {
       assert.equal(step.after.rounds.length, 0, "pre-edit permit alone must not open a round");
       assert.match(labels(main.view(showcase, inertHtml).body), /1 edit permit: Permit #1/);
       assert.match(labels(main.view(showcase, inertHtml).body), /Before the edit.*Bend issued a permit.*No virtual round is open yet/);
+      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity"))), /NOW · Permit #1 issued/);
     }
     if (index === 1) {
       assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
       assert.match(labels(main.view(showcase, inertHtml).body), /0 edit permits/);
       assert.match(labels(main.view(showcase, inertHtml).body), /Why this round opened.*first accepted attributed edit.*Bend opened virtual round/);
+      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Round state"))), /NOW · Round #1 opened with edit #1/);
     }
+    if (index === 2) assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Awaiting source read"))),
+      /NOW · Source #1 admitted · Round #1/);
     if (index === 5) {
       const nodes = elements(showcase, "topology-node");
       assert.match(labels(nodes.find((node) => labels(node).includes("Agent edit"))), /NOW · edit #2 accepted/);
       assert.match(labels(nodes.find((node) => labels(node).includes("Admission & capacity"))), /NOW · permit #2 used/);
+      assert.match(labels(nodes.find((node) => labels(node).includes("Round state"))), /NOW · edit #2 joined Round #1/);
       assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
       assert.equal(step.after.work.length, 1, "the accepted edit has no second source work until admission");
     }
@@ -200,7 +206,9 @@ try {
     if (index === 20) assert.ok(active.some((route) => labels(route).includes("request permitted; native attempt not yet observed")));
     if (index === 25) assert.equal(step.after.dispatch.requests.length, 2, "two Jev requests are in flight");
     if (index === 26) {
-      assert.ok(active.some((route) => labels(route).includes("retain finding command")));
+      assert.ok(!active.some((route) => labels(route).includes("retain finding command")));
+      assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+        /CMD · retain finding for Review item #1/);
       const admission = labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity")));
       assert.match(admission, /1 stored result charge: Stored result charge #1/);
       assert.match(admission, /NOW · Unit charge #1 → stored/);
@@ -208,8 +216,17 @@ try {
     if (index === 27) {
       assert.deepEqual(step.after.collection.ready, [4], "Bend links ready advice to its finding work and edit");
       assert.ok(active.some((route) => labels(route).includes("Bend marked Advice #1/operation 4 ready from Review item #1/operation 4")));
+      assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Ready advice"))),
+        /NOW · Advice #1 ← Review item #1/);
     }
-    if (index === 30) assert.deepEqual(step.after.collection.ready, [4], "advice for edit #2 waits for its other review item");
+    if (index === 29) {
+      assert.deepEqual(step.after.collection.ready, [4], "advice for edit #2 waits for its other review item");
+      assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+        /1 waiting · Review #2→#3.*CMD · retain Review #2; waits for #3/s);
+      assert.ok(!active.some((route) => labels(route).includes("Bend marked Advice #2")));
+    }
+    if (index >= 30 && index <= 34) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+      /1 waiting · Review #2→#3/, "the earlier finding and its unfinished sibling remain visible until clear");
     if (index === 35) {
       assert.equal(step.event.kind, "jevRequestSettled");
       assert.equal(step.event.outcome, "clear");
@@ -222,13 +239,60 @@ try {
     }
     if (index === 36) assert.doesNotMatch(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
       /Review item #3 clear/, "the clear marker is transient");
-    if (index === 37) assert.deepEqual(step.after.collection.ready, [6, 4],
-      "advice for edit #2 becomes ready after its clear sibling settles");
+    if (index === 37) {
+      assert.deepEqual(step.after.collection.ready, [6, 4],
+        "advice for edit #2 becomes ready after its clear sibling settles");
+      assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Ready advice"))),
+        /NOW · Advice #2 ← Review item #2/);
+      showcase = send(showcase, main.Message.SelectedFlowStage({ stage: "advice" }));
+      assert.match(labels(elements(showcase, "flow-stage-inspector")[0]),
+        /Advice #2.*Review item #2.*edit observation #2/s);
+    }
+    const stopCaption = new Map([
+      [38, /Stop decision ready; this step does not reserve or send output/],
+      [39, /Advice #1 leased for collection; still ready/],
+      [40, /2 advice groups leased for one Stop output; no output slot is reserved yet/],
+      [41, /Stop output slot reserved for 2 selected advice groups; output is not yet authorized/],
+      [42, /Advice #1 submission reserved for Stop output; no host write is established/],
+      [43, /2 advice records staged for one Stop output; no host write is established/],
+      [44, /2 advice records and their Stop output authorized together; no host write is established/],
+      [45, /Acknowledgment gate passed for 2 items; no host write is observed by this step/],
+      [46, /2 advice submissions and one Stop result recorded together as acknowledged; agent use of advice is not observed/],
+    ]).get(index);
+    if (stopCaption !== undefined) assert.match(labels(elements(showcase, "topology-current-step")[0]), stopCaption);
+    if (index === 44) assert.ok(labels(main.view(showcase, inertHtml).body).includes("Advice output authorized"));
+    if (index === 43) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),
+      /2 records · #1:reserved, #2:reserved/);
+    if (index === 44) assert.match(visibleLabels(elements(showcase, "topology-node").find((node) => labels(node).includes("Host output"))),
+      /2 records · #1:authorized, #2:authorized/);
     if (index === 39) assert.ok(active.some((route) => labels(route).includes("Advice #1/operation 4 leased; still ready")));
     if (index === 44) assert.ok(active.some((route) => labels(route).includes("output authorized; host write not established")));
-    if (index === 50) assert.ok(active.some((route) => labels(route).includes("authorized → submitted")));
-    if (index === 58) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
+    if (index === 46) {
+      const hostRoute = active.find((route) => labels(route).includes("advice #4: authorized → submitted"));
+      assert.ok(hostRoute, "the shared Stop result shows the first advice transition");
+      assert.match(labels(hostRoute), /advice #6: authorized → submitted/);
+      assert.match(labels(hostRoute), /finish #1: authorized → submitted/);
+    }
+    if (index === 54) assert.ok(active.some((route) => labels(route).includes("round #1 retired")));
   }
+  const atGuided = (count) => showcase.history.findIndex((_, index) => canonical.guidedIndex(showcase.history, index + 1) === count) + 1;
+  let grouped = send(showcase, main.Message.Jumped({ position: atGuided(39) }));
+  grouped = send(grouped, main.Message.Advanced());
+  assert.equal(canonical.guidedIndex(grouped.history, grouped.position), 41);
+  assert.match(labels(elements(grouped, "topology-current-step")[0]), /2 advice groups leased for one Stop output/);
+  assert.match(labels(elements(grouped, "topology-route").find((node) => labels(node).includes("Advice #1/operation 4 leased"))), /Advice #2\/operation 6 leased/);
+  grouped = send(grouped, main.Message.Advanced());
+  assert.equal(canonical.guidedIndex(grouped.history, grouped.position), 42);
+  grouped = send(grouped, main.Message.Advanced());
+  assert.equal(canonical.guidedIndex(grouped.history, grouped.position), 44);
+  assert.match(labels(elements(grouped, "topology-current-step")[0]), /2 advice records staged for one Stop output/);
+  grouped = send(grouped, main.Message.Advanced());
+  assert.equal(canonical.guidedIndex(grouped.history, grouped.position), 45);
+  assert.match(labels(elements(grouped, "topology-current-step")[0]), /2 advice records and their Stop output authorized together/);
+  grouped = send(grouped, main.Message.Advanced());
+  grouped = send(grouped, main.Message.Advanced());
+  assert.equal(canonical.guidedIndex(grouped.history, grouped.position), 47);
+  assert.match(labels(elements(grouped, "topology-current-step")[0]), /2 advice submissions and one Stop result recorded together/);
   assert.ok(showcasedRoutes.size >= 12, "the opening replay should expose a broad connected route set");
   const allNumbers = numbering.numberRecords(canonical.replayCanonical(showcase.history, showcase.position, canonical.SHOWCASE_SCENARIO.limits).steps);
   assert.deepEqual([...allNumbers.review], [[4, 1], [6, 2], [7, 3]], "review ordinals survive the disappearance of work records");
@@ -245,7 +309,9 @@ try {
   };
   const findingView = replayAt("finding is a distinct observed request result and duplicate is rejected", 7);
   const findingRoutes = elements(findingView, "topology-route").filter((node) => node.data.class.active);
-  assert.ok(findingRoutes.some((node) => labels(node).includes("retain finding command; storage not observed")));
+  assert.ok(!findingRoutes.some((node) => labels(node).includes("retain finding command; storage not observed")));
+  assert.match(labels(elements(findingView, "topology-node").find((node) => labels(node).includes("Review outcomes"))),
+    /CMD · retain finding for Review item/);
   assert.equal(elements(findingView, "topology-node").filter((node) =>
     node.data.class.active && labels(node).includes("Pending advice")).length, 0,
   "retainFinding command alone cannot mark advice as stored");
@@ -358,41 +424,41 @@ try {
   assert.equal(model.position, 0);
   // The planned timeline is present before execution and seeking is the same checked replay.
   let timelineModel = main.init().model;
-  assert.equal(canonical.historyTimelineLength(timelineModel.history), 104);
-  timelineModel = send(timelineModel, main.Message.Jumped({ position: 104 }));
-  assert.equal(timelineModel.position, 104);
-  assert.equal(canonical.guidedIndex(timelineModel.history, timelineModel.position), 63);
+  assert.equal(canonical.historyTimelineLength(timelineModel.history), 100);
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 100 }));
+  assert.equal(timelineModel.position, 100);
+  assert.equal(canonical.guidedIndex(timelineModel.history, timelineModel.position), 59);
   assert.equal(timelineModel.history.filter(entry => entry.event.kind === "preparationGraph").length, 41);
   const completeHistory = timelineModel.history;
   assert.deepEqual(completeHistory, showcase.history, "single-pass seeking matches ordinary checked step-by-step replay");
   timelineModel = send(timelineModel, main.Message.Jumped({ position: 5 }));
   assert.deepEqual(timelineModel.history, completeHistory, "backward seek preserves the recorded future");
-  timelineModel = send(timelineModel, main.Message.Jumped({ position: 104 }));
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 100 }));
   assert.deepEqual(timelineModel.history, completeHistory, "forward seek reuses recorded events");
   timelineModel = send(timelineModel, main.Message.Jumped({ position: 0 }));
   const harmlessManual = { kind: "fileSelectionCheck", protected: false, excluded: false, includesEmpty: false, included: true };
   timelineModel = send(timelineModel, main.Message.DraftChanged({ raw: JSON.stringify(harmlessManual) }));
   timelineModel = send(timelineModel, main.Message.Submitted());
-  assert.equal(canonical.historyTimelineLength(timelineModel.history), 105);
-  timelineModel = send(timelineModel, main.Message.Jumped({ position: 105 }));
-  assert.equal(timelineModel.position, 105);
+  assert.equal(canonical.historyTimelineLength(timelineModel.history), 101);
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 101 }));
+  assert.equal(timelineModel.position, 101);
   assert.deepEqual(timelineModel.history[0].event, harmlessManual);
-  assert.equal(canonical.guidedIndex(timelineModel.history, timelineModel.position), 63);
+  assert.equal(canonical.guidedIndex(timelineModel.history, timelineModel.position), 59);
   timelineModel = send(timelineModel, main.Message.DraftChanged({ raw: '{"kind":"madeUp"}' }));
   timelineModel = send(timelineModel, main.Message.Submitted());
-  assert.equal(canonical.historyTimelineLength(timelineModel.history), 105, "invalid shapes add no timeline positions");
+  assert.equal(canonical.historyTimelineLength(timelineModel.history), 101, "invalid shapes add no timeline positions");
   timelineModel = send(timelineModel, main.Message.DraftChanged({ raw: '{"kind":"interruptPreparation","partition":1,"lifetime":1,"round":1,"operation":999}' }));
   timelineModel = send(timelineModel, main.Message.Submitted());
-  assert.equal(canonical.historyTimelineLength(timelineModel.history), 106, "checked rejected events remain in history");
+  assert.equal(canonical.historyTimelineLength(timelineModel.history), 102, "checked rejected events remain in history");
   assert.match(timelineModel.feedback, /Bend rejected/);
   timelineModel = send(main.init().model, main.Message.Jumped({ position: 10 }));
   timelineModel = send(timelineModel, main.Message.DraftChanged({ raw: '{"kind":"interruptPreparation","partition":1,"lifetime":1,"round":1,"operation":3}' }));
   timelineModel = send(timelineModel, main.Message.Submitted());
   const cancelledHistory = timelineModel.history;
-  timelineModel = send(timelineModel, main.Message.Jumped({ position: 105 }));
+  timelineModel = send(timelineModel, main.Message.Jumped({ position: 101 }));
   assert.equal(timelineModel.position, 11);
   assert.deepEqual(timelineModel.history, cancelledHistory, "unreachable graph facts never enter checked history");
-  assert.match(timelineModel.feedback, /Cannot reach timeline event 105.*active enclosing preparation/);
+  assert.match(timelineModel.feedback, /Cannot reach timeline event 101.*active enclosing preparation/);
   // Every declared scenario advertises its complete event horizon without being played first.
   for (let scenario = 1; scenario < canonical.CANONICAL_SCENARIOS.length; scenario++) {
     const selected = send(main.init().model, main.Message.SelectedScenario({ index: scenario }));
@@ -424,9 +490,9 @@ try {
   Scene.scene({ update: main.update, view: main.view },
     Scene.given(initial),
     Scene.click(Scene.getByRole("button", { name: "Next: issuePermit", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 63/)),
-    Scene.click(Scene.getByRole("button", { name: "Previous step", exact: true })),
-    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 63/)));
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 1 of 59/)),
+    Scene.click(Scene.getByRole("button", { name: "Previous history event", exact: true })),
+    Scene.tap((state) => assert.match(Scene.textContent(state.html), /Guided step 0 of 59/)));
   console.log("Checked the opening connected replay, compiled canonical inventory, full guided capacity trace, Bend command frames, replay, malformed variants, import graph, and native timing panels.");
 } finally {
   await server.close();

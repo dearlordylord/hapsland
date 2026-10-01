@@ -310,6 +310,71 @@ def terminal(state: State, advice: Nat, token: Nat, certain: Bool) -> Decision:
     case False{}:
       transition(state, advice, token, Delivery.Uncertain{}, Delivery.Authorized{})
 
+def stop_surface(surface: Handoff.Surface) -> Bool:
+  match surface:
+    case Handoff.Stop{}: True{}
+    case _: False{}
+
+def stop_token_advices(+token: Nat, items: List<&2, Batch>) -> List<&2, Nat>:
+  match items:
+    case Nil{}: Nil{}
+    case Batch{advice, _, _, candidate, surface, _, _, _} <> rest:
+      +tail : List<&2, Nat> = stop_token_advices(token, rest)
+      Bool.pick(List<&2, Nat>, Bool.and(Nat.is_eq(token, candidate), stop_surface(surface)),
+        advice <> tail, tail)
+
+def terminal_one_result(result: Decision) -> Maybe<&2, State>:
+  match result:
+    case Granted{next}: Some{next}
+    case Denied{_}: None{}
+
+def terminal_one(current: Maybe<&2, State>, advice: Nat, token: Nat,
+    certain: Bool) -> Maybe<&2, State>:
+  match current:
+    case None{}: None{}
+    case Some{state}:
+      terminal_one_result(terminal(state, advice, token, certain))
+
+def terminal_each(advices: List<&2, Nat>, current: Maybe<&2, State>,
+    +token: Nat, +certain: Bool) -> Maybe<&2, State>:
+  match advices:
+    case Nil{}: current
+    case advice <> rest:
+      terminal_each(rest, terminal_one(current, advice, token, certain), token, certain)
+
+def terminal_stop_result(original: State, result: Maybe<&2, State>) -> Decision:
+  match result:
+    case None{}: Denied{original}
+    case Some{state}: Granted{state}
+
+def terminal_stop_token(+state: State, +token: Nat, certain: Bool) -> Decision:
+  match state:
+    case State{_, batches}:
+      +advices : List<&2, Nat> = stop_token_advices(token, batches)
+      Bool.pick(Decision, Nat.is_gt(List.length(&2, Nat, advices), 0n),
+        terminal_stop_result(state, terminal_each(advices, Some{state}, token, certain)),
+        Denied{state})
+
+def authorize_one(current: Maybe<&2, State>, advice: Nat, token: Nat) -> Maybe<&2, State>:
+  match current:
+    case None{}: None{}
+    case Some{state}: terminal_one_result(authorize(state, advice, token))
+
+def authorize_each(advices: List<&2, Nat>, current: Maybe<&2, State>,
+    +token: Nat) -> Maybe<&2, State>:
+  match advices:
+    case Nil{}: current
+    case advice <> rest:
+      authorize_each(rest, authorize_one(current, advice, token), token)
+
+def authorize_stop_token(+state: State, +token: Nat) -> Decision:
+  match state:
+    case State{_, batches}:
+      +advices : List<&2, Nat> = stop_token_advices(token, batches)
+      Bool.pick(Decision, Nat.is_gt(List.length(&2, Nat, advices), 0n),
+        terminal_stop_result(state, authorize_each(advices, Some{state}, token)),
+        Denied{state})
+
 def restore_record(record: LeaseRecord) -> Maybe<&2, LeaseRecord>:
   match record:
     case LeaseRecord{advice, fingerprint, _, previous}:
@@ -444,6 +509,10 @@ def token_exists(+token: Nat, items: List<&2, Batch>) -> Bool:
     case Batch{_, _, _, candidate, _, _, _, _} <> rest:
       Bool.or(Nat.is_eq(token, candidate), token_exists(token, rest))
 
+def token_exists_state(state: State, token: Nat) -> Bool:
+  match state:
+    case State{_, batches}: token_exists(token, batches)
+
 def token_units_keep(units: List<&2, Nat>, tail: List<&2, Nat>, hit: Bool) -> List<&2, Nat>:
   match hit:
     case True{}: List.append(&2, Nat, units, tail)
@@ -461,6 +530,10 @@ def same_units(left: List<&2, Nat>, right: List<&2, Nat>) -> Bool:
     case left_head <> left_rest right_head <> right_rest:
       Bool.and(Nat.is_eq(left_head, right_head), same_units(left_rest, right_rest))
     case _ _: False{}
+
+def token_units_match(state: State, token: Nat, selected: List<&2, Nat>) -> Bool:
+  match state:
+    case State{_, batches}: same_units(token_units(token, batches), selected)
 
 def token_ready(state: State, group: Nat, round: Nat, +token: Nat,
     selected: List<&2, Nat>) -> Bool:

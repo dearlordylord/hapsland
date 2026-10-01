@@ -3,7 +3,7 @@ import { preparationMini, type PreparationSnapshot } from "./preparation-mini";
 import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalCommand, CanonicalProjection } from "../../../src/canonical/adapter";
 import type { ReplayStep } from "./canonical-replay";
-import { projectFlowStep, recordLabel, type FlowEvidence, type RecordNumbers } from "@hapsland/agent-flow-projection";
+import { findingLineage, projectFlowStep, recordLabel, type FlowEvidence, type RecordNumbers } from "@hapsland/agent-flow-projection";
 import { CONNECTIONS, PLACE_ORDER, SQUARES, squareFacetLine, squareFacetFontSize } from "./production-flow-presentation";
 
 type ArrowKind = FlowEvidence["source"] | "possible" | "mixed" | "mixed external";
@@ -185,7 +185,10 @@ export const productionFlowView = <Message>(
   const event = last?.rejection === undefined ? last?.event.kind : undefined;
   const consumed = commands.find((command) => command.kind === "permitConsumed");
   const editAccepted = event === "consumePermit" && last?.event.kind === "consumePermit" && consumed?.kind === "permitConsumed"
-    ? { tool: last.event.tool, token: last.event.token } : undefined;
+    ? { tool: last.event.tool, token: last.event.token, round: consumed.round } : undefined;
+  const issuedPermit = commands.find((command) => command.kind === "permitIssued");
+  const startedRound = commands.find((command) => command.kind === "roundStarted");
+  const admittedSource = commands.find((command) => command.kind === "observationAdmitted");
   const stopEvent = event === "stopPolled" || event === "stopGroupPolled";
   const requests = projection.dispatch.requests;
   const flow = projectFlowStep(last && last.event.kind !== "preparationGraph" ? { ...last, event: last.event } : undefined, numbers);
@@ -203,6 +206,62 @@ export const productionFlowView = <Message>(
     : `${recordLabel("charge:reviewUnit", storedResultConversion.charge, numbers).split("/")[0]} → stored`;
   const clearedReviewLabel = flow.clearedReview === undefined ? undefined
     : recordLabel("review", flow.clearedReview, numbers).split("/")[0];
+  const retainedOperation = (last?.event.kind === "jevRequestSettled" ||
+    last?.event.kind === "reviewCompleted" || last?.event.kind === "reviewObserved") &&
+    commands.some((command) => command.kind === "retainFinding")
+    ? last.event.operation : undefined;
+  const retainedFindingLabel = retainedOperation === undefined ? undefined
+    : recordLabel("review", retainedOperation, numbers).split("/")[0];
+  const retainedFinding = retainedOperation === undefined ? undefined
+    : findingLineage(projection).find((item) => item.operation === retainedOperation);
+  const waitingReview = retainedFinding?.unfinished.length === 1 &&
+    (retainedFinding.unfinished[0].kind === "reviewing" || retainedFinding.unfinished[0].kind === "atJev")
+    ? recordLabel("review", retainedFinding.unfinished[0].operation, numbers).split("/")[0] : undefined;
+  const retainMarker = retainedFindingLabel === undefined ? undefined : waitingReview === undefined
+    ? `CMD · retain finding for ${retainedFindingLabel}`
+    : `CMD · retain ${retainedFindingLabel.replace("Review item", "Review")}; waits for ${waitingReview.replace("Review item ", "")}`;
+  const markedReady = last?.event.kind === "collectionReady" &&
+    !last.before.collection.ready.includes(last.event.advice) &&
+    projection.collection.ready.includes(last.event.advice)
+    ? recordLabel("advice", last.event.advice, numbers).split("/")[0] + " ← " +
+      recordLabel("review", last.event.advice, numbers).split("/")[0] : undefined;
+  const stepCaption = last?.rejection !== undefined ? undefined : (() => {
+    const newLeases = (projection.collection.leases.length - (last?.before.collection.leases.length ?? 0));
+    if (last?.event.kind === "collectionReserveLease" && newLeases > 1)
+      return `${newLeases} advice groups leased for one Stop output; no output slot is reserved yet.`;
+    const newRecords = projection.delivery.submissions.batches.length - (last?.before.delivery.submissions.batches.length ?? 0);
+    if (last?.event.kind === "submissionBegin" && newRecords > 1)
+      return `${newRecords} advice records staged for one Stop output; no host write is established.`;
+    const newlyInPhase = (phase: string) => projection.delivery.submissions.batches.filter((batch) =>
+      batch.phase === phase && last?.before.delivery.submissions.batches.some((prior) =>
+        prior.advice === batch.advice && prior.token === batch.token && prior.phase !== phase)).length;
+    if (last?.event.kind === "finishAuthorize" && newlyInPhase("authorized") > 1)
+      return `${newlyInPhase("authorized")} advice records and their Stop output authorized together; no host write is established.`;
+    if (last?.event.kind === "finishTerminal" && newlyInPhase("submitted") > 1)
+      return `${newlyInPhase("submitted")} advice submissions and one Stop result recorded together as acknowledged; agent use of advice is not observed.`;
+    if (last?.event.kind === "stopPolled" && has(commands, "finishReady")) return "Stop decision ready; this step does not reserve or send output.";
+    if (last?.event.kind === "collectionReserveLease" && has(commands, "collectionLeaseReserved"))
+      return `${recordLabel("advice", last.event.advice, numbers).split("/")[0]} leased for collection${projection.collection.ready.includes(last.event.advice) ? "; still ready" : ""}.`;
+    if (last?.event.kind === "finishReserve" && has(commands, "finishReserved"))
+      return `Stop output slot reserved for ${last.event.selected.length} selected advice groups; output is not yet authorized.`;
+    if (last?.event.kind === "submissionBegin" && has(commands, "submissionBegun")) {
+      const { advice, token, surface } = last.event;
+      const phase = projection.delivery.submissions.batches.find((batch) =>
+        batch.advice === advice && batch.token === token)?.phase;
+      return `${recordLabel("advice", advice, numbers).split("/")[0]} submission ${phase ?? "begun"} for ${surface === "stop" ? "Stop" : surface} output; no host write is established.`;
+    }
+    if (last?.event.kind === "finishAuthorize" && has(commands, "finishAuthorized"))
+      return "Stop output authorized; no host write is established.";
+    if (last?.event.kind === "submissionAuthorize" && has(commands, "submissionAuthorized"))
+      return `${recordLabel("advice", last.event.advice, numbers).split("/")[0]} submission authorized; acknowledgment remains to be checked.`;
+    if (last?.event.kind === "deliveryAcknowledgeCheck" && has(commands, "deliveryAckReady"))
+      return `Acknowledgment gate passed for ${last.event.items} items; no host write is observed by this step.`;
+    if (last?.event.kind === "submissionTerminal" && has(commands, "submissionRecorded"))
+      return `${recordLabel("advice", last.event.advice, numbers).split("/")[0]} submission recorded as ${last.event.certain ? "certain" : "uncertain"}.`;
+    if (last?.event.kind === "finishTerminal" && commands.some((command) => command.kind === "finishRecorded"))
+      return `Stop result recorded as ${last.event.outcome}; agent use of advice is not observed.`;
+    return undefined;
+  })();
   const changedStages = last?.preparation ? ["preparation", ...flow.changedStages] : flow.changedStages;
   const declaredRoutes = new Set(CONNECTIONS.map(({ from, to }) => `${from}:${to}`));
   if (declaredRoutes.size !== CONNECTIONS.length) throw new Error("duplicate dashboard arrow route");
@@ -224,7 +283,8 @@ export const productionFlowView = <Message>(
   const finishBranches = [
     { label: "Wait for work", active: has(commands, "waitForWork", "collectionWaiting") },
     { label: "Decision ready", active: has(commands, "finishReady", "reofferAtStop") },
-    { label: "Continue with advice", active: has(commands, "finishAuthorized", "continuationConsumed") },
+    { label: "Advice output authorized", active: has(commands, "finishAuthorized") },
+    { label: "Continuation consumed", active: has(commands, "continuationConsumed") },
     { label: "Allow finish", active: has(commands, "finishAllowedNoAdvice", "finishAllowedDeadline", "finishAllowedUnavailable") },
     { label: "Cancel unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
   ];
@@ -281,10 +341,37 @@ export const productionFlowView = <Message>(
                 h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
                 [`NOW · ${storedResultTransition}`]),
             ] : []),
+            ...(node.id === "admission" && issuedPermit?.kind === "permitIssued" ? [
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("9"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                [`NOW · Permit #${issuedPermit.token} issued`]),
+            ] : []),
+            ...(node.id === "sourcePending" && admittedSource?.kind === "observationAdmitted" && last?.event.kind === "admitObservation" ? [
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("9"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                [`NOW · Source #${admittedSource.id} admitted · Round #${last.event.round}`]),
+            ] : []),
+            ...(node.id === "round" && editAccepted !== undefined ? [
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("9"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                [startedRound?.kind === "roundStarted"
+                  ? `NOW · Round #${startedRound.id} opened with edit #${editAccepted.tool}`
+                  : `NOW · edit #${editAccepted.tool} joined Round #${editAccepted.round}`]),
+            ] : []),
             ...(node.id === "outcomes" && clearedReviewLabel !== undefined ? [
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("10"),
                 h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
                 [`NOW · ${clearedReviewLabel} clear`]),
+            ] : []),
+            ...(node.id === "outcomes" && retainMarker !== undefined ? [
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("9"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#794aa0")],
+                [retainMarker]),
+            ] : []),
+            ...(node.id === "advice" && markedReady !== undefined ? [
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("9"),
+                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
+                [`NOW · ${markedReady}`]),
             ] : []),
             ...(editAccepted === undefined ? [] : node.id === "observation"
               ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("10"),
@@ -299,6 +386,7 @@ export const productionFlowView = <Message>(
         }),
       ]),
     ]),
+    ...(stepCaption === undefined ? [] : [h.p([h.Class("topology-current-step")], [stepCaption])]),
     h.details([h.Class("topology-route-key")], [
       h.summary([], ["Numbered route key"]),
       h.ol([], routes.map((route) => {

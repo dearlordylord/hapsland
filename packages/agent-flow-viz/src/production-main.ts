@@ -2,7 +2,7 @@ import { preparationDetails } from "./preparation-details";
 import { preparationSnapshot } from "./preparation-mini";
 import { reviewCapacityView } from "./review-capacity-view";
 import { SimulationModel, initialSimulation, actSimulation, changeSimulation, tickSimulation, simulationView } from "./simulation";
-import { Schema } from "effect";
+import { Option, Schema } from "effect";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
@@ -10,7 +10,7 @@ import { IMPORT_GRAPH_SCENARIOS, importGraphView } from "./import-graph-view";
 import { TIMELINE_CASES } from "./timeline";
 import { timelineView } from "./timeline-view";
 import { CAPACITY_INVENTORY } from "./capacity-inventory.generated";
-import { CANONICAL_SCENARIOS, adjacentGuidedPosition, historyTimelineLength, extendGuidedHistory, guidedIndex, nextGuidedEvent, replayCanonical, tryAppendCanonical, type ReplayEvent } from "./canonical-replay";
+import { CANONICAL_SCENARIOS, adjacentGuidedPosition, completedGuidedActions, endingActionGroup, guidedActionCount, guidedActionLabel, historyTimelineLength, extendGuidedHistory, guidedIndex, nextGuidedActionEnd, nextGuidedEvent, replayCanonical, tryAppendCanonical, type ReplayEvent } from "./canonical-replay";
 import { productionFlowView } from "./production-flow-view";
 import { numberRecords, recordLabel, type RecordNumbers } from "@hapsland/agent-flow-projection";
 import { PLACE_ORDER, SQUARES } from "./production-flow-presentation";
@@ -73,10 +73,14 @@ const advance = (model: Model): Model => {
   return event === undefined ? model : append(model, event, "guided");
 };
 
-const advanceGuided = (model: Model): Model => {
-  let current = { ...model, position: model.history.length };
+const advanceGuided = (model: Model, fromFrontier = false): Model => {
+  let current = fromFrontier ? { ...model, position: model.history.length } : model;
   const prior = guidedIndex(current.history as readonly ReplayEvent[], current.position);
-  while (guidedIndex(current.history as readonly ReplayEvent[], current.position) === prior) {
+  const target = nextGuidedActionEnd(prior, model.scenario);
+  // Preparation frames remain individually inspectable in the guided controls.
+  if (nextGuidedEvent(current.history as readonly ReplayEvent[], current.position, model.scenario)?.kind === "preparationGraph")
+    return advance(current);
+  while (guidedIndex(current.history as readonly ReplayEvent[], current.position) < target) {
     const next = advance(current);
     if (next.position <= current.position) return next;
     current = next;
@@ -107,14 +111,14 @@ export const update = (model: Model, message: Message) => Message.match<Update.R
   SelectedTimeline: ({ index }) => ({ model: { ...model, timeline: index >= 0 && index < TIMELINE_CASES.length ? index : 0 } }),
   SelectedScenario: ({ index }) => ({ model: { ...model, scenario: index >= 0 && index < CANONICAL_SCENARIOS.length ? index : 0,
     history: [], position: 0, frame: 0, feedback: "Scenario selected." } }),
-  Advanced: () => ({ model: advance(model) }),
+  Advanced: () => ({ model: advanceGuided(model) }),
   HistoryForward: () => ({ model: model.position < model.history.length
     ? { ...model, position: model.position + 1, frame: 0 } : advance(model) }),
   GuidedMoved: ({ direction }) => {
-    const position = adjacentGuidedPosition(model.history as readonly ReplayEvent[], model.position, direction < 0 ? -1 : 1);
+    const position = adjacentGuidedPosition(model.history as readonly ReplayEvent[], model.position, direction < 0 ? -1 : 1, model.scenario);
     if (position !== undefined) return { model: { ...model, position, frame: 0 } };
     // A new guided step follows all retained manual events instead of branching history.
-    return { model: advanceGuided(model) };
+    return { model: advanceGuided(model, true) };
   },
   Rewound: () => ({ model: { ...model, position: Math.max(0, model.position - 1), frame: 0 } }),
   Redid: () => ({ model: { ...model, position: Math.min(model.history.length, model.position + 1), frame: 0 } }),
@@ -192,6 +196,13 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const scenario = CANONICAL_SCENARIOS[model.scenario];
   const next = nextGuidedEvent(history, model.position, model.scenario);
   const guided = guidedIndex(history, model.position);
+  const group = endingActionGroup(guided, model.scenario);
+  const actionSteps = group === undefined ? [] : replay.steps.slice(-(group.last - group.first + 1));
+  const completeGroup = group !== undefined && actionSteps.length === group.last - group.first + 1 &&
+    actionSteps.every((step, index) => step.origin === "guided" && step.rejection === undefined &&
+      step.event.kind === scenario.events[group.first - 1 + index]?.kind);
+  const groupedStep = completeGroup && last !== undefined
+    ? { ...last, before: actionSteps[0].before, commands: actionSteps.flatMap((step) => step.commands) } : last;
   const timelineLength = historyTimelineLength(history, model.scenario);
   const flowStage = PLACE_ORDER.find((stage) => stage === model.flowStage);
   return {
@@ -209,19 +220,24 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           h.details([], [h.summary([], ["Scenario details"]), h.p([], [scenario.description])]),
           h.label([], ["Scenario", h.select([h.AriaLabel("Guided scenario"), h.Value(String(model.scenario)), h.Style({ maxWidth: "100%" }), h.OnChange((raw) => Message.SelectedScenario({ index: Number(raw) }))], CANONICAL_SCENARIOS.map((item, index) => h.option([h.Value(String(index))], [item.name])))]),
           h.div([h.Class("canonical-step-controls")], [
-          h.button([h.OnClick(Message.Rewound()), h.Disabled(model.position === 0)], ["Previous step"]),
-          h.button([h.OnClick(Message.Redid()), h.Disabled(model.position === history.length)], ["Redo step"]),
+          h.button([h.OnClick(Message.Rewound()), h.Disabled(model.position === 0)], ["Previous history event"]),
+          h.button([h.OnClick(Message.Redid()), h.Disabled(model.position === history.length)], ["Redo history event"]),
           h.button([h.OnClick(Message.Advanced()), h.Disabled(next === undefined)], [
-            next === undefined ? "Replay complete" : `Next: ${next.kind === "preparationGraph" ? `preparation · ${next.fact.kind}` : next.kind}`,
+            next === undefined ? "Replay complete" : `Next: ${next.kind === "preparationGraph" ? `preparation · ${next.fact.kind}` : guidedActionLabel(guided, model.scenario) ?? next.kind}`,
           ]),
           h.button([h.OnClick(Message.Reset())], ["Reset replay"]),
           ]),
-          h.p([h.Class("canonical-progress")], [`Guided step ${guided} of ${scenario.events.length} · history ${model.position}/${timelineLength} · ${history.length} recorded events`]),
+          h.p([h.Class("canonical-progress")], [`Guided step ${guided} of ${scenario.events.length} · action ${completedGuidedActions(guided, model.scenario)}/${guidedActionCount(model.scenario)} · history ${model.position}/${timelineLength} · ${history.length} recorded events`]),
           h.label([h.Class("canonical-scrubber")], ["History timeline", h.input([
             h.Type("range"), h.AriaLabel("Guided replay history"), h.Min("0"), h.Max(String(timelineLength)), h.Step("1"),
             h.Value(String(model.position)), h.Disabled(timelineLength === 0),
             h.AriaValuetext(`Event ${model.position} of ${timelineLength}; ${history.length} recorded events`),
             h.OnInput(raw => Message.Jumped({ position: Number(raw) })),
+            h.OnKeyDownSelfPreventDefault((key, modifiers) =>
+              modifiers.shiftKey && !modifiers.altKey && !modifiers.ctrlKey && !modifiers.metaKey &&
+              (key === "ArrowLeft" || key === "ArrowRight")
+                ? Option.some(Message.GuidedMoved({ direction: key === "ArrowLeft" ? -1 : 1 }))
+                : Option.none()),
             h.Style({ width: "100%" }),
           ])]),
           h.p([h.Class("canonical-shortcuts")], ["← / → history (hold to move quickly) · Shift+← / → guided steps · drag the timeline to seek"]),
@@ -236,7 +252,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
           ]),
         ]),
 
-        productionFlowView(h, projection, last, model.scenario === 0,
+        productionFlowView(h, projection, groupedStep, model.scenario === 0,
           (stage) => Message.SelectedFlowStage({ stage }), preparationSnapshot(replay.steps), numbers),
         h.section([h.Class(`flow-stage-inspector${flowStage === "preparation" ? " preparation-selected" : ""}`)], [
           h.h3([], ["Square details at this step"]),

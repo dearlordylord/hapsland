@@ -1,4 +1,4 @@
-// hapsland-bend-source-sha256:f089c4c09a281cb6f046ece5ef6fe34a60e23fe029c193f94cdfe9133cd9fe77
+// hapsland-bend-source-sha256:3bf1c60bb920608412b200e91a652b8fdd8f7de6b4b42481de756d34c31b6395
 function word_to_u32(w) {
   let x = 0;
   for (let i = 0; w.$ === "WCon"; i++) {
@@ -1563,7 +1563,7 @@ function $Canonical$collection_retire$(_state_0, _advice_0) {
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($CollectionState$retire$(_collection_0, _advice_0)))), "commands": {$: "Con", "head": {$: "Canonical.CollectionAdviceRetired"}, "tail": {$: "Nil"}}};
+  return $Bool$pick$(($CollectionState$protected_advice$(_collection_0, _advice_0)), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}}, {$: "Canonical.Advanced", "state": ($Canonical$with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($CollectionState$retire$(_collection_0, _advice_0)))), "commands": {$: "Con", "head": {$: "Canonical.CollectionAdviceRetired"}, "tail": {$: "Nil"}}});
 }
 
 function $Canonical$collection_claim$(_state_0, _group_0, _token_0, _active_0, _capacity_0) {
@@ -1751,7 +1751,7 @@ function $Canonical$submission_forget$(_state_0, _advice_0) {
   const __6 = _state_0["dispatch"];
   const _collection_0 = _state_0["collection"];
   const _history_0 = _state_0["history"];
-  return {$: "Canonical.Advanced", "state": ($Canonical$with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($CollectionState$submission_forget$(_collection_0, _advice_0)))), "commands": {$: "Con", "head": {$: "Canonical.SubmissionForgotten"}, "tail": {$: "Nil"}}};
+  return $Bool$pick$(($CollectionState$protected_advice$(_collection_0, _advice_0)), {$: "Canonical.Rejected", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "reason": {$: "Canonical.WrongStage"}}, {$: "Canonical.Advanced", "state": ($Canonical$with_collection$({$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, ($CollectionState$submission_forget$(_collection_0, _advice_0)))), "commands": {$: "Con", "head": {$: "Canonical.SubmissionForgotten"}, "tail": {$: "Nil"}}});
 }
 
 function $Canonical$submission_suppress_check$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
@@ -3591,6 +3591,11 @@ function $Delivery$collection_lease$(_has_lease_0, _expired_0, _stop_collector_0
   return $Bool$pick$(($Bool$and$(_has_lease_0, (_expired_0 || _x_0))), {$: "Delivery.DropLease"}, {$: "Delivery.KeepLease"});
 }
 
+function $CollectionState$protected_advice$(_state_0, _advice_0) {
+  const _delivery_0 = _state_0["delivery"];
+  return $DeliveryState$protected_advice$(_delivery_0, _advice_0);
+}
+
 function $Canonical$with_collection$(_state_0, _replacement_0) {
   const _ledger_0 = _state_0["ledger"];
   const _rounds_0 = _state_0["rounds"];
@@ -5399,6 +5404,13 @@ function $Canonical$collection_lease_keep$(_state_0, _advice_0, _token_0) {
   return {$: "Canonical.Advanced", "state": {$: "Canonical.State", "ledger": __0, "rounds": __1, "work": __2, "next_round": __3, "next_operation": __4, "admissions": __5, "dispatch": __6, "collection": _collection_0, "history": _history_0}, "commands": {$: "Con", "head": ($Bool$pick$(($CollectionState$owns_lease$(_collection_0, _advice_0, _token_0)), {$: "Canonical.CollectionLeaseKept"}, {$: "Canonical.CollectionLeaseRefused"})), "tail": {$: "Nil"}}};
 }
 
+function $DeliveryState$protected_advice$(_state_0, _advice_0) {
+  const _slots_0 = _state_0["slots"];
+  const _t_0 = _state_0["submissions"];
+  const _batches_0 = _t_0["batches"];
+  return $DeliveryState$protected_advice_items$(_advice_0, _batches_0, _slots_0);
+}
+
 function $CollectionState$remove_ready$(_id_0, _items_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
@@ -5521,23 +5533,23 @@ function $DeliveryState$submission_ready$(_state_0, _group_0, _round_0, _token_0
 
 function $DeliveryState$authorize$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0) {
   const _slots_0 = _state_0["slots"];
-  const _counters_0 = _state_0["counters"];
+  const __0 = _state_0["counters"];
   const _submissions_0 = _state_0["submissions"];
-  return $Bool$pick$(($DeliveryState$authorizable$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _slots_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Authorized"}, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
+  return $Bool$pick$(($DeliveryState$authorizable$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _slots_0)), ($DeliveryState$authorize_result$({$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}, _group_0, _round_0, _attempt_0, _token_0, _selected_0, ($SubmissionState$authorize_stop_token$(_submissions_0, _token_0)))), {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}});
 }
 
 function $DeliveryState$terminal$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0) {
   const _slots_0 = _state_0["slots"];
-  const _counters_0 = _state_0["counters"];
-  const _submissions_0 = _state_0["submissions"];
-  return $Bool$pick$(($DeliveryState$terminal_owned$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _slots_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
+  const __0 = _state_0["counters"];
+  const __1 = _state_0["submissions"];
+  return $Bool$pick$(($DeliveryState$terminal_owned$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _slots_0)), ($DeliveryState$terminal_owned_result$({$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": __1}, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0)), {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": __1}});
 }
 
 function $DeliveryState$end$(_state_0, _group_0, _round_0, _attempt_0, _token_0) {
   const _slots_0 = _state_0["slots"];
   const _counters_0 = _state_0["counters"];
   const _submissions_0 = _state_0["submissions"];
-  return $Bool$pick$(($DeliveryState$durable_owned$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
+  return $Bool$pick$(($DeliveryState$durable_owned$(_group_0, _round_0, _attempt_0, _token_0, _slots_0, _submissions_0)), {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$without_slot$(_group_0, _round_0, _attempt_0, _token_0, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}}, {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": _submissions_0}});
 }
 
 function $DeliveryState$consume$(_state_0, _group_0, _round_0) {
@@ -5554,31 +5566,31 @@ function $DeliveryState$submission_reservation$(_state_0, _group_0, _round_0, _t
 }
 
 function $DeliveryState$submission_begin$(_state_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0) {
-  const __0 = _state_0["slots"];
-  const __1 = _state_0["counters"];
+  const _slots_0 = _state_0["slots"];
+  const __0 = _state_0["counters"];
   const _submissions_0 = _state_0["submissions"];
-  return $DeliveryState$submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, ($SubmissionState$begin$(_submissions_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)));
+  return $Bool$pick$(($DeliveryState$staging_locked$(_token_0, _slots_0)), {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}}, ($DeliveryState$submission_result$({$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}, ($SubmissionState$begin$(_submissions_0, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0)))));
 }
 
 function $DeliveryState$submission_authorize$(_state_0, _advice_0, _token_0) {
-  const __0 = _state_0["slots"];
-  const __1 = _state_0["counters"];
+  const _slots_0 = _state_0["slots"];
+  const __0 = _state_0["counters"];
   const _submissions_0 = _state_0["submissions"];
-  return $DeliveryState$submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, ($SubmissionState$authorize$(_submissions_0, _advice_0, _token_0)));
+  return $Bool$pick$(($DeliveryState$slot_token$(_token_0, _slots_0)), {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}}, ($DeliveryState$submission_result$({$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}, ($SubmissionState$authorize$(_submissions_0, _advice_0, _token_0)))));
 }
 
 function $DeliveryState$submission_terminal$(_state_0, _advice_0, _token_0, _certain_0) {
-  const __0 = _state_0["slots"];
-  const __1 = _state_0["counters"];
+  const _slots_0 = _state_0["slots"];
+  const __0 = _state_0["counters"];
   const _submissions_0 = _state_0["submissions"];
-  return $DeliveryState$submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, ($SubmissionState$terminal$(_submissions_0, _advice_0, _token_0, _certain_0)));
+  return $Bool$pick$(($DeliveryState$slot_token$(_token_0, _slots_0)), {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}}, ($DeliveryState$submission_result$({$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}, ($SubmissionState$terminal$(_submissions_0, _advice_0, _token_0, _certain_0)))));
 }
 
 function $DeliveryState$submission_release$(_state_0, _advice_0, _token_0) {
-  const __0 = _state_0["slots"];
-  const __1 = _state_0["counters"];
+  const _slots_0 = _state_0["slots"];
+  const __0 = _state_0["counters"];
   const _submissions_0 = _state_0["submissions"];
-  return $DeliveryState$submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, ($SubmissionState$release$(_submissions_0, _advice_0, _token_0)));
+  return $Bool$pick$(($DeliveryState$authorized_slot_token$(_token_0, _slots_0)), {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}}, ($DeliveryState$submission_result$({$: "DeliveryState.State", "slots": _slots_0, "counters": __0, "submissions": _submissions_0}, ($SubmissionState$release$(_submissions_0, _advice_0, _token_0)))));
 }
 
 function $DeliveryState$submission_suppresses$(_state_0, _advice_0, _fingerprint_0, _round_0, _surface_0) {
@@ -6808,6 +6820,20 @@ function $CollectionState$owns_lease$(_state_0, _advice_0, _token_0) {
   return $CollectionState$lease_owned$(_advice_0, _token_0, _leases_0);
 }
 
+function $DeliveryState$protected_advice_items$(_advice_0, _items_0, _slots_0) {
+  if (_items_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["advice"];
+    const _token_0 = _t_0["token"];
+    const _rest_0 = _items_0["tail"];
+    const _x_0 = ($Bool$and$(($Nat$is_eq$(_advice_0, _candidate_0)), ($DeliveryState$authorized_slot_token$(_token_0, _slots_0))));
+    const _x_1 = ($DeliveryState$protected_advice_items$(_advice_0, _rest_0, _slots_0));
+    return (_x_0 || _x_1);
+  }
+}
+
 function $CollectionState$keep_ready$(_item_0, _tail_0, _remove_0) {
   if (_remove_0) {
     return _tail_0;
@@ -6992,20 +7018,23 @@ function $DeliveryState$authorizable$($0, $1, $2, $3, $4, $5) {
   }
 }
 
-function $DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _items_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "Nil"};
+function $DeliveryState$authorize_result$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _result_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const __0 = _state_0["submissions"];
+  if (_result_0.$ === "SubmissionState.Denied") {
+    return {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": __0}};
   } else {
-    const _t_0 = _items_0["head"];
-    const _candidate_group_0 = _t_0["group"];
-    const _candidate_round_0 = _t_0["round"];
-    const _candidate_attempt_0 = _t_0["attempt"];
-    const _candidate_token_0 = _t_0["token"];
-    const __0 = _t_0["selected"];
-    const __1 = _t_0["phase"];
-    const _rest_0 = _items_0["tail"];
-    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0)))))))), {$: "Con", "head": {$: "DeliveryState.Slot", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "phase": _phase_0}, "tail": _rest_0}, {$: "Con", "head": {$: "DeliveryState.Slot", "group": _candidate_group_0, "round": _candidate_round_0, "attempt": _candidate_attempt_0, "token": _candidate_token_0, "selected": __0, "phase": __1}, "tail": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _rest_0))});
+    const _submissions_0 = _result_0["state"];
+    return {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Authorized"}, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}};
   }
+}
+
+function $SubmissionState$authorize_stop_token$(_state_0, _token_0) {
+  const __0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  const _advices_0 = ($SubmissionState$stop_token_advices$(_token_0, _batches_0));
+  return $Bool$pick$(($Nat$is_gt$(($List$length$(_advices_0)), 0)), ($SubmissionState$terminal_stop_result$({$: "SubmissionState.State", "leases": __0, "batches": _batches_0}, ($SubmissionState$authorize_each$(_advices_0, {$: "Some", "value": {$: "SubmissionState.State", "leases": __0, "batches": _batches_0}}, _token_0)))), {$: "SubmissionState.Denied", "state": {$: "SubmissionState.State", "leases": __0, "batches": _batches_0}});
 }
 
 function $DeliveryState$terminal_owned$($0, $1, $2, $3, $4, $5) {
@@ -7047,39 +7076,33 @@ function $DeliveryState$terminal_owned$($0, $1, $2, $3, $4, $5) {
   }
 }
 
-function $DeliveryState$durable_owned$($0, $1, $2, $3, $4) {
-  for (;;) {
-    {
-      const _group_0 = $0;
-      const _round_0 = $1;
-      const _attempt_0 = $2;
-      const _token_0 = $3;
-      const _slots_0 = $4;
-      if (_slots_0.$ === "Nil") {
-        return false;
-      } else {
-        const _t_0 = _slots_0["head"];
-        const _candidate_group_0 = _t_0["group"];
-        const _candidate_round_0 = _t_0["round"];
-        const _candidate_attempt_0 = _t_0["attempt"];
-        const _candidate_token_0 = _t_0["token"];
-        const _t_1 = _t_0["phase"];
-        if (_t_1.$ === "DeliveryState.Reserved") {
-          const _rest_0 = _slots_0["tail"];
-          $0 = _group_0;
-          $1 = _round_0;
-          $2 = _attempt_0;
-          $3 = _token_0;
-          $4 = _rest_0;
-          continue;
-        } else {
-          const _rest_1 = _slots_0["tail"];
-          const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0))))))));
-          const _x_1 = ($DeliveryState$durable_owned$(_group_0, _round_0, _attempt_0, _token_0, _rest_1));
-          return (_x_0 || _x_1);
-        }
-      }
-    }
+function $DeliveryState$terminal_owned_result$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0) {
+  const __0 = _state_0["slots"];
+  const __1 = _state_0["counters"];
+  const _submissions_0 = _state_0["submissions"];
+  if (_phase_0.$ === "DeliveryState.Submitted") {
+    return $Bool$pick$(($SubmissionState$token_units_match$(_submissions_0, _token_0, _selected_0)), ($DeliveryState$terminal_submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Submitted"}, ($SubmissionState$terminal_stop_token$(_submissions_0, _token_0, true)))), {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}});
+  } else if (_phase_0.$ === "DeliveryState.Uncertain") {
+    return $Bool$pick$(($SubmissionState$token_units_match$(_submissions_0, _token_0, _selected_0)), ($DeliveryState$terminal_submission_result$({$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}, _group_0, _round_0, _attempt_0, _token_0, _selected_0, {$: "DeliveryState.Uncertain"}, ($SubmissionState$terminal_stop_token$(_submissions_0, _token_0, false)))), {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": __0, "counters": __1, "submissions": _submissions_0}});
+  } else {
+    return {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, __0)), "counters": __1, "submissions": _submissions_0}};
+  }
+}
+
+function $DeliveryState$durable_owned$(_group_0, _round_0, _attempt_0, _token_0, _slots_0, _submissions_0) {
+  if (_slots_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _slots_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _candidate_attempt_0 = _t_0["attempt"];
+    const _candidate_token_0 = _t_0["token"];
+    const _phase_0 = _t_0["phase"];
+    const _rest_0 = _slots_0["tail"];
+    const _x_0 = ($Bool$and$(($DeliveryState$durable_phase$(_phase_0, _token_0, _submissions_0)), ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0))))))))));
+    const _x_1 = ($DeliveryState$durable_owned$(_group_0, _round_0, _attempt_0, _token_0, _rest_0, _submissions_0));
+    return (_x_0 || _x_1);
   }
 }
 
@@ -7095,6 +7118,20 @@ function $DeliveryState$reserved_token$(_group_0, _round_0, _token_0, _slots_0) 
     const _rest_0 = _slots_0["tail"];
     const _x_0 = ($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_token_0, _candidate_token_0)), ($DeliveryState$phase_is_reserved$(_phase_0))))))));
     const _x_1 = ($DeliveryState$reserved_token$(_group_0, _round_0, _token_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $DeliveryState$staging_locked$(_token_0, _slots_0) {
+  if (_slots_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _slots_0["head"];
+    const _candidate_0 = _t_0["token"];
+    const _phase_0 = _t_0["phase"];
+    const _rest_0 = _slots_0["tail"];
+    const _x_0 = ($Bool$and$(($Nat$is_eq$(_token_0, _candidate_0)), ($DeliveryState$staging_locked_phase$(_phase_0))));
+    const _x_1 = ($DeliveryState$staging_locked$(_token_0, _rest_0));
     return (_x_0 || _x_1);
   }
 }
@@ -7117,6 +7154,19 @@ function $SubmissionState$begin$(_state_0, _advice_0, _group_0, _round_0, _token
   return $Bool$pick$(($Bool$and$(($Nat$is_gt$(_advice_0, 0)), ($Bool$and$(($Nat$is_gt$(_group_0, 0)), ($Bool$and$(($Nat$is_gt$(_round_0, 0)), ($Bool$and$(($Nat$is_gt$(_token_0, 0)), ($Bool$and$(($Bool$not$(($SubmissionState$has_batch$(_advice_0, _token_0, _batches_0)))), ($Nat$is_gt$(($List$length$(_fingerprints_0)), 0)))))))))))), ($SubmissionState$begin_result$({$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}, _advice_0, _group_0, _round_0, _token_0, _surface_0, _authorize_now_0, _fingerprints_0, _units_0, ($SubmissionState$begin_many$(_fingerprints_0, {$: "Some", "value": {$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}}, _advice_0, _round_0, _token_0, _surface_0, _authorize_now_0)))), {$: "SubmissionState.Denied", "state": {$: "SubmissionState.State", "leases": _leases_0, "batches": _batches_0}});
 }
 
+function $DeliveryState$slot_token$(_token_0, _slots_0) {
+  if (_slots_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _slots_0["head"];
+    const _candidate_0 = _t_0["token"];
+    const _rest_0 = _slots_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_token_0, _candidate_0));
+    const _x_1 = ($DeliveryState$slot_token$(_token_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
 function $SubmissionState$authorize$(_state_0, _advice_0, _token_0) {
   return $SubmissionState$transition$(_state_0, _advice_0, _token_0, {$: "Delivery.Authorized"}, {$: "Delivery.Reserved"});
 }
@@ -7126,6 +7176,33 @@ function $SubmissionState$terminal$(_state_0, _advice_0, _token_0, _certain_0) {
     return $SubmissionState$transition$(_state_0, _advice_0, _token_0, {$: "Delivery.Submitted"}, {$: "Delivery.Authorized"});
   } else {
     return $SubmissionState$transition$(_state_0, _advice_0, _token_0, {$: "Delivery.Uncertain"}, {$: "Delivery.Authorized"});
+  }
+}
+
+function $DeliveryState$authorized_slot_token$($0, $1) {
+  for (;;) {
+    {
+      const _token_0 = $0;
+      const _slots_0 = $1;
+      if (_slots_0.$ === "Nil") {
+        return false;
+      } else {
+        const _t_0 = _slots_0["head"];
+        const _candidate_0 = _t_0["token"];
+        const _t_1 = _t_0["phase"];
+        if (_t_1.$ === "DeliveryState.Authorized") {
+          const _rest_0 = _slots_0["tail"];
+          const _x_0 = ($Nat$is_eq$(_token_0, _candidate_0));
+          const _x_1 = ($DeliveryState$authorized_slot_token$(_token_0, _rest_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _rest_1 = _slots_0["tail"];
+          $0 = _token_0;
+          $1 = _rest_1;
+          continue;
+        }
+      }
+    }
   }
 }
 
@@ -7980,11 +8057,114 @@ function $DeliveryState$same_selected$(_left_0, _right_0) {
   }
 }
 
+function $DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_group_0 = _t_0["group"];
+    const _candidate_round_0 = _t_0["round"];
+    const _candidate_attempt_0 = _t_0["attempt"];
+    const _candidate_token_0 = _t_0["token"];
+    const __0 = _t_0["selected"];
+    const __1 = _t_0["phase"];
+    const _rest_0 = _items_0["tail"];
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_group_0, _candidate_group_0)), ($Bool$and$(($Nat$is_eq$(_round_0, _candidate_round_0)), ($Bool$and$(($Nat$is_eq$(_attempt_0, _candidate_attempt_0)), ($Nat$is_eq$(_token_0, _candidate_token_0)))))))), {$: "Con", "head": {$: "DeliveryState.Slot", "group": _group_0, "round": _round_0, "attempt": _attempt_0, "token": _token_0, "selected": _selected_0, "phase": _phase_0}, "tail": _rest_0}, {$: "Con", "head": {$: "DeliveryState.Slot", "group": _candidate_group_0, "round": _candidate_round_0, "attempt": _candidate_attempt_0, "token": _candidate_token_0, "selected": __0, "phase": __1}, "tail": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _rest_0))});
+  }
+}
+
+function $SubmissionState$stop_token_advices$(_token_0, _items_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _advice_0 = _t_0["advice"];
+    const _candidate_0 = _t_0["token"];
+    const _surface_0 = _t_0["surface"];
+    const _rest_0 = _items_0["tail"];
+    const _tail_0 = ($SubmissionState$stop_token_advices$(_token_0, _rest_0));
+    return $Bool$pick$(($Bool$and$(($Nat$is_eq$(_token_0, _candidate_0)), ($SubmissionState$stop_surface$(_surface_0)))), {$: "Con", "head": _advice_0, "tail": _tail_0}, _tail_0);
+  }
+}
+
+function $SubmissionState$terminal_stop_result$(_original_0, _result_0) {
+  if (_result_0.$ === "None") {
+    return {$: "SubmissionState.Denied", "state": _original_0};
+  } else {
+    const _state_0 = _result_0["value"];
+    return {$: "SubmissionState.Granted", "state": _state_0};
+  }
+}
+
+function $SubmissionState$authorize_each$($0, $1, $2) {
+  for (;;) {
+    {
+      const _advices_0 = $0;
+      const _current_0 = $1;
+      const _token_0 = $2;
+      if (_advices_0.$ === "Nil") {
+        return _current_0;
+      } else {
+        const _advice_0 = _advices_0["head"];
+        const _rest_0 = _advices_0["tail"];
+        $0 = _rest_0;
+        $1 = ($SubmissionState$authorize_one$(_current_0, _advice_0, _token_0));
+        $2 = _token_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $SubmissionState$token_units_match$(_state_0, _token_0, _selected_0) {
+  const _batches_0 = _state_0["batches"];
+  return $SubmissionState$same_units$(($SubmissionState$token_units$(_token_0, _batches_0)), _selected_0);
+}
+
+function $DeliveryState$terminal_submission_result$(_state_0, _group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _result_0) {
+  const _slots_0 = _state_0["slots"];
+  const _counters_0 = _state_0["counters"];
+  const __0 = _state_0["submissions"];
+  if (_result_0.$ === "SubmissionState.Denied") {
+    return {$: "DeliveryState.Denied", "state": {$: "DeliveryState.State", "slots": _slots_0, "counters": _counters_0, "submissions": __0}};
+  } else {
+    const _submissions_0 = _result_0["state"];
+    return {$: "DeliveryState.Granted", "state": {$: "DeliveryState.State", "slots": ($DeliveryState$update_slot$(_group_0, _round_0, _attempt_0, _token_0, _selected_0, _phase_0, _slots_0)), "counters": _counters_0, "submissions": _submissions_0}};
+  }
+}
+
+function $SubmissionState$terminal_stop_token$(_state_0, _token_0, _certain_0) {
+  const __0 = _state_0["leases"];
+  const _batches_0 = _state_0["batches"];
+  const _advices_0 = ($SubmissionState$stop_token_advices$(_token_0, _batches_0));
+  return $Bool$pick$(($Nat$is_gt$(($List$length$(_advices_0)), 0)), ($SubmissionState$terminal_stop_result$({$: "SubmissionState.State", "leases": __0, "batches": _batches_0}, ($SubmissionState$terminal_each$(_advices_0, {$: "Some", "value": {$: "SubmissionState.State", "leases": __0, "batches": _batches_0}}, _token_0, _certain_0)))), {$: "SubmissionState.Denied", "state": {$: "SubmissionState.State", "leases": __0, "batches": _batches_0}});
+}
+
+function $DeliveryState$durable_phase$(_phase_0, _token_0, _submissions_0) {
+  if (_phase_0.$ === "DeliveryState.Submitted") {
+    return true;
+  } else if (_phase_0.$ === "DeliveryState.Uncertain") {
+    return true;
+  } else if (_phase_0.$ === "DeliveryState.Failed") {
+    return $Bool$not$(($SubmissionState$token_exists_state$(_submissions_0, _token_0)));
+  } else {
+    return false;
+  }
+}
+
 function $DeliveryState$phase_is_reserved$(_phase_0) {
   if (_phase_0.$ === "DeliveryState.Reserved") {
     return true;
   } else {
     return false;
+  }
+}
+
+function $DeliveryState$staging_locked_phase$(_phase_0) {
+  if (_phase_0.$ === "DeliveryState.Reserved") {
+    return false;
+  } else {
+    return true;
   }
 }
 
@@ -8460,6 +8640,50 @@ function $SubmissionState$token_units_keep$(_units_0, _tail_0, _hit_0) {
   }
 }
 
+function $SubmissionState$stop_surface$(_surface_0) {
+  if (_surface_0.$ === "Handoff.Stop") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $SubmissionState$authorize_one$(_current_0, _advice_0, _token_0) {
+  if (_current_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _state_0 = _current_0["value"];
+    return $SubmissionState$terminal_one_result$(($SubmissionState$authorize$(_state_0, _advice_0, _token_0)));
+  }
+}
+
+function $SubmissionState$terminal_each$($0, $1, $2, $3) {
+  for (;;) {
+    {
+      const _advices_0 = $0;
+      const _current_0 = $1;
+      const _token_0 = $2;
+      const _certain_0 = $3;
+      if (_advices_0.$ === "Nil") {
+        return _current_0;
+      } else {
+        const _advice_0 = _advices_0["head"];
+        const _rest_0 = _advices_0["tail"];
+        $0 = _rest_0;
+        $1 = ($SubmissionState$terminal_one$(_current_0, _advice_0, _token_0, _certain_0));
+        $2 = _token_0;
+        $3 = _certain_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $SubmissionState$token_exists_state$(_state_0, _token_0) {
+  const _batches_0 = _state_0["batches"];
+  return $SubmissionState$token_exists$(_token_0, _batches_0);
+}
+
 function $SubmissionState$batch_matches$(_advice_0, _token_0, _item_0) {
   const _candidate_advice_0 = _item_0["advice"];
   const _candidate_token_0 = _item_0["token"];
@@ -8782,6 +9006,24 @@ function $Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _item
     const _kind_0 = _t_0["kind"];
     const _rest_0 = _items_0["tail"];
     return $Canonical$release_pick$(_charge_0, ($Canonical$release_commands$(_partition_0, _lifetime_0, _round_0, _rest_0)), ($Bool$and$(($Nat$is_gt$(_charge_0, 0)), ($Bool$and$(($Canonical$same_ids$(_partition_0, _lifetime_0, _round_0, _owner_0, _generation_0, _current_0)), ($Canonical$unfinished$(_kind_0)))))));
+  }
+}
+
+function $SubmissionState$terminal_one_result$(_result_0) {
+  if (_result_0.$ === "SubmissionState.Granted") {
+    const _next_0 = _result_0["state"];
+    return {$: "Some", "value": _next_0};
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $SubmissionState$terminal_one$(_current_0, _advice_0, _token_0, _certain_0) {
+  if (_current_0.$ === "None") {
+    return {$: "None"};
+  } else {
+    const _state_0 = _current_0["value"];
+    return $SubmissionState$terminal_one_result$(($SubmissionState$terminal$(_state_0, _advice_0, _token_0, _certain_0)));
   }
 }
 

@@ -1,24 +1,28 @@
 import type { CanonicalProjection } from "../../../src/canonical/adapter";
-import { FLOW_STAGES, recordLabel, type RecordNumbers, type FlowStage as Place } from "@hapsland/agent-flow-projection";
+import { FLOW_STAGES, findingLineage, recordLabel, type RecordNumbers, type FlowStage as Place } from "@hapsland/agent-flow-projection";
 
-export type SquareFacet = Readonly<{ label: string; count: number; references: readonly string[] }>;
+export type SquareFacet = Readonly<{ label: string; count: number; references: readonly string[]; sample?: string }>;
 type Square = Readonly<{ title: string; owner: string; x: number; y: number; facets: (state: CanonicalProjection, numbers?: RecordNumbers) => readonly SquareFacet[]; detail: (state: CanonicalProjection, numbers?: RecordNumbers) => string }>;
-const facet = (label: string, references: readonly string[]): SquareFacet => ({ label, count: references.length, references });
+const facet = (label: string, references: readonly string[], sample?: string): SquareFacet => ({ label, count: references.length, references, sample });
 const ids = (items: readonly number[], noun: string) => items.map((id) => `${noun} #${id}`);
 const work = (state: CanonicalProjection, kind: CanonicalProjection["work"][number]["kind"], numbers?: RecordNumbers) =>
   state.work.filter((item) => item.kind === kind).map((item) => recordLabel(
     kind === "sourceReading" || kind === "awaitingSourceRead" ? "source" : kind === "preparing" ? "preparation" : "review",
     item.operation, numbers));
+const workLabel = (item: CanonicalProjection["work"][number], numbers?: RecordNumbers) =>
+  recordLabel(item.kind === "awaitingSourceRead" || item.kind === "sourceReading" ? "source" :
+    item.kind === "preparing" ? "preparation" : "review", item.operation, numbers);
 const dispatch = (state: CanonicalProjection, place: "queued" | "running", numbers?: RecordNumbers, preparation?: boolean) =>
   state.dispatch[place].filter((item) => preparation === undefined || item.preparation === preparation)
     .map((item) => `${recordLabel(item.preparation ? "source" : "review", item.operation, numbers)}/agent ${item.partition}/round ${item.round}/seq ${item.sequence}/${item.preparation ? "preparation" : "review"}${item.cancelled ? "/cancelled" : ""}`);
-const facetCount = (item: SquareFacet) => `${item.count} ${item.count === 1 ? item.label.replace(/\b(rounds|permits|charges|requests|units|leases|claims|slots|preparations|items|reads)\b/g, (word) => word.slice(0, -1)) : item.label}`;
+const facetCount = (item: SquareFacet) => `${item.count} ${item.count === 1 ? item.label.replace(/\b(rounds|permits|charges|requests|units|leases|claims|slots|preparations|items|reads|findings)\b/g, (word) => word.slice(0, -1)) : item.label}`;
 const square = (definition: Omit<Square, "detail">): Square => ({ ...definition, detail: (state, numbers) => definition.facets(state, numbers).map((item) => `${facetCount(item)}${item.references.length ? `: ${item.references.join(", ")}` : ""}`).join(" · ") });
 /** Count and facet name always remain visible; only the identity sample is bounded. */
 export const squareFacetLine = (item: SquareFacet): string => {
   const count = facetCount(item);
   if (item.count === 0) return count;
-  const first = item.references[0].split(/[/:]/)[0];
+  if (item.sample !== undefined && item.sample.length <= 40) return item.sample;
+  const first = item.references[0].split("/")[0];
   const remaining = item.count > 1 ? ` +${item.count - 1} more` : "";
   const sampled = `${count} · ${first}${remaining}`;
   return sampled.length <= 40 ? sampled : count;
@@ -49,16 +53,42 @@ export const SQUARES: Record<Place, Square> = {
   jev: square({ title: "Awaiting Jev result", owner: "BEND STATE", x: 588, y: 350,
     facets: (s, n) => [facet("at Jev work", work(s, "atJev", n)), facet("request permits", s.dispatch.requests.map((x) => recordLabel("request", x.request, n)))] }),
   outcomes: square({ title: "Review outcomes", owner: "BEND DECISION", x: 310, y: 350,
-    facets: (s, n) => [facet("finding work", work(s, "pendingFinding", n)), facet("ticket units", s.tickets.flatMap((x) => x.units).map((x) => `Ticket unit #${x.id}:${x.stage}`))] }),
-  advice: square({ title: "Advice ready / retained", owner: "BEND STATE", x: 32, y: 350,
+    facets: (s, n) => {
+      const waiting = findingLineage(s).filter((item) => !item.ready && item.unfinished.length > 0);
+      const first = waiting[0];
+      const compact = (id: number) => recordLabel("review", id, n).split("/")[0].replace("Review item", "Review");
+      const blocker = first?.unfinished[0];
+      const sample = first === undefined || blocker === undefined ? undefined
+        : `${waiting.length} waiting · ${compact(first.operation)}→${blocker.kind === "reviewing" || blocker.kind === "atJev" ? compact(blocker.operation).replace("Review ", "") : workLabel(blocker, n).split("/")[0]}${waiting.length > 1 ? ` +${waiting.length - 1}` : ""}`;
+      return [facet("finding work", work(s, "pendingFinding", n)),
+        facet("findings waiting for work", waiting
+          .map((item) => `${recordLabel("review", item.operation, n)} from edit observation #${item.observation} waits for ${item.unfinished.map((other) => workLabel(other, n)).join(", ")}`), sample),
+        facet("ticket units", s.tickets.flatMap((x) => x.units).map((x) => `Ticket unit #${x.id}:${x.stage}`))];
+    } }),
+  advice: square({ title: "Ready advice", owner: "BEND STATE", x: 32, y: 350,
     facets: (s, n) => {
       const submitted = new Set(s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map((x) => x.advice));
-      return [facet("pending ready", s.collection.ready.filter((id) => !submitted.has(id)).map((id) => recordLabel("advice", id, n))), facet("retained submitted", s.collection.ready.filter((id) => submitted.has(id)).map((id) => recordLabel("advice", id, n))), facet("leases", s.collection.leases.map((x) => recordLabel("advice", x.advice, n)))];
+      const origin = new Map(findingLineage(s).map((item) => [item.operation, item.observation]));
+      const advice = (id: number) => `${recordLabel("advice", id, n)}${origin.has(id) ? ` from ${recordLabel("review", id, n)} · edit observation #${origin.get(id)}` : ""}`;
+      return [facet("awaiting delivery", s.collection.ready.filter((id) => !submitted.has(id)).map(advice)), facet("retained submitted", s.collection.ready.filter((id) => submitted.has(id)).map(advice)), facet("leases", s.collection.leases.map((x) => recordLabel("advice", x.advice, n)))];
     } }),
   collection: square({ title: "Advice collection", owner: "BEND DECISION", x: 32, y: 592,
     facets: (s, n) => [facet("waiting rounds", ids(s.rounds.filter((x) => x.waiting).map((x) => x.id), "Round")), facet("leases", s.collection.leases.map((x) => recordLabel("advice", x.advice, n))), facet("background claims", ids(s.collection.claims.map((x) => x.group), "Claim group"))] }),
   delivery: square({ title: "Host output", owner: "BEND + NATIVE EFFECT", x: 310, y: 592,
-    facets: (s, n) => [facet("finish slots", s.delivery.slots.map((x) => `Finish group #${x.group}:${x.phase}`)), facet("pending advice", s.delivery.submissions.batches.filter((x) => x.phase === "reserved" || x.phase === "authorized").map((x) => `${recordLabel("advice", x.advice, n)}:${x.surface}:${x.phase}`)), facet("submitted advice", s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map((x) => `${recordLabel("advice", x.advice, n)}:${x.surface}:${x.phase}`)), facet("uncertain advice", s.delivery.submissions.batches.filter((x) => x.phase === "uncertain").map((x) => `${recordLabel("advice", x.advice, n)}:${x.surface}:${x.phase}`))] }),
+    facets: (s, n) => {
+      const batch = (x: CanonicalProjection["delivery"]["submissions"]["batches"][number]) =>
+        `${recordLabel("advice", x.advice, n).split("/")[0]}:${x.phase}/operation ${x.advice}:${x.surface}`;
+      const pending = s.delivery.submissions.batches.filter((x) => x.phase === "reserved" || x.phase === "authorized")
+        .sort((left, right) => (n?.advice.get(left.advice) ?? left.advice) - (n?.advice.get(right.advice) ?? right.advice));
+      const shortBatch = (x: typeof pending[number]) => `#${n?.advice.get(x.advice) ?? x.advice}:${x.phase}`;
+      const visible = pending.slice(0, 2).map(shortBatch).join(", ");
+      const pendingSample = pending.length === 0 ? undefined
+        : `${pending.length} ${pending.length === 1 ? "record" : "records"} · ${visible}${pending.length > 2 ? ` +${pending.length - 2}` : ""}`;
+      return [facet("Stop output slots", s.delivery.slots.map((x) => `Stop output for advicee #${x.group}:${x.phase}`)),
+        facet("advice records awaiting output", pending.map(batch), pendingSample),
+        facet("submitted advice records", s.delivery.submissions.batches.filter((x) => x.phase === "submitted").map(batch)),
+        facet("uncertain advice records", s.delivery.submissions.batches.filter((x) => x.phase === "uncertain").map(batch))];
+    } }),
   round: square({ title: "Round state", owner: "BEND STATE", x: 588, y: 592,
     facets: (s) => [facet("active rounds", ids(s.rounds.map((x) => x.id), "Round")), facet("uncertain rounds", ids(s.rounds.filter((x) => x.uncertain).map((x) => x.id), "Round"))] }),
 };
@@ -82,7 +112,7 @@ export const CONNECTIONS = [
   { from: "effect", to: "jev", label: "attempt observed" },
   { from: "effect", to: "outcomes", label: "attempt interrupted or failed" },
   { from: "jev", to: "outcomes", label: "review result supplied" },
-  { from: "outcomes", to: "advice", label: "retain finding decision" },
+  { from: "outcomes", to: "advice", label: "finding marked ready" },
   { from: "outcomes", to: "outcomes", label: "outcome recorded" },
   { from: "advice", to: "collection", label: "advice selected or leased" },
   { from: "collection", to: "collection", label: "wait, keep, or allow finish" },

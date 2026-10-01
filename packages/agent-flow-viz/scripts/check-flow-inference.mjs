@@ -56,13 +56,22 @@ try {
     "request issue does not claim an observed attempt");
   assert.ok(has(22, "state", "authorization", "effect", "request:8"),
     "the observed request start moves its stable request ID");
-  assert.ok(has(27, "command", "outcomes", "advice"),
-    "a finding's retain command is visible");
+  assert.ok(!has(27, "command", "outcomes", "advice"),
+    "a retain command does not claim advice is ready");
   assert.ok(!steps[26].after.collection.ready.includes(4),
     "retain command does not assert stored advice");
   assert.ok(has(28, "state", "outcomes", "advice", "work:4"),
     "Bend links the ready advice to checked finding work");
   assert.ok(steps[27].after.collection.ready.includes(4));
+  assert.ok(!has(30, "command", "outcomes", "advice"),
+    "the second finding waits for readiness without lighting the ready route");
+  assert.deepEqual(flow.findingLineage(steps[29].after).find((item) => item.operation === 6)?.unfinished.map((item) => item.operation), [7],
+    "the second finding names the unfinished sibling review from the same edit");
+  assert.deepEqual(flow.findingLineage(steps[35].after).find((item) => item.operation === 6)?.unfinished, [],
+    "the clear removes a blocker but does not create advice");
+  assert.equal(flow.findingLineage(steps[35].after).find((item) => item.operation === 6)?.ready, false);
+  assert.equal(flow.findingLineage(steps[37].after).find((item) => item.operation === 6)?.ready, true,
+    "the later collectionReady transition marks the existing finding ready");
   assert.ok(!flow.projectFlowStep(steps[10]).changedStages.includes("observation"),
     "preparing one item does not highlight an unrelated queued observation");
   assert.equal(steps[35].event.kind, "jevRequestSettled");
@@ -79,7 +88,7 @@ try {
     "a new lease is linked to its ready advice even while readiness remains visible");
   assert.ok(steps[39].after.collection.ready.includes(4),
     "lease creation does not invent removal of the ready advice");
-  assert.ok(has(59, "state", "round", "round", "round:1"),
+  assert.ok(has(55, "state", "round", "round", "round:1"),
     "checked retirement marks the round's end");
   assert.ok(steps.every((step) => step.rejection === undefined), "the complete showcase is accepted");
   const settled = steps.at(-1).after;

@@ -59,6 +59,18 @@ export const recordLabel = (kind: RecordKind, id: number, numbers?: RecordNumber
   return ordinal === undefined ? `${recordNames[kind]}/${internalKind} ${id}`
     : `${recordNames[kind]} #${ordinal}/${internalKind} ${id}`;
 };
+/** Checked finding lineage and unfinished Bend work for the same edit; joined native work is not inferred here. */
+export const findingLineage = (state: CanonicalProjection) => state.work
+  .filter((item) => item.kind === "pendingFinding")
+  .map((finding) => ({
+    operation: finding.operation,
+    observation: finding.parent,
+    ready: state.collection.ready.includes(finding.operation),
+    unfinished: state.work.filter((item) => item.kind !== "pendingFinding" &&
+      item.partition === finding.partition && item.lifetime === finding.lifetime &&
+      item.round === finding.round &&
+      (item.operation === finding.parent || item.parent === finding.parent)),
+  }));
 /** Identified checked record assigned to a conceptual stage. */
 export type Located = Readonly<{ key: string; stage: FlowStage; description: string }>;
 const workKind = (kind: CanonicalProjection["work"][number]["kind"]): RecordKind =>
@@ -119,7 +131,6 @@ const FACT_RULES: readonly Rule[] = [
   { from: "authorization", to: "outcomes", source: "command", description: "request unavailable or refused", commands: ["jevRequestUnavailable"] },
   { from: "effect", to: "jev", source: "native fact", description: "request start observed", commands: ["jevRequestStartRecorded"] },
   { from: "effect", to: "outcomes", source: "native fact", description: "request interruption recorded", commands: ["jevInterruptionRecorded"] },
-  { from: "outcomes", to: "advice", source: "command", description: "retain finding command; storage not observed", commands: ["retainFinding"] },
   { from: "outcomes", to: "outcomes", source: "command", description: "clear, stale, or backend outcome recorded", commands: ["settleClear", "settleStaleClear", "retireStaleFinding", "failureBackend"] },
   { from: "advice", to: "collection", source: "command", description: "advice eligible or selected", commands: ["collectionEligible", "collectionBackgroundClaimed", "collectionFindingSelected"] },
   { from: "collection", to: "collection", source: "command", description: "collection waits or retains advice", commands: ["collectionFindingRetained", "waitForWork", "waitForOutput", "finishAllowedNoAdvice", "finishAllowedDeadline", "finishAllowedUnavailable"] },

@@ -589,9 +589,12 @@ export class ComposedDelivery {
       return false;
     }
     permit.authorized = true;
-    if (!this.#transitionBatchStatus(token, "authorized")) {
-      this.release(token);
-      return false;
+    for (const [id, submission] of this.#submissions) {
+      const batch = submission.batches.get(token);
+      if (batch === undefined) continue;
+      const batches = new Map(submission.batches);
+      batches.set(token, { ...batch, status: "authorized" });
+      this.#submissions.set(id, { ...submission, batches });
     }
     return true;
   }
@@ -878,45 +881,51 @@ export class ComposedDelivery {
     return true;
   }
 
+  #recordStopBatchResult(token: string, status: "submitted" | "uncertain",
+    outcome: "acknowledged" | "unknown"): boolean {
+    const permit = this.#finishPermits.get(token);
+    if (permit === undefined || !permit.authorized || permit.terminal) return false;
+    const stop = this.#stops.get(permit.partition);
+    if (stop === undefined || stop.outputToken !== token) return false;
+    const matching = [...this.#submissions].flatMap(([id, submission]) => {
+      const batch = submission.batches.get(token);
+      return batch === undefined ? [] : [{ id, submission, batch }];
+    });
+    const canonical = this.canonical.canonicalProjection().delivery.submissions.batches;
+    if (matching.length !== permit.advice.length || matching.some(({ id, batch }) =>
+      !permit.advice.some((item) => item.id === id) || batch.status !== "authorized" ||
+      canonical.find((item) => item.advice === this.#submissionAdviceId(id) && item.token === batch.id)?.phase !== "authorized")) return false;
+    const recorded = this.canonical.transition({ kind: "finishTerminal",
+      group: this.canonical.partitionId(permit.partition),
+      round: this.canonical.roundId(permit.partition), attempt: stop.id,
+      token: this.canonical.collectionTokenId(token), selected: permit.selected, outcome });
+    if (recorded.rejection !== undefined || recorded.commands[0]?.kind !== "finishRecorded") return false;
+    for (const { id, submission, batch } of matching) {
+      const batches = new Map(submission.batches);
+      batches.set(token, { ...batch, status });
+      this.#submissions.set(id, { ...submission, batches });
+    }
+    permit.terminal = true;
+    return true;
+  }
+
   markSubmitted(token: string, selectedUnits: ReadonlyArray<number> = []): boolean {
     const permit = this.#finishPermits.get(token);
     if (permit !== undefined && (!permit.authorized || permit.terminal ||
         permit.selected.length !== selectedUnits.length ||
         permit.selected.some((unit, index) => unit !== selectedUnits[index]))) return false;
-    if (!this.#transitionBatchStatus(token, "submitted")) return false;
     if (permit !== undefined) {
-      const stop = this.#stops.get(permit.partition);
-      if (stop === undefined) throw new Error("canonical finish owner missing at submission");
-      const recorded = this.canonical.transition({ kind: "finishTerminal",
-        group: this.canonical.partitionId(permit.partition),
-        round: this.canonical.roundId(permit.partition), attempt: stop.id,
-        token: this.canonical.collectionTokenId(token), selected: permit.selected,
-        outcome: "acknowledged" });
-      if (recorded.rejection !== undefined || recorded.commands[0]?.kind !== "finishRecorded") {
-        throw new Error("canonical finish submission refused");
-      }
-      permit.terminal = true;
+      return this.#recordStopBatchResult(token, "submitted", "acknowledged");
     }
-    return true;
+    return this.#transitionBatchStatus(token, "submitted");
   }
 
   markUncertain(token: string): boolean {
-    if (!this.#transitionBatchStatus(token, "uncertain")) return false;
     const permit = this.#finishPermits.get(token);
     if (permit !== undefined && permit.authorized && !permit.terminal) {
-      const stop = this.#stops.get(permit.partition);
-      if (stop === undefined) throw new Error("canonical finish owner missing at uncertain result");
-      const recorded = this.canonical.transition({ kind: "finishTerminal",
-        group: this.canonical.partitionId(permit.partition),
-        round: this.canonical.roundId(permit.partition), attempt: stop.id,
-        token: this.canonical.collectionTokenId(token), selected: permit.selected,
-        outcome: "unknown" });
-      if (recorded.rejection !== undefined || recorded.commands[0]?.kind !== "finishRecorded") {
-        throw new Error("canonical uncertain submission refused");
-      }
-      permit.terminal = true;
+      return this.#recordStopBatchResult(token, "uncertain", "unknown");
     }
-    return true;
+    return this.#transitionBatchStatus(token, "uncertain");
   }
 
   release(token: string): void {
