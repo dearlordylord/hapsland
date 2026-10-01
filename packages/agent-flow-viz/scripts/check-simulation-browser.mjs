@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createServer } from "vite";
-const server = await createServer({ server: { host: "127.0.0.1", port: 0 } });
+const server = await createServer({ server: { host: "127.0.0.1", port: 0, hmr: false } });
 let browser;
 try {
   await server.listen();
@@ -341,6 +341,12 @@ try {
   await page.waitForFunction(() => [...document.querySelectorAll("#monkey-business button")].some((button) => /^Jev request #/.test(button.textContent ?? "")));
   await panel.getByRole("button", { name: /^Jev request #/ }).first().click();
   await page.waitForFunction(() => document.querySelector("#monkey-business")?.textContent.includes("Following request:"));
+  // Stage selection opens the flat inspection view; layout stays stable within it.
+  const focusAgent = panel.getByRole("button", { name: "Focus selected agent", exact: true });
+  if (await focusAgent.count()) {
+    await focusAgent.click();
+    await panel.locator(".ensemble-panel.is-flat").waitFor();
+  }
   const diagramTop = () => panel.locator(".production-topology").evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
   const stableTop = await diagramTop();
   const awaitingSquare = panel.locator(".topology-node").filter({ hasText: "Awaiting Jev result" });

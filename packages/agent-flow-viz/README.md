@@ -221,9 +221,48 @@ form field; focused sliders retain their native keyboard behavior.
 
 Run `npm run test:replay-browser` for repeated-key events, guided boundaries with several manual events per step, mouse seeking, retained future preservation and input focus checks.
 
+## Multi-agent layers
+
+The Monkey Business panel renders one to six agent diagrams as planes in CSS
+3D. Every plane uses the same `productionFlowView` SVG widget as guided replay.
+The installed stack is FoldKit + SVG; CSS `preserve-3d` adds depth while keeping
+SVG labels, keyboard stage selection and existing projection rendering. No
+Three.js or other rendering dependency is needed for this planar view.
+
+Set **Agents** and choose **Start ensemble**. This resets the ensemble using the
+selected agent's draft settings. Agent seeds are derived from that agent's seed
+with distinct 32-bit offsets, and each run receives its own `session.agent` name.
+The generators execute independently; layers do not replay copies of one event
+stream. **Play all**, **Pause all** and **Step all** operate on every agent.
+Selecting a layer card changes the controls, history, counters and replay below.
+Those controls, including **Start / reset**, affect only that selected agent.
+Replay JSON remains the existing version-one single-run format; export/load
+applies to the selected agent, not the entire ensemble.
+
+**Tilt**, **Rotation**, **Layer spacing** and **Zoom** position the layers.
+**Focus selected agent** opens the selected diagram without perspective;
+**3D layers** returns to the stack. Selecting a diagram stage also opens this
+inspection view and its existing stage inspector. On narrow screens the diagram
+viewport scrolls independently of the page.
+
+Workspace and Jev contacts visually connect the planes as common infrastructure.
+They describe topology, not cross-agent state or product decisions. Each agent
+currently has an isolated checked Monkey Business Run and capacity ledger;
+shared resident admission, contention and an aggregate enforced capacity are
+not simulated. Canonical state and transitions still come from compiled Bend.
+
+Run `npm run test:ensemble-browser` for independent event/seed checks,
+agent-scoped controls and replay, global playback, invalid count handling,
+keyboard-capable stage inspection, six-layer camera fit and narrow layout.
+The visual change to inspect is the Monkey Business panel with **Agents = 3**:
+three independently changing diagrams and two infrastructure contact rails
+replace the single flat diagram. Focus mode retains detailed single-agent
+inspection. These browser checks establish UI behavior, not design acceptance
+or installed runtime support.
+
 ## Seeded simulation walkthrough
 
-The `Monkey-business · seeded simulation` panel consumes the public
+The Monkey Business ensemble at `/#monkey-business` consumes the public
 `monkey-business` run API. It maps checked canonical frames onto the existing places and routes, with
 checked graph frames inside preparation. It adds controls without changing diagram layout or product policy.
 All Jev observations are simulated; no credentials or source files are needed.
@@ -343,4 +382,4 @@ Run `npm run test:simulation-browser` for focused offline browser checks;
 separately from design acceptance, native enforcement and release support. An
 owner review request should link `/#monkey-business`, name the exact control or
 replay case, describe the panel's added behavior and state the requested design
-decision. Existing diagram positions have no visual diff.
+decision. The multi-agent layer layout is a new visual change; positions within each reused SVG remain the same.

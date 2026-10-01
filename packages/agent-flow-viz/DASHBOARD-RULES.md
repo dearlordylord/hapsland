@@ -96,3 +96,16 @@ verify that the visible graph follows replay, including excluded C receiving
 no `ReadSource` command and no unrelated root appearing. The branching tree
 also shows denied X without a read, followed by E/G tree-budget skips and a
 `TreeLimit` terminal reason from Bend.
+
+## Multi-agent visualization boundary
+
+`fleet-simulation.ts` owns independent dashboard contexts and presents each
+checked Monkey Business run as a layer of the existing SVG widget. Distinct
+seeds and session agent names produce independent event streams. Per-agent
+controls, replay and capacity totals retain that run's scope. Global playback
+controls advance the runs; they do not arbitrate capacity between them.
+Workspace and Jev contact rails are static topology annotations identifying
+common infrastructure, not observed inter-agent traffic. The panel must state
+that shared capacity and contention are not simulated until a checked shared
+resident simulation exists. No aggregate limit may be inferred from these
+isolated ledgers.

@@ -25,6 +25,7 @@ import { SQUARES, PLACE_ORDER } from "./production-flow-presentation";
 import { productionFlowView } from "./production-flow-view";
 
 export const SimulationModel = Schema.Struct({
+  agentId: Schema.String,
   seed: Schema.String,
   pace: Schema.String,
   burst: Schema.String,
@@ -70,6 +71,7 @@ export const SimulationModel = Schema.Struct({
 });
 export type SimulationModel = typeof SimulationModel.Type;
 export const initialSimulation: SimulationModel = {
+  agentId: "agent-1",
   seed: "7",
   pace: "100",
   burst: "5",
@@ -114,7 +116,7 @@ export const initialSimulation: SimulationModel = {
 };
 let run: ReturnType<typeof createRun> | undefined;
 let wallBudget = 0;
-let fileError: string | undefined;
+let fileReadState: { error?: string } = {};
 let replayEndpoint: Replay["endpoint"] | undefined;
 let replaySource: Replay | undefined;
 const completeReplay = () => {
@@ -309,6 +311,12 @@ export const actSimulation = (
       return { ...model, feedback: "Replay file downloaded." };
     }
     if (action === "import-file") {
+      const ownerRun = run;
+      const ownerLabel = `Simulation controls for ${model.agentId}`;
+      const ownerPanel = document.querySelector(`[aria-label="${ownerLabel}"]`);
+      const textarea = ownerPanel?.querySelector<HTMLTextAreaElement>("textarea");
+      const ownerReadState = fileReadState;
+      const stillSelected = () => run === ownerRun && textarea?.isConnected === true && ownerPanel?.getAttribute("aria-label") === ownerLabel;
       const picker = document.createElement("input");
       picker.type = "file";
       picker.accept = ".json,application/json";
@@ -316,9 +324,8 @@ export const actSimulation = (
         const file = picker.files?.[0];
         if (!file) return;
         void file.text().then((raw) => {
-          const textarea = document.querySelector<HTMLTextAreaElement>("#monkey-business textarea");
-          if (textarea) { textarea.value = raw; textarea.dispatchEvent(new Event("input", { bubbles: true })); }
-        }).catch((error) => { fileError = `Could not read replay file: ${error instanceof Error ? error.message : String(error)}`; });
+          if (stillSelected() && textarea) { textarea.value = raw; textarea.dispatchEvent(new Event("input", { bubbles: true })); }
+        }).catch((error) => { ownerReadState.error = `Could not read replay file: ${error instanceof Error ? error.message : String(error)}`; });
       };
       picker.click();
       return { ...model, feedback: "Choose a replay file, then Load replay to validate and reconstruct it." };
@@ -356,7 +363,7 @@ export const actSimulation = (
     if (action === "start") {
       const validSpeed = speedValue(model.speed);
       run = createRun({
-        // Keep ordinary reservations and bursts visible in this single-agent demo.
+        // Each independent checked run keeps ordinary reservations and bursts visible.
         limits: { globalItems: 32, partitionItems: 16, globalBytes: 2000, partitionBytes: 2000 },
         environment: environmentFacts(model),
         outputProfile: outputProfile(model),
@@ -365,6 +372,7 @@ export const actSimulation = (
         outcomeWeights: draftWeights(model),
         fileTrees: treeProfile(model),
         session: {
+          agent: model.agentId,
           editIntervalMs: number(model.pace, "Edit pace", 1, 1_000_000),
           bytes: number(model.bytes, "Reservation bytes", 1, 1_000_000),
         },
@@ -547,7 +555,7 @@ export const tickSimulation = (
   model: SimulationModel,
   deltaMs: number,
 ): SimulationModel => {
-  if (fileError) { const feedback = fileError; fileError = undefined; return { ...model, feedback }; }
+  if (fileReadState.error) { const feedback = fileReadState.error; fileReadState.error = undefined; return { ...model, feedback }; }
   if (!model.playing || !run) return model;
   try {
     wallBudget +=
@@ -589,6 +597,7 @@ export const simulationView = <Message>(
   h: HtmlBuilder<Message>,
   action: (action: string) => Message,
   changed: (field: string, raw: string) => Message,
+  showDiagram = true,
 ) => {
   const input = (field: string, label: string, value: string) =>
     h.label(
@@ -644,9 +653,9 @@ export const simulationView = <Message>(
       }
     : undefined;
   return h.section(
-    [h.Id("monkey-business"), h.Class("chart-panel simulation-panel")],
+    [h.Id(showDiagram ? "monkey-business" : "agent-simulation"), h.AriaLabel(`Simulation controls for ${model.agentId}`), h.Class("chart-panel simulation-panel")],
     [
-      h.h2([], ["Monkey-business · seeded simulation"]),
+      h.h2([], ["Agent controls & event history"]),
       h.p(
         [],
         [
@@ -743,7 +752,7 @@ export const simulationView = <Message>(
       h.div([h.Class("simulation-controls")], [button("Previous event", "previous"), button("Next event", "next"), button("Return to latest", "latest"), button("Replay from start", "replay-start"), button("Inspect oldest retained event", "from-start"), button("Bookmark event", "bookmark"), button("Go to bookmark", "go-bookmark")]),
       h.p([h.Class("simulation-outcomes")], [`Run outcomes: ${totals.checked} checked events · ${totals.admitted} observations admitted · ${totals.refused} refusals · ${totals.failed} failures/timeouts · ${totals.advice} confirmed host submissions · ${totals.uncertain} uncertain advice submissions · ${totals.released} released output attempts. ${run && model.suspended && !run.projection.work.some((work) => work.kind !== "pendingFinding") && run.projection.dispatch.requests.length === 0 && run.projection.collection.leases.length === 0 && !run.projection.delivery.slots.some((slot) => ["reserved", "authorized", "uncertain"].includes(slot.phase)) && !run.projection.delivery.submissions.batches.some((batch) => ["reserved", "authorized", "uncertain"].includes(batch.phase)) ? `Transient work settled; ${run.projection.collection.ready.length} retained advice records; arrivals suspended.` : "Work or future arrivals remain."}`]),
       h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · active mix ${mixSummary(appliedWeights(activeReplay))} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.session?.bytes ?? 100} bytes.` : "Start a run to apply environment settings."]),
-      ...(run
+      ...(run && showDiagram
         ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`), preparationSnapshot(observations.filter(frame => frame.sequence <= (current?.sequence ?? -1)).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)]
         : []),
       ...(run ? [reviewCapacityView(h, current?.after ?? run.projection)] : []),
@@ -816,4 +825,13 @@ export const simulationView = <Message>(
       ),
     ],
   );
+};
+
+/** Isolated dashboard contexts; each Run still owns its checked Bend state. */
+export const captureSimulationContext = () => ({ run, wallBudget, fileReadState, replayEndpoint, replaySource, totals });
+export type SimulationContext = ReturnType<typeof captureSimulationContext>;
+export const emptySimulationContext = (): SimulationContext => ({ run: undefined, wallBudget: 0, fileReadState: {}, replayEndpoint: undefined, replaySource: undefined,
+  totals: { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0, uncertain: 0, released: 0 } });
+export const restoreSimulationContext = (context: SimulationContext) => {
+  ({ run, wallBudget, fileReadState, replayEndpoint, replaySource, totals } = context);
 };

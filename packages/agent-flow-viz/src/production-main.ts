@@ -1,7 +1,7 @@
 import { preparationDetails } from "./preparation-details";
 import { preparationSnapshot } from "./preparation-mini";
 import { reviewCapacityView } from "./review-capacity-view";
-import { SimulationModel, initialSimulation, actSimulation, changeSimulation, tickSimulation, simulationView } from "./simulation";
+import { SimulationModel, initialSimulation, actSimulation, changeSimulation, tickSimulation, simulationView } from "./fleet-simulation";
 import { Option, Schema } from "effect";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
