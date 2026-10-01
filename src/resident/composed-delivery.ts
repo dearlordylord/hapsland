@@ -37,7 +37,7 @@ const fingerprint = (finding: unknown): string =>
 export class ComposedDelivery {
   readonly canonical: CapacityLedger;
   readonly #reportRepeat: (diagnostic: RepeatEditDiagnostic) => void;
-  constructor(canonical = makeCapacityLedger(), reportRepeat: (diagnostic: RepeatEditDiagnostic) => void =
+  constructor(canonical: CapacityLedger = makeCapacityLedger(), reportRepeat: (diagnostic: RepeatEditDiagnostic) => void =
     () => {}) {
     this.canonical = canonical;
     this.#reportRepeat = reportRepeat;

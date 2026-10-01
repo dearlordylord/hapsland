@@ -19,7 +19,10 @@
     "Controlled native provider cancellation requests AbortSignal cancellation and waits for physical Promise settlement before releasing its canonical permit",
     "Replaced mutable CapacityLedger class with explicit capacity draft operations and one canonical/native Ref commit owner; deleted production class construction paths",
     "Capacity draft failures and reentrant mutations publish no partial canonical or native state; invalid measurement cleanup preserves existing behavior",
-    "Reservation capabilities are immutable; live bytes and purpose remain in the committed registry and identity fences numeric ID reuse"
+    "Reservation capabilities are immutable; live bytes and purpose remain in the committed registry and identity fences numeric ID reuse",
+    "Replaced EvaluationReuse class with explicit draft and read-only operations; native claims, cache payloads, IDs and LRU metadata now share the canonical/capacity Ref",
+    "Cache eviction, reservation release and replacement admission publish atomically; full claim identity, attachment and cache order agreement checked before reuse commits",
+    "All reuse views share one native record and canonical-owner clearing resets them together; pure identity and read-only lookups avoid draft cloning"
   ],
   "verification": [
     {
@@ -193,10 +196,36 @@
       "files": 9,
       "exitCode": 0,
       "stage": "Explicit capacity state and immutable capabilities; rollback, reentrancy and ID reuse conformance"
+    },
+    {
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0,
+      "stage": "Combined canonical/capacity/reuse state"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "stage": "Combined canonical/capacity/reuse state"
+    },
+    {
+      "commands": [
+        "check-reuse-boundary",
+        "check-retention-boundary",
+        "git diff --check"
+      ],
+      "exitCode": 0,
+      "stage": "Combined canonical/capacity/reuse state"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/evaluation-reuse.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/dispatch.test.ts src/resident/capacity.test.ts src/resident/composed-delivery.test.ts src/resident/jev-request.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts",
+      "tests": 194,
+      "files": 9,
+      "exitCode": 0,
+      "stage": "Combined canonical/capacity/reuse state; eviction rollback and shared native-view conformance"
     }
   ],
   "next": [
-    "Consolidate reuse, dispatch, delivery and remaining server records with the capacity record into one production ResidentState Effect service; delete remaining class owners and synchronous commit bridges",
+    "Consolidate dispatch, delivery and remaining server records with the canonical/capacity/reuse record into one production ResidentState Effect service; delete remaining class owners and synchronous commit bridges",
     "Migrate client/host edges and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -204,7 +233,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Reuse, dispatch, delivery and remaining server records still have separate owners; the capacity factory retains synchronous host-call bridges pending consolidation",
+    "Dispatch, delivery and remaining server records still have separate owners; the combined canonical/capacity/reuse factory retains synchronous host-call bridges pending consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"

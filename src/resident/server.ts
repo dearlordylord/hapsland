@@ -90,7 +90,7 @@ import {
   type OperationalNotice,
   type OperationalNoticeKind,
 } from "./collection.ts";
-import { EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
+import { type EvaluationReuse, residentEvaluationIdentity } from "./evaluation-reuse.ts";
 import {
   readCredentialState,
   resolveCredential,
@@ -570,7 +570,7 @@ export class ResidentServer {
   readonly #joinedReviews = new Map<string, Array<JoinedReview>>();
   #nextAdmissionGeneration = 1;
   #nextTicketUnitId = 1;
-  readonly #ledger = makeCapacityLedger(undefined, this.lifetime);
+  readonly #ledger = makeCapacityLedger<UnitJob>(undefined, this.lifetime);
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatchScope = Scope.makeUnsafe();
   readonly #dispatcher: Dispatcher<string, Job>;
@@ -688,10 +688,7 @@ export class ResidentServer {
     this.#offlineHttpClient = options.offlineHttpClient;
     this.#controlledRequestEffect = options.controlledRequestEffect;
     this.#beforeResponseHandoff = options.beforeResponseHandoff;
-    this.#reuse = new EvaluationReuse({
-      ledger: this.#ledger,
-      logicalBytes,
-    });
+    this.#reuse = this.#ledger.reuse(logicalBytes);
     this.#dispatcher = Effect.runSync(makeDispatcher<string, Job>(
       this.#ledger,
       (job) => ({ operation: job.kind === "ingress" ? job.canonicalObservationId : job.canonicalOperationId,

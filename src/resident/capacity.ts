@@ -1,3 +1,4 @@
+import { initialEvaluationReuse, draftEvaluationReuse, evaluationReuseOperations, evaluationReuseView, residentEvaluationIdentity, type EvaluationReuse, type EvaluationReuseState } from "./evaluation-reuse.ts";
 import { Effect, Ref } from "effect";
 import { CANONICAL_MAX_BYTES, CANONICAL_MAX_UNITS, initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent, type CapacityPurpose, type JevRequestOutcome } from "../canonical/adapter.ts";
 import { randomUUID } from "node:crypto";
@@ -127,32 +128,75 @@ const draftCapacity = (current: CapacityState, readReservation: CapacityDraft["r
   collectionTokens: new Map(current.collectionTokens), readReservation,
 });
 
-/** One commit owner for canonical state and its native capacity identities.
+/** One commit owner for canonical state, capacity identities and evaluation reuse.
  * Draft validation can fail without publishing a partial canonical transition.
  * Synchronous methods bridge existing host callers while the resident service
  * surface is migrated; all internal operations receive their draft explicitly.
  */
-export const makeCapacityLedger = (limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) => {
-  const state = Effect.runSync(Ref.make<CapacityState>({
+export const makeCapacityLedger = <Pending = never>(limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) => {
+  const state = Effect.runSync(Ref.make<CapacityState & { readonly reuse: EvaluationReuseState<Pending> }>({
     residentLifetime, limits, canonical: initialCanonical(limits), reservations: new Map(),
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
+    reuse: initialEvaluationReuse<Pending>(),
   }));
   const read = <A>(operation: (current: CapacityState) => A): A =>
     Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
   let committing = false;
-  const commit = <A>(operation: (draft: CapacityDraft) => A): A => {
+  const commitAll = <A>(operation: (draft: CapacityDraft, reuse: EvaluationReuseState<Pending>) =>
+    readonly [A, EvaluationReuseState<Pending>]): A => {
     if (committing) throw new Error("resident capacity commit cannot be reentered");
     committing = true;
     try {
-      return Effect.runSync(Ref.modify(state, (current): readonly [A, CapacityState] => {
+      return Effect.runSync(Ref.modify(state, (current) => {
         const draft = draftCapacity(current, (id) => Ref.getUnsafe(state).reservations.get(id));
-        const value = operation(draft);
+        const [value, reuse] = operation(draft, current.reuse);
         const { readReservation: _, ...next } = draft;
-        return [value, next];
-      }).pipe(Effect.withSpan("ResidentCapacity.commit")));
+        return [value, { ...next, reuse }] as const;
+      }).pipe(Effect.withSpan("ResidentState.commit")));
     } finally { committing = false; }
   };
+  const commit = <A>(operation: (draft: CapacityDraft) => A): A =>
+    commitAll((draft, reuse) => [operation(draft), reuse]);
+  const capacity = capacityOperations(commit, read, residentLifetime);
+  return {
+    ...capacity,
+    clear: () => commitAll((draft) => [clear(draft), initialEvaluationReuse<Pending>()]),
+    reuse: (logicalBytes: (value: unknown) => number) => {
+      const reuseCommit = <A>(operation: (operations: EvaluationReuse<Pending>) => A): A =>
+        commitAll((draft, current) => {
+          const reuse = draftEvaluationReuse(current);
+          const operations = evaluationReuseOperations(reuse,
+            capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime), logicalBytes);
+          const value = operation(operations);
+          operations.snapshot();
+          return [value, reuse];
+        });
+      const view = () => evaluationReuseView(Ref.getUnsafe(state).reuse, capacity);
+      return {
+        key: residentEvaluationIdentity,
+        route: (...args: Parameters<EvaluationReuse<Pending>["route"]>) => reuseCommit((operations) => operations.route(...args)),
+        claim: (...args: Parameters<EvaluationReuse<Pending>["claim"]>) => reuseCommit((operations) => operations.claim(...args)),
+        attachPending: (...args: Parameters<EvaluationReuse<Pending>["attachPending"]>) => reuseCommit((operations) => operations.attachPending(...args)),
+        pending: (...args: Parameters<EvaluationReuse<Pending>["pending"]>) => view().pending(...args),
+        releaseClaim: (...args: Parameters<EvaluationReuse<Pending>["releaseClaim"]>) => reuseCommit((operations) => operations.releaseClaim(...args)),
+        hasPending: (...args: Parameters<EvaluationReuse<Pending>["hasPending"]>) => view().hasPending(...args),
+        get: (...args: Parameters<EvaluationReuse<Pending>["get"]>) => reuseCommit((operations) => operations.get(...args)),
+        cached: (...args: Parameters<EvaluationReuse<Pending>["cached"]>) => view().cached(...args),
+        put: (...args: Parameters<EvaluationReuse<Pending>["put"]>) => reuseCommit((operations) => operations.put(...args)),
+        snapshot: (...args: Parameters<EvaluationReuse<Pending>["snapshot"]>) => view().snapshot(...args),
+        discardPartition: (...args: Parameters<EvaluationReuse<Pending>["discardPartition"]>) => reuseCommit((operations) => operations.discardPartition(...args)),
+        clear: (...args: Parameters<EvaluationReuse<Pending>["clear"]>) => reuseCommit((operations) => operations.clear(...args)),
+      };
+    },
+  };
+};
+
+const capacityOperations = (
+  commit: <A>(operation: (draft: CapacityDraft) => A) => A,
+  read: <A>(operation: (current: CapacityState) => A) => A,
+  residentLifetime: string,
+) => {
   return {
     residentLifetime, canonicalLifetime: 1,
     partitionId: (...args: Arguments<typeof partitionId>) => commit((draft) => partitionId(draft, ...args)),
@@ -199,7 +243,7 @@ export const makeCapacityLedger = (limits: CapacityLimits = defaultLimits, resid
     snapshot: (...args: Arguments<typeof snapshot>) => read((draft) => snapshot(draft, ...args)),
   };
 };
-export type CapacityLedger = ReturnType<typeof makeCapacityLedger>;
+export type CapacityLedger = ReturnType<typeof capacityOperations>;
 
 /** Immutable capability; metadata belongs to the current committed record.
  * A released capability has no authority and reads its issuance metadata.

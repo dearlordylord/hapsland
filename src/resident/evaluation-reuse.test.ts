@@ -10,9 +10,8 @@ import {
 import { advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
-import { makeCapacityLedger } from "./capacity.ts";
+import { makeCapacityLedger, MAX_PARTITION_KEY_BYTES } from "./capacity.ts";
 import {
-  EvaluationReuse,
   SUCCESS_CACHE_BYTE_LIMIT,
   SUCCESS_CACHE_ENTRY_LIMIT,
   residentEvaluationIdentity,
@@ -94,12 +93,59 @@ describe("resident evaluation identity", () => {
     expect(semanticIdentity(changed)).not.toBe(semanticIdentity(base));
   });
 
+  it("rolls back cache eviction, reservation release and identity allocation together", () => {
+    const ledger = makeCapacityLedger();
+    const reuse = ledger.reuse(() => 10);
+    const successes = Array.from({ length: SUCCESS_CACHE_ENTRY_LIMIT }, (_, index) => {
+      const item = prepared(input({ path: `retained-${index}.ts`, rules: [] }));
+      const key = reuse.key("partition", item);
+      const evaluation = { prepared: item, findings: [] };
+      expect(reuse.put("partition", key, evaluation)).toBe(true);
+      return { key, evaluation };
+    });
+    const before = ledger.canonicalProjection();
+    const beforeCapacity = ledger.snapshot();
+    const beforeReuse = reuse.snapshot();
+    const replacement = prepared(input({ path: "replacement.ts", rules: [] }));
+    const replacementKey = reuse.key("partition", replacement);
+
+    // cachePrepare first evicts the oldest success. The later capacity identity
+    // failure must roll back that eviction and its reservation release as well.
+    expect(() => reuse.put("p".repeat(MAX_PARTITION_KEY_BYTES + 1), replacementKey,
+      { prepared: replacement, findings: [] })).toThrow("advicee identity exceeds resident metadata bound");
+    expect(ledger.canonicalProjection()).toEqual(before);
+    expect(ledger.snapshot()).toEqual(beforeCapacity);
+    expect(reuse.snapshot()).toEqual(beforeReuse);
+    for (const success of successes) expect(reuse.cached(success.key).evaluation).toBe(success.evaluation);
+
+    expect(reuse.put("partition", replacementKey, { prepared: replacement, findings: [] })).toBe(true);
+    expect(ledger.canonicalProjection().reuse.cache.at(-1)?.id).toBe(SUCCESS_CACHE_ENTRY_LIMIT + 1);
+    expect(reuse.get(successes[0]?.key ?? "missing")).toBeUndefined();
+    expect(reuse.snapshot()).toEqual({ entries: SUCCESS_CACHE_ENTRY_LIMIT, bytes: 80, pending: 0 });
+  });
+
+  it("shares native claims across views and clears them with the canonical owner", () => {
+    const ledger = makeCapacityLedger<string>();
+    const first = ledger.reuse(() => 10);
+    const second = ledger.reuse(() => 10);
+    const item = prepared(input({ rules: [] }));
+    const key = first.key("partition", item);
+    expect(first.route(key, false)).toBe("owner");
+    expect(second.route(key, false)).toBe("joinedClaimed");
+    expect(second.attachPending(key, "shared request")).toBe(true);
+    expect(first.pending(key)).toBe("shared request");
+    expect(first.snapshot()).toEqual(second.snapshot());
+    ledger.clear();
+    expect(first.hasPending(key)).toBe(false);
+    expect(second.pending(key)).toBeUndefined();
+    expect(second.snapshot()).toEqual({ entries: 0, bytes: 0, pending: 0 });
+    expect(first.route(key, false)).toBe("owner");
+    expect(ledger.canonicalProjection().reuse.claims).toEqual([{ id: 1, attached: false }]);
+  });
+
   it("evicts successful LRU entries without disturbing pending joins", () => {
     const ledger = makeCapacityLedger();
-    const reuse = new EvaluationReuse<never>({
-      ledger,
-      logicalBytes: (value) => Buffer.byteLength(JSON.stringify(value), "utf8"),
-    });
+    const reuse = ledger.reuse((value) => Buffer.byteLength(JSON.stringify(value), "utf8"));
     const partition = "partition";
     const pending = reuse.key(partition, prepared(input({ rules: [] })));
     expect(reuse.claim(pending)).toBe(true);
@@ -127,10 +173,7 @@ describe("resident evaluation identity", () => {
   it("evicts the oldest success for byte pressure and rejects an oversized success", () => {
     const ledger = makeCapacityLedger();
     let size = 70_000;
-    const reuse = new EvaluationReuse<never>({
-      ledger,
-      logicalBytes: () => size,
-    });
+    const reuse = ledger.reuse(() => size);
     const first = prepared(input({ path: "first.ts", rules: [] }));
     const second = prepared(input({ path: "second.ts", rules: [] }));
     const firstKey = reuse.key("partition", first);
@@ -147,8 +190,8 @@ describe("resident evaluation identity", () => {
   });
 
   it("keeps canonical claim and LRU order aligned with native handles through expiry", () => {
-    const ledger = makeCapacityLedger();
-    const reuse = new EvaluationReuse<string>({ ledger, logicalBytes: () => 10 });
+    const ledger = makeCapacityLedger<string>();
+    const reuse = ledger.reuse(() => 10);
     const first = prepared(input({ path: "first.ts", rules: [] }));
     const second = prepared(input({ path: "second.ts", rules: [] }));
     const firstKey = reuse.key("partition-a", first);
