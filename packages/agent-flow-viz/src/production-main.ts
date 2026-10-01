@@ -2,7 +2,7 @@ import { preparationDetails } from "./preparation-details";
 import { preparationSnapshot } from "./preparation-mini";
 import { reviewCapacityView } from "./review-capacity-view";
 import { SimulationModel, initialSimulation, actSimulation, changeSimulation, tickSimulation, simulationView } from "./simulation";
-import { Schema } from "effect";
+import { Option, Schema } from "effect";
 import { Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
@@ -233,6 +233,11 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
             h.Value(String(model.position)), h.Disabled(timelineLength === 0),
             h.AriaValuetext(`Event ${model.position} of ${timelineLength}; ${history.length} recorded events`),
             h.OnInput(raw => Message.Jumped({ position: Number(raw) })),
+            h.OnKeyDownSelfPreventDefault((key, modifiers) =>
+              modifiers.shiftKey && !modifiers.altKey && !modifiers.ctrlKey && !modifiers.metaKey &&
+              (key === "ArrowLeft" || key === "ArrowRight")
+                ? Option.some(Message.GuidedMoved({ direction: key === "ArrowLeft" ? -1 : 1 }))
+                : Option.none()),
             h.Style({ width: "100%" }),
           ])]),
           h.p([h.Class("canonical-shortcuts")], ["← / → history (hold to move quickly) · Shift+← / → guided steps · drag the timeline to seek"]),

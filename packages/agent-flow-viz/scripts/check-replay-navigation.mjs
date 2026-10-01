@@ -39,6 +39,9 @@ try {
   }
   await position(7, 7);
   assert.equal(await slider.getAttribute('max'), '108');
+  await slider.focus();
+  await slider.press('Shift+ArrowLeft'); await position(4, 7);
+  await slider.press('Shift+ArrowRight'); await position(7, 7);
   await page.locator('h1').click();
   await page.keyboard.press('Shift+ArrowLeft'); await position(4, 7);
   await page.keyboard.press('Shift+ArrowLeft'); await position(1, 7);
