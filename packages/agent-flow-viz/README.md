@@ -16,9 +16,7 @@ The primary illustration adapts the research video's circular review flow in
 `src/review-loop-renderer.ts`, with FoldKit phase controls and a shared HTML code
 stage. Desktop uses the full actor loop; mobile uses a compact actor overview.
 Its six stages are edit, expanded code and question, Jev rule result, configured
-feedback to the agent, possible edit, and recheck. The source-control widget sits
-after rules and file configuration, immediately before “Checks behind source
-selection,” with normal traversal, exclusion, and tree-size-limit cases.
+feedback to the agent, possible edit, and recheck. The public page keeps the review loop, file settings, rules, and setup; source-control replay and verification panels remain on the architecture dashboard.
 The illustration reuses the existing video example: a three-line local diff
 (`title`, added `coverWidth`, `public`) expands to Gallery → ImageFile → Dimensions.
 The opening shows the edited lines; expansion reveals why related code matters.
@@ -30,24 +28,24 @@ feedback message, and an edit that removes the second copy of the width. It
 explains the design consequence directly rather than asking readers to interpret
 classifier scores. Historical measurements and their provenance remain in the
 study linked in `src/site-example.ts`; the site is not a live review or a
-current-integration benchmark. The traversal places the declarations in separate
-files with illustrative sizes to show source controls. Function review is
+current-integration benchmark. Function review is
 explained separately through the built-in `noul/r9_body_reaches_undeclared`.
 The README retains its repair GIF; the interactive site does not repeat it.
+The animation initially shows only an Example edit card with a Click me sign.
+Clicking expands the panel and starts the six-stage loop; completing the final
+stage collapses it back to a replayable card with a muted sign. Reduced-motion
+users open immediately and use manual steps, ending with Finish example.
 Reduced-motion users get manual illustration steps;
 changing that preference stops playback. No page calls Jev or reads repository source.
 
 `src/import-graph-replay.ts` owns shared scenario replay through the compiled
 ImportGraph adapter. `src/import-graph-diagram.ts` owns the shared graph display
-projection. Both dashboard and site use those modules; the site controls layout
-and narrative checkpoints in `src/site.ts` and `src/site-scenarios.ts`, without
-adding a second permission or budget policy. The included-definition outline is
-derived from checked graph facts, not a captured provider payload.
+projection. The dashboard uses these modules for graph replay. The public page uses `src/site.ts` for its illustration and controls.
 
 Run `npm run test:site` for headless scenario checks and Chromium interactions.
 The scenario checks distinguish exclusion before a read command from a size
 omission after synthetic capture. Browser checks cover playback controls,
-case/reset behavior, included definitions, mobile overflow and reduced motion.
+automatic expansion and collapse, replay, mobile overflow and reduced motion.
 Chromium requires the same system libraries as the dashboard browser checks.
 
 The adapted drawing primitives preserve their research-source provenance.
@@ -70,11 +68,7 @@ follow the [installation guide](../../docs/installation-workflows.md).
 For design review, inspect the [opening diff](docs/assets/site-hero-edit.png),
 [recheck frame](docs/assets/site-hero-recheck.png), and new [related-definitions frame](docs/assets/site-hero-related.png),
 [review-question frame](docs/assets/site-hero-context.png), and
-[agent-feedback frame](docs/assets/site-hero-feedback.png). For traversal,
-compare [normal context](docs/assets/site-normal.png) with
-[excluded dependency](docs/assets/site-exclusion.png) and
-[size omission](docs/assets/site-size-limit.png): Dimensions is unread in the
-exclusion case, locally read but absent from accepted context in the size case.
+[agent-feedback frame](docs/assets/site-hero-feedback.png).
 This is a new site view; the existing dashboard layout has no visual diff from
 the shared-module extraction. [Mobile](docs/assets/site-mobile.png) and
 [desktop](docs/assets/site-desktop.png) captures cover page composition. These

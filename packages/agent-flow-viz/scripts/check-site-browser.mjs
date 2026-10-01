@@ -16,7 +16,9 @@ try {
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(url);
   await page
-    .getByRole("heading", { name: /Review code changes with the definitions/ })
+    .getByRole("heading", {
+      name: /IMMEDIATE CODE REVIEW for coding agents: SLAP THAT HAND!/,
+    })
     .waitFor();
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   const instruction = await page.locator(".agent-instruction").innerText();
@@ -97,21 +99,28 @@ try {
     await page.locator("#setup .setup-command code").allTextContents(),
     ["npm install -g --ignore-scripts @hapsland/hapsland", "hapsland setup"],
   );
-  assert.equal(
-    await page.locator(".hero-illustration").getAttribute("class"),
-    "hero-illustration phase-0",
-  );
+  await page.locator(".lifecycle-collapsed").waitFor();
+  assert.equal(await page.locator("#review-loop-canvas").isVisible(), false);
+  assert.match(await page.locator("#example-starter").innerText(), /CLICK ME/);
+  await mkdir("docs/assets", { recursive: true });
+  await page
+    .locator(".hero-illustration")
+    .screenshot({ path: "docs/assets/site-animation-starter.png" });
+  await page.locator("#example-starter").click();
+  await page.locator(".lifecycle-running").waitFor();
+  await page.getByRole("button", { name: "Pause animation" }).click();
+
   await mkdir("docs/assets", { recursive: true });
   await page.locator(".hero-illustration").screenshot({
     animations: "disabled",
     path: "docs/assets/site-hero-edit.png",
   });
   assert.match(
-    await page.locator(".phase-0 pre").textContent(),
+    await page.locator("#example-expanded-body pre").textContent(),
     /\+  coverWidth: number;/,
   );
   assert.doesNotMatch(
-    await page.locator(".phase-0 pre").textContent(),
+    await page.locator("#example-expanded-body pre").textContent(),
     /interface Gallery/,
   );
   await page.getByRole("button", { name: "Next frame" }).click();
@@ -184,140 +193,35 @@ try {
   await page.locator(".phase-4").waitFor();
   await page.getByRole("button", { name: "Next frame" }).click();
   await page.locator(".phase-5").waitFor();
+  await page.locator(".hero-illustration").screenshot({
+    animations: "disabled",
+    path: "docs/assets/site-hero-recheck.png",
+  });
+  await page.getByRole("button", { name: "Finish example" }).click();
+  await page.locator(".lifecycle-collapsed.has-run").waitFor();
+  assert.equal(await page.locator("#review-loop-canvas").isVisible(), false);
+  assert.doesNotMatch(
+    await page.locator("#example-starter").innerText(),
+    /CLICK ME/,
+  );
   await page
     .locator(".hero-illustration")
-    .screenshot({
-      animations: "disabled",
-      path: "docs/assets/site-hero-recheck.png",
-    });
-  await page.getByRole("button", { name: "Replay animation" }).click();
-  await page.locator(".phase-0").waitFor();
-  await page.getByRole("button", { name: "Pause animation" }).click();
-  const demo = page.locator("#explore");
-  const finish = async () => {
-    const next = demo.getByRole("button", { name: "Next step" });
-    const total = Number(
-      (await demo.locator(".step-explanation .micro").innerText()).split(
-        "/",
-      )[1],
-    );
-    for (let step = 2; step <= total; step++) {
-      await next.click();
-      await page.waitForFunction(
-        (expected) =>
-          document.querySelector(".step-explanation .micro")?.textContent ===
-          expected,
-        `STEP ${step} / ${total}`,
-      );
-    }
-    assert.equal(await next.isDisabled(), true);
-  };
-  await finish();
-  await demo.screenshot({
-    animations: "disabled",
-    path: "docs/assets/site-normal.png",
-  });
-  assert.equal(await demo.locator(".definition-node.included").count(), 3);
-  assert.match(
-    await demo.locator(".outline-heading").innerText(),
-    /3 definitions/,
+    .screenshot({ path: "docs/assets/site-animation-complete.png" });
+  await page.locator("#example-starter").click();
+  await page.locator(".lifecycle-running").waitFor();
+  // Let the complete six-stage run finish, including four seconds of recheck.
+  await page.locator(".phase-5.lifecycle-running").waitFor({ timeout: 30000 });
+  const recheckStarted = Date.now();
+  await page
+    .locator(".lifecycle-collapsed.has-run")
+    .waitFor({ timeout: 10000 });
+  assert.ok(
+    Date.now() - recheckStarted >= 3500,
+    "recheck must run before auto-collapse",
   );
-  await demo
-    .getByRole("button", { name: "User exclusion", exact: true })
-    .click();
-  await page.waitForFunction(
-    () =>
-      document.querySelector('.case-picker button[aria-pressed="true"]')
-        ?.textContent === "User exclusion" &&
-      document
-        .querySelector(".step-explanation .micro")
-        ?.textContent?.startsWith("STEP 1 /"),
-  );
-  assert.equal(await demo.locator(".definition-node.included").count(), 1);
-  await finish();
-  assert.match(
-    await demo.locator(".node-2").innerText(),
-    /Excluded before read/,
-  );
-  assert.equal(
-    await demo
-      .locator(".included-list")
-      .getByText("Dimensions", { exact: true })
-      .count(),
-    0,
-  );
-  await demo.getByRole("button", { name: "Size limit", exact: true }).click();
-  await page.waitForFunction(
-    () =>
-      document.querySelector('.case-picker button[aria-pressed="true"]')
-        ?.textContent === "Size limit" &&
-      document
-        .querySelector(".step-explanation .micro")
-        ?.textContent?.startsWith("STEP 1 /"),
-  );
-  await finish();
-  assert.match(
-    await demo.locator(".node-2").innerText(),
-    /Read locally · over size limit/,
-  );
-  assert.match(
-    await demo.locator(".outline-heading").innerText(),
-    /Code limit reached/,
-  );
-  assert.equal(
-    await demo
-      .locator(".included-list")
-      .getByText("Dimensions", { exact: true })
-      .count(),
-    0,
-  );
-  await demo.getByRole("button", { name: "Restart", exact: true }).click();
-  await page.waitForFunction(() =>
-    document
-      .querySelector(".step-explanation .micro")
-      ?.textContent?.startsWith("STEP 1 /"),
-  );
-  assert.equal(await demo.locator(".definition-node.included").count(), 1);
-  await mkdir("docs/assets", { recursive: true });
-  await page.screenshot({
-    animations: "disabled",
-    path: "docs/assets/site-desktop.png",
-    fullPage: true,
-  });
-  await demo
-    .getByRole("button", { name: "User exclusion", exact: true })
-    .click();
-  await page.waitForFunction(
-    () =>
-      document.querySelector('.case-picker button[aria-pressed="true"]')
-        ?.textContent === "User exclusion" &&
-      document
-        .querySelector(".step-explanation .micro")
-        ?.textContent?.startsWith("STEP 1 /"),
-  );
-  await finish();
-  await demo.screenshot({
-    animations: "disabled",
-    path: "docs/assets/site-exclusion.png",
-  });
-  await demo.getByRole("button", { name: "Size limit", exact: true }).click();
-  await page.waitForFunction(
-    () =>
-      document.querySelector('.case-picker button[aria-pressed="true"]')
-        ?.textContent === "Size limit" &&
-      document
-        .querySelector(".step-explanation .micro")
-        ?.textContent?.startsWith("STEP 1 /"),
-  );
-  await finish();
-  await demo.screenshot({
-    animations: "disabled",
-    path: "docs/assets/site-size-limit.png",
-  });
+  await page.screenshot({ animations: "disabled", path: "docs/assets/site-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.waitForFunction(
-    () => document.querySelector("#review-loop-canvas")?.width === 640,
-  );
+
   await page.locator("#setup").screenshot({
     animations: "disabled",
     path: "docs/assets/site-setup-mobile.png",
@@ -347,6 +251,7 @@ try {
   );
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
+  await page.locator("#example-starter").click();
   await page.getByText("Reduced motion · manual steps").waitFor();
   assert.equal(
     await page.getByRole("button", { name: "Play animation" }).count(),

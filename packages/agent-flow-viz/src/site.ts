@@ -2,23 +2,27 @@ import { Effect, Schema } from "effect";
 import { Command, Runtime, type Update } from "foldkit";
 import type { Document, HtmlBuilder } from "foldkit/html";
 import { defineMessageUnion } from "foldkit/message";
-import { replayImportScenario } from "./import-graph-replay";
-import { projectFileGraphs } from "./import-graph-diagram";
-import { SITE_SCENARIOS } from "./site-scenarios";
 import { SITE_EXAMPLE } from "./site-example";
 import { drawReviewLoop } from "./review-loop-renderer";
 
 import { SETUP_COPY, type SetupCopyTarget } from "./setup-copy";
 import { copyText } from "./site-clipboard";
+import githubIcon from "./github.svg?url";
 
 const REPOSITORY = "https://github.com/dearlordylord/hapsland";
 const guide = (name: string) => `${REPOSITORY}/blob/master/docs/${name}.md`;
 export const Model = Schema.Struct({
+  lifecycle: Schema.Literals([
+    "collapsed",
+    "expanding",
+    "running",
+    "collapsing",
+  ]),
+  hasRun: Schema.Boolean,
   phase: Schema.Number,
+  transitionElapsed: Schema.Number,
   elapsed: Schema.Number,
   playing: Schema.Boolean,
-  scenario: Schema.Number,
-  checkpoint: Schema.Number,
   reducedMotion: Schema.Boolean,
   compactLoop: Schema.Boolean,
   copyInstruction: Schema.String,
@@ -32,14 +36,13 @@ export const Message = defineMessageUnion({
     target: Schema.Literals(["instruction", "install", "setup"]),
     success: Schema.Boolean,
   },
+  OpenExample: {},
+  CloseExample: {},
   Play: {},
   Pause: {},
   HeroNext: {},
   Tick: { deltaMs: Schema.Number },
   MotionChanged: { reduced: Schema.Boolean },
-  SelectCase: { index: Schema.Number },
-  Next: {},
-  Restart: {},
   ViewportChanged: { compact: Schema.Boolean },
   LoopPainted: {},
 });
@@ -49,11 +52,12 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => {
     copyInstruction: "",
     copyInstall: "",
     copySetup: "",
+    lifecycle: "collapsed",
+    hasRun: false,
     phase: 0,
+    transitionElapsed: 0,
     elapsed: 0,
     playing: false,
-    scenario: 0,
-    checkpoint: 0,
     compactLoop: window.matchMedia("(max-width: 760px)").matches,
     reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
       .matches,
@@ -131,6 +135,25 @@ const paintLoop = (model: Model) =>
     compact: model.compactLoop,
     reducedMotion: model.reducedMotion,
   });
+const closeExample = (model: Model): Model => ({
+  ...model,
+  lifecycle: model.reducedMotion ? "collapsed" : "collapsing",
+  hasRun: true,
+  transitionElapsed: 0,
+  elapsed: 0,
+  playing: false,
+});
+const ReturnExampleFocus = Command.define("ReturnExampleFocus", {
+  messages: [Message.LoopPainted],
+  execute: Effect.sync(() => {
+    const panel = document.getElementById("example-expanded-body");
+    if (panel?.contains(document.activeElement))
+      document
+        .getElementById("example-starter")
+        ?.focus({ preventScroll: true });
+    return Message.LoopPainted();
+  }),
+});
 const updateModel = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
     Copy: ({ target }) => ({
@@ -145,6 +168,20 @@ const updateModel = (model: Model, message: Message) =>
           : "Could not copy. Select and copy the text below.",
       },
     }),
+    OpenExample: () => ({
+      model:
+        model.lifecycle !== "collapsed"
+          ? model
+          : {
+              ...model,
+              lifecycle: model.reducedMotion ? "running" : "expanding",
+              phase: 0,
+              elapsed: 0,
+              transitionElapsed: 0,
+              playing: false,
+            },
+    }),
+    CloseExample: () => ({ model: closeExample(model) }),
     Play: () => ({
       model: {
         ...model,
@@ -159,41 +196,59 @@ const updateModel = (model: Model, message: Message) =>
         ...model,
         reducedMotion: reduced,
         playing: false,
+        lifecycle:
+          reduced && model.lifecycle === "expanding"
+            ? "running"
+            : reduced && model.lifecycle === "collapsing"
+              ? "collapsed"
+              : model.lifecycle,
       },
     }),
     HeroNext: () => ({
-      model: {
-        ...model,
-        phase: (model.phase + 1) % 6,
-        elapsed: 0,
-        playing: false,
-      },
+      model:
+        model.phase === 5
+          ? closeExample(model)
+          : { ...model, phase: model.phase + 1, elapsed: 0, playing: false },
     }),
     Tick: ({ deltaMs }) => {
-      if (!model.playing || !Number.isFinite(deltaMs) || deltaMs < 0)
-        return { model };
+      if (!Number.isFinite(deltaMs) || deltaMs < 0) return { model };
       const elapsed = model.elapsed + Math.min(deltaMs, 100);
+      const transitionElapsed =
+        model.transitionElapsed + Math.min(deltaMs, 100);
+      if (model.lifecycle === "expanding")
+        return {
+          model:
+            transitionElapsed >= 500
+              ? {
+                  ...model,
+                  lifecycle: "running",
+                  transitionElapsed: 0,
+                  elapsed: 0,
+                  playing: !model.reducedMotion,
+                }
+              : { ...model, transitionElapsed },
+        };
+      if (model.lifecycle === "collapsing")
+        return {
+          model:
+            transitionElapsed >= 450
+              ? {
+                  ...model,
+                  lifecycle: "collapsed",
+                  transitionElapsed: 0,
+                  elapsed: 0,
+                }
+              : { ...model, transitionElapsed },
+        };
+      if (!model.playing || model.lifecycle !== "running") return { model };
       if (elapsed < 4000) return { model: { ...model, elapsed } };
-      const phase = Math.min(5, model.phase + 1);
-      return { model: { ...model, phase, elapsed: 0, playing: phase < 5 } };
+      return {
+        model:
+          model.phase === 5
+            ? closeExample(model)
+            : { ...model, phase: model.phase + 1, elapsed: 0 },
+      };
     },
-    SelectCase: ({ index }) => ({
-      model: {
-        ...model,
-        scenario: index >= 0 && index < SITE_SCENARIOS.length ? index : 0,
-        checkpoint: 0,
-      },
-    }),
-    Next: () => ({
-      model: {
-        ...model,
-        checkpoint: Math.min(
-          model.checkpoint + 1,
-          SITE_SCENARIOS[model.scenario].checkpoints.length - 1,
-        ),
-      },
-    }),
-    Restart: () => ({ model: { ...model, checkpoint: 0 } }),
     ViewportChanged: ({ compact }) => ({
       model: { ...model, compactLoop: compact },
     }),
@@ -204,19 +259,27 @@ export const update = (
   message: Message,
 ): Update.Return<Model, Message> => {
   const result = updateModel(model, message);
-  return [
-    "Play",
-    "Pause",
-    "HeroNext",
-    "Tick",
-    "MotionChanged",
-    "ViewportChanged",
-  ].includes(message._tag)
-    ? {
-        ...result,
-        commands: [...(result.commands ?? []), paintLoop(result.model)],
-      }
-    : result;
+  const commands = [...(result.commands ?? [])];
+  if (
+    [
+      "OpenExample",
+      "Play",
+      "Pause",
+      "HeroNext",
+      "Tick",
+      "MotionChanged",
+      "ViewportChanged",
+    ].includes(message._tag) &&
+    result.model.lifecycle !== "collapsed"
+  )
+    commands.push(paintLoop(result.model));
+  if (
+    model.lifecycle === "running" &&
+    (result.model.lifecycle === "collapsing" ||
+      result.model.lifecycle === "collapsed")
+  )
+    commands.push(ReturnExampleFocus());
+  return { ...result, commands };
 };
 const PHASES = [
   "The edit",
@@ -328,403 +391,238 @@ const hero = (model: Model, h: HtmlBuilder<Message>) => {
     );
   };
   return h.div(
-    [h.Class(`hero-illustration phase-${model.phase}`)],
     [
-      h.div(
-        [h.Class("illustration-top")],
-        [
-          h.span([h.Class("micro")], ["FROM AN EDIT TO A REVIEW"]),
-          h.span([h.Class("demo-label")], ["Example"]),
-        ],
-      ),
-      h.canvas(
-        [
-          h.Id("review-loop-canvas"),
-          h.Class("review-loop-canvas"),
-          h.Role("img"),
-          h.AriaLabel(PHASE_COPY[model.phase]),
-        ],
-        ["Read the current stage below for the code and review details."],
-      ),
-      h.details(
-        [h.Class("stage-transcript"), h.Open(model.compactLoop)],
-        [
-          h.summary([], ["Read this stage"]),
-          h.div(
-            [h.Class("hero-scene gallery-scene")],
-            [
-              ...(model.phase === 0
-                ? [codeCard("Agent edit", SITE_EXAMPLE.initialDiff, "DIFF")]
-                : []),
-              ...(model.phase === 1 ? [dependencyGraph(false)] : []),
-              ...(model.phase === 2
-                ? [
-                    dependencyGraph(true),
-                    h.div(
-                      [h.Class("rule-question")],
-                      [
-                        h.span([h.Class("micro")], ["REVIEW QUESTION"]),
-                        h.p(
-                          [],
-                          [
-                            "Can this type store two copies of the same fact that disagree?",
-                          ],
-                        ),
-                      ],
-                    ),
-                  ]
-                : []),
-              ...(model.phase === 3
-                ? [
-                    h.div(
-                      [h.Class("sample-feedback")],
-                      [
-                        h.span(
-                          [h.Class("micro")],
-                          ["FEEDBACK SENT TO THE AGENT"],
-                        ),
-                        h.p(
-                          [h.Class("configured-feedback")],
-                          [SITE_EXAMPLE.feedbackMessage],
-                        ),
-                      ],
-                    ),
-                  ]
-                : []),
-              ...(model.phase === 4
-                ? [
-                    codeCard("Gallery", SITE_EXAMPLE.after, "EXAMPLE EDIT"),
-                    h.p(
-                      [h.Class("repair-explanation")],
-                      [
-                        "Read the width from cover.dimensions.width instead of maintaining two copies.",
-                      ],
-                    ),
-                    h.p(
-                      [h.Class("muted")],
-                      [
-                        "This edit is shown for illustration. The agent chooses how to respond to feedback.",
-                      ],
-                    ),
-                  ]
-                : []),
-              ...(model.phase === 5
-                ? [
-                    codeCard("Gallery", SITE_EXAMPLE.after, "RECHECK"),
-                    ...SITE_EXAMPLE.dependencies.map((lines, i) =>
-                      codeCard(
-                        SITE_EXAMPLE.definitionNames[i + 1],
-                        lines,
-                        "RELATED TYPE",
-                      ),
-                    ),
-                  ]
-                : []),
-            ],
-          ),
-        ],
-      ),
-      h.div(
-        [h.Class("animation-bottom")],
-        [
-          h.ol(
-            [h.Class("phase-steps"), h.AriaLabel("Illustration stages")],
-            PHASES.map((phase, i) =>
-              h.li(
-                [
-                  h.Class(
-                    i === model.phase
-                      ? "active"
-                      : i < model.phase
-                        ? "done"
-                        : "",
-                  ),
-                ],
-                [h.span([], [`0${i + 1}`]), phase],
-              ),
-            ),
-          ),
-          h.p(
-            [h.Class("phase-caption"), h.AriaLive("polite")],
-            [PHASE_COPY[model.phase]],
-          ),
-          h.div(
-            [h.Class("animation-controls")],
-            [
-              ...(model.reducedMotion
-                ? [
-                    h.span(
-                      [h.Class("muted")],
-                      ["Reduced motion · manual steps"],
-                    ),
-                  ]
-                : [
-                    h.button(
-                      [
-                        h.Type("button"),
-                        h.OnClick(
-                          model.playing ? Message.Pause() : Message.Play(),
-                        ),
-                      ],
-                      [
-                        model.playing
-                          ? "Pause animation"
-                          : model.phase === 5
-                            ? "Replay animation"
-                            : "Play animation",
-                      ],
-                    ),
-                  ]),
-              h.button(
-                [h.Type("button"), h.OnClick(Message.HeroNext())],
-                ["Next frame →"],
-              ),
-            ],
-          ),
-          h.p(
-            [h.Class("sample-provenance muted")],
-            [
-              "Example adapted from our video demo. The edit is shown for illustration. ",
-              h.a([h.Href(SITE_EXAMPLE.recordedSample.source)], ["Source ↗"]),
-            ],
-          ),
-        ],
+      h.Id("review-example"),
+      h.Class(
+        `hero-illustration phase-${model.phase} lifecycle-${model.lifecycle}${model.hasRun ? " has-run" : ""}`,
       ),
     ],
-  );
-};
-const demo = (model: Model, h: HtmlBuilder<Message>) => {
-  const selected = SITE_SCENARIOS[model.scenario];
-  const checkpoint = selected.checkpoints[model.checkpoint];
-  const replay = replayImportScenario(
-    selected.scenario,
-    checkpoint.cursor,
-    selected.limits,
-  );
-  const graph = projectFileGraphs(1, replay.history)[0];
-  const accepted = [...graph.nodes.values()].filter(
-    (node) => node.sizeAccepted === true,
-  );
-  const state = replay.states[0];
-  const names = SITE_EXAMPLE.definitionNames;
-  return h.section(
-    [h.Id("explore"), h.Class("explore section")],
     [
-      h.div(
-        [h.Class("section-head")],
+      h.button(
         [
-          h.div(
+          h.Id("example-starter"),
+          h.Type("button"),
+          h.Class("example-starter"),
+          h.OnClick(Message.OpenExample()),
+          h.AriaExpanded(model.lifecycle !== "collapsed"),
+          h.AriaControls("example-expanded-body"),
+          h.Inert(
+            model.lifecycle === "running" || model.lifecycle === "expanding",
+          ),
+        ],
+        [
+          h.span([h.Class("starter-title")], ["Example edit"]),
+          h.pre(
             [],
             [
-              h.p([h.Class("eyebrow")], ["SOURCE CONTROLS"]),
-              h.h2([], ["Choose what code can leave your repository."]),
-            ],
-          ),
-          h.span([h.Class("demo-label")], ["Interactive example"]),
-        ],
-      ),
-      h.p(
-        [h.Class("section-intro")],
-        [
-          "Try excluding a supporting file or limiting how much code is included. Compare what is read locally with what is selected for review. This example does not read your files or send a request.",
-        ],
-      ),
-      h.div(
-        [
-          h.Class("case-picker"),
-          h.Role("group"),
-          h.AriaLabel("Traversal example"),
-        ],
-        SITE_SCENARIOS.map((item, index) =>
-          h.button(
-            [
-              h.Type("button"),
-              h.OnClick(Message.SelectCase({ index })),
-              h.AriaPressed(String(index === model.scenario)),
-              h.Class(index === model.scenario ? "selected" : ""),
-            ],
-            [item.title],
-          ),
-        ),
-      ),
-      h.div(
-        [h.Class("demo-workspace")],
-        [
-          h.div(
-            [h.Class("traversal")],
-            [
-              h.div([h.Class("tree-connector"), h.AriaHidden(true)], []),
-              ...names.map((name, index) => {
-                const node = graph.nodes.get(index + 1);
-                const status = node?.sizeAccepted
-                  ? "included"
-                  : node?.reason === "Excluded"
-                    ? "excluded"
-                    : node?.reason === "TreeLimit"
-                      ? "omitted"
-                      : node?.status === "read requested"
-                        ? "requested"
-                        : "waiting";
-                const label =
-                  status === "included"
-                    ? "Read locally · included"
-                    : status === "excluded"
-                      ? "Excluded before read"
-                      : status === "omitted"
-                        ? "Read locally · over size limit"
-                        : status === "requested"
-                          ? "Read requested"
-                          : "Not reached yet";
-                return h.div(
-                  [h.Class(`definition-node node-${index} ${status}`)],
-                  [
-                    h.span(
-                      [h.Class("node-kind")],
-                      [index === 0 ? "CHANGED TYPE" : "RELATED TYPE"],
-                    ),
-                    h.strong([], [name]),
-                    h.span([h.Class("node-status")], [label]),
-                  ],
-                );
-              }),
-            ],
-          ),
-          h.div(
-            [h.Class("context-outline")],
-            [
-              h.p([h.Class("micro")], ["INCLUDED FOR REVIEW"]),
-              h.div(
-                [h.Class("outline-heading")],
-                [
-                  h.strong(
-                    [],
-                    [
-                      `${accepted.length} ${accepted.length === 1 ? "definition" : "definitions"}`,
-                    ],
-                  ),
+              h.code(
+                [],
+                SITE_EXAMPLE.initialDiff.map((line) =>
                   h.span(
-                    [],
-                    [
-                      model.scenario === 2
-                        ? state.treeBytes >= state.limits.treeBytes
-                          ? "Code limit reached"
-                          : "Capacity remaining"
-                        : "Source code",
-                    ],
-                  ),
-                ],
-              ),
-              h.div(
-                [
-                  h.Class(
-                    model.scenario === 2
-                      ? "budget-track"
-                      : "budget-track budget-secondary",
-                  ),
-                  h.Role("img"),
-                  h.AriaLabel(
-                    state.treeBytes >= state.limits.treeBytes
-                      ? "Code limit reached"
-                      : "Code capacity remaining",
-                  ),
-                ],
-                [
-                  h.span(
-                    [
-                      h.Style({
-                        width: `${(state.treeBytes / state.limits.treeBytes) * 100}%`,
-                      }),
-                    ],
-                    [],
-                  ),
-                ],
-              ),
-              h.ol(
-                [h.Class("included-list")],
-                accepted.map((node) =>
-                  h.li(
-                    [],
-                    [
-                      h.strong([], [names[node.target - 1]]),
-                      h.pre(
-                        [],
-                        [
-                          h.code(
-                            [],
-                            [
-                              (node.target === 1
-                                ? SITE_EXAMPLE.before
-                                : SITE_EXAMPLE.dependencies[node.target - 2]
-                              ).join("\n"),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+                    [h.Class(line.startsWith("+") ? "added-line" : "")],
+                    [line + "\n"],
                   ),
                 ),
               ),
-              h.p(
-                [h.Class("muted outline-disclaimer")],
-                [
-                  "Review models have limited context. Hapsland caps the code it includes; rule questions also take space in the request. Checks that require a missing definition are skipped; other applicable checks may still run.",
-                ],
-              ),
+            ],
+          ),
+          h.span(
+            [h.Class("click-sticker")],
+            [model.hasRun ? "Replay example ↗" : "✦ CLICK ME ✦",
+              ...(!model.hasRun ? [0, 1, 2, 3].map(i => h.span([h.Class(`emitted-star star-${i}`), h.AriaHidden(true)], [i % 2 ? "✧" : "✦"])) : []),
             ],
           ),
         ],
       ),
       h.div(
-        [h.Class("demo-bottom")],
         [
-          h.div(
-            [h.Class("step-explanation"), h.AriaLive("polite")],
-            [
-              h.span(
-                [h.Class("micro")],
-                [
-                  `STEP ${model.checkpoint + 1} / ${selected.checkpoints.length}`,
-                ],
-              ),
-              h.h3([], [checkpoint.title]),
-              h.p([], [checkpoint.description]),
-            ],
-          ),
-          h.div(
-            [h.Class("demo-controls")],
-            [
-              h.button(
-                [h.Type("button"), h.OnClick(Message.Restart())],
-                ["Restart"],
-              ),
-              h.button(
-                [
-                  h.Type("button"),
-                  h.Class("button-primary"),
-                  h.OnClick(Message.Next()),
-                  h.Disabled(
-                    model.checkpoint === selected.checkpoints.length - 1,
-                  ),
-                ],
-                ["Next step →"],
-              ),
-            ],
+          h.Class("example-expand-grid"),
+          h.Inert(
+            model.lifecycle === "collapsed" || model.lifecycle === "collapsing",
           ),
         ],
-      ),
-      h.details(
-        [h.Class("technical-details")],
         [
-          h.summary([], ["Implementation details"]),
-          h.p(
-            [],
+          h.div(
+            [h.Id("example-expanded-body"), h.Class("example-expanded-body")],
             [
-              "This replay uses the same compiled import-graph decision core as Hapsland. Paths and byte counts are synthetic facts; the page does not execute source capture, parsing, rule selection or Jev transport. The original recorded Gallery review used one file. Here the same declarations are placed in separate example files to demonstrate exclusions.",
+              h.canvas(
+                [
+                  h.Id("review-loop-canvas"),
+                  h.Class("review-loop-canvas"),
+                  h.Role("img"),
+                  h.AriaLabel(PHASE_COPY[model.phase]),
+                ],
+                [
+                  "Read the current stage below for the code and review details.",
+                ],
+              ),
+              h.details(
+                [h.Class("stage-transcript"), h.Open(model.compactLoop)],
+                [
+                  h.summary([], ["Read this stage"]),
+                  h.div(
+                    [h.Class("hero-scene gallery-scene")],
+                    [
+                      ...(model.phase === 0
+                        ? [
+                            codeCard(
+                              "Agent edit",
+                              SITE_EXAMPLE.initialDiff,
+                              "DIFF",
+                            ),
+                          ]
+                        : []),
+                      ...(model.phase === 1 ? [dependencyGraph(false)] : []),
+                      ...(model.phase === 2
+                        ? [
+                            dependencyGraph(true),
+                            h.div(
+                              [h.Class("rule-question")],
+                              [
+                                h.span([h.Class("micro")], ["REVIEW QUESTION"]),
+                                h.p(
+                                  [],
+                                  [
+                                    "Can this type store two copies of the same fact that disagree?",
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ]
+                        : []),
+                      ...(model.phase === 3
+                        ? [
+                            h.div(
+                              [h.Class("sample-feedback")],
+                              [
+                                h.span(
+                                  [h.Class("micro")],
+                                  ["FEEDBACK SENT TO THE AGENT"],
+                                ),
+                                h.p(
+                                  [h.Class("configured-feedback")],
+                                  [SITE_EXAMPLE.feedbackMessage],
+                                ),
+                              ],
+                            ),
+                          ]
+                        : []),
+                      ...(model.phase === 4
+                        ? [
+                            codeCard(
+                              "Gallery",
+                              SITE_EXAMPLE.after,
+                              "EXAMPLE EDIT",
+                            ),
+                            h.p(
+                              [h.Class("repair-explanation")],
+                              [
+                                "Read the width from cover.dimensions.width instead of maintaining two copies.",
+                              ],
+                            ),
+                            h.p(
+                              [h.Class("muted")],
+                              [
+                                "This edit is shown for illustration. The agent chooses how to respond to feedback.",
+                              ],
+                            ),
+                          ]
+                        : []),
+                      ...(model.phase === 5
+                        ? [
+                            codeCard("Gallery", SITE_EXAMPLE.after, "RECHECK"),
+                            ...SITE_EXAMPLE.dependencies.map((lines, i) =>
+                              codeCard(
+                                SITE_EXAMPLE.definitionNames[i + 1],
+                                lines,
+                                "RELATED TYPE",
+                              ),
+                            ),
+                          ]
+                        : []),
+                    ],
+                  ),
+                ],
+              ),
+              h.div(
+                [h.Class("animation-bottom")],
+                [
+                  h.ol(
+                    [
+                      h.Class("phase-steps"),
+                      h.AriaLabel("Illustration stages"),
+                    ],
+                    PHASES.map((phase, i) =>
+                      h.li(
+                        [
+                          h.Class(
+                            i === model.phase
+                              ? "active"
+                              : i < model.phase
+                                ? "done"
+                                : "",
+                          ),
+                        ],
+                        [h.span([], [`0${i + 1}`]), phase],
+                      ),
+                    ),
+                  ),
+                  h.p(
+                    [h.Class("phase-caption"), h.AriaLive("polite")],
+                    [PHASE_COPY[model.phase]],
+                  ),
+                  h.div(
+                    [h.Class("animation-controls")],
+                    [
+                      ...(model.reducedMotion
+                        ? [
+                            h.span(
+                              [h.Class("muted")],
+                              ["Reduced motion · manual steps"],
+                            ),
+                          ]
+                        : [
+                            h.button(
+                              [
+                                h.Type("button"),
+                                h.OnClick(
+                                  model.playing
+                                    ? Message.Pause()
+                                    : Message.Play(),
+                                ),
+                              ],
+                              [
+                                model.playing
+                                  ? "Pause animation"
+                                  : model.phase === 5
+                                    ? "Replay animation"
+                                    : "Play animation",
+                              ],
+                            ),
+                          ]),
+                      h.button(
+                        [h.Type("button"), h.OnClick(Message.HeroNext())],
+                        [model.phase === 5 ? "Finish example" : "Next frame →"],
+                      ),
+                      h.button(
+                        [h.Type("button"), h.OnClick(Message.CloseExample())],
+                        ["Close example"],
+                      ),
+                    ],
+                  ),
+                  h.p(
+                    [h.Class("sample-provenance muted")],
+                    [
+                      "Example adapted from our video demo. The edit is shown for illustration. ",
+                      h.a(
+                        [h.Href(SITE_EXAMPLE.recordedSample.source)],
+                        ["Source ↗"],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ],
-          ),
-          h.a(
-            [h.Href("./index.html#import-graph")],
-            ["Open the full architecture dashboard ↗"],
           ),
         ],
       ),
@@ -737,7 +635,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
     [h.Class("site")],
     [
       h.a(
-        [h.Class("skip-link"), h.Href("#explore")],
+        [h.Class("skip-link"), h.Href("#review-example")],
         ["Skip to interactive example"],
       ),
       h.header(
@@ -751,17 +649,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               h.span([h.Class("brand-period")], ["."]),
             ],
           ),
-          h.nav(
-            [h.AriaLabel("Main navigation")],
-            [
-              h.a([h.Href("#explore")], ["The example"]),
-              h.a([h.Href(guide("architecture"))], ["Architecture ↗"]),
-              h.a(
-                [h.Href(`${REPOSITORY}#installation`), h.Class("nav-setup")],
-                ["Set up Hapsland ↗"],
-              ),
-            ],
-          ),
         ],
       ),
       h.section(
@@ -770,50 +657,48 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.div(
             [h.Class("hero-copy")],
             [
-              h.p([h.Class("eyebrow")], ["EARLY CODE REVIEW"]),
               h.h1(
                 [],
-                ["Review code changes with the definitions behind them."],
+                [
+                  "IMMEDIATE CODE REVIEW for coding agents: ",
+                  h.span(
+                    [h.Style({ color: "var(--red)" })],
+                    ["SLAP THAT HAND!"],
+                  ),
+                ],
+              ),
+              h.p(
+                [h.Class("hero-subtitle")],
+                ["to make invalid states unrepresentable™"],
               ),
               h.p(
                 [h.Class("hero-intro")],
                 [
-                  "Hapsland uses the agent’s edit diff to find changed types and functions, then expands them into a graph of related definitions. It reviews that source against your rules, giving the agent a chance to reconsider before more changes build on the decision.",
+                  "Hapsland expands the agent’s edit diff into changed types, functions, and their related definitions. That gives the review model much richer code context than the diff alone. Your rules are evaluated by ",
+                  h.span([h.Class("blazingly")], ["BLAZINGLY"]),
+                  " fast classifiers such as Jev, so feedback can arrive before more changes build on the decision. ",
+                  h.strong(
+                    [],
+                    [
+                      "Early feedback lets the agent reconsider a data or code decision before building more changes on that ",
+                      h.span([h.Class("necromantic")], ["false"]),
+                      " assumption. The agent decides how to respond.",
+                    ],
+                  ),
                 ],
               ),
               h.div(
                 [h.Class("hero-actions")],
                 [
                   h.a(
-                    [h.Href("#explore"), h.Class("button-primary")],
-                    ["Follow one change ↓"],
+                    [h.Href("#setup"), h.Class("text-link")],
+                    ["Read the setup guide ↓"],
                   ),
-                  h.a(
-                    [
-                      h.Href(`${REPOSITORY}#installation`),
-                      h.Class("text-link"),
-                    ],
-                    ["Read the setup guide ↗"],
-                  ),
-                ],
-              ),
-              h.p(
-                [h.Class("hero-note")],
-                [
-                  "Early feedback lets the agent reconsider a data or code decision before building more changes on that assumption. The agent decides how to respond.",
                 ],
               ),
             ],
           ),
           hero(model, h),
-        ],
-      ),
-      h.div(
-        [h.Class("principles")],
-        [
-          h.span([], [h.b([], ["01"]), " Related definitions"]),
-          h.span([], [h.b([], ["02"]), " Rules you choose"]),
-          h.span([], [h.b([], ["03"]), " A visible source boundary"]),
         ],
       ),
       h.section(
@@ -844,7 +729,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
               h.p(
                 [h.Class("fine-print")],
                 [
-                  "Selected definitions contain source code. With credentials and no file settings, all otherwise eligible files are selected. The current recipient is Jev; there is no per-request approval prompt.",
+                  "Selected definitions contain source code. With credentials and no file settings, all otherwise eligible files are selected. The current recipient is Jev; there is no per-request approval prompt. The integration is designed for other classifiers too.",
                 ],
               ),
               h.a(
@@ -884,78 +769,6 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
                 ["See custom rule packs ↗"],
               ),
             ],
-          ),
-        ],
-      ),
-      demo(model, h),
-      h.section(
-        [h.Class("section evidence")],
-        [
-          h.p([h.Class("eyebrow")], ["VERIFICATION"]),
-          h.h2([], ["Checks behind source selection."]),
-          h.div(
-            [h.Class("evidence-row")],
-            [
-              h.span([], ["01 / PROOFS"]),
-              h.div(
-                [],
-                [
-                  h.h3([], ["Review models have limited context."]),
-                  h.p(
-                    [],
-                    [
-                      "Selected code and rule questions must share that space. Hapsland limits how much code is included. Formal proofs check that the code stays within its configured size limit.*",
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          h.div(
-            [h.Class("evidence-row")],
-            [
-              h.span([], ["02 / REPLAY"]),
-              h.div(
-                [],
-                [
-                  h.h3([], ["Replay the same decisions and failures."]),
-                  h.p(
-                    [],
-                    [
-                      "Deterministic simulation repeats source-selection decisions with the same inputs, including failures and recovery.",
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          h.div(
-            [h.Class("evidence-row")],
-            [
-              h.span([], ["03 / NATIVE TESTS"]),
-              h.div(
-                [],
-                [
-                  h.h3([], ["Control what reaches the review service."]),
-                  h.p(
-                    [],
-                    [
-                      "Your task prompt and agent conversation stay out of Jev review requests. Jev receives permitted source definitions and rule questions. Integration tests check file access, what is sent, and delivery to the agent.",
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-          h.p(
-            [h.Class("verification-footnote muted")],
-            [
-              "* A checked exclusion case proves that the core issues no read command for the denied dependency. These proofs apply to stated properties and cases in the core logic. They do not prove absence of every leak across the core or the whole system. Simulation does not exercise real files or network transport.",
-            ],
-          ),
-          h.a(
-            [h.Href(guide("architecture")), h.Class("text-link")],
-            ["Read the architecture and proof scope ↗"],
           ),
         ],
       ),
@@ -1038,9 +851,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       h.footer(
         [h.Class("site-footer")],
         [
-          h.a([h.Href("#"), h.Class("wordmark")], ["Hapsland."]),
-          h.p([], ["Hapsland is the integration. Jev is the review backend."]),
-          h.a([h.Href(REPOSITORY)], ["Source on GitHub ↗"]),
+          h.a([h.Href("#"), h.Class("wordmark")], ["Hapsland. ", h.span([h.Class("footer-tagline")], ["Slap that hand."])]),
+          h.a([h.Href(REPOSITORY), h.Class("github-link"), h.AriaLabel("Source on GitHub")], [h.img([h.Src(githubIcon), h.Alt(""), h.Width("28"), h.Height("28")])]),
         ],
       ),
     ],

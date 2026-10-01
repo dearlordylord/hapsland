@@ -4,7 +4,10 @@ import "./site.css";
 
 const subscriptions = Subscription.make<Model, Message>()((entry) => ({
   heroPlayback: Subscription.animationFrame<Model, Message>({
-    isActive: (model) => model.playing,
+    isActive: (model) =>
+      model.lifecycle === "expanding" ||
+      model.lifecycle === "collapsing" ||
+      (model.lifecycle === "running" && model.playing),
     toMessage: (deltaMs) => Message.Tick({ deltaMs }),
   }),
   viewport: entry(
