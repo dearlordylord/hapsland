@@ -159,3 +159,14 @@ separately verifies Rust and Bend cross-file preparation in production-only
 installations. These results establish these cases, not general review accuracy
 or native-agent response to cross-file advice. The declared request cap was
 respected and no source-bearing responses were retained.
+
+[macOS arm64 package/setup conformance](https://github.com/dearlordylord/hapsland/actions/runs/36818187174)
+passed at `c9672ddaa34986c61c20fb0bd14f7919602f1f69`. Its
+[sanitized installed-package record](../evidence/cross-file-support/macos-package.json)
+includes actual Rust and Bend cross-file preparation. The full offline suite
+passed 973 tests with two live tests skipped; typecheck, build, native artifact
+verification, and exact-commit tarball audit also passed. The Rust parent suite's
+first full cross-file validation had one existing TypeScript Claude hook child
+exit without a status; isolation and a fresh full run (917 tests) passed without
+production changes. This does not explain the termination cause or establish a
+language-binding defect.
