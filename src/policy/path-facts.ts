@@ -3,7 +3,7 @@ import { normalizeRepositoryPath } from "../matcher/glob.ts";
 
 // Native name and extension observations. Bend selects the protection result.
 const reviewableExtensions = new Set([
-  ".c", ".cc", ".cpp", ".cs", ".css", ".cts", ".go", ".h", ".hpp", ".html", ".java",
+  ".bend", ".c", ".cc", ".cpp", ".cs", ".css", ".cts", ".go", ".h", ".hpp", ".html", ".java",
   ".js", ".jsx", ".json", ".kt", ".md", ".php", ".py", ".rb", ".rs", ".scala",
   ".sh", ".sql", ".swift", ".toml", ".ts", ".tsx", ".mts", ".yaml", ".yml",
 ]);

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { extractBendDeclarations } from "./bend-extractor.ts";
 import type { ArtifactReference, ReviewArtifact, ReviewNode, ReviewUnit, TypeDeclaration } from "./model.ts";
 
 const nativeRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../native/prebuilt", `${process.platform}-${process.arch}`);
@@ -75,7 +76,7 @@ export const MAX_TYPE_DECLARATIONS = 64;
 /** The root is deliberately excluded from this count. */
 export const MAX_REFERENCED_NAMES = 16;
 
-const supported = new Set([".ts", ".tsx", ".mts", ".cts", ".rs"]);
+const supported = new Set([".ts", ".tsx", ".mts", ".cts", ".rs", ".bend"]);
 const importSyntax = new Set([
   "import",
   "import_alias",
@@ -203,11 +204,25 @@ const rustDeclarations = (path: string, source: string): TypeFileAnalysis | Read
   return parsed;
 };
 
+const bendDeclarations = (path: string, source: string): TypeFileAnalysis | ReadonlyArray<ParsedDeclaration> => {
+  const result = extractBendDeclarations(source, MAX_TYPE_DECLARATIONS);
+  if ("reason" in result) return { status: "unsupported", reason: result.reason, units: [] };
+  return result.declarations.map((declaration) => {
+    const node: SyntaxNode = { type: "bend_datatype", text: declaration.source,
+      startIndex: 0, endIndex: 0, namedChildren: [], childForFieldName: () => null,
+      startPosition: declaration.startPosition, endPosition: declaration.endPosition };
+    return { node, nameNode: { ...node, text: declaration.name }, references: declaration.references,
+      artifact: { id: `${path}:datatype:${declaration.name}`, kind: "datatype", name: declaration.name,
+        source: declaration.source, sourceHash: createHash("sha256").update(declaration.source, "utf8").digest("hex") } };
+  });
+};
+
 const parsedDeclarations = (path: string, source: string, allowImports = false): TypeFileAnalysis | ReadonlyArray<ParsedDeclaration> => {
   const extension = extname(path).toLowerCase();
   if (!supported.has(extension)) return { status: "unsupported", reason: "extension", units: [] };
   try {
     if (extension === ".rs") return rustDeclarations(path, source);
+    if (extension === ".bend") return bendDeclarations(path, source);
     const parser = new Parser();
     parser.setLanguage(extension === ".tsx" ? TypeScript.tsx : TypeScript.typescript);
     const tree = parser.parse(source) as unknown as { readonly rootNode: SyntaxNode };
@@ -256,7 +271,7 @@ const parsedDeclarations = (path: string, source: string, allowImports = false):
 export const inspectGraphFile = (path: string, source: string): GraphFile | undefined => {
   const parsed = parsedDeclarations(path, source, true);
   if ("status" in parsed) return undefined;
-  if (extname(path).toLowerCase() === ".rs") return {
+  if ([".rs", ".bend"].includes(extname(path).toLowerCase())) return {
     declarations: new Map(parsed.map(({ artifact, references, node }) => [artifact.name, {
       artifact: { ...artifact, path }, references, exported: true,
       location: { start: { line: node.startPosition.row + 1, column: node.startPosition.column + 1 },
@@ -418,7 +433,7 @@ export const combinedAnalyzerMaterializationPreflight = (
   source: string,
 ): AnalyzerMaterializationPreflight | undefined => {
   const extension = extname(path).toLowerCase();
-  if (extension === ".rs") return analyzerMaterializationPreflight(path, source);
+  if (extension === ".rs" || extension === ".bend") return analyzerMaterializationPreflight(path, source);
   if (!supported.has(extension)) return undefined;
   try {
     const parser = new Parser();

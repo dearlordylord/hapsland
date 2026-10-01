@@ -39,6 +39,9 @@ The restriction that comes with this idea is that we have to implement context e
 TypeScript is supported. Rust support is bounded to explicit top-level `struct`,
 `enum`, and `type` declarations in `.rs` files, with same-file type context.
 Rust functions, module resolution, macros, and conditional compilation are deferred.
+Bend support covers explicit top-level `type` datatypes in `.bend` files with
+bounded same-file context. Dependent types, functions, laws/proofs, and module
+resolution are deferred.
 Unsupported or unresolved evidence produces no advice for rules that need it.
 See the [review contract](./docs/type-function-review-proposal.md#branch-contracts)
 for the extraction boundary.
@@ -104,7 +107,7 @@ artifact verification.
    input. Effective file settings select otherwise eligible files; with no file settings,
    all otherwise eligible files are selected when Jev credentials are available.
 3. Start Codex normally, review its repository and hook trust prompts, and make a supported
-   TypeScript or supported Rust type edit. Follow the [status guide](./docs/status.md) to check observed review activity
+   TypeScript or supported Rust/Bend type edit. Follow the [status guide](./docs/status.md) to check observed review activity
    with the host session ID; installation alone does not establish that a review ran.
 
 The [Codex installation guide](./docs/codex-installation.md) covers update, disable, logout,

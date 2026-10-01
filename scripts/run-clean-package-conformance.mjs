@@ -495,6 +495,18 @@ try {
     throw new Error("packaged Rust parser did not resolve the same-file enum payload");
   }
 
+  const bendParserRun = await mustRun(parser, [], {
+    cwd: temporary,
+    input: JSON.stringify({ path: "fixture.bend", source: "import Base\ntype Receipt is Data:\n  Receipt{id: String}\ntype Delivery is Data:\n  Pending{}\n  Delivered{receipt: Receipt}" }),
+  });
+  const bendParserResult = parseJson(bendParserRun.stdout, "packaged Bend parser");
+  if (bendParserResult.status !== "analyzed" ||
+      !bendParserResult.units.some((unit) => unit.status === "ready" && unit.unit.root.artifact.kind === "datatype" &&
+        unit.unit.root.artifact.name === "Delivery" &&
+        unit.unit.root.references.some((reference) => reference.kind === "expanded" && reference.node.artifact.name === "Receipt"))) {
+    throw new Error("packaged Bend extractor did not resolve the same-file constructor payload");
+  }
+
   progress("create-isolated-repository");
   await mustRun("git", ["init", "--quiet", "--initial-branch=master"], { cwd: repository });
   await mustRun("git", ["config", "user.name", "Package Fixture"], { cwd: repository });

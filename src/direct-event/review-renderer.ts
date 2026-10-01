@@ -12,7 +12,7 @@ export const CANDIDATE_RENDERER_DIGEST = sha256(
   "candidate-semantic-evidence/1:artifact(kind,name,domain,source):evidence(rootId,nodes[id,kind,name,domain,source,order],edges[from,to?,kind,symbol,reason?,order]):inputContract(id,completeness,projectionFingerprint,rendererVersion,rendererDigest)",
 );
 
-type Kind = "interface" | "type-alias" | "struct" | "enum" | "function";
+type Kind = "interface" | "type-alias" | "struct" | "enum" | "datatype" | "function";
 type Artifact = Readonly<{ id: string; kind: Kind; name: string; domain: string; source: string }>;
 type Node = Artifact & Readonly<{ order: number }>;
 type Edge = Readonly<{ from: string; to: string; kind: "expanded" | "included"; symbol: string; order: number }> |
@@ -54,7 +54,7 @@ const declarationName = (value: unknown): value is string =>
   typeof value === "string" && value.length <= 256 &&
   /^[\p{ID_Start}_$][\p{ID_Continue}$\u200C\u200D]*$/u.test(value);
 const kind = (value: unknown): value is Kind =>
-  value === "interface" || value === "type-alias" || value === "struct" || value === "enum" || value === "function";
+  value === "interface" || value === "type-alias" || value === "struct" || value === "enum" || value === "datatype" || value === "function";
 const source = (value: unknown): value is string =>
   typeof value === "string" && Buffer.byteLength(value, "utf8") <= MAX_CANDIDATE_SOURCE_BYTES;
 const artifact = (value: unknown, ordered: boolean): Artifact | Node | undefined => {

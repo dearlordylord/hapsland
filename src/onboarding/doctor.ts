@@ -60,9 +60,10 @@ export const diagnoseInstalledIntegration = async (options: {
   try {
     const parser = analyzeTypeFile("doctor.ts", "export interface DoctorProbe { ready: boolean }");
     const rustParser = analyzeTypeFile("doctor.rs", "struct DoctorProbe { ready: bool }");
-    checks.push(parser.status === "analyzed" && rustParser.status === "analyzed"
+    const bendParser = analyzeTypeFile("doctor.bend", "type DoctorProbe is Data:\n  DoctorProbe{}");
+    checks.push(bendParser.status === "analyzed" && parser.status === "analyzed" && rustParser.status === "analyzed"
       ? { stage: "parser", status: "ready", observed: "loaded-and-analyzed" }
-      : { stage: "parser", status: "unsupported", observed: { typescript: parser.status, rust: rustParser.status }, action: "reinstall the package for this exact OS and architecture" });
+      : { stage: "parser", status: "unsupported", observed: { typescript: parser.status, rust: rustParser.status, bend: bendParser.status }, action: "reinstall the package for this exact OS and architecture" });
   } catch {
     checks.push({ stage: "parser", status: "missing", observed: "load-failed", action: "reinstall a release archive containing compatible parser bindings for this platform" });
   }
