@@ -26,6 +26,7 @@ const names = files.filter((name) => !name.endsWith("/")).map((name) => {
 });
 const allowed = (name) => name === "package.json" || name === "package-runtime.json" ||
   name === "README.md" || name === "bin/launch.sh" ||
+  ["dist/canonical/canonical.generated.js", "dist/canonical/import-graph.generated.js"].includes(name) ||
   ["docs/codex-installation.md", "docs/claude-installation.md", "docs/opencode-installation.md",
     "docs/direct-event-v1-supported-profile.md",
     "docs/installed-release-compatibility.md", "docs/status.md"].includes(name) ||
@@ -52,7 +53,8 @@ if (manifest.name !== "@hapsland/hapsland" || manifest.version !== "0.1.0" || ma
 }
 const required = ["package.json", "package-runtime.json", "README.md", "bin/launch.sh",
   "dist/cli.js", "dist/package-doctor.js", "dist/parser-main.js",
-  "dist/resident/main.js"];
+  "dist/resident/main.js", "dist/canonical/canonical.generated.js",
+  "dist/canonical/import-graph.generated.js"];
 for (const profile of ["linux-arm64", "darwin-arm64"]) {
   for (const artifact of ["credential-secret-service", "tree-sitter/build/Release/tree_sitter_runtime_binding.node",
     "tree-sitter-typescript/build/Release/tree_sitter_typescript_binding.node",
