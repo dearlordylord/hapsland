@@ -239,7 +239,11 @@ Those controls, including **Start / reset**, affect only that selected agent.
 Replay JSON remains the existing version-one single-run format; export/load
 applies to the selected agent, not the entire ensemble.
 
-**Tilt**, **Rotation**, **Layer spacing** and **Zoom** position the layers.
+Drag the 3D viewport to rotate the layers directly. Mouse dragging changes
+rotation and tilt; horizontal touch dragging rotates while vertical touch
+gestures scroll the page. Rotation wraps through a full turn. A drag does not
+activate a diagram stage, while a click or tap still opens its inspector.
+**Tilt**, **Rotation**, **Layer spacing** and **Zoom** also position the layers.
 **Focus selected agent** opens the selected diagram without perspective;
 **3D layers** returns to the stack. Selecting a diagram stage also opens this
 inspection view and its existing stage inspector. On narrow screens the diagram

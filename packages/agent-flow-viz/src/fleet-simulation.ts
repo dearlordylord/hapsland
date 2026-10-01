@@ -136,7 +136,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
         ]),
         h.div([h.Class("ensemble-viewport"), h.Style({ height: `${sceneHeight}px` }), h.AriaLabel("Three-dimensional agent diagram")], [
           h.div([h.Class("ensemble-scene"), h.Style({
-            transform: model.flat ? "none" : `translateY(${-35 + Math.max(0, model.agents.length - 3) * 30}px) scale(${bounded(model.zoom, 35, 100, 72) / 100}) rotateX(${bounded(model.tilt, 0, 65, 48)}deg) rotateZ(${bounded(model.turn, -35, 35, -16)}deg) translateZ(${-(model.agents.length - 1) * spacing / 2}px)`,
+            transform: model.flat ? "none" : `translateY(${-35 + Math.max(0, model.agents.length - 3) * 30}px) scale(${bounded(model.zoom, 35, 100, 72) / 100}) rotateX(${bounded(model.tilt, 0, 65, 48)}deg) rotateZ(${bounded(model.turn, -180, 180, -16)}deg) translateZ(${-(model.agents.length - 1) * spacing / 2}px)`,
           })], [
             ...layers.filter(layer => !model.flat || layer.index === model.active).map(({ agent, index, run, current, history, numbers }) => h.div([
               h.Class(`ensemble-layer ${index === model.active ? "is-selected" : ""}`),
@@ -155,10 +155,11 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
               ], [])) : []),
             ])),
           ]),
+          ...(!model.flat ? [h.div([h.Class("ensemble-gesture-hint")], ["Drag to rotate · touch: drag sideways, scroll vertically"])] : []),
           h.div([h.Class("ensemble-orientation")], [model.flat ? `AGENT ${model.active + 1} / INSPECTION VIEW` : "X / Y · SYSTEM FLOW     Z · AGENTS"]),
         ]),
       ]),
-      h.div([h.Class("ensemble-camera")], [range("Tilt", "tilt", 0, 65, model.tilt), range("Rotation", "turn", -35, 35, model.turn),
+      h.div([h.Class("ensemble-camera")], [range("Tilt", "tilt", 0, 65, model.tilt), range("Rotation", "turn", -180, 180, model.turn),
         range("Layer spacing", "spacing", 70, 190, model.spacing), range("Zoom", "zoom", 35, 100, model.zoom)]),
       h.p([h.Class("ensemble-evidence-key")], ["Diagram: blue = state / decision · gray = external work · orange = transition · purple dashed = command. Select a stage to inspect its checked state."]),
       h.div([h.Class("ensemble-resource-key")], [h.span([h.Class("workspace-key")], ["● Workspace / source access"]), h.span([h.Class("jev-key")], ["● Jev / review backend"]),

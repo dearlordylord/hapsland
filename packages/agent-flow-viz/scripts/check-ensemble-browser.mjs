@@ -18,6 +18,41 @@ try {
   await click("Start ensemble");
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 3);
   assert.equal(await ensemble.locator(".ensemble-connector").count(), 4);
+  const viewport = ensemble.locator(".ensemble-viewport");
+  const bounds = await viewport.boundingBox();
+  const beforeTransform = await ensemble.locator(".ensemble-scene").getAttribute("style");
+  await page.mouse.move(bounds.x + 70, bounds.y + 150);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + 340, bounds.y + 110, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForFunction(() => Number(document.querySelector('[aria-label="Rotation"]').value) > 35);
+  assert.notEqual(await ensemble.locator(".ensemble-scene").getAttribute("style"), beforeTransform);
+  assert.ok(Number(await page.getByLabel("Tilt", { exact: true }).inputValue()) > 48);
+  assert.equal(await ensemble.locator(".is-dragging").count(), 0);
+  await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-drag.png" });
+  await click("Reset view");
+  // A drag beginning on a stage must not activate that stage on release.
+  const stage = ensemble.locator(".ensemble-layer").last().locator('.topology-node[role="button"]').first();
+  const stageBounds = await stage.boundingBox();
+  await page.mouse.move(stageBounds.x + stageBounds.width / 2, stageBounds.y + stageBounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(stageBounds.x + stageBounds.width / 2 + 50, stageBounds.y + stageBounds.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await settle();
+  assert.equal(await ensemble.locator(".ensemble-panel.is-flat").count(), 0);
+  assert.ok(await ensemble.evaluate(element => element.classList.contains("is-spatial")));
+  await click("Reset view");
+  await stage.click();
+  await page.waitForFunction(() => document.querySelector("#agent-ensemble")?.classList.contains("is-flat"));
+  assert.equal(await ensemble.locator(".ensemble-layer").count(), 1, "a click still opens agent inspection");
+  const flatTransform = await ensemble.locator(".ensemble-scene").getAttribute("style");
+  await page.mouse.move(bounds.x + 60, bounds.y + 120);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + 180, bounds.y + 150, { steps: 4 });
+  await page.mouse.up();
+  assert.equal(await ensemble.locator(".ensemble-scene").getAttribute("style"), flatTransform);
+  await click("3D layers");
+  await click("Reset view");
   for (let i = 0; i < 36; i++) await click("Step all");
   const events = [];
   const replays = [];
@@ -95,8 +130,34 @@ try {
   assert.ok(await ensemble.getByRole("button", { name: "Select agent 6", exact: true }).isVisible());
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "mobile page should not overflow horizontally");
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-mobile.png" });
+  // Real touch events exercise browser pan arbitration and pointer cancellation.
+  const touchPage = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  touchPage.on("pageerror", error => errors.push(error.message));
+  await touchPage.goto(server.resolvedUrls.local[0]);
+  const touchViewport = touchPage.locator(".ensemble-viewport");
+  await touchViewport.evaluate(element => element.scrollIntoView({ block: "center" }));
+  const touchBounds = await touchViewport.boundingBox();
+  const cdp = await touchPage.context().newCDPSession(touchPage);
+  const swipe = async (dx, dy) => {
+    const x = touchBounds.x + 100;
+    const y = Math.max(100, touchBounds.y + 180);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y, id: 1 }] });
+    for (let step = 1; step <= 8; step++) await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove", touchPoints: [{ x: x + dx * step / 8, y: y + dy * step / 8, id: 1 }],
+    });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  };
+  await swipe(120, 0);
+  await touchPage.waitForFunction(() => Number(document.querySelector('[aria-label="Rotation"]').value) > -16);
+  const touchTurn = await touchPage.getByLabel("Rotation", { exact: true }).inputValue();
+  const scrollBefore = await touchPage.evaluate(() => window.scrollY);
+  await swipe(0, -130);
+  await touchPage.waitForFunction(before => window.scrollY > before, scrollBefore);
+  assert.equal(await touchPage.getByLabel("Rotation", { exact: true }).inputValue(), touchTurn, "vertical touch scroll must not rotate the scene");
+  assert.equal(await touchPage.locator(".is-dragging").count(), 0);
+  await touchPage.close();
   assert.deepEqual(errors, []);
-  console.log("Ensemble browser checks passed: independent streams, agent-scoped controls/replay, global playback, count validation, focus, six-layer fit and mobile layout.");
+  console.log("Ensemble browser checks passed: independent streams, agent-scoped controls/replay, global playback, count validation, focus, six-layer fit, mobile layout, mouse drag, stage click preservation and touch orbit/scroll.");
 } finally {
   await browser?.close();
   await server.close();

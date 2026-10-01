@@ -267,3 +267,7 @@ p { line-height: 1.5; }
 }
 
 .ensemble-evidence-key { margin: 0; padding: 9px 28px; background: #fff; color: #7a889a; font-size: .68rem; border-top: 1px solid #edf1f7; }
+
+.is-spatial .ensemble-viewport { cursor: grab; touch-action: pan-y pinch-zoom; user-select: none; }
+.is-spatial .ensemble-viewport.is-dragging, .is-spatial .ensemble-viewport.is-dragging * { cursor: grabbing; }
+.ensemble-gesture-hint { position: absolute; top: 12px; left: 16px; z-index: 1; padding: 6px 9px; border: 1px solid #dbe4ef; border-radius: 6px; background: #f9fbfeee; color: #637b98; font-size: .69rem; pointer-events: none; }

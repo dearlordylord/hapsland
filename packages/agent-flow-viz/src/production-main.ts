@@ -35,6 +35,7 @@ export const Message = defineMessageUnion({
   SimulationAction: { action: Schema.String },
   SimulationChanged: { field: Schema.String, raw: Schema.String },
   SimulationTick: { deltaMs: Schema.Number },
+  SimulationCameraMoved: { tilt: Schema.Number, turn: Schema.Number },
   SelectedImportScenario: { index: Schema.Number },
   MovedImportCursor: { cursor: Schema.Number },
   SelectedTimeline: { index: Schema.Number },
@@ -103,6 +104,7 @@ const seekHistory = (model: Model, requested: number): Model => {
 export const update = (model: Model, message: Message) => Message.match<Update.Return<Model, Message>>(message, {
   SimulationAction: ({ action }) => ({ model: { ...model, simulation: actSimulation(model.simulation, action) } }),
   SimulationChanged: ({ field, raw }) => ({ model: { ...model, simulation: changeSimulation(model.simulation, field, raw) } }),
+  SimulationCameraMoved: ({ tilt, turn }) => ({ model: { ...model, simulation: { ...model.simulation, tilt: String(tilt), turn: String(turn) } } }),
   SimulationTick: ({ deltaMs }) => ({ model: { ...model, simulation: tickSimulation(model.simulation, deltaMs) } }),
   SelectedImportScenario: ({ index }) => ({ model: { ...model,
     importScenario: index >= 0 && index < IMPORT_GRAPH_SCENARIOS.length ? index : 0, importCursor: 0 } }),
