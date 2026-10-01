@@ -1,0 +1,108 @@
+{
+  "purpose": "Bounded functional comparison of canonical defense with the last previous game worktree, with executed native road witnesses.",
+  "date": "2026-10-01",
+  "platform": "Linux ARM64",
+  "bend": "2.0.34",
+  "compiler": "clang 14 -O3",
+  "workers": 4,
+  "previous": {
+    "worktree": "/workspace/typescript/jev-worktrees/bend-tower-defense",
+    "head": "2a4ab9e54bf0fb7b56ad8701ebf2d2fb39d45c93",
+    "includes_uncommitted_refiner_changes": true,
+    "source_sha256": {
+      "FlowGame.bend": "d917db212ae99fb82c8e99f2f05b6df1d5f1954b32916c561e5fbc6ecfeb7fbe",
+      "FlowHeadless.bend": "d9a8634123885e5849f66aa13ba32ac8f95a042c67b26bb88a11ff22b2a6182b",
+      "FlowMain.bend": "1f95ee326685298ba26aa1337d1ce48b64beb10fd61ddb9a2eceb0a6d30017dc",
+      "FlowModel.bend": "1148880a104e5410e90c3a0721995faa67a6214570b7dd2724f31bcb3a574f65",
+      "FlowRender.bend": "adacb87736873a2c1da0f0113c126fe024f50e7660fb29433df2bdb6ad3d5f3a",
+      "FlowScenario.bend": "e141058fa239a512a575d5eeba0a24b477354035a26004a8c20c3f7165ef2831",
+      "Font.bend": "9ccef35c1648a4e47057562404695f0249a80bfc6ff0ccc7677a41785fe55204",
+      "Game.bend": "fd8cece38a949f354ed125e077d767981ccc586314da21aa9564f1a0add18608",
+      "Headless.bend": "c2dc09ba2d3893c5d221672a6b9a4b67022700962ea2a769fbacf87c2a1ffe7c",
+      "LAWS.bend": "2425d72d51535b3aadaa35fb9edffb6e92f2e6622765e2be72aacfefeb4c8218",
+      "Main.bend": "738fdaf40a1603c6044153b5a3c97e5bfe65c9097e3996f8cf7e4b40784a1fa1",
+      "Model.bend": "a4c51e805f49029ffaf44d55145ba87aa9899133738364284efc1e508a0694b0",
+      "PROOF.bend": "39ec4c9defd0b0b8993e32121d694dece174c1f9abc9d496f3543b85f74de053",
+      "PreviewLaws.bend": "f70945e1aa8295e80fb2fb4cf658d984ce04a8dac245719b490d09fad18de6e5",
+      "Render.bend": "4e434c557e50dc0768fecf6b12b5021d7ffcad16a90ded46040de6dc57256baa",
+      "RoadAuto.bend": "cf3ae3ce0d5cf51ea4020cf229c7607ada1499c099075cb68eb97f1bba3af139",
+      "RoadAutoHeadless.bend": "a105bd3e2a0202074db74f4e754b7f48e9016d4733249e01fdbf9985f143c742",
+      "RoadDynamicPreview.bend": "bad8500128db89ca1986f14589c1a583a9c053c606326f38773d5738aaa208b8",
+      "RoadDynamicPreviewTests.bend": "5c625777e3a42e53dbccb6e659246e8e22bf87fa29dc0ea8a2114f903669cb4e",
+      "RoadGame.bend": "ead30de56c78e8358e7ac3cc752220f044686bfaa58da0cae59c8f40e8107b8d",
+      "RoadHeadless.bend": "08de28c1494f1cf8fc08e0ad23deed5d2530c671ad3309c32a04327da3ecd3cc",
+      "RoadMain.bend": "e54b57bdff550dc8f173b7d6ec55dbbdb6a8f894be502f825bcfae0429f9ec29",
+      "RoadModel.bend": "1941aee5d4776fd2c31112fdaee6f3426bef5de03498048413fb321e012ca7fe",
+      "RoadNoEffectTests.bend": "7e830196464ee3d1fb95aecec2af78d0c1c1d2348ab6a4dbd0b1d4813239b3ab",
+      "RoadPreventionTests.bend": "43281c5e6ff5235d8e03de7aacc89e61c72809856f921e5aeb1ef236a4665c34",
+      "RoadPreview.bend": "39ee2acdb5fc833c3f497812bb7ef5250f52d83c1010965a7205446579e48d38",
+      "RoadPreviewTests.bend": "f9eb27113ac3d60fda8a7b300448890174f6af0ee2209d853c7662d861bb5fe1",
+      "RoadRender.bend": "6918d0c2dbda469fd86876a20019cd4e5f3cd51fbb7d81f7b63e927831f2dd79",
+      "RoadScenario.bend": "ae79fd35d1d4cacf5ba6b30b9cda27e1b625e99e3fb20a34df2a0551756db538"
+    },
+    "session_sha256": {
+      "LAWS.bend": "158bdfd73dfb46d6cc865b015bad4ba647df0827de484f5323ca1175351aa0c4",
+      "Session.bend": "97d8c87aab34273dbda1b44b188060676c0c3287908ea6a0f89fb97df7575038",
+      "Trace.bend": "876d50e3e4240cd105b89fc845490cc8fc0b36d2dc49bd3c8da345478fbd1a41"
+    },
+    "directed_harness": "import Base\nimport ../../../bend-tower-defense/prototypes/bend-tower-defense/RoadHeadless.bend as T0\nimport ../../../bend-tower-defense/prototypes/bend-tower-defense/RoadPreviewTests.bend as T1\nimport ../../../bend-tower-defense/prototypes/bend-tower-defense/RoadNoEffectTests.bend as T2\nimport ../../../bend-tower-defense/prototypes/bend-tower-defense/RoadDynamicPreviewTests.bend as T3\n\ndef main() -> IO(Unit):\n  do IO<Unit>:\n    T0.permit_tests()\n    T0.group_tests()\n    T0.byte_tests()\n    T0.departure_test()\n    T0.output_tests()\n    T0.stop_tests()\n    T0.lane_test()\n    T0.chain_test()\n    T0.frontier_regressions()\n    T0.identity_stop_tests()\n    T0.construction_test()\n    T0.parallel_tests()\n    T0.coordinator_tests()\n    T0.package_tests()\n    T0.shield_tests()\n    T1.main()\n    T2.main()\n    T3.main()\n",
+    "separate_prevention_entry": "RoadPreventionTests.bend",
+    "full_campaign_balance_grid": "Not validated in this comparison. Initial broad run stopped after approximately five minutes and replaced with the bounded directed feature harness."
+  },
+  "current": {
+    "base_head": "d9ba6500bdcbd590d4d234c506d1d171988745ff",
+    "source_sha256": {
+      "DefenseAuto.bend": "b3d1782719769c1345e9f9bb54c83efea3bfdd3f58cbdb48be7a7f54413db387",
+      "DefenseAutoTests.bend": "445bb60cb65347f7cf86057cc24b44051bde49c55cf2e6342452aca17f9b9c4e",
+      "DefenseEffects.bend": "1f606635593b39ebcb73d277f033ba7968ef2da1f8346f36a03cac1b4926d048",
+      "DefenseFeatureTests.bend": "6cebf55b4fdf0fb38a55d16fe9cb71103fd934bd69a6b0c9032ff4698629f5e1",
+      "DefenseHost.bend": "cc2fc337cf45bb216e97a1bb23ba1889a04a58a5b0f4dbcef64f662e531f07f0",
+      "DefenseMain.bend": "8571564233739318d092edbce6d9f6b09a1a5a896cd1434afea44e05ca12d55c",
+      "DefenseMap.bend": "9d946542bdf84a3918917408eb875b0329374c9f88acabed640904bb4482e1b9",
+      "DefenseMapTests.bend": "8511b96a87b39997ba62ccca85d70dfebe6b23790ca0d29ab5bd31c9bfb778e8",
+      "DefenseModel.bend": "53229f061f1b3f07c10489d2cc3c118726df0cb5670a88d71f3baba8e2214189",
+      "DefenseOutput.bend": "53b01dd6414f543fa21c29214f0747ee2761811ae1de47f77c5e2f16baaed05e",
+      "DefenseOutputTests.bend": "eb792c9a9ae76b365606b1857b0e746102a710d9e9a26958d732f135805fe74c",
+      "DefensePerformance.bend": "6df9c55e40d8edfc06e27c26240e8ca7508644b4d5bf4f8059798686a6ddef2f",
+      "DefensePreview.bend": "894219e50a627aa0c92fe37141acde91e89cb17aa73a4bc02cadd81bad703742",
+      "DefensePreviewTests.bend": "920bf4a3592e6d6fbf969bd144aef15096a417e72d34d34f0ff32706ddd7c96b",
+      "DefenseProjection.bend": "b9600a8996cf8c44d8668c39edb58ab426de748ced39ed39041dc2a2e0bb4af5",
+      "DefenseRasterTests.bend": "9d38901dd32d004ca6a28ab9a1e9ded298e8ed1e958950ff9ff9945f62cd50c5",
+      "DefenseRender.bend": "99430c90a4cc136c82bbc0ced342a9144955e93c84c4ba9dea2ad964feafdf22",
+      "DefenseRoads.bend": "843d9496db3739320f76cb6360b0269f3c5fc3326052ee88892e29b0ebe14b88",
+      "DefenseTests.bend": "97b590b94f8abb7456a20364b761d30e1b879d98cd3f0d7289d9b80a452d9857",
+      "Font.bend": "9de7da6f27b200afd790e9f7f04a2e86fa736f04664e82df88ff117a72712169"
+    },
+    "commands": [
+      "bend prototypes/canonical-defense/DefenseTests.bend -o /tmp/defense-road-tests.c",
+      "clang -std=c11 -O3 /tmp/defense-road-tests.c -lpthread -lm -o /tmp/defense-road-tests",
+      "/tmp/defense-road-tests --threads 4"
+    ],
+    "executed_additional_harness": "import Base\nimport ./DefensePreviewTests.bend as T0\nimport ./DefenseOutputTests.bend as T1\nimport ./DefenseAutoTests.bend as T2\nimport ./DefenseMapTests.bend as T3\nimport ./DefenseRasterTests.bend as T4\n\ndef main() -> IO(Unit):\n  do IO<Unit>:\n    T0.main()\n    T1.main()\n    T2.main()\n    T3.main()\n    T4.main()\n",
+    "aggregate_replay_entry": "DefenseFeatureTests.bend",
+    "renderer_followup": "Final native recompilation and repeated captures after clamping left-edge target labels; core mechanics unchanged."
+  },
+  "checks": [
+    {
+      "receipt": "validation-road-targets.txt",
+      "pass_lines": 51,
+      "exit_code": 0
+    },
+    {
+      "receipt": "validation-feature-parity-current.txt",
+      "pass_lines": 78,
+      "exit_code": 0
+    },
+    {
+      "receipt": "validation-feature-parity-previous.txt",
+      "pass_lines": 130,
+      "exit_code": 0
+    }
+  ],
+  "native_receipt": "validation-road-native.txt",
+  "limitations": [
+    "No fresh macOS run.",
+    "No empirical human learning/engagement validation.",
+    "Old and current scenarios differ; functional suites do not establish equal balance."
+  ]
+}

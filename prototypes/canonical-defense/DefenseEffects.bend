@@ -26,9 +26,9 @@ def name(kind: U32) -> String:
     case _: "SHIELD"
 def detail(kind: U32) -> String:
   match kind:
-    case 0: "AUTOMATIC ACTIVE WORK -12 / 8 TICKS"
+    case 0: "ROAD OR ACTIVE WORK -12 / 8 TICKS"
     case 1: "PERMANENT FUTURE RISK -20 PP / SHOT"
-    case 2: "LONG RANGE ACTIVE WORK -6 / 12 TICKS"
+    case 2: "LONG RANGE ROAD / ACTIVE WORK -6 / 12 TICKS"
     case 3: "LOCAL HOST PERMITS +1 WITHIN CORE MAX8"
     case 4: "UNFINISHED SIBLING WORK -9 / 8 TICKS"
     case 5: "REAL NEXT OUTPUT BATCH TARGET +1"
@@ -115,21 +115,54 @@ def duration(+world: M.World, +work: C.Work) -> U32:
     case C.Work{_, _, _, _, _, C.AtJev{}, _}: Bool.pick(U32, U32.is_eq(lane(world, work), 0), 160, 240)
     case _: 0
 
+# Road progress and service effort share the same permanent acceleration.
+def progress(+world: M.World, +work: C.Work) -> U32:
+  (age(id(work), kind(work), M.timers(world)) + M.timer_boost(find_timer(id(work), M.timers(world))) : U32)
 def effort(+world: M.World, +work: C.Work) -> U32:
-  +timer = find_timer(id(work), M.timers(world))
-  (M.sub(age(id(work), kind(work), M.timers(world)), Bool.pick(U32, U32.is_eq(kind(work), 2), Map.path_length(Map.preparation_route(M.layout(world))), 0)) + M.timer_boost(timer) : U32)
+  M.sub(progress(world, work), Bool.pick(U32, U32.is_eq(kind(work), 2), Map.path_length(Map.preparation_route(M.layout(world))), 0))
 def remaining(+world: M.World, +work: C.Work) -> U32:
-  M.sub(Bool.pick(U32, U32.is_eq(kind(work), 1), 60, duration(world, work)), effort(world, work))
+  M.sub((duration(world, work) + Bool.pick(U32, U32.is_eq(kind(work), 2), Map.path_length(Map.preparation_route(M.layout(world))), 0) : U32), progress(world, work))
 def inside_world(+world: M.World, +work: C.Work) -> Bool:
   Bool.and(inside(M.core(world), work),
     Bool.pick(Bool, U32.is_eq(kind(work), 1), (effort(world, work) < 60 : U32),
-      Bool.pick(Bool, U32.is_eq(kind(work), 2), (age(id(work), 2, M.timers(world)) >= Map.path_length(Map.preparation_route(M.layout(world))) : U32),
+      Bool.pick(Bool, U32.is_eq(kind(work), 2), (progress(world, work) >= Map.path_length(Map.preparation_route(M.layout(world))) : U32),
         Bool.pick(Bool, U32.is_eq(kind(work), 5), (age(id(work), 5, M.timers(world)) >= Map.path_length(Map.retained_route(M.layout(world))) : U32), True{}))))
+
+def service_point(+world: M.World,+work: C.Work) -> Map.Point:
+  +room = Map.room_route(M.layout(world),kind(work),lane(world,work))
+  +duration = duration(world,work)
+  Map.path_position(room,((U32.min(duration,effort(world,work)) * Map.path_length(room)) / U32.max(1,duration) : U32))
+def service_or_road(inside: Bool,+world: M.World,+work: C.Work,road: List<&2,Map.Point>,age: U32) -> Map.Point:
+  match inside:
+    case True{}: service_point(world,work)
+    case False{}: Map.path_position(road,age)
+def retained_point(onRoad: Bool,+world: M.World,road: List<&2,Map.Point>,age: U32) -> Map.Point:
+  match onRoad:
+    case True{}: Map.path_position(road,age)
+    case False{}:
+      +room = Map.room_route(M.layout(world),5,0)
+      Map.path_position(room,U32.min(Map.path_length(room),M.sub(age,Map.path_length(road))))
+def jev_point(inside: Bool,+world: M.World,+work: C.Work) -> Map.Point:
+  match inside:
+    case True{}: service_point(world,work)
+    case False{}:
+      +anchor = anchor(world,work)
+      Map.Point{(Map.px(anchor) + 32 : U32),Map.py(anchor)}
+def point_phase(phase: U32,+world: M.World,+work: C.Work,+age: U32) -> Map.Point:
+  match phase:
+    case 0: Map.path_position(Map.source_route(M.layout(world)),age)
+    case 2: service_or_road((age >= Map.path_length(Map.preparation_route(M.layout(world))) : U32),world,work,Map.preparation_route(M.layout(world)),age)
+    case 3: Map.path_position(Map.review_route(M.layout(world),lane(world,work)),age)
+    case 4: jev_point(inside_world(world,work),world,work)
+    case 5: retained_point((age < Map.path_length(Map.retained_route(M.layout(world))) : U32),world,Map.retained_route(M.layout(world)),age)
+    case _: service_point(world,work)
+def point_work(+world: M.World,+work: C.Work) -> Map.Point:
+  point_phase(kind(work),world,work,progress(world,work))
 
 def supports(+world: M.World, +tower: M.Tower, phase: U32) -> Bool:
   Map.in_range(Map.Point{M.tx(tower), M.ty(tower)}, Map.center(M.layout(world), phase, 0), range(M.tkind(tower), M.level(tower)))
 def covered(+world: M.World, +tower: M.Tower, +work: C.Work) -> Bool:
-  Map.in_range(Map.Point{M.tx(tower), M.ty(tower)}, anchor(world, work), range(M.tkind(tower), M.level(tower)))
+  Map.in_range(Map.Point{M.tx(tower), M.ty(tower)}, point_work(world, work), range(M.tkind(tower), M.level(tower)))
 def levels(items: List<&2, M.Tower>, +world: M.World, +kind: U32, +phase: U32) -> U32:
   match items:
     case Nil{}: 0
@@ -148,8 +181,10 @@ def pending_sibling(+parent: Nat, items: List<&2, C.Work>) -> Bool:
     case _ <> rest: pending_sibling(parent, rest)
 def eligible(+world: M.World, +tower: M.Tower, +work: C.Work) -> Bool:
   +phase = kind(work)
-  +active = inside_world(world, work)
-  +processable = Bool.or(U32.is_eq(phase, 1), Bool.or(U32.is_eq(phase, 2), U32.is_eq(phase, 4)))
+  # Waiting on a road is targetable; acquiring a worker still uses core permits.
+  +active = Bool.or(inside_world(world, work), Bool.or(U32.is_eq(phase, 0),
+    Bool.or(U32.is_eq(phase, 3), Bool.and(U32.is_eq(phase, 2), inside(M.core(world), work)))))
+  +processable = (phase <= 4 : U32)
   +risk = M.timer_risk(find_timer(id(work), M.timers(world)))
   Bool.and(covered(world, tower, work), Bool.and(active, Bool.and(Bool.and(processable, Bool.or(U32.is_eq(M.tkind(tower), 1), (remaining(world, work) > 0 : U32))),
     Bool.pick(Bool, U32.is_eq(M.tkind(tower), 1), (risk > 0 : U32),
@@ -204,9 +239,9 @@ def refresh(+world: M.World, +core: C.State, offered: U32) -> List<&2, M.Timer>:
 def modify(items: List<&2, M.Timer>, +operation: Nat, +family: Nat, +group: Bool, +risk: Bool, +power: U32) -> List<&2, M.Timer>:
   match items:
     case Nil{}: Nil{}
-    case M.Timer{+id, phase, age, +owner, +r, seed, +boost} <> rest:
+    case M.Timer{+id, +phase, age, +owner, +r, seed, +boost} <> rest:
       +hit = Bool.or(Nat.is_eq(id, operation), Bool.and(group, Nat.is_eq(family, owner)))
-      M.Timer{id, phase, age, owner, Bool.pick(U32, Bool.and(hit, risk), M.sub(r, power), r), seed,
+      M.Timer{id, phase, age, owner, Bool.pick(U32, Bool.and(Bool.and(hit, risk), (phase <= 4 : U32)), M.sub(r, power), r), seed,
         Bool.pick(U32, Bool.and(hit, Bool.not(risk)), (boost + power : U32), boost)} <>
         modify(rest, operation, family, group, risk, power)
 

@@ -277,9 +277,9 @@ def cue_color(status: U32) -> U32:
 
 def stat_label(kind: U32) -> String:
   match kind:
-    case 0: "NEXT SHOT REMAINING WORK"
+    case 0: "NEXT SHOT TRAVEL / WORK"
     case 1: "NEXT SHOT SIMULATED RISK %"
-    case 2: "NEXT SHOT REMAINING WORK"
+    case 2: "NEXT SHOT TRAVEL / WORK"
     case 3: "HOST LAUNCH LIMIT"
     case 4: "BLOCKING SIBLING REMAINING WORK"
     case 5: "NEXT BATCH TARGET"
@@ -309,17 +309,22 @@ def secondary_stats(on: Bool,+preview: Preview.Preview,+x: U32,+y: U32,rest: Lis
         F.text(value,x,(y + 12 : U32),2,16777215,
           F.text(" - " ++ U32.show(Preview.secondary_delta(preview)),(x + text_width(value) : U32),(y + 12 : U32),2,cue_color(Preview.status(preview)),rest)))
 
+def placement_point(+world: M.World,preview: Preview.Preview,operation: Nat) -> D.Point:
+  match operation:
+    case 0n: D.center(M.layout(world),Preview.site(preview),0)
+    case operation: H.point_found(world,E.find_work(operation,M.work(M.core(world))))
+
 def placement_link(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
     case False{}: rest
     case True{}:
-      +point = D.center(M.layout(world),Preview.site(preview),0)
+      +point = placement_point(world,preview,Preview.target(preview))
       +color = cue_color(Preview.status(preview))
       +label_y = Bool.pick(U32,(D.py(point) > 500 : U32),U32.sub(D.py(point),92),(D.py(point) + 76 : U32))
       road_dots(51n,D.Point{Preview.x(preview),Preview.y(preview)},point,0,1,color,
-        ring(48n,D.px(point),D.py(point),42,color,
-          F.text(stat_label(Preview.kind(preview)),U32.sub(D.px(point),64),label_y,1,12439239,
-            stat_delta(preview,U32.sub(D.px(point),32),(label_y + 12 : U32),secondary_stats(U32.is_eq(Preview.kind(preview),5),preview,U32.sub(D.px(point),32),(label_y + 28 : U32),rest)))))
+        ring(48n,D.px(point),D.py(point),Bool.pick(U32,Nat.is_eq(Preview.target(preview),0n),42,18),color,
+          F.text(stat_label(Preview.kind(preview)),U32.max(24,M.sub(D.px(point),64)),label_y,1,12439239,
+            stat_delta(preview,U32.max(24,M.sub(D.px(point),32)),(label_y + 12 : U32),secondary_stats(U32.is_eq(Preview.kind(preview),5),preview,U32.sub(D.px(point),32),(label_y + 28 : U32),rest)))))
 
 def ghost_visible(on: Bool,+world: M.World,+preview: Preview.Preview,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:

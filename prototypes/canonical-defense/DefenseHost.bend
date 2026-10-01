@@ -336,8 +336,21 @@ def build(+world: M.World, +x: U32, +y: U32, +kind: U32) -> M.World:
 def click(+world: M.World, +x: U32, +y: U32) -> M.World:
   +index = tower_hit(M.towers(world), x, y, 1)
   Bool.pick(M.World, (index > 0 : U32), select(move(world, x, y), index), build(move(world, x, y), x, y, M.choice(world)))
+def road_site(+world: M.World,+tower: M.Tower,+fallback: U32) -> U32:
+  +point: Map.Point = Map.Point{M.tx(tower),M.ty(tower)}
+  +radius = E.range(M.tkind(tower),M.level(tower))
+  Bool.pick(U32,(M.tkind(tower) < 3 : U32),
+    Bool.pick(U32,Map.on_path(point,Map.source_route(M.layout(world)),radius),1,
+      Bool.pick(U32,Map.on_path(point,Map.preparation_route(M.layout(world)),radius),2,
+        Bool.pick(U32,Map.on_path(point,Map.review_route(M.layout(world),0),radius) ||
+          Map.on_path(point,Map.review_route(M.layout(world),1),radius),4,fallback))),fallback)
+def preview_site_found(+world: M.World,+tower: M.Tower,found: Maybe<&2,C.Work>) -> U32:
+  match found:
+    case Some{+work}: Bool.pick(U32,U32.is_eq(E.kind(work),0),1,Bool.pick(U32,U32.is_eq(E.kind(work),3),4,E.kind(work)))
+    case None{}: road_site(world,tower,support_site(world,tower))
 def preview_site(+world: M.World, x: U32, y: U32, kind: U32) -> U32:
-  support_site(world, M.Tower{snap(x), snap(y), kind, 1, 0, 0, 0n, 240})
+  +tower: M.Tower = M.Tower{snap(x), snap(y), kind, 1, 0, 0, 0n, 240}
+  preview_site_found(world,tower,E.find_work(E.target(world,tower),M.work(M.core(world))))
 def preview_target(+world: M.World, x: U32, y: U32, kind: U32) -> Nat:
   E.target(world, M.Tower{snap(x), snap(y), kind, 1, 0, 0, 0n, 240})
 def target_remaining(world: M.World, found: Maybe<&2, C.Work>) -> U32:
@@ -392,36 +405,8 @@ def lane_found(world: M.World, found: Maybe<&2, C.Work>) -> U32:
     case None{}: 0
 def unit_lane(+world: M.World, token: P.Token) -> U32:
   lane_found(world, E.find_work(U32.to_nat(P.id(token)), M.work(M.core(world))))
-def service_point(+world: M.World,+work: C.Work) -> Map.Point:
-  +room = Map.room_route(M.layout(world),E.kind(work),E.lane(world,work))
-  +duration = E.duration(world,work)
-  Map.path_position(room,((U32.min(duration,E.effort(world,work)) * Map.path_length(room)) / U32.max(1,duration) : U32))
-def service_or_road(inside: Bool,+world: M.World,+work: C.Work,road: List<&2,Map.Point>,age: U32) -> Map.Point:
-  match inside:
-    case True{}: service_point(world,work)
-    case False{}: Map.path_position(road,age)
-def retained_point(onRoad: Bool,+world: M.World,road: List<&2,Map.Point>,age: U32) -> Map.Point:
-  match onRoad:
-    case True{}: Map.path_position(road,age)
-    case False{}:
-      +room = Map.room_route(M.layout(world),5,0)
-      Map.path_position(room,U32.min(Map.path_length(room),M.sub(age,Map.path_length(road))))
-def jev_point(inside: Bool,+world: M.World,+work: C.Work) -> Map.Point:
-  match inside:
-    case True{}: service_point(world,work)
-    case False{}:
-      +anchor = E.anchor(world,work)
-      Map.Point{(Map.px(anchor) + 32 : U32),Map.py(anchor)}
-def point_phase(phase: U32,+world: M.World,+work: C.Work,+age: U32) -> Map.Point:
-  match phase:
-    case 0: Map.path_position(Map.source_route(M.layout(world)),age)
-    case 2: service_or_road((age >= travel_ticks(world,2,0) : U32),world,work,Map.preparation_route(M.layout(world)),age)
-    case 3: Map.path_position(Map.review_route(M.layout(world),E.lane(world,work)),age)
-    case 4: jev_point(E.inside_world(world,work),world,work)
-    case 5: retained_point((age < travel_ticks(world,5,0) : U32),world,Map.retained_route(M.layout(world)),age)
-    case _: service_point(world,work)
-def point_work(+world: M.World,+work: C.Work) -> Map.Point:
-  point_phase(E.kind(work),world,work,E.age(E.id(work),E.kind(work),M.timers(world)))
+def point_work(world: M.World,work: C.Work) -> Map.Point:
+  E.point_work(world,work)
 def point_found(world: M.World, found: Maybe<&2, C.Work>) -> Map.Point:
   match found:
     case Some{work}: point_work(world, work)

@@ -230,6 +230,58 @@ def overlap_world()->M.World:
 def case_42()->IO(Unit):
   require(U32.is_eq(M.charges(first_tower(H.damage(overlap_world()))),240) && U32.is_eq(H.preview_gain(overlap_world(),296,376,6),0),"zero-marginal new Shield remains idle behind existing capped protection")
 
+# Road witnesses use actual core observations and dispatch state.
+def source_road() -> M.World:
+  +core = H.event(H.event(M.core(H.initial()),C.OpenRound{1n,1n}),C.AdmitObservation{1n,1n,1n})
+  M.with_effects(world(core),Nil{},[M.Timer{1n,0,20,1n,100,1,0}])
+def road_tower(kind: U32) -> M.Tower:
+  M.Tower{56,216,kind,1,0,0,0n,240}
+def shot_once(+world: M.World,tower: M.Tower) -> M.World:
+  M.with_effects(world,Nil{},E.shot_timers(E.shoot(world,tower)))
+def road_preparing() -> M.World:
+  M.with_effects(world(observed()),Nil{},[M.Timer{1n,1,1000,1n,100,1,0},M.Timer{2n,2,20,1n,100,1,0}])
+def at_found(world: M.World,kind: U32,found: Maybe<&2,C.Work>) -> M.Tower:
+  match found:
+    case Some{work}:
+      +point = E.point_work(world,work)
+      M.Tower{Map.px(point),(Map.py(point) + 40 : U32),kind,1,0,0,0n,240}
+    case None{}: road_tower(kind)
+def at_work(+world: M.World,operation: Nat,kind: U32) -> M.Tower:
+  at_found(world,kind,E.find_work(operation,M.work(M.core(world))))
+def case_43() -> IO(Unit):
+  require(Nat.is_eq(E.target(source_road(),road_tower(0)),1n) &&
+    Bool.not(E.supports(source_road(),road_tower(0),1)),"Rapid acquires road mob even when source building is outside radius")
+def case_44() -> IO(Unit):
+  require(U32.is_eq(timer_boost(shot_once(source_road(),road_tower(0)),1n),12) &&
+    Bool.not(Map.same(H.point_work(source_road(),C.Work{1n,1n,1n,1n,1n,C.AwaitingSourceRead{},0n}),
+      H.point_work(shot_once(source_road(),road_tower(0)),C.Work{1n,1n,1n,1n,1n,C.AwaitingSourceRead{},0n}))),"Rapid road shot changes the rendered authoritative travel position")
+def case_45() -> IO(Unit):
+  require(U32.is_eq(timer_risk(shot_once(source_road(),road_tower(1)),1n),80) &&
+    U32.is_eq(timer_boost(shot_once(source_road(),road_tower(1)),1n),0),"Refiner reduces future findings risk on road without movement acceleration")
+def case_46() -> IO(Unit):
+  require(U32.is_eq(timer_boost(shot_once(source_road(),road_tower(2)),1n),6) &&
+    Nat.is_eq(E.target(source_road(),road_tower(4)),0n),"Relay accelerates roads; Coordinator still requires active Jev blocker")
+def case_47() -> IO(Unit):
+  require(Nat.is_eq(E.target(road_preparing(),at_work(road_preparing(),2n,0)),2n) &&
+    Nat.is_ne(E.target(world(split()),at_work(world(split()),4n,1)),0n),"preparation and review approach roads are targetable")
+def case_48() -> IO(Unit):
+  require((H.preview_gain(source_road(),56,216,0) > 0 : U32) &&
+    U32.is_ne(H.preview_site(source_road(),56,216,0),255),"road-only placement preview advertises real shot effect")
+def case_49() -> IO(Unit):
+  require(Nat.is_eq(E.target(source_road(),M.Tower{760,600,0,1,0,0,0n,240}),0n) &&
+    U32.is_eq(E.permits(shot_once(source_road(),road_tower(0)),1),2),"road targeting respects spatial range and does not grant worker permits")
+
+def near_arrival() -> M.World:
+  M.with_effects(source_road(),Nil{},[M.Timer{1n,0,M.sub(Map.path_length(Map.source_route(0)),6),1n,100,1,0}])
+def progress_once(+world: M.World) -> M.World:
+  M.with_core(world,H.progress(M.work(M.core(world)),M.core(world),world))
+def case_50() -> IO(Unit):
+  require(U32.is_eq(P.count(progress_once(near_arrival()),1),0) &&
+    U32.is_eq(P.count(progress_once(shot_once(near_arrival(),at_work(near_arrival(),1n,0))),1),1),"road shot advances actual core source-start fact before unboosted arrival")
+def case_51() -> IO(Unit):
+  require(U32.is_ne(H.preview_site(H.initial(),56,216,0),255) &&
+    U32.is_eq(H.preview_gain(H.initial(),56,216,0),0),"empty but covered road is suitable scope with no current effect")
+
 def main() -> IO(Unit):
   do IO<Unit>:
     case_1()
@@ -274,4 +326,13 @@ def main() -> IO(Unit):
     case_40()
     case_41()
     case_42()
-    IO.print("CANONICAL SPATIAL DEFENSE:42 directed checks complete")
+    case_43()
+    case_44()
+    case_45()
+    case_46()
+    case_47()
+    case_48()
+    case_49()
+    case_50()
+    case_51()
+    IO.print("CANONICAL SPATIAL DEFENSE:51 directed checks complete")
