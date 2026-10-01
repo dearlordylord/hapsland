@@ -32,16 +32,19 @@ Coincidentally, models are pretty bad at those decisions by default and need con
 
 <p align="center"><img src="./assets/review-flow.gif" alt="Hapsland review flow: an agent edit is expanded into type context, reviewed, repaired, checked again, and committed" width="800"></p>
 
-### Restrictions
+### Supported languages
 
-The restriction that comes with this idea is that we have to implement context extraction per-language.
+| Language | Reviewed code | Main limits |
+| --- | --- | --- |
+| TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with bounded local type/import context | Unsupported syntax or unresolved evidence can prevent review. |
+| Rust (`.rs`) | Top-level structs, enums, and type aliases, with same-file type context | Functions, module resolution, macros, and conditional compilation are not supported. Attributes such as `derive` make evidence incomplete for the default rules. |
 
-TypeScript is supported. Rust support is bounded to explicit top-level `struct`,
-`enum`, and `type` declarations in `.rs` files, with same-file type context.
-Rust functions, module resolution, macros, and conditional compilation are deferred.
-Unsupported or unresolved evidence produces no advice for rules that need it.
-See the [review contract](./docs/type-function-review-proposal.md#branch-contracts)
-for the extraction boundary.
+Language support applies to source review; it does not select an agent runtime.
+If an edit lacks the evidence a rule needs, Hapsland skips that rule. Silence
+is not confirmation that the code passed review. See the
+[review contract](./docs/type-function-review-proposal.md#branch-contracts) for
+the exact supported syntax and [session status](./docs/status.md) to inspect
+review activity.
 
 TODO contribution guide
 
