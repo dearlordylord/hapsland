@@ -288,19 +288,28 @@ describe("canonical Jev request boundary", () => {
     const reusedStarted = deferred();
     const saturatedUnavailable = deferred();
     const afterReuseUnavailable = deferred();
-    const release = deferred();
+    const releases = Array.from({ length: 9 }, () => deferred());
+    const interruptedRequest = deferred();
+    const physicallySettled = deferred();
+    let physicallyRunning = 0;
+    let peakPhysicallyRunning = 0;
     const observations: JevRequestObservation[] = [];
     let effectsEntered = 0;
     let unavailableCount = 0;
     const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
       controlledRequestEffect: async () => {
-        effectsEntered += 1;
+        const requestIndex = effectsEntered++;
+        physicallyRunning += 1;
+        peakPhysicallyRunning = Math.max(peakPhysicallyRunning, physicallyRunning);
         if (effectsEntered === 8) eightStarted.resolve();
         if (effectsEntered === 9) reusedStarted.resolve();
-        await release.promise;
+        await releases[requestIndex]!.promise;
+        physicallyRunning -= 1;
       },
       jevRequestObserver: (observation) => {
         observations.push(observation);
+        if (observation.stage === "interrupted") interruptedRequest.resolve();
+        if (observation.stage === "settled") physicallySettled.resolve();
         if (observation.stage === "unavailable") {
           unavailableCount += 1;
           if (unavailableCount === 1) saturatedUnavailable.resolve();
@@ -327,6 +336,12 @@ describe("canonical Jev request boundary", () => {
       expect(await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: first.advicee, token: "interrupt-first", close: true })).toEqual({ status: "advanced" });
 
+      await interruptedRequest.promise;
+      expect(physicallyRunning).toBe(8);
+      expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
+      releases[0]!.resolve();
+      // Wait for the original request's physical completion and canonical settlement.
+      await physicallySettled.promise;
       expect(server.admit(await observe(9), dispatch, false, true).status).toBe("accepted");
       await reusedStarted.promise;
       const interruptionIndex = observations.findIndex((item) => item.stage === "interrupted");
@@ -344,9 +359,11 @@ describe("canonical Jev request boundary", () => {
       expect(server.admit(await observe(10), dispatch, false, true).status).toBe("accepted");
       await afterReuseUnavailable.promise;
       expect(effectsEntered).toBe(9);
+      expect(peakPhysicallyRunning).toBe(8);
+      expect(physicallyRunning).toBe(8);
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(9);
     } finally {
-      release.resolve();
+      for (const release of releases) release.resolve();
       await server.whenIdle();
       await server.close();
     }

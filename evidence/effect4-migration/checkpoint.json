@@ -12,7 +12,11 @@
     "Process lifetime uses Effect scoped acquisition and signal/idle cleanup; startup-failure conformance preserves unowned endpoints",
     "Preparation composes capture/configuration/analysis/dispatch as Effect; backend gate polling uses Schedule",
     "Disposable ownership prototype deleted after transferring cases into production dispatch conformance",
-    "Preparation finalizers release ingress and every still-owned capture workspace on interruption or typed adapter failure"
+    "Preparation finalizers release ingress and every still-owned capture workspace on interruption or typed adapter failure",
+    "Evaluation, advice retention and revalidation compose directly as named Effect workflows with typed adapter failures and reservation finalizers",
+    "Collection and IPC response fibers compose directly as Effects; interrupted collectors release provisional delivery leases",
+    "Idle, quiet-round and Stop expiry workers use scoped fibers and Schedule; startup and shared shutdown compose directly into the process scope",
+    "Controlled native provider cancellation requests AbortSignal cancellation and waits for physical Promise settlement before releasing its canonical permit"
   ],
   "verification": [
     {
@@ -115,12 +119,45 @@
       "command": "npm run build",
       "exitCode": 0,
       "stage": "Final staged dispatch/lifetime/preparation code"
+    },
+    {
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0,
+      "stage": "Effect evaluation/collection/IPC/lifetime and physical callback settlement"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/jev-request.test.ts",
+      "tests": 10,
+      "exitCode": 0,
+      "stage": "Physical native callback settlement; strengthened saturation regression"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "stage": "Effect evaluation/collection/IPC/lifetime and physical callback settlement"
+    },
+    {
+      "commands": [
+        "check-review-boundary",
+        "check-reuse-boundary",
+        "check-stop-boundary",
+        "check-retention-boundary",
+        "git diff --check"
+      ],
+      "exitCode": 0,
+      "stage": "Effect evaluation/collection/IPC/lifetime"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/jev-request.test.ts src/resident/dispatch.test.ts src/resident/claude-delivery.test.ts src/resident/terminal-collection.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts",
+      "tests": 145,
+      "files": 8,
+      "exitCode": 0,
+      "stage": "Effect evaluation/collection/IPC/lifetime and physical native callback settlement"
     }
   ],
   "next": [
     "Consolidate canonical/native state ownership into one production Effect service, deleting CapacityLedger, EvaluationReuse and ComposedDelivery owners",
-    "Migrate evaluation and revalidation to Effect while preserving DecisionModel, originating identities and physical settlement",
-    "Migrate housekeeping, thin IPC and client/host edges; remove intermediate server runSync/runPromise bridges",
+    "Migrate client/host edges and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",
@@ -128,7 +165,7 @@
   ],
   "limitations": [
     "Production state and native handles remain distributed outside dispatch",
-    "Evaluation, revalidation, housekeeping, server IPC and client/host edges still require migration",
+    "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"
   ],

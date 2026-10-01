@@ -47,9 +47,9 @@ const run = Effect.fn("ResidentProcess.run")(function* () {
   const now = Option.isNone(clockPath) ? () => performance.now() : () => Number(readFileSync(clockPath.value, "utf8"));
   const server = yield* Effect.acquireRelease(
     Effect.sync(() => new ResidentServer({ directory, socket: join(directory, "resident.sock"), lock, owner: join(directory, "owner.json") }, now)),
-    (server) => processEffect("close resident runtime", () => server.close()).pipe(Effect.orDie),
+    (server) => server.closeEffect.pipe(Effect.orDie),
   );
-  yield* processEffect("listen on resident socket", () => server.listen());
+  yield* server.listenEffect().pipe(Effect.mapError(() => new ResidentProcessError({ operation: "listen on resident socket" })));
   yield* processEffect("clear startup diagnostic", () => rm(`${lock}.startup-error`, { force: true }));
   yield* Effect.never;
 });
