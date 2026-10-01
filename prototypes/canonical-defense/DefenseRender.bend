@@ -136,13 +136,13 @@ def road(points: List<&2,D.Point>, +width: U32, +color: U32, rest: List<&2,F.Rec
 def asphalt(+points: List<&2,D.Point>, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   road(points,14,3358535,road(points,22,5003871,rest))
 
-def exits(+world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  +jev = D.center(M.layout(world),4,0)
-  +finding = D.center(M.layout(world),5,0)
-  F.text("CLEAR EXIT " ++ U32.show(M.clear(world)),(D.px(jev) + 8 : U32),U32.sub(D.py(jev),63),1,9170322,
-    F.text("DELIVERY GATE " ++ U32.show(M.delivered(world)),U32.sub(D.px(finding),64),(D.py(finding) + 48 : U32),1,65483,
-      road([D.Point{D.px(jev),U32.sub(D.py(jev),24)},D.Point{D.px(jev),U32.sub(D.py(jev),56)}],8,9170322,
-        road([D.Point{D.px(finding),(D.py(finding) + 24 : U32)},D.Point{D.px(finding),(D.py(finding) + 44 : U32)}],8,65483,rest))))
+def exits(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  +layout = M.layout(world)
+  +clear = D.outer_point(D.port(D.center(layout,4,0),D.clear_side(layout)),D.clear_side(layout))
+  +delivery = D.outer_point(D.exit_port(layout,5),D.exit_side(layout,5))
+  F.text("CLEAR EXIT " ++ U32.show(M.clear(world)),(D.px(clear) + 8 : U32),U32.sub(D.py(clear),7),1,9170322,
+    F.text("DELIVERY " ++ U32.show(M.delivered(world)),(D.px(delivery) + 8 : U32),(D.py(delivery) + 2 : U32),1,65483,
+      road(D.clear_route(layout),8,9170322,road(D.delivery_route(layout),8,65483,rest))))
 
 def network(+layout: U32, +world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   asphalt(D.source_route(layout),asphalt(D.preparation_route(layout),asphalt(D.review_route(layout,0),asphalt(D.review_route(layout,1),asphalt(D.retained_route(layout),exits(world,rest))))))
@@ -152,10 +152,35 @@ def branch_count(tokens: List<&2,P.Token>, +world: M.World, +phase: U32, +side: 
     case Nil{}: 0
     case Con{+token,tail}: (Bool.to_u32(U32.is_eq(P.phase(token),phase) && U32.is_eq(Motion.branch(world,token),side)) + branch_count(tail,world,phase,side) : U32)
 
-def site_shape(enclosed: Bool, +point: D.Point, +x: U32, +y: U32, +color: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def door_open(+layout: U32,+phase: U32,+edge: U32) -> Bool:
+  U32.is_eq(edge,D.entry_side(layout,phase,0)) || U32.is_eq(edge,D.entry_side(layout,phase,1)) ||
+    U32.is_eq(edge,D.exit_side(layout,phase)) || (U32.is_eq(phase,4) && U32.is_eq(edge,D.clear_side(layout)))
+
+def wall(open: Bool,+edge: U32,+point: D.Point,+color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match open edge:
+    case False{} 0: F.put(U32.sub(D.px(point),32),U32.sub(D.py(point),24),3,48,color,rest)
+    case False{} 1: F.put((D.px(point) + 29 : U32),U32.sub(D.py(point),24),3,48,color,rest)
+    case False{} 2: F.put(U32.sub(D.px(point),32),U32.sub(D.py(point),24),64,3,color,rest)
+    case False{} _: F.put(U32.sub(D.px(point),32),(D.py(point) + 21 : U32),64,3,color,rest)
+    case True{} 0: F.put(U32.sub(D.px(point),32),U32.sub(D.py(point),24),3,12,color,F.put(U32.sub(D.px(point),32),(D.py(point) + 12 : U32),3,12,color,rest))
+    case True{} 1: F.put((D.px(point) + 29 : U32),U32.sub(D.py(point),24),3,12,color,F.put((D.px(point) + 29 : U32),(D.py(point) + 12 : U32),3,12,color,rest))
+    case True{} 2: F.put(U32.sub(D.px(point),32),U32.sub(D.py(point),24),20,3,color,F.put((D.px(point) + 12 : U32),U32.sub(D.py(point),24),20,3,color,rest))
+    case True{} _: F.put(U32.sub(D.px(point),32),(D.py(point) + 21 : U32),20,3,color,F.put((D.px(point) + 12 : U32),(D.py(point) + 21 : U32),20,3,color,rest))
+
+def room_walls(+layout: U32,+phase: U32,+point: D.Point,+color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  wall(door_open(layout,phase,0),0,point,color,wall(door_open(layout,phase,1),1,point,color,
+    wall(door_open(layout,phase,2),2,point,color,wall(door_open(layout,phase,3),3,point,color,rest))))
+
+def room_other_entry(on: Bool,+layout: U32,+phase: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match on:
+    case False{}: rest
+    case True{}: road(D.room_route(layout,phase,1),3,7042681,rest)
+
+def site_shape(enclosed: Bool,+layout: U32,+phase: U32,+point: D.Point,+x: U32,+y: U32,color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match enclosed:
     case True{}:
-      List.append(&2,F.Rect,road(D.micro_route(point),5,7042681,rest),[F.Box{x,y,64,3,color},F.Box{x,(y + 45 : U32),64,3,color},F.Box{x,y,3,48,color},F.Box{(x + 61 : U32),y,3,48,color},F.Box{x,y,64,48,1914923}])
+      List.append(&2,F.Rect,room_walls(layout,phase,point,color,
+        road(D.room_route(layout,phase,0),3,7042681,room_other_entry(U32.is_eq(layout,1) && U32.is_eq(phase,4),layout,phase,rest))),[F.Box{x,y,64,48,1914923}])
     case False{}: F.put(x,(y + 45 : U32),64,3,color,rest)
 
 def site_pressure(tokens: List<&2,P.Token>,+world: M.World,+phase: U32) -> U32:
@@ -185,7 +210,7 @@ def building(+world: M.World, +phase: U32, +side: U32, rest: List<&2,F.Rect>) ->
   +enclosed = Bool.not(U32.is_eq(phase,0) || U32.is_eq(phase,3))
   +title = Bool.pick(String,U32.is_eq(phase,0),"SOURCE QUEUE / SAFE",Bool.pick(String,U32.is_eq(phase,3),"REVIEW QUEUE / SAFE",phase_name(phase)))
   +count = Bool.pick(U32,U32.is_eq(M.layout(world),1) && U32.is_eq(phase,3),branch_count(P.tokens(world),world,phase,side),P.count(world,phase))
-  F.text(title,x,U32.sub(y,13),1,phase_color(phase),F.text("OWNED " ++ U32.show(count),x,(y + 53 : U32),1,phase_color(phase),health_bar(enclosed,world,phase,x,y,site_shape(enclosed,point,x,y,Bool.pick(U32,(M.damage_flash(world) > 0 : U32) && (site_pressure(P.tokens(world),world,phase) > 0 : U32),15758447,phase_color(phase)),rest))))
+  F.text(title,x,U32.sub(y,13),1,phase_color(phase),F.text("OWNED " ++ U32.show(count),x,(y + 53 : U32),1,phase_color(phase),health_bar(enclosed,world,phase,x,y,site_shape(enclosed,M.layout(world),phase,point,x,y,Bool.pick(U32,(M.damage_flash(world) > 0 : U32) && (site_pressure(P.tokens(world),world,phase) > 0 : U32),15758447,phase_color(phase)),rest))))
 
 def buildings(fuel: Nat, +phase: U32, +world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match fuel:
@@ -369,7 +394,7 @@ def work_rows(tokens: List<&2,P.Token>,+world: M.World,+index: U32,rest: List<&2
 
 def waiting_end(+world: M.World,+token: P.Token) -> Bool:
   +point = H.unit_point(world,token)
-  +end = D.path_position(D.micro_route(D.center(M.layout(world),5,0)),90)
+  +end = D.path_position(D.room_route(M.layout(world),5,0),D.path_length(D.room_route(M.layout(world),5,0)))
   U32.is_eq(P.phase(token),5) && H.in_building(world,token) && U32.is_eq(D.px(point),D.px(end)) && U32.is_eq(D.py(point),D.py(end))
 
 def wait_rank(tokens: List<&2,P.Token>,+world: M.World,+token: P.Token) -> U32:
@@ -377,21 +402,54 @@ def wait_rank(tokens: List<&2,P.Token>,+world: M.World,+token: P.Token) -> U32:
     case Nil{}: 0
     case Con{+head,tail}: (Bool.to_u32(waiting_end(world,head) && (P.id(head) < P.id(token) : U32)) + wait_rank(tail,world,token) : U32)
 
+# Authored monster silhouettes. Road9x12 cells scaled2; interior7x8.
+def sprite_cell(on: Bool,+x: U32,+y: U32,+size: U32,color: U32,+outline: Bool,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match on:
+    case False{}: rest
+    case True{}: F.put(Bool.pick(U32,outline,U32.sub(x,1),x),Bool.pick(U32,outline,U32.sub(y,1),y),
+      Bool.pick(U32,outline,(size + 2 : U32),size),Bool.pick(U32,outline,(size + 2 : U32),size),color,rest)
+
+def sprite_row(fuel: Nat,+mask: U32,+column: U32,+x: U32,+y: U32,+size: U32,+color: U32,+outline: Bool,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match fuel:
+    case 0n: rest
+    case 1n+n: sprite_cell(Bool.not(U32.is_eq(((mask >> U32.to_nat(column)) .&. 1 : U32),0)),(x + column * size : U32),y,size,color,outline,
+      sprite_row(n,mask,(column + 1 : U32),x,y,size,color,outline,rest))
+
+def sprite_rows(rows: List<&2,U32>,+width: Nat,+x: U32,+y: U32,+size: U32,+color: U32,+outline: Bool,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match rows:
+    case Nil{}: rest
+    case row <> tail: sprite_row(width,row,0,x,y,size,color,outline,sprite_rows(tail,width,x,(y + size : U32),size,color,outline,rest))
+
+def silhouette(+rows: List<&2,U32>,+width: Nat,+x: U32,+y: U32,+size: U32,color: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  sprite_rows(rows,width,x,y,size,color,False{},sprite_rows(rows,width,x,y,size,1058076,True{},rest))
+
+def monster_at(+x: U32,+y: U32,small: Bool,+color: U32,+step: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match small:
+    case True{}:
+      F.put(U32.sub(x,2),U32.sub(y,1),1,1,16777215,F.put((x + 2 : U32),U32.sub(y,1),1,1,16777215,
+        F.put(x,(y + 1 : U32),1,1,1058076,silhouette([34,62,127,127,127,62,54,99],7n,U32.sub(x,3),U32.sub(y,4),1,color,rest))))
+    case False{}:
+      F.put(U32.sub(x,5),U32.sub(y,4),4,4,16777215,F.put((x + 3 : U32),U32.sub(y,4),4,4,16777215,
+        F.put(U32.sub(x,3),U32.sub(y,3),2,2,1058076,F.put((x + 3 : U32),U32.sub(y,3),2,2,1058076,
+          F.put(U32.sub(x,2),(y + 3 : U32),6,2,1058076,
+            silhouette([68,198,124,254,254,254,254,511,254,124,108,Bool.pick(U32,U32.is_eq((step % 2 : U32),0),238,220)],9n,U32.sub(x,9),U32.sub(y,12),2,color,rest))))))
+
+def monster(+point: D.Point,small: Bool,color: U32,step: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  monster_at(D.px(point),D.py(point),small,color,step,rest)
+
 def wait_actor(+world: M.World,+token: P.Token,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +rank = wait_rank(P.tokens(world),world,token)
   +center = D.center(M.layout(world),5,0)
-  +x = (U32.sub(D.px(center),23) + rank % 4 * 14 : U32)
-  +y = (U32.sub(D.py(center),20) + rank / 4 * 10 : U32)
-  F.text("U" ++ U32.show(P.id(token)),U32.sub(x,4),(y + 5 : U32),1,15758447,F.put(x,y,3,4,15758447,rest))
+  +point: D.Point = D.Point{(U32.sub(D.px(center),21) + rank % 4 * 14 : U32),(U32.sub(D.py(center),15) + rank / 4 * 10 : U32)}
+  monster(point,True{},phase_color(5),0,rest)
 
-def actor_unit(+world: M.World, +token: P.Token, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def actor_unit(+world: M.World,+token: P.Token,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +point = H.unit_point(world,token)
   +small = H.in_building(world,token)
-  +width = Bool.pick(U32,small,3,10)
-  +height = Bool.pick(U32,small,5,14)
-  +x = U32.sub(D.px(point),(width / 2 : U32))
-  +y = U32.sub(D.py(point),(height / 2 : U32))
-  F.text("U" ++ U32.show(P.id(token)) ++ Bool.pick(String,small,""," E" ++ U32.show(P.family(token))),(x + width + 2 : U32),y,1,16777215,F.put(x,y,width,height,phase_color(P.phase(token)),F.put(x,U32.sub(y,3),width,2,16777215,rest)))
+  +label_x = (D.px(point) + Bool.pick(U32,small,6,13) : U32)
+  +label_y = U32.sub(D.py(point),Bool.pick(U32,small,2,13))
+  F.text("U" ++ U32.show(P.id(token)) ++ Bool.pick(String,small,""," E" ++ U32.show(P.family(token))),label_x,label_y,1,16777215,
+    monster(point,small,phase_color(P.phase(token)),((M.time(world) / 8 + P.id(token)) % 2 : U32),rest))
 
 def waiting_actor(on: Bool,+world: M.World,+token: P.Token,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match on:
@@ -433,13 +491,30 @@ def output_hud(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
 def layout_scene(+layout: U32,+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   wait_label(world,actors(P.tokens(world),world,extra_building(U32.is_eq(layout,1),world,buildings(6n,0,world,network(layout,world,output_hud(world,rest))))))
 
+def on_word(on: Bool) -> String:
+  match on:
+    case True{}: "ON"
+    case False{}: "OFF"
+
+def wave_phase(world: M.World,status: U32) -> String:
+  match status:
+    case 0: "NEXT WAVE " ++ U32.show((M.wave(world) + 1 : U32)) ++ "/" ++ U32.show(M.wave_count()) ++ " READY"
+    case 1: "WAVE " ++ U32.show(M.wave(world)) ++ "/" ++ U32.show(M.wave_count()) ++ " RUNNING"
+    case 2: "CAMPAIGN COMPLETE / R RESTART"
+    case _: "DEFEAT / R RESTART"
+
+def wave_line(+world: M.World) -> String:
+  Bool.pick(String,M.paused(world),"PAUSED / ","") ++ wave_phase(world,H.wave_status(world)) ++
+    " / AUTO WAVES " ++ on_word(M.auto(world)) ++
+    Bool.pick(String,M.auto_pending(world)," / NEXT IN " ++ U32.show(M.auto_left(world)) ++ " MS","")
+
 def scene(+world: M.World) -> List<&2,F.Rect>:
   +preview = Preview.calculate(world)
   +base = ghost(world,preview,F.text("SHOWING " ++ U32.show(U32.min(4,M.number(List.length(&2,P.Token,P.tokens(world))))) ++ " OF " ++ U32.show(M.number(List.length(&2,P.Token,P.tokens(world)))) ++ " LIVE UNITS",812,516,1,12439239,work_rows(P.tokens(world),world,0,sidebar(world,processors(M.towers(world),world,1,layout_scene(M.layout(world),world,[]))))))
-  +header = frame(M.layout(world),F.text("1-7 TOWER / CLICK MAP BUILD / U UPGRADE / SPACE PAUSE / N WAVE / R RESET / TAB MAP BEFORE BUILD",24,742,1,16768133,base))
+  +header = frame(M.layout(world),F.text("1-7 TOWER / CLICK BUILD / U UPGRADE / SPACE PAUSE / N ENTER NEXT WAVE / A AUTO WAVES / R RESET / TAB MAP",24,742,1,16768133,base))
   F.text("GOLD " ++ U32.show(M.gold(world)) ++ " HEALTH " ++ U32.show(M.hp(world)) ++ " CLEAR " ++ U32.show(M.clear(world)) ++ " SUBMITTED " ++ U32.show(M.delivered(world)),480,78,1,16768133,
   F.text("REAL CANONICAL STATE / WORK AND FILE OWNERS " ++ U32.show((P.count(world,0) + P.count(world,1) + P.count(world,2) + P.count(world,3) + P.count(world,4) + P.count(world,5) : U32)),24,78,1,65483,
-    F.text(Bool.pick(String,M.paused(world),"PAUSED / BUILD AND INSPECT / R RESET TO CHANGE MAP","TIMED ROADS AND SERVICE / RESET TO CHANGE MAP"),24,98,1,15124059,header)))
+    F.text(wave_line(world),24,98,1,15124059,F.text("N / ENTER START NEXT WAVE / A AUTO WAVES ONLY / CONSTRUCTION IS MANUAL",24,111,1,12439239,header))))
 
 def view(world: M.World) -> Image:
   paint(10n,0,0,1024,scene(world),False{})
@@ -464,4 +539,4 @@ def first_trace(tokens: List<&2,P.Token>,+world: M.World,+phase: U32,+prefix: St
 
 def diagnostics(+world: M.World) -> String:
   +preview = Preview.calculate(world)
-  "LAYOUT=" ++ U32.show(M.layout(world)) ++ " PAUSED=" ++ Bool.pick(String,M.paused(world),"YES","NO") ++ " TICK=" ++ U32.show(M.time(world)) ++ " GOLD=" ++ U32.show(M.gold(world)) ++ " HP=" ++ U32.show(M.hp(world)) ++ " OFFERED=" ++ U32.show(M.offered(world)) ++ " CLEAR=" ++ U32.show(M.clear(world)) ++ " DELIVERED=" ++ U32.show(M.delivered(world)) ++ " WRITESLOTS=" ++ U32.show(P.writes(world)) ++ " LEASES=" ++ U32.show(P.leases(world)) ++ " READY=" ++ U32.show(P.ready(world)) ++ " WAIT=" ++ U32.show(P.waiting(world)) ++ " DECIDE=" ++ U32.show(P.deciding(world)) ++ " PENDING_UNITS=" ++ U32.show(P.count(world,5)) ++ " ATJEV=" ++ U32.show(P.requests(world)) ++ " LEDGER_ITEMS=" ++ U32.show(P.ledger_items(world)) ++ " LEDGER_BYTES=" ++ U32.show(P.ledger_bytes(world)) ++ " TOWERS=" ++ U32.show(M.number(List.length(&2,M.Tower,M.towers(world)))) ++ " SELECTED=" ++ U32.show(M.selected(world)) ++ " LEVEL=" ++ U32.show(selected_level(M.towers(world),M.selected(world))) ++ " PREVIEW=" ++ U32.show(Preview.status(preview)) ++ " BEFORE=" ++ U32.show(Preview.before(preview)) ++ " DELTA=" ++ U32.show(Preview.delta(preview)) ++ " TARGET=" ++ Nat.show(Preview.target(preview)) ++ " SITE=" ++ U32.show(Preview.site(preview)) ++ " SECONDARY=" ++ U32.show(Preview.secondary_before(preview)) ++ " SECONDARY_DELTA=" ++ U32.show(Preview.secondary_delta(preview)) ++ " WAIT_SLOTS=" ++ U32.show(wait_count(P.tokens(world),world)) ++ " DAMAGE_FLASH=" ++ U32.show(M.damage_flash(world)) ++ " COMMITTED=" ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " WRITERLEFT=" ++ U32.show(O.remaining(world)) ++ " " ++ first_trace(P.tokens(world),world,0,"ROAD") ++ " " ++ first_trace(P.tokens(world),world,1,"SERVICE") ++ " " ++ first_trace(P.tokens(world),world,3,"FANOUT")
+  "WAVE=" ++ U32.show(M.wave(world)) ++ " AUTO=" ++ on_word(M.auto(world)) ++ " AUTO_PENDING=" ++ on_word(M.auto_pending(world)) ++ " AUTO_LEFT=" ++ U32.show(M.auto_left(world)) ++ " AUTO_TASK=" ++ Nat.show(M.auto_task(world)) ++ " ROUND=" ++ Nat.show(M.round(world)) ++ " STATUS=" ++ U32.show(H.wave_status(world)) ++ " LAYOUT=" ++ U32.show(M.layout(world)) ++ " PAUSED=" ++ Bool.pick(String,M.paused(world),"YES","NO") ++ " TICK=" ++ U32.show(M.time(world)) ++ " GOLD=" ++ U32.show(M.gold(world)) ++ " HP=" ++ U32.show(M.hp(world)) ++ " OFFERED=" ++ U32.show(M.offered(world)) ++ " CLEAR=" ++ U32.show(M.clear(world)) ++ " DELIVERED=" ++ U32.show(M.delivered(world)) ++ " WRITESLOTS=" ++ U32.show(P.writes(world)) ++ " LEASES=" ++ U32.show(P.leases(world)) ++ " READY=" ++ U32.show(P.ready(world)) ++ " WAIT=" ++ U32.show(P.waiting(world)) ++ " DECIDE=" ++ U32.show(P.deciding(world)) ++ " PENDING_UNITS=" ++ U32.show(P.count(world,5)) ++ " ATJEV=" ++ U32.show(P.requests(world)) ++ " LEDGER_ITEMS=" ++ U32.show(P.ledger_items(world)) ++ " LEDGER_BYTES=" ++ U32.show(P.ledger_bytes(world)) ++ " TOWERS=" ++ U32.show(M.number(List.length(&2,M.Tower,M.towers(world)))) ++ " SELECTED=" ++ U32.show(M.selected(world)) ++ " LEVEL=" ++ U32.show(selected_level(M.towers(world),M.selected(world))) ++ " PREVIEW=" ++ U32.show(Preview.status(preview)) ++ " BEFORE=" ++ U32.show(Preview.before(preview)) ++ " DELTA=" ++ U32.show(Preview.delta(preview)) ++ " TARGET=" ++ Nat.show(Preview.target(preview)) ++ " SITE=" ++ U32.show(Preview.site(preview)) ++ " SECONDARY=" ++ U32.show(Preview.secondary_before(preview)) ++ " SECONDARY_DELTA=" ++ U32.show(Preview.secondary_delta(preview)) ++ " WAIT_SLOTS=" ++ U32.show(wait_count(P.tokens(world),world)) ++ " DAMAGE_FLASH=" ++ U32.show(M.damage_flash(world)) ++ " COMMITTED=" ++ U32.show(M.number(List.length(&2,Nat,O.selection_members(world)))) ++ " WRITERLEFT=" ++ U32.show(O.remaining(world)) ++ " " ++ first_trace(P.tokens(world),world,0,"ROAD") ++ " " ++ first_trace(P.tokens(world),world,1,"SERVICE") ++ " " ++ first_trace(P.tokens(world),world,3,"FANOUT")

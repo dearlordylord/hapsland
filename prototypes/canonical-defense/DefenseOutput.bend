@@ -103,16 +103,28 @@ def choose(ids: List<&2,Nat>, +core: C.State, +left: U32, +count: Nat, +bytes: N
         choose(rest,core,Bool.pick(U32,take,M.sub(left,1),left),
           Bool.pick(Nat,take,(count + 1n : Nat),count),Bool.pick(Nat,take,(bytes + size : Nat),bytes)))
 
-def reserve_submissions(ids: List<&2,Nat>, core: C.State, +owner: Nat) -> C.State:
+def advice_round(+id: Nat, items: List<&2, C.Work>) -> Nat:
+  match items:
+    case Nil{}: 0n
+    case C.Work{_, _, round, candidate, _, _, _} <> rest:
+      Bool.pick(Nat, Nat.is_eq(id, candidate), round, advice_round(id, rest))
+def selected_round(+core: C.State, ids: List<&2, Nat>) -> Nat:
+  match ids:
+    case id <> _: advice_round(id, M.work(core))
+    case Nil{}: 0n
+def output_round(+core: C.State, output: M.Output) -> Nat:
+  selected_round(core,members(output))
+
+def reserve_submissions(ids: List<&2,Nat>, +core: C.State, +owner: Nat) -> C.State:
   match ids:
     case Nil{}: core
     case +id <> rest:
       reserve_submissions(rest,event(event(core,C.CollectionReserveLease{id,owner}),
-        C.SubmissionBegin{id,1n,1n,owner,Handoff.Stop{},False{},[id],[id]}),owner)
+        C.SubmissionBegin{id,1n,advice_round(id,M.work(core)),owner,Handoff.Stop{},False{},[id],[id]}),owner)
 
 # FinishAuthorize atomically authorizes every staged Stop submission in the core.
 def authorize(+core: C.State, +output: M.Output) -> C.State:
-  apply(C.step(core,C.FinishAuthorize{1n,1n,attempt(output),token(output),members(output)}))
+  apply(C.step(core,C.FinishAuthorize{1n,output_round(core,output),attempt(output),token(output),members(output)}))
 
 def retire_context(+core: C.State, +id: Nat, items: List<&2,C.Work>) -> C.State:
   match items:
@@ -129,16 +141,16 @@ def retire_acknowledged(ids: List<&2,Nat>, +core: C.State) -> C.State:
     case +id <> rest:
       retire_acknowledged(rest,retire_context(core,id,M.work(core)))
 
-def terminal_result(result: C.Step, +output: M.Output) -> C.State:
+def terminal_result(result: C.Step, +output: M.Output, +round: Nat) -> C.State:
   match result:
     case C.Advanced{+core,commands}:
       Bool.pick(C.State,command(commands,3),
         event(retire_acknowledged(members(output),core),
-          C.FinishEnd{1n,1n,attempt(output),token(output)}),core)
+          C.FinishEnd{1n,round,attempt(output),token(output)}),core)
     case C.Rejected{core,_}: core
 
 def terminal(+core: C.State, +output: M.Output) -> C.State:
-  terminal_result(C.step(core,C.FinishTerminal{1n,1n,attempt(output),token(output),members(output),C.Acknowledged{}}),output)
+  terminal_result(C.step(core,C.FinishTerminal{1n,output_round(core,output),attempt(output),token(output),members(output),C.Acknowledged{}}),output,output_round(core,output))
 
 def output_done(ids: List<&2,Nat>, +core: C.State) -> Bool:
   match ids:
@@ -174,7 +186,7 @@ def begin(+world: M.World, +ids: List<&2,Nat>) -> M.World:
   +attempt = (attempt(M.output(world)) + 1n : Nat)
   +owner = (1000n + attempt : Nat)
   +duration = (40 + item_work(world) * M.number(List.length(&2,Nat,ids)) : U32)
-  commit_result(world,C.step(M.core(world),C.FinishReserve{1n,1n,1n,attempt,owner,ids,False{},False{},True{},True{},False{}}),
+  commit_result(world,C.step(M.core(world),C.FinishReserve{1n,1n,M.round(world),attempt,owner,ids,False{},False{},True{},True{},False{}}),
     M.Output{0,attempt,owner,ids,0,duration})
 
 def all_ready(ids: List<&2,Nat>, +ready: List<&2,Nat>) -> Bool:
@@ -185,7 +197,7 @@ def all_ready(ids: List<&2,Nat>, +ready: List<&2,Nat>) -> Bool:
 def waiting(+world: M.World) -> M.World:
   +ids = pending_ids(M.work(M.core(world)))
   +ready = ready_ids(M.core(world))
-  +allowed = (M.offered(world) >= 8 : U32) && settled(M.work(M.core(world))) &&
+  +allowed = (M.offered(world) >= M.wave_demand() : U32) && settled(M.work(M.core(world))) &&
     (P.deciding(world) > 0 : U32) && all_ready(ids,ready)
   +flush = Bool.pick(U32,allowed && (P.ready(world) > 0 : U32),(flush_age(M.output(world)) + 1 : U32),0)
   +selected = choose(ready,M.core(world),batch_target(world),0n,0n)

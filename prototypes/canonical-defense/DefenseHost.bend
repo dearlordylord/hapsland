@@ -1,5 +1,6 @@
 # Native teaching-game host facts. Canonical.step is the sole product-state authority.
 import Base
+import ./DefenseAuto.bend as A
 import ./DefenseModel.bend as M
 import ./DefenseProjection.bend as P
 import ./DefenseEffects.bend as E
@@ -23,7 +24,7 @@ def event(state: C.State, fact: C.CanonicalEvent) -> C.State:
 def initial() -> M.World:
   M.World{event(C.initial(Ledger.Limits{32n, 480n, 32n, 480n}), C.OpenRound{1n, 1n}),
     0, False{}, 0, 0, 160, 100, Nil{}, Nil{}, False{}, 0, 0, 0, 0,
-    M.Output{0, 0n, 999n, Nil{}, 0, 0}, False{}, 0, 0, 0, 0, 0}
+    M.Output{0, 0n, 999n, Nil{}, 0, 0}, A.initial(), 0, 0, 0, 0, 0}
 def tower_cost(kind: U32) -> U32:
   E.cost(kind)
 def tower_name(kind: U32) -> String:
@@ -106,7 +107,7 @@ def progress_kind(+state: C.State, +world: M.World, +work: C.Work, kind: C.WorkK
         event(event(state, C.JevRequestSettled{part, life, round, id, request, outcome(id, M.timers(world)), True{}}),
           C.DispatchSettled{part, life, round, id}), event(state, C.JevRequestStarted{part, life, round, id, request}))
     case C.Work{part, life, round, +id, _, _, parent} C.PendingFinding{_}:
-      Bool.pick(C.State, (E.age(id, 5, M.timers(world)) >= (Map.path_length(Map.retained_route(M.layout(world))) + 90 : U32) : U32),
+      Bool.pick(C.State, (E.age(id, 5, M.timers(world)) >= (Map.path_length(Map.retained_route(M.layout(world))) + Map.path_length(Map.room_route(M.layout(world), 5, 0)) : U32) : U32),
         event(state, C.CollectionReady{id, part, life, round, parent, False{}}), state)
     case _ _: state
 
@@ -200,33 +201,53 @@ def damage(+world: M.World) -> M.World:
       M.World{core, t, p, l, c, g, M.sub(h, Bool.to_u32(hit)), shield_towers(guard), timers, a, o, r, cl, d, out, auto, x, y, selected,
         (total % 10000 : U32), Bool.pick(U32, hit, 10, M.sub(flash, 1))}
 
-def start(world: M.World) -> M.World:
+# Never advance a wave while canonical ownership remains.
+def drained(+world: M.World) -> Bool:
+  Nat.is_eq(List.length(&2, C.Work, M.work(M.core(world))), 0n) &&
+    U32.is_eq(P.ledger_items(world), 0) && U32.is_eq(P.ledger_bytes(world), 0) &&
+    U32.is_eq(P.queued(world), 0) && U32.is_eq(P.running(world), 0) && U32.is_eq(P.requests(world), 0) &&
+    U32.is_eq(P.writes(world), 0) && U32.is_eq(P.leases(world), 0)
+def can_start(+world: M.World) -> Bool:
+  Bool.not(M.active(world)) && (M.wave(world) < M.wave_count() : U32) && (M.hp(world) > 0 : U32) && drained(world)
+def wave_status(+world: M.World) -> U32:
+  Bool.pick(U32, U32.is_eq(M.hp(world), 0), 3,
+    Bool.pick(U32, M.active(world), 1, Bool.pick(U32, (M.wave(world) >= M.wave_count() : U32), 2, 0)))
+def clock_active(+world: M.World) -> Bool:
+  Bool.not(M.paused(world)) && (M.active(world) || (M.auto(world) && U32.is_eq(wave_status(world), 0)))
+def start_allowed(+world: M.World) -> M.World:
   match world:
-    case M.World{core, _, p, l, c, g, h, towers, timers, _, _, r, cl, d, out, auto, x, y, selected, work, flash}:
-      M.World{core, 0, p, l, c, g, h, towers, timers, True{}, 0, r, cl, d, out, auto, x, y, selected, work, flash}
+    case M.World{+core, _, p, l, c, g, h, towers, timers, _, _, r, cl, d, out, +auto, x, y, selected, work, flash}:
+      +opened = Bool.pick(C.State, Nat.is_eq(M.round(world), 0n), event(core, C.OpenRound{1n, 1n}), core)
+      M.World{opened, 0, p, l, c, g, h, towers, timers, True{}, 0, r, cl, d, out, A.consume(auto), x, y, selected, work, flash}
+def start(+world: M.World) -> M.World:
+  Bool.pick(M.World, can_start(world), start_allowed(world), world)
 def finish_active(+world: M.World) -> M.World:
   match world:
-    case M.World{core, t, p, l, c, g, h, ts, ms, +a, +o, r, cl, d, out, auto, x, y, selected, work, flash}:
-      M.World{core, t, p, l, c, g, h, ts, ms,
-        Bool.and(a, Bool.not(Bool.and((o >= 8 : U32), Bool.and(Nat.is_eq(List.length(&2, C.Work, M.work(core)), 0n), Bool.and(U32.is_eq(P.writes(world), 0), U32.is_eq(P.leases(world), 0)))))),
-        o, r, cl, d, out, auto, x, y, selected, work, flash}
+    case M.World{+core, t, p, l, c, g, h, ts, ms, +a, +o, r, cl, d, out, +auto, x, y, selected, work, flash}:
+      +done = a && (o >= M.wave_demand() : U32) && drained(world)
+      +retired = Bool.pick(C.State, done, event(core, C.RetirePartition{1n, 1n, M.round(world)}), core)
+      M.World{retired, t, p, l, c, (g + Bool.pick(U32, done && (h > 0 : U32), 20, 0) : U32), h, ts, ms, a && Bool.not(done), o, r, cl, d, out,
+        Bool.pick(A.State, done, A.finished(auto, (M.wave(world) >= M.wave_count() : U32) || U32.is_eq(h, 0)), auto), x, y, selected, work, flash}
 def ticking(+world: M.World) -> M.World:
   match world:
     case M.World{+core, +t, p, l, c, g, h, towers, timers, +a, +offered, r, +cl, d, out, auto, x, y, selected, work, flash}:
       +armed = E.shoot_world(world)
       +next = progress(M.work(core), core, armed)
       +clear = clear_completed(M.work(core), armed, next)
-      +offer = Bool.and(a, Bool.and((offered < 8 : U32), U32.is_eq((t % 200 : U32), 0)))
-      +next = Bool.pick(C.State, offer, event(next, C.AdmitObservation{1n, 1n, 1n}), next)
-      +next = Bool.pick(C.State, Bool.and(a, Bool.and((offered >= 8 : U32), U32.is_eq(P.deciding(M.with_core(world, next)), 0))),
-        event(next, C.StopPolled{1n, 1n, 1n, (t >= 5000 : U32)}), next)
+      +offer = a && (offered < M.wave_demand() : U32) && U32.is_eq((t % M.wave_interval(world) : U32), 0)
+      +next = Bool.pick(C.State, offer, event(next, C.AdmitObservation{1n, 1n, M.round(world)}), next)
+      +next = Bool.pick(C.State, a && (offered >= M.wave_demand() : U32) && U32.is_eq(P.deciding(M.with_core(world, next)), 0),
+        event(next, C.StopPolled{1n, 1n, M.round(world), False{}}), next)
       +updated: M.World = M.World{next, (t + 1 : U32), p, l, c, g, h, M.towers(armed), E.refresh(armed, next, (offered + Bool.to_u32(offer) : U32)),
         a, (offered + Bool.to_u32(offer) : U32), r, (cl + clear : U32), d, out, auto, x, y, selected, work, flash}
-      +delivered = O.tick(updated)
-      finish_active(damage(delivered))
+      finish_active(damage(O.tick(updated)))
+def unpaused(+world: M.World) -> M.World:
+  +schedule = Bool.pick(A.State, Bool.not(M.active(world)) && can_start(world), A.countdown(M.schedule(world)), M.schedule(world))
+  +ready = M.with_schedule(world, schedule)
+  +ready = Bool.pick(M.World, A.due(schedule) && can_start(ready), start(ready), ready)
+  Bool.pick(M.World, M.active(ready) || Bool.not(drained(ready)), ticking(ready), ready)
 def tick(+world: M.World) -> M.World:
-  +ready = Bool.pick(M.World, Bool.and(M.auto(world), Bool.and(Bool.not(M.active(world)), Bool.and(U32.is_eq(M.offered(world), 0), (M.time(world) >= 150 : U32)))), start(world), world)
-  Bool.pick(M.World, M.paused(world), world, ticking(ready))
+  Bool.pick(M.World, M.paused(world), world, unpaused(world))
 def move(world: M.World, x: U32, y: U32) -> M.World:
   match world:
     case M.World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, auto, _, _, selected, work, flash}:
@@ -262,17 +283,29 @@ def reset_layout(layout: U32) -> M.World:
     case +l:
       world: M.World = initial()
       reset_found(world, l)
-def key(+world: M.World, +code: U32) -> M.World:
+def key_result(world: M.World, code: U32) -> M.World:
+  match code:
+    case 114: reset_layout(M.layout(world))
+    case 117: upgrade(world)
+    case 110: start(world)
+    case 13: start(world)
+    case _: world
+
+def key_schedule(+world: M.World, code: U32) -> A.State:
+  match code:
+    case 97: A.toggle(M.schedule(world), can_start(world), (wave_status(world) >= 2 : U32))
+    case _: M.schedule(world)
+def key_map(+world: M.World, code: U32) -> U32:
+  Bool.pick(U32, U32.is_eq(code, 9) && map_free(world), ((M.layout(world) + 1) % 3 : U32), M.layout(world))
+def key_fields(world: M.World, +code: U32, layout: U32, schedule: A.State) -> M.World:
   match world:
-    case M.World{core, +t, +p, +l, +c, g, h, ts, ms, +a, +o, r, cl, d, out, +auto, x, y, +selected, work, flash}:
-      +layout = Bool.pick(U32, Bool.and(U32.is_eq(code, 9), map_free(world)), ((l + 1) % 3 : U32), l)
-      +choose = Bool.and((code >= 49 : U32), (code <= 55 : U32))
-      +next: M.World = M.World{core, Bool.pick(U32, Bool.and(U32.is_eq(code, 97), Bool.not(auto)), 0, t),
-        Bool.pick(Bool, U32.is_eq(code, 32), Bool.not(p), p), layout, Bool.pick(U32, choose, (code - 49 : U32), c), g, h, ts, ms,
-        a, o, r, cl, d, out, Bool.pick(Bool, U32.is_eq(code, 97), Bool.not(auto), auto), x, y, Bool.pick(U32, choose, 0, selected), work, flash}
-      Bool.pick(M.World, U32.is_eq(code, 114), reset_layout(layout),
-        Bool.pick(M.World, U32.is_eq(code, 117), upgrade(next),
-          Bool.pick(M.World, Bool.and(U32.is_eq(code, 110), Bool.and(Bool.not(a), U32.is_eq(o, 0))), start(next), next)))
+    case M.World{core, t, +p, _, +c, g, h, ts, ms, a, o, r, cl, d, out, _, x, y, +selected, work, flash}:
+      +choose = (code >= 49 : U32) && (code <= 55 : U32)
+      M.World{core, t, Bool.pick(Bool, U32.is_eq(code, 32), Bool.not(p), p), layout,
+        Bool.pick(U32, choose, (code - 49 : U32), c), g, h, ts, ms, a, o, r, cl, d, out, schedule, x, y,
+        Bool.pick(U32, choose, 0, selected), work, flash}
+def key(+world: M.World, +code: U32) -> M.World:
+  key_result(key_fields(world, code, key_map(world, code), key_schedule(world, code)), code)
 
 def snap(value: U32) -> U32:
   ((value / 16) * 16 + 8 : U32)
@@ -364,15 +397,16 @@ def point_work(+world: M.World, +work: C.Work) -> Map.Point:
   +age = E.age(E.id(work), phase, M.timers(world))
   +anchor = E.anchor(world, work)
   +effort = E.effort(world, work)
-  +inside = Map.path_position(Map.micro_route(anchor),
-    ((U32.min(E.duration(world, work), effort) * Map.path_length(Map.micro_route(anchor))) / U32.max(1, E.duration(world, work)) : U32))
+  +room = Map.room_route(M.layout(world), phase, E.lane(world, work))
+  +inside = Map.path_position(room,
+    ((U32.min(E.duration(world, work), effort) * Map.path_length(room)) / U32.max(1, E.duration(world, work)) : U32))
   Bool.pick(Map.Point, U32.is_eq(phase, 0), Map.path_position(Map.source_route(M.layout(world)), age),
     Bool.pick(Map.Point, Bool.and(U32.is_eq(phase, 4), Bool.not(E.inside_world(world, work))), Map.Point{(Map.px(anchor) + 32 : U32), Map.py(anchor)},
     Bool.pick(Map.Point, U32.is_eq(phase, 3), Map.path_position(Map.review_route(M.layout(world), E.lane(world, work)), age),
       Bool.pick(Map.Point, U32.is_eq(phase, 2),
         Bool.pick(Map.Point, (age < travel_ticks(world, 2, 0) : U32), Map.path_position(Map.preparation_route(M.layout(world)), age), inside),
         Bool.pick(Map.Point, U32.is_eq(phase, 5),
-          Bool.pick(Map.Point, (age < travel_ticks(world, 5, 0) : U32), Map.path_position(Map.retained_route(M.layout(world)), age), Map.path_position(Map.micro_route(anchor), U32.min(90, M.sub(age, travel_ticks(world, 5, 0))))), inside)))))
+          Bool.pick(Map.Point, (age < travel_ticks(world, 5, 0) : U32), Map.path_position(Map.retained_route(M.layout(world)), age), Map.path_position(room, U32.min(Map.path_length(room), M.sub(age, travel_ticks(world, 5, 0))))), inside)))))
 def point_found(world: M.World, found: Maybe<&2, C.Work>) -> Map.Point:
   match found:
     case Some{work}: point_work(world, work)

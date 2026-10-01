@@ -162,3 +162,17 @@ def prep_running_entries(items: List<&2, Dispatch.Entry>) -> U32:
 def prep_running(world: M.World) -> U32:
   match world:
     case M.World{C.State{_, _, _, _, _, _, Dispatch.State{_, entries, _, _, _}, _, _}, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: prep_running_entries(entries)
+
+# Actual per-round counters in the product's delivery state, before retirement.
+def finish_counters(world: M.World) -> List<&2, Delivery.Counter>:
+  match world:
+    case M.World{C.State{_, _, _, _, _, _, _, Collection.State{_, _, _, Delivery.State{_, counters, _}, _, _, _, _}, _}, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: counters
+def finish_used(+world: M.World) -> U32:
+  M.number(Delivery.count(1n, M.round(world), finish_counters(world)))
+def counters_within_budget(items: List<&2, Delivery.Counter>) -> Bool:
+  match items:
+    case Nil{}: True{}
+    case Delivery.Counter{_, _, used} <> rest:
+      Nat.is_le(used,4n) && counters_within_budget(rest)
+def finish_within_budget(world: M.World) -> Bool:
+  counters_within_budget(finish_counters(world))

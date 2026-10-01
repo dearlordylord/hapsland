@@ -1,4 +1,5 @@
 import Base
+import ./DefenseAuto.bend as A
 import ../../packages/agent-flow-bend/Canonical.bend as C
 import ../../packages/agent-flow-bend/Dispatch.bend as Dispatch
 
@@ -13,7 +14,7 @@ type World is Data:
   World{core: C.State, clock: U32, paused: Bool, layout: U32, choice: U32,
     gold: U32, hp: U32, towers: List<&2, Tower>, timers: List<&2, Timer>,
     active: Bool, offered: U32, rejected: U32, clear: U32, delivered: U32,
-    output: Output, auto: Bool, mouseX: U32, mouseY: U32, selected: U32, damageWork: U32, damageFlash: U32}
+    output: Output, auto: A.State, mouseX: U32, mouseY: U32, selected: U32, damageWork: U32, damageFlash: U32}
 def number(n: Nat) -> U32:
   U32.from_nat(Nat.min(n, 4294967295n))
 def sub(+a: U32, +b: U32) -> U32:
@@ -81,7 +82,7 @@ def output(world: World) -> Output:
 
 def auto(world: World) -> Bool:
   match world:
-    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: v
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: A.enabled(v)
 
 def mouse_x(world: World) -> U32:
   match world:
@@ -192,3 +193,27 @@ def damage_work(world: World) -> U32:
 def damage_flash(world: World) -> U32:
   match world:
     case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v}: v
+
+# Campaign facts are host metadata; round() reads the actual canonical identity.
+def schedule(world: World) -> A.State:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: v
+def with_schedule(world: World, schedule: A.State) -> World:
+  match world:
+    case World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, _, x, y, selected, damage, flash}:
+      World{core, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, schedule, x, y, selected, damage, flash}
+def wave(world: World) -> U32:
+  A.wave(schedule(world))
+def wave_count() -> U32: 6
+def wave_demand() -> U32: 8
+def auto_left(world: World) -> U32: A.left(schedule(world))
+def auto_pending(world: World) -> Bool: A.pending(schedule(world))
+def auto_task(world: World) -> Nat: A.task(schedule(world))
+def current_round(items: List<&2, C.Round>) -> Nat:
+  match items:
+    case C.Round{1n, 1n, id, _, _, _, _, _} <> _: id
+    case _ <> rest: current_round(rest)
+    case Nil{}: 0n
+def round(world: World) -> Nat: current_round(rounds(core(world)))
+def wave_interval(+world: World) -> U32:
+  sub(220, (20 * U32.min(wave(world), 6) : U32))

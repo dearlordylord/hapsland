@@ -1,0 +1,29 @@
+Native Linux ARM64 validation provenance. All listed suites exited zero. Earlier generated C snapshots preserve the executed programs; raw source hashes were not captured at those historical instants. Do not interpret these as runs against every final file. Final geometry suite independently checks the later interpolation and routes; all five final Bend entrypoints passed check-only.
+
+42 host checks; predates final wave reward/task amendment
+c0cfd293fcb189ef04b3f6286f8ccdf3ebde86f316234a549a126bc3de5ebfa4  /tmp/canonical-defense-tests-final.c
+24 output checks; predates exact pixel interpolation
+6f25bd19b756b26fc785aabcc93ae1112ab8b31a120ac0c8d269922b1ce598dd  /tmp/canonical-output-waves.c
+12 preview checks; predates exact pixel interpolation
+3f2b2d3b0f940825a95f43ecca19f98963bdf035aea31f1096f416c6b2725a3f  /tmp/canonical-preview-tests-final.c
+22 campaign assertions in seven cases; final mechanics; predates exact pixel interpolation only
+480da34b7b10052baf2ea19060cc7f66452b084ebdaf78223f2b76ccc19a740a  /tmp/canonical-campaign-final-economy-fast.c
+
+Final increment source SHA256 (current source inventory, not historical suite snapshots):
+b3d1782719769c1345e9f9bb54c83efea3bfdd3f58cbdb48be7a7f54413db387  DefenseAuto.bend
+445bb60cb65347f7cf86057cc24b44051bde49c55cf2e6342452aca17f9b9c4e  DefenseAutoTests.bend
+5092ca024249f1634787bfecbe6b325edba6434c5202877e0f169bfb69c918e1  DefenseEffects.bend
+fc5f0c5180326e6b40814f95e2d1d140ac3f1ff7142c0988e6f3efaa36eb2e50  DefenseHost.bend
+8571564233739318d092edbce6d9f6b09a1a5a896cd1434afea44e05ca12d55c  DefenseMain.bend
+9d946542bdf84a3918917408eb875b0329374c9f88acabed640904bb4482e1b9  DefenseMap.bend
+8511b96a87b39997ba62ccca85d70dfebe6b23790ca0d29ab5bd31c9bfb778e8  DefenseMapTests.bend
+c9cb9b245d34210f5b4f62edadf79c431c0d06551b721cfd51d0496fadd16549  DefenseModel.bend
+53b01dd6414f543fa21c29214f0747ee2761811ae1de47f77c5e2f16baaed05e  DefenseOutput.bend
+2e32f63d9cff7a9fcf964dc4846fad3ed21c549ec16c3b089215c368763d5c10  DefenseOutputTests.bend
+894219e50a627aa0c92fe37141acde91e89cb17aa73a4bc02cadd81bad703742  DefensePreview.bend
+920bf4a3592e6d6fbf969bd144aef15096a417e72d34d34f0ff32706ddd7c96b  DefensePreviewTests.bend
+b9600a8996cf8c44d8668c39edb58ab426de748ced39ed39041dc2a2e0bb4af5  DefenseProjection.bend
+201a64b4224cd43f394956b10e0008af8876684d723ae766b8de2648a9d0ff18  DefenseRender.bend
+843d9496db3739320f76cb6360b0269f3c5fc3326052ee88892e29b0ebe14b88  DefenseRoads.bend
+8831acc7be3ee7bbb9b900235e7bdf6ac4ebf0fddd9117f62c6602009b3c9968  DefenseTests.bend
+9de7da6f27b200afd790e9f7f04a2e86fa736f04664e82df88ff117a72712169  Font.bend

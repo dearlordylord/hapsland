@@ -1,4 +1,5 @@
 import Base
+import ./DefenseAuto.bend as A
 import ./DefenseModel.bend as M
 import ./DefenseProjection.bend as P
 import ./DefenseOutput.bend as O
@@ -54,7 +55,7 @@ def fixture_core(sources_count: Nat, findings: U32) -> C.State:
 
 def fixture(+sources_count: Nat, findings: U32) -> M.World:
   M.World{fixture_core(sources_count,findings),0,False{},0,0,120,100,[],[],True{},
-    M.number(sources_count),0,0,0,M.Output{0,0n,0n,[],0,0},False{},0,0,0,0,0}
+    M.number(sources_count),0,0,0,M.Output{0,0n,0n,[],0,0},A.initial(),0,0,0,0,0}
 
 def run(fuel: Nat, world: M.World) -> M.World:
   match fuel:

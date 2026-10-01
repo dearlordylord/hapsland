@@ -4,6 +4,7 @@ import ./DefenseModel.bend as M
 import ./DefenseHost.bend as H
 import ./DefenseProjection.bend as P
 import ./DefenseRender.bend as R
+import ./DefenseMap.bend as D
 
 type FrameState is Data:
   Frame{world: M.World,last: Nat,carry: U32,quit: Bool}
@@ -37,7 +38,7 @@ def clock_enabled(+now: Nat, world: M.World, +carry: U32, elapsed: U32, active: 
 def clock_step(+now: Nat, frame: FrameState) -> FrameState:
   match frame:
     case Frame{+world,last,carry,_}:
-      clock_enabled(now,world,carry,U32.from_nat(Nat.min(Nat.sub(now,last),160n)),Bool.not(M.paused(world)))
+      clock_enabled(now,world,carry,U32.from_nat(Nat.min(Nat.sub(now,last),160n)),H.clock_active(world))
 
 def finish(+frame: FrameState) -> IO(Maybe<FrameState>):
   match frame:
@@ -83,10 +84,19 @@ def loop(fuel: Nat, window: Window, +frame: FrameState) -> IO(Unit):
         named : Window <- Window.set_title(window,title(frame))
         draw(view(frame),named,w => f => loop(n,w,f))
 
-def main() -> IO(Unit):
+def launch() -> IO(Unit):
   do IO<Unit>:
     IO.print("Hapsland canonical defense: native layouts over the actual canonical reducer.")
-    IO.print("Tab cycles switchback district/forked campus/resource junction. 1-7 choose tower; click map ground to build. U upgrades selected tower. N starts; Space pauses; R resets; Tab changes map only before construction or work; Esc exits.")
+    IO.print("Tab cycles switchback district/forked campus/resource junction. 1-7 choose tower; click map ground to build. U upgrades selected tower. N/Enter starts next wave; A auto waves via shared Session; Space pauses; R resets; Tab changes map only before construction or work; Esc exits.")
     now : Nat <- IO.now()
     window : Window <- IO.try(Window,Window.open("Hapsland canonical defense",1024,768))
     loop(4294967295n,window,Frame{H.initial(),now,0,False{}})
+
+# Authored maps cannot launch with tangent/corner entrances or looping interiors.
+def checked_launch(valid: Bool) -> IO(Unit):
+  match valid:
+    case True{}: launch()
+    case False{}: IO.die(Unit,1,"Invalid map: roads must cross midpoint wall ports normally; room paths must be finite and simple.")
+
+def main() -> IO(Unit):
+  checked_launch(D.layout_valid(0) && D.layout_valid(1) && D.layout_valid(2))
