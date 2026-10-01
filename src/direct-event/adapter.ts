@@ -197,6 +197,18 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
     const path = [cwdFromRoot, fromCwd].filter(Boolean).join(sep).replaceAll(sep, "/");
     return { ...candidate, path };
   });
+  // Codex 0.155.1 reports successful apply_patch calls as text and may spell
+  // file headers with absolute paths. Preserve the exact hunk body while
+  // translating only file headers already proven to lie under this event cwd.
+  const patchSucceeded = response?.success === true ||
+    (typeof event.tool_response === "string" &&
+      /(?:^|\n)Success\. (?:Updated|Added|Deleted) the following files:/u.test(event.tool_response));
+  const normalizedPath = new Map(candidates.map((candidate, index) =>
+    [candidate.path, normalizedCandidates[index]!.path] as const));
+  const normalizedPatchCommand = input.command.split("\n").map((line) => {
+    const header = /^(\*\*\* (?:Add|Update|Delete) File: )(.+)$/u.exec(line);
+    return header === null ? line : `${header[1]}${normalizedPath.get(header[2]!.trim()) ?? header[2]}`;
+  }).join("\n");
   const advicee: DirectAdvicee = Object.freeze({
     host: "codex-cli",
     hostVersion,
@@ -210,7 +222,7 @@ export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEven
     rootIdentity: rootOption.value.rootIdentity,
     advicee,
     candidates: Object.freeze(normalizedCandidates.map((candidate) => Object.freeze(candidate))),
-    ...(response?.success === true ? { nativePatchCommand: input.command } : {}),
+    ...(patchSucceeded ? { nativePatchCommand: normalizedPatchCommand } : {}),
   } satisfies DirectObservation);
 });
 

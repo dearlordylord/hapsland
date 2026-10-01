@@ -18,6 +18,8 @@ export type ControlledDecisionModelOptions = {
   readonly extraDecisionKey?: string;
   /** Test-only subprocess transcript path; never enabled by the live layer. */
   readonly capturePath?: string;
+  /** Test-only source-free request shape; never writes the provider input. */
+  readonly requestSummaryPath?: string;
   /** Test-only source-free terminal outcome path; consumed by the resident. */
   readonly outcomePath?: string;
   /** Installed acceptance seam: exercise production credential resolution before the controlled transport. */
@@ -101,9 +103,27 @@ export const controlledDecisionModelLayer = (
                 try: () => appendFile(capturePath, "called\n", "utf8"),
                 catch: () => new Error("capture unavailable"),
               }).pipe(Effect.catch(() => Effect.succeed(undefined)));
+        const requestSummary = options.requestSummaryPath === undefined
+          ? Effect.void
+          : Effect.tryPromise({
+              try: () => {
+                const state = request.state as { artifact?: { kind?: unknown }; evidence?: {
+                  nodes?: unknown[]; edges?: { kind?: unknown }[] } } | undefined;
+                const edges = state?.evidence?.edges ?? [];
+                return appendFile(options.requestSummaryPath!, `${JSON.stringify({
+                  rootKind: state?.artifact?.kind ?? "unknown",
+                  evidenceNodes: state?.evidence?.nodes?.length ?? 0,
+                  expandedEdges: edges.filter((edge) => edge.kind === "expanded").length,
+                  includedEdges: edges.filter((edge) => edge.kind === "included").length,
+                  omittedEdges: edges.filter((edge) => edge.kind === "omitted").length,
+                })}\n`, "utf8");
+              },
+              catch: () => new Error("request summary unavailable"),
+            }).pipe(Effect.catch(() => Effect.void));
         return (options.onRequest ?? Effect.succeed(undefined)).pipe(
           Effect.andThen(options.inspectRequest?.(request) ?? Effect.void),
           Effect.andThen(capture),
+          Effect.andThen(requestSummary),
           Effect.andThen(delayed),
         );
       },

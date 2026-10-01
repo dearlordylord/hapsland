@@ -105,4 +105,27 @@ describe("Codex root attribution", () => {
     expect(prepared.observation.status).toBe("incomplete");
     if (prepared.observation.status === "incomplete") expect(prepared.observation.units).toEqual([]);
   }));
+
+  it.effect("attributes a native successful text response with an absolute Update path", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "support.ts", "export type RawCount = number;\n"));
+    yield* Effect.promise(() => put(root, "order-count.ts",
+      "import type { RawCount } from './support';\nexport type OrderCount = RawCount & { readonly __brand: 'OrderCount' };\n"));
+    const patch = `*** Begin Patch\n*** Update File: ${root}/order-count.ts\n@@\n import type { RawCount } from './support';\n-export type OrderCount = RawCount;\n+export type OrderCount = RawCount & { readonly __brand: 'OrderCount' };\n*** End Patch`;
+    const observation = yield* adaptCodexDirectEvent(addEvent(root, ["order-count.ts"], {
+      tool_input: { command: patch },
+      tool_response: "apply_patch output:\nSuccess. Updated the following files:\nM order-count.ts",
+    }));
+    if (observation === undefined) throw new Error("native text response was not adapted");
+    const prepared = yield* prepareObservation(observation, {
+      controlledWriter: true, advicee: observation.advicee,
+      inputContract: TYPE_INPUT_CONTRACT,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
+    });
+    expect(prepared.observation.status).toBe("complete");
+    expect(prepared.outcomes.filter((item) => item.status === "ready")).toHaveLength(1);
+    const ready = prepared.outcomes.find((item) => item.status === "ready");
+    if (ready?.status === "ready") expect(preparedProviderInput(ready.prepared)?.evidence.edges)
+      .toEqual([expect.objectContaining({ kind: "expanded" })]);
+  }));
 });

@@ -146,6 +146,7 @@ const ResidentControlledOptions = Schema.Struct({
   failure: Schema.optionalKey(Schema.String),
   failureOnSourceIncludes: Schema.optionalKey(Schema.String),
   capturePath: Schema.optionalKey(Schema.String),
+  requestSummaryPath: Schema.optionalKey(Schema.String),
   outcomePath: Schema.optionalKey(Schema.String),
   requireCredential: Schema.optionalKey(Schema.Boolean),
   syntheticR6BrandedRepair: Schema.optionalKey(Schema.Literals(["control", "finding"])),
