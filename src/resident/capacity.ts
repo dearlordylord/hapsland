@@ -1,7 +1,8 @@
+import { initialAdviceRecords, draftAdviceRecords, adviceRecordOperations, emptyAdviceContent, type AdviceRecordsState, type AdviceRecordOperations, type Advice, type AdviceInitial } from "./advice-records.ts";
 import { initialNoticeRecords, draftNoticeRecords, noticeRecordOperations, type NoticeRecordsState, type NoticeRecordOperations, type NoticeCooldownSnapshot } from "./notice-records.ts";
 import { initialRoundRecords, draftRoundRecords, roundRecordOperations, type RoundRecordsState, type RoundRecords, type RoundWork, type WorkCohort } from "./round-records.ts";
 import { workView } from "./bend-work.ts";
-import { initialJoinedReviews, draftJoinedReviews, joinedReviewOperations, type JoinedReviewsState, type JoinedReviews } from "./joined-reviews.ts";
+import { initialJoinedReviews, draftJoinedReviews, joinedReviewOperations, type JoinedReviewsState, type JoinedReviews, type JoinedReviewOutcome } from "./joined-reviews.ts";
 import { initialTicketRecords, draftTicketRecords, ticketRecordOperations, type TicketRecordsState, type TicketRecords } from "./ticket-records.ts";
 import { initialTicketUnits, draftTicketUnits, ticketUnitOperations, ticketUnitView, emptyTicketUnitCurrent, type TicketUnitsState, type TicketUnit, type TicketUnits } from "./ticket-units.ts";
 import { initialRevision, draftRevision, revisionOperations, type RevisionState, type RevisionOperations, type WorkRevision } from "./revision.ts";
@@ -119,6 +120,7 @@ export type AdviceCapture = {
 type AdviceCaptureRecord = { readonly capability: AdviceCapture; readonly retired: boolean };
 type ResidentRecords<Pending, Key, Value> = {
   readonly adviceCaptures: ReadonlyMap<number, AdviceCaptureRecord>;
+  readonly advice: AdviceRecordsState;
   readonly reuse: EvaluationReuseState<Pending>;
   readonly delivery: DeliveryState;
   readonly dispatch: DispatchRegistry<Key, Value>;
@@ -166,7 +168,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     residentLifetime, limits, canonical: initialCanonical(limits), reservations: new Map(),
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
-    records: { adviceCaptures: new Map(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
+    records: { adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
       dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords() },
   });
   const read = <A>(operation: (current: CapacityState) => A): A =>
@@ -279,7 +281,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
       if (records.adviceCaptures.size !== 0) throw new Error("resident state cannot clear outstanding advice captures");
-      return [clear(draft), { adviceCaptures: new Map(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
+      return [clear(draft), { adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     }),
     revision: (() => {
@@ -378,6 +380,84 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         expire: (...args: Parameters<ComposedDelivery["expire"]>) => deliveryCommit((operations) => operations.expire(...args)),
       };
     },
+    advice: (() => {
+      const adviceCommit = <A>(operation: (operations: AdviceRecordOperations) => A): A => commitAll((draft, records) => {
+        const advice = draftAdviceRecords(records.advice);
+        const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+        const operations = adviceRecordOperations(advice, owner);
+        const value = operation(operations);
+        operations.assert();
+        return [value, { ...records, advice }];
+      });
+      return {
+        values: (): ReadonlyArray<Advice> => [...Ref.getUnsafe(state).records.advice.entries.values()]
+          .map(({ capability }) => capability).sort((left, right) => left.sequence - right.sequence),
+        insert: (initial: AdviceInitial): Advice => adviceCommit((operations) => operations.insert(initial, (metadata) => {
+          const content = () => {
+            const retained = Ref.getUnsafe(state).records.advice.entries.get(metadata.id);
+            return retained?.capability === capability ? retained.content : emptyAdviceContent;
+          };
+          const capability: Advice = Object.freeze({ ...metadata,
+            get evaluations() { return content().evaluations; },
+            get findings() { return content().findings; },
+            get collectionEligible() { return content().collectionEligible; },
+            get delivery() { return content().delivery; },
+          });
+          return capability;
+        })),
+        publish: (capability: Advice, unit?: TicketUnit, revision: WorkRevision = capability.revision): ReadonlyArray<JoinedReviewOutcome> =>
+          commitAll((draft, records) => {
+            if (records.advice.entries.get(capability.id)?.capability !== capability) return [[], records];
+            const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+            const ticketUnits = draftTicketUnits(records.ticketUnits);
+            const units = ticketUnitOperations(ticketUnits, owner);
+            if (unit !== undefined && units.step(unit, "findingResult", "lost", { revision, adviceId: capability.id }) &&
+                units.stage(unit)?.stage !== "finding") throw new Error("invalid canonical ticket finding stage");
+            const joined = draftJoinedReviews(records.joined);
+            const revisions = revisionOperations(draftRevision(records.revision), owner);
+            const outcomes = joinedReviewOperations(joined, owner, units, revisions)
+              .settle(capability.evaluationKey, "finding", "lost", capability.id);
+            return [outcomes, { ...records, ticketUnits, joined }];
+          }),
+        eligible: (...args: Parameters<AdviceRecordOperations["eligible"]>) => adviceCommit((operations) => operations.eligible(...args)),
+        revise: (...args: Parameters<AdviceRecordOperations["revise"]>) => adviceCommit((operations) => operations.revise(...args)),
+        reserveLease: (...args: Parameters<AdviceRecordOperations["reserveLease"]>) => adviceCommit((operations) => operations.reserveLease(...args)),
+        releaseLease: (...args: Parameters<AdviceRecordOperations["releaseLease"]>) => adviceCommit((operations) => operations.releaseLease(...args)),
+        checkLease: (...args: Parameters<AdviceRecordOperations["checkLease"]>) => adviceCommit((operations) => operations.checkLease(...args)),
+        updateDelivery: (...args: Parameters<AdviceRecordOperations["updateDelivery"]>) => adviceCommit((operations) => operations.updateDelivery(...args)),
+        remove: (capability: Advice, reason: "expired" | "stale", token?: string): boolean => commitAll((draft, records) => {
+          const advice = draftAdviceRecords(records.advice);
+          const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+          const operations = adviceRecordOperations(advice, owner);
+          if (!operations.remove(capability, token)) return [false, records];
+          const delivery = draftDelivery(records.delivery);
+          const deliveryOps = deliveryOperations(delivery, owner, () => {});
+          deliveryOps.forget(capability.id);
+          const ticketUnits = draftTicketUnits(records.ticketUnits);
+          const units = ticketUnitOperations(ticketUnits, owner);
+          for (const { capability: unit, current } of ticketUnits.entries.values()) {
+            const stage = units.stage(unit);
+            if (stage?.stage === "finding" && current.adviceId === capability.id && !stage.delivered) {
+              if (!units.step(unit, "failUnit", reason, {})) throw new Error("canonical advice ticket retirement refused");
+            }
+          }
+          const adviceCaptures = new Map(records.adviceCaptures);
+          const capture = adviceCaptures.get(capability.reservation.id);
+          const revision = draftRevision(records.revision);
+          const revisions = revisionOperations(revision, owner);
+          if (capture?.capability.reservation === capability.reservation) {
+            adviceCaptures.set(capability.reservation.id, Object.freeze({ ...capture, retired: true }));
+          } else {
+            owner.release(capability.reservation);
+            revisions.release(capability.revision);
+          }
+          operations.assert();
+          revisions.assert();
+          assertDeliveryState(delivery, owner);
+          return [true, { ...records, advice, delivery, ticketUnits, adviceCaptures, revision }];
+        }),
+      };
+    })(),
     adviceCaptures: (() => {
       const captureCommit = <A>(operation: (
         captures: Map<number, AdviceCaptureRecord>, owner: CapacityLedger, revision: RevisionOperations,

@@ -83,7 +83,12 @@
     "Notice creation, suppression, merge, expiry, drop and native reservation ownership stage in one commit; measurement failure rolls back canonical state and native identity allocation",
     "Notice delivery release, acknowledgement and renewal use shared-owner operations; native snapshots and nested metadata are frozen and exposed as readonly types",
     "Notice commits validate canonical membership, partition/group identities, reservation binding, suppression and pending/leased metadata before publication",
-    "Advice revalidation capture capabilities, workspace reservations and retirement metadata now share the canonical/native Ref; physical completion restores retained capacity or atomically releases retired capacity and revision membership, with exact capability fences and an outstanding-capture clear guard"
+    "Advice revalidation capture capabilities, workspace reservations and retirement metadata now share the canonical/native Ref; physical completion restores retained capacity or atomically releases retired capacity and revision membership, with exact capability fences and an outstanding-capture clear guard",
+    "Retained advice metadata and frozen evaluation/finding/delivery snapshots moved from the server array into the canonical/native Ref; immutable advice capabilities expose owner-backed read-only getters and exact identity fences",
+    "Advice retention stages canonical finding counts and stored-result capacity with native payload snapshotting; collection readiness and lease reserve/release/check publish canonical and native changes together",
+    "Advice retirement stages canonical collection retirement, submission cleanup, ticket outcomes, capture retirement and immediate or deferred capacity/revision release in one commit; protected Stop cleanup failures publish none of those changes",
+    "Advice publication commits the owner ticket result and independently joined subscriber bindings/outcomes together after the retention barrier; deleted mutable advice types, array mutation and the superseded unitFinding helper",
+    "Collection and retention boundary checks include the advice owner and reject a restored server advice array or direct mutations of published advice payloads and delivery snapshots"
   ],
   "verification": [
     {
@@ -987,10 +992,45 @@
       "stage": "Shared advice capture lifetime",
       "command": "Typecheck, build, retention/capacity boundary checks; all boundary scripts and final typecheck after retiring obsolete advice flags",
       "exitCode": 0
+    },
+    {
+      "stage": "Shared retained advice ownership",
+      "command": "Initial server operational-notices advice-capture revision suite",
+      "exitCode": 0,
+      "tests": 95,
+      "files": 4
+    },
+    {
+      "stage": "Shared retained advice ownership",
+      "command": "Initial owner protection fixture and combined delivery/security suite",
+      "exitCode": 1,
+      "testsPassed": 120,
+      "testsExpected": 121,
+      "failure": "New fixture asserted that collection retirement would reject, but the authorized Stop submission cleanup is the rejecting transition; earlier fixture attempts omitted the required Stop poll or assumed edit authorization was protected",
+      "resolution": "Grounded the fixture in the existing Stop reserve/authorize workflow, asserted submission cleanup refusal and verified full canonical/native rollback; final combined run passed"
+    },
+    {
+      "stage": "Shared retained advice ownership",
+      "command": "Focused advice-records joined-reviews ticket-units suite",
+      "exitCode": 0,
+      "tests": 17,
+      "files": 3
+    },
+    {
+      "stage": "Shared retained advice ownership",
+      "command": "Final advice-records server terminal-collection claude-delivery security-sinks security-queued subprocess suite",
+      "exitCode": 0,
+      "tests": 132,
+      "files": 7
+    },
+    {
+      "stage": "Shared retained advice ownership",
+      "command": "Typecheck, build, all boundary scripts and git diff --check",
+      "exitCode": 0
     }
   ],
   "next": [
-    "Consolidate remaining server advice records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
+    "Consolidate committed canonical/native operations and remaining job/lifecycle/statistics ownership into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -998,7 +1038,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Remaining advice records, statistics and native resources still have class ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
+    "Statistics, native IPC/lifecycle resources and mutable job callback metadata still have class or executor ownership; combined state exposes synchronous host bridges pending runtime service consolidation",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "No full suite/package/host/live validation results yet",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim",
