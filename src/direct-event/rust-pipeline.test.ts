@@ -121,4 +121,60 @@ describe("Rust direct review integration", () => {
     const prepared = yield* prepare(event);
     expect(prepared.outcomes.filter((outcome) => outcome.status === "ready").map((outcome) => outcome.status === "ready" ? outcome.prepared.input.declaration.name : undefined)).toEqual(["Root"]);
   }));
+  it.effect("resolves Cargo-validated aliases and crate paths with one supporting capture", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+    yield* Effect.promise(() => put(root, "src/lib.rs", "mod receipt; use receipt::Receipt as R; struct Root { a: R, b: crate::receipt::Receipt }"));
+    yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { id: String }"));
+    const observation = yield* adaptCodexAdd(addEvent(root, ["src/lib.rs"]));
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const reads: string[] = [];
+    const context = { controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: rules(true),
+      captureHooks: { sourceRead: (path: string) => { reads.push(path); } } };
+    const result = yield* prepareObservation(observation, context);
+    const ready = result.outcomes.find((outcome) => outcome.status === "ready");
+    if (ready?.status !== "ready") throw new Error("Rust cross-file unit was not ready");
+    expect(preparedProviderInput(ready.prepared)).toMatchObject({ evidence: {
+      nodes: [{ name: "Receipt", domain: "src/receipt.rs" }],
+      edges: [{ symbol: "R", kind: "expanded" }, { symbol: "crate::receipt::Receipt", kind: "included" }],
+    } });
+    expect(reads.filter((path) => path === "src/receipt.rs")).toHaveLength(2);
+    expect(ready.prepared.input.sourceFingerprints?.map((source) => source.path)).toEqual(["Cargo.toml", "src/lib.rs", "src/receipt.rs"]);
+    expect(yield* preparedUnitStillCurrent(observation, ready.prepared, context)).toBe(true);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n[lib]\npath = "other.rs"\n'));
+    expect(yield* preparedUnitStillCurrent(observation, ready.prepared, context)).toBe(false);
+  }));
+
+  it.effect("resolves an edited child module through Cargo and its declared parent", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+    yield* Effect.promise(() => put(root, "src/lib.rs", "mod model; mod receipt;"));
+    yield* Effect.promise(() => put(root, "src/model.rs", "use crate::receipt::Receipt; pub struct Root { value: Receipt }"));
+    yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { id: String }"));
+    const event = addEvent(root, ["src/model.rs"]);
+    const result = yield* prepare(event);
+    const ready = result.outcomes.find((outcome) => outcome.status === "ready");
+    if (ready?.status !== "ready") throw new Error("edited Rust module was not ready");
+    expect(ready.prepared.input.sourceFingerprints?.map((source) => source.path)).toEqual(["Cargo.toml", "src/lib.rs", "src/model.rs", "src/receipt.rs"]);
+    const observation = yield* adaptCodexAdd(event);
+    if (observation === undefined) throw new Error("fixture adaptation failed");
+    const context = { controlledWriter: true, advicee: observation.advicee,
+      settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION }, rules: rules(true) };
+    yield* Effect.promise(() => put(root, "src/receipt.rs", "pub struct Receipt { id: u64 }"));
+    expect(yield* preparedUnitStillCurrent(observation, ready.prepared, context)).toBe(false);
+  }));
+
+  it.effect("follows transitive declared modules with Rust's external-file layout", () => Effect.gen(function* () {
+    const root = yield* Effect.promise(makeGitFixture);
+    yield* Effect.promise(() => put(root, "Cargo.toml", '[package]\nname = "fixture"\nversion = "0.1.0"\nedition = "2021"\n'));
+    yield* Effect.promise(() => put(root, "src/lib.rs", "mod outer; use outer::Parent; struct Root { value: Parent }"));
+    yield* Effect.promise(() => put(root, "src/outer.rs", "mod leaf; use self::leaf::Leaf; pub struct Parent { value: Leaf }"));
+    yield* Effect.promise(() => put(root, "src/outer/leaf.rs", "pub struct Leaf { value: String }"));
+    const result = yield* prepare(addEvent(root, ["src/lib.rs"]));
+    const ready = result.outcomes.find((outcome) => outcome.status === "ready");
+    if (ready?.status !== "ready") throw new Error("transitive Rust unit was not ready");
+    expect(preparedProviderInput(ready.prepared)?.evidence.nodes.map((node) => node.domain)).toEqual(["src/outer.rs", "src/outer/leaf.rs"]);
+  }));
+
 });

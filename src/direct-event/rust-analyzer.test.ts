@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeTypeFile, combinedAnalyzerMaterializationPreflight, inspectGraphFile, MAX_TYPE_DECLARATIONS } from "./analyzer.ts";
+import { analyzeTypeFile, combinedAnalyzerMaterializationPreflight, inspectGraphFile, inspectRustModules, MAX_TYPE_DECLARATIONS } from "./analyzer.ts";
 
 const units = (source: string) => {
   const result = analyzeTypeFile("src/model.rs", source);
@@ -8,6 +8,105 @@ const units = (source: string) => {
 };
 
 describe("bounded Rust type extraction", () => {
+  it("extracts declared-module imports, aliases, lists and qualified references", () => {
+    const source = "mod receipt; use self::receipt::{Receipt, Failure as Error}; pub(crate) struct Root { a: Receipt, b: Error, c: receipt::Receipt, d: self::receipt::Failure }";
+    const facts = inspectGraphFile("src/lib.rs", source, { rustCrateRoot: true });
+    expect([...facts?.imports ?? []]).toEqual([
+      ["Receipt", { path: "./receipt", name: "Receipt" }],
+      ["Error", { path: "./receipt", name: "Failure" }],
+      ["receipt::Receipt", { path: "./receipt", name: "Receipt" }],
+      ["self::receipt::Failure", { path: "./receipt", name: "Failure" }],
+    ]);
+    expect(facts?.declarations.get("Root")?.references).toEqual([
+      { kind: "named", name: "Receipt" }, { kind: "named", name: "Error" },
+      { kind: "named", name: "receipt::Receipt" }, { kind: "named", name: "self::receipt::Failure" },
+    ]);
+    expect(facts?.declarations.get("Root")?.exported).toBe(true);
+    expect(units(source)[0]?.status).toBe("unsupported");
+    expect(combinedAnalyzerMaterializationPreflight("src/lib.rs", source)?.hasImports).toBe(true);
+  });
+
+  it("resolves crate-qualified declared modules only at conventional crate-root files", () => {
+    const source = "mod child; use crate::child::Item as Alias; pub struct Root { a: Alias, b: crate::child::Item }";
+    for (const path of ["src/lib.rs", "src/main.rs"]) {
+      const facts = inspectGraphFile(path, source, { rustCrateRoot: true });
+      expect(facts?.imports.get("Alias")).toEqual({ path: "./child", name: "Item" });
+      expect(facts?.imports.get("crate::child::Item")).toEqual({ path: "./child", name: "Item" });
+    }
+    expect(inspectGraphFile("src/foo.rs", source)?.imports.size).toBe(0);
+    expect(inspectGraphFile("src/foo/mod.rs", source)?.imports.size).toBe(0);
+  });
+
+  it("requires an established Cargo role even for conventional filenames", () => {
+    for (const path of ["src/lib.rs", "src/main.rs", "src/foo/mod.rs"]) {
+      expect(inspectGraphFile(path, "mod child; struct Root { value: child::Item }")?.imports.size).toBe(0);
+    }
+  });
+
+  it("resolves crate imports through supplied captured root-module paths", () => {
+    const facts = inspectGraphFile("src/outer/model.rs", "use crate::receipt::Receipt; struct Root { value: Receipt }", {
+      rustExternalModule: true, rustCrateModules: new Map([["receipt", "../receipt"]]),
+    });
+    expect(facts?.imports.get("Receipt")).toEqual({ path: "../receipt", name: "Receipt" });
+  });
+
+  it("extracts safe source-only external module links including module-only files", () => {
+    expect(inspectRustModules("pub mod receipt; mod model;" )).toEqual({ names: ["receipt", "model"] });
+    expect(inspectRustModules("use crate::receipt::Receipt; mod child; pub struct Root { value: Receipt }")).toEqual({ names: ["child"] });
+    for (const source of ["mod x {}", "#[path=\"other.rs\"] mod x;", "mod x; mod x;", "mod x; struct x;", "make_modules!(); mod x;", "mod x; use x::*;"]) {
+      expect(inspectRustModules(source)).toBeUndefined();
+    }
+  });
+
+  it("requires known external-module origin for ordinary Rust child directories", () => {
+    const source = "mod child; use child::Item; struct Root { value: Item }";
+    expect(inspectGraphFile("src/foo.rs", source)?.imports.size).toBe(0);
+    expect(inspectGraphFile("src/foo.rs", source, { rustExternalModule: true })?.imports.get("Item")).toEqual({ path: "./foo/child", name: "Item" });
+    expect(inspectGraphFile("src/lib.rs", source, { rustExternalModule: true })?.imports.get("Item")).toEqual({ path: "./lib/child", name: "Item" });
+    expect(inspectGraphFile("src/main.rs", "mod child; use crate::child::Item; struct Root { value: Item }", { rustExternalModule: true })?.imports.size).toBe(0);
+  });
+
+  it.each([
+    "mod child; struct child; struct Root { value: child::Item }",
+    "mod child; trait child {} struct Root { value: child::Item }",
+    "mod child; union child { n: u8 } struct Root { value: child::Item }",
+    "mod child; use child::Item as Root; struct Root;",
+    "mod child; use child::Item as child; struct Root { value: child::Item }",
+  ])("invalidates conflicting module/type/alias bindings %s", (source) => {
+    const facts = inspectGraphFile("src/lib.rs", source, { rustCrateRoot: true });
+    expect(facts?.imports.size).toBe(0);
+    expect(facts?.declarations.get("Root")?.references.some((reference) => reference.kind === "unsupported")).toBe(true);
+  });
+
+  it("keeps a generic parameter from resolving through a shadowed module", () => {
+    const facts = inspectGraphFile("src/lib.rs", "mod T; struct Root<T> { bad: T::Item, explicit: self::T::Item }", { rustCrateRoot: true });
+    expect(facts?.declarations.get("Root")?.references).toEqual([
+      { kind: "unsupported", name: "T::Item" }, { kind: "named", name: "self::T::Item" },
+    ]);
+  });
+
+  it("derives child module directories from the containing Rust file", () => {
+    const source = "mod child; use child::Item as Alias; struct Root { value: Alias }";
+    for (const [path, expected] of [["src/main.rs", "./child"], ["src/lib.rs", "./child"], ["src/foo/mod.rs", "./child"], ["src/foo.rs", "./foo/child"]]) {
+      expect(inspectGraphFile(path!, source, { rustCrateRoot: path === "src/main.rs" || path === "src/lib.rs", rustExternalModule: path === "src/foo.rs" || path === "src/foo/mod.rs" })?.imports.get("Alias")?.path).toBe(expected);
+    }
+    expect(inspectGraphFile("src/foo.rs", source)?.declarations.get("Root")?.exported).toBe(false);
+  });
+
+  it.each([
+    "use external::Item; struct Root { value: Item }",
+    "mod child { pub struct Item; } use child::Item; struct Root { value: Item }",
+    "mod child; use child::*; struct Root { value: String }",
+    "mod child; pub use child::Item; struct Root { value: Item }",
+
+    "#[path = \"other.rs\"] mod child; use child::Item; struct Root { value: Item }",
+    "mod child; use child::nested::Item; struct Root { value: Item }",
+  ])("does not invent graph bindings for unsupported namespace syntax %s", (source) => {
+    const facts = inspectGraphFile("src/lib.rs", source, { rustCrateRoot: true });
+    expect(facts?.imports.size).toBe(0);
+    expect(facts?.declarations.get("Root")?.references.some((reference) => reference.kind === "unsupported")).toBe(true);
+  });
+
   it("closes tuple and named enum payloads through nested prelude wrappers", () => {
     const source = `struct Receipt { id: String }
 struct Failure { reason: String }
