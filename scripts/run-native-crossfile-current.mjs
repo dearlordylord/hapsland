@@ -1,4 +1,4 @@
-// Bounded real-host observation of the current cross-file review path.
+// Bounded real-host observation of TypeScript, Rust and Bend cross-file review.
 // Raw host streams, source, provider bodies, and credentials stay in a disposable directory.
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -18,6 +18,14 @@ import { verifyCodexPostEditHunks } from "../src/direct-event/codex-patch-hunks.
 
 const project = resolve(import.meta.dirname, "..");
 const host = process.argv.find((arg) => arg.startsWith("--host="))?.slice(7);
+const language = process.argv.find(arg => arg.startsWith('--language='))?.slice(11) ?? 'typescript';
+if (!['typescript','rust','bend'].includes(language)) throw new Error('Choose a supported source language');
+const fixtures = {
+ typescript: {entry:'payment.ts',support:'support.ts',supportSource:'export type PaymentStatus = "pending" | "succeeded" | "failed";\nexport interface Receipt { value: string }\n',initial:"import type { PaymentStatus, Receipt } from './support';\nexport interface PaymentState { status: PaymentStatus; receipt: Receipt | null; failure_reason: string | null }\n",good:"import type { PaymentStatus, Receipt } from './support';\nexport type PaymentState = { status: 'pending' } | { status: 'succeeded'; receipt: Receipt } | { status: 'failed'; failure_reason: string };\n"},
+ rust: {entry:'src/lib.rs',support:'src/support.rs',supportSource:'pub enum PaymentStatus { Pending, Succeeded, Failed }\npub struct Receipt { pub value: String }\n',initial:'mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub struct PaymentState { pub status: PaymentStatus, pub receipt: Option<Receipt>, pub failure_reason: Option<String> }\n',good:'mod support; use self::support::PaymentStatus; use self::support::Receipt;\npub enum PaymentState { Pending, Succeeded { receipt: Receipt }, Failed { failure_reason: String } }\n'},
+ bend: {entry:'payment.bend',support:'support.bend',supportSource:'import Base\ntype PaymentStatus is Data:\n  Pending{}\n  Succeeded{}\n  Failed{}\ntype Receipt is Data:\n  Receipt{value: String}\ntype OptionalReceipt is Data:\n  Absent{}\n  Present{value: Receipt}\ntype OptionalString is Data:\n  AbsentText{}\n  PresentText{value: String}\n',initial:'import Base\nimport ./support.bend as M\ntype PaymentState is Data:\n  PaymentState{status: M.PaymentStatus, receipt: M.OptionalReceipt, failure_reason: M.OptionalString}\n',good:'import Base\nimport ./support.bend as M\ntype PaymentState is Data:\n  Pending{}\n  Succeeded{receipt: M.Receipt}\n  Failed{failure_reason: String}\n'},
+};
+const fixture = fixtures[language];
 const mode = process.argv.includes("--live") ? "live-jev" : "controlled-offline";
 if (host !== "codex" && host !== "claude") throw new Error("Choose --host=codex or --host=claude");
 if (mode === "live-jev" && !process.argv.includes("--execute-paid")) throw new Error("Live Jev requires --execute-paid");
@@ -32,8 +40,13 @@ const temp = mkdtempSync(join(tmpdir(), "hapsland-crossfile-native-"));
 const repo = join(temp, "repo"), runtime = join(temp, "resident"), activity = join(temp, "activity");
 const log = join(temp, "hooks.jsonl"), summaries = join(temp, "requests.jsonl"), calls = join(temp, "calls.jsonl");
 const nativeEvents = join(temp, "native-edits.jsonl");
-const rootFile = join(repo, "order-count.ts"), supportFile = join(repo, "support.ts");
+const rootFile = join(repo, fixture.entry), supportFile = join(repo, fixture.support);
 const started = Date.now();
+const runId = `${host}-${language}-${mode}-${started}`;
+const evidenceRoot = join(project, 'evidence', 'native-languages');
+const declaration = {maximumProviderRequests:6,automaticHostRetries:0,hostCeilingMs:240000,syntheticRepositoryOnly:true,maximumSourceEditCalls:2,sourceProfile:'bounded local cross-file types',runtimeVersion:version};
+mkdirSync(evidenceRoot,{recursive:true});
+writeFileSync(join(evidenceRoot,`${runId}-declaration.json`),JSON.stringify({schemaVersion:1,declaredAt:new Date().toISOString(),host,language,mode,declaration},null,2)+'\n',{flag:'wx'});
 const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
 const lines = (path) => readFileSync(path, "utf8").trim().split("\n").filter(Boolean).flatMap((line) => {
   try { return [JSON.parse(line)]; } catch { return []; }
@@ -48,7 +61,7 @@ const run = (command, args, env, cwd, timeoutMs = 240_000) => new Promise((resol
   child.once("error", reject);
   child.once("close", (code, signal) => { clearTimeout(timer); resolveRun({ code, signal, stdout, stderrBytes }); });
 });
-const initial = "import type { RawCount } from './support';\nexport type OrderCount = RawCount;\n";
+const initial = fixture.initial;
 const answers = Object.fromEntries([
   "r1_inferred_case", "r2_meaningless_combinations", "r3_split_correlations",
   "r4_duplicate_encoding", "r5_absence_confusion", "r6_bare_domain_value",
@@ -61,13 +74,15 @@ try {
   mkdirSync(repo);
   const init = spawnSync("git", ["init", "--quiet", "--initial-branch=master", repo]);
   if (init.status !== 0) throw new Error("Disposable Git setup failed");
-  writeFileSync(supportFile, "export type RawCount = number;\n");
-  writeFileSync(join(repo, "README.md"), "# Order count\nAn OrderCount must reject an arbitrary number after review.\n");
+  mkdirSync(join(repo, "src"), { recursive: true });
+  writeFileSync(supportFile, fixture.supportSource);
+  if(language === "rust") writeFileSync(join(repo,"Cargo.toml"), '[package]\nname="synthetic_payment"\nversion="0.1.0"\nedition="2021"\n');
+  writeFileSync(join(repo, "README.md"), "# Order count\nA payment is pending, succeeded with a receipt, or failed with a failure reason. Pending has neither result; success and failure are mutually exclusive.\n");
   writeFileSync(join(repo, "tsconfig.json"), JSON.stringify({ compilerOptions: {
     strict: true, noEmit: true, target: "ES2022", module: "ESNext", moduleResolution: "Bundler", types: [], skipLibCheck: true,
   }, include: ["*.ts"] }));
   writeFileSync(join(repo, "package.json"), JSON.stringify({ private: true, scripts: {
-    test: `${quote(process.execPath)} ${quote(join(project, "node_modules/typescript/bin/tsc"))} -p tsconfig.json`,
+    test: language === "typescript" ? `${quote(process.execPath)} ${quote(join(project, "node_modules/typescript/bin/tsc"))} -p tsconfig.json` : language === "rust" ? "rustc --edition=2021 --crate-type=lib src/lib.rs -o fixture.rlib" : "bend payment.bend --check-only",
   } }));
   spawnSync("git", ["-C", repo, "add", "README.md", "support.ts", "tsconfig.json", "package.json"]);
 
@@ -108,7 +123,7 @@ globalThis.fetch=async (...args)=>{
   appendFileSync(path,JSON.stringify({at:Date.now(),kind:'request'})+'\\n',{mode:0o600});
   const body=String(args[1]?.body??args[0]?.body??'');
   appendFileSync(process.env.HAPSLAND_NATIVE_SUMMARIES,JSON.stringify({provider:true,
-    expandedEvidence:body.includes('expanded'),supportDeclarationPresent:body.includes('export type RawCount = number'),
+    expandedEvidence:body.includes('expanded'),supportDeclarationPresent:body.includes(${JSON.stringify(language === "typescript" ? "export interface Receipt" : language === "rust" ? "pub struct Receipt" : "type Receipt is Data:")}),
     bytes:Buffer.byteLength(body)})+'\\n',{mode:0o600});
   return original(...args);
 };
@@ -157,12 +172,12 @@ globalThis.fetch=async (...args)=>{
     if (!env.TYPESAFE_API_KEY) throw new Error("Jev credential unavailable");
   }
   delete env.OPENAI_API_KEY;
-  const prompt = `Use ${host === "codex" ? "apply_patch" : "Write"} to create order-count.ts with exactly these two lines:\n${initial}\n` +
-    "After that edit, finish immediately. Do not repair before Hapsland feedback. If Hapsland gives actionable advice, repair OrderCount so an arbitrary number cannot be assigned to it. Then run npm test and finish. If no advice arrives, leave the draft unchanged. Use at most two source-edit tool calls. Stay in this repository; do not inspect integration settings, credentials or environment variables. In your final reply include HAPSLAND_ADVICE_APPLIED only if you received actionable Hapsland advice and used it; otherwise include HAPSLAND_ADVICE_NOT_APPLIED. Name the delivered rule ID if you saw one. Be truthful.";
+  const prompt = `Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this initial draft:\n${initial}\nAfter the edit run npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, repair PaymentState to constrain meaningless combinations, using this final design:\n${fixture.good}\nThen run npm test; if review is pending run npm test again. Keep the import/module lines exactly unchanged, including unused imported names; modify only the PaymentState declaration. For the repair use ${host === "codex" ? "apply_patch with relative paths" : "Edit"}. Leave the supporting file unchanged. Use at most two source-edit tool calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Name the delivered rule ID. Be truthful.`;
   const args = host === "codex"
     ? ["exec", "--ephemeral", "--json", "--dangerously-bypass-hook-trust", "--dangerously-bypass-approvals-and-sandbox", "--ignore-rules", "-C", repo, prompt]
     : ["-p", "--output-format", "stream-json", "--verbose", "--no-session-persistence",
       "--allowedTools", "Read,Edit,Write,Bash", "--permission-mode", "acceptEdits", prompt];
+  const runnerHash = createHash("sha256").update(readFileSync(new URL(import.meta.url))).digest("hex");
   const result = await run(binary, args, env, repo);
   const native = safeLines(log);
   const requestShapes = safeLines(summaries);
@@ -176,12 +191,14 @@ globalThis.fetch=async (...args)=>{
     return [];
   });
   const text = messages.at(-1) ?? "";
+  const streamItems = result.stdout.split('\n').flatMap(line=>{try{return [JSON.parse(line)]}catch{return []}});
+  const hostDiagnostics = {permissionDenials:streamItems.filter(item=>item.type==='result').reduce((n,item)=>n+(item.permission_denials?.length??0),0),finalMentionsPermission:/permission|denied|approval/i.test(text),finalMentionsEditLimit:/limit|two.*edit|tool.*call/i.test(text),toolErrors:streamItems.filter(item=>item.type==='user').flatMap(item=>item.message?.content??[]).filter(item=>item.type==='tool_result'&&item.is_error===true).length};
   const finding = native.find((event) => event.finding && (event.kind === "edit" || event.kind === "stop")) ??
     native.find((event) => event.finding);
   const repair = finding && native.find((event) => event.kind === "edit" && event.at > finding.at &&
     event.sourceHash && event.sourceHash !== finding.sourceHash);
   const source = existsSync(rootFile) ? readFileSync(rootFile, "utf8") : "";
-  const diagnosticObservation = await Effect.runPromise(adaptCodexAdd(addEvent(repo, ["order-count.ts"])));
+  const diagnosticObservation = await Effect.runPromise(adaptCodexAdd(addEvent(repo, [fixture.entry])));
   const postEditPreparation = diagnosticObservation === undefined ? { status: "adaptation-failed" } :
     await Effect.runPromise(prepareObservation(diagnosticObservation, {
       controlledWriter: true, advicee: diagnosticObservation.advicee,
@@ -209,12 +226,12 @@ globalThis.fetch=async (...args)=>{
     startsPatchApplied: typeof nativeResponse === "string" && /^Patch applied/iu.test(nativeResponse),
     failureWord: typeof nativeResponse === "string" && /error|failed|could not|not found/i.test(nativeResponse),
     verifiedHunks: typeof lastNativeEdit?.tool_input?.command === "string"
-      ? verifyCodexPostEditHunks(lastNativeEdit.tool_input.command, "order-count.ts", source)?.length ?? null : null,
+      ? verifyCodexPostEditHunks(lastNativeEdit.tool_input.command, fixture.entry, source)?.length ?? null : null,
     normalizedPatchPresent: typeof nativeObservation?.nativePatchCommand === "string",
     normalizedVerifiedHunks: typeof nativeObservation?.nativePatchCommand === "string"
-      ? verifyCodexPostEditHunks(nativeObservation.nativePatchCommand, "order-count.ts", source)?.length ?? null : null,
+      ? verifyCodexPostEditHunks(nativeObservation.nativePatchCommand, fixture.entry, source)?.length ?? null : null,
     patchPathAbsolute: nativePatchPath?.startsWith("/") ?? false,
-    patchPathRelativeMatch: nativePatchPath === "order-count.ts",
+    patchPathRelativeMatch: nativePatchPath === fixture.entry,
     patchPathInsideRepo: nativePatchPath?.startsWith(`${repo}/`) ?? false,
     patchHasCarriageReturn: lastNativeEdit?.tool_input?.command?.includes("\r") ?? false,
   } : undefined;
@@ -231,8 +248,19 @@ globalThis.fetch=async (...args)=>{
       operations: nativeObservation.candidates.map((item) => item.operation),
     }));
   const check = spawnSync("npm", ["test"], { cwd: repo, env, encoding: "utf8", timeout: 30_000 });
-  writeFileSync(join(repo, "invalid.ts"), "import type { OrderCount } from './order-count';\n// @ts-expect-error raw numbers must not be OrderCount\nconst invalid: OrderCount = 2;\n");
-  const invalid = spawnSync("npm", ["test"], { cwd: repo, env, encoding: "utf8", timeout: 30_000 });
+  let invalid;
+  if(language === 'typescript') {
+    writeFileSync(join(repo,'invalid.ts'), "import type { PaymentState } from './payment';\n// @ts-expect-error success requires a receipt\nconst invalid: PaymentState = {status:'succeeded'};\n// @ts-expect-error pending cannot have both results\nconst contradictory: PaymentState = {status:'pending',receipt:{value:''},failure_reason:'failure'};\n");
+    invalid = spawnSync('npm',['test'],{cwd:repo,env,encoding:'utf8',timeout:30000});
+  } else if(language === 'rust') {
+    writeFileSync(join(repo,'invalid.rs'), '#[path="src/lib.rs"] mod payment; use payment::PaymentState; fn main() { let _ = PaymentState::Succeeded {}; }');
+    const probe=spawnSync('rustc',['--edition=2021','invalid.rs','-o','invalid'],{cwd:repo,env,encoding:'utf8',timeout:30000});
+    invalid={status:probe.status !== null && probe.status !== 0 && probe.stderr.includes('error[E0063]') ? 0 : 1};
+  } else {
+    writeFileSync(join(repo,'invalid.bend'), 'import Base\nimport ./payment.bend as P\ndef invalid() -> P.PaymentState:\n  P.Succeeded{}\n');
+    const probe=spawnSync('bend',['invalid.bend','--check-only'],{cwd:repo,env,encoding:'utf8',timeout:30000});
+    invalid={status:probe.status !== null && probe.status !== 0 && /receipt|field|argument/i.test(probe.stdout+probe.stderr) ? 0 : 1};
+  }
   const stages = [];
   const visit = (path) => {
     if (!existsSync(path)) return;
@@ -251,9 +279,9 @@ globalThis.fetch=async (...args)=>{
   stages.sort((a, b) => a.atMs - b.atMs);
   const record = { schemaVersion: 1, recordedAt: new Date().toISOString(), commit: spawnSync("git", ["-C", project, "rev-parse", "HEAD"], { encoding: "utf8" }).stdout.trim(),
     sourceWorktreeDirty: spawnSync("git", ["-C", project, "diff", "--quiet", "--", "src", "scripts"], { encoding: "utf8" }).status !== 0,
-    runtime: host === "codex" ? "Codex CLI" : "Claude Code", version, mode,
-    declaration: { maximumProviderRequests: 6, automaticRetries: 0, hostCeilingMs: 240_000, syntheticRepositoryOnly: true },
-    hostExitCode: result.code, hostSignal: result.signal, elapsedMs: Date.now() - started, providerCalls,
+    language, runnerHash, executionProfile: {runtime:"source-checkout",installedPackageValidated:false,normalTrustValidated:false,syntheticRepositoryOnly:true}, runtime: host === "codex" ? "Codex CLI" : "Claude Code", version, mode,
+    declaration,
+    hostDiagnostics, hostExitCode: result.code, hostSignal: result.signal, elapsedMs: Date.now() - started, providerCalls,
     requestShapes, postEditPreparation, nativeUpdatePreparation, nativeResponseShape,
     activityStages: stages, hookEvents: native.map((item) => ({
       kind: item.kind, atMs: item.at - started, durationMs: item.doneAt - item.at, event: item.event,
@@ -264,16 +292,16 @@ globalThis.fetch=async (...args)=>{
       crossFileExpanded: requestShapes.some((item) => item.expandedEdges > 0 || item.expandedEvidence && item.supportDeclarationPresent),
       findingDelivered: !!finding, editAfterFinding: !!repair, agentAcknowledgesAdvice: text.includes("HAPSLAND_ADVICE_APPLIED") && !text.includes("HAPSLAND_ADVICE_NOT_APPLIED"),
       agentNamesRule: !!finding && finding.ruleIds.some((id) => text.includes(id)),
-      sourceChanged: !!source && source !== initial, sourceCompiles: check.status === 0,
-      rawNumberRejected: invalid.status === 0,
+      sourceChanged: !!source && source !== initial, finalDesignConstrained: language === "typescript" ? source.includes("status: 'succeeded'") && !source.includes("receipt: Receipt | null") : language === "rust" ? source.includes("pub enum PaymentState") : source.includes("Succeeded{receipt: M.Receipt}") && !source.includes("PaymentState{status:"), sourceCompiles: check.status === 0,
+      missingReceiptRejected: invalid.status === 0,
       followupObserved: !!repair && stages.some((item) => item.atMs > repair.at - started && (item.stage === "clear" || item.stage === "findings")),
     },
     rawHostStreamRetained: false, sourceRetained: false, providerBodyRetained: false, credentialsRetained: false,
     hostBytesDiscarded: Buffer.byteLength(result.stdout) + result.stderrBytes };
   record.verdict = result.code === 0 && Object.entries(record.checks)
     .filter(([name]) => name !== "agentNamesRule").every(([, value]) => value) ? "demonstrated" : "incomplete";
-  const output = join(project, "evidence", "native-current", `${host}-${mode}-${Date.now()}.json`);
-  mkdirSync(join(project, "evidence", "native-current"), { recursive: true });
+  const output = join(evidenceRoot, `${runId}.json`);
+  mkdirSync(join(project, "evidence", "native-languages"), { recursive: true });
   writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
   console.log(JSON.stringify({ evidence: output, verdict: record.verdict, checks: record.checks, providerCalls }));
   if (record.verdict !== "demonstrated") process.exitCode = 1;

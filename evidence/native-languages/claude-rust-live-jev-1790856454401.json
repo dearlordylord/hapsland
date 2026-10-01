@@ -1,0 +1,218 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-01T12:08:10.046Z",
+  "commit": "a241eb5f554c112609047df97079bc404580d339",
+  "sourceWorktreeDirty": false,
+  "language": "rust",
+  "runnerHash": "f378cfcf46e327326e7080ef1674db2f0e755b55b1037f4bf5e75be1afef4ba6",
+  "executionProfile": {
+    "runtime": "source-checkout",
+    "installedPackageValidated": false,
+    "normalTrustValidated": false,
+    "syntheticRepositoryOnly": true
+  },
+  "runtime": "Claude Code",
+  "version": "2.1.218 (Claude Code)",
+  "mode": "live-jev",
+  "declaration": {
+    "maximumProviderRequests": 6,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 2,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "2.1.218 (Claude Code)"
+  },
+  "hostDiagnostics": {
+    "permissionDenials": 0,
+    "finalMentionsPermission": false,
+    "finalMentionsEditLimit": true,
+    "toolErrors": 0
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 35652,
+  "providerCalls": 2,
+  "requestShapes": [
+    {
+      "provider": true,
+      "expandedEvidence": true,
+      "supportDeclarationPresent": true,
+      "bytes": 16261
+    },
+    {
+      "provider": true,
+      "expandedEvidence": true,
+      "supportDeclarationPresent": true,
+      "bytes": 15919
+    }
+  ],
+  "postEditPreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1
+  },
+  "nativeUpdatePreparation": {
+    "status": "complete",
+    "pathReasons": [],
+    "analysisFailures": [],
+    "readyUnits": 1,
+    "operations": [
+      "update"
+    ]
+  },
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 9999
+    },
+    {
+      "stage": "pending",
+      "atMs": 10091
+    },
+    {
+      "stage": "findings",
+      "atMs": 10382
+    },
+    {
+      "stage": "pending",
+      "atMs": 26250
+    },
+    {
+      "stage": "pending",
+      "atMs": 26354
+    },
+    {
+      "stage": "clear",
+      "atMs": 26614
+    }
+  ],
+  "hookEvents": [
+    {
+      "kind": "prompt",
+      "atMs": 1160,
+      "durationMs": 848,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 9103,
+      "durationMs": 442,
+      "event": "PreToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 0
+    },
+    {
+      "kind": "background",
+      "atMs": 9592,
+      "durationMs": 389,
+      "event": "PostToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 195
+    },
+    {
+      "kind": "edit",
+      "atMs": 9590,
+      "durationMs": 958,
+      "event": "PostToolUse",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "ruleIds": [
+        "r2_meaningless_combinations"
+      ],
+      "initial": true,
+      "sourceBytes": 195
+    },
+    {
+      "kind": "before-edit",
+      "atMs": 25175,
+      "durationMs": 416,
+      "event": "PreToolUse",
+      "tool": "Edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": true,
+      "sourceBytes": 195
+    },
+    {
+      "kind": "edit",
+      "atMs": 25675,
+      "durationMs": 968,
+      "event": "PostToolUse",
+      "tool": "Edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 176
+    },
+    {
+      "kind": "background",
+      "atMs": 25663,
+      "durationMs": 5682,
+      "event": "PostToolUse",
+      "tool": "Edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 176
+    },
+    {
+      "kind": "stop",
+      "atMs": 34647,
+      "durationMs": 420,
+      "event": "Stop",
+      "tool": null,
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "ruleIds": [],
+      "initial": false,
+      "sourceBytes": 176
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "crossFileExpanded": true,
+    "findingDelivered": true,
+    "editAfterFinding": true,
+    "agentAcknowledgesAdvice": true,
+    "agentNamesRule": true,
+    "sourceChanged": true,
+    "finalDesignConstrained": true,
+    "sourceCompiles": true,
+    "missingReceiptRejected": true,
+    "followupObserved": true
+  },
+  "rawHostStreamRetained": false,
+  "sourceRetained": false,
+  "providerBodyRetained": false,
+  "credentialsRetained": false,
+  "hostBytesDiscarded": 152411,
+  "verdict": "demonstrated"
+}

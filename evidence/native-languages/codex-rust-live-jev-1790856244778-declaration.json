@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-01T12:04:04.778Z",
+  "host": "codex",
+  "language": "rust",
+  "mode": "live-jev",
+  "declaration": {
+    "maximumProviderRequests": 6,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 2,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "codex-cli 0.155.1"
+  }
+}

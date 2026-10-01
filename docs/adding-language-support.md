@@ -1,236 +1,163 @@
-# Adding another source language
+# Adding a source-language adapter
 
-**Purpose:** Reuse the TypeScript-to-Rust lessons when exploring another source language.
-**Status:** Maintained advisory guide.
-**Authority:** Product-specification advisory findings and implementation/validation evidence. Requirements remain owned by the [accepted type/function review contract](type-function-review-proposal.md), [rule evaluation model](../PRODUCT-RULE-EVALUATION-MODEL.md), and runtime contracts; this guide does not amend them.
-**Expected use:** Plan a bounded language addition, identify assumptions to falsify, and assemble evidence for independent review.
-**Lifecycle:** Contributors update this guide after each language addition or new counterexample. Review it whenever artifact, evidence, rule, or agent-runtime boundaries change; consolidate superseded advice into current guidance.
+**Purpose:** Describe the current adapter architecture and the repeatable workflow for adding a source language to Hapsland.
+**Status:** Maintained contributor guidance.
+**Authority:** Implementation guidance and links to validation evidence. The [accepted type/function review contract](type-function-review-proposal.md), [rule evaluation model](../PRODUCT-RULE-EVALUATION-MODEL.md), and runtime contracts own product requirements; this guide does not amend them.
+**Expected use:** Implement, test, and review a bounded source-language adapter.
+**Lifecycle:** Update with adapter interfaces, supported profiles, validation tools, or new binding counterexamples. Review whenever parser/compiler assumptions, capture boundaries, rule capabilities, or agent-runtime profiles change.
 
-The Rust addition showed that much of Hapsland can remain shared while source
-extraction changes. It also showed that recognizing declarations is only the
-start: an apparently resolved name can hide missing evidence. A new language
-needs its own explicit evidence boundary and validation cases.
+## Current implementation
 
-## What Rust established
+TypeScript, Rust, and Bend use the shared review pipeline. The
+[README language table](../README.md#supported-languages) describes user-facing
+support; the [branch contracts](type-function-review-proposal.md#branch-contracts)
+own exact syntax, binding, and omission rules. External crates, Bend hub imports,
+and unsupported or ambiguous bindings remain outside supported resolution.
 
-The active Rust scope is explicit top-level structs, enums, and type aliases,
-with bounded type references across verified local Cargo modules. TypeScript retains its supported local
-import traversal and function branch. TypeScript type shapes and Rust types use
-the existing type-shape v1 input; TypeScript functions use their separate
-function v1 contract. Rust functions, external-crate resolution, and compiler expansion
-are deferred. Consult
-the accepted contract for the exact current syntax and limits.
+Source-language code lives in
+[`src/direct-event/languages/`](../src/direct-event/languages). The static
+[registry](../src/direct-event/languages/registry.ts) selects adapters by their
+extension metadata. It is not a dynamic plugin system.
 
-[Analyzer tests](../src/direct-event/rust-analyzer.test.ts) exercise extraction,
-closure, limits, and adversarial syntax. [Pipeline tests](../src/direct-event/rust-pipeline.test.ts)
-exercise attribution, rule capabilities, rendering, freshness, and refusal of
-cross-language import binding. These are deterministic implementation evidence.
+| Responsibility | Owner |
+| --- | --- |
+| Grammar setup, extraction, exact declaration source and locations, bindings, import candidates, parser smoke probe | Source-language adapter |
+| Language-specific module authority and session context | Adapter `prepareGraph` and its graph-session closure |
+| Common declaration/reference/location interfaces | [Adapter contracts](../src/direct-event/languages/contracts.ts) |
+| Selection, containment, stable captures, exclusions, graph budgets, cycle termination, freshness | Shared host and resolver |
+| Edited-root attribution, evidence capability gates, rendering, Jev dispatch, advice delivery | Shared review pipeline and runtime adapters |
+| Native parser artifacts and clean release installation | Packaging and conformance tooling |
 
-The [paired live record](../evidence/rust-support/paired-designs.json) demonstrates
-one synthetic payment-state contrast for `r2_meaningless_combinations`: three
-bad-design and three good-design requests met the declared threshold separation.
-The [native record](../evidence/rust-support/native-codex.json) demonstrates a
-finding, acknowledged repair, compiler checks, and a correlated clear follow-up
-in a disposable source-checkout Codex CLI 0.156.0 session using `gpt-6-luna` at
-max reasoning effort on Linux arm64. The prompt deliberately prescribed the
-initial draft and suggested a repair; this is an integration demonstration,
-not an unprompted agent-quality comparison.
+TypeScript type and function extraction share native grammar setup. Rust keeps
+Cargo/module authority inside its adapter. Bend uses an independent surface
+extractor returning common facts; it does not fabricate TypeScript syntax nodes
+or execute the compiler on edited files. Generic traversal must not acquire
+language flags, grammar selection, or filename conventions.
 
-The cross-file amendment has separate [split-file live evidence](../evidence/rust-support/cross-file-paired-designs.json):
-two bad probabilities (0.87, 0.84) and two good probabilities (0.06, 0.06),
-through actual production observation preparation and rendering, with captured
-supporting declarations. Both synthetic Rust fixtures compiled. Supporting-file
-mutation invalidated preparation and restoration made it current again.
-These Rust observations come from a combined stacked-branch run; the original
-preexecution declaration and executed revision are retained in the record.
-[Installed-package evidence](../evidence/rust-support/cross-file-linux-package.json)
-separately exercises Cargo authority and supporting-file preparation in a clean
-production installation. [macOS arm64 package conformance](https://github.com/dearlordylord/hapsland/actions/runs/36818185849)
-also passed at `c8fddecbe478a766e065408fa5d1d8e1c0016339`; its
-[sanitized record](../evidence/rust-support/cross-file-macos-package.json) includes
-actual installed Cargo/module preparation. The prior native-agent run predates
-this amendment. The earlier cross-file full run had one existing TypeScript
-Claude hook child exit without a status; isolation and a fresh full run passed
-without production changes at that checkpoint. Its termination cause remains
-unestablished.
+## Adding a language
 
-The cohesive-adapter refactor has separate [Linux package evidence](../evidence/rust-support/adapter-linux-package.json)
-and [macOS package evidence](../evidence/rust-support/adapter-macos-package.json),
-with [macOS CI](https://github.com/dearlordylord/hapsland/actions/runs/36821309415)
-at runtime checkpoint `8345cc3bd6dd4d74c0056f524f8fe86e24b905b4`.
-The latest full Rust suite passed 921 tests with two live tests skipped;
-typecheck, build, and native verification passed. Whole-repository architecture
-re-review reported zero Standards findings and zero Spec findings. The
-architecture regression test protects generic-module imports and prevents Rust
-context fields leaking into the host. A separately reproduced parser-wrapper
-identity bug was fixed using node kind and source spans; the alias property now
-checks 1,000 generated cases and the counterexample. This does not establish a
-cause for the earlier hook termination. Supported language scope is unchanged.
+1. Decide the bounded profile in the contract owner: extensions, root families,
+   syntax, builtin assumptions, bindings, module authority, omissions, and rule
+   capabilities. Supporting a parser does not establish language-wide support.
+2. Implement a cohesive adapter against `LanguageAdapter`. Return exact source,
+   locations, declaration kinds, visibility, references, and explicit omissions.
+   Keep reference spelling distinct from canonical target identity. Keep
+   language-specific context in the graph session.
+3. Establish module identity before traversal. Identify aliases, exports,
+   visibility, shadowing, target roles, and path conventions. Authority reads
+   must use shared capture eligibility and budgets; retain their fingerprints
+   for freshness even when their contents do not go to Jev. Never infer
+   cross-language bindings from a recognized extension.
+4. Register the adapter with its extensions and smoke probe. Change shared
+   artifact/schema contracts only when a real semantic distinction requires it.
+   Follow repository pre-release policy: update version-one formats in place and
+   remove superseded paths.
+5. Add extraction and pipeline coverage, then run regression, packaging, and
+   native-agent validation described below. Review the complete adapter boundary,
+   accepted scope, and failures before claiming support.
+6. Update user-facing support and limitations in the README and contract owner.
+   Keep evidence in executable tests and sanitized records rather than a second
+   research report or a narrative change log.
 
-These observations do not validate every Noul rule, broad Rust semantics,
-reliable delivery across sessions, another agent runtime, or another platform.
-The native run bypassed trust for a vetted disposable hook and did not validate
-normal trust or the installed package. Provider metadata is not a language or
-agent-runtime support target.
+## Binding and attribution checks
 
-## What Bend added
+Test plausible-looking bindings as well as happy paths:
 
-Bend's third-language profile uses `datatype` rather than disguising its roots
-as Rust enums. A bounded TypeScript surface extractor needs no new native
-parser binary and never runs the compiler or imports edited code. The local
-Bend compiler source and `bend-idea`
-surface parser informed the implementation; reproducible source identities and
-validation limits are recorded in the [Bend findings](bend-support-findings.md).
-The active contract owns the exact profile and its Base leaf assumptions.
+- Builtin names can be shadowed by declarations, aliases, traits, constructors,
+  or unsupported bindings. A spelling alone cannot justify a leaf assumption.
+- Generic wrappers still require payload and default traversal. Type syntax can
+  contain values, computed sizes, discriminants, dependent fields, or proofs;
+  unsupported dependencies must remain visible omissions.
+- Expansion features can affect bindings beyond the selected root. State the
+  attribute/macro boundary explicitly; do not silently treat uncertain names as
+  complete evidence.
+- Preserve full binding identities before checking conflicts. Bend `type T`
+  competing with `def T` or `law T` is ambiguous; `def T.show` is a distinct name.
+  Relative aliases resolve the first dotted segment and can collide with Base
+  namespace prefixes or local binders.
+- Verify module authority and candidate uniqueness before reading. Rust custom
+  crate roots, ordinary modules named `lib.rs`, and explicit binary targets
+  require role evidence rather than filename guesses. Test ambiguous candidate
+  paths, dormant targets, excluded ancestors, and changed binding metadata.
+- Attribute Update spans only to uniquely enclosing declarations. Import changes
+  and other top-level spans can remain `ambiguous-update`. Preserve imports when
+  a fixture intends to test a declaration-only repair; test ambiguous spans
+  separately. Add selects eligible named roots in the added file.
+- Closure-dependent rules must skip missing evidence. Root-only rules may accept
+  marked partial evidence only when their declared capabilities permit it.
+  Verify the absence of a provider call for inadmissible units.
 
-Bend makes the type-as-term assumption especially visible: `Word(32n)`,
-quantity-polymorphic kinds, equalities, and references to earlier field binders
-need evidence beyond a list of datatype names. Unsupported forms must remain
-omissions. Defs and laws also share the datatype namespace; a competing binding
-cannot disappear into a set of names. Qualified defs such as `T.show` must not
-be mistaken for a conflicting bare `T`.
+## Offline verification
 
-Cross-file Bend evidence adds a separate binding question: compiler import
-resolution rewrites the first dotted name segment, not an arbitrary text suffix.
-Relative aliases and nested generic payloads must preserve the written alias
-while resolving the target declaration. Generic or field binders can shadow
-that segment; unsupported hub imports must not become local reads. The shared
-resolver still owns capture eligibility, finite traversal, and freshness.
-A new language needs its compiler's binding rules before enabling modules;
-parser applicability alone never authorizes cross-language import resolution.
-An alias can also collide with a prelude namespace: Bend's `Word.Nil`
-counterexample required refusing assumed imported closure, not merely checking
-local shadowing. Static evidence cycles must terminate, but their bounded
-traversal does not prove compiler import-cycle loadability.
+| Coverage | Existing examples |
+| --- | --- |
+| Extraction, references, exact source/ranges, shadowing, syntax omissions | [TypeScript](../src/direct-event/analyzer.test.ts), [Rust](../src/direct-event/rust-analyzer.test.ts), [Bend](../src/direct-event/bend-analyzer.test.ts) |
+| Attribution, rendering, rule admission, supporting captures and freshness | [TypeScript](../src/direct-event/pipeline.test.ts), [Rust](../src/direct-event/rust-pipeline.test.ts), [Bend](../src/direct-event/bend-pipeline.test.ts) |
+| Cohesive adapter ownership | [Architecture guard](../src/direct-event/language-boundary.test.ts) |
+| Shared graph authority and traversal | [Authority tests](../src/direct-event/graph-resolver-authority.test.ts), [resolver tests](../src/direct-event/graph-resolver.test.ts) |
 
-The [extraction tests](../src/direct-event/bend-analyzer.test.ts) and
-[pipeline tests](../src/direct-event/bend-pipeline.test.ts) establish this
-bounded implementation, including relative alias traversal and security/freshness
-gates. The retained live and package records below predate the cross-file
-amendment; they do not validate its new scope. The [paired record](../evidence/bend-support/paired-designs.json)
-adds one six-request payment-state contrast. The [compiler record](../evidence/bend-support/compiler-fixtures.json)
-checks the synthetic declarations, valid constructors, and forbidden constructor
-arities. Neither establishes proof correctness, general review accuracy, or
-native model visibility. Language support and formal verification remain
-separate claims even when the language itself has proofs.
+Include transitive imports, alias/binder conflicts, cycles, declaration/reference
+limits, supporting-file read sharing, and mutation/restore freshness checks.
+Excluded, ignored, symlinked, outside-root, or cross-language targets must not be
+read. Cycle termination in static evidence does not prove compiler loadability.
+Native parser nodes may have distinct JavaScript wrappers for the same syntax
+node; compare syntax identity using kind and source spans.
 
-## Separate shared behavior from extraction
+Run focused tests, `npm run typecheck`, and the required repository checks.
+[Clean-package conformance](../scripts/run-clean-package-conformance.mjs) and
+[native artifact verification](../scripts/verify-native-release.mjs) establish
+separate packaging properties. Current adapter-layout package checkpoints are
+recorded for [Linux arm64](../evidence/cross-file-support/adapter-linux-package.json)
+and [macOS arm64](../evidence/cross-file-support/adapter-macos-package.json);
+the [offline preparation record](../evidence/cross-file-support/adapter-offline-preparation.json)
+covers split-file compiler and freshness checks. Each record identifies its
+own revision and artifact; none substitutes for validation after a new change.
 
-File selection, stable capture, changed-root attribution, rule admission,
-capacity, freshness, Jev dispatch, and advice delivery remain shared boundaries.
-Language extraction supplies declaration identities and kinds, exact source and
-spans, reference bindings, and explicit omissions. Extend the shared artifact model only where the new
-language needs a real distinction; preserve format version 1 for in-place
-pre-release changes according to repository guidance.
+## Real-agent verification
 
-Source-language implementations now live together under
-[`src/direct-event/languages`](../src/direct-event/languages). A static registry
-selects a registered source-language adapter. Each adapter owns syntax extraction,
-binding context, import candidate paths, and parser smoke fixtures, and returns
-common declaration/reference/location facts. Graph sessions keep language context
-inside adapter closures. The shared graph host owns containment, selection,
-capture, canonical budget transitions, and freshness; it does not inspect Rust
-module flags or select TypeScript grammars. TypeScript type and function extraction
-share one grammar setup. This is a cohesive module boundary, not a dynamic plugin
-framework. Add another language through its implementation and registry entry;
-source review contracts and packaging dependencies still require explicit decisions.
+The [native runner](../scripts/run-native-crossfile-current.mjs) contains
+TypeScript, Rust, and Bend cross-file payment-state fixtures and compiler probes.
+From a checkout with dependencies, compiler tools, agent authentication, and a
+Jev credential available, the explicitly paid matrix is:
 
-## Assumptions to falsify first
+```sh
+for host in codex claude; do
+  for language in typescript rust bend; do
+    node scripts/run-native-crossfile-current.mjs \
+      --host="$host" --language="$language" --live --execute-paid || exit 1
+  done
+done
+```
 
-- A builtin spelling is not proof of builtin binding. Rust structs, aliases,
-  enums, traits, and unions can shadow wrapper names; an unsupported binding
-  must remain unresolved rather than disappear from the reference graph.
-- Generic wrappers do not make their payloads irrelevant. Traverse payloads
-  and defaults; distinguish declared parameters from missing named evidence.
-- Type syntax can embed value dependencies. Named or computed array sizes,
-  discriminants, and const arguments must not silently become complete types.
-- Macros and attributes can change names outside the selected root. Rust marks
-  file scope uncertain for attributes anywhere, including unrelated functions,
-  and for unsupported imports/modules, extern declarations, or macros. Ordinary doc
-  comments are inert. A future language needs its own expansion boundary.
-- A shared parser entry point does not authorize cross-language resolution.
-  TypeScript imports cannot bind to Rust declarations just because `.rs` parses.
-- Partial evidence is not a clean semantic judgment. Root-only custom rules
-  may accept marked omissions; closure-dependent rules must skip missing
-  evidence. Verify the exact capability gate and absence of a provider call.
+Each invocation writes its declaration before execution: at most 6 Jev requests,
+4 minutes for the host, and no automatic host retries. Six invocations have a
+36-request ceiling. The runner checks exact runtime versions; supply its pinned
+Codex executable through `HAPSLAND_TEST_CODEX` if needed. The Claude executable
+is pinned in the runner. Updating a profile requires new validation.
 
-## Establish module authority before traversal
+Require observed draft editing, cross-file evidence at the actual provider
+boundary, delivered advice, agent acknowledgement and subsequent repair,
+compiler acceptance, rejection of an invalid construction, and completed
+follow-up review. Count actual transport requests, including retries, rather
+than admissions. Use the production Effect integration. A completed hook write
+alone does not establish model visibility, and compiler acceptance alone does
+not establish advice delivery.
 
-A parser recognizing `use` is insufficient. Rust file roles come from Cargo
-and `mod` declarations: custom crate roots exist, and an ordinary module can be
-named `lib.rs`. Explicit binary targets can suppress an apparently standard
-`src/main.rs`; a filesystem match alone can supply false evidence. Consult the
-[Cargo target rules](https://doc.rust-lang.org/cargo/reference/cargo-targets.html)
-and [Rust module rules](https://doc.rust-lang.org/reference/items/modules.html).
-The implemented profile validates a bounded manifest subset and module chain,
-then passes explicit role facts to extraction. Unsupported authority remains an
-omission rather than a guessed binding.
+The [current matrix index](../evidence/native-languages/index.json) points to six
+successful final runs on implementation commit
+`a241eb5f554c112609047df97079bc404580d339`: Codex CLI 0.155.1 and Claude Code
+2.1.218 each exercised all three languages and reached a clear follow-up.
+Final runs used 12 Jev requests; retained earlier attempts used another 8.
+These are prompted synthetic integration demonstrations on Linux arm64, using
+source-checkout entry points and explicitly configured lifecycle hooks. They do
+not establish normal Codex trust onboarding, installed-package behavior, newer
+runtime compatibility, general review accuracy, or unprompted agent quality.
+Bend compiler checks do not establish formal proofs.
 
-For every new language, identify the owner of module identity, exported names,
-aliases, visibility, shadowing, and extension/path choices. Keep reference-site
-spelling distinct from canonical target identity. Traverse transitively using
-the shared cycle and budget policy. Charge authority reads to the same budgets,
-check them before reads, and retain their fingerprints for freshness even when
-no source from them goes to Jev. Test custom roots, dormant targets, ambiguous
-paths, excluded ancestors, alias collisions, and edits to binding metadata.
-Cross-file support remains within one source language; recognizing another
-extension does not authorize binding to it.
-
-## Repeatable exploration
-
-1. Declare scope before coding: root families, extensions, name resolution,
-   builtin assumptions, supported syntax, omitted edges, size/work budgets,
-   freshness, and rule capabilities. Name deferred features explicitly. Use
-   the accepted contract owner for requirements; keep experiments advisory.
-2. Build small positive, negative, superficially similar, ambiguous, and
-   incomplete fixtures. Add adversarial shadowing, generic, expression,
-   attribute/macro, cycle, limit, attribution, and import cases before relying
-   on happy-path extraction. Expect unsupported cases to remain visible.
-3. Run focused extraction and pipeline tests, TypeScript regression tests,
-   typecheck, and required repository checks. Confirm selected files are
-   checked before reads, projections stay bounded, missing evidence suppresses
-   applicable rules, and stale results cannot publish. Fix failed gates.
-4. Before live calls, save a finite declaration: fixtures, rules, expected
-   outcomes, threshold, call/retry ceilings, time/source limits, credentials
-   handling, and retained sanitized fields. Use the production Effect path.
-   Count at the provider boundary; admission counts are not request counts.
-5. For native execution, use the actual generated lifecycle and correlate
-   edit, unit, provider completion, host output, repair, and follow-up identities.
-   A completed host output write establishes submission; it does not establish
-   model visibility. An agent acknowledgement and observed repair strengthen
-   that run's evidence without proving reliable visibility.
-6. Where a compiler can test the intended invariant, compile valid examples
-   and reject explicit invalid constructions after repair. Keep these separate
-   from review-quality claims. Compiler availability is not a universal
-   prerequisite for every language or rule; choose independent domain checks.
-7. Verify parser packaging, native assets, clean production-only installation,
-   and each declared platform independently. [Package conformance](../scripts/run-clean-package-conformance.mjs)
-   and [native release verification](../scripts/verify-native-release.mjs) are
-   separate from live semantic validation; one cannot stand in for the other.
-8. Obtain independent review of code, accepted scope, adversarial coverage,
-   sanitized evidence, and failed attempts. Iterate until the declared gates
-   pass or a genuine blocker is demonstrated; do not drop a gate to claim success.
-
-## Preserve failures and classify their meaning
-
-An intentional omission is a **scope limitation** when the contract states it
-and capabilities prevent unsupported advice. A **blocker** prevents the proposed
-scope from being sound or usable despite bounded iteration. A **harness artifact**
-invalidates the experiment's conclusion until its observation path is repaired.
-Use evidence to distinguish these outcomes; a passing final compiler check alone
-cannot establish that Hapsland delivered advice.
-
-The [first paired attempt](../evidence/rust-support/paired-attempt-1.json) failed
-in result decoding and lost its in-memory request count. Preserve that unknown:
-one completed decision operation does not establish exact billed attempts.
-The native attempts [one](../evidence/rust-support/native-attempt-1.json),
-[two](../evidence/rust-support/native-attempt-2.json), and
-[three](../evidence/rust-support/native-attempt-3.json) retain incomplete outcomes.
-The final native record explicitly amends attempt three's repair correlation
-using the completed nonempty add after a temporary deletion, with no new paid
-execution. Its amendment does not erase the earlier declaration or outcome.
-
-Keep source, credentials, raw transcripts, and backend material out of retained
-live evidence. Report known request counts and unknown billing separately, and
-state the exact runtime, platform, fixture, rule, and observation limits alongside
-any claimed result.
+Declarations and source-free results stay under `evidence/native-languages/`.
+Discard source repositories, copied credentials, raw host streams, and provider
+bodies. Preserve experiment declarations and incomplete outcomes as evidence;
+distinguish scope omissions, product defects, harness errors, and unknown causes.
+After a harness correction, make a new declared attempt rather than relabeling
+an earlier failed measurement. Keep the current summary in the index, with
+historical details in the records.

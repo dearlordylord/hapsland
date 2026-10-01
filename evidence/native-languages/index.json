@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Source-free bounded validation of real agent edits, cross-file Jev review, advice adoption, compiler rejection and followup review for three source-language adapters.",
+  "recordedAt": "2026-10-01T12:09:32.809826+00:00",
+  "implementationCommit": "a241eb5f554c112609047df97079bc404580d339",
+  "totalProviderRequests": 20,
+  "primaryProviderRequests": 12,
+  "primary": [
+    {
+      "file": "codex-typescript-live-jev-1790856414366.json",
+      "runtime": "Codex CLI",
+      "version": "codex-cli 0.155.1",
+      "language": "typescript",
+      "verdict": "demonstrated",
+      "providerCalls": 2,
+      "followupStages": [
+        "findings",
+        "clear"
+      ]
+    },
+    {
+      "file": "codex-rust-live-jev-1790856446065.json",
+      "runtime": "Codex CLI",
+      "version": "codex-cli 0.155.1",
+      "language": "rust",
+      "verdict": "demonstrated",
+      "providerCalls": 2,
+      "followupStages": [
+        "findings",
+        "clear"
+      ]
+    },
+    {
+      "file": "codex-bend-live-jev-1790856473621.json",
+      "runtime": "Codex CLI",
+      "version": "codex-cli 0.155.1",
+      "language": "bend",
+      "verdict": "demonstrated",
+      "providerCalls": 2,
+      "followupStages": [
+        "findings",
+        "clear"
+      ]
+    },
+    {
+      "file": "claude-typescript-live-jev-1790856414425.json",
+      "runtime": "Claude Code",
+      "version": "2.1.218 (Claude Code)",
+      "language": "typescript",
+      "verdict": "demonstrated",
+      "providerCalls": 2,
+      "followupStages": [
+        "findings",
+        "clear"
+      ]
+    },
+    {
+      "file": "claude-rust-live-jev-1790856454401.json",
+      "runtime": "Claude Code",
+      "version": "2.1.218 (Claude Code)",
+      "language": "rust",
+      "verdict": "demonstrated",
+      "providerCalls": 2,
+      "followupStages": [
+        "findings",
+        "clear"
+      ]
+    },
+    {
+      "file": "claude-bend-live-jev-1790856490446.json",
+      "runtime": "Claude Code",
+      "version": "2.1.218 (Claude Code)",
+      "language": "bend",
+      "verdict": "demonstrated",
+      "providerCalls": 2,
+      "followupStages": [
+        "findings",
+        "clear"
+      ]
+    }
+  ],
+  "earlierAttempts": [
+    {
+      "file": "codex-typescript-live-jev-1790856217742.json",
+      "runtime": "Codex CLI",
+      "language": "typescript",
+      "verdict": "incomplete",
+      "providerCalls": 1,
+      "failedChecks": [
+        "crossFileExpanded",
+        "followupObserved"
+      ]
+    },
+    {
+      "file": "codex-rust-live-jev-1790856244778.json",
+      "runtime": "Codex CLI",
+      "language": "rust",
+      "verdict": "incomplete",
+      "providerCalls": 1,
+      "failedChecks": [
+        "followupObserved"
+      ]
+    },
+    {
+      "file": "codex-bend-live-jev-1790856307190.json",
+      "runtime": "Codex CLI",
+      "language": "bend",
+      "verdict": "incomplete",
+      "providerCalls": 2,
+      "failedChecks": [
+        "missingReceiptRejected"
+      ]
+    },
+    {
+      "file": "claude-typescript-live-jev-1790856218237.json",
+      "runtime": "Claude Code",
+      "language": "typescript",
+      "verdict": "incomplete",
+      "providerCalls": 1,
+      "failedChecks": [
+        "crossFileExpanded",
+        "editAfterFinding",
+        "agentAcknowledgesAdvice",
+        "sourceChanged",
+        "followupObserved"
+      ]
+    },
+    {
+      "file": "claude-rust-live-jev-1790856257252.json",
+      "runtime": "Claude Code",
+      "language": "rust",
+      "verdict": "incomplete",
+      "providerCalls": 1,
+      "failedChecks": [
+        "followupObserved"
+      ]
+    },
+    {
+      "file": "claude-bend-live-jev-1790856323155.json",
+      "runtime": "Claude Code",
+      "language": "bend",
+      "verdict": "incomplete",
+      "providerCalls": 2,
+      "failedChecks": [
+        "missingReceiptRejected"
+      ]
+    }
+  ],
+  "findings": [
+    "Initial TS evidence observer searched unescaped quotes inside a JSON provider body; final observer uses a stable declaration header. Earlier false crossFileExpanded checks remain uncorrected historical measurements.",
+    "Initial TS/Rust repairs also changed imports; changed spans outside a uniquely enclosing declaration remain ambiguous-update under the accepted attribution contract. Final prompts preserve import lines.",
+    "Initial Bend negative probe used an invalid return statement and constructor namespace. Final probe uses P.Succeeded{} and requires a missing-field diagnostic.",
+    "The first Claude TypeScript attempt delivered a finding but did not demonstrate adoption; its cause is unestablished. The explicit Edit repair prompt succeeded on the separate followup attempt."
+  ],
+  "limitations": [
+    "Linux arm64 source-checkout validation; independently configured native lifecycle hooks, not a clean installed-package or installer test.",
+    "Actual pinned Codex CLI 0.155.1 and Claude Code 2.1.218 executions; newer installed runtime versions not validated by this matrix.",
+    "Disposable vetted Codex hooks ran with trust/approval/sandbox bypass; normal native trust onboarding not validated.",
+    "Synthetic local cross-file type declarations only; no external crates, Bend hub imports, unsupported or ambiguous bindings, function execution or formal proofs claimed.",
+    "Changed imports outside declaration spans may omit followup review with ambiguous-update.",
+    "Compiler acceptance and negative construction probes validate these fixtures only. Followup review can complete with clear or findings; no claim of every rule clearing."
+  ],
+  "rawSourceRetained": false,
+  "rawHostStreamsRetained": false,
+  "credentialsRetained": false
+}

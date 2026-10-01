@@ -99,8 +99,8 @@ expand supported syntax, external crates, Bend hub imports, or ambiguous binding
 
 ## Branch contracts
 
-For advisory lessons and a reusable validation workflow for future languages, see
-[Adding another source language](adding-language-support.md). That guide does not
+For current adapter implementation guidance and a reusable validation workflow, see
+[Adding a source-language adapter](adding-language-support.md). That guide does not
 amend the contracts below.
 
 | Contract | Artifact root | Proposed evidence projection | Inapplicable examples |
@@ -199,8 +199,11 @@ Aliases must be unique and cannot conflict with local binding prefixes or
 constructors. With `import Base`, alias prefixes matching the inspected Base
 type/def/law/constructor namespaces make every root incomplete, and their
 qualified references cannot resolve as imported evidence. This conservative
-name-only refusal set is tied to the declared Base source profile; it is not
-evidence of arbitrary installed compiler versions. Generic-parameter or earlier-field shadowing makes the affected
+name-only refusal set is tied to `bend2/base.bend` at Bend source commit
+`1adb0a61916b95de79d3541537462d0bf625f9d3`, as recorded beside the
+extractor assumptions. Review the leaf and namespace sets when that profile
+changes; this source identity does not establish arbitrary installed compiler
+versions. Generic-parameter or earlier-field shadowing makes the affected
 reference unsupported. Unsupported hub, bare, absolute, malformed, or late
 imports cannot establish a binding; unsupported leading imports mark every
 root incomplete, while late imports reject the file. Unknown qualified names
