@@ -3,108 +3,174 @@ import ../../packages/agent-flow-bend/Canonical.bend as C
 import ../../packages/agent-flow-bend/Dispatch.bend as Dispatch
 
 type Tower is Data:
-  Tower{x: U32, y: U32, kind: U32}
+  Tower{x: U32, y: U32, kind: U32, level: U32, cooldown: U32, flash: U32, aim: Nat, charges: U32}
+# Synthetic workload metadata, not a product queue. Historical quality survives stage changes.
 type Timer is Data:
-  Timer{id: Nat, phase: U32, age: U32}
+  Timer{id: Nat, phase: U32, age: U32, family: Nat, risk: U32, seed: U32, boost: U32}
+type Output is Data:
+  Output{age: U32, attempt: Nat, token: Nat, selected: List<&2, Nat>, flushAge: U32, span: U32}
 type World is Data:
   World{core: C.State, clock: U32, paused: Bool, layout: U32, choice: U32,
     gold: U32, hp: U32, towers: List<&2, Tower>, timers: List<&2, Timer>,
     active: Bool, offered: U32, rejected: U32, clear: U32, delivered: U32,
-    deliveryAge: U32, auto: Bool}
-
+    output: Output, auto: Bool, mouseX: U32, mouseY: U32, selected: U32, damageWork: U32, damageFlash: U32}
 def number(n: Nat) -> U32:
   U32.from_nat(Nat.min(n, 4294967295n))
+def sub(+a: U32, +b: U32) -> U32:
+  Bool.pick(U32, (a >= b : U32), (a - b : U32), 0)
 
-def core(state: World) -> C.State:
-  match state:
-    case World{value, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: value
+def core(world: World) -> C.State:
+  match world:
+    case World{v, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def time(state: World) -> U32:
-  match state:
-    case World{_, value, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: value
+def time(world: World) -> U32:
+  match world:
+    case World{_, v, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def paused(state: World) -> Bool:
-  match state:
-    case World{_, _, value, _, _, _, _, _, _, _, _, _, _, _, _, _}: value
+def paused(world: World) -> Bool:
+  match world:
+    case World{_, _, v, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def layout(state: World) -> U32:
-  match state:
-    case World{_, _, _, value, _, _, _, _, _, _, _, _, _, _, _, _}: value
+def layout(world: World) -> U32:
+  match world:
+    case World{_, _, _, v, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def choice(state: World) -> U32:
-  match state:
-    case World{_, _, _, _, value, _, _, _, _, _, _, _, _, _, _, _}: value
+def choice(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, v, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def gold(state: World) -> U32:
-  match state:
-    case World{_, _, _, _, _, value, _, _, _, _, _, _, _, _, _, _}: value
+def gold(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, v, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def hp(state: World) -> U32:
-  match state:
-    case World{_, _, _, _, _, _, value, _, _, _, _, _, _, _, _, _}: value
+def hp(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, v, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def towers(state: World) -> List<&2, Tower>:
-  match state:
-    case World{_, _, _, _, _, _, _, value, _, _, _, _, _, _, _, _}: value
+def towers(world: World) -> List<&2, Tower>:
+  match world:
+    case World{_, _, _, _, _, _, _, v, _, _, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def timers(state: World) -> List<&2, Timer>:
-  match state:
-    case World{_, _, _, _, _, _, _, _, value, _, _, _, _, _, _, _}: value
+def timers(world: World) -> List<&2, Timer>:
+  match world:
+    case World{_, _, _, _, _, _, _, _, v, _, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def active(state: World) -> Bool:
-  match state:
-    case World{_, _, _, _, _, _, _, _, _, value, _, _, _, _, _, _}: value
+def active(world: World) -> Bool:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, v, _, _, _, _, _, _, _, _, _, _, _}: v
 
-def offered(state: World) -> U32:
-  match state:
-    case World{_, _, _, _, _, _, _, _, _, _, value, _, _, _, _, _}: value
+def offered(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _, _, _, _, _, _}: v
 
-def rejected(state: World) -> U32:
-  match state:
-    case World{_, _, _, _, _, _, _, _, _, _, _, value, _, _, _, _}: value
+def rejected(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _, _, _, _, _}: v
 
-def clear(state: World) -> U32:
-  match state:
-    case World{_, _, _, _, _, _, _, _, _, _, _, _, value, _, _, _}: value
+def clear(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _, _, _, _}: v
 
-def delivered(state: World) -> U32:
-  match state:
-    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, value, _, _}: value
+def delivered(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _, _, _}: v
 
-def delivery_age(state: World) -> U32:
-  match state:
-    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, value, _}: value
+def output(world: World) -> Output:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _, _}: v
 
-def auto(state: World) -> Bool:
-  match state:
-    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, value}: value
+def auto(world: World) -> Bool:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _, _}: v
+
+def mouse_x(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _, _}: v
+
+def mouse_y(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _, _}: v
+
+def selected(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _, _}: v
 
 def tx(tower: Tower) -> U32:
   match tower:
-    case Tower{v, _, _}: v
+    case Tower{v, _, _, _, _, _, _, _}: v
 
 def ty(tower: Tower) -> U32:
   match tower:
-    case Tower{_, v, _}: v
+    case Tower{_, v, _, _, _, _, _, _}: v
 
 def tkind(tower: Tower) -> U32:
   match tower:
-    case Tower{_, _, v}: v
+    case Tower{_, _, v, _, _, _, _, _}: v
 
-def work(state: C.State) -> List<&2, C.Work>:
-  match state:
-    case C.State{_, _, value, _, _, _, _, _, _}: value
-def rounds(state: C.State) -> List<&2, C.Round>:
-  match state:
-    case C.State{_, value, _, _, _, _, _, _, _}: value
-def dispatch(state: C.State) -> Dispatch.State:
-  match state:
-    case C.State{_, _, _, _, _, _, value, _, _}: value
+def level(tower: Tower) -> U32:
+  match tower:
+    case Tower{_, _, _, v, _, _, _, _}: v
 
-def with_core(state: World, replacement: C.State) -> World:
-  match state:
-    case World{_, t, p, l, c, g, h, towers, timers, a, o, r, clear, d, age, auto}:
-      World{replacement, t, p, l, c, g, h, towers, timers, a, o, r, clear, d, age, auto}
+def cooldown(tower: Tower) -> U32:
+  match tower:
+    case Tower{_, _, _, _, v, _, _, _}: v
+
+def flash(tower: Tower) -> U32:
+  match tower:
+    case Tower{_, _, _, _, _, v, _, _}: v
+
+def aim(tower: Tower) -> Nat:
+  match tower:
+    case Tower{_, _, _, _, _, _, v, _}: v
+
+def charges(tower: Tower) -> U32:
+  match tower:
+    case Tower{_, _, _, _, _, _, _, v}: v
+
+def timer_id(timer: Timer) -> Nat:
+  match timer:
+    case Timer{v, _, _, _, _, _, _}: v
+
+def timer_phase(timer: Timer) -> U32:
+  match timer:
+    case Timer{_, v, _, _, _, _, _}: v
+
+def timer_age(timer: Timer) -> U32:
+  match timer:
+    case Timer{_, _, v, _, _, _, _}: v
+
+def timer_family(timer: Timer) -> Nat:
+  match timer:
+    case Timer{_, _, _, v, _, _, _}: v
+
+def timer_risk(timer: Timer) -> U32:
+  match timer:
+    case Timer{_, _, _, _, v, _, _}: v
+
+def timer_seed(timer: Timer) -> U32:
+  match timer:
+    case Timer{_, _, _, _, _, v, _}: v
+
+def timer_boost(timer: Timer) -> U32:
+  match timer:
+    case Timer{_, _, _, _, _, _, v}: v
+
+def delivery_age(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, Output{age, _, _, _, _, _}, _, _, _, _, _, _}: age
+def work(core: C.State) -> List<&2, C.Work>:
+  match core:
+    case C.State{_, _, items, _, _, _, _, _, _}: items
+def rounds(core: C.State) -> List<&2, C.Round>:
+  match core:
+    case C.State{_, items, _, _, _, _, _, _, _}: items
+def dispatch(core: C.State) -> Dispatch.State:
+  match core:
+    case C.State{_, _, _, _, _, _, items, _, _}: items
+def with_core(world: World, next: C.State) -> World:
+  match world:
+    case World{_, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, auto, x, y, selected, damage, flash}:
+      World{next, t, p, l, c, g, h, ts, ms, a, o, r, cl, d, out, auto, x, y, selected, damage, flash}
 def phase(kind: C.WorkKind) -> U32:
   match kind:
     case C.AwaitingSourceRead{}: 0
@@ -113,3 +179,16 @@ def phase(kind: C.WorkKind) -> U32:
     case C.Reviewing{}: 3
     case C.AtJev{}: 4
     case C.PendingFinding{_}: 5
+
+def with_effects(world: World, towers: List<&2, Tower>, timers: List<&2, Timer>) -> World:
+  match world:
+    case World{core, t, p, l, c, g, h, _, _, a, o, r, cl, d, out, auto, x, y, selected, damage, flash}:
+      World{core, t, p, l, c, g, h, towers, timers, a, o, r, cl, d, out, auto, x, y, selected, damage, flash}
+
+def damage_work(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v, _}: v
+
+def damage_flash(world: World) -> U32:
+  match world:
+    case World{_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, v}: v

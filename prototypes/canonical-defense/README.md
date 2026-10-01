@@ -1,78 +1,71 @@
-# Canonical architecture defense layouts
+# Canonical architecture defense
 
-**Purpose:** Compare three native game layouts driven by Hapsland's actual canonical reducer, rather than a game-specific copy of its lifecycle rules.
-**Status:** Throwaway layout and host-workload prototype; execution evidence defines the validated scope.
-**Authority:** Design proposal and implementation/validation evidence, not an accepted Hapsland product contract.
-**Expected use:** Run the native prototype, switch layouts on the same paused state, and compare how clearly each explains real preparation, review, ownership and Stop decisions.
-**Lifecycle:** At the owner's canonical game-layout selection, consolidate the chosen layout and any accepted host mechanics into the game specification or implementation issue, update inbound links, and delete rejected variants and temporary evidence. Review the prototype when the canonical reducer's state/event/command interface changes.
+**Purpose:** Explore three native tower-defense maps that teach Hapsland's queues and ownership using its actual canonical reducer.
+**Status:** Throwaway gameplay prototype; executable evidence defines the validated scope.
+**Authority:** Design proposal and implementation/validation evidence, not an accepted product contract.
+**Expected use:** Play the finite workload, build spatial towers, inspect their effects, and compare how the maps explain preparation, review, sibling waiting and output.
+**Lifecycle:** At the owner's game-layout selection, consolidate accepted layout/mechanic decisions into the game specification or implementation issue, update inbound links, and delete rejected variants and temporary evidence. Review whenever the canonical state/event/command interface changes.
 
-## What is reused
+## Run
 
-The prototype imports `../../packages/agent-flow-bend/Canonical.bend` directly. Production and dashboard use `src/canonical/adapter.ts`, whose generated module exports that same source's `initial` and `step`. The game holds an actual `Canonical.State` and applies actual canonical events. It does not import the previous tower-defense `RoadGame.bend` or maintain a second product lifecycle reducer.
-
-The native host is a simulated environment: it authors finite edits, supplies read/preparation/backend completion facts, and animates time. Towers can change the simulated environment's service timing. Canonical owns admission, preparation/review state, shared permits, retained findings, eligibility, Stop and output permission. Game health, gold and visual placement are game-only values; they are not product state or production features.
-
-The real preparation and Jev pools have fixed limits of eight. A tower must not invent extra canonical permits. There is no canonical Advice processing duration or game-style output batch target/flush timer; those earlier game abstractions are omitted from these layouts.
-
-## Three layouts, one state
-
-| Layout | Physical structure | Architectural question |
-| --- | --- | --- |
-| Switchback district | A winding road connects source-read, preparation, Jev and retained-finding buildings through open source/review queue yards; a separate branch exits clear results. | Where does work wait, and which service owns it? |
-| Edit islands | Preparation feeds child roads into one shared Jev hub, with adjacent retained-finding bays. | How does one source produce several independent review units, and why do siblings wait? |
-| Resource junction | Incoming roads converge at service checkpoints and a shared delivery bridge; clear results take a bypass. | Which shared capacity or ownership prevents progress? |
-
-These are fixed authored maps, not procedural mazes. Each processing or retained-finding building contains a short internal route with smaller actors. AwaitingSourceRead and Reviewing are safe open road queues, not enclosed processing buildings. Incoming queues and in-building processing/retention must remain distinguishable. All maps project the same canonical phases and shared resources; map geometry does not create independent per-building permits.
-
-Switching layout changes only presentation. It preserves canonical state, workload, service timers, tower investments and game outcome. The presentation tracks actor identities and phase entry separately from the reducer. Position, travel and departure animation never authorize a canonical transition.
-
-Canonical creates all preparation children together. Their identities and owned counts appear immediately; a cosmetic release bay staggers their visible departure so the fan-out is legible. If a child advances before its animation finishes, the view catches up to its actual phase. This delay is not a backend, dispatch or admission delay. Internal routes are activity animations, not measurements of work completion.
-
-## Review criteria
-
-Astra at medium effort reviews actual reducer reuse, honest ownership and readiness cues, meaningful player choices, and readability. Source and native checks can demonstrate reducer identity and operation; they do not establish player engagement or learning. Native Linux execution does not establish macOS support.
-
-## Run and controls
-
-With Bend 2.0.34 and native graphics prerequisites installed, run:
+With Bend and native graphics prerequisites installed:
 
 ```sh
 ./prototypes/canonical-defense/run.sh
 ```
 
-- **Tab** cycles the three layouts without changing the simulation.
-- **N** starts the finite workload; **Space** pauses; **R** resets the simulated resident and game.
-- **1–3** choose an accelerator. Click its right-hand build dock to buy it once. All effects operate automatically; there is no activation action.
-- **A** enables automatic initial-workload start after a three-second preparation grace. It never constructs anything.
-- **Escape** closes the native window.
+- **1–7:** choose a tower; **click ground:** build; **click a tower:** select; **U:** upgrade.
+- **N:** start the workload; **Space:** pause; **R:** reset.
+- **Tab:** choose a map while there are no towers, active workload or owned work. Reset before changing an invested map.
+- **A:** automatically start the initial workload after three seconds; construction stays manual.
+- **Escape:** close the window.
 
-Initial gold is 120. Preparation Engine costs 50 and changes simulated preparation latency from 100 to 35 ticks. Backend Engine costs 50 and changes simulated backend responses from 160/320 to 50/100 ticks. Coordinator costs 40 and reduces a response to 25 ticks when its unfinished unit blocks already retained findings from the same observation. These are global service investments; layout geometry never changes their scope. Real canonical pool limits remain eight.
+Initial gold is 160 and shared health is 100. Towers fire or provide support automatically. There is one finite workload, not an endless campaign. The shell compiles and runs the Bend application directly; there is no archive extraction step.
 
-The finite fixture offers eight observations, each preparing two units of 10 and 20 modeled bytes. The synthetic backend returns clear for the 10-byte unit and a finding for the 20-byte unit. These authored results are stable when service timing or canonical ID allocation changes; the old game's Refiner/probability mechanic is not included in this experiment. Source read, preparation and backend durations are host assumptions, not measured production timings.
+## What is actually reused
 
-Limits are 18 items and 240 bytes, shared through the real ledger. Game-only building pressure costs one health every 50 ticks while charged work assigned to building interiors owns at least 160 bytes. Road-waiting work can still own ledger capacity without causing health damage. The renderer and health overlay share the same classification from actual canonical state; animated pixel positions and cosmetic departure delay never change pressure. Total ledger ownership remains visible separately. This overlay is labelled host/game state, not a Hapsland damage rule. Stop deadline facts are measured from workload start, not from how long the user leaves the initial screen open.
+The game imports `../../packages/agent-flow-bend/Canonical.bend` directly, holds a real `Canonical.State`, and supplies facts through `Canonical.step`. Production and dashboard use the generated adapter for that same source. This prototype does not use the older game's lifecycle reducer.
 
-This host waits until every retained unit in its finite decided round is marked eligible before starting one response. That is a prototype collection policy, not a general canonical requirement: production may select fitting partial batches. Actual lease, finish authorization, submission authorization and acknowledged terminal events still come from the canonical interface. Declined facts cannot count as successful delivery or authorize retirement.
+Canonical owns admission, preparation fan-out, review requests, shared permits, retained findings, collection eligibility, Stop, leases, delivery authorization and retirement. The host authors work, simulated durations/outcomes, road arrival, gold and damage. Towers affect these simulated facts and timings; they do not create product features or overwrite canonical ownership. The imported-source manifest records the actual unchanged core files.
 
-## Executed validation
+## Roads, buildings and ownership
 
-[Headless evidence](validation-headless.txt) records 38 passing native checks: direct canonical fork/join, real eight-request admission and ninth refusal, Stop waiting, denied authorization retaining ownership, accepted leases and delivery ownership, complete drain, layout invariance, manual purchases and finite automatic start. Seven additional cases distinguish safe charged road queues from building pressure, cover issued-but-not-started requests and retained ownership, and check pause/layout independence. A Coordinator comparison advances actual acknowledged delivery while preserving the authored outcomes. These are bounded witnesses, not a general balance or learning result.
+Three authored maps—[Switchback District](preview-district-populated.png), [Forked Campus](preview-courtyard-populated.png) and [Resource Junction](preview-frontier.png)—show the same phases through different road arrangements. Roads have explicit right-angle bends and distance-based travel at one pixel per tick. Native ticks are scheduled every 20 ms. A long road therefore takes longer than a short one, and host launch facts wait for arrival.
 
-The [imported-source manifest](canonical-source-sha256.txt) records 24 canonical source files whose bytes match the primary master checkout. The production authority chain is [`Canonical.bend`](../../packages/agent-flow-bend/Canonical.bend) → [`build-canonical.mjs`](../../packages/agent-flow-bend/scripts/build-canonical.mjs) → [`adapter.ts`](../../src/canonical/adapter.ts), used by the resident and [`canonical-replay.ts`](../../packages/agent-flow-viz/src/canonical-replay.ts). The prototype uses the first source directly, without an authored JavaScript host or a reducer copy. It does not exercise live Jev, credentials, files, or the production effect runtime.
+Processing buildings are 64 × 48 pixels. Their short serpentine paths end rather than loop: position follows remaining simulated service work. Retained findings traverse a finite internal route and then wait. Source and Review queues are safe road yards; entering a processing/retention building can contribute to damage. Building anchors define tower coverage consistently. Changing layouts after an investment is blocked so coverage cannot change for free.
 
-Fan-out is already real: `BeginObservedPreparation` retains the source observation identity and `PreparationCompleted` supplies a list of unit sizes. Canonical assigns separate review operations with that parent. This fixture uses two units per source; the layout must distinguish upstream units from findings that only exist after a review outcome.
+Canonical creates preparation children together. Separate roads and authored release spacing distinguish the children without inventing delayed admission. Unit and edit-family labels show their association. A source still retained during preparation is labelled as file ownership, rather than drawn as a second active enemy. Bars labelled **SHARED** display the same game health; the buildings do not have independent canonical capacity or health.
 
-## Next mechanic candidate
+The fixture offers eight source observations, each preparing two units of 10 and 20 modeled bytes. Every unit starts with 100% findings risk. The [placement preview](preview-refiner-before.png), [actual Refiner shot](preview-refiner-after.png) and [level-two inspection](preview-upgrade.png) show the simulated risk and tower investment separately. A fixed authored draw gives repeatable outcomes when Refiner lowers that risk; the draw is independent of canonical ID allocation and timing. Source read, preparation and Jev service durations are host assumptions, not production measurements. Units can exit clear after Review; already observed findings retain their ownership until acknowledged delivery.
 
-The owner proposed a preparation-quality tower, analogous to the previous game's Refiner, to lower future findings probability before Review resolves. This is not implemented in these three layouts. Keep three quantities distinct: source observations, the review units produced from each source, and the findings recorded from completed reviews. Changing unit count or chunking must preserve source coverage; fewer review units alone does not establish fewer findings. Any quality simulation must supply honest pre-result host/backend facts and leave already observed `PendingFinding` ownership unchanged.
+## Seven automatic towers
 
+Hovering a valid build site displays the current value plus its exact next effect in a separate color. Radius, target links, work/risk overlays, output preview and mitigation numbers make scope visible. A muted red radius and **NO EFFECT HERE** identify unsuitable placement. Suitable scope with no current target is distinguished from a structurally useless location. Invalid or unaffordable placement does not promise an actionable improvement.
 
-## Native maps and motion evidence
+| Key / tower | Cost | Host effect | Architecture it illustrates |
+| --- | ---: | --- | --- |
+| 1 Rapid | 35 | Short-range shots reduce remaining active service work. | Service time differs from waiting and retained ownership. |
+| 2 Refiner | 55 | Shots permanently lower unresolved findings risk; children inherit upstream reductions. | Prevention before an observed result can avoid downstream retained findings. |
+| 3 Relay | 45 | Longer-range, weaker service acceleration. | Placement and coverage trade off against throughput. |
+| 4 Parallelizer | 70 | Raises local host launch budgets from two toward eight. | Concurrent service is bounded by actual shared canonical permits. |
+| 5 Coordinator | 35 | Accelerates an unfinished Jev sibling that blocks retained siblings. | Finishing the blocker differs from accelerating arbitrary work. |
+| 6 Packager | 60 | Raises the next output target from four toward eight and reduces host serialization work per item. | Batch policy differs from committed membership, retained bytes and acknowledged retirement. |
+| 7 Shield | 50 | Finite charges reduce covered game damage, capped at half local pressure. | Damage mitigation does not free ledger ownership or process a queue. |
 
-The final maps show the same paused tick 420: [Switchback District](preview-district.png), [Forked Campus](preview-courtyard.png), and [Resource Junction](preview-frontier.png). The shared Jev pool owns eight permits; a separate Reviewing road queue holds three units, split one and two across the Campus branches. Total ledger ownership is 210 bytes while building pressure is 170 bytes.
+Levels are capped at three; upgrades cost 40 then 60. Refiner cannot rewrite an observed `PendingFinding`. Parallelizer respects the unchanged real pool limits. Packager does not shrink finding byte charges and cannot change a batch already committed. Shield consumes charges only when it provides additional protection during damaging pressure; overlapping protection cannot exceed the cap.
 
-[Native evidence](validation-native.txt) includes motion pairs from the actual finite workload. Compare [road release A](preview-fanout-motion-a.png) with [road release B](preview-fanout-motion-b.png): distinct U19 and U20 move at ticks 217 and 225 while both remain Reviewing. Compare [interior A](preview-inside-motion-a.png) with [interior B](preview-inside-motion-b.png): smaller source-reading actors move on the fixed internal route at ticks 60 and 73. These are successive native frames, not staged replacement states.
+## Pressure and output
 
-A [manual purchase](preview-manual-build.png) changes gold 120 to 70 while paused. The [held delivery](preview-delivery-held.png) owns eight leases and one delivery slot before acknowledgement. The [completed run](preview-complete.png) has eight clear outcomes, eight acknowledged finding handoffs, and zero remaining ledger, request, lease or delivery ownership.
+The actual ledger limits in this fixture are 32 items and 480 bytes. Game damage starts when work inside buildings owns at least 160 bytes: baseline one shared health every 50 hot ticks. Road ownership remains visible but does not damage health. The shield changes damage accumulation only. Actual health loss flashes the shared-health borders.
 
-[Astra medium review](validation-astra.txt) recommends Forked Campus for visible child-road forks merging into one shared Jev hub, Switchback for the clearest sequential journey, and Junction for separating intake from retained output. Family association is less discoverable than in the superseded diagnostic courtyard: actor IDs are visible, but the maps do not yet label each child's source family. The Campus source-queue caption overlaps part of the paused header, and the Junction retention connector has a small visible gap. These are recorded prototype limits; no owner selection, player-learning result or macOS validation is claimed. Current fixed two-child workloads and bounded queue spacing do not validate arbitrary fan-out density.
+The host waits for its finite workload's retained units to become eligible before output. This is a fixture policy, not a canonical requirement. Actual collection fit, leases, Finish reservation/authorization/terminal facts, Submission authorization and retirement still go through the real reducer. The core allows four Finish reservations in this round; baseline target four can deliver all sixteen findings in four batches. Larger targets use fewer reservations. A final partial batch waits for a bounded flush. Empty output does not reserve a writer.
+
+The output HUD separates next policy from committed members, unchanged bytes, writer time and leases. Membership and host serialization duration freeze at commitment; upgrading changes the next batch. Refused authorization or acknowledgement retains work, bytes and leases. Only accepted acknowledged delivery permits retirement and game delivery credit.
+
+## Validation and limits
+
+[Headless host checks](validation-headless.txt), [preview checks](validation-preview.txt), [output checks](validation-output.txt), [native visual evidence](validation-native.txt) and [Astra medium review](validation-astra.txt) describe the exact executed scope. Output checks cover every retained count from zero through sixteen, fixed committed batches, declined authorization/terminal facts and actual reservation exhaustion. Source fingerprints identify the tested artifacts.
+
+Root inspected the final [sixteen waiting findings](preview-retained-wait.png), [damage flash](preview-building-damage.png), [no-effect placement](preview-no-effect.png) and [complete drain](preview-complete.png). The live run delivered sixteen findings and ended with zero ledger, request, lease and writer ownership. Packager purchase preserved the current four-member batch and its remaining writer time; Shield left all 240 retained bytes intact while changing damage accumulation. Astra supplied the completed design input; further architecture and mechanics decisions belong to root or Sol.
+
+These checks validate bounded mechanics and presentation examples. They do not establish human engagement or learning. The workload has fixed two-child fan-out and bounded density. Linux ARM64 native execution does not establish macOS support; live Jev, credentials and the production effect runtime are not exercised.

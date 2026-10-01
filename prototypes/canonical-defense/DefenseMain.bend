@@ -14,6 +14,7 @@ def event_step(frame: FrameState, event: Event) -> FrameState:
     case Frame{world,last,carry,_} Key{27,True{}}: Frame{world,last,carry,True{}}
     case Frame{world,last,carry,quit} Key{code,True{}}: Frame{H.key(world,code),last,carry,quit}
     case Frame{world,last,carry,quit} Mouse{x,y,0,True{}}: Frame{H.click(world,x,y),last,carry,quit}
+    case Frame{world,last,carry,quit} Move{x,y}: Frame{H.move(world,x,y),last,carry,quit}
     case frame _: frame
 
 def events_fold(events: List<Event>, frame: FrameState) -> FrameState:
@@ -85,7 +86,7 @@ def loop(fuel: Nat, window: Window, +frame: FrameState) -> IO(Unit):
 def main() -> IO(Unit):
   do IO<Unit>:
     IO.print("Hapsland canonical defense: native layouts over the actual canonical reducer.")
-    IO.print("Tab cycles switchback district/forked campus/resource junction. 1/2/3 choose tower; click builds manually. N starts; Space pauses; R resets; Esc exits.")
+    IO.print("Tab cycles switchback district/forked campus/resource junction. 1-7 choose tower; click map ground to build. U upgrades selected tower. N starts; Space pauses; R resets; Tab changes map only before construction or work; Esc exits.")
     now : Nat <- IO.now()
     window : Window <- IO.try(Window,Window.open("Hapsland canonical defense",1024,768))
     loop(4294967295n,window,Frame{H.initial(),now,0,False{}})

@@ -85,6 +85,14 @@ def glyph(c: Char) -> U32:
       4772
     case '-':
       448
+    case '+':
+      9682
+    case '%':
+      22669
+    case '=':
+      3640
+    case ':':
+      1040
     case _:
       0
 
