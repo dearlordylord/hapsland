@@ -1,0 +1,74 @@
+Canonical defense road-map review — Astra medium — 2026-10-01
+Purpose: Compare three actual native road/building maps, moving queue actors, smaller internal-route actors and visually staggered preparation fan-out, while checking shared canonical authority.
+Status: Bounded source, executable-evidence and native-visual review complete. Suitable for comparing the requested road-map direction, with the visual and teaching limits below. Recommendation is advisory, not owner acceptance.
+Authority: Design recommendation and implementation/validation evidence; not an accepted product contract, universal proof or production-environment parity claim.
+Expected use: Inspect the named map and motion pairs, select a physical layout direction, and retain the canonical/host/presentation boundary when extending the game.
+Lifecycle: At the owner's map selection, consolidate useful decisions into the game specification or implementation issue and delete this temporary review with rejected variants. Revisit it if canonical interfaces, host policy or the chosen map change before selection.
+
+Review target and visible change
+The previous diagnostic-card direction did not satisfy the requested game maps. This report replaces that assessment and reviews the actual road-map implementation. The new views use external streets, open safe queue yards, four processing/retention buildings, small fixed internal routes, large road actors, and clear/delivery exit spurs. The sidebar remains supporting diagnostics; it is not the map.
+
+Canonical authority
+The prototype directly imports ../../packages/agent-flow-bend/Canonical.bend, stores C.State, and advances product state through C.step. Production adapter.ts imports canonical.generated.js; the canonical build script exports the same source's initial/step; dashboard canonical-replay imports that adapter. Source review found no copied RoadGame/FlowGame lifecycle reducer or direct host construction of replacement canonical state. Product core files remain unchanged from base 5c7932c.
+Canonical.bend SHA256: 7dc1b0a793d39b35b0f037f6860fc0d89fc0d42ed6ef5228789890954ed221b9
+The environment is synthetic: finite source observations, preparation/backend latency, authored clear/finding results and game economy/health. Direct reducer reuse does not establish full production-runtime parity.
+
+Road/building meaning and pressure
+Host.in_building is shared by rendering and game pressure. Awaiting/Reviewing work stays on safe roads. Source Reading and Preparing need their actual running dispatcher owner; At Jev needs a started request; Pending Finding remains inside retention. Actual queued owner entries exclude inside assignment. Internal pressure sums actual charged ledger reservations once by charge ID. Total canonical ledger occupancy still includes road-owned charges and remains visible separately.
+This distinction matters: queued work can consume real ledger capacity without damaging game HP. Damage uses the inside subtotal, never actor pixels, path progress or layout. The fixed threshold/cadence remain a game overlay, not a Hapsland rule.
+
+Motion and fan-out evidence
+Directly inspected all ten final native PNGs.
+preview-inside-motion-a.png and preview-inside-motion-b.png, ticks 60 and 73: the same Source Reading actors U1/U3 visibly occupy different positions on their fixed four-corner mini-route; smaller preparation actors also follow the internal path. Other state can progress between these frames, so this is a native motion witness, not a claim that every core value is identical.
+preview-fanout-motion-a.png and preview-fanout-motion-b.png, ticks 217 and 225: both Reviewing children U19/U20 are already visible and counted in both frames, yet occupy separated positions on the preparation exit road. The Reviewing owned count remains 2, Jev reservations remain 4 and ledger usage remains 170. These frames show cosmetic departure staggering, not sequential creation of product work.
+Roads derives position from actual per-phase host timers and current canonical phase. It never gates a reducer event. Pausing freezes those timers; layout changes remap the same progress. A phase transition takes precedence over an old visual release animation. All live identities are rendered; retired identities are not retained as fake live actors. Branch choice uses stable child identity, and road queue spacing excludes inside occupants.
+
+Three physical maps, same paused tick 420
+preview-district.png: SWITCHBACK DISTRICT.
+A single readable street runs through source/preparation across the top, bends down to the safe review approach, then reaches Jev and retention along the lower row. Clear and delivery spurs make the outcome split visible. It best explains the basic journey and the difference between large queued actors and small building occupants. Its long review approach communicates waiting clearly, but parent/child relationships are not apparent from geography alone.
+
+preview-courtyard.png: FORKED CAMPUS.
+Preparation feeds two external review branches that converge on one shared Jev building. The captured branch counts are 1 and 2, correctly totaling the separate Reviewing queue of 3. Jev's reserved count is 8; the 3 Reviewing actors are not subtracted from or included in that 8. The two branches make this the clearest candidate for the user's source-to-many-unit fan-out direction while preserving one backend pool. This is a real split/merge street structure, not a duplicated Jev resource. It is the strongest next map candidate for that goal.
+
+preview-frontier.png: RESOURCE JUNCTION.
+Intake occupies the upper corridor, preparation the right side, Jev the lower checkpoint, and retention the left branch. The distinct corridors separate intake from retained output and make the shared checkpoint visually prominent. It is useful for spatially separating resource ownership, but stage order is less immediately obvious than Switchback. Switchback and Junction retain the same unbranched lifecycle ordering with different street organization; the maps do not represent three different product pipelines.
+
+All three recorded views have equal exposed state at tick 420 apart from layout: 8 offered observations, 8 Jev reservations, 3 pending-finding units, 14 ledger items and 210 bytes. Their footer separately shows 170 building-pressure bytes. Geometry changes neither the core nor the global service investments.
+
+Purchase and output ownership witnesses
+preview-manual-build.png shows a paused manual Preparation Engine purchase: gold changes 120 to 70 at tick 420 while canonical occupancy stays unchanged.
+preview-delivery-held.png at tick 873 shows eight retained actors on the small retention route, one delivery slot and eight leases, with 160 retained bytes and delivered count 0. The delivery gate is not falsely treated as acknowledgement.
+preview-complete.png at tick 962 shows 8 clear and 8 delivered finding-bearing units, with no live actors, ledger usage, request permits, leases or delivery slots. Stop remains deciding in the recorded state; empty occupancy alone is not a claim of full production lifecycle completion. Delivery is not repair.
+
+Recommendation and limits
+Prefer Forked Campus for extending preparation into variable-n review units; keep Switchback as the clearest introductory map. Junction is a useful alternative for stronger intake/output separation. This is a visual/architectural recommendation, not evidence of measured enjoyment or learning.
+The current fixture still emits exactly two authored units per source observation. A unit is not itself a finding. Variable-n generation and a quality tower that reduces later findings probability are future mechanics, not implemented here. They must remain clearly labeled host/environment experiments and cannot rewrite observed PendingFinding results.
+Parent-family identity is less discoverable than in the discarded edit-card view: road actors show unit IDs, without a direct parent label or connective highlight. The current frames establish fan-out motion, not that a player can independently trace every unit to its source. A future compact parent label or selection highlight should address that before claiming source-level teaching success.
+Campus's SOURCE QUEUE label visibly overlaps the paused header near the upper left. Junction's retention approach has an approximately five-pixel visual gap before the right building wall. These are bounded presentation defects, not hidden state changes; processing labels, queue labels, branch counts, actors and resource totals remain readable. Small unit IDs also become crowded around a full internal loop. These limitations do not block comparison of the requested road-map direction, but should be cleaned up in the selected layout.
+The current game uses global service investments in fixed docks, not spatial tower-radius tactics. Allocation is constrained by 120 gold versus costs 50/50/40. A bounded Coordinator comparison demonstrates earlier acknowledged delivery with the same authored outcomes; strategic depth, equal-spend balance and replay value remain unmeasured.
+
+Executable evidence and scope
+Read validation-headless.txt and the 38 directed tests: actual preparation/splitting and byte replacement; sibling collection readiness; accepted reservation/authorization/ACK paths; refused terminal preserving ownership; capacity and ninth-request refusal; pause/layout/manual/auto controls; finite drain; stable authored outcomes; rejected preparation retaining its dispatcher permit; and seven road-versus-building pressure checks. The latter discriminate 180 road-owned bytes causing no pressure from 160 inside plus 20 waiting bytes causing 160 pressure, including unstarted requests and queued preparation owners.
+Reviewed acceptance gates preserve canonical authority: FinishAuthorized gates per-submission authorization; FinishRecorded(Acknowledged) gates terminal submission; SubmissionRecorded gates retirement. Projection reads actual delivery slots rather than the unrelated round-write field.
+Execution commands were run by implementation/validation workers. This reviewer inspected source, logs and the actual native images, rather than independently rerunning the suites. Evidence is native Linux ARM64 at 1024x768. No macOS support, live Jev-service validation, universal proof or human engagement/learning claim is made.
+
+Reviewed artifact SHA256
+3a2614205cd9237f0e6e2d1d1d84cfdf1e72eaf4ab95ca983ae1d289428f4036  DefenseModel.bend
+482e17ad459b78a5e037731620c1faba43e5dede511eabc9ab481bfe4bea8a5e  DefenseHost.bend
+d4582a7d17d91997480a47219d72df904f7e7dff8722fd270010d0bd7d55d235  DefenseProjection.bend
+3ac21716934b42fe293517ad614bc679e1465aa3c1461b7a43f3a06b02180714  DefenseRoads.bend
+292c4577eb7fef83c9d144ab5cd541949c5cba15650b9c4291ef28d059971158  DefenseRender.bend
+07e806f0529219634132fc9490facdca9be8ef920a58ffc8b87aae8a18e223c7  DefenseMain.bend
+52bf096198bbbc5efc1d4cf20bb2a184c4951e86d3dab10a5478fc6662fafa9a  DefenseTests.bend
+1566e8b4b3200489f1c93085eeb50d2a8df12ef9f148ea364c4ab7d448d05c58  validation-headless.txt
+cfc4773081484b1eecdb62697157f23d51f3d5750dfb5970bc7df27439efa0f0  preview-district.png
+f5e9ec579b566d5fbcb1500cf15101634ec5da29e5ffaefa0d2f3a9e49f05a65  preview-courtyard.png
+c13f8f2f54c83ebd48506256fe09a24671372377e1184bd78f6ac23a8ba044be  preview-frontier.png
+6a512ad9372dc88d8cb571239bd43a920239335f9f4a062de648bbc1b84e29fd  preview-inside-motion-a.png
+f08b5cbb87707b2650f9dd645640d9cae216bf338e1c76d398ce99b0e90bb9b0  preview-inside-motion-b.png
+25bddd808a6b502bc51c035a0986709bd88963b610b0a4e064b932f30227febe  preview-fanout-motion-a.png
+5753877c075aa5bb3d39aec478592ca9bcfd86054e9f53e8b4a5b54ace291938  preview-fanout-motion-b.png
+85cbfccbb377e112ec9ee7b899032fb1b69298062661d4d3e8173bc8a2808cd1  preview-manual-build.png
+53b0b63f27d5e81cfe39cb2ecc9915d293a4336db76bc341231ce817bff92910  preview-delivery-held.png
+f46e9fe0089f95e673b75785a858719bfc517af5d22f0995df337ae38f849cd6  preview-complete.png
+5ae714ddfb3d21e88453c0c73388ce02a9e5a480b22365510cad7be4c6427e95  validation-native.txt

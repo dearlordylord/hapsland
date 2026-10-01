@@ -1,0 +1,74 @@
+CANONICAL DEFENSE HEADLESS VALIDATION
+Purpose: bounded executable validation evidence for a native prototype importing the product reducer.
+Authority: implementation evidence, not product contract or universal proof.
+Platform: Linux ARM64, Bend 2.0.34; macOS execution unvalidated.
+Checker: timeout 5 bend prototypes/canonical-defense/DefenseTests.bend --check-only, exit 0.
+Native: bend prototypes/canonical-defense/DefenseTests.bend -o /tmp/hapsland-canonical-road-pressure-tests
+Execution: /tmp/hapsland-canonical-road-pressure-tests --threads 4, exit 0, 38 directed checks.
+Synthetic fixture: 8 observed edits, each splits authored 10-byte CLEAR and 20-byte FINDING units.
+Backend latencies are host simulation only; CLEAR units slower to reveal sibling dependency.
+All product state transitions import and call Canonical.step; no product reducer copies or core changes.
+Initial ledger: global and partition 18 items / 240 logical bytes. Actual request pool: 8.
+Game overlay: 100 HP, damage one per 50 ticks when actual inside-building charged occupancy >=160 bytes.
+Safe roads: AwaitingSourceRead and Reviewing waiting for Jev; genuine queued owner/parent excluded.
+Inside: SourceReading/Preparing require actual running dispatch ownership; AtJev requires request.started;
+PendingFinding is retained inside. Charged reservation IDs counted once, from post-delivery canonical state.
+Ledger gauge remains the complete real reservation inventory, including safe queued road work.
+Shared UI classifier H.in_building(world, token); HP uses same core classifier directly with Nat identities,
+not pixel positions, visual trails, clamped render IDs or animation progress.
+Seven additional checks prove road-only180bytes safe vs started backend160bytes damages, no ledger changes,
+actual queued-parent exclusion, unstarted-request exclusion and pause/layout invariance.
+Manual global host-latency construction costs 50/50/40; one owned accelerator per type.
+A enables a one-wave 150-tick grace; no automatic construction; pause freezes time.
+Scope: single finite wave, optional deadline fact at1000 ticks since actual wave start.
+Clear/delivered counts are actual settled/released review-unit counts, not finding cardinality.
+Integration failures encountered and fixed: wrong preparation dispatcher identity; premature collection membership;
+submission authorization omission; selected-unit order mismatch; request offered with occupied pool;
+scenario deadline measured before wave start. These were host defects, not confirmed product-core defects.
+No empirical engagement or universal property proof claim.
+Source SHA-256:
+3a2614205cd9237f0e6e2d1d1d84cfdf1e72eaf4ab95ca983ae1d289428f4036  DefenseModel.bend
+482e17ad459b78a5e037731620c1faba43e5dede511eabc9ab481bfe4bea8a5e  DefenseHost.bend
+d4582a7d17d91997480a47219d72df904f7e7dff8722fd270010d0bd7d55d235  DefenseProjection.bend
+52bf096198bbbc5efc1d4cf20bb2a184c4951e86d3dab10a5478fc6662fafa9a  DefenseTests.bend
+7dc1b0a793d39b35b0f037f6860fc0d89fc0d42ed6ef5228789890954ed221b9  ../../packages/agent-flow-bend/Canonical.bend
+
+PASS actual observed preparation parent admitted
+PASS actual preparation splits two reducer children
+PASS actual replacement releases40 reserves10+20
+PASS actual Stop waits for unfinished sibling
+PASS finding blocked by unfinished sibling
+PASS completed sibling permits real collection
+PASS real collection lease reserved
+PASS real authorized delivery slot visible
+PASS authorized acknowledged submission retires real finding
+PASS acknowledged retirement releases actual ledger
+PASS terminal without authorization retains finding
+PASS denied terminal retains byte reservation
+PASS real capacity refusal command
+PASS paused simulation freezes clock
+PASS layout changes preserve gold
+PASS layout changes preserve canonical retained finding
+PASS auto wave never constructs towers
+PASS button gaps never buy
+PASS owned tower cannot charge twice
+PASS finite host workload settles request permits
+PASS finite host workload drains actual ledger
+PASS eight authored finding units acknowledged
+PASS host accelerators preserve authored outcomes
+PASS rejected preparation completion retains work and dispatcher permit
+PASS late manual wave resets scenario deadline clock
+PASS actual clear settlements counted independently of scheduling IDs
+PASS auto starts only finite wave after grace
+PASS coordinator advances actual sibling-gated acknowledged delivery
+PASS coordinator preserves eight authored findings
+PASS completed workload releases real leases and delivery slot
+PASS real Jev pool admits eight requests and refuses ninth
+PASS charged Reviewing road units retain ledger but cause no building pressure
+PASS road-only occupancy never damages HP or releases ledger
+PASS started backend occupants count inside while waiting unit stays safe
+PASS inside threshold damages overlay HP without changing reservations
+PASS actual queued parent excludes its charged preparation from building pressure
+PASS issued but unstarted requests remain outside buildings
+PASS pause freezes damage and layout preserves inside classification
+CANONICAL DEFENSE:38 directed checks complete
