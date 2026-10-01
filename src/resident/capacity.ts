@@ -1,3 +1,4 @@
+import { initialRuntimeRecords, draftRuntimeRecords, runtimeRecordOperations, runtimeRecordView, type RuntimeRecordsState } from "./runtime-records.ts";
 import { initialAdviceRecords, draftAdviceRecords, adviceRecordOperations, emptyAdviceContent, type AdviceRecordsState, type AdviceRecordOperations, type Advice, type AdviceInitial } from "./advice-records.ts";
 import { initialNoticeRecords, draftNoticeRecords, noticeRecordOperations, type NoticeRecordsState, type NoticeRecordOperations, type NoticeCooldownSnapshot } from "./notice-records.ts";
 import { initialRoundRecords, draftRoundRecords, roundRecordOperations, type RoundRecordsState, type RoundRecords, type RoundWork, type WorkCohort } from "./round-records.ts";
@@ -119,6 +120,7 @@ export type AdviceCapture = {
 };
 type AdviceCaptureRecord = { readonly capability: AdviceCapture; readonly retired: boolean };
 type ResidentRecords<Pending, Key, Value> = {
+  readonly runtime: RuntimeRecordsState;
   readonly adviceCaptures: ReadonlyMap<number, AdviceCaptureRecord>;
   readonly advice: AdviceRecordsState;
   readonly reuse: EvaluationReuseState<Pending>;
@@ -168,7 +170,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     residentLifetime, limits, canonical: initialCanonical(limits), reservations: new Map(),
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
-    records: { adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
+    records: { runtime: initialRuntimeRecords(), adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
       dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords() },
   });
   const read = <A>(operation: (current: CapacityState) => A): A =>
@@ -272,8 +274,64 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     replaceWork: (...args) => roundCommit((operations) => operations.replaceWork(...args)),
     retire: (round) => roundCommit((operations) => operations.retire(round)),
   };
+  const runtimeCommitEffect = <A>(operation: (runtime: ReturnType<typeof runtimeRecordOperations>, owner: CapacityLedger) => A): Effect.Effect<A> =>
+    commitAllEffect((draft, records) => {
+      const runtime = draftRuntimeRecords(records.runtime);
+      const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+      const value = operation(runtimeRecordOperations(runtime, residentLifetime), owner);
+      return [value, { ...records, runtime }];
+    });
+  const runtimeCommit = <A>(operation: Parameters<typeof runtimeCommitEffect<A>>[0]): A => Effect.runSync(runtimeCommitEffect(operation));
   return {
     ...capacity,
+    runtime: {
+      snapshot: () => runtimeRecordView(Ref.getUnsafe(state).records.runtime),
+      openConnection: (maximum: number) => runtimeCommit((operations) => operations.openConnection(maximum)),
+      releaseConnection: (connection: Parameters<ReturnType<typeof runtimeRecordOperations>["releaseConnection"]>[0]) => runtimeCommit((operations) => operations.releaseConnection(connection)),
+      rejectCapacity: () => runtimeCommit((operations) => operations.rejectCapacity()),
+      observeCapacity: () => runtimeCommit((operations, owner) => operations.observeCapacity(owner.snapshot().bytes)),
+      observePreparedUnits: (units: number) => runtimeCommit((operations) => operations.observePreparedUnits(units)),
+      nextAuthoritySequence: () => runtimeCommit((operations) => operations.nextAuthoritySequence()),
+      scheduleRetirement: () => runtimeCommit((operations) => operations.scheduleRetirement()),
+      close: () => runtimeCommitEffect((operations) => operations.close()),
+      cleanup: (logicalBytes: (value: unknown) => number): Effect.Effect<"busy" | "cleaned"> => commitAllEffect((draft, records) => {
+        if (records.runtime.lifecycle !== "active") return ["busy", records];
+        const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+        const reuse = evaluationReuseView(records.reuse, owner).snapshot();
+        const capacity = owner.snapshot();
+        const revision = draftRevision(records.revision);
+        const check = owner.transition({ kind: "cleanupCheck", facts: {
+          active: records.runtime.lifecycle === "active",
+          dispatcherIdle: records.dispatch.entries.size === 0,
+          noAdvice: records.advice.entries.size === 0,
+          noNotices: [...records.notices.entries.values()].every((notice) => notice.pending === undefined),
+          noPendingEvaluations: reuse.pending === 0,
+          noCurrentWork: revisionOperations(revision, owner).count() === 0,
+          noCooldowns: records.notices.entries.size === 0,
+          connectionCountOk: records.runtime.connections.size <= 1,
+          cacheMatchesLedger: capacity.items === reuse.entries && capacity.bytes === reuse.bytes,
+        } });
+        if (check.rejection !== undefined || check.commands.length !== 1) throw new Error("canonical cleanup check refused");
+        if (check.commands[0]?.kind === "cleanupBusy") return ["busy", records];
+        if (check.commands[0]?.kind !== "cleanupReady") throw new Error("invalid canonical cleanup check");
+        const clearedReuse = draftEvaluationReuse(records.reuse);
+        evaluationReuseOperations(clearedReuse, owner, logicalBytes).clear();
+        const tickets = draftTicketRecords(records.tickets);
+        const ticketUnits = draftTicketUnits(records.ticketUnits);
+        const ticketOperations = ticketRecordOperations(tickets, owner, ticketUnitOperations(ticketUnits, owner).forget);
+        ticketOperations.retain(0);
+        ticketOperations.assert();
+        const commit = owner.transition({ kind: "cleanupCommit" });
+        if (commit.rejection !== undefined || commit.commands.length !== 1) throw new Error("canonical cleanup commit refused");
+        if (commit.commands[0]?.kind === "cleanupBusy") {
+          return ["busy", { ...records, revision, reuse: clearedReuse, tickets, ticketUnits }];
+        }
+        if (commit.commands[0]?.kind !== "cleanupCommitted") throw new Error("invalid canonical cleanup commit");
+        const runtime = draftRuntimeRecords(records.runtime);
+        runtimeRecordOperations(runtime, residentLifetime).retire();
+        return ["cleaned", { ...records, runtime, revision, reuse: clearedReuse, tickets, ticketUnits }];
+      }),
+    },
     rounds,
     ticketUnits,
     tickets,
@@ -281,7 +339,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
       if (records.adviceCaptures.size !== 0) throw new Error("resident state cannot clear outstanding advice captures");
-      return [clear(draft), { adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
+      return [clear(draft), { runtime: records.runtime, adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     }),
     revision: (() => {

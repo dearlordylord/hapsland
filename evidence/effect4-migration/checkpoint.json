@@ -93,7 +93,10 @@
     "Runtime scope conformance proves isolated lifetimes, shared layer identity, owned endpoint removal and retired lifetime fencing",
     "ResidentRuntimeService exposes named Effect operations; process consumes direct listen, protocol statistics/admission/cleanup and idle cleanup compose dispatcher Effects instead of nested sync runtime calls",
     "Stable Effect regex export retains the existing credential-name JSON Schema pattern using the Unicode regex form; generated contracts remain unchanged",
-    "Separate-process admission fixture keeps its socket connected until the declared response barrier before explicit SIGKILL, removing premature process-exit race"
+    "Separate-process admission fixture keeps its socket connected until the declared response barrier before explicit SIGKILL, removing premature process-exit race",
+    "Runtime lifecycle, native connection leases, retirement scheduling, diagnostic counters, retention peaks and authority sequence now reside in the shared ResidentState Ref; deleted independent mutable runtime scalar owners",
+    "Canonical cleanup permission, cache/ticket eviction and native retiring phase publish together; cleanup refuses outstanding physical dispatcher handles and connection pressure; late connection release remains fenced and owned through physical endpoint closure",
+    "Runtime owner proofs cover bounded connection membership, foreign/duplicate releases, isolated acquisition, busy cleanup, successful canonical retirement and rollback after staged native ticket validation failure"
   ],
   "verification": [
     {
@@ -1100,10 +1103,35 @@
       "command": "Earlier overlapping runtime/subprocess/server suite",
       "exitCode": 1,
       "limitations": "Subprocess response-barrier timeout exposed premature client exit, corrected and verified in isolated rerun; server worker native SIGSEGV remains unexplained. Full suite subsequently ran without native worker error."
+    },
+    {
+      "stage": "Shared runtime lifecycle ownership",
+      "command": "Runtime scopes, runtime records, server and operational-notices focused suite",
+      "exitCode": 0,
+      "tests": 96,
+      "files": 4
+    },
+    {
+      "stage": "Shared runtime lifecycle ownership",
+      "command": "Runtime records, capacity and separate-process lifecycle suite",
+      "exitCode": 0,
+      "tests": 39,
+      "files": 3
+    },
+    {
+      "stage": "Shared runtime lifecycle ownership",
+      "command": "Typecheck, build, all boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Shared runtime lifecycle ownership",
+      "command": "Initial new runtime-records fixtures",
+      "exitCode": 1,
+      "failure": "Two fixtures omitted required capacity purpose; corrected fixture calls and passed subsequent 96-test and 39-test runs."
     }
   ],
   "next": [
-    "Consolidate remaining runtime lifecycle/statistics and job metadata into production Effect services; remove internal synchronous owner/dispatcher bridges and supply Effect methods at the service boundary",
+    "Consolidate remaining job execution metadata and remove internal synchronous owner/dispatcher bridges; supply remaining runtime configuration and fixture controls through scoped Effect services",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -1111,7 +1139,7 @@
     "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "Statistics, native IPC/lifecycle resources and mutable job callback metadata still have closure or executor ownership; combined state exposes synchronous bridges pending runtime service consolidation",
+    "Shared state owns lifecycle and statistics; native IPC handles and mutable per-job callback metadata remain executor resources, and intermediate synchronous domain bridges still need removal",
     "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
     "Exploratory full suite had 1078 passes and one subsequently corrected test failure; final full suite/package/host/live gates remain pending",
     "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim",

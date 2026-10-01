@@ -22,7 +22,7 @@ for (const event of ["ticketRetentionCheck", "cleanupCheck", "cleanupCommit", "d
 }
 if (!server.includes("residentLedger.tickets.retain(limit)") ||
     !server.includes("residentEvictRetainedTickets(residentMaximumTickets)") ||
-    !server.includes("residentEvictRetainedTickets(0)")) {
+    !capacity.includes("ticketOperations.retain(0)")) {
   throw new Error("resident ticket eviction bypassed canonical retention");
 }
 
@@ -31,4 +31,14 @@ if (server.includes("revalidationActive") ||
     !server.includes("residentLedger.adviceCaptures.finish(capture)") ||
     !capacity.includes("resident state cannot clear outstanding advice captures")) {
   throw new Error("advice capture lifetime escaped the shared state owner");
+}
+
+for (const owner of ["let residentLifecycle", "let residentConnections", "let residentRetirementScheduled",
+  "let residentRejectedCapacity", "let residentPeakLedgerBytes", "let residentMaxMaterializedPreparedUnits",
+  "let residentNextDispatchAuthoritySequence"]) {
+  if (server.includes(owner)) throw new Error(`independent runtime lifetime owner returned: ${owner}`);
+}
+if (!server.includes("residentLedger.runtime.cleanup(logicalBytes)") ||
+    !capacity.includes("runtimeRecordOperations(runtime, residentLifetime).retire()")) {
+  throw new Error("runtime retirement must publish with canonical cleanup in the shared owner");
 }

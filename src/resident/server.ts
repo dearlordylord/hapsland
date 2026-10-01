@@ -546,16 +546,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   });
   let residentServer: Server | undefined;
   let residentOwnsOwnerRecord = false;
-  let residentConnections = 0;
-  let residentLifecycle: "active" | "retiring" | "closed" = "active";
-  let residentRetirementScheduled = false;
   const residentIdleChecks = yield* FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
   const residentQuietChecks = yield* FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
   const residentLifetimeController = new AbortController();
-  let residentRejectedCapacity = 0;
-  let residentPeakLedgerBytes = 0;
-  let residentMaxMaterializedPreparedUnits = 0;
-  let residentNextDispatchAuthoritySequence = 1;
   const residentCollectionFindingOffer: CanonicalFindingOffer = (input) => {
     const facts = input.facts;
     const result = residentLedger.transition({ kind: "collectionFindingCheck",
@@ -625,7 +618,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       pendingFindingBatches: residentAdvice().length,
       pendingOperationalNotices: residentPendingNoticeCount(),
       retainedBytes: capacity.bytes,
-      rejectedCapacity: residentRejectedCapacity,
+      rejectedCapacity: residentLedger.runtime.snapshot().rejectedCapacity,
       successfulCacheEntries: reuse.entries,
       pendingEvaluations: reuse.pending,
       noticeCooldowns: residentNotices.entries().length,
@@ -642,37 +635,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   const cleanupEffect = Effect.fn("ResidentRuntime.cleanup")(function* (): Effect.fn.Return<"busy" | "cleaned"> {
-    if (residentLifecycle !== "active") return "busy";
+    if (residentLedger.runtime.snapshot().lifecycle !== "active") return "busy";
     const now = residentNow();
     residentExpirePending(now);
     residentPruneNoticeCooldowns(now);
-    const dispatch = yield* residentDispatcher.snapshot();
-    const reuse = residentReuse.snapshot();
-    const capacity = residentLedger.snapshot();
-    const check = residentLedger.transition({ kind: "cleanupCheck", facts: {
-      active: residentLifecycle === "active",
-      dispatcherIdle: dispatch.queued === 0 && dispatch.running === 0,
-      noAdvice: residentAdvice().length === 0,
-      noNotices: residentPendingNoticeCount() === 0,
-      noPendingEvaluations: reuse.pending === 0,
-      noCurrentWork: residentRevisionCount() === 0,
-      noCooldowns: residentNotices.entries().length === 0,
-      connectionCountOk: residentConnections <= 1,
-      cacheMatchesLedger: capacity.items === reuse.entries && capacity.bytes === reuse.bytes,
-    } });
-    if (check.rejection !== undefined || check.commands.length !== 1) throw new Error("canonical cleanup check refused");
-    if (check.commands[0]?.kind === "cleanupBusy") return "busy";
-    if (check.commands[0]?.kind !== "cleanupReady") throw new Error("invalid canonical cleanup check");
-    residentReuse.clear();
-    residentEvictRetainedTickets(0);
-    const commit = residentLedger.transition({ kind: "cleanupCommit" });
-    if (commit.rejection !== undefined || commit.commands.length !== 1) throw new Error("canonical cleanup commit refused");
-    if (commit.commands[0]?.kind === "cleanupBusy") return "busy";
-    if (commit.commands[0]?.kind !== "cleanupCommitted") throw new Error("invalid canonical cleanup commit");
-    // The canonical closed-dispatch marker and runtime native phase commit in the
-    // same synchronous turn. Subsequent callbacks cannot acquire ownership.
-    residentLifecycle = "retiring";
-    return "cleaned";
+    return yield* residentLedger.runtime.cleanup(logicalBytes);
   });
 
   function cleanup(): "busy" | "cleaned" {
@@ -694,7 +661,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
     residentPruneNoticeCooldowns(now);
-    if (residentLifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
+    if (residentLedger.runtime.snapshot().lifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     const group = adviceePartition(observation.root, observation.advicee);
     const generation = composed ? residentComposedDelivery.admitEdit(group,
       observation.advicee.toolUseId, monotonicNow(), requirePermit) : undefined;
@@ -709,7 +676,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const canonicalRound = round?.canonicalRound ?? residentLedger.roundId(partition);
     const reservation = residentReserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
     if (reservation === undefined) {
-      residentRejectedCapacity += 1;
+      residentLedger.runtime.rejectCapacity();
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
@@ -748,7 +715,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (ticket !== undefined) residentLedger.tickets.forget(ticket);
       residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound);
       residentLedger.release(reservation);
-      residentRejectedCapacity += 1;
+      residentLedger.runtime.rejectCapacity();
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
@@ -1374,8 +1341,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   } {
     const reuse = residentReuse.snapshot();
     return {
-      peakLedgerBytes: residentPeakLedgerBytes,
-      maxMaterializedPreparedUnits: residentMaxMaterializedPreparedUnits,
+      peakLedgerBytes: residentLedger.runtime.snapshot().peakLedgerBytes,
+      maxMaterializedPreparedUnits: residentLedger.runtime.snapshot().maxMaterializedPreparedUnits,
       successfulCacheEntries: reuse.entries,
       successfulCacheBytes: reuse.bytes,
       pendingEvaluations: reuse.pending,
@@ -1411,15 +1378,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   function residentPruneNoticeCooldowns(now: number, exceptKey?: string): void { residentNotices.prune(now, exceptKey); }
 
   function residentRecordOperationalFailure(observation: DirectObservation, kind: OperationalNoticeKind, now = residentNow()): void {
-    if (residentLifecycle !== "active" || !addressableAdvicee(observation.advicee)) return;
+    if (residentLedger.runtime.snapshot().lifecycle !== "active" || !addressableAdvicee(observation.advicee)) return;
     residentNotices.record(adviceePartition(observation.root, observation.advicee), kind, now);
-    residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
+    residentLedger.runtime.observeCapacity();
   }
 
   function residentReserve(partition: string, bytes: number, purpose: CapacityPurpose): CapacityReservation | undefined {
     const reservation = residentLedger.reserve(partition, bytes, purpose);
     if (reservation !== undefined) {
-      residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
+      residentLedger.runtime.observeCapacity();
     }
     return reservation;
   }
@@ -1509,7 +1476,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   function sweepQuietRounds(now = residentNow()): number {
-    if (residentLifecycle !== "active") return 0;
+    if (residentLedger.runtime.snapshot().lifecycle !== "active") return 0;
     residentExpirePending(now);
     residentPruneNoticeCooldowns(now);
     let closedCount = 0;
@@ -1542,7 +1509,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   function residentJobActive(job: Job): boolean {
-    return residentLifecycle === "active" && !residentLifetimeController.signal.aborted &&
+    return residentLedger.runtime.snapshot().lifecycle === "active" && !residentLifetimeController.signal.aborted &&
       !job.work?.controller.signal.aborted && residentRoundActive(job.round);
   }
 
@@ -1630,7 +1597,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (observer === undefined) return;
     const observation: DispatchAuthorityObservation = {
       kind: "dispatchAuthority",
-      sequence: residentNextDispatchAuthoritySequence++,
+      sequence: residentLedger.runtime.nextAuthoritySequence(),
       evaluationId: createHash("sha256").update(job.evaluationKey, "utf8").digest("hex"),
       path: job.prepared.input.path,
       ...details,
@@ -1667,7 +1634,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         return;
       }
       yield* residentAwaitBackendGate();
-      if (residentLifecycle !== "active") {
+      if (residentLedger.runtime.snapshot().lifecycle !== "active") {
         residentLedger.release(job.reservation);
         return;
       }
@@ -1691,7 +1658,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }),
         job.work?.controller.signal ?? residentLifetimeController.signal);
       residentLedger.release(job.reservation);
-      if (settings === undefined || residentLifecycle !== "active" || !residentJobActive(job)) {
+      if (settings === undefined || residentLedger.runtime.snapshot().lifecycle !== "active" || !residentJobActive(job)) {
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         return;
       }
@@ -1705,7 +1672,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const preparation = residentLedger.beginObservedPreparation(
           job.partition, job.canonicalObservationId, captureWorkspaceBytes(candidate.path), job.canonicalRound);
         if (preparation === undefined) {
-          residentRejectedCapacity += 1;
+          residentLedger.runtime.rejectCapacity();
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
           continue;
         }
@@ -1722,9 +1689,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
                 const resized = residentLedger.resize(workspace, required);
                 if (resized) {
-                  residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
+                  residentLedger.runtime.observeCapacity();
                 } else {
-                  residentRejectedCapacity += 1;
+                  residentLedger.runtime.rejectCapacity();
                 }
                 return resized;
               }),
@@ -1745,13 +1712,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             stage: prepared.observation.status === "incomplete" ? "incomplete" : "skipped",
           });
         }
-        residentMaxMaterializedPreparedUnits = Math.max(residentMaxMaterializedPreparedUnits, ready.length);
+        residentLedger.runtime.observePreparedUnits(ready.length);
         let rejectedDeliverable = false;
         const deliverable = ready.filter((outcome) => {
           const accepted = residentLedger.preparedOffer(true,
             residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024) === "preparedAdmitted";
           if (!accepted) {
-            residentRejectedCapacity += 1;
+            residentLedger.runtime.rejectCapacity();
             rejectedDeliverable = true;
           }
           return accepted;
@@ -1793,7 +1760,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           job.canonicalRound,
         );
         activeWorkspaces.delete(workspace);
-        residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
+        residentLedger.runtime.observeCapacity();
         // Workspace has been released and all accepted unit reservations are
         // fixed, so best-effort notice retention cannot displace fresh work.
         if (rejectedDeliverable) {
@@ -1856,7 +1823,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (admitted === undefined) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             if (item.kind === "owner") residentReleaseReuseClaim(item.evaluationKey, "capacity");
-            residentRejectedCapacity += 1;
+            residentLedger.runtime.rejectCapacity();
             residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
             continue;
@@ -1929,7 +1896,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             residentReleaseReuseClaim(item.evaluationKey, "capacity");
             residentReleaseUnit(unit);
-            residentRejectedCapacity += 1;
+            residentLedger.runtime.rejectCapacity();
             residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: item.evaluationKey });
           }
@@ -1959,7 +1926,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       Effect.catch(() => Effect.sync(() => {
         if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident preparation unavailable");
         residentLedger.release(job.reservation);
-        if (residentLifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
+        if (residentLedger.runtime.snapshot().lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable" });
       })),
@@ -2227,14 +2194,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         residentReleaseReuseClaim(job.evaluationKey); residentReleaseUnit(job); return;
       }
       if (result?.status === "evaluated") {
-        if (residentJobActive(job) && residentLifecycle === "active" &&
+        if (residentJobActive(job) && residentLedger.runtime.snapshot().lifecycle === "active" &&
             job.round !== undefined && job.workUnitId !== undefined &&
             !job.round.policyWork().outcome(job.workUnitId, result.findings.length === 0
               ? { $: "Clear" }
               : { $: "Finding", count: result.findings.length, bytes: logicalBytes(result.findings) })) {
           throw new Error("Bend denied review outcome");
         }
-        const currentWork = residentLifecycle === "active" && residentJobActive(job) &&
+        const currentWork = residentLedger.runtime.snapshot().lifecycle === "active" && residentJobActive(job) &&
           residentIsCurrentWork(job.revision, job.prepared);
         if (issuedRequest === undefined || !requestStarted) {
           throw new Error("Jev result without a matching canonical request command and start");
@@ -2352,7 +2319,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
         residentSettleJoined(job.evaluationKey, "unavailable", "backend");
         if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident evaluation unavailable");
-        if (residentLifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
+        if (residentLedger.runtime.snapshot().lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable", unitIdentity: job.evaluationKey });
       })),
@@ -2461,7 +2428,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       advice.reservation, advice.revision, captureWorkspaceBytes(candidate.path),
     );
     if (capture === undefined) return Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] });
-    residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
+    residentLedger.runtime.observeCapacity();
     let capacityUnavailable = false;
     return Effect.gen(function* () {
       yield* residentAdapter("revalidation barrier", () => Promise.resolve(residentAfterRevalidationWorkspaceReserved?.(advice.id)));
@@ -2479,7 +2446,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
             const resized = residentLedger.adviceCaptures.resize(capture, required);
             if (resized) {
-              residentPeakLedgerBytes = Math.max(residentPeakLedgerBytes, residentLedger.snapshot().bytes);
+              residentLedger.runtime.observeCapacity();
             } else capacityUnavailable = true;
             return resized;
           }),
@@ -2506,11 +2473,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const server = runtime;
     return Effect.gen(function* () {
       if (request.operation === "hello") {
-        return residentResponse(residentLifecycle === "active"
+        return residentResponse(residentLedger.runtime.snapshot().lifecycle === "active"
           ? { status: "ready", lifetime: server.lifetime, pid: process.pid }
           : { status: "obsolete-lifetime" });
       }
-      if (request.lifetime !== server.lifetime || residentLifecycle !== "active") {
+      if (request.lifetime !== server.lifetime || residentLedger.runtime.snapshot().lifecycle !== "active") {
         return residentResponse(request.requestRoute === "ticketed"
           ? request.operation === "collect" ? { requestRoute: "ticketed", status: "unavailable", reason: "lost" }
             : { requestRoute: "ticketed", status: "obsolete-lifetime" }
@@ -2950,11 +2917,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   function residentAccept(socket: Socket): void {
-    if (residentConnections >= MAX_IPC_CONNECTIONS) {
+    const connection = residentLedger.runtime.openConnection(MAX_IPC_CONNECTIONS);
+    if (connection === undefined) {
       socket.end(`${encodeCurrentResidentResponse({ status: "rejected-capacity" })}\n`);
       return;
     }
-    residentConnections += 1;
     residentScheduleIdleCheck();
     let bytes = 0;
     let encoded = "";
@@ -2964,7 +2931,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     socket.setTimeout(1_500, () => socket.destroy());
     socket.once("close", () => {
       if (responseFiber !== undefined) Effect.runFork(Fiber.interrupt(responseFiber));
-      residentConnections -= 1;
+      residentLedger.runtime.releaseConnection(connection);
       residentScheduleIdleCheck();
       const closedPath = process.env.REVIEW_RESIDENT_COLLECT_DISCONNECT_PATH;
       if (
@@ -3030,19 +2997,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   function residentScheduleRetirementClose(): void {
-    if (residentRetirementScheduled) return;
-    residentRetirementScheduled = true;
+    if (!residentLedger.runtime.scheduleRetirement()) return;
     // Retirement runs at the process boundary, outside the scope it closes.
     // Keeping the closing fiber in that scope would make it await itself.
     Effect.runFork(Effect.sleep("10 millis").pipe(Effect.andThen(runtime.closeEffect)));
   }
 
   function residentScheduleIdleCheck(): void {
-    if (residentLifecycle !== "active") return;
+    if (residentLedger.runtime.snapshot().lifecycle !== "active") return;
     const server = runtime;
     const pass = Effect.gen(function* () {
-      if (residentLifecycle !== "active") return true;
-      if (residentConnections === 0 && (yield* cleanupEffect()) === "cleaned") {
+      if (residentLedger.runtime.snapshot().lifecycle !== "active") return true;
+      if (residentLedger.runtime.snapshot().connections === 0 && (yield* cleanupEffect()) === "cleaned") {
         residentScheduleRetirementClose();
         return true;
       }
@@ -3056,10 +3022,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   function residentScheduleQuietCheck(): void {
-    if (residentLifecycle !== "active") return;
+    if (residentLedger.runtime.snapshot().lifecycle !== "active") return;
     const server = runtime;
     const pass = Effect.sync(() => {
-      if (residentLifecycle !== "active") return true;
+      if (residentLedger.runtime.snapshot().lifecycle !== "active") return true;
       server.sweepQuietRounds();
       return false;
     });
@@ -3113,7 +3079,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentDispose = Effect.fn("ResidentRuntime.close")(() => {
     const owner = runtime;
     return Effect.uninterruptible(Effect.gen(function* () {
-      residentLifecycle = "closed";
+      yield* residentLedger.runtime.close();
       residentLifetimeController.abort();
       yield* FiberHandle.clear(residentIdleChecks);
       yield* FiberHandle.clear(residentQuietChecks);
