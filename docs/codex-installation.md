@@ -1,10 +1,32 @@
 # Codex installation lifecycle
 
+**Purpose:** Explain Codex CLI registration, setup, updates, and removal.
+**Status:** Maintained installation guidance.
+**Authority:** Operational guidance for implemented lifecycle operations; exact compatibility claims remain bounded by the evidence cited below.
+**Expected use:** Configure a selected client profile and diagnose ownership or readiness problems.
+**Lifecycle:** Update with installer or onboarding changes; review when supported host versions, runtime profiles, or trust behavior change.
+
+## Guided setup and updates
+
+After acquiring a verified package through the [installation lanes](installation-workflows.md):
+
+```sh
+hapsland setup codex
+hapsland doctor codex
+hapsland update codex
+hapsland update codex --channel=next
+```
+
+Setup previews owned changes, asks before installation, offers masked entry for a missing saved key, and reports offline readiness without a Jev call. Updates stage the target in a separate prefix, preview its registration, and apply the digest after confirmation. Finish current client work, restart, and complete native trust review. For local builds, use `npm run dev-install -- --host=codex`; add `--update` for an existing registration. Both client profiles default to user scope; effective file settings bound review across repositories.
+
+## Lifecycle automation
+
+
 For supported source languages and limitations, see the
 [supported-language table](../README.md#supported-languages).
 
 For a person using a normal Codex profile, start with the
-[npm quickstart](../evidence/release/npm-install-plan.md) and `hapsland --pilot` after the
+[installation lanes](installation-workflows.md) and `hapsland setup codex` after the
 registry release. The JSON operations below remain the versioned automation
 interface. `hapsland` is the product command; Jev is the external backend.
 
@@ -36,7 +58,7 @@ artifacts. The release archive is then tested with install scripts disabled on b
 Codex CLI 0.156.0 has a retained authenticated macOS arm64 host run through a controlled offline
 backend. The real Jev first-review milestone is retained for Codex CLI 0.155.1 on Linux arm64
 under the test conditions declared in the installed-release compatibility record.
-The direct-event capture envelope remains narrower where documented. Every request is supplied on
+The direct-event capture envelope remains narrower where documented. Every lifecycle automation request is supplied on
 stdin and every result is a single version-1 JSON object on stdout.
 Exit code 0 covers successful previews, completed operations, and idempotent no-ops. Code 2 is
 an invalid request, 3 is an unsupported host, 4 is a configuration/digest conflict, and 5 is

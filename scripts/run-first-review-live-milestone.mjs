@@ -21,6 +21,7 @@ const projectRoot = resolve(new URL("../", import.meta.url).pathname);
 const explicitLive = process.argv.includes("--live");
 const writeEvidence = process.argv.includes("--write-evidence");
 const registryArtifact = process.argv.includes("--registry-artifact");
+const releaseManifest = JSON.parse(await readFile(join(projectRoot, "package.json"), "utf8"));
 const expectedSha256 = process.argv.find((argument) => argument.startsWith("--expected-sha256="))?.slice("--expected-sha256=".length);
 if (registryArtifact && !/^[0-9a-f]{64}$/.test(expectedSha256 ?? "")) {
   throw new Error("registry live milestone requires --expected-sha256=REVIEWED_ARCHIVE_SHA256");
@@ -110,7 +111,7 @@ const invoke = async (input, timeoutMs = 10_000, expected = [0]) => {
 try {
   await mkdir(installPrefix, { recursive: true });
   const packResult = requireExit(await run("npm", registryArtifact
-    ? ["pack", "@hapsland/hapsland@0.1.0", "--json", "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", runnerRoot]
+    ? ["pack", `${releaseManifest.name}@${releaseManifest.version}`, "--json", "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", runnerRoot]
     : ["pack", "--json", "--pack-destination", runnerRoot], {
     timeoutMs: 120_000,
   }), "npm pack");

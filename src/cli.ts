@@ -71,6 +71,7 @@ import {
 import { terminalModeArguments } from "./credentials/terminal.ts";
 import { readActivity, formatActivityHuman, recordActivity } from "./activity/status.ts";
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
+import { stageRelease, type ReleaseSelection } from "./onboarding/distribution.ts";
 import { runSetup } from "./onboarding/setup.ts";
 import { runFirstReviewDemo } from "./onboarding/first-review-demo.ts";
 import { recordDemoTrace } from "./onboarding/demo-trace.ts";
@@ -193,20 +194,19 @@ const InstallationOperation = Schema.Union([
 ]);
 type InstallationOperation = typeof InstallationOperation.Type;
 
-const SetupOperation = Schema.Struct({
+const setupOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: Fields) => Schema.Struct({
   version: Schema.Literal(1),
   operation: Schema.Literal("setup"),
-  host: Schema.Literal("codex"),
-  scope: Schema.Struct({
-    cwd: Schema.NonEmptyString,
-    review: Schema.Literals(["enabled", "disabled"]),
-  }),
+  scope: Schema.Struct({ cwd: Schema.NonEmptyString, review: Schema.Literals(["enabled", "disabled"]) }),
   credential: Schema.Literals(["saved", "environment", "skip"]),
-  codexHome: Schema.optionalKey(Schema.NonEmptyString),
-  codexExecutable: Schema.optionalKey(Schema.NonEmptyString),
   installProposalDigest: Schema.optionalKey(Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/))),
   interactive: Schema.optionalKey(Schema.Boolean),
+  ...fields,
 });
+const SetupOperation = Schema.Union([
+  setupOperationsFor({ host: Schema.Literal("codex"), codexHome: Schema.optionalKey(Schema.NonEmptyString), codexExecutable: Schema.optionalKey(Schema.NonEmptyString) }),
+  setupOperationsFor({ host: Schema.Literal("claude"), claudeHome: Schema.optionalKey(Schema.NonEmptyString), claudeExecutable: Schema.optionalKey(Schema.NonEmptyString) }),
+]);
 type SetupOperation = typeof SetupOperation.Type;
 
 const FirstReviewDemoOperation = Schema.Struct({
@@ -1071,49 +1071,71 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
 
 const isCredentialCommand = process.argv.includes("--login") || process.argv.includes("--logout");
 const printHelp = () => {
-  process.stdout.write(`Hapsland — Codex review integration
+  process.stdout.write(`Hapsland — Claude Code and Codex review integration
 
-  hapsland --pilot            Guided setup in a terminal
+  hapsland setup claude       Guided Claude Code setup
+  hapsland setup codex        Guided Codex CLI setup
+  hapsland update claude      Stage stable release and update Claude hooks
+  hapsland update codex       Stage stable release and update Codex hooks
+  hapsland update codex --channel=next   Opt into a published candidate
+  hapsland update claude --tarball=/absolute/candidate.tgz
+  hapsland --pilot --host=codex          Guided setup in a terminal
   hapsland --login            Save a Jev key with masked entry
+  hapsland doctor claude      Offline readiness in the current repository
+  hapsland doctor codex       Offline readiness in the current repository
   hapsland --doctor           Offline readiness check (JSON request on stdin)
   hapsland --logout           Remove the saved Jev key
 
 Hapsland uses Jev as its external review backend. With an installed runtime
 and Jev credentials, effective file settings select eligible files by default.
 Set user excludes to ["**/*"] to turn review off.
-For automation, use the versioned --setup operation documented in docs/codex-installation.md.
+For automation, use the versioned --setup operation documented in docs/claude-installation.md and docs/codex-installation.md.
 `);
 };
 
 const flagValue = (name: string): string | undefined =>
   process.argv.find((argument) => argument.startsWith(`${name}=`))?.slice(name.length + 1);
 
+const selectedHost = (): "claude" | "codex" => {
+  const host = flagValue("--host") ?? ((process.argv[2] === "setup" || process.argv[2] === "update" || process.argv[2] === "doctor") ? process.argv[3] : undefined) ?? "codex";
+  if (host !== "claude" && host !== "codex") throw new Error("select claude or codex (for example: hapsland setup claude)");
+  return host;
+};
+const hostFields = (host: "claude" | "codex") => {
+  const home = flagValue(`--${host}-home`);
+  const executable = flagValue(`--${host}-executable`);
+  return host === "claude"
+    ? { host, ...(home === undefined ? {} : { claudeHome: home }), ...(executable === undefined ? {} : { claudeExecutable: executable }) }
+    : { host, ...(home === undefined ? {} : { codexHome: home }), ...(executable === undefined ? {} : { codexExecutable: executable }) };
+};
+const askConfirmation = async (question: string) => {
+  const prompt = createInterface({ input: process.stdin, output: process.stderr });
+  try { return (await prompt.question(`${question} [y/N] `)).trim().toLowerCase() === "y"; }
+  finally { prompt.close(); }
+};
+
 const pilotSetup = async () => {
+  const host = selectedHost();
+  const hostName = host === "claude" ? "Claude Code" : "Codex";
   if (!process.stdin.isTTY || !process.stderr.isTTY) {
     process.stderr.write("Guided setup needs a terminal. Run hapsland --pilot there, or use hapsland --setup with a versioned JSON request.\n");
     process.exitCode = 6;
     return;
   }
-  const ask = async (question: string) => {
-    const prompt = createInterface({ input: process.stdin, output: process.stderr });
-    try { return (await prompt.question(`${question} [y/N] `)).trim().toLowerCase() === "y"; }
-    finally { prompt.close(); }
-  };
   const statePath = process.env.REVIEW_STATE_PATH ?? process.env.REVIEW_CONSENT_FILE ??
     join(homedir(), ".config", "realtime-review-tool", "consent");
   const cwd = process.cwd();
   let request: SetupOperation = {
     version: 1,
     operation: "setup",
-    host: "codex",
+    ...hostFields(host),
     scope: { cwd, review: "enabled" },
     credential: "saved",
-    ...(flagValue("--codex-home") === undefined ? {} : { codexHome: flagValue("--codex-home")! }),
-    ...(flagValue("--codex-executable") === undefined ? {} : { codexExecutable: flagValue("--codex-executable")! }),
   };
   let credentialEntered = false;
   const run = (step: SetupOperation) => Effect.runPromise(runSetup(step, {
     statePath,
+    ...(process.env.REVIEW_USER_CONFIG_PATH === undefined ? {} : { userConfigPath: process.env.REVIEW_USER_CONFIG_PATH }),
     readCredential: async () => {
       const value = await readMaskedCredential();
       credentialEntered = true;
@@ -1124,11 +1146,11 @@ const pilotSetup = async () => {
     result.stages.find((item) => item.stage === name);
   const action = (result: Awaited<ReturnType<typeof run>>, code: string) =>
     result.actions.find((item) => item.code === code);
-    process.stderr.write("Codex review integration pilot — current repository only. No Jev call is made during setup.\n");
+    process.stderr.write(`${hostName} review integration setup. Selected profile hooks apply across repositories according to file settings. No Jev call is made during setup.\n`);
     let result = await run(request);
     process.stderr.write(`Compatibility: ${stage(result, "compatibility")?.summary ?? "unavailable"}.\n`);
     if (stage(result, "compatibility")?.status !== "complete") {
-      process.stderr.write(`${result.actions[0]?.action ?? "Use a declared Codex profile."}\n`);
+      process.stderr.write(`${result.actions[0]?.action ?? `Use a declared ${hostName} profile.`}\n`);
       process.exitCode = 3;
       return;
     }
@@ -1142,8 +1164,8 @@ const pilotSetup = async () => {
     if (install !== undefined) {
       const observed = stage(result, "installation")?.observed as { proposal?: { ownedChanges?: unknown } } | undefined;
       process.stderr.write(`Installation preview (owned changes):\n${JSON.stringify(observed?.proposal?.ownedChanges, null, 2)}\n`);
-      if (!await ask("Install these entries in the selected Codex profile?")) {
-        process.stderr.write("Installation was not changed. Run hapsland --pilot to resume.\n");
+      if (!await askConfirmation(`Install these entries in the selected ${hostName} profile?`)) {
+        process.stderr.write(`Installation was not changed. Run hapsland setup ${host} to resume.\n`);
         return;
       }
       const digest = install.authorization?.installProposalDigest;
@@ -1169,33 +1191,94 @@ const pilotSetup = async () => {
     }
     const doctor = spawnSync(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
       cwd,
-      input: JSON.stringify({ version: 1, operation: "doctor", cwd,
-        ...(request.codexHome === undefined ? {} : { codexHome: request.codexHome }),
-        ...(request.codexExecutable === undefined ? {} : { codexExecutable: request.codexExecutable }) }),
+      input: JSON.stringify({ version: 1, operation: "doctor", cwd, ...hostFields(host) }),
       encoding: "utf8",
       timeout: 10_000,
     });
     if (doctor.status !== 0) {
-      process.stderr.write("Readiness check could not complete. Run hapsland --pilot again or inspect hapsland --doctor.\n");
+      process.stderr.write(`Readiness check could not complete. Run hapsland setup ${host} again or hapsland doctor ${host}.\n`);
       process.exitCode = 6;
       return;
     }
-    let diagnosis: { status: string; nextSteps: Array<{ action: string }> };
+    let diagnosis: { status: string; nextSteps?: Array<{ action: string }>; checks?: Array<{ stage: string; status: string }> };
     try { diagnosis = JSON.parse(doctor.stdout) as typeof diagnosis; }
     catch {
-      process.stderr.write("Readiness result was unreadable. Rerun hapsland --pilot or inspect hapsland --doctor.\n");
+      process.stderr.write(`Readiness result was unreadable. Rerun hapsland setup ${host} or hapsland doctor ${host}.\n`);
       process.exitCode = 6;
       return;
     }
     process.stderr.write(`Offline readiness: ${diagnosis.status}.\n`);
-    for (const next of diagnosis.nextSteps) process.stderr.write(`Next: ${next.action}.\n`);
-    process.stderr.write("After native Codex repository and hook trust, make an ordinary supported edit and inspect review activity.\n");
+    for (const next of diagnosis.nextSteps ?? []) process.stderr.write(`Next: ${next.action}.\n`);
+    for (const check of diagnosis.checks ?? []) if (check.status !== "ready") process.stderr.write(`${check.stage}: ${check.status}.\n`);
+    process.stderr.write(`After native ${hostName} repository and hook trust, make an ordinary supported edit and inspect review activity.\n`);
+};
+
+const updateInteractive = async () => {
+  const host = selectedHost();
+  if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Interactive update needs a terminal. Use --update-preview / --update JSON operations for automation.");
+  const target = flagValue("--target");
+  if (target !== undefined && ["--tarball", "--version", "--channel"].some(flag => flagValue(flag) !== undefined)) {
+    throw new Error("--target cannot be combined with --tarball, --version, or --channel");
+  }
+  let executable: string;
+  if (target !== undefined) executable = target;
+  else {
+    const channel = flagValue("--channel") ?? "latest";
+    if (channel !== "latest" && channel !== "next") throw new Error("--channel must be latest or next");
+    const archive = flagValue("--tarball");
+    const version = flagValue("--version");
+    if (archive !== undefined && (version !== undefined || flagValue("--channel") !== undefined)) throw new Error("select either --tarball or a registry channel/version");
+    const selection: ReleaseSelection = archive === undefined
+      ? { kind: "registry", channel, ...(version === undefined ? {} : { version }) }
+      : { kind: "archive", path: archive };
+    process.stderr.write(`Acquire ${archive ?? `@hapsland/hapsland@${version ?? channel}`} into a fresh prefix; the active package is retained.\n`);
+    if (!await askConfirmation("Download/install this target?")) return;
+    const staged = await Effect.runPromise(stageRelease(selection));
+    executable = staged.executable;
+    process.stderr.write(`Target ${staged.packageVersion}: ${executable}\n`);
+  }
+  const childEnvironment = { ...process.env };
+  delete childEnvironment.REVIEW_INSTALL_RUNTIME;
+  delete childEnvironment.REVIEW_INSTALL_ENTRYPOINT;
+  const invoke = (operation: "update-preview" | "update", proposalDigest?: string) => {
+    const result = spawnSync(executable, [`--${operation}`], {
+      input: JSON.stringify({ version: 1, operation, ...hostFields(host), ...(proposalDigest === undefined ? {} : { proposalDigest }) }),
+      encoding: "utf8", timeout: 30_000, env: childEnvironment,
+    });
+    if (result.error !== undefined) throw result.error;
+    const output = Schema.decodeUnknownSync(Schema.Struct({
+      status: Schema.String,
+      proposal: Schema.optionalKey(Schema.Struct({ digest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)) })),
+    }))(JSON.parse(result.stdout));
+    process.stderr.write(result.stdout + "\n");
+    if (result.status !== 0) throw new Error(`Target updater returned ${output.status}. Follow its recovery/conflict instructions; keep the target installed.`);
+    return output;
+  };
+  const preview = invoke("update-preview");
+  if (preview.status !== "preview" || preview.proposal === undefined) throw new Error("target did not return an applicable update preview");
+  if (!await askConfirmation(`Apply these changes to the selected ${host} profile?`)) return;
+  const result = invoke("update", preview.proposal.digest);
+  if (!["updated", "complete", "already-current"].includes(result.status)) throw new Error(`Update did not complete: ${result.status}`);
+  process.stderr.write(`Finish current work, restart ${host}, and review native trust prompts. Retain the previous package until its hooks and active sessions no longer depend on it.\n`);
 };
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   printHelp();
-} else if (process.argv.includes("--pilot")) {
-  await pilotSetup();
+} else if (process.argv.includes("--pilot") || process.argv[2] === "setup" || process.argv[2] === "update" || process.argv[2] === "doctor") {
+  try {
+    if (process.argv[2] === "doctor") {
+      const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
+        input: JSON.stringify({ version: 1, operation: "doctor", cwd: process.cwd(), ...hostFields(selectedHost()) }), encoding: "utf8", timeout: 10_000,
+      });
+      if (result.error !== undefined) throw result.error;
+      process.stdout.write(result.stdout); process.stderr.write(result.stderr);
+      process.exitCode = result.status ?? 6;
+    } else if (process.argv[2] === "update") await updateInteractive();
+    else await pilotSetup();
+  } catch (cause) {
+    process.stderr.write(`${cause instanceof Error ? cause.message : "Interactive operation failed"}\n`);
+    process.exitCode = 6;
+  }
 } else {
 const output = isCredentialCommand
   ? await runCredentialCommand()
@@ -1263,7 +1346,7 @@ if (isDirectEventReady(output)) {
   if (isCredentialCommand && !process.argv.includes("--json") && !process.argv.includes("--credential-stdin") && process.stdin.isTTY) {
     const result = output as Readonly<Record<string, unknown>>;
     if (result.operation === "login" && result.status === "stored") {
-      process.stdout.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No Jev request or review was sent.\nNext: complete Codex sign-in and native trust, then run hapsland --pilot or the offline doctor.\n`);
+      process.stdout.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No Jev request or review was sent.\nNext: run hapsland setup claude or hapsland setup codex, then complete client sign-in and native trust.\n`);
     } else {
       const next = result.action ?? (result.operation === "logout"
         ? "Use user file exclusions to stop future review dispatches if needed."

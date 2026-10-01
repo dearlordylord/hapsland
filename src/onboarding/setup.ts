@@ -6,23 +6,25 @@ import {
   installCodexIntegration,
   previewCodexInstallation,
   type InstallationRequest,
-  type InstallationResult,
 } from "./codex-installation.ts";
+import { installClaudeIntegration, inspectClaudeInstallation, previewClaudeInstallation, previewClaudeUpdate, updateClaudeIntegration } from "./claude-installation.ts";
 
-export type SetupRequest = {
+type SetupFields = {
   readonly version: 1;
   readonly operation: "setup";
-  readonly host: "codex";
   readonly scope: {
     readonly cwd: string;
     readonly review: "enabled" | "disabled";
   };
   readonly credential: "saved" | "environment" | "skip";
-  readonly codexHome?: string;
-  readonly codexExecutable?: string;
   readonly installProposalDigest?: string;
   readonly interactive?: boolean;
 };
+
+export type SetupRequest = SetupFields & (
+  | { readonly host: "codex"; readonly codexHome?: string; readonly codexExecutable?: string }
+  | { readonly host: "claude"; readonly claudeHome?: string; readonly claudeExecutable?: string }
+);
 
 type StageStatus = "complete" | "pending" | "skipped" | "unknown" | "unsupported" | "conflict" | "partial";
 type SetupStage = {
@@ -46,7 +48,7 @@ const record = (value: unknown): RecordValue | undefined =>
 const text = (value: unknown): string | undefined => typeof value === "string" ? value : undefined;
 const list = (value: unknown): ReadonlyArray<unknown> => Array.isArray(value) ? value : [];
 
-const installationRequest = (request: SetupRequest): InstallationRequest => ({
+const installationRequest = (request: Extract<SetupRequest, { host: "codex" }>): InstallationRequest => ({
   ...(request.codexHome === undefined ? {} : { codexHome: request.codexHome }),
   ...(request.codexExecutable === undefined ? {} : { codexExecutable: request.codexExecutable }),
 });
@@ -66,23 +68,41 @@ export const runSetup = Effect.fn("Setup.run")(function* (
   const actions: Array<SetupAction> = [];
   const completed: Array<string> = [];
   const pending: Array<string> = [];
-  const installRequest = installationRequest(request);
-  let installation = previewCodexInstallation(installRequest) as InstallationResult;
+  const hostName = request.host === "claude" ? "Claude Code" : "Codex";
+  const claudeRequest = request.host === "claude" ? {
+    ...(request.claudeHome === undefined ? {} : { claudeHome: request.claudeHome }),
+    ...(request.claudeExecutable === undefined ? {} : { claudeExecutable: request.claudeExecutable }),
+  } : {};
+  const codexRequest = request.host === "codex" ? installationRequest(request) : {};
+  const claudeInstalled = request.host === "claude" && record(inspectClaudeInstallation(claudeRequest))?.installed === true;
+  const preview = () => {
+    if (request.host !== "claude") return previewCodexInstallation(codexRequest);
+    if (!claudeInstalled) return previewClaudeInstallation(claudeRequest);
+    const target = previewClaudeUpdate(claudeRequest);
+    const changes = list(record(record(target)?.proposal)?.changes);
+    return { ...target, installed: target.status === "preview" && changes.length === 0 };
+  };
+  const install = (proposalDigest: string) => request.host === "claude"
+    ? claudeInstalled
+      ? updateClaudeIntegration({ ...claudeRequest, proposalDigest })
+      : installClaudeIntegration({ ...claudeRequest, proposalDigest })
+    : installCodexIntegration({ ...codexRequest, proposalDigest });
+  let installation: unknown = preview();
   let installationRecord = record(installation) ?? {};
   const previewHost = record(installationRecord.host);
   const compatibility = record(previewHost?.compatibility);
   const installationStatus = text(installationRecord.status) ?? "conflict";
-  const hostHome = text(previewHost?.home) ?? request.codexHome;
+  const hostHome = text(previewHost?.home) ?? (request.host === "claude" ? request.claudeHome : request.codexHome);
 
   if (installationStatus === "unsupported") {
-    stages.push({ stage: "compatibility", status: "unsupported", summary: "the selected Codex host is unsupported", observed: compatibility });
+    stages.push({ stage: "compatibility", status: "unsupported", summary: `the selected ${hostName} host is unsupported`, observed: compatibility });
     actions.push({
       stage: "compatibility",
       code: "select-supported-host",
-      action: "select a declared Codex CLI executable and the exact declared Node runtime, then rerun setup",
+      action: `select a declared ${hostName} executable and the exact declared Node runtime, then rerun setup`,
     });
   } else {
-    stages.push({ stage: "compatibility", status: "complete", summary: "the selected Codex host and packaged runtime are compatible", observed: compatibility });
+    stages.push({ stage: "compatibility", status: "complete", summary: `the selected ${hostName} host and packaged runtime are compatible`, observed: compatibility });
     completed.push("compatibility checked");
   }
 
@@ -90,25 +110,25 @@ export const runSetup = Effect.fn("Setup.run")(function* (
   const installDigest = text(proposal?.digest);
   const installedAtPreview = installationRecord.installed === true;
   if (installationStatus === "partial" && request.installProposalDigest === installDigest && installDigest !== undefined) {
-    installation = yield* Effect.promise(() => installCodexIntegration({ ...installRequest, proposalDigest: installDigest }));
+    installation = yield* Effect.promise(() => install(installDigest));
     installationRecord = record(installation) ?? {};
   } else if (installationStatus === "preview" && !installedAtPreview && request.installProposalDigest === installDigest && installDigest !== undefined) {
-    installation = yield* Effect.promise(() => installCodexIntegration({ ...installRequest, proposalDigest: installDigest }));
+    installation = yield* Effect.promise(() => install(installDigest));
     installationRecord = record(installation) ?? {};
   }
 
   const currentInstallationStatus = text(installationRecord.status) ?? installationStatus;
-  const installed = installedAtPreview || currentInstallationStatus === "installed" || currentInstallationStatus === "already-installed";
+  const installed = installedAtPreview || currentInstallationStatus === "installed" || currentInstallationStatus === "already-installed" || currentInstallationStatus === "complete";
   if (installed) {
     stages.push({
       stage: "installation",
       status: "complete",
       summary: currentInstallationStatus === "already-installed" || installedAtPreview
-        ? "the owned Codex integration is already installed"
-        : "the owned Codex integration was installed",
+        ? `the owned ${hostName} integration is already installed`
+        : `the owned ${hostName} integration was installed`,
       observed: { home: hostHome, changes: list(installationRecord.completed) },
     });
-    completed.push("owned Codex integration installed");
+    completed.push(`owned ${hostName} integration installed`);
   } else if (currentInstallationStatus === "partial") {
     stages.push({ stage: "installation", status: "partial", summary: "installation stopped after partial completion", observed: installationRecord.recovery });
     const recovery = record(installationRecord.recovery);
@@ -139,15 +159,15 @@ export const runSetup = Effect.fn("Setup.run")(function* (
       action: "review the change summary, then rerun setup with its proposal digest",
       authorization: { installProposalDigest: installDigest },
     });
-    pending.push("approve the owned Codex configuration changes");
+    pending.push(`approve the owned ${hostName} configuration changes`);
   } else {
     const status: StageStatus = currentInstallationStatus === "unsupported" ? "unsupported" : "conflict";
-    stages.push({ stage: "installation", status, summary: "the owned Codex integration could not be installed", observed: installationRecord.error });
+    stages.push({ stage: "installation", status, summary: `the owned ${hostName} integration could not be installed`, observed: installationRecord.error });
     actions.push({
       stage: "installation",
       code: status === "unsupported" ? "select-supported-host" : "resolve-installation-conflict",
       action: status === "unsupported"
-        ? "select a supported Codex executable and host configuration home, then rerun setup"
+        ? `select a supported ${hostName} executable and host configuration home, then rerun setup`
         : "preserve the selected host files, resolve the reported ownership or configuration conflict, then rerun setup",
     });
     pending.push("resolve the reported installation problem");
@@ -343,13 +363,13 @@ export const runSetup = Effect.fn("Setup.run")(function* (
     stages.push({
       stage: "host-trust",
       status: "unknown",
-      summary: "Codex native repository and hook trust cannot be queried offline",
+      summary: `${hostName} native repository and hook trust cannot be queried offline`,
       observed: { trustRecordsModified: false, bypassUsed: false },
     });
     actions.push({
       stage: "host-trust",
       code: "complete-native-trust",
-      action: "start Codex normally in the canonical repository and complete any native repository or hook review prompt",
+      action: `start ${hostName} normally in the canonical repository and complete any native repository or hook review prompt`,
     });
   } else {
     stages.push({ stage: "host-trust", status: "pending", summary: "native trust follows installation" });
@@ -389,7 +409,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (
     completed,
     pending,
     actions: actions.slice(0, 4),
-    ...(status === "completed" && request.scope.review === "enabled"
+    ...(status === "completed" && request.scope.review === "enabled" && request.host === "codex"
       ? {
           optionalNextSteps: [{
             operation: "demo" as const,

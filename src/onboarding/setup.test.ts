@@ -66,8 +66,7 @@ const invoke = (
       host: "codex",
       scope: { cwd: fixtureValue.repository, review: "enabled" },
       credential: "environment",
-      codexHome: fixtureValue.codexHome,
-      codexExecutable: fixtureValue.codexExecutable,
+      ...(request.host === "claude" ? {} : { codexHome: fixtureValue.codexHome, codexExecutable: fixtureValue.codexExecutable }),
       ...request,
     }),
     encoding: "utf8",
@@ -417,4 +416,47 @@ else if (operation === "probe") console.log('{"status":"available"}');
       }
     }
   }, 45_000);
+});
+
+describe("Claude setup shares the resumable credential and repository workflow", () => {
+  it("requires digest approval, preserves independent hooks, and supports repeated setup", () => {
+    const test = fixture();
+    const claudeHome = join(test.root, "claude-home"); mkdirSync(claudeHome);
+    const claudeExecutable = join(test.root, "claude");
+    writeFileSync(claudeExecutable, "#!/bin/sh\nprintf '2.1.218\\n'\n", { mode: 0o700 });
+    const independent = { hooks: { Stop: [{ hooks: [{ type: "command", command: "independent-stop" }] }] }, permissions: { allow: ["Read"] } };
+    writeFileSync(join(claudeHome, "settings.json"), JSON.stringify(independent));
+    const request = { host: "claude", claudeHome, claudeExecutable };
+    const preview = invoke(test, request);
+    expect(preview.stages.find(stage => stage.stage === "installation")?.status).toBe("pending");
+    expect(readFileSync(join(claudeHome, "settings.json"), "utf8")).toBe(JSON.stringify(independent));
+    const applied = invoke(test, { ...request, ...authorization(preview) });
+    expect(applied.stages.find(stage => stage.stage === "installation")?.status).toBe("complete");
+    expect(applied.stages.find(stage => stage.stage === "credential")?.status).toBe("complete");
+    expect(applied.actions.find(action => action.code === "complete-native-trust")?.action).toContain("Claude Code");
+    const settings = JSON.parse(readFileSync(join(claudeHome, "settings.json"), "utf8"));
+    expect(settings.hooks.Stop[0]).toEqual(independent.hooks.Stop[0]);
+    expect(settings.permissions).toEqual(independent.permissions);
+    const repeated = invoke(test, request);
+    expect(repeated.stages.find(stage => stage.stage === "installation")?.status).toBe("complete");
+    expect(repeated.actions.some(action => action.code === "approve-installation")).toBe(false);
+    const targetEntrypoint = join(test.root, "next-cli.js"); writeFileSync(targetEntrypoint, "// next installed entrypoint\n");
+    const targetEnvironment = { ...test.environment, REVIEW_INSTALL_ENTRYPOINT: targetEntrypoint };
+    const targetPreview = invoke(test, request, targetEnvironment);
+    expect(targetPreview.stages.find(stage => stage.stage === "installation")?.status).toBe("pending");
+    expect(readFileSync(join(claudeHome, "settings.json"), "utf8")).not.toContain(targetEntrypoint);
+    const targetApplied = invoke(test, { ...request, ...authorization(targetPreview) }, targetEnvironment);
+    expect(targetApplied.stages.find(stage => stage.stage === "installation")?.status).toBe("complete");
+    expect(readFileSync(join(claudeHome, "settings.json"), "utf8")).toContain(targetEntrypoint);
+
+  });
+  it("rejects an unsupported Claude profile before writing hooks", () => {
+    const test = fixture();
+    const claudeHome = join(test.root, "claude-home");
+    const claudeExecutable = join(test.root, "claude");
+    writeFileSync(claudeExecutable, "#!/bin/sh\nprintf '1.0.0\\n'\n", { mode: 0o700 });
+    const output = invoke(test, { host: "claude", claudeHome, claudeExecutable });
+    expect(output.status).toBe("unsupported");
+    expect(existsSync(join(claudeHome, "settings.json"))).toBe(false);
+  });
 });

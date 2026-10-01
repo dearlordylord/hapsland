@@ -108,16 +108,27 @@ artifact verification.
    "$HOME/.local/bin/hapsland-doctor"
    ```
 
-2. In the Git repository you want reviewed, run `"$HOME/.local/bin/hapsland" --pilot`.
-   The guided setup previews the Codex hook changes, accepts a Jev key through masked terminal
-   input. Effective file settings select otherwise eligible files; with no file settings,
-   all otherwise eligible files are selected when Jev credentials are available.
-3. Start Codex normally, review its repository and hook trust prompts, and make a supported
-   TypeScript or supported Rust/Bend type edit. Follow the [status guide](./docs/status.md) to check observed review activity
-   with the host session ID; installation alone does not establish that a review ran.
+2. In the Git repository you want reviewed, run the guided setup for your client:
 
-The [Codex installation guide](./docs/codex-installation.md) covers update, disable, logout,
-uninstall, and an optional first-review demo.
+   ```sh
+   "$HOME/.local/bin/hapsland" setup claude
+   # Or:
+   "$HOME/.local/bin/hapsland" setup codex
+   ```
+
+   Setup previews owned hooks, asks before applying them, accepts a missing Jev key
+   through masked input, and reports offline readiness. The hooks apply to the selected
+   client profile; [file configuration](./docs/configuration.md) controls review scope.
+3. Start the client normally, complete its native trust prompts, and make a supported
+   edit. Follow the [status guide](./docs/status.md) to inspect observed review activity;
+   installation alone does not establish that a review ran.
+
+Update with `hapsland update claude` or `hapsland update codex`. Add `--channel=next`
+to opt into a published candidate. Updates stage a separate package, preview hook changes,
+and ask before applying them. See the [four installation lanes](./docs/installation-workflows.md)
+for stable/candidate installation, development builds, recovery, and removal. The
+[Claude guide](./docs/claude-installation.md) and [Codex guide](./docs/codex-installation.md)
+retain exact host support limits and automation contracts.
 
 <!-- configuration-readme:start -->
 
@@ -141,6 +152,18 @@ See the [complete configuration guide](./docs/configuration.md) for field detail
 <!-- configuration-readme:end -->
 
 ## Development
+
+Install a fresh local snapshot on your own client without publishing:
+
+```sh
+npm run dev-install -- --host=claude
+npm run dev-install -- --host=codex
+# Add --update when the selected profile already has Hapsland.
+```
+
+For installing a freshly packed snapshot into your own Claude Code or Codex profile,
+see [installation and development workflows](./docs/installation-workflows.md#current-personal-development-candidate-lane).
+
 
 ```sh
 npx --yes bun@1.3.14 install
@@ -167,8 +190,8 @@ and resident and do not download packages per edit.
 The packaged CLI's preview/install/enable/disable/uninstall contract, ownership rules, recovery
 behavior, and native trust handoff are documented in
 [`docs/codex-installation.md`](./docs/codex-installation.md).
-For the proposed registry release, use the
-[`Codex npm installation plan`](./evidence/release/npm-install-plan.md). The public command is
+For publishing stable and `next` releases, use the
+[publishing runbook](./docs/npm-publishing.md). The public command is
 `hapsland`. The product is Hapsland and Jev is the external backend. The
 [local release preflight](./evidence/release/npm-0.1.0-preflight.md) is not a registry release record.
 After setup completes, the [installation guide](./docs/codex-installation.md) also documents the separate `hapsland --demo` preview and

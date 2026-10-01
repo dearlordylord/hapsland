@@ -1,5 +1,27 @@
 # Claude Code installation lifecycle
 
+**Purpose:** Explain Claude Code registration, setup, updates, and removal.
+**Status:** Maintained installation guidance.
+**Authority:** Operational guidance for implemented lifecycle operations; exact compatibility claims remain bounded by the evidence cited below.
+**Expected use:** Configure a selected client profile and diagnose ownership or readiness problems.
+**Lifecycle:** Update with installer or onboarding changes; review when supported host versions, runtime profiles, or trust behavior change.
+
+## Guided setup and updates
+
+After acquiring a verified package through the [installation lanes](installation-workflows.md):
+
+```sh
+hapsland setup claude
+hapsland doctor claude
+hapsland update claude
+hapsland update claude --channel=next
+```
+
+Setup previews owned changes, asks before installation, offers masked entry for a missing saved key, and reports offline readiness without a Jev call. Updates stage the target in a separate prefix, preview its registration, and apply the digest after confirmation. Finish current client work, restart, and complete native trust review. For local builds, use `npm run dev-install -- --host=claude`; add `--update` for an existing registration. Both client profiles default to user scope; effective file settings bound review across repositories.
+
+## Lifecycle automation
+
+
 For supported source languages and limitations, see the
 [supported-language table](../README.md#supported-languages).
 

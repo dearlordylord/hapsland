@@ -3,16 +3,10 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { validateReleaseCoordinates } from "./release-coordinates.mjs";
 
 if (process.argv.length > 2) throw new Error("release coordinates are pinned in scripts/npm-release-pin.json; this command takes no arguments");
-const releasePin = JSON.parse(readFileSync("scripts/npm-release-pin.json", "utf8"));
-if (releasePin.packageName !== "@hapsland/hapsland" || releasePin.version !== "0.1.0" ||
-    typeof releasePin.repositoryUrl !== "string" ||
-    !/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?$/.test(releasePin.repositoryUrl) ||
-    !/^[0-9a-f]{40}$/.test(releasePin.sourceCommit ?? "") ||
-    !/^[0-9a-f]{64}$/.test(releasePin.archiveSha256 ?? "")) {
-  throw new Error("scripts/npm-release-pin.json does not contain reviewed release coordinates and a canonical source URL");
-}
+const releasePin = validateReleaseCoordinates(JSON.parse(readFileSync("scripts/npm-release-pin.json", "utf8")));
 
 const registry = "https://registry.npmjs.org/";
 const packageName = releasePin.packageName;
@@ -55,7 +49,7 @@ if (!(["linux", "darwin"].includes(process.platform) && process.arch === "arm64"
 const manifest = JSON.parse(readFileSync("package.json", "utf8"));
 if (manifest.name !== packageName || manifest.version !== version || manifest.private === true ||
     manifest.packageManager !== "bun@1.3.14") {
-  throw new Error("release manifest does not match @hapsland/hapsland@0.1.0");
+  throw new Error(`release manifest does not match ${packageName}@${version}`);
 }
 const identity = output("npm", ["whoami", `--registry=${registry}`]);
 process.stdout.write(`npm identity: ${identity}\n`);
@@ -71,7 +65,7 @@ if (!clean()) throw new Error("release build changed tracked or untracked files"
 const destination = mkdtempSync(join(tmpdir(), "hapsland-release-"));
 const packed = JSON.parse(output("npm", ["pack", "--ignore-scripts=true", "--json", "--pack-destination", destination]));
 if (!Array.isArray(packed) || packed.length !== 1 || packed[0]?.name !== packageName ||
-    packed[0]?.version !== version || basename(packed[0]?.filename ?? "") !== "hapsland-hapsland-0.1.0.tgz") {
+    packed[0]?.version !== version || basename(packed[0]?.filename ?? "") !== releasePin.archiveFilename) {
   throw new Error("npm pack did not produce the expected scoped archive");
 }
 const archive = join(destination, packed[0].filename);
@@ -92,7 +86,7 @@ const tarballUrl = () => {
 };
 let publishedUrl = tarballUrl();
 if (publishedUrl === undefined) {
-  checked("npm", ["publish", archive, "--access=public", "--tag=latest", "--ignore-scripts=true", `--registry=${registry}`],
+  checked("npm", ["publish", archive, "--access=public", `--tag=${releasePin.tag}`, "--ignore-scripts=true", `--registry=${registry}`],
     { stdio: "inherit" });
   for (let attempt = 0; attempt < 6 && publishedUrl === undefined; attempt += 1) {
     publishedUrl = tarballUrl();
@@ -106,6 +100,6 @@ const response = await fetch(publishedUrl);
 if (!response.ok) throw new Error(`registry tarball download failed: ${response.status}`);
 const registryDigest = sha256(Buffer.from(await response.arrayBuffer()));
 if (registryDigest !== digest) throw new Error(`registry artifact differs from the reviewed archive: ${registryDigest}`);
-const latest = output("npm", ["view", `${packageName}@latest`, "version", `--registry=${registry}`]);
-if (latest !== version) throw new Error(`latest tag does not point to ${version}: ${latest}`);
-process.stdout.write(`${packageName}@${version} is published as latest; registry SHA-256 matches ${digest}\n`);
+const taggedVersion = output("npm", ["view", `${packageName}@${releasePin.tag}`, "version", `--registry=${registry}`]);
+if (taggedVersion !== version) throw new Error(`${releasePin.tag} tag does not point to ${version}: ${taggedVersion}`);
+process.stdout.write(`${packageName}@${version} is published as ${releasePin.tag}; registry SHA-256 matches ${digest}\n`);

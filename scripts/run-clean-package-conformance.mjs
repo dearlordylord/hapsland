@@ -10,6 +10,7 @@ const runtimeDeclaration = JSON.parse(await readFile(join(root, "package-runtime
 const executeRealCodex = process.argv.includes("--real-codex");
 const writeEvidence = process.argv.includes("--write-evidence");
 const registryArtifact = process.argv.includes("--registry-artifact");
+const releaseManifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 const expectedSha256 = process.argv.find((argument) => argument.startsWith("--expected-sha256="))?.slice("--expected-sha256=".length);
 if (registryArtifact && !/^[0-9a-f]{64}$/.test(expectedSha256 ?? "")) {
   throw new Error("registry conformance requires --expected-sha256=REVIEWED_ARCHIVE_SHA256");
@@ -406,7 +407,7 @@ try {
     throw new Error("source package must build before packing without an install-time lifecycle script");
   }
   await mustRun("npm", registryArtifact
-    ? ["pack", "@hapsland/hapsland@0.1.0", "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", artifacts]
+    ? ["pack", `${releaseManifest.name}@${releaseManifest.version}`, "--ignore-scripts=true", "--registry=https://registry.npmjs.org/", "--pack-destination", artifacts]
     : ["pack", "--ignore-scripts=false", "--foreground-scripts", "--pack-destination", artifacts], { cwd: root });
   const artifactEntries = await (await import("node:fs/promises")).readdir(artifacts);
   const artifactName = artifactEntries.find((entry) => entry.endsWith(".tgz"));

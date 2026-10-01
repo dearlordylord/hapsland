@@ -251,7 +251,7 @@ const preview = (kind: Kind, request: ClaudeInstallationRequest) => {
         ...(next.beforeRecord === next.afterRecord ? [] : [{ path: input.paths.ownership, description: "Claude ownership record" }]),
       ], ownedChanges: { event: "PostToolUse", matcher: "Edit|Write", command: input.command, timeoutSeconds: 5,
         ownershipRecord: input.paths.ownership } },
-      installed: kind !== "uninstall",
+      installed: next.beforeRecord !== undefined && kind !== "uninstall",
       trust: { status: "native-confirmation-required", guidance: "Claude Code owns workspace trust and hook approval; open the repository normally and review native prompts." },
       pending: ["apply this proposal digest", "review effective file settings and credential access"] };
   } catch (cause) { return resultError(operation, cause, request.claudeHome); }

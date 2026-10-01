@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { validateReleaseCoordinates } from "./release-coordinates.mjs";
 
 const [archiveArgument, commit] = process.argv.slice(2);
 if (!archiveArgument || !/^[0-9a-f]{40}$/.test(commit ?? "")) {
@@ -26,10 +27,12 @@ const names = files.filter((name) => !name.endsWith("/")).map((name) => {
 });
 const allowed = (name) => name === "package.json" || name === "package-runtime.json" ||
   name === "README.md" || name === "bin/launch.sh" ||
+  ["schemas/review-config-v1.schema.json", "schemas/review-rule-pack-v1.schema.json"].includes(name) ||
   ["dist/canonical/canonical.generated.js", "dist/canonical/import-graph.generated.js"].includes(name) ||
   ["docs/codex-installation.md", "docs/claude-installation.md", "docs/opencode-installation.md",
     "docs/direct-event-v1-supported-profile.md",
-    "docs/installed-release-compatibility.md", "docs/status.md"].includes(name) ||
+    "docs/installed-release-compatibility.md", "docs/status.md", "docs/configuration.md",
+    "docs/installation-workflows.md", "docs/npm-publishing.md"].includes(name) ||
   /^dist\/(?:[a-z0-9-]+\/)*[a-z0-9-]+\.js$/i.test(name) ||
   /^native\/prebuilt\/(?:linux|darwin)-arm64\//.test(name);
 for (const name of names) {
@@ -39,17 +42,18 @@ for (const name of names) {
     throw new Error(`development or conformance artifact in release tarball: ${name}`);
   }
 }
+const releasePin = validateReleaseCoordinates(JSON.parse(gitFile("scripts/npm-release-pin.json")));
 const manifest = JSON.parse(archiveFile("package.json"));
 if (JSON.stringify(manifest) !== JSON.stringify(JSON.parse(gitFile("package.json")))) {
   throw new Error("tarball manifest differs from the pinned release commit");
 }
-if (manifest.name !== "@hapsland/hapsland" || manifest.version !== "0.1.0" || manifest.private === true ||
+if (manifest.name !== "@hapsland/hapsland" || manifest.version !== releasePin.version || manifest.private === true ||
     manifest.bin?.hapsland !== "bin/launch.sh" ||
     Object.keys(manifest.bin ?? {}).some((name) => name.startsWith("review-tool")) ||
     manifest.scripts?.postinstall !== undefined ||
     manifest.optionalDependencies?.["node-bin-darwin-arm64"] !== "24.20.0" ||
     manifest.optionalDependencies?.["node-linux-arm64"] !== "24.20.0") {
-  throw new Error("release package manifest differs from reviewed 0.1.0 coordinates or runtime contract");
+  throw new Error("release package manifest differs from reviewed release coordinates or runtime contract");
 }
 const required = ["package.json", "package-runtime.json", "README.md", "bin/launch.sh",
   "dist/cli.js", "dist/package-doctor.js", "dist/parser-main.js",
