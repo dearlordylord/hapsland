@@ -6,7 +6,6 @@ import ./DefenseProjection.bend as P
 import ./DefenseHost.bend as H
 import ./DefenseTeaching.bend as T
 import ./DefenseStop.bend as Stop
-import ./DefenseRoads.bend as Motion
 import ./DefenseMap.bend as D
 import ./DefensePreview.bend as Preview
 import ./DefenseOutput.bend as O
@@ -170,12 +169,7 @@ def exits(+world: M.World,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
       road(D.clear_route(layout),8,9170322,road(D.delivery_route(layout),8,65483,rest))))
 
 def network(+layout: U32, +world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
-  asphalt(D.source_route(layout),asphalt(D.preparation_route(layout),asphalt(D.review_route(layout,0),asphalt(D.review_route(layout,1),asphalt(D.retained_route(layout),exits(world,rest))))))
-
-def branch_count(tokens: List<&2,P.Token>, +world: M.World, +phase: U32, +side: U32) -> U32:
-  match tokens:
-    case Nil{}: 0
-    case Con{+token,tail}: (Bool.to_u32(U32.is_eq(P.phase(token),phase) && U32.is_eq(Motion.branch(world,token),side)) + branch_count(tail,world,phase,side) : U32)
+  asphalt(D.source_route(layout),asphalt(D.preparation_route(layout),asphalt(D.review_route(layout,0),asphalt(D.review_route(layout,1),asphalt(D.retained_route(layout),road(D.review_route(layout,0),28,phase_color(3),road(D.review_route(layout,1),28,phase_color(3),exits(world,rest))))))))
 
 def door_open(+layout: U32,+phase: U32,+edge: U32) -> Bool:
   U32.is_eq(edge,D.entry_side(layout,phase,0)) || U32.is_eq(edge,D.entry_side(layout,phase,1)) ||
@@ -235,27 +229,34 @@ def health_bar(on: Bool,+world: M.World,+phase: U32,+x: U32,+y: U32,rest: List<&
 def queue_caption(+layout: U32,side: U32) -> D.Point:
   match layout:
     case 0: D.Point{600,552}
-    case 1: D.Point{Bool.pick(U32,U32.is_eq(side,0),80,564),450}
-    case _: D.Point{612,562}
+    case 1: D.Point{Bool.pick(U32,U32.is_eq(side,0),80,564),478}
+    case _: D.Point{600,592}
 def queue_details(phase: U32,+world: M.World,+side: U32,x: U32,y: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match phase:
     case 3:
       +caption = queue_caption(M.layout(world),side)
       +cx = D.px(caption)
       +cy = D.py(caption)
+      F.text("REVIEW QUEUE / SAFE",cx,M.sub(cy,24),1,phase_color(3),
+        F.text("OWNED " ++ U32.show((T.review_count(M.work(M.core(world)),world,side,False{}) + T.review_count(M.work(M.core(world)),world,side,True{}) : U32)),cx,M.sub(cy,12),1,phase_color(3),
       F.text("TRAVEL " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,False{})) ++ " / PERMIT WAIT " ++ U32.show(T.review_count(M.work(M.core(world)),world,side,True{})),cx,cy,1,65483,
         F.text("JEV REQUESTS " ++ U32.show(P.requests(world)) ++ "/" ++ U32.show(E.permits(world,4)) ++ " HOST / CORE " ++ U32.show(T.request_limit()),cx,(cy + 12 : U32),1,12439239,
-          F.text("ROAD SHOTS / WAIT AT JEV DOOR",cx,(cy + 24 : U32),1,12439239,rest)))
+          F.text("ROAD SHOTS / WAIT AT JEV DOOR",cx,(cy + 24 : U32),1,12439239,rest)))))
     case _: rest
 
-def building(+world: M.World, +phase: U32, +side: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+def processing_building(+world: M.World, +phase: U32, +side: U32, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   +point = D.center(M.layout(world),phase,side)
   +x = U32.sub(D.px(point),32)
   +y = U32.sub(D.py(point),24)
-  +enclosed = Bool.not(U32.is_eq(phase,0) || U32.is_eq(phase,3))
-  +title = Bool.pick(String,U32.is_eq(phase,0),"SOURCE QUEUE / SAFE",Bool.pick(String,U32.is_eq(phase,3),"TO JEV / REVIEW QUEUE",phase_name(phase)))
-  +count = Bool.pick(U32,U32.is_eq(M.layout(world),1) && U32.is_eq(phase,3),branch_count(P.tokens(world),world,phase,side),P.count(world,phase))
-  F.text(title,x,U32.sub(y,13),1,phase_color(phase),F.text("OWNED " ++ U32.show(count),x,(y + 53 : U32),1,phase_color(phase),queue_details(phase,world,side,x,y,health_bar(enclosed,world,phase,x,y,site_shape(enclosed,M.layout(world),phase,point,x,y,Bool.pick(U32,(M.damage_flash(world) > 0 : U32) && (site_pressure(P.tokens(world),world,phase) > 0 : U32),15758447,phase_color(phase)),rest)))))
+  +enclosed = Bool.not(U32.is_eq(phase,0))
+  +title = Bool.pick(String,U32.is_eq(phase,0),"SOURCE QUEUE / SAFE",phase_name(phase))
+  +count = P.count(world,phase)
+  F.text(title,x,U32.sub(y,13),1,phase_color(phase),F.text("OWNED " ++ U32.show(count),x,(y + 53 : U32),1,phase_color(phase),health_bar(enclosed,world,phase,x,y,site_shape(enclosed,M.layout(world),phase,point,x,y,Bool.pick(U32,(M.damage_flash(world) > 0 : U32) && (site_pressure(P.tokens(world),world,phase) > 0 : U32),15758447,phase_color(phase)),rest))))
+
+def building(+world: M.World,+phase: U32,+side: U32,rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
+  match phase:
+    case 3: queue_details(phase,world,side,0,0,rest)
+    case _: processing_building(world,phase,side,rest)
 
 def buildings(fuel: Nat, +phase: U32, +world: M.World, rest: List<&2,F.Rect>) -> List<&2,F.Rect>:
   match fuel:
