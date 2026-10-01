@@ -53,6 +53,11 @@ const identifier = (value: unknown): value is string =>
 const declarationName = (value: unknown): value is string =>
   typeof value === "string" && value.length <= 256 &&
   /^[\p{ID_Start}_$][\p{ID_Continue}$\u200C\u200D]*$/u.test(value);
+// Qualified reference sites are distinct from declaration names. Keep the
+// original alias/path spelling while binding the edge to its canonical target.
+const referenceName = (value: unknown): value is string =>
+  typeof value === "string" && value.length <= 256 &&
+  value.split(/::|\./u).every(declarationName);
 const kind = (value: unknown): value is Kind =>
   value === "interface" || value === "type-alias" || value === "struct" || value === "enum" || value === "datatype" || value === "function";
 const source = (value: unknown): value is string =>
@@ -69,7 +74,7 @@ const artifact = (value: unknown, ordered: boolean): Artifact | Node | undefined
 };
 const edge = (value: unknown): Edge | undefined => {
   const item = record(value);
-  if (item === undefined || !identifier(item.from) || !declarationName(item.symbol) ||
+  if (item === undefined || !identifier(item.from) || !referenceName(item.symbol) ||
     !Number.isSafeInteger(item.order) || Number(item.order) < 0) return undefined;
   if (item.kind === "omitted") {
     if (!exactKeys(item, ["from", "kind", "symbol", "reason", "order"]) ||
