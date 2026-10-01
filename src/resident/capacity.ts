@@ -148,7 +148,8 @@ const draftCapacity = (current: CapacityState, readReservation: CapacityDraft["r
  * Synchronous methods bridge existing host callers while the resident service
  * surface is migrated; all internal operations receive their draft explicitly.
  */
-export const makeResidentState = <Pending = never, DispatchKey = string, DispatchValue = never>(limits: CapacityLimits = defaultLimits, residentLifetime: string = randomUUID()) => Effect.gen(function* () {
+export const makeResidentState = <Pending = never, DispatchKey = string, DispatchValue = never>(limits: CapacityLimits = defaultLimits, requestedLifetime?: string) => Effect.gen(function* () {
+  const residentLifetime = requestedLifetime ?? (yield* Effect.sync(randomUUID));
   const state = yield* Ref.make<CapacityState & { readonly records: ResidentRecords<Pending, DispatchKey, DispatchValue> }>({
     residentLifetime, limits, canonical: initialCanonical(limits), reservations: new Map(),
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),

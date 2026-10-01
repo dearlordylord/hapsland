@@ -75,6 +75,12 @@ it.effect("clears joined membership with its owner and keeps independent acquisi
   const recipe = makeResidentState();
   const first = yield* recipe;
   const second = yield* recipe;
+  expect(second.residentLifetime).not.toBe(first.residentLifetime);
+  const input = residentTicketInput(first.residentLifetime);
+  first.tickets.open(input);
+  const before = second.canonicalProjection();
+  expect(() => second.tickets.open(input)).toThrow("ticket admission identity refused");
+  expect(second.canonicalProjection()).toEqual(before);
   const joined = first.joinedReviews(measure);
   joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, revision });
   expect(second.joinedReviews(measure).hasAdmission(1)).toBe(false);

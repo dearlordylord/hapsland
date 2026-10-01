@@ -63,7 +63,8 @@
     "Joined-review subscriber membership and immutable revision bindings now share the canonical/native Ref; deleted the server joined-review Map and mutable attachment path",
     "Owner claim attachment, subscriber revision attachment and ticket-unit metadata stage in one commit; release and supersession stage subscriber retirement with unit progress",
     "Joined subscribers retain only activity root/advicee metadata, rather than the full source-bearing observation; activity recording runs after publication",
-    "Whole-owner clearing retains subscriber state through physical dispatch settlement and clears all native domains together"
+    "Whole-owner clearing retains subscriber state through physical dispatch settlement and clears all native domains together",
+    "Default resident lifetime generation now runs at state acquisition rather than Effect recipe construction; repeated acquisitions reject tickets from another owner lifetime"
   ],
   "verification": [
     {
@@ -737,6 +738,23 @@
         "Existing resident delivery, reuse, security and subprocess contracts"
       ],
       "note": "An earlier combined session result could not be recovered after context compaction. This repeated run was captured in a persistent local log and its terminal exit observed."
+    },
+    {
+      "stage": "Cold resident lifetime acquisition",
+      "command": "tsc -p tsconfig.json --noEmit and vitest run --maxWorkers=1 joined-reviews ticket-records ticket-units capacity",
+      "exitCode": 0,
+      "tests": 37,
+      "files": 4,
+      "covers": [
+        "Distinct lifetimes for repeated acquisition of one Effect recipe",
+        "Cross-lifetime ticket rejection without canonical mutation",
+        "Existing native ticket and capacity ownership contracts"
+      ]
+    },
+    {
+      "stage": "Cold resident lifetime acquisition",
+      "command": "npm run build and git diff --check",
+      "exitCode": 0
     }
   ],
   "next": [
