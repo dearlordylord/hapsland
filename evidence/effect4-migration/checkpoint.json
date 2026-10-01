@@ -64,7 +64,13 @@
     "Owner claim attachment, subscriber revision attachment and ticket-unit metadata stage in one commit; release and supersession stage subscriber retirement with unit progress",
     "Joined subscribers retain only activity root/advicee metadata, rather than the full source-bearing observation; activity recording runs after publication",
     "Whole-owner clearing retains subscriber state through physical dispatch settlement and clears all native domains together",
-    "Default resident lifetime generation now runs at state acquisition rather than Effect recipe construction; repeated acquisitions reject tickets from another owner lifetime"
+    "Default resident lifetime generation now runs at state acquisition rather than Effect recipe construction; repeated acquisitions reject tickets from another owner lifetime",
+    "Client readiness now consumes ResidentStartup Effect service ports; removed EnsureResidentDependencies Promise fixtures and identity-based live/controlled workflow selection",
+    "Launch throttling is an immutable Ref record acquired by the startup layer; ResidentLauncher owns native spawn acknowledgement, diagnostic descriptor cleanup and callback observation",
+    "Launch claims retain physical acknowledgement through interruption, release on failure and fence old failure callbacks after expiry; independent service acquisitions have independent launch state",
+    "CLI and composed-hook runtime layers share their root startup service; public Promise entry points use a lazily acquired process ManagedRuntime closed at beforeExit, preserving throttle sharing across concurrent calls",
+    "Resident IPC errors now use the pinned Schema.TaggedError API; shared admission awaits residentRequestEffect directly instead of returning a detached Promise",
+    "Controlled readiness fixtures now provide Effect layers and Effect-native operations; new Deferred/Ref launch and native admission interruption conformance covers the changed ownership boundary"
   ],
   "verification": [
     {
@@ -755,11 +761,95 @@
       "stage": "Cold resident lifetime acquisition",
       "command": "npm run build and git diff --check",
       "exitCode": 0
+    },
+    {
+      "stage": "Client startup service ownership",
+      "command": "Initial startup/host combined suite",
+      "exitCode": 1,
+      "testsPassed": 65,
+      "testsExpected": 67,
+      "filesPassed": 6,
+      "filesExpected": 8,
+      "unhandledErrors": 1,
+      "failures": [
+        "100-caller convergence reached the readiness deadline after separate startup acquisitions lost shared process launch throttling",
+        "Admission interruption regression observed a completed fiber containing a pending Promise and an unhandled IPC close rejection"
+      ],
+      "resolutions": [
+        "Public Promise callers now share one process ManagedRuntime startup acquisition",
+        "Shared admission now yields residentRequestEffect; native interruption regression confirms the fiber waits and the socket closes"
+      ]
+    },
+    {
+      "stage": "Client startup service ownership",
+      "command": "tsc -p tsconfig.json --noEmit and npm run build",
+      "exitCode": 0
+    },
+    {
+      "stage": "Client startup service ownership",
+      "command": "vitest run --maxWorkers=1 client-startup client composed-hook direct-hook-output",
+      "exitCode": 0,
+      "tests": 28,
+      "files": 4
+    },
+    {
+      "stage": "Client startup service ownership",
+      "command": "vitest run --maxWorkers=1 subprocess -t converges 100 starters",
+      "exitCode": 0,
+      "tests": 1,
+      "skipped": 9,
+      "covers": [
+        "Exactly 100 concurrent callers over eight independent clients",
+        "Shared resident identity",
+        "Timed-out/disconnected work remains resident-owned"
+      ]
+    },
+    {
+      "stage": "Client startup service ownership",
+      "command": "All 14 authority/boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Client startup service ownership",
+      "command": "First post-fix eight-file combined suite",
+      "exitCode": 1,
+      "testsPassed": 66,
+      "testsExpected": 67,
+      "filesPassed": 7,
+      "filesExpected": 8,
+      "failure": "100-caller startup converged, but its later disconnected admission did not reach the acceptance file within the existing 5s fixture deadline; root cause not established",
+      "resolution": "Added child-process rejection observation to the fixture so a nonzero child failure is reported directly instead of only a gate timeout; the deadline and expected behavior remain unchanged"
+    },
+    {
+      "stage": "Client startup service ownership",
+      "command": "vitest run --maxWorkers=1 subprocess",
+      "exitCode": 0,
+      "tests": 10,
+      "files": 1,
+      "note": "Full separate-process lifecycle suite passed with child failure observation"
+    },
+    {
+      "stage": "Client startup service ownership",
+      "command": "vitest run --maxWorkers=1 client-startup client composed-hook direct-hook-output subprocess security-sinks direct-event/claude-cli cli",
+      "exitCode": 0,
+      "tests": 67,
+      "files": 8,
+      "covers": [
+        "Layer-acquired launch claim isolation and sharing",
+        "Concurrent launch throttling and expiry",
+        "Failure retry and stale failure capability fencing",
+        "Physical spawn acknowledgement through interruption",
+        "One absolute readiness deadline and owner reacquisition",
+        "Native shared admission interruption closes its owned socket",
+        "100 starters over eight independent process clients",
+        "Existing CLI, direct output, security and Claude host contracts"
+      ],
+      "note": "Final combined run passed after the two observed initial regressions were corrected and child-failure reporting was added; the earlier 5s admission gate timeout remains recorded without an established cause."
     }
   ],
   "next": [
     "Consolidate remaining server advice/notice/round records with the canonical/native records into the production ResidentState Effect service and runtime layer graph; delete the server class owner and internal synchronous bridges",
-    "Consolidate client lifecycle and fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
+    "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",

@@ -1,4 +1,5 @@
-import { Effect, Fiber } from "effect";
+import { it as effectIt } from "@effect/vitest";
+import { Deferred, Effect, Fiber, Layer } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { chmod, mkdtemp, rm, symlink } from "node:fs/promises";
 import { createServer, type Server } from "node:net";
@@ -10,10 +11,13 @@ import {
   ensureResident,
   admitTicketedObservation,
   admitObservation,
+  admitObservationEffect,
   collectOutcome,
   residentRequest,
   residentRequestEffect,
-  type EnsureResidentDependencies,
+  ResidentStartup,
+  ensureResidentEffect,
+  type ResidentStartupOperations,
 } from "./client.ts";
 import {
   prepareResidentDirectory,
@@ -100,66 +104,69 @@ describe("resident client trust boundary", () => {
       JSON.stringify(request.ticket) === JSON.stringify({ nonce: "ticket", lifetime: "original-owner" })
     )).toBe(true);
   });
-  it("uses one absolute readiness deadline and caps every operation to remaining time", async () => {
+  effectIt.effect("uses one absolute readiness deadline and caps every operation to remaining time", () => Effect.gen(function* () {
     const paths = residentPaths("/not-used");
     let clock = 0;
     const launchCalls: Array<{ readonly at: number; readonly budget: number }> = [];
     const probeBudgets: Array<number> = [];
-    const dependencies: EnsureResidentDependencies = {
+    const dependencies: ResidentStartupOperations = {
       now: () => clock,
-      prepare: async (_paths, timeoutMs) => {
+      clearDiagnostic: () => Effect.void,
+      diagnostic: () => Effect.succeed(""),
+      prepare: (_paths, timeoutMs) => Effect.sync(() => {
         expect(timeoutMs).toBe(10_000);
         clock += 100;
-      },
-      probe: async (_paths, timeoutMs) => {
+      }),
+      probe: (_paths, timeoutMs) => Effect.try({ try: () => {
         probeBudgets.push(timeoutMs);
         clock += timeoutMs;
-        throw new ResidentIpcError("not ready");
-      },
-      launch: (_paths, timeoutMs) => { launchCalls.push({ at: clock, budget: timeoutMs }); },
-      wait: async (milliseconds) => { clock += milliseconds; },
+        throw new ResidentIpcError({ message: "not ready" });
+      }, catch: () => new ResidentIpcError({ message: "not ready" }) }),
+      launch: (_paths, timeoutMs) => Effect.sync(() => { launchCalls.push({ at: clock, budget: timeoutMs }); }),
+      wait: (milliseconds) => Effect.sync(() => { clock += milliseconds; }),
     };
-    await expect(ensureResident(paths, 10_000, dependencies)).rejects.toThrow(
-      "resident did not become ready within 10 seconds",
-    );
+    const failure = yield* ensureResidentEffect(paths, 10_000).pipe(Effect.provide(Layer.succeed(ResidentStartup, dependencies)), Effect.flip);
+    expect(failure.message).toContain("resident did not become ready within 10 seconds");
     expect(clock).toBe(10_000);
     expect(launchCalls.length).toBeGreaterThan(1);
     expect(launchCalls.every(({ at, budget }) => at < 10_000 && budget === 10_000 - at)).toBe(true);
     expect(probeBudgets.every((budget) => budget > 0 && budget <= 250)).toBe(true);
     expect(probeBudgets.at(-1)).toBeLessThanOrEqual(250);
-  });
+  }));
 
-  it("retries owner acquisition after a losing owner exits within the same deadline", async () => {
+  effectIt.effect("retries owner acquisition after a losing owner exits within the same deadline", () => Effect.gen(function* () {
     const paths = residentPaths("/not-used");
     let clock = 0;
     let launchCount = 0;
     let endpointReady = false;
     let ownerPresent = true;
     const calls: Array<{ readonly operation: string; readonly at: number; readonly budget: number }> = [];
-    const dependencies: EnsureResidentDependencies = {
+    const dependencies: ResidentStartupOperations = {
       now: () => clock,
-      prepare: async (_paths, timeoutMs) => {
+      clearDiagnostic: () => Effect.void,
+      diagnostic: () => Effect.succeed(""),
+      prepare: (_paths, timeoutMs) => Effect.sync(() => {
         calls.push({ operation: "prepare", at: clock, budget: timeoutMs });
-      },
-      probe: async (_paths, timeoutMs) => {
+      }),
+      probe: (_paths, timeoutMs) => Effect.try({ try: () => {
         calls.push({ operation: "probe", at: clock, budget: timeoutMs });
         clock += Math.min(100, timeoutMs);
-        if (endpointReady) return { status: "ready", lifetime: "second-owner", pid: 42 };
-        throw new ResidentIpcError("not ready");
-      },
-      launch: (_paths, timeoutMs) => {
+        if (endpointReady) return { status: "ready", lifetime: "second-owner", pid: 42 } as const;
+        throw new ResidentIpcError({ message: "not ready" });
+      }, catch: () => new ResidentIpcError({ message: "not ready" }) }),
+      launch: (_paths, timeoutMs) => Effect.sync(() => {
         calls.push({ operation: "launch", at: clock, budget: timeoutMs });
         launchCount += 1;
         if (!ownerPresent) endpointReady = true;
-      },
-      wait: async (milliseconds) => {
+      }),
+      wait: (milliseconds) => Effect.sync(() => {
         calls.push({ operation: "wait", at: clock, budget: milliseconds });
         clock += milliseconds;
         ownerPresent = false;
-      },
+      }),
     };
 
-    await expect(ensureResident(paths, 10_000, dependencies)).resolves.toEqual({
+    expect(yield* ensureResidentEffect(paths, 10_000).pipe(Effect.provide(Layer.succeed(ResidentStartup, dependencies)))).toEqual({
       status: "ready",
       lifetime: "second-owner",
       pid: 42,
@@ -167,7 +174,7 @@ describe("resident client trust boundary", () => {
     expect(launchCount).toBe(2);
     expect(clock).toBeGreaterThanOrEqual(350);
     expect(calls.every(({ at, budget }) => at < 10_000 && budget > 0 && budget <= 10_000 - at)).toBe(true);
-  });
+  }));
 
   it("rejects wrong ownership, unsafe mode, symlinks, and wrong endpoint types", () => {
     const uid = typeof process.getuid === "function" ? process.getuid() : process.pid;
@@ -265,6 +272,52 @@ describe("resident client trust boundary", () => {
       await Effect.runPromise(Fiber.interrupt(request));
     }
   });
+
+  effectIt.live("keeps admission IPC in its workflow and closes it on interruption", () => Effect.gen(function* () {
+    const directory = yield* Effect.promise(() => mkdtemp(join(tmpdir(), "resident-admit-interruption-")));
+    directories.push(directory);
+    yield* Effect.promise(() => chmod(directory, 0o700));
+    const paths = residentPaths(directory);
+    const entered = yield* Deferred.make<void>();
+    const closed = yield* Deferred.make<void>();
+    const server = createServer((socket) => {
+      sockets.push(socket);
+      socket.once("data", (chunk) => {
+        expect(JSON.parse(chunk.toString("utf8")).operation).toBe("admit");
+        Effect.runSync(Deferred.succeed(entered, undefined));
+      });
+      socket.once("close", () => Effect.runSync(Deferred.succeed(closed, undefined)));
+    });
+    servers.push(server);
+    yield* Effect.promise(() => new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(paths.socket, resolve);
+    }));
+    yield* Effect.promise(() => chmod(paths.socket, 0o600));
+    const startup = ResidentStartup.of({
+      now: () => performance.now(),
+      prepare: () => Effect.void,
+      probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1 }),
+      launch: () => Effect.die("an available owner must not launch"),
+      wait: (milliseconds) => Effect.sleep(milliseconds),
+      clearDiagnostic: () => Effect.void,
+      diagnostic: () => Effect.succeed(""),
+    });
+    const observation: DirectObservation = {
+      root: "/fixture",
+      rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/fixture/.git", gitDevice: "1", gitInode: "3" },
+      advicee: { host: "codex-cli", hostVersion: "0.155.1", sessionId: "session", turnId: "turn", toolUseId: "tool", subagentId: null },
+      candidates: [],
+    };
+    const admission = yield* admitObservationEffect(observation, true,
+      { statePath: "/fixture/state", userConfigPath: null, credential: null, controlled: {} }, paths,
+    ).pipe(Effect.provideService(ResidentStartup, startup), Effect.forkScoped);
+    yield* Deferred.await(entered);
+    expect(admission.pollUnsafe()).toBeUndefined();
+    yield* Fiber.interrupt(admission);
+    yield* Deferred.await(closed);
+    expect(sockets[0]?.destroyed).toBe(true);
+  }));
 
   it("bounds a collect response when the connected server never responds", async () => {
     const directory = await mkdtemp(join(tmpdir(), "resident-timeout-test-"));

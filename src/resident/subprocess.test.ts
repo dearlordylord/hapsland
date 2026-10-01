@@ -354,7 +354,12 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const admitting = spawn(process.execPath, ["--input-type=module", "-e", admissionScript], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
     });
-    await waitFor(async () => existsSync(acceptedPath) ? true : undefined);
+    let admissionFailure: unknown;
+    void childResult(admitting).catch((cause: unknown) => { admissionFailure = cause; });
+    await waitFor(async () => {
+      if (admissionFailure !== undefined) throw admissionFailure;
+      return existsSync(acceptedPath) ? true : undefined;
+    });
     await waitFor(async () => existsSync(`${admitGate}.entered`) ? true : undefined);
     const admissionClosed = childClosed(admitting);
     admitting.kill("SIGKILL");

@@ -38,6 +38,8 @@ import {
   admitTicketedObservationEffect,
   collectOutcomeEffect,
   ensureResidentEffect,
+  ResidentStartup,
+  residentStartupLayer,
   inspectResidentEffect,
   makeResidentDispatchContextEffect,
   type CollectedAdvice,
@@ -367,7 +369,7 @@ const runDirectCodexHook = (
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
-): Effect.Effect<DirectHookDispatch, unknown> =>
+): Effect.Effect<DirectHookDispatch, unknown, ResidentStartup> =>
   Effect.gen(function* () {
     if (!isCodexNativeApplyPatch(nativeEvent)) return { handled: false } as const;
     const reply = yield* adaptCodexReply(nativeEvent, hostVersion);
@@ -422,11 +424,11 @@ const runDirectBoundedHook = Effect.fn("ClaudeHook.collectBounded")(function* (
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
-): Effect.fn.Return<unknown> {
+): Effect.fn.Return<unknown, never, ResidentStartup> {
   const deadline = directHookDeadline;
   if (observation === undefined) return {};
   const remaining = () => Math.max(0, deadline - performance.now());
-  const bounded = <A, E>(task: Effect.Effect<A, E>): Effect.Effect<A | undefined> =>
+  const bounded = <A, E, R>(task: Effect.Effect<A, E, R>): Effect.Effect<A | undefined, never, R> =>
     Effect.suspend(() => {
       const time = remaining();
       if (time <= 0) return Effect.succeed(undefined);
@@ -1265,7 +1267,7 @@ const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
 }, Effect.scoped);
 const output = isCredentialCommand
   ? await runCredentialCommand()
-  : await Effect.runPromise(runReviewProgram().pipe(Effect.provide(directHookSubmissionLayer), Effect.provide(composedHookRuntimeLayer), Effect.provide(hookOutputLayer)));
+  : await Effect.runPromise(runReviewProgram().pipe(Effect.provide(directHookSubmissionLayer), Effect.provide(composedHookRuntimeLayer), Effect.provide(hookOutputLayer), Effect.provide(residentStartupLayer)));
 if (composedKind === undefined && !isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "object" && output !== null) {
   const record = output as Readonly<Record<string, unknown>>;
   process.exitCode = record.status === "unsupported"

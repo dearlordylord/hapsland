@@ -19,6 +19,9 @@ assert.doesNotMatch(read("src/resident/bend-work.ts"), /#state|bendWork[A-Z]/,
   "composed work must be a read-only canonical view");
 assert.doesNotMatch(read("src/resident/composed-delivery.ts"), /BendRound|\.policy|policy:\s*Bend/,
   "composed rounds must not advance independent policy state");
+assert.doesNotMatch(read("src/resident/client.ts"),
+  /EnsureResidentDependencies|liveEnsureDependencies|dependencies\s*===|const launches = new Map|return residentRequest\(/,
+  "resident client startup must use layer-owned services and admission must await its IPC Effect");
 const obsoleteImports = [];
 const scan = (directory) => {
   for (const entry of readdirSync(resolve(root, directory), { withFileTypes: true })) {

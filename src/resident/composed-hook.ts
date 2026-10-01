@@ -12,6 +12,7 @@ import type { CodexHostVersion } from "../direct-event/model.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
 import {
   acknowledgeAdviceEffect,
+  ResidentStartup,
   registerComposedEditEffect,
   composedStopBoundaryEffect,
   beginComposedSubmissionEffect,
@@ -25,32 +26,44 @@ import {
 import { residentPaths } from "./paths.ts";
 import { composedClaudeHostOutput } from "./collection.ts";
 
+type BoundClient<F> = F extends (...args: infer Args) => Effect.Effect<infer A, infer E, unknown>
+  ? (...args: Args) => Effect.Effect<A, E> : never;
+
 export class ComposedHookRuntime extends Context.Service<ComposedHookRuntime, {
   readonly now: () => number;
   readonly identity: typeof adaptComposedHookIdentity;
   readonly client: {
-    readonly acknowledgeAdviceEffect: typeof acknowledgeAdviceEffect;
-    readonly registerComposedEditEffect: typeof registerComposedEditEffect;
-    readonly composedStopBoundaryEffect: typeof composedStopBoundaryEffect;
-    readonly beginComposedSubmissionEffect: typeof beginComposedSubmissionEffect;
-    readonly claimComposedBackgroundEffect: typeof claimComposedBackgroundEffect;
-    readonly collectAdviceeOutcomeEffect: typeof collectAdviceeOutcomeEffect;
-    readonly makeResidentDispatchContextEffect: typeof makeResidentDispatchContextEffect;
-    readonly markComposedUserPromptEffect: typeof markComposedUserPromptEffect;
-    readonly releaseComposedSubmissionEffect: typeof releaseComposedSubmissionEffect;
-    readonly releaseComposedBackgroundEffect: typeof releaseComposedBackgroundEffect;
+    readonly acknowledgeAdviceEffect: BoundClient<typeof acknowledgeAdviceEffect>;
+    readonly registerComposedEditEffect: BoundClient<typeof registerComposedEditEffect>;
+    readonly composedStopBoundaryEffect: BoundClient<typeof composedStopBoundaryEffect>;
+    readonly beginComposedSubmissionEffect: BoundClient<typeof beginComposedSubmissionEffect>;
+    readonly claimComposedBackgroundEffect: BoundClient<typeof claimComposedBackgroundEffect>;
+    readonly collectAdviceeOutcomeEffect: BoundClient<typeof collectAdviceeOutcomeEffect>;
+    readonly makeResidentDispatchContextEffect: BoundClient<typeof makeResidentDispatchContextEffect>;
+    readonly markComposedUserPromptEffect: BoundClient<typeof markComposedUserPromptEffect>;
+    readonly releaseComposedSubmissionEffect: BoundClient<typeof releaseComposedSubmissionEffect>;
+    readonly releaseComposedBackgroundEffect: BoundClient<typeof releaseComposedBackgroundEffect>;
   };
 }>()("Hapsland/ComposedHookRuntime") {}
 
-export const composedHookRuntimeLayer = Layer.succeed(ComposedHookRuntime, ComposedHookRuntime.of({
-  now: () => performance.now(),
-  identity: adaptComposedHookIdentity,
-  client: {
-    acknowledgeAdviceEffect, registerComposedEditEffect, composedStopBoundaryEffect,
-    beginComposedSubmissionEffect, claimComposedBackgroundEffect, collectAdviceeOutcomeEffect,
-    makeResidentDispatchContextEffect, markComposedUserPromptEffect,
-    releaseComposedSubmissionEffect, releaseComposedBackgroundEffect,
-  },
+export const composedHookRuntimeLayer = Layer.effect(ComposedHookRuntime, Effect.gen(function* () {
+  const startup = yield* ResidentStartup;
+  return ComposedHookRuntime.of({
+    now: () => performance.now(),
+    identity: adaptComposedHookIdentity,
+    client: {
+      acknowledgeAdviceEffect,
+      registerComposedEditEffect: (...args) => registerComposedEditEffect(...args).pipe(Effect.provideService(ResidentStartup, startup)),
+      composedStopBoundaryEffect,
+      beginComposedSubmissionEffect,
+      claimComposedBackgroundEffect: (...args) => claimComposedBackgroundEffect(...args).pipe(Effect.provideService(ResidentStartup, startup)),
+      collectAdviceeOutcomeEffect,
+      makeResidentDispatchContextEffect,
+      markComposedUserPromptEffect: (...args) => markComposedUserPromptEffect(...args).pipe(Effect.provideService(ResidentStartup, startup)),
+      releaseComposedSubmissionEffect,
+      releaseComposedBackgroundEffect,
+    },
+  });
 }));
 
 export type ComposedHookKind = "background" | "stop" | "prompt" | "before-edit";
