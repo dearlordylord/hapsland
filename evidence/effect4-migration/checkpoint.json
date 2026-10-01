@@ -6,7 +6,13 @@
   "completed": [
     "Created isolated worktree from master and preserved advisory artifacts",
     "Pure explicit canonical work projection replaces BendWorkTracker in place",
-    "Disposable Ref/Context/Layer ownership and scoped physical-settlement experiment"
+    "Disposable Ref/Context/Layer ownership and scoped physical-settlement experiment",
+    "Production dispatcher replaces Promise runners and idle-waiter arrays with scoped Effect fibers, retained command handoff and Latch",
+    "Canonical dispatch/native registration stages before publishing canonical state",
+    "Process lifetime uses Effect scoped acquisition and signal/idle cleanup; startup-failure conformance preserves unowned endpoints",
+    "Preparation composes capture/configuration/analysis/dispatch as Effect; backend gate polling uses Schedule",
+    "Disposable ownership prototype deleted after transferring cases into production dispatch conformance",
+    "Preparation finalizers release ingress and every still-owned capture workspace on interruption or typed adapter failure"
   ],
   "verification": [
     {
@@ -34,22 +40,97 @@
         "node scripts/check-stop-boundary.mjs"
       ],
       "exitCode": 0
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/dispatch.test.ts",
+      "tests": 10,
+      "exitCode": 0
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/dispatch.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts src/resident/evaluation-reuse.test.ts src/resident/composed-delivery.test.ts src/resident/capacity.test.ts",
+      "tests": 173,
+      "exitCode": 0,
+      "stage": "Production Effect dispatch"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/subprocess.test.ts src/resident/server.test.ts",
+      "tests": 87,
+      "exitCode": 0,
+      "stage": "Effect process lifetime, before added startup failure case"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/subprocess.test.ts -t \"startup failure\"",
+      "tests": 1,
+      "exitCode": 0
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/server.test.ts src/resident/jev-request.test.ts src/resident/security-queued.test.ts src/resident/security-sinks.test.ts src/resident/terminal-collection.test.ts src/resident/claude-delivery.test.ts",
+      "tests": 123,
+      "exitCode": 0,
+      "stage": "Effect preparation"
+    },
+    {
+      "command": "tsc -p tsconfig.json --noEmit",
+      "exitCode": 0,
+      "stage": "Effect preparation"
+    },
+    {
+      "commands": [
+        "verify-bend-artifacts",
+        "check-canonical-authority",
+        "check-production-authority",
+        "check-capacity-boundary",
+        "check-permit-boundary",
+        "check-review-boundary",
+        "check-dispatch-boundary",
+        "check-stop-boundary",
+        "check-collection-boundary",
+        "check-delivery-boundary",
+        "check-revision-boundary",
+        "check-ticket-boundary",
+        "check-reuse-boundary",
+        "check-notice-boundary",
+        "check-retention-boundary"
+      ],
+      "exitCode": 0,
+      "stage": "Effect preparation"
+    },
+    {
+      "evidence": "benchmark-staged-comparison.json",
+      "budgetsMet": false,
+      "requiredSaturationReached": false
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/server.test.ts src/resident/jev-request.test.ts src/resident/dispatch.test.ts src/resident/subprocess.test.ts",
+      "tests": 108,
+      "exitCode": 0,
+      "stage": "Final preparation workspace cleanup; before addition of two dedicated preparation tests"
+    },
+    {
+      "command": "vitest run --maxWorkers=1 src/resident/server.test.ts -t \"Effect preparation ownership\"",
+      "tests": 2,
+      "exitCode": 0
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "stage": "Final staged dispatch/lifetime/preparation code"
     }
   ],
   "next": [
-    "Extend physical settlement prototype to issued Jev accounting and original-round replacement",
-    "Exercise shared evaluation subscriber disconnect, reuse/eviction, concurrent Stop/edit/collection and startup cleanup",
-    "Consolidate canonical/native state ownership into production Effect service, deleting superseded owners",
-    "Migrate preparation/evaluation, lifecycle, IPC and host edges to idiomatic Effect workflows",
-    "Update architecture and boundary owners, remove disposable prototype after moving cases into conformance",
+    "Consolidate canonical/native state ownership into one production Effect service, deleting CapacityLedger, EvaluationReuse and ComposedDelivery owners",
+    "Migrate evaluation and revalidation to Effect while preserving DecisionModel, originating identities and physical settlement",
+    "Migrate housekeeping, thin IPC and client/host edges; remove intermediate server runSync/runPromise bridges",
+    "Convert fixture hooks to scoped controlled services and deterministic coordination",
+    "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",
-    "Predeclare benchmark regression budgets then compare baseline and migrated saturation/retirement workloads"
+    "Resolve benchmark retention failure and demonstrate actual eight-effect saturation plus physical retirement before final performance verification"
   ],
   "limitations": [
-    "No production ResidentState or Effect executor yet",
-    "No changed Jev transport or formats",
-    "No full suite/package/host/live/performance results",
-    "Disposable experiment covers dispatch handles only; it does not prove full native registry ownership"
+    "Production state and native handles remain distributed outside dispatch",
+    "Evaluation, revalidation, housekeeping, server IPC and client/host edges still require migration",
+    "No full suite/package/host/live validation results yet",
+    "Initial benchmark misses eight-effect saturation and exceeds the strict peak-retention budget; no performance acceptance claim"
   ],
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",

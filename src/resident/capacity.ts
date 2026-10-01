@@ -236,9 +236,14 @@ export class CapacityLedger {
     throw new Error("invalid canonical dispatch scope command");
   }
 
-  transition(event: ResidentTransition): ReturnType<typeof stepCanonical> {
+  transition(event: ResidentTransition, commitNative?: (result: ReturnType<typeof stepCanonical> & {
+    readonly projection: ReturnType<typeof projectCanonical>;
+  }) => void): ReturnType<typeof stepCanonical> {
     const result = stepCanonical(this.#state, event);
-    if (result.rejection === undefined) this.#state = result.state;
+    if (result.rejection === undefined) {
+      commitNative?.({ ...result, projection: projectCanonical(result.state) });
+      this.#state = result.state;
+    }
     return result;
   }
 

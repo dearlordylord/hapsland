@@ -84,6 +84,25 @@ const admitComposed = async (
 };
 
 describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
+  it("releases ownership after startup failure without deleting an unsafe endpoint", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "product-resident-startup-failure-"));
+    directories.push(temporary);
+    const paths = residentPaths(join(temporary, "runtime"));
+    await mkdir(paths.directory, { mode: 0o700 });
+    await writeFile(paths.socket, "unowned endpoint\n", { mode: 0o600 });
+    const failed = spawn(process.execPath, ["src/resident/main.ts", paths.directory], {
+      cwd: process.cwd(), stdio: "pipe",
+    });
+    await expect(childResult(failed)).rejects.toThrow("resident startup failed: listen on resident socket");
+    expect(await readFile(paths.socket, "utf8")).toBe("unowned endpoint\n");
+    expect(existsSync(paths.lock)).toBe(false);
+    expect(existsSync(paths.owner)).toBe(false);
+    await rm(paths.socket);
+    const next = await ensureResident(paths, 5_000);
+    processes.push(next.pid);
+    expect((await residentRequest(paths, { requestRoute: "shared", operation: "hello" })).status).toBe("ready");
+  });
+
   it("exits losing launch contenders while one owner remains", async () => {
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-contenders-"));
     directories.push(temporary);

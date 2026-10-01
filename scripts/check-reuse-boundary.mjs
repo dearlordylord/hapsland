@@ -11,6 +11,6 @@ for (const event of ["reuseRoute", "reuseClaim", "reuseAttach", "reuseRelease", 
   "cachePrepare", "cacheCommit", "cacheDiscardPartition", "cacheClear"]) {
   if (!reuse.includes(`kind: "${event}"`)) throw new Error(`canonical reuse event missing: ${event}`);
 }
-if (!server.includes("this.#reuse.route(evaluationKey, liveAdvice)")) {
+if (!server.includes("#reuse.route(evaluationKey, liveAdvice)")) {
   throw new Error("resident evaluation route bypassed canonical reuse state");
 }

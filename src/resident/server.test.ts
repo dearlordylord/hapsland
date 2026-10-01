@@ -1,6 +1,7 @@
 import { monotonicNow } from "./hook-clock.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
+import * as Deferred from "effect/Deferred";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -3146,5 +3147,42 @@ describe("resident bounded advice batches", () => {
       pendingAdvice: 0,
       retainedBytes: after.server.accountingMetrics().successfulCacheBytes,
     });
+  });
+});
+
+
+describe("Effect preparation ownership", () => {
+  it("releases preparation workspace and reuse claims after a claim barrier fails", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      afterReuseBoundary: async () => { throw new Error("synthetic claim barrier failure"); },
+    });
+    try {
+      expect(server.admit(observation, findingDispatch(join(root, "consent"))).status).toBe("accepted");
+      await server.whenIdle();
+      expect(server.stats().retainedBytes).toBe(0);
+      expect(server.stats().pendingEvaluations).toBe(0);
+      expect(server.stats().currentWork).toBe(0);
+    } finally { await server.close(); }
+  });
+
+  it("releases charged capture workspace when resident shutdown interrupts capture", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const entered = Deferred.makeUnsafe<void>();
+    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+      captureSource: () => Deferred.succeed(entered, undefined).pipe(Effect.andThen(Effect.never)),
+    });
+    expect(server.admit(observation, findingDispatch(join(root, "consent"))).status).toBe("accepted");
+    await Effect.runPromise(Deferred.await(entered));
+    expect(server.stats().retainedBytes).toBeGreaterThan(0);
+    await server.close();
+    expect(server.stats().retainedBytes).toBe(0);
+    expect(server.stats().pendingEvaluations).toBe(0);
   });
 });
