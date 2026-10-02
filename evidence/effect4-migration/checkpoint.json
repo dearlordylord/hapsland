@@ -140,7 +140,8 @@
     "All revision service operations are Effects: current checks read one captured snapshot, synchronous revisionCommit removed, composed submission and revalidation yield checks directly",
     "Joined-review admission lookup reads an Effect snapshot instead of Ref.getUnsafe; supersession retirement composes an atomic Effect across joined, ticket-unit, revision and reuse drafts",
     "Joined-review append and owner attachment compose named atomic Effects; runtime callers yield directly and defect rollback fixtures preserve no-partial-state checks",
-    "Joined-review service now composes Effects throughout; release and settlement are named atomic operations, runtime cleanup and preparation finalizers yield them, synchronous joinedCommit removed"
+    "Joined-review service now composes Effects throughout; release and settlement are named atomic operations, runtime cleanup and preparation finalizers yield them, synchronous joinedCommit removed",
+    "Advice eligibility and content revision compose named atomic Effects; collection revalidation and finalization callers yield directly"
   ],
   "verification": [
     {
@@ -1793,12 +1794,22 @@
       "build": true,
       "boundaryChecksPassed": 15,
       "cases": "Sixteen competing settlers emit each outcome once; deferred release observes execution-time membership and repeated release returns empty"
+    },
+    {
+      "stage": "advice-eligibility-revision-effects",
+      "affectedTestsPassed": 116,
+      "affectedTestFiles": 3,
+      "supplementaryAdviceTestsPassed": 8,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "case": "Deferred eligibility and revision change retained metadata only at execution and refuse removed identity"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Replace remaining capacity, reuse, delivery, advice/capture and notice domain bridges; round, ticket-unit, revision and joined-review services compose Effects throughout",
+    "Finish advice retention/publication/lease/read/retirement and capture Effects, then remaining capacity, reuse, delivery and notice domain bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",

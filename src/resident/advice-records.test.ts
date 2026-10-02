@@ -49,7 +49,7 @@ it.effect("owns frozen advice content and leases together with canonical state",
   expect(Object.isFrozen(advice.findings)).toBe(true);
   expect(Object.isFrozen(advice.evaluations[0])).toBe(true);
   expect(Reflect.set(advice, "findings", [])).toBe(false);
-  expect(owner.advice.eligible(advice, false)).toBe(true);
+  expect(yield* owner.advice.eligible(advice, false)).toBe(true);
   expect(advice.collectionEligible).toBe(true);
   expect(owner.advice.reserveLease(advice, "collector")).toBe(true);
   const first = advice.delivery;
@@ -72,7 +72,7 @@ it.effect("rolls back retention and lease updates when native payload snapshotti
   expect(owner.canonicalProjection()).toEqual(before);
   expect(owner.advice.values()).toEqual([]);
   const advice = owner.advice.insert(initial);
-  owner.advice.eligible(advice, false);
+  yield* owner.advice.eligible(advice, false);
   owner.advice.reserveLease(advice, "collector");
   const leased = owner.canonicalProjection();
   const delivery = advice.delivery;
@@ -87,7 +87,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   const unit = (yield* owner.ticketUnits.add(ticket));
   (yield* owner.ticketUnits.step(unit, "findingResult", "lost", { revision: initial.revision, adviceId: initial.id }));
   const advice = owner.advice.insert(initial);
-  owner.advice.eligible(advice, false);
+  yield* owner.advice.eligible(advice, false);
   owner.advice.reserveLease(advice, "collector");
   const capture = owner.adviceCaptures.start(advice.reservation, advice.revision, 200);
   if (capture === undefined) throw new Error("capture refused");
@@ -103,7 +103,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   expect(owner.adviceCaptures.finish(capture)).toBe("retired");
   expect(owner.snapshot().items).toBe(0);
   expect(yield* owner.revision.count()).toBe(0);
-  expect(owner.advice.revise(advice, [], [])).toBe(false);
+  expect(yield* owner.advice.revise(advice, [], [])).toBe(false);
   expect(owner.advice.remove(advice, "stale")).toBe(false);
 }));
 
@@ -113,8 +113,8 @@ it.effect("fences a stale capability after the owner clears and advice identity 
   owner.clear();
   const next = yield* fixture(owner);
   const replacement = owner.advice.insert(next.initial);
-  expect(owner.advice.revise(advice, [], [])).toBe(false);
-  expect(owner.advice.eligible(advice, false)).toBe(false);
+  expect(yield* owner.advice.revise(advice, [], [])).toBe(false);
+  expect(yield* owner.advice.eligible(advice, false)).toBe(false);
   expect(owner.advice.remove(advice, "stale")).toBe(false);
   expect(owner.advice.values()).toEqual([replacement]);
   expect(owner.snapshot().bytes).toBe(100);
@@ -132,7 +132,7 @@ it.effect("rejects native retention without canonical finding authority", () => 
 it.effect("rolls back advice retirement when authorized Stop output prevents submission cleanup", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
   const advice = owner.advice.insert(initial);
-  owner.advice.eligible(advice, false);
+  yield* owner.advice.eligible(advice, false);
   owner.advice.reserveLease(advice, "collector");
   const delivery = owner.delivery();
   expect(delivery.beginStop(advice.partition, "stop")).toBe(true);
@@ -169,4 +169,20 @@ it.effect("publishes the owner result and independent joined subscribers togethe
   owner.advice.remove(advice, "stale");
   expect(owner.advice.publish(advice, ownerUnit)).toEqual([]);
   expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("unavailable");
+}));
+
+it.effect("executes advice eligibility and revision against current retained identity", () => Effect.gen(function* () {
+  const { owner, initial } = yield* fixture();
+  const advice = owner.advice.insert(initial);
+  const eligible = owner.advice.eligible(advice, false);
+  const revise = owner.advice.revise(advice, [], []);
+  expect(advice.collectionEligible).toBe(false);
+  expect(yield* eligible).toBe(true);
+  expect(advice.collectionEligible).toBe(true);
+  expect(advice.findings).toHaveLength(initial.findings.length);
+  expect(yield* revise).toBe(true);
+  expect(advice.findings).toEqual([]);
+  owner.advice.remove(advice, "stale");
+  expect(yield* eligible).toBe(false);
+  expect(yield* revise).toBe(false);
 }));

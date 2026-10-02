@@ -72,3 +72,11 @@ for (const operation of ["releaseOwner", "settle"]) {
     throw new Error(`joined ${operation} must compose as an Effect`);
   }
 }
+
+for (const operation of ["eligible", "revise"]) {
+  if (!state.includes(`${operation}: Effect.fn("AdviceRecords.${operation}")`) ||
+      !state.includes(`commitAllEffect(adviceChange((operations) => operations.${operation}(...args)))`) ||
+      !server.includes(`yield* residentLedger.advice.${operation}(`)) {
+    throw new Error(`advice ${operation} must compose as an atomic Effect`);
+  }
+}

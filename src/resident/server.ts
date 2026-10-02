@@ -847,7 +847,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         return result.commands[0]?.kind === "collectionCandidate";
       });
       for (const item of available) {
-        residentLedger.advice.eligible(item, yield* residentJoined.hasAdmission(item.admissionId));
+        yield* residentLedger.advice.eligible(item, yield* residentJoined.hasAdmission(item.admissionId));
       }
       const eligible = available.filter((item) => item.collectionEligible)
         .sort((left, right) => residentCollectionOrder(left, right))
@@ -905,7 +905,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           else residentReleaseAdviceLease(advice);
           continue;
         }
-        residentLedger.advice.revise(advice, validity.evaluations, validity.findings);
+        yield* residentLedger.advice.revise(advice, validity.evaluations, validity.findings);
         const handoffNow = residentNow();
         const expiryRoute = residentCandidateRoute({ kind: "postValidationCheck",
           workAccepted: true, expired: residentAdviceExpired(advice, handoffNow), hasFitting: true });
@@ -961,7 +961,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             else residentReleaseAdviceLease(advice);
             continue;
           }
-          residentLedger.advice.revise(advice, validity.evaluations, validity.findings);
+          yield* residentLedger.advice.revise(advice, validity.evaluations, validity.findings);
           const handoffNow = residentNow();
           const expiryRoute = residentCandidateRoute({ kind: "postValidationCheck",
             workAccepted: true, expired: residentAdviceExpired(advice, handoffNow), hasFitting: true });
@@ -1138,7 +1138,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         continue;
       }
       if (disposition.commands[0]?.kind !== "deliveryKeepRemaining") throw new Error("invalid canonical delivery disposition");
-      residentLedger.advice.revise(item, item.evaluations.map((evaluation) => ({
+      yield* residentLedger.advice.revise(item, item.evaluations.map((evaluation) => ({
         ...evaluation,
         findings: withoutDeliveredFindings(evaluation.findings, delivered),
       })).filter((evaluation) => evaluation.findings.length > 0), remaining);

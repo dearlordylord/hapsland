@@ -455,14 +455,15 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       };
     },
     advice: (() => {
-      const adviceCommit = <A>(operation: (operations: AdviceRecordOperations) => A): A => commitAll((draft, records) => {
+      const adviceChange = <A>(operation: (operations: AdviceRecordOperations) => A): Parameters<typeof commitAllEffect<A>>[0] => (draft, records) => {
         const advice = draftAdviceRecords(records.advice);
         const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
         const operations = adviceRecordOperations(advice, owner);
         const value = operation(operations);
         operations.assert();
         return [value, { ...records, advice }];
-      });
+      };
+      const adviceCommit = <A>(operation: (operations: AdviceRecordOperations) => A): A => commitAll(adviceChange(operation));
       return {
         values: (): ReadonlyArray<Advice> => [...Ref.getUnsafe(state).records.advice.entries.values()]
           .map(({ capability }) => capability).sort((left, right) => left.sequence - right.sequence),
@@ -493,8 +494,10 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
               .settle(capability.evaluationKey, "finding", "lost", capability.id);
             return [outcomes, { ...records, ticketUnits, joined }];
           }),
-        eligible: (...args: Parameters<AdviceRecordOperations["eligible"]>) => adviceCommit((operations) => operations.eligible(...args)),
-        revise: (...args: Parameters<AdviceRecordOperations["revise"]>) => adviceCommit((operations) => operations.revise(...args)),
+        eligible: Effect.fn("AdviceRecords.eligible")((...args: Parameters<AdviceRecordOperations["eligible"]>) =>
+          commitAllEffect(adviceChange((operations) => operations.eligible(...args)))),
+        revise: Effect.fn("AdviceRecords.revise")((...args: Parameters<AdviceRecordOperations["revise"]>) =>
+          commitAllEffect(adviceChange((operations) => operations.revise(...args)))),
         reserveLease: (...args: Parameters<AdviceRecordOperations["reserveLease"]>) => adviceCommit((operations) => operations.reserveLease(...args)),
         releaseLease: (...args: Parameters<AdviceRecordOperations["releaseLease"]>) => adviceCommit((operations) => operations.releaseLease(...args)),
         checkLease: (...args: Parameters<AdviceRecordOperations["checkLease"]>) => adviceCommit((operations) => operations.checkLease(...args)),
