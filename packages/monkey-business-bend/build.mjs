@@ -32,7 +32,7 @@ if (process.argv.includes("--check")) {
     const compiled = readFileSync(join(temp, "engine.mjs"), "utf8");
     const marker = "export default {";
     const offset = compiled.lastIndexOf(marker);
-    const names = ["preparation_active", "context_credentials", "credential_captured", "credential_matches", "callback_matches", "issue_actions", "edit_attempt", "scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "retire", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "pre_issue", "permit_actions", "session_delay"];
+    const names = ["preparation_active", "context_credentials", "credential_captured", "credential_matches", "callback_matches", "issue_actions", "edit_attempt", "scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "pre_issue", "permit_actions", "session_delay"];
     if (offset < 0 || names.some(name => !compiled.includes(`function $${name}$(`))) throw new Error("Bend shared engine JavaScript layout changed");
     // Same immediate-Nat ABI convention as agent-flow-bend's checked builds.
     // Keep all emitted policy code; avoid re-marshalling original opaque state.
@@ -79,7 +79,6 @@ export default {
  step: (state, event) => run_loop($step$(state, facts(event))),
  canonical: state => run_loop($canonical$(state)),
  graph_step: (state, key, position, limits, event) => run_loop($graph_step$(state, facts(key), facts(position), facts(limits), facts(event))),
- retire: (state, operation) => run_loop($retire$(state, facts(operation))),
  handle: (state, event, command, context) => run_loop($handle$(state, facts(event), command, facts(context))),
  edit: (state, partition, lifetime) => run_loop($edit$(state, facts(partition), facts(lifetime))),
  preparation_completed: (partition, lifetime, round, operation, units, delay) => run_loop($preparation_completed$(facts(partition), facts(lifetime), facts(round), facts(operation), facts(units), facts(delay))),

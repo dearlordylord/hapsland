@@ -2,7 +2,7 @@ import { encodePreparationGraphLimits } from "./file-trees.ts";
 import { GRAPH_LIMIT_CEILINGS } from "../../../src/canonical/graph-adapter.ts";
 import { type EngineState } from "../../monkey-business-bend/engine.mjs";
 import { type CanonicalEvent, type initialCanonical } from "../../../src/canonical/adapter.ts";
-import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, stepSharedGraph, retireSharedGraph, sharedPreparationActive, driveSharedCommand, editSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, fenceSharedCanonical, preparationFactTime, preparationCompletedAction, revalidateSharedCanonical } from "../../../src/canonical/simulation-adapter.ts";
+import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, stepSharedGraph, sharedPreparationActive, driveSharedCommand, editSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, fenceSharedCanonical, preparationFactTime, preparationCompletedAction, revalidateSharedCanonical } from "../../../src/canonical/simulation-adapter.ts";
 import { decodeImportGraphStep, encodeImportGraphEvent, projectImportGraph, initialImportGraph } from "../../../src/canonical/graph-adapter.ts";
 import { issueSharedPre, capturedSharedPermit, configureSharedSeed, sharedClock, configureSharedWorkload, actSharedWorkload, validSharedWorkload, preSharedTiming, sampleSharedOutcome } from "../../../src/canonical/simulation-adapter.ts";
 import { sessionProfile, type SessionConfig, type SessionControl, type SessionInput } from "./session.ts";
@@ -113,6 +113,5 @@ export class SharedCore {
     this.state = issued.state;
     return { ...handled, actions: issued.actions };
   }
-  retire(operation: number) { this.state = retireSharedGraph(this.state, operation); }
   preparationActive(event: PreparationEvent) { return sharedPreparationActive(this.state, event.partition, event.lifetime, event.round, event.operation); }
 }

@@ -68,12 +68,6 @@ export const stepSharedGraph = (state: EngineState, key: unknown, position: bigi
   decodeImportGraphStep(result);
   return { state: retain(state, transition.state), before, result };
 };
-export const retireSharedGraph = (state: EngineState, operation: number): EngineState => {
-  sharedCheck(state);
-  const next = SharedEngine.retire(state, BigInt(readNat(operation)));
-  return retain(state, next);
-};
-
 export const driveSharedCommand = (state: EngineState, event: CanonicalEvent, index: number, context: unknown): unknown => {
   sharedCheck(state);
   const command = sharedCommands.get(state)?.[index];

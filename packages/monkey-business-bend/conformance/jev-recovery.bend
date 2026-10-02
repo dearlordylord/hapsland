@@ -332,15 +332,9 @@ def terminal_remaining(event: Canonical.CanonicalEvent, remaining: Nat) -> Nat:
     case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: Nat.sub(remaining,1n)
     case _: remaining
 
-def terminal_retire(event: Canonical.CanonicalEvent, state: Types.State) -> Types.State:
-  match event:
-    case Canonical.PreparationCompleted{_,_,_,operation,_}: Engine.retire(state,operation)
-    case _: state
-
 def terminal_transition(transition: Engine.Transition, +before: Types.State, action: Driver.Action, queue: Minimal.Queue, +now: Nat, totals: Totals, +remaining: Nat, +healed: Bool) -> Compact:
   match transition action:
     case Engine.Transition{+state, Canonical.Advanced{_, commands}} Driver.Action{+event, delay, candidate, job, expiry}:
-      +state = terminal_retire(event,state)
       +q = Minimal.commands(commands,queue,now,state,event,terminal_context(Driver.Action{event,delay,candidate,job,expiry},healed))
       +q = Minimal.enqueue(Engine.after(before,state,event),q,now)
       Compact{state,q,terminal_count(event,totals,0n),terminal_remaining(event,remaining),healed}

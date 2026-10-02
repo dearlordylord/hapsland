@@ -59,18 +59,6 @@ def step(+state: Types.State, +key: Types.GraphKey, +position: Nat, limits: Impo
       +found = {find(graphs, key) : Maybe<&2, Types.GraphEntry>}
       checked(Nat.is_eq(position, expected(found)), Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}, key, position, graph(found, limits), event)
 
-def retire_entry(entry: Types.GraphEntry, rest: List<&2, Types.GraphEntry>, operation: Nat) -> List<&2, Types.GraphEntry>:
-  match entry:
-    case Types.GraphEntry{p, l, r, +o, u, s, g}:
-      retain_hit(Nat.is_eq(o, operation), Types.GraphEntry{p, l, r, o, u, s, g}, rest)
-
-def retire_entries(entries: List<&2, Types.GraphEntry>, +operation: Nat) -> List<&2, Types.GraphEntry>:
-  match entries:
-    case Nil{}: Nil{}
-    case +head <> tail:
-      retire_entry(head, retire_entries(tail, operation), operation)
-
-
 # Graph facts belong only to the exact retained preparing work identity.
 def preparing(found: Maybe<&2, Canonical.Work>) -> Bool:
   match found:

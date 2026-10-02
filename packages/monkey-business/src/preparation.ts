@@ -60,5 +60,4 @@ export type PreparationFrame = Readonly<{
 export class PreparationReplay {
   private core = new SharedCore({ globalItems: 32, globalBytes: 100000, partitionItems: 16, partitionBytes: 50000 });
   step(event: PreparationEvent): PreparationFrame { return this.core.graphStep(event); }
-  retire(operation: number) { this.core.retire(operation); }
 }

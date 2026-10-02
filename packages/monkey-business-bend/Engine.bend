@@ -89,10 +89,6 @@ def canonical(state: Types.State) -> Canonical.State:
 def graph_step(state: Types.State, key: Types.GraphKey, position: Nat, limits: ImportGraph.Limits, event: ImportGraph.GraphEvent) -> Types.GraphTransition:
   Preparation.step(state, key, position, limits, event)
 
-def retire(state: Types.State, operation: Nat) -> Types.State:
-  match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}: Types.State{canonical, Preparation.retire_entries(graphs, operation), scheduler, workloads, random, advicees, credentials, opening, retiring}
-
 def credential_state(state: Types.State) -> CredentialFacts.State:
   match state:
     case Types.State{_, _, _, _, _, _, credentials, _, _}: credentials

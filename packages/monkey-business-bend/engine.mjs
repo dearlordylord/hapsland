@@ -16368,27 +16368,6 @@ function $Preparation$step$(_state_0, _key_0, _position_0, _limits_0, _event_0) 
   return $Preparation$checked$(($Nat$is_eq$(_position_0, ($Preparation$expected$(_found_0)))), {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, _key_0, _position_0, ($Preparation$graph$(_found_0, _limits_0)), _event_0);
 }
 
-function $Preparation$retire_entry$(_entry_0, _rest_0, _operation_0) {
-  const _p_0 = _entry_0["partition"];
-  const _l_0 = _entry_0["lifetime"];
-  const _r_0 = _entry_0["round"];
-  const _o_0 = _entry_0["operation"];
-  const _u_0 = _entry_0["unit"];
-  const _s_0 = _entry_0["position"];
-  const _g_0 = _entry_0["graph"];
-  return $Preparation$retain_hit$(($Nat$is_eq$(_o_0, _operation_0)), {$: "Types.GraphEntry", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "unit": _u_0, "position": _s_0, "graph": _g_0}, _rest_0);
-}
-
-function $Preparation$retire_entries$(_entries_0, _operation_0) {
-  if (_entries_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _head_0 = _entries_0["head"];
-    const _tail_0 = _entries_0["tail"];
-    return $Preparation$retire_entry$(_head_0, ($Preparation$retire_entries$(_tail_0, _operation_0)), _operation_0);
-  }
-}
-
 function $Preparation$preparing$(_found_0) {
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
@@ -16680,19 +16659,6 @@ function $canonical$(_state_0) {
 
 function $graph_step$(_state_0, _key_0, _position_0, _limits_0, _event_0) {
   return $Preparation$step$(_state_0, _key_0, _position_0, _limits_0, _event_0);
-}
-
-function $retire$(_state_0, _operation_0) {
-  const _canonical_0 = _state_0["canonical"];
-  const _graphs_0 = _state_0["graphs"];
-  const _scheduler_0 = _state_0["scheduler"];
-  const _workloads_0 = _state_0["workloads"];
-  const _random_0 = _state_0["random"];
-  const _advicees_0 = _state_0["advicees"];
-  const _credentials_0 = _state_0["credentials"];
-  const _opening_0 = _state_0["opening"];
-  const _retiring_0 = _state_0["retiring"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": ($Preparation$retire_entries$(_graphs_0, _operation_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
 }
 
 function $credential_state$(_state_0) {
@@ -17278,8 +17244,8 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:50b7ad8cc27e85a0fd7826d9c3ccf1dd43d9c097513714fc9ac45d37d3bc1171";
-export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:21b3255c6e5331343f54a58c07f91ea938d8f08f6dcf4e29830baeb4239152e9";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:c5530f1f9cf8ff2b0d6e70f731c25217796c890175ddd83d3343189502be2322";
+export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:4c1029f71396d9818a2c7eb73943fab3e79b85d27f35b3bc12fcddb15a38e2bb";
 
 const facts = value => {
   if (typeof value === "bigint") {
@@ -17317,7 +17283,6 @@ export default {
  step: (state, event) => run_loop($step$(state, facts(event))),
  canonical: state => run_loop($canonical$(state)),
  graph_step: (state, key, position, limits, event) => run_loop($graph_step$(state, facts(key), facts(position), facts(limits), facts(event))),
- retire: (state, operation) => run_loop($retire$(state, facts(operation))),
  handle: (state, event, command, context) => run_loop($handle$(state, facts(event), command, facts(context))),
  edit: (state, partition, lifetime) => run_loop($edit$(state, facts(partition), facts(lifetime))),
  preparation_completed: (partition, lifetime, round, operation, units, delay) => run_loop($preparation_completed$(facts(partition), facts(lifetime), facts(round), facts(operation), facts(units), facts(delay))),

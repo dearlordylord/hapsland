@@ -65,6 +65,5 @@ declare const Engine: {
  preparation_fact_time(delay: bigint, index: bigint, count: bigint): bigint;
  preparation_completed(partition: bigint, lifetime: bigint, round: bigint, operation: bigint, units: unknown, delay: bigint): unknown;
  handle(state: EngineState, event: unknown, command: unknown, context: unknown): unknown;
- retire(state: EngineState, operation: bigint): EngineState;
 };
 export default Engine;
