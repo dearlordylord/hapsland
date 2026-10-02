@@ -59,7 +59,7 @@ it.effect("owns frozen advice content and leases together with canonical state",
   expect(yield* owner.advice.updateDelivery(advice, "collector", { findings: [finding], leaseUntil: 10, acknowledged: true })).toBe(true);
   expect(advice.delivery?.acknowledged).toBe(true);
   expect(first?.acknowledged).toBe(false);
-  owner.advice.checkLease(advice, 10, false, false, false);
+  yield* owner.advice.checkLease(advice, 10, false, false, false);
   expect(advice.delivery).toBeUndefined();
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
 }));
@@ -232,4 +232,21 @@ it.effect("validates delivery token when a deferred update executes", () => Effe
   expect(yield* update).toBe(false);
   expect(advice.delivery?.token).toBe("new");
   expect(advice.delivery?.acknowledged).toBe(false);
+}));
+
+
+it.effect("checks expiry against the lease retained at execution", () => Effect.gen(function* () {
+  const { owner, initial } = yield* fixture();
+  const advice = yield* owner.advice.insert(initial);
+  yield* owner.advice.eligible(advice, false);
+  yield* owner.advice.reserveLease(advice, "collector");
+  yield* owner.advice.updateDelivery(advice, "collector", { leaseUntil: 10 });
+  const check = owner.advice.checkLease(advice, 10, false, false, false);
+  expect(advice.delivery).toBeDefined();
+  yield* owner.advice.updateDelivery(advice, "collector", { leaseUntil: 20 });
+  yield* check;
+  expect(advice.delivery).toBeDefined();
+  yield* owner.advice.checkLease(advice, 20, false, false, false);
+  expect(advice.delivery).toBeUndefined();
+  expect(owner.canonicalProjection().collection.leases).toEqual([]);
 }));

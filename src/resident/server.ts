@@ -745,12 +745,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   function residentReleaseAdviceLease(advice: Advice): void { residentLedger.advice.releaseLease(advice); }
 
-  function residentCheckAdviceLease(advice: Advice, now: number, stopCollector: boolean, sameGroup: boolean): void {
+  const residentCheckAdviceLease = Effect.fn("ResidentRuntime.checkAdviceLease")(function* (advice: Advice, now: number, stopCollector: boolean, sameGroup: boolean) {
     const delivery = advice.delivery;
-    residentLedger.advice.checkLease(advice, now, stopCollector, sameGroup,
+    yield* residentLedger.advice.checkLease(advice, now, stopCollector, sameGroup,
       delivery !== undefined && stopCollector && sameGroup &&
         residentComposedDelivery.backgroundReofferable(advice.id, delivery.token));
-  }
+  }, Effect.uninterruptible);
 
   function collect(
     root: string,
@@ -825,7 +825,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       for (const item of residentAdvice()) {
         const delivery = item.delivery;
         const sameGroup = adviceePartition(item.observation.root, item.observation.advicee) === partition;
-        if (delivery !== undefined) residentCheckAdviceLease(item, now, stopCollector, sameGroup);
+        if (delivery !== undefined) yield* residentCheckAdviceLease(item, now, stopCollector, sameGroup);
       }
       const available = residentAdvice().filter((item) => {
         const samePartition = composed

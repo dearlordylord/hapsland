@@ -501,7 +501,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         reserveLease: Effect.fn("AdviceRecords.reserveLease")((...args: Parameters<AdviceRecordOperations["reserveLease"]>) =>
           commitAllEffect(adviceChange((operations) => operations.reserveLease(...args)))),
         releaseLease: (...args: Parameters<AdviceRecordOperations["releaseLease"]>) => adviceCommit((operations) => operations.releaseLease(...args)),
-        checkLease: (...args: Parameters<AdviceRecordOperations["checkLease"]>) => adviceCommit((operations) => operations.checkLease(...args)),
+        checkLease: Effect.fn("AdviceRecords.checkLease")((...args: Parameters<AdviceRecordOperations["checkLease"]>) =>
+          commitAllEffect(adviceChange((operations) => operations.checkLease(...args)))),
         updateDelivery: Effect.fn("AdviceRecords.updateDelivery")((...args: Parameters<AdviceRecordOperations["updateDelivery"]>) =>
           commitAllEffect(adviceChange((operations) => operations.updateDelivery(...args)))),
         remove: (capability: Advice, reason: "expired" | "stale", token?: string): boolean => commitAll((draft, records) => {

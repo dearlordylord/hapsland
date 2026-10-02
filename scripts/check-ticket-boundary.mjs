@@ -105,3 +105,9 @@ if (!state.includes('updateDelivery: Effect.fn("AdviceRecords.updateDelivery")')
     !server.includes('yield* server.acknowledge(')) {
   throw new Error("delivery updates and acknowledgement must compose Effects");
 }
+
+if (!state.includes('checkLease: Effect.fn("AdviceRecords.checkLease")') ||
+    !state.includes('commitAllEffect(adviceChange((operations) => operations.checkLease(...args)))') ||
+    !server.includes('yield* residentCheckAdviceLease(item, now, stopCollector, sameGroup)')) {
+  throw new Error("advice lease checks must compose as atomic Effects");
+}
