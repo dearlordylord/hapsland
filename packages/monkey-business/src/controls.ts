@@ -1,3 +1,4 @@
+import { validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
 import { validateJevIntervention, type JevInterventionControl } from "./jev-interventions.ts";
 import { validateFileTreeProfile, type FileTreeProfile } from "./file-trees.ts";
 import { validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
@@ -9,7 +10,7 @@ export type OutputProfile = { readonly outcome: "certain" | "uncertain" | "faile
 export type OutcomeChoice =
   | { readonly outcome: JevRequestOutcome; readonly outcomeWeights?: never }
   | { readonly outcome?: never; readonly outcomeWeights?: OutcomeWeights };
-export type LiveControl = JevInterventionControl | { readonly kind: "editDuration"; readonly durationMs: number } | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
+export type LiveControl = { readonly kind: "graphLimits"; readonly limits: GraphLimits } | JevInterventionControl | { readonly kind: "editDuration"; readonly durationMs: number } | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
 /** Bounds protect finite synthetic workload; they are not empirical Jev limits. */
 export const validateLiveControl = (control: LiveControl): LiveControl => {
   if (!control || typeof control !== "object") throw new TypeError("invalid live control");
@@ -17,6 +18,7 @@ export const validateLiveControl = (control: LiveControl): LiveControl => {
     if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new RangeError(`${name} must be an integer in [${minimum}, ${maximum}]`);
   };
   switch (control.kind) {
+    case "graphLimits": validateGraphLimits(control.limits); break;
     case "jevRequest":
     case "credentials": return validateJevIntervention(control);
     case "fileTrees": validateFileTreeProfile(control.profile); break;

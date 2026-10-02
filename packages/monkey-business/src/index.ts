@@ -1,3 +1,4 @@
+import { GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
 import { SOURCE_IDENTITY, PREPARATION_SOURCE_IDENTITY } from "../../monkey-business-bend/engine.mjs";
 import { readRecord, readBool, readNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
 import { decodeDriver, decodeDriverEvent, encodeDriverOutcome } from "./driver-codec.ts";
@@ -60,6 +61,7 @@ export type RunInput =
           readonly evaluationInputs?: readonly string[];
           readonly evaluationTreeIdentity?: number;
           readonly evaluationTreeProfile?: FileTreeProfile;
+          readonly evaluationGraphLimits?: GraphLimits;
           readonly revisionSubject?: string;
           readonly revisionInput?: string;
         }
@@ -148,6 +150,7 @@ export const AdvanceOptionsSchema = Schema.Struct({
 export type AdvanceOptions = typeof AdvanceOptionsSchema.Type;
 const decodeAdvanceOptions = decoder(AdvanceOptionsSchema);
 export type RunConfig = {
+  readonly graphLimits?: GraphLimits;
   readonly seed?: number;
   readonly lifecycles?: LifecycleProfile;
   readonly resourceScenarios?: ResourceScenarioConfig;
@@ -344,6 +347,7 @@ export class Run {
   private requestCredentials = new Map<number, number>();
   private outputProfile: OutputProfile;
   private fileTrees: FileTreeProfile;
+  private graphLimits: GraphLimits;
   constructor(config: RunConfig = {}) {
     if (config.lifecycles?.permits?.lifetimeMs !== undefined && integer(config.lifecycles.permits.lifetimeMs, "permit lifetime") === 0) throw new RangeError("permit lifetime must be positive");
     if (config.lifecycles?.permits?.terminal !== undefined && !["consume", "release", "expire"].includes(config.lifecycles.permits.terminal)) throw new TypeError("invalid permit terminal");
@@ -366,6 +370,7 @@ export class Run {
     if (config.resourceScenarios) config = { ...config, resourceScenarios: { noticeMaximumKeys: demoLimits.noticeMaximumKeys, ...config.resourceScenarios } };
     if (config.resourceScenarios?.notices) Object.assign(this.metadata, { notices: { maximumKeys: config.resourceScenarios.noticeMaximumKeys ?? 8 } });
     if (config.lifecycles?.collectors) Object.assign(this.metadata, { collectors: { capacity: config.lifecycles.collectors.capacity } });
+    this.graphLimits = validateGraphLimits(config.graphLimits ?? GRAPH_LIMIT_CEILINGS);
     this.fileTrees = validateFileTreeProfile(config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE);
     this.environment = copy(config.environment ?? { currentWork: true, credentialReady: true });
     this.outputProfile = copy(config.outputProfile ?? { outcome: "certain", delayMs: 0, leaseMs: 30000 });
@@ -480,7 +485,7 @@ export class Run {
     const value: Control = validateLiveControl(control);
     if (value.agent !== undefined && !this.scopes.some(scope => scope.agent === value.agent))
       throw new RangeError("unknown agent control target");
-    if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees", "credentials", "jevRequest"].includes(value.kind))
+    if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees", "credentials", "jevRequest", "graphLimits"].includes(value.kind))
       throw new TypeError("resident controls cannot target one agent");
     if (value.kind === "jevRequest") {
       const target = value.target;
@@ -514,6 +519,8 @@ export class Run {
       this.environment = { ...this.environment, credentialReady: facts.available, credentialGeneration: facts.generation };
       this.interventionReports.push({ controlSequence: this.timelineOrder, at: this.clock, control: value, result: "applied" });
       this.revalidateEnvironment();
+    } else if (value.kind === "graphLimits") {
+      this.graphLimits = validateGraphLimits(value.limits);
     } else if (value.kind === "fileTrees") {
       this.fileTrees = validateFileTreeProfile(value.profile);
     } else if (value.kind === "environment") {
@@ -679,7 +686,7 @@ export class Run {
         // Source-free generated prepared fixture: pairs share every evaluation fact;
         // the next pair changes the input, and partitions remain isolated.
         const fixture = Math.floor(Math.max(0, item.input.revision - 1) / 2) % 2;
-        item.input = { ...item.input, evaluationInputs: item.input.unitBytes.map((bytes, unit) => JSON.stringify({ fixture, unit, prepared: { bytes, rules: "synthetic-noul", tree: { fixture, seed: this.config.seed, profile: this.fileTrees } } })), evaluationTreeIdentity: fixture + 1, evaluationTreeProfile: copy(this.fileTrees), revisionSubject: "generated-root", revisionInput: JSON.stringify({ fixture, bytes: item.input.bytes, unitBytes: item.input.unitBytes, seed: this.config.seed, profile: this.fileTrees }) } as Extract<RunInput, { kind: "edit" }>;
+        item.input = { ...item.input, evaluationInputs: item.input.unitBytes.map((bytes, unit) => JSON.stringify({ fixture, unit, prepared: { bytes, rules: "synthetic-noul", tree: { fixture, seed: this.config.seed, profile: this.fileTrees, limits: this.graphLimits } } })), evaluationTreeIdentity: fixture + 1, evaluationTreeProfile: copy(this.fileTrees), evaluationGraphLimits: copy(this.graphLimits), revisionSubject: "generated-root", revisionInput: JSON.stringify({ fixture, bytes: item.input.bytes, unitBytes: item.input.unitBytes, seed: this.config.seed, profile: this.fileTrees, limits: this.graphLimits }) } as Extract<RunInput, { kind: "edit" }>;
       }
       if ("evaluationInputs" in item.input && item.input.evaluationInputs) {
         if (item.input.evaluationInputs.length !== item.input.unitBytes.length || item.input.evaluationInputs.some(input => typeof input !== "string" || !input.length)) throw new TypeError("evaluationInputs must identify every prepared review unit");
@@ -828,10 +835,11 @@ export class Run {
           });
           const preparingJob = item.job;
           const facts = preparingJob.unitBytes.flatMap((_bytes, unit) => {
-            const tree = generateFileTree(this.config.seed!, "evaluationTreeIdentity" in preparingJob && preparingJob.evaluationTreeIdentity !== undefined ? preparingJob.evaluationTreeIdentity : command.operation, unit, "evaluationTreeProfile" in preparingJob && preparingJob.evaluationTreeProfile ? preparingJob.evaluationTreeProfile : this.fileTrees);
+            const tree = generateFileTree(this.config.seed!, "evaluationTreeIdentity" in preparingJob && preparingJob.evaluationTreeIdentity !== undefined ? preparingJob.evaluationTreeIdentity : command.operation, unit, "evaluationTreeProfile" in preparingJob && preparingJob.evaluationTreeProfile ? preparingJob.evaluationTreeProfile : this.fileTrees,
+              "evaluationGraphLimits" in preparingJob && preparingJob.evaluationGraphLimits ? preparingJob.evaluationGraphLimits : this.graphLimits);
             return tree.facts.map((fact, step): PreparationEvent => ({
-              kind: "preparationGraph", example: "generated", ...scope, operation: command.operation, unit, step, fact,
-              generatedTree: { targetNames: tree.targetNames, files: tree.files.length, depth: tree.depth },
+              kind: "preparationGraph", example: "generated", ...scope, operation: command.operation, unit, step, fact, graphLimits: tree.limits,
+              generatedTree: { targetNames: tree.targetNames, files: tree.files.length, depth: tree.depth, rootEligible: tree.rootEligible, closureEligible: tree.closureEligible },
             }));
           });
           facts.forEach((preparation, index) => {

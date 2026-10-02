@@ -1,3 +1,5 @@
+import { encodePreparationGraphLimits } from "./file-trees.ts";
+import { GRAPH_LIMIT_CEILINGS } from "../../../src/canonical/graph-adapter.ts";
 import { type EngineState } from "../../monkey-business-bend/engine.mjs";
 import { type CanonicalEvent, type initialCanonical } from "../../../src/canonical/adapter.ts";
 import { initialSharedCanonical, projectSharedCanonical, stepSharedCanonical, stepSharedGraph, retireSharedGraph, driveSharedCommand, editSharedCanonical, enqueueShared, takeShared, queuedShared, cancelShared, fenceSharedCanonical, preparationFactTime, preparationCompletedAction, revalidateSharedCanonical } from "../../../src/canonical/simulation-adapter.ts";
@@ -80,7 +82,7 @@ export class SharedCore {
     return { ...result, afterActions: transition.afterActions };
   }
   graphStep(event: PreparationEvent): PreparationFrame {
-    const limits = readRecord(readRecord(initialImportGraph()).graph).limits;
+    const limits = encodePreparationGraphLimits(event.graphLimits ?? GRAPH_LIMIT_CEILINGS);
     const key = { $: "Types.GraphKey", partition: BigInt(event.partition), lifetime: BigInt(event.lifetime),
       round: BigInt(event.round), operation: BigInt(event.operation), unit: BigInt(event.unit) };
     const transition = stepSharedGraph(this.state, key, BigInt(event.step), limits, encodeImportGraphEvent(event.fact));
