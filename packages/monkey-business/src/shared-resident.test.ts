@@ -201,7 +201,22 @@ function originalCancellation(): Run {
   const output = cancellation.observations.filter(frame => frame.event.kind === "submissionTerminal");
   expect(output).toHaveLength(1);
   expect(output[0]).toMatchObject({ partition: 2, agent: opaqueAdvicees[1], time: 22 });
-  expect(cancellation.projection.global).toEqual({ items: 0, bytes: 0 });
+  // The unaffected current finding retains its charge after submission. Delivery
+  // releases its lease; cancellation must not retire the other advicee's advice.
+  expect(cancellation.projection.global).toEqual({ items: 1, bytes: 7 });
+  expect(cancellation.projection.partitions.find(owner => owner.partition === 1)?.items ?? 0).toBe(0);
+  expect(cancellation.projection.partitions.find(owner => owner.partition === 2)).toMatchObject({ items: 1, bytes: 7 });
+  expect(cancellation.projection.pendingFindings).toHaveLength(1);
+  const unaffectedRequest = deadline.before.dispatch.requests.find(request => request.partition === 2)!;
+  expect(cancellation.projection.pendingFindings[0]).toEqual({ operation: unaffectedRequest.operation, count: 1 });
+  expect(cancellation.projection.work.find(work => work.operation === unaffectedRequest.operation))
+    .toMatchObject({ partition: 2, lifetime: 1, round: 2, kind: "pendingFinding" });
+  expect(cancellation.projection.charges).toHaveLength(1);
+  expect(cancellation.projection.charges[0]).toMatchObject({ partition: 2, bytes: 7 });
+  expect(cancellation.projection.collection.leases).toEqual([]);
+  expect(cancellation.projection.delivery.submissions.batches).toHaveLength(1);
+  expect(cancellation.projection.delivery.submissions.batches[0]).toMatchObject({ advice: unaffectedRequest.operation, group: 2, round: 2, phase: "submitted",
+    fingerprints: [unaffectedRequest.operation], units: [unaffectedRequest.operation] });
   expect(cancellation.projection.dispatch.running).toEqual([]);
   expect(cancellation.projection.dispatch.requests).toEqual([]);
 
@@ -218,6 +233,7 @@ it("compares original advicee cancellation with the compiled native shared drive
   residentCheckpoint(`native cancellation complete rows=${canceled.length}`);
   expect(canceled.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
   expect(canceled.length).toBeLessThan(80);
+  expect(canceled.at(-1)!.slice(16, 24)).toEqual([1, 7, 0, 0, 1, 7, 0, 0]);
   expect(canceled).toEqual(originalCancellation().observations.map(residentRow));
 }, 30000);
 
