@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { mkdir, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { readdirSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
@@ -168,14 +169,14 @@ describe("stable bounded source capture", () => {
     await put(root, "race.ts", "type A = number");
     const eligible = await Effect.runPromise(eligibleNamedPath(root, "race.ts"));
     expect(await Effect.runPromise(captureStable(root, required(eligible), {
-      betweenReads: () => writeFile(join(root, "race.ts"), "type B = string"),
+      betweenReads: () => Effect.promise(() => writeFile(join(root, "race.ts"), "type B = string")),
     }))).toBeUndefined();
     await put(root, "race.ts", "type A = number");
     expect(await Effect.runPromise(captureStable(root, required(eligible), {
-      betweenReads: async () => {
+      betweenReads: () => Effect.promise(async () => {
         await rm(join(root, "race.ts"));
         await put(root, "race.ts", "type A = number");
-      },
+      }),
     }))).toBeUndefined();
   });
 
@@ -196,6 +197,11 @@ describe("stable bounded source capture", () => {
     const root = await makeGitFixture();
     await put(root, "cancel.ts", "type A = number");
     const eligible = await Effect.runPromise(eligibleNamedPath(root, "cancel.ts"));
+    const descriptorCount = () => readdirSync("/proc/self/fd").filter(fd => {
+      try { return readlinkSync(`/proc/self/fd/${fd}`).startsWith(root); }
+      catch { return false; }
+    }).length;
+    if (process.platform === "linux") expect(descriptorCount()).toBe(0);
     const controller = new AbortController();
     let markStarted: (() => void) | undefined;
     const started = new Promise<void>((resolve) => { markStarted = resolve; });
@@ -204,12 +210,14 @@ describe("stable bounded source capture", () => {
       sourceRead: () => {
         reads += 1;
         markStarted?.();
+        if (process.platform === "linux") expect(descriptorCount()).toBeGreaterThan(0);
       },
-      betweenReads: () => new Promise<void>(() => undefined),
+      betweenReads: () => Effect.never,
     }), { signal: controller.signal });
     await started;
     expect(reads).toBe(1);
     controller.abort();
     await expect(running).rejects.toBeDefined();
+    if (process.platform === "linux") expect(descriptorCount()).toBe(0);
   });
 });

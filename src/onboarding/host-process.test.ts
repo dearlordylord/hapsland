@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { execFileClosedStdin, spawnInherited } from "./host-process.ts";
+import { execFileClosedStdin, execFileClosedStdinBuffer, spawnInherited } from "./host-process.ts";
 
 describe("native host process", () => {
   it("closes stdin so a prompt argument can start without waiting for the deadline", async () => {
@@ -122,4 +122,12 @@ it("inherited package processes preserve native stdin, output streams and exit c
 
 effectIt.live("inherited process failed startup returns a bounded outcome", () => Effect.gen(function* () {
   expect(yield* spawnInherited("/nonexistent-hapsland-package", [], process.env)).toEqual({ started: false, exitCode: null });
+}));
+
+effectIt.live("binary native helper output preserves bytes before UTF-8 validation", () => Effect.gen(function* () {
+  const result = yield* execFileClosedStdinBuffer(process.execPath, ["-e",
+    "process.stdout.write(Buffer.from([0,255,240,40,140,188]))",
+  ], { env: process.env, timeout: 2_000, maxBuffer: 1_024 });
+  expect(result.succeeded).toBe(true);
+  expect([...result.stdout]).toEqual([0, 255, 240, 40, 140, 188]);
 }));

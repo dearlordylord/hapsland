@@ -111,6 +111,13 @@ for (const path of ["src/repository/root.ts", "src/direct-event/adapter.ts", "sr
     throw new Error(`${path} Git observations must compose scoped Effect process adapters`);
   }
 }
+const capture = read("src/direct-event/capture.ts");
+const captureWorkflow = capture.slice(capture.indexOf("export const captureStable"));
+if (/\basync\b|Effect\.tryPromise\(\{\s*try:\s*async/u.test(captureWorkflow) ||
+    !captureWorkflow.includes("Effect.acquireUseRelease(") ||
+    !capture.includes("execFileClosedStdinBuffer") || !capture.includes("Effect.uninterruptible")) {
+  throw new Error("stable capture must scope native reads and buffers without an async workflow facade");
+}
 
 const doctor = read("src/onboarding/doctor.ts");
 if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||

@@ -3931,5 +3931,25 @@
     },
     "initialTypecheckFailure": "Removed fs realpath import still had two single-file native callers; restored that import. No runtime cast or behavior fallback introduced.",
     "limitations": "Synthetic/direct-event fixture tests only. Native descriptor capture and macOS helper physical ownership audit remains, followed by final gates."
+  },
+  "nativeCaptureScopedWorkflowPort": {
+    "status": "pass",
+    "scope": "Stable capture composes two scoped reads, Effect-native betweenReads hook, path revalidation and pure byte/text validation. Temporary source buffers are zeroed on every exit; successful returned capture owns a copy. Linux descriptor adapter is uninterruptible through native finally/physical descriptor close and attempts every directory close. macOS helper uses scoped closed-stdin buffer process adapter with unchanged source+4096-byte cap and no added execution deadline. Shared captured process adapter preserves binary bytes; string API decodes only at its public boundary.",
+    "checks": {
+      "typecheck": "pass",
+      "configurationBoundaryGuard": "pass",
+      "firstTargetedTests": {
+        "files": 6,
+        "passed": 56,
+        "durationSeconds": 4.92
+      },
+      "finalTargetedTests": {
+        "files": 6,
+        "passed": 57,
+        "durationSeconds": 4.1
+      }
+    },
+    "nativeEvidence": "Linux descriptor count is positive during the source read and zero after interruption returns. Native binary stdout preserves invalid UTF-8 bytes and NUL before validation. Existing source cap, mutation/race, host adapter tests pass.",
+    "limitations": "macOS helper process code path not executed on this Linux host; no macOS support acceptance inferred. Full suite/current conformance/live/performance/completion audit remain required."
   }
 }

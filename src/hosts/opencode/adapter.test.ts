@@ -69,7 +69,7 @@ describe("OpenCode 1.14.44 direct event adaptation", () => {
     writeFileSync(path, content);
     const write = event(cwd, "write", { filePath: "src/item.ts", content }, { exists: false });
     const result = await Effect.runPromise(adaptOpenCodeDirectEvent(write, {
-      betweenReads: async () => { writeFileSync(path, "export interface Item { value: string }\n"); },
+      betweenReads: () => Effect.sync(() => { writeFileSync(path, "export interface Item { value: string }\n"); }),
     }));
     expect(result).toBeUndefined();
   });
