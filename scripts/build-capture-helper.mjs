@@ -7,7 +7,11 @@ import { buildNativeArtifact, copyNativeArtifact } from "./native-artifact.mjs";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const nativeDirectory = resolve(root, "native/prebuilt", `${process.platform}-${process.arch}`);
 if (process.arch !== "arm64" || !["darwin", "linux"].includes(process.platform)) {
-  throw new Error("native release helpers can only be built on a declared arm64 platform");
+  // Source CI may run on another host; it cannot compile or validate a new profile.
+  // Require the same declared artifacts as release assembly before retaining them.
+  await import("./verify-native-release.mjs");
+  console.log(`source-only build on ${process.platform}-${process.arch}: retained verified arm64 native artifacts; no target-host validation`);
+  process.exit(0);
 }
 mkdirSync(nativeDirectory, { recursive: true, mode: 0o755 });
 
