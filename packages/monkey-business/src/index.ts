@@ -1,5 +1,5 @@
 import { SOURCE_IDENTITY, PREPARATION_SOURCE_IDENTITY } from "../../monkey-business-bend/engine.mjs";
-import { readRecord, readBool } from "../../../src/canonical/boundary-schema.ts";
+import { readRecord, readBool, readNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
 import { decodeDriver, decodeDriverEvent, encodeDriverOutcome } from "./driver-codec.ts";
 import { SharedCore } from "./shared-core.ts";
 import { ResourceScenarios, demoResourceLimits, type ResourceScenarioConfig } from "./resource-scenarios.ts";
@@ -16,6 +16,8 @@ import { DEFAULT_OUTCOME_WEIGHTS, JEV_OUTCOME_ORDER, OUTCOME_RANDOM_ALGORITHM, O
 export * from "./outcomes.ts";
 import { validateLiveControl, type LiveControl, type EnvironmentProfile, type OutputProfile, type OutcomeChoice } from "./controls.ts";
 export * from "./controls.ts";
+export * from "./jev-interventions.ts";
+import type { JevInterventionReport } from "./jev-interventions.ts";
 import {
   type SessionConfig,
   type SessionInput,
@@ -131,6 +133,7 @@ export type Observation = {
 };
 /** One synchronous viewing boundary; presentation never owns simulator state. */
 export type RunObservation = {
+  readonly interventions: readonly JevInterventionReport[];
   readonly now: number;
   readonly eventCount: number;
   readonly projection: CanonicalProjection;
@@ -311,6 +314,8 @@ export class Run {
   private history: Observation[] = [];
   private listeners = new Set<(o: Observation) => void>();
   private controls: ControlRecord[] = [];
+  private interventionReports: JevInterventionReport[] = [];
+  get interventions(): readonly JevInterventionReport[] { return copy(this.interventionReports); }
   private externalInputs: {
     boundary: number;
     time: number;
@@ -367,6 +372,7 @@ export class Run {
     validateLiveControl({ kind: "environment", ...this.environment });
     validateLiveControl({ kind: "outputProfile", ...this.outputProfile });
     this.core = new SharedCore(config.limits ?? defaults, config.seed ?? 1);
+    this.core.configureCredentials(this.environment.credentialReady, this.environment.credentialGeneration ?? 1);
     if (config.session && config.sessions) throw new TypeError("choose session or sessions");
     const sessions = config.sessions ?? (config.session ? [config.session] : []);
     if (config.sessions && (!sessions.length || sessions.length > 64)) throw new RangeError("sessions requires 1..64 agents");
@@ -374,7 +380,7 @@ export class Run {
       const agent = settings.agent ?? `agent-${index + 1}`;
       if (this.scopes.some(scope => scope.agent === agent)) throw new TypeError("duplicate session agent");
       const seed = settings.seed ?? ((config.seed ?? 1) + Math.imul(index, 2654435761)) >>> 0;
-      const partition = index + 1;
+      const partition = this.core.declareAdvicee(index + 1, seed).partition;
       this.generators.set(partition, this.core.session(partition, { ...settings, agent, seed }));
       this.scopes.push({ agent, partition, seed });
     });
@@ -431,7 +437,7 @@ export class Run {
   observe(): RunObservation {
     return freezeCanonicalData({ now: this.clock, eventCount: this.count,
       projection: this.projection, observations: [...this.history],
-      capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes });
+      capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes, interventions: this.interventions });
   }
   subscribe(listener: (o: Observation) => void) {
     this.listeners.add(listener);
@@ -474,27 +480,48 @@ export class Run {
     const value: Control = validateLiveControl(control);
     if (value.agent !== undefined && !this.scopes.some(scope => scope.agent === value.agent))
       throw new RangeError("unknown agent control target");
-    if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees"].includes(value.kind))
+    if (value.agent !== undefined && ["environment", "jevProfile", "outputProfile", "fileTrees", "credentials", "jevRequest"].includes(value.kind))
       throw new TypeError("resident controls cannot target one agent");
-    if (value.kind === "fileTrees") {
+    if (value.kind === "jevRequest") {
+      const target = value.target;
+      const targeted = (item: Scheduled): boolean => {
+        if (!item.generated || item.input.kind !== "canonical") return false;
+        const event = item.input.event;
+        return ["jevRequestStarted", "jevRequestInterrupted", "jevRequestSettled"].includes(event.kind)
+          && "request" in event && "operation" in event && "partition" in event && "lifetime" in event && "round" in event
+          && event.partition === target.partition && event.lifetime === target.lifetime && event.round === target.round
+          && event.operation === target.operation && event.request === target.request;
+      };
+      const callbacks = this.queue.filter(targeted);
+      const due = callbacks.filter(item => item.input.kind === "canonical" && item.input.event.kind === "jevRequestSettled")[0]?.at ?? this.clock;
+      const intervention = readRecord(this.core.interveneRequest(target, encodeDriverOutcome(value.outcome), Math.max(0, due - this.clock)));
+      const results = { "JevEffects.RefusedMissing": "requestMissing", "JevEffects.RefusedStarted": "requestAlreadyStarted", "JevEffects.RefusedInterrupted": "requestAlreadyInterrupted" } as const;
+      let result: JevInterventionReport["result"];
+      if (intervention.$ === "JevEffects.Applied") {
+        const facts = readBendList(intervention.facts, fact => {
+          const checked = readRecord(fact);
+          return { event: decodeDriverEvent(checked.event), delay: readNat(checked.delay) };
+        }, 1024);
+        this.queue = this.queue.filter(item => !targeted(item));
+        for (const fact of facts) this.event(target.partition, fact.event, fact.delay);
+        result = "applied";
+      } else if (typeof intervention.$ === "string" && intervention.$ in results) {
+        result = results[intervention.$ as keyof typeof results];
+      } else throw new TypeError("invalid Jev intervention result");
+      this.interventionReports.push({ controlSequence: this.timelineOrder, at: this.clock, control: value, result });
+    } else if (value.kind === "credentials") {
+      const facts = this.core.credentials(value.action);
+      this.environment = { ...this.environment, credentialReady: facts.available, credentialGeneration: facts.generation };
+      this.interventionReports.push({ controlSequence: this.timelineOrder, at: this.clock, control: value, result: "applied" });
+      this.revalidateEnvironment();
+    } else if (value.kind === "fileTrees") {
       this.fileTrees = validateFileTreeProfile(value.profile);
     } else if (value.kind === "environment") {
       this.environment = { currentWork: value.currentWork, credentialReady: value.credentialReady,
         credentialGeneration: value.credentialGeneration ?? this.environment.credentialGeneration ?? 1,
         sourceReadable: value.sourceReadable ?? this.environment.sourceReadable ?? true };
-      const context = this.driverContext({ kind: "finalCandidateCheck", ownerCurrent: true, credentialGeneration: true,
-        credentialAuthorized: this.environment.credentialReady, expired: false, workCurrent: this.environment.currentWork, hasFindings: true },
-        { at: this.clock, order: 0, input: { at: this.clock, kind: "finish" } }, "clear");
-      context.background = this.generators.size > 0;
-      for (const action of decodeDriver({ handled: true, actions: this.core.revalidate(context) }).actions) {
-        const partition = action.candidate?.partition ?? this.inputPartition({ at: this.clock, order: 0, input: { at: this.clock, kind: "canonical", event: action.event } });
-        this.event(partition, action.event, action.delay);
-        if (action.candidate) {
-          const scheduled = this.scheduled.get(this.order - 1);
-          if (!scheduled) throw new Error("shared driver action lost source facts");
-          scheduled.candidate = action.candidate;
-        }
-      }
+      this.core.configureCredentials(this.environment.credentialReady, this.environment.credentialGeneration ?? 1);
+      this.revalidateEnvironment();
     } else if (value.kind === "outputProfile") {
       this.outputProfile = { outcome: value.outcome, delayMs: value.delayMs, leaseMs: value.leaseMs };
     } else if (value.kind === "jevProfile") {
@@ -518,6 +545,21 @@ export class Run {
     };
     this.controls.push(record);
     return copy(record);
+  }
+  private revalidateEnvironment() {
+      const context = this.driverContext({ kind: "finalCandidateCheck", ownerCurrent: true, credentialGeneration: true,
+        credentialAuthorized: this.environment.credentialReady, expired: false, workCurrent: this.environment.currentWork, hasFindings: true },
+        { at: this.clock, order: 0, input: { at: this.clock, kind: "finish" } }, "clear");
+      context.background = this.generators.size > 0;
+      for (const action of decodeDriver({ handled: true, actions: this.core.revalidate(context) }).actions) {
+        const partition = action.candidate?.partition ?? this.inputPartition({ at: this.clock, order: 0, input: { at: this.clock, kind: "canonical", event: action.event } });
+        this.event(partition, action.event, action.delay);
+        if (action.candidate) {
+          const scheduled = this.scheduled.get(this.order - 1);
+          if (!scheduled) throw new Error("shared driver action lost source facts");
+          scheduled.candidate = action.candidate;
+        }
+      }
   }
   private driverContext(event: CanonicalEvent, item: Scheduled, outcome: JevRequestOutcome, job?: Extract<RunInput, { kind: "edit" }>) {
     const partition = this.inputPartition(item);

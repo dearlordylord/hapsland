@@ -212,3 +212,21 @@ export const interveneSharedRequest = (state: EngineState, target: { readonly pa
   const binding = { $: "FaultTargets.Target", partition: readNat(target.partition), lifetime: readNat(target.lifetime), round: readNat(target.round), operation: readNat(target.operation), request: readNat(target.request) };
   return decodeSharedValue(SharedEngine.intervene_request(state, encodeSharedValue(binding), encodeSharedValue(outcome), BigInt(readNat(delay))));
 };
+
+const adviceeScope = decoder(Schema.Struct({ $: Schema.Literal("Advicees.Scope"), identity: Nat, partition: Nat, seed: Nat }));
+const adviceeOption = decoder(Schema.Union([Schema.Struct({ $: Schema.Literal("None") }), Schema.Struct({ $: Schema.Literal("Some"), value: Schema.Unknown })]));
+export const declareSharedAdvicee = (state: EngineState, identity: number, seed: number) => {
+  sharedCheck(state);
+  const result = SharedEngine.declare_advicee(state, BigInt(readNat(identity)), readNat(seed));
+  if (!result.valid) throw new RangeError("invalid advicee declaration");
+  const option = adviceeOption(decodeSharedValue(result.scope));
+  if (option.$ !== "Some") throw new TypeError("missing declared advicee scope");
+  return { state: retain(state, result.state), scope: adviceeScope(option.value) };
+};
+const scopeOption = decoder(Schema.Union([Schema.Struct({ $: Schema.Literal("None") }), Schema.Struct({ $: Schema.Literal("Some"), value: Nat })]));
+export const sharedEventScope = (state: EngineState, event: CanonicalEvent, provided?: number): number | undefined => {
+  sharedCheck(state);
+  const option = provided === undefined ? { $: "None" } : { $: "Some", value: readNat(provided) };
+  const result = scopeOption(decodeSharedValue(SharedEngine.scope_event(state, state, encodeSharedValue(encodeCanonicalEvent(event)), encodeSharedValue(option))));
+  return result.$ === "Some" ? result.value : undefined;
+};

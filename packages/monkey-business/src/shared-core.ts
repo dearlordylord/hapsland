@@ -6,6 +6,7 @@ import { issueSharedPre, capturedSharedPermit, configureSharedSeed, sharedClock,
 import { sessionProfile, type SessionConfig, type SessionControl, type SessionInput } from "./session.ts";
 import { doubleWords } from "./numeric-codec.ts";
 import { JEV_OUTCOME_ORDER, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
+import { declareSharedAdvicee, sharedEventScope, configureSharedCredentials, actSharedCredentials, sharedCredentialFacts, interveneSharedRequest } from "../../../src/canonical/simulation-adapter.ts";
 import { readRecord } from "../../../src/canonical/boundary-schema.ts";
 import type { PreparationEvent, PreparationFrame } from "./preparation.ts";
 
@@ -15,6 +16,20 @@ export class SharedCore {
   private queuedProjection: ReturnType<typeof queuedShared> | undefined;
   constructor(limits: Parameters<typeof initialCanonical>[0], seed = 1) {
     this.state = configureSharedSeed(initialSharedCanonical(limits), seed);
+  }
+  declareAdvicee(identity: number, seed: number) {
+    const declared = declareSharedAdvicee(this.state, identity, seed);
+    this.state = declared.state;
+    return declared.scope;
+  }
+  eventScope(event: CanonicalEvent, provided?: number) { return sharedEventScope(this.state, event, provided); }
+  configureCredentials(available: boolean, generation: number) { this.state = configureSharedCredentials(this.state, available, generation); }
+  credentials(action: "unavailable" | "restore" | "rotate") {
+    this.state = actSharedCredentials(this.state, action);
+    return sharedCredentialFacts(this.state);
+  }
+  interveneRequest(target: { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }, outcome: unknown, delay: number) {
+    return interveneSharedRequest(this.state, target, outcome, delay);
   }
   issuePre(facts: unknown) { return issueSharedPre(this.state, facts); }
   permitActions(capture: unknown) { return capturedSharedPermit(this.state, capture); }
