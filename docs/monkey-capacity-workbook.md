@@ -348,6 +348,11 @@ scalar demo defaults, not acceptance of the retained-resource inset preview.
 
 ## Ticket necessity investigation
 
+Deferred follow-up: [issue #170 — Investigate removing retained Claude edit
+tickets while preserving collection authority](https://github.com/dearlordylord/hapsland/issues/170)
+records this investigation for later work. The current review moves to notice
+keys and the reuse cache; no hook refactor is underway.
+
 **Status and authority:** Advisory design audit of current source; not an accepted
 change, implementation, or runtime validation of ticket elimination. The user
 asked to settle ticket necessity before changing hook behavior. Current
