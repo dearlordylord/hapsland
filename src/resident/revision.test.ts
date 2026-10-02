@@ -31,7 +31,7 @@ it.effect("reuses one native revision and accounts for independent members", () 
   expect(owner.revision.current(joined.revision, item)).toBe(true);
   expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([1]);
   yield* owner.revision.release(joined.revision);
-  expect(owner.revision.count()).toBe(0);
+  expect(yield* owner.revision.count()).toBe(0);
   expect(owner.revision.current(first.revision, item)).toBe(false);
   expect(owner.revision.generation(first.revision.subject)).toBe(0);
 }));
@@ -50,11 +50,11 @@ it.effect("replaces only the matching subject and ignores an old generation's re
   expect(owner.revision.current(replacement, changed)).toBe(true);
   expect(owner.revision.current(independent, item)).toBe(true);
   yield* owner.revision.release(old);
-  expect(owner.revision.count()).toBe(2);
+  expect(yield* owner.revision.count()).toBe(2);
   yield* owner.revision.release(independent);
-  expect(owner.revision.count()).toBe(1);
+  expect(yield* owner.revision.count()).toBe(1);
   yield* owner.revision.release(replacement);
-  expect(owner.revision.count()).toBe(0);
+  expect(yield* owner.revision.count()).toBe(0);
 }));
 
 it.effect("isolates acquisitions and fences stale native tokens when generation IDs are reused", () => Effect.gen(function* () {
@@ -63,16 +63,16 @@ it.effect("isolates acquisitions and fences stale native tokens when generation 
   const second = yield* acquire;
   const item = prepared();
   const old = (yield* first.revision.register("agent", item, true, "old")).revision;
-  expect(second.revision.count()).toBe(0);
+  expect(yield* second.revision.count()).toBe(0);
   expect(second.revision.current(old, item)).toBe(false);
   first.clear();
-  expect(first.revision.count()).toBe(0);
+  expect(yield* first.revision.count()).toBe(0);
   const replacement = (yield* first.revision.register("agent", item, true, "replacement")).revision;
   expect(replacement.generation).toBe(old.generation);
   expect(first.revision.current(old, item)).toBe(false);
   yield* first.revision.release(old);
   expect(first.revision.current(replacement, item)).toBe(true);
-  expect(first.revision.count()).toBe(1);
+  expect(yield* first.revision.count()).toBe(1);
 }));
 
 
@@ -88,7 +88,7 @@ it.effect("settles a retired advice capture and its revision member in one owner
   expect(owner.revision.current(revision, item)).toBe(true);
   expect(owner.snapshot().bytes).toBe(300);
   expect(owner.adviceCaptures.finish(capture)).toBe("retired");
-  expect(owner.revision.count()).toBe(0);
+  expect(yield* owner.revision.count()).toBe(0);
   expect(owner.snapshot().items).toBe(0);
 }));
 
@@ -96,13 +96,13 @@ it.effect("executes deferred registrations atomically across competing members",
   const owner = yield* makeResidentState();
   const item = prepared();
   const register = owner.revision.register("agent", item, true, "shared-token");
-  expect(owner.revision.count()).toBe(0);
+  expect(yield* owner.revision.count()).toBe(0);
   const members = yield* Effect.all(Array.from({ length: 16 }, () => register), { concurrency: 16 });
   expect(members.filter((member) => member.replaced)).toHaveLength(1);
   expect(new Set(members.map((member) => member.revision.token))).toEqual(new Set(["shared-token"]));
   expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([16]);
   yield* Effect.all(members.map((member) => owner.revision.release(member.revision)), { concurrency: 16 });
-  expect(owner.revision.count()).toBe(0);
+  expect(yield* owner.revision.count()).toBe(0);
 }));
 
 
@@ -112,12 +112,25 @@ it.effect("checks supersession and releases against execution-time state", () =>
   const old = (yield* owner.revision.register("agent", item, true, "old")).revision;
   const superseded = owner.revision.superseded(old.subject, old);
   const release = owner.revision.release(old);
-  expect(owner.revision.count()).toBe(1);
+  expect(yield* owner.revision.count()).toBe(1);
   expect(yield* superseded).toBe(false);
   const replacement = (yield* owner.revision.register("agent", prepared("type Count = string"), true, "new")).revision;
   expect(yield* superseded).toBe(true);
   yield* release;
-  expect(owner.revision.count()).toBe(1);
+  expect(yield* owner.revision.count()).toBe(1);
   yield* owner.revision.release(replacement);
-  expect(owner.revision.count()).toBe(0);
+  expect(yield* owner.revision.count()).toBe(0);
+}));
+
+it.effect("reads revision count at execution without changing the canonical snapshot", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const count = owner.revision.count();
+  expect(yield* count).toBe(0);
+  const revision = (yield* owner.revision.register("agent", prepared(), true, "count")).revision;
+  const before = owner.canonicalProjection();
+  expect(yield* count).toBe(1);
+  expect(yield* owner.revision.superseded(revision.subject, revision)).toBe(false);
+  expect(owner.canonicalProjection()).toEqual(before);
+  yield* owner.revision.release(revision);
+  expect(yield* count).toBe(0);
 }));

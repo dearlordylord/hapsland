@@ -581,7 +581,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       successfulCacheEntries: reuse.entries,
       pendingEvaluations: reuse.pending,
       noticeCooldowns: residentNotices.entries().length,
-      currentWork: residentRevisionCount(),
+      currentWork: yield* residentLedger.revision.count(),
     };
   });
 
@@ -1363,8 +1363,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           ? advice.round.generation === residentComposedDelivery.generation(partition) : true),
     };
   }
-
-  function residentRevisionCount(): number { return residentLedger.revision.count(); }
 
   function residentCurrentRevisionGeneration(subject: string): number { return residentLedger.revision.generation(subject); }
 

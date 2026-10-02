@@ -26,9 +26,16 @@ if (!capacity.includes('register: Effect.fn("RevisionRecords.register")') ||
   throw new Error("revision registration must compose as an atomic Effect");
 }
 
-for (const operation of ["release", "superseded"]) {
+for (const operation of ["release"]) {
   if (!capacity.includes(`${operation}: Effect.fn("RevisionRecords.${operation}")`) ||
       !capacity.includes(`commitAllEffect(revisionChange((operations) => operations.${operation}(...args)))`)) {
     throw new Error(`revision ${operation} must compose as an atomic Effect`);
+  }
+}
+
+for (const operation of ["count", "superseded"]) {
+  if (!capacity.includes(`${operation}: Effect.fn("RevisionRecords.${operation}")`) ||
+      !capacity.includes(`revisionRead((operations) => operations.${operation}(...args))`)) {
+    throw new Error(`revision ${operation} must read through its Effect snapshot`);
   }
 }

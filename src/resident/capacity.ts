@@ -354,15 +354,24 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           operations.assert();
           return [value, { ...records, revision }];
         };
+      const revisionRead = <A>(operation: (operations: Pick<RevisionOperations, "count" | "generation" | "superseded" | "current">) => A): Effect.Effect<A> =>
+        Ref.get(state).pipe(Effect.map((snapshot) => {
+          // Bend check events run against a private draft of this one snapshot.
+          // Queries must not publish identity allocations or canonical state.
+          const draft = draftCapacity(snapshot, (id) => snapshot.reservations.get(id));
+          const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+          return operation(revisionOperations(draftRevision(snapshot.records.revision), owner));
+        }));
       const revisionCommit = <A>(operation: (operations: RevisionOperations) => A): A =>
         commitAll(revisionChange(operation));
       return {
-        count: (...args: Parameters<RevisionOperations["count"]>) => revisionCommit((operations) => operations.count(...args)),
+        count: Effect.fn("RevisionRecords.count")((...args: Parameters<RevisionOperations["count"]>) =>
+          revisionRead((operations) => operations.count(...args))),
         generation: (...args: Parameters<RevisionOperations["generation"]>) => revisionCommit((operations) => operations.generation(...args)),
         register: Effect.fn("RevisionRecords.register")((...args: Parameters<RevisionOperations["register"]>) =>
           commitAllEffect(revisionChange((operations) => operations.register(...args)))),
         superseded: Effect.fn("RevisionRecords.superseded")((...args: Parameters<RevisionOperations["superseded"]>) =>
-          commitAllEffect(revisionChange((operations) => operations.superseded(...args)))),
+          revisionRead((operations) => operations.superseded(...args))),
         current: (...args: Parameters<RevisionOperations["current"]>) => revisionCommit((operations) => operations.current(...args)),
         release: Effect.fn("RevisionRecords.release")((...args: Parameters<RevisionOperations["release"]>) =>
           commitAllEffect(revisionChange((operations) => operations.release(...args)))),
