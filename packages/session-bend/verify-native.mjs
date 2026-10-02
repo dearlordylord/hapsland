@@ -14,7 +14,7 @@ const list = values => values.reduceRight((tail, head) => ({$:"Con",head,tail}),
 try {
   const binary = join(temp,"trace");
   run("bend",[fileURLToPath(new URL("Trace.bend",import.meta.url)),"-o",binary],5000);
-  const config = {$:"Settings",interval:31,variation:23,edits:2,pause:71,response:3,repairDelay:113};
+  const config = {$:"Session.Settings",interval:31,variation:23,edits:2,pause:71,response:3,repairDelay:113};
   const initial = Shared.initial(config,4294967295,list([97,103,101,110,116,45,49]),123n,list([1n,2n,333n]));
   const task = Shared.next(config,initial), edit = Shared.next(config,Shared.transition_state(task));
   const after = Shared.transition_state(edit);

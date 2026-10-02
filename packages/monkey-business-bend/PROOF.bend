@@ -10,3 +10,6 @@ def Laws.take_preserves_tail(now, at, order, tail):
 
 def Laws.never_sent_lifecycle(partition, lifetime, round, operation, request, delay):
   {==}
+
+def Laws.duration_control_only_updates_profile(partition, settings, stream, previous, duration):
+  {==}

@@ -8,7 +8,7 @@ const policyModules = new Set([
   "Retention", "Reuse", "ReuseState", "RevisionState", "Round", "RulePolicy",
   "SubmissionState", "Work",
 ]);
-const localModules = new Set(["Driver", "Types", "Scheduler", "Engine"]);
+const localModules = new Set(["Driver", "Types", "Scheduler", "Engine", "Workload", "Random", "Numeric", "Session"]);
 const baseTags = new Set(["Nil", "Con", "Some", "None", "Tuple", "LT", "EQ", "GT"]);
 const readWord = decoder(Word);
 const convertTag = (value: unknown, encode: boolean): string => {
@@ -42,7 +42,7 @@ const convert = (value: unknown, encode: boolean, word = false): unknown => {
     return items.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
   }
   const tag = convertTag(record.$, encode);
-  const words = tag === "RulePolicy.Words" || tag === prefix + "RulePolicy.Words";
+  const words = tag === "RulePolicy.Words" || tag === prefix + "RulePolicy.Words" || tag === "Numeric.Words";
   return Object.fromEntries(Object.entries(record).map(([key, field]) => [key,
     key === "$" ? tag : convert(field, encode, words && (key === "high" || key === "low"))]));
 };

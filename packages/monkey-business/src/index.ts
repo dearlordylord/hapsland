@@ -12,12 +12,11 @@ import { generateFileTree, validateFileTreeProfile, DEFAULT_FILE_TREE_PROFILE, t
 export * from "./file-trees.ts";
 import { type PreparationEvent, type PreparationFrame } from "./preparation.ts";
 export * from "./preparation.ts";
-import { DEFAULT_OUTCOME_WEIGHTS, JEV_OUTCOME_ORDER, OUTCOME_RANDOM_ALGORITHM, OUTCOME_RANDOM_STREAM, SeededOutcomeSampler, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
+import { DEFAULT_OUTCOME_WEIGHTS, JEV_OUTCOME_ORDER, OUTCOME_RANDOM_ALGORITHM, OUTCOME_RANDOM_STREAM, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
 export * from "./outcomes.ts";
 import { validateLiveControl, type LiveControl, type EnvironmentProfile, type OutputProfile, type OutcomeChoice } from "./controls.ts";
 export * from "./controls.ts";
 import {
-  SessionGenerator,
   type SessionConfig,
   type SessionInput,
   type SessionControl,
@@ -306,7 +305,7 @@ export class Run {
   }
   private order = 0;
   private count = 0;
-  private clock = 0;
+  private get clock() { return this.core.now; }
   private history: Observation[] = [];
   private listeners = new Set<(o: Observation) => void>();
   private controls: ControlRecord[] = [];
@@ -331,8 +330,7 @@ export class Run {
   >();
   private jobs = new Map<number, Extract<RunInput, { kind: "edit" }>>();
   private readonly config: RunConfig;
-  private readonly editDurations = new Map<number, number>();
-  private readonly generators = new Map<number, SessionGenerator>();
+  private readonly generators = new Map<number, ReturnType<SharedCore["session"]>>();
   private readonly scopes: { agent: string; partition: number; seed: number }[] = [];
   private get session() { return this.generators.get(this.partition); }
   get agentScopes(): readonly { readonly agent: string; readonly partition: number; readonly seed: number }[] {
@@ -341,7 +339,6 @@ export class Run {
   private jevDelay: number;
   private outcome: JevRequestOutcome | undefined;
   private outcomeWeights: OutcomeWeights;
-  private readonly outcomeSampler: SeededOutcomeSampler;
   private environment: EnvironmentProfile;
   private adviceCredentials = new Map<number, number>();
   private requestCredentials = new Map<number, number>();
@@ -374,6 +371,7 @@ export class Run {
     this.outputProfile = copy(config.outputProfile ?? { outcome: "certain", delayMs: 0, leaseMs: 30000 });
     validateLiveControl({ kind: "environment", ...this.environment });
     validateLiveControl({ kind: "outputProfile", ...this.outputProfile });
+    this.core = new SharedCore(config.limits ?? defaults, config.seed ?? 1);
     if (config.session && config.sessions) throw new TypeError("choose session or sessions");
     const sessions = config.sessions ?? (config.session ? [config.session] : []);
     if (config.sessions && (!sessions.length || sessions.length > 64)) throw new RangeError("sessions requires 1..64 agents");
@@ -382,14 +380,12 @@ export class Run {
       if (this.scopes.some(scope => scope.agent === agent)) throw new TypeError("duplicate session agent");
       const seed = settings.seed ?? ((config.seed ?? 1) + Math.imul(index, 2654435761)) >>> 0;
       const partition = index + 1;
-      this.generators.set(partition, new SessionGenerator({ ...settings, agent, seed }));
-      if (settings.editDurationMs !== undefined) this.editDurations.set(partition, settings.editDurationMs);
+      this.generators.set(partition, this.core.session(partition, { ...settings, agent, seed }));
       this.scopes.push({ agent, partition, seed });
     });
     if (config.outcome !== undefined && config.outcomeWeights !== undefined) throw new TypeError("choose explicit outcome or outcome weights");
     this.outcome = config.outcome;
     this.outcomeWeights = validateOutcomeWeights(config.outcomeWeights ?? DEFAULT_OUTCOME_WEIGHTS);
-    this.outcomeSampler = new SeededOutcomeSampler(config.seed ?? 1);
     const { outcome: _outcome, outcomeWeights: _weights, ...baseConfig } = config;
     this.config = copy({
       ...baseConfig,
@@ -420,7 +416,6 @@ export class Run {
     if (integer(config.adviceLifetime ?? 600_000, "advice lifetime") === 0)
       throw new RangeError("advice lifetime must be positive");
     integer(config.retention ?? 1000, "retention");
-    this.core = new SharedCore(config.limits ?? defaults);
     for (const generator of this.generators.values())
       for (const input of generator.next(0)) this.enqueue(input);
     for (const input of this.config.inputs!) this.enqueue(input);
@@ -511,7 +506,7 @@ export class Run {
       if (value.outcomeWeights !== undefined) { this.outcome = undefined; this.outcomeWeights = validateOutcomeWeights(value.outcomeWeights); }
     } else if (value.kind === "editDuration") {
       if (!this.generators.size) throw new Error("edit duration requires a session generator");
-      for (const scope of this.scopes) if (value.agent === undefined || value.agent === scope.agent) this.editDurations.set(scope.partition, value.durationMs);
+      for (const scope of this.scopes) if (value.agent === undefined || value.agent === scope.agent) this.core.workloadControl(scope.partition, scope.agent, value);
     } else if (this.generators.size) {
       for (const scope of this.scopes) {
         if (value.agent !== undefined && value.agent !== scope.agent) continue;
@@ -546,7 +541,7 @@ export class Run {
   private drive(event: CanonicalEvent, command: CanonicalCommand, index: number, item: Scheduled) {
     const job = item.job ?? ("operation" in command ? this.jobs.get(command.operation) : undefined);
     const sampling = command.kind === "jevRequestIssued" && !this.config.lifecycles?.reuse && this.config.lifecycles?.cancellation !== "suppressed" && !(job && "revisionSubject" in job && job.revisionSubject !== undefined);
-    const outcome = job?.outcome ?? this.outcome ?? (sampling ? this.outcomeSampler.sample(this.outcomeWeights) : "clear");
+    const outcome = job?.outcome ?? this.outcome ?? (sampling ? this.core.sample(this.outcomeWeights) : "clear");
     const context = this.driverContext(event, item, outcome, job);
     const handled = decodeDriver(this.core.handle(event, index, context));
     if (!handled.handled) return { handled: false, outcome: undefined };
@@ -571,7 +566,6 @@ export class Run {
       return;
     const item = this.queueShift();
     if (!item) return;
-    this.clock = item.at;
     this.partition = this.inputPartition(item);
     if (item.input.kind === "preparationGraph") {
       const event = item.input.event;
@@ -646,16 +640,16 @@ export class Run {
       }
       if ("revisionSubject" in item.input && item.input.revisionSubject !== undefined && item.input.revisionInput === undefined) throw new TypeError("revisionInput required with revisionSubject");
       if (permits) {
-        const duration = item.input.editDurationMs ?? this.editDurations.get(this.partition) ?? permits.holdMs ?? 0;
+        const lifetime = permits.lifetimeMs ?? 30000;
+        const timing = this.core.preTiming(this.partition, item.input.editDurationMs, permits.holdMs ?? 0, lifetime);
+        const duration = timing.duration;
         validateLiveControl({ kind: "editDuration", durationMs: duration });
         item.input = { ...item.input, editDurationMs: duration };
         const tool = "tool" in item.input && item.input.tool !== undefined ? item.input.tool : this.nextTool++;
-        const lifetime = permits.lifetimeMs ?? 30000;
-        const started = Math.max(1, this.clock);
-        this.event({ kind: "issuePermit", partition: this.partition, lifetime: 1, tool,
-          started, deadline: started + lifetime, now: started, minimumStarted: 0,
-          facts: { clockValid: true, hookWindow: lifetime, startedUpper: started, nowLower: started,
-            adviceePermitLimit: permits.adviceeLimit, residentPermitLimit: permits.residentLimit } }, started - this.clock, item.input);
+        const actions = this.core.issuePre({ $: "Workload.PermitFacts", partition: this.partition, lifetime: 1, tool,
+          provided: { $: "Some", value: duration }, fallback: permits.holdMs ?? 0, permit_lifetime: lifetime,
+          advicee_limit: permits.adviceeLimit, resident_limit: permits.residentLimit });
+        for (const action of decodeDriver(actions).actions) this.event(action.event, action.delay, item.input);
       } else {
         const plan = readRecord(this.core.edit(this.partition, 1));
         for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) this.event(action.event, action.delay, item.input);
@@ -722,13 +716,12 @@ export class Run {
         case "permitIssued": {
           if (event.kind !== "issuePermit" || !item.job) break;
           const terminal = this.config.lifecycles?.permits?.terminal ?? "consume";
-          const binding = { partition: event.partition, lifetime: event.lifetime, token: command.token };
-          const duration = item.job.editDurationMs ?? this.config.lifecycles?.permits?.holdMs ?? 0;
-          if (terminal !== "expire" && duration > event.deadline - this.clock) this.event({ kind: "expirePermit", ...binding, deadlineReached: true }, event.deadline - this.clock);
-          if (terminal === "consume") this.event({ kind: "consumePermit", ...binding, tool: event.tool,
-            now: this.clock + duration }, duration, item.job);
-          else if (terminal === "release") this.event({ kind: "releasePermit", ...binding }, duration);
-          else this.event({ kind: "expirePermit", ...binding, deadlineReached: true }, event.deadline - this.clock);
+          const capture = { $: "Workload.PermitCapture", partition: event.partition, lifetime: event.lifetime,
+            token: command.token, tool: event.tool, deadline: event.deadline,
+            duration: item.job.editDurationMs ?? this.config.lifecycles?.permits?.holdMs ?? 0,
+            terminal: terminal === "consume" ? 0 : terminal === "release" ? 1 : 2 };
+          for (const action of decodeDriver(this.core.permitActions(capture)).actions)
+            this.event(action.event, action.delay, action.job ? item.job : undefined);
           break;
         }
         case "permitConsumed":
@@ -902,7 +895,7 @@ export class Run {
           this.requestCredentials.set(command.operation, this.environment.credentialGeneration ?? 1);
           const { kind: _kind, ...binding } = command;
           const job = this.jobs.get(command.operation);
-          const selectedOutcome = driver.outcome ?? job?.outcome ?? this.outcome ?? this.outcomeSampler.sample(this.outcomeWeights);
+          const selectedOutcome = driver.outcome ?? job?.outcome ?? this.outcome ?? this.core.sample(this.outcomeWeights);
           if (selectedOutcome !== "neverSent") effects.push({
             kind: "jev",
             phase: "started",

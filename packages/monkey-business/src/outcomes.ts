@@ -1,3 +1,5 @@
+import Shared from "../../monkey-business-bend/engine.mjs";
+import { doubleWords } from "./numeric-codec.ts";
 import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts";
 
 /** Stable cumulative-distribution order, recorded with replay configuration. */
@@ -20,19 +22,19 @@ export const validateOutcomeWeights = (weights: OutcomeWeights): OutcomeWeights 
     if (!(JEV_OUTCOME_ORDER as readonly string[]).includes(key))
       throw new RangeError(`Unknown Jev outcome weight: ${key}`);
   const result = {} as Record<JevRequestOutcome, number>;
-  let total = 0;
+  let enabled = false;
   for (const outcome of JEV_OUTCOME_ORDER) {
     const value = weights[outcome];
     if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 100)
       throw new RangeError(`${outcome} weight must be a finite number in [0, 100]`);
     result[outcome] = value;
-    total += value;
+    enabled ||= value > 0;
   }
-  if (total === 0) throw new RangeError("At least one Jev outcome weight must be greater than zero");
+  if (!enabled) throw new RangeError("At least one Jev outcome weight must be greater than zero");
   return result;
 };
 
-/** The UI and sampler share this pure, deterministic normalization. */
+/** Presentation percentages only; the shared Bend owner normalizes sampling inputs. */
 export const normalizeOutcomeWeights = (weights: OutcomeWeights): OutcomeProbabilities => {
   const validated = validateOutcomeWeights(weights);
   const total = JEV_OUTCOME_ORDER.reduce((sum, outcome) => sum + validated[outcome], 0);
@@ -49,26 +51,15 @@ export class SeededOutcomeSampler {
   constructor(seed = 1) {
     if (!Number.isSafeInteger(seed) || seed < 0 || seed > 2 ** 48 - 1)
       throw new RangeError("outcome seed must be an integer in [0, 281474976710655]");
-    let state = (seed >>> 0) ^ Math.floor(seed / 2 ** 32);
-    for (const character of OUTCOME_RANDOM_STREAM)
-      state = Math.imul(state ^ character.charCodeAt(0), 16777619) >>> 0;
-    this.state = state || 1;
+    this.state = Shared.random_initial(BigInt(seed));
   }
   sample(weights: OutcomeWeights): JevRequestOutcome {
-    const probabilities = normalizeOutcomeWeights(weights);
-    let state = this.state;
-    state ^= state << 13; state ^= state >>> 17; state ^= state << 5;
-    this.state = state >>> 0;
-    const draw = this.state / 2 ** 32;
-    let cumulative = 0;
-    let lastPositive: JevRequestOutcome = "finding";
-    for (const outcome of JEV_OUTCOME_ORDER) {
-      if (probabilities[outcome] === 0) continue;
-      lastPositive = outcome;
-      cumulative += probabilities[outcome];
-      if (draw < cumulative) return outcome;
-    }
-    // Floating point addition can leave the positive distribution just below one.
-    return lastPositive;
+    const validated = validateOutcomeWeights(weights);
+    const encoded = JEV_OUTCOME_ORDER.map(outcome => doubleWords(validated[outcome])).reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
+    const sampled = Shared.random_sample(this.state, encoded);
+    this.state = sampled.random;
+    const outcome = JEV_OUTCOME_ORDER[sampled.outcome];
+    if (outcome === undefined) throw new TypeError("invalid shared outcome");
+    return outcome;
   }
 }

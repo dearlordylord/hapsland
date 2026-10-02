@@ -180,7 +180,7 @@ checked adapters and bounded scenarios, not full native resident orchestration.
 
 Unspecified review outcomes use `DEFAULT_OUTCOME_WEIGHTS`: finding 50, clear 50, all failures zero. `RunConfig.outcomeWeights` and `{kind:'jevProfile',delayMs,outcomeWeights}` accept six finite weights in [0,100]; their positive total is normalized for sampling. An all-zero mix is rejected before a control is recorded. An explicit edit/config/control `outcome` remains a deterministic single-outcome override and is mutually exclusive with weights at that boundary. Already issued requests keep their sampled result and due time. The dedicated `jev-outcomes` xorshift32 stream uses the run seed and is independent of workload variation/rendering; only sampled request issuance consumes a draw, explicit overrides do not. Replay persists the initial weights, all later raw weights, algorithm, stream and stable outcome order. The distribution describes synthetic inputs, not empirical Jev rates.
 
-The ongoing session generator now delegates scheduling to the shared [Bend session core](../session-bend/README.md), compiled to an ES module. Its TypeScript adapter keeps the existing public API, validation and absolute clocks; the pre-port implementation survives only as an independent test fixture. Regenerate the module with `node packages/session-bend/build.mjs` after changing the Bend source.
+The ongoing session generator delegates workload transitions to the shared [Bend engine](../monkey-business-bend/README.md). Its TypeScript adapter keeps the public API and validation; the pre-port implementation survives only as an independent test fixture. The [session package](../session-bend/README.md) projects that same engine for standalone callers and retains the sole Session source for the remaining game consumers until #199. Regenerate the engine with `node packages/monkey-business-bend/build.mjs` and its projection manifest with `node packages/session-bend/build.mjs` after changing the source.
 
 
 Generated sessions may supply `editDurationMs` (0–1,000,000,000 virtual ms).
@@ -236,7 +236,7 @@ Initial coverage map for #178 (extend this table as complete slices land):
 | Jev | Canonical request permits, phase/identity fences, settlement and retention | Captured request due time/outcome; NeverSent omits start; interruption follows start | HTTP, real credentials, transport and paid reviewer |
 | Advice and output | Canonical collection, freshness, suppression, lease/submission and Stop decisions | Synthetic current-source/credential facts, certain/uncertain/failed callbacks, finite timers | Native writer/encoding, model-visible receipt and repair quality |
 | Reuse and lifetime | Canonical revision/reuse/cache, permits, collectors, notices, quiet and retirement | Source-free identity fixtures and selected lifecycle/resource scenario routes | Native identity verification, full resident shutdown; generated live-advice joining |
-| Workload and scheduling | Existing compiled Session core supplies task/edit/finish transitions | Run still owns deterministic queue, clock, effect driver and replay orchestration | No complete native Bend simulator yet; #179 and later slices replace these owners |
+| Workload and scheduling | Existing compiled Session core supplies task/edit/finish transitions | Shared Engine owns queue, clock, active workload state and outcome sampling; host retains input/observation codecs, selected later-slice adapters and replay IO | Original-input native fixtures exercise base edit/review/output and workload/PRE/repair slices; later scenario families extend coverage |
 
 `public-seam.test.ts` independently expects intermediate request completion,
 NeverSent start absence, finding retention, exact viewing boundaries and numeric
@@ -248,3 +248,14 @@ through ordinary replay. It establishes that selected boundary only; full
 native/JS simulator trace agreement is extended with each later Bend slice.
 All checks are offline, finite and source-free. No native-runtime support,
 complete simulation proof or empirical Jev claim follows from these fixtures.
+
+Continuous tasks, task pause, edit interval/jitter, edits per task and advice
+responses are configurable at dashboard Start alongside existing per-advicee
+pace, burst, sizes and duration controls. Advice responses remain ignore,
+no-action, prompt repair and delayed repair; their original generated revision
+and timing behavior is shared with headless/native consumers. Playback controls
+never consume a business random draw. The #180 public/native conformance cases
+start from original configuration and ordered controls, including endpoint-only
+controls, captured PRE9/10/11 deadline cases, finite draining after suspension,
+wide clocks, equal-time advicees and raw fractional/subnormal outcome weights.
+Native claims remain limited to the fixtures actually exercised.

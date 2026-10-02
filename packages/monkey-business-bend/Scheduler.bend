@@ -66,3 +66,7 @@ def cancel_queue(queue: List<&2, Entry>, +order: Nat) -> List<&2, Entry>:
 def cancel(state: State, order: Nat) -> State:
   match state:
     case State{queue, now}: State{cancel_queue(queue, order), now}
+
+def clock(state: State) -> Nat:
+  match state:
+    case State{_, now}: now

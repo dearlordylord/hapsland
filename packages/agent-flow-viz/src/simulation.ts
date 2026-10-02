@@ -35,6 +35,11 @@ export const SimulationModel = Schema.Struct({
   seed: Schema.String,
   pace: Schema.String,
   editDuration: Schema.String,
+  variation: Schema.String,
+  editsPerTask: Schema.String,
+  taskPause: Schema.String,
+  adviceResponse: Schema.String,
+  repairDelay: Schema.String,
   draftEpoch: Schema.Number,
   burst: Schema.String,
   delay: Schema.String,
@@ -87,6 +92,11 @@ export const initialSimulation: SimulationModel = {
   seed: "7",
   pace: "100",
   editDuration: "1",
+  variation: "15",
+  editsPerTask: "5",
+  taskPause: "500",
+  adviceResponse: "ignore",
+  repairDelay: "300",
   draftEpoch: 0,
   burst: "5",
   delay: "50",
@@ -239,6 +249,12 @@ const outputProfile = (model: SimulationModel) => {
   if (!["certain", "uncertain", "failed"].includes(model.outputOutcome)) throw new InputError("Choose a supported host output outcome.");
   return { outcome: model.outputOutcome as "certain" | "uncertain" | "failed", delayMs: number(model.outputDelay, "Host output delay", 0, 1_000_000), leaseMs: number(model.outputLease, "Delivery lease lifetime", 1, 1_000_000) };
 };
+const adviceResponse = (model: SimulationModel): "ignore" | "noAction" | "promptRepair" | "delayedRepair" => {
+  switch (model.adviceResponse) {
+    case "ignore": case "noAction": case "promptRepair": case "delayedRepair": return model.adviceResponse;
+    default: throw new InputError("Choose a supported advice response.");
+  }
+};
 export const changeSimulation = (
   model: SimulationModel,
   field: string,
@@ -249,6 +265,11 @@ export const changeSimulation = (
       "seed",
       "pace",
       "editDuration",
+      "variation",
+      "editsPerTask",
+      "taskPause",
+      "adviceResponse",
+      "repairDelay",
       "burst",
       "delay",
       "weightNeverSent",
@@ -391,14 +412,19 @@ export const actSimulation = (
         resourceScenarios: model.resourceScenario === "none" ? undefined : { noticeMaximumKeys: demoLimits.noticeMaximumKeys, notices: model.resourceScenario === "notices", outputFit: model.resourceScenario === "fit" || model.resourceScenario === "oversized", outputBytes: model.resourceScenario === "oversized" ? 10241 : 512 },
         environment: environmentFacts(model),
         outputProfile: outputProfile(model),
-        seed: number(model.seed, "Seed", 0, 0xffffffff),
+        seed: number(model.seed, "Seed", 0, 2 ** 48 - 1),
         jevDelay: number(model.delay, "Jev delay", 0, 1_000_000),
         outcomeWeights: draftWeights(model),
         fileTrees: treeProfile(model),
         sessions: Array.from({ length: number(model.agentCount, "Agent count", 1, 6) }, (_, index) => ({
           agent: `agent-${index + 1}`,
-          seed: (number(model.seed, "Seed", 0, 0xffffffff) + Math.imul(index, 2654435761)) >>> 0,
+          seed: (number(model.seed, "Seed", 0, 2 ** 48 - 1) + Math.imul(index, 2654435761)) >>> 0,
           editIntervalMs: number(model.pace, "Edit pace", 1, 1_000_000),
+          variationMs: number(model.variation, "Edit interval variation", 0, 1_000_000_000),
+          editsPerTask: number(model.editsPerTask, "Edits per task", 1, 1024),
+          taskPauseMs: number(model.taskPause, "Pause between tasks", 0, 1_000_000_000),
+          adviceResponse: adviceResponse(model),
+          repairDelayMs: number(model.repairDelay, "Repair response delay", 0, 1_000_000_000),
           editDurationMs: number(model.editDuration, "Simulated edit duration", 0, 1_000_000_000),
           bytes: number(model.bytes, "Reservation bytes", 1, 1_000_000),
         })),
@@ -450,6 +476,11 @@ export const actSimulation = (
       loadedFields = {
         draftEpoch: model.draftEpoch + 1,
         agentCount: String(Math.max(1, restored.agentScopes.length, restored.projection.partitions.length)),
+        variation: String(inputs.config.sessions?.[0]?.variationMs ?? inputs.config.session?.variationMs ?? 15),
+        editsPerTask: String(inputs.config.sessions?.[0]?.editsPerTask ?? inputs.config.session?.editsPerTask ?? 5),
+        taskPause: String(inputs.config.sessions?.[0]?.taskPauseMs ?? inputs.config.session?.taskPauseMs ?? 500),
+        adviceResponse: inputs.config.sessions?.[0]?.adviceResponse ?? inputs.config.session?.adviceResponse ?? "ignore",
+        repairDelay: String(inputs.config.sessions?.[0]?.repairDelayMs ?? inputs.config.session?.repairDelayMs ?? 300),
         agentId: inputs.config.sessions?.[0]?.agent ?? inputs.config.session?.agent ?? "agent-1",
         ...treeDrafts(latest("fileTrees")?.profile ?? inputs.config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE),
         bookmark: (inputs as Replay & { dashboard?: { bookmark?: number } }).dashboard?.bookmark ?? -1,
@@ -723,7 +754,7 @@ export const simulationView = <Message>(
           button("Expired delivery lease scenario", "preset:expired"),
           button("Unreadable final source scenario", "preset:source"),
           button("Credential rotation scenario", "preset:rotation"),
-          controlForm("start", [input("seed", "Seed", model.seed), submit("Start / reset")]),
+          controlForm("start", [input("seed", "Seed", model.seed), input("variation", "Edit interval variation (virtual ms)", model.variation), input("editsPerTask", "Edits per task", model.editsPerTask), input("taskPause", "Pause between tasks (virtual ms)", model.taskPause), h.label([], ["Advice response", h.select([h.AriaLabel("Advice response"), h.Value(model.adviceResponse), h.OnChange(raw => changed("adviceResponse", raw))], [h.option([h.Value("ignore")], ["Ignore advice"]), h.option([h.Value("noAction")], ["Record no action"]), h.option([h.Value("promptRepair")], ["Prompt repair"]), h.option([h.Value("delayedRepair")], ["Delayed repair"])])]), input("repairDelay", "Repair response delay (virtual ms)", model.repairDelay), submit("Start / reset")]),
           button(model.playing ? "Pause" : "Resume", "play"),
           button("Single step", "step"),
           controlForm("speed", [input("speed", "Playback speed (virtual ms / wall ms)", model.speed), submit("Apply playback speed")]),

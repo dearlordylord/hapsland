@@ -17,7 +17,15 @@ export const decodeDriverEvent = (value: unknown): CanonicalEvent => {
       const entry = Object.entries(outcomeTags).find(([, name]) => tag === `Canonical.${name}`);
       if (!entry) throw new TypeError("invalid driver outcome");
       result[key] = entry[0];
-    } else if (key === "surface") result[key] = surface(item);
+    } else if (key === "facts") {
+      const facts = readRecord(item);
+      if (facts.$ !== "Admission.ProspectiveFacts") throw new TypeError("invalid driver permit facts");
+      result[key] = { clockValid: readBool(facts.clock_valid), hookWindow: readNat(facts.hook_window),
+        startedUpper: readNat(facts.started_upper), nowLower: readNat(facts.now_lower),
+        adviceePermitLimit: readNat(facts.advicee_permit_limit), residentPermitLimit: readNat(facts.resident_permit_limit) };
+    } else if (key === "minimum_started") result.minimumStarted = readNat(item);
+    else if (key === "deadline_reached") result.deadlineReached = readBool(item);
+    else if (key === "surface") result[key] = surface(item);
     else if (["fingerprints", "units", "unit_bytes"].includes(key)) result[key === "unit_bytes" ? "unitBytes" : key] = readBendList(item, readNat, 1024);
     else result[names[key] ?? key] = typeof item === "boolean" ? readBool(item) : readNat(item);
   }

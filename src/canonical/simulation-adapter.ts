@@ -135,3 +135,58 @@ export const revalidateSharedCanonical = (state: EngineState, context: unknown):
   sharedCheck(state);
   return decodeSharedValue(SharedEngine.revalidate(state, encodeSharedValue(context)));
 };
+
+export const configureSharedSeed = (state: EngineState, seed: number): EngineState => {
+  sharedCheck(state);
+  return retain(state, SharedEngine.configure_seed(state, BigInt(readNat(seed))));
+};
+export const sharedClock = (state: EngineState): number => {
+  sharedCheck(state); return readNat(SharedEngine.clock(state));
+};
+export const configureSharedWorkload = (state: EngineState, partition: number, profile: unknown): EngineState => {
+  sharedCheck(state);
+  return retain(state, SharedEngine.configure_workload(state, BigInt(readNat(partition)), encodeSharedValue(profile)));
+};
+const workloadEvent = decoder(Schema.Struct({
+  $: Schema.Literal("Workload.Emission"), at: Nat, partition: Nat, generation: Nat,
+  kind: Nat, task: Nat, revision: Nat, bytes: Nat, units: Schema.Unknown,
+  repair: Schema.Boolean, recurring: Schema.Boolean,
+}));
+export const actSharedWorkload = (state: EngineState, partition: number, action: unknown) => {
+  sharedCheck(state);
+  const transition = SharedEngine.workload_action(state, BigInt(readNat(partition)), encodeSharedValue(action));
+  if (!transition.valid) throw new RangeError("workload due time outside u48 clock");
+  const events = readList(transition.events, event => {
+    const item = workloadEvent(decodeSharedValue(event));
+    return { ...item, units: readBendList(item.units, readNat, 1024) };
+  });
+  return { state: retain(state, transition.state), events };
+};
+export const validSharedWorkload = (state: EngineState, partition: number, generation: number, recurring: boolean): boolean => {
+  sharedCheck(state);
+  return SharedEngine.workload_valid(state, BigInt(readNat(partition)), BigInt(readNat(generation)), recurring);
+};
+const preTiming = decoder(Schema.Struct({ $: Schema.Literal("Workload.PreTiming"), started: Nat, deadline: Nat, post: Nat, duration: Nat, valid: Schema.Boolean }));
+export const preSharedTiming = (state: EngineState, partition: number, provided: number | undefined, fallback: number, lifetime: number) => {
+  sharedCheck(state);
+  const option = provided === undefined ? { $: "None" } : { $: "Some", value: readNat(provided) };
+  const timing = preTiming(decodeSharedValue(SharedEngine.pre_timing(state, BigInt(readNat(partition)), encodeSharedValue(option), BigInt(readNat(fallback)), BigInt(readNat(lifetime)))));
+  if (!timing.valid) throw new RangeError("PRE due time outside u48 clock");
+  return timing;
+};
+export const sampleSharedOutcome = (state: EngineState, weights: unknown) => {
+  sharedCheck(state);
+  const transition = SharedEngine.sample_outcome(state, encodeSharedValue(weights));
+  const outcome = readNat(transition.outcome);
+  if (outcome > 5) throw new TypeError("invalid shared outcome");
+  return { state: retain(state, transition.state), outcome };
+};
+
+export const issueSharedPre = (state: EngineState, facts: unknown): unknown => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine.pre_issue(state, encodeSharedValue(facts)));
+};
+export const capturedSharedPermit = (state: EngineState, capture: unknown): unknown => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine.permit_actions(state, encodeSharedValue(capture)));
+};

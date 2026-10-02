@@ -39,14 +39,9 @@ const array = <T>(values: BendList<T>): T[] => {
   for (let cursor = values; cursor.$ === "Con"; cursor = cursor.tail) result.push(cursor.head);
   return result;
 };
-/** Thin host boundary for the shared Bend generator; absolute time stays a JS number. */
-export class SessionGenerator {
-  private config: Settings;
-  private state: Stream;
-  private readonly agent: string;
-  constructor(config: SessionConfig = {}) {
-    this.agent = config.agent ?? "agent-1";
-    if (!this.agent.length) throw new RangeError("agent must be nonempty");
+export const sessionProfile = (config: SessionConfig = {}) => {
+    const agent = config.agent ?? "agent-1";
+    if (!agent.length) throw new RangeError("agent must be nonempty");
     const seed = integer(config.seed ?? 1, "seed", 0, 0xffffffff);
     if (config.editDurationMs !== undefined) integer(config.editDurationMs, "editDurationMs");
     const interval = integer(config.editIntervalMs ?? 100, "editIntervalMs", 1);
@@ -61,9 +56,23 @@ export class SessionGenerator {
     const units = [...(config.unitBytes ?? [bytes])];
     if (!units.length || units.length > 1024) throw new RangeError("unitBytes requires 1..1024 units");
     units.forEach(value => integer(value, "unitBytes", 1));
-    this.config = { $: "Settings", interval, variation, edits, pause, response: responseIndex, repairDelay };
-    this.state = Shared.initial(this.config, seed, list(Array.from(this.agent, character => character.charCodeAt(0))), BigInt(bytes), list(units.map(BigInt)));
+  return { $: "Workload.Profile" as const, settings: { $: "Session.Settings" as const, interval, variation, edits, pause, response: responseIndex, repairDelay }, seed,
+    codes: list(Array.from(agent, character => character.charCodeAt(0))), bytes, units: list(units),
+    duration: config.editDurationMs === undefined ? { $: "None" as const } : { $: "Some" as const, value: config.editDurationMs } };
+};
+/** Thin host boundary for the shared Bend generator; absolute time stays a JS number. */
+export class SessionGenerator {
+  private config: Settings;
+  private state: Stream;
+  private readonly agent: string;
+  constructor(config: SessionConfig = {}) {
+    const profile = sessionProfile(config);
+    this.agent = config.agent ?? "agent-1";
+    this.config = profile.settings;
+    this.state = Shared.initial(this.config, profile.seed, profile.codes, BigInt(profile.bytes),
+      list(array(profile.units).map(BigInt)));
   }
+
   valid(input: { readonly generation?: number; readonly recurring?: boolean }): boolean {
     return input.recurring !== true || input.generation === Number(Shared.state_generation(this.state));
   }
