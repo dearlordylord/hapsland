@@ -250,6 +250,28 @@ describe("registry-free Claude edit response", () => {
     } finally { release.resolve(); await server.close(); }
   });
 
+  it("disconnect while review is running leaves that review resident-owned", async () => {
+    const data = await fixture(); const observation = await data.observation();
+    const entered = deferred(); const release = deferred();
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+      beforeEvaluate: async () => { entered.resolve(); await release.promise; },
+    });
+    await server.listen();
+    try {
+      await permit(server, observation);
+      const socket = connect(server.paths.socket);
+      socket.on("error", () => undefined);
+      socket.once("connect", () => socket.write(encodeCurrentResidentRequest(request(server, observation, data.dispatch)) + "\n"));
+      await entered.promise;
+      const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()));
+      socket.destroy(); await closed;
+      await residentRequest(server.paths, { requestRoute: "shared", operation: "hello" });
+      expect(server.stats().running).toBeGreaterThan(0);
+      release.resolve(); await server.whenIdle();
+      expect((await ordinary(server, observation, data.dispatch)).status).toBe("advice");
+    } finally { release.resolve(); await server.close(); }
+  });
+
   it("disconnect during revalidation releases the provisional lease without cancelling review", async () => {
     const data = await fixture(); const first = await data.observation(); const second = await data.observation("second");
     const entered = deferred(); const release = deferred(); let pause = true;
