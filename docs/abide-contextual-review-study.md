@@ -18,6 +18,44 @@ An audio record stored `sampleRate` at its root and inside `track.encoding.sampl
 
 A repair had to prevent contradictory copies while retaining valid values and independent information, such as channel count. Removing a redundant field or correctly constraining the relationship could pass. The clean resampling control instead had independent native and requested playback rates: requiring equality would introduce a defect. Other cases covered build provenance, stored compression, and access grants; a second clean control distinguished stored compression from a requested future repack format.
 
+## Cases and code
+
+Each case consists of `subject.ts` (the public record), `support.ts` (related definitions), and a domain description. The [frozen fixture definitions](../evidence/abide-contextual-current/abide-contextual-fixtures.mjs) contain the starting code and domain text for all six cases. Native sessions started from each fixture’s `after` shape; the assigned maintenance task renamed `label` to `displayLabel`.
+
+For example, the audio defect started with:
+
+```typescript
+// subject.ts
+import type { AudioTrack } from "./support";
+export interface CaseState {
+  label: string;
+  track: AudioTrack;
+  sampleRate: 44100 | 48000;
+}
+
+// support.ts
+export interface AudioTrack { encoding: AudioEncoding; }
+export interface AudioEncoding {
+  sampleRate: 44100 | 48000;
+  channels: 1 | 2;
+}
+```
+
+This permits `sampleRate: 44100` alongside `track.encoding.sampleRate: 48000`, although the domain says both describe the stored track’s native rate. The clean resampling case has a similar shape but a different meaning: its root rate is a playback request, so that combination must remain valid.
+
+The links below show **final source from repetition 1**, not starting inputs. Open the adjacent `support.ts` to inspect the related definitions. This is a code navigation example, not a replacement for the aggregate results across all three repetitions.
+
+| Case | Required domain behavior | Hapsland final code | Abide final code |
+| --- | --- | --- | --- |
+| Build provenance | Root commit and nested source commit describe the same revision; repository stays independent. | [record](../evidence/abide-contextual-current/repeat-1/blind/c8d040c398d0/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/c8d040c398d0/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/79b84f6da380/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/79b84f6da380/support.ts) |
+| Audio encoding | Root sample rate and native encoding rate describe the same rate; channels stay independent. | [record](../evidence/abide-contextual-current/repeat-1/blind/084f63c2aa9b/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/084f63c2aa9b/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/7e645e7a69a4/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/7e645e7a69a4/support.ts) |
+| Stored compression | Root compression and wire compression describe the same stored format; generation stays independent. | [record](../evidence/abide-contextual-current/repeat-1/blind/9a2af89c92c5/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/9a2af89c92c5/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/10f85b390f14/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/10f85b390f14/support.ts) |
+| Session access | Root access and nested granted access describe the same permission; tenant stays independent. | [record](../evidence/abide-contextual-current/repeat-1/blind/05abe0e72d23/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/05abe0e72d23/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/b7e61e6633f5/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/b7e61e6633f5/support.ts) |
+| Clean: audio resampling | Requested playback rate may differ from native encoding rate. | [record](../evidence/abide-contextual-current/repeat-1/blind/3e0e6e97380d/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/3e0e6e97380d/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/ebf9febd6611/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/ebf9febd6611/support.ts) |
+| Clean: future repack | Requested future compression may differ from current stored compression. | [record](../evidence/abide-contextual-current/repeat-1/blind/72cb6a1a2098/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/72cb6a1a2098/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/891695a07237/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/891695a07237/support.ts) |
+
+All repetition mappings are retained in the indexes for [1](../evidence/abide-contextual-current/repeat-1/index.json), [2](../evidence/abide-contextual-current/repeat-2/index.json), and [3](../evidence/abide-contextual-current/repeat-3/index.json). The [scorer](../evidence/abide-contextual-current/score-abide-contextual-artifacts.mjs) defines the executable repair checks; [control checks](../evidence/abide-contextual-current/adjudicate-abide-contextual-controls.mjs) test preservation of independent values.
+
 ## Results
 
 The campaign contained **54 native Codex sessions**: six cases, three repetitions, and three arms. A separate fixed-edit stage contained 36 observations across the two reviewers.
