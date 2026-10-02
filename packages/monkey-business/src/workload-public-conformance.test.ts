@@ -3,6 +3,7 @@ import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run, type Run
 import type { OutcomeWeights } from "./outcomes.ts";
 import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 import Shared from "../../monkey-business-bend/engine.mjs";
+import { SessionGenerator } from "./session.ts";
 
 const weights = (selected: Partial<OutcomeWeights>): OutcomeWeights => ({
   neverSent: 0, finding: 0, clear: 0, backendFailure: 0, timeout: 0, interrupted: 0,
@@ -147,12 +148,39 @@ it("preserves fractional scaling without making zero-weight outcomes reachable",
 });
 
 it("executes an original continuous arrival through the native shared workload and business driver", () => {
-  const [native, timing]: number[][][] = runWorkloadNative(new URL(
+  const [native, timing, feedback]: number[][][] = runWorkloadNative(new URL(
     "../../monkey-business-bend/conformance/workload-scenario.bend", import.meta.url));
   expect(timing).toEqual([
     [10, 20, 19, 9, 1], [10, 20, 20, 10, 1], [10, 20, 21, 11, 1],
     [10, 20, 10, 0, 1], [4294967313, 4294967323, 4294967322, 9, 1],
   ]);
+  expect(feedback).toEqual([
+    [50, 1, 0, 0, 1, 0, 10, 5, 0, 1],
+    [60, 1, 0, 1, 1, 1, 10, 5, 0, 1],
+    [70, 1, 1, 1, 1, 2, 10, 5, 1, 0],
+    [50, 1, 1, 1, 1, 3, 10, 5, 0, 0],
+    [50, 1, 1, 1, 1, 4, 10, 5, 0, 0],
+    [50, 1, 1, 1, 1, 5, 25, 15, 0, 0],
+    [80, 0, 1, 1],
+  ]);
+  const generator = new SessionGenerator({ agent: "writer", seed: 7,
+    editIntervalMs: 10, variationMs: 0, editsPerTask: 1, taskPauseMs: 100,
+    adviceResponse: "delayedRepair", repairDelayMs: 20, bytes: 10, unitBytes: [5] });
+  const generated = [...generator.next(50), ...generator.next(50),
+    ...generator.apply({ kind: "suspendArrivals", suspended: true }, 50),
+    ...generator.onAdvice(50), ...generator.apply({ kind: "burst", count: 2 }, 50),
+    ...generator.onFinish(50, true),
+    ...generator.apply({ kind: "sizes", reservationBytes: 25, reviewUnitBytes: [7, 8] }, 50),
+    ...generator.apply({ kind: "burst", count: 1 }, 50)];
+  expect(generated.map(input => [input.at, input.generation,
+    input.kind === "task" ? 0 : input.kind === "edit" ? 1 : 2,
+    input.kind === "edit" ? input.revision : 0,
+    input.kind === "edit" ? input.bytes : 0,
+    input.kind === "edit" ? input.unitBytes.reduce((sum, bytes) => sum + bytes, 0) : 0,
+    input.kind === "edit" && input.repair ? 1 : 0, input.recurring ? 1 : 0]))
+    .toEqual(feedback.slice(0, -1).map(row => [row[0], row[2], row[3], row[3] === 1 ? row[5] : 0,
+      row[3] === 1 ? row[6] : 0, row[3] === 1 ? row[7] : 0, row[8], row[9]]));
+  expect(generated.map(input => generator.valid(input))).toEqual([false, false, true, true, true, true]);
   expect(native.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
   expect(native.filter(row => row[0] === 21).map(row => row.slice(1, 6))).toEqual([
     [10, 0, 1, 100, 20], [10, 1, 1, 100, 20], [10, 2, 1, 100, 20],

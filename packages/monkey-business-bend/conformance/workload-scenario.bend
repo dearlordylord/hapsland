@@ -101,6 +101,42 @@ def timings() -> List<&2, List<&2, Nat>>:
      Workload.Controlled{Workload.Duration{0n}})),
    captured(9n, Nat.add(U32.to_nat(4294967295), 18n))]
 
+def sum(units: List<&2, Nat>) -> Nat:
+  match units:
+    case Nil{}: 0n
+    case head <> tail: Nat.add(head, sum(tail))
+
+def emissions(events: List<&2, Workload.Emission>) -> List<&2, List<&2, Nat>>:
+  match events:
+    case Nil{}: []
+    case Workload.Emission{at, partition, generation, kind, task, revision, bytes, units, repair, recurring} <> tail:
+      [at, partition, generation, U32.to_nat(kind), task, revision, bytes,
+        sum(units), Bool.pick(Nat, repair, 1n, 0n), Bool.pick(Nat, recurring, 1n, 0n)] <> emissions(tail)
+
+def action_result(transition: Engine.WorkloadTransition, actions: List<&2, Workload.Action>) -> List<&2, List<&2, Nat>>:
+  match transition:
+    case Engine.WorkloadTransition{state, events, True{}}:
+      List.append(&2, List<&2, Nat>, emissions(events), actions_run(state, actions))
+    case _: [[97n]]
+
+def actions_run(state: Types.State, actions: List<&2, Workload.Action>) -> List<&2, List<&2, Nat>>:
+  match actions:
+    case Nil{}:
+      [[80n, Bool.pick(Nat, Engine.workload_valid(state, 1n, 0n, True{}), 1n, 0n),
+        Bool.pick(Nat, Engine.workload_valid(state, 1n, 1n, True{}), 1n, 0n),
+        Bool.pick(Nat, Engine.workload_valid(state, 1n, 0n, False{}), 1n, 0n)]]
+    case action <> tail: action_result(Engine.workload_action(state, 1n, action), tail)
+
+# Supplied finish/advice facts cross the actual owner; no Stop policy is modeled.
+def feedback() -> List<&2, List<&2, Nat>>:
+  actions_run(at(Engine.configure_workload(Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
+    1n, Workload.Profile{Session.Settings{10, 0, 1, 100, 3, 20}, 7,
+      [119, 114, 105, 116, 101, 114], 10n, [5n], None{}}), 50n, 1000n),
+    [Workload.Next{}, Workload.Next{}, Workload.Controlled{Workload.Suspend{True{}}},
+     Workload.Advice{}, Workload.Controlled{Workload.Burst{2n}}, Workload.Finished{True{}},
+     Workload.Controlled{Workload.Sizes{25n, [7n, 8n]}}, Workload.Controlled{Workload.Burst{1n}}])
+
 def main() -> IO(Unit):
   IO.print(String.append("[", String.append(Minimal.bracket(Minimal.show_rows(trace())),
-    String.append(",", String.append(Minimal.bracket(Minimal.show_rows(timings())), "]")))))
+    String.append(",", String.append(Minimal.bracket(Minimal.show_rows(timings())),
+      String.append(",", String.append(Minimal.bracket(Minimal.show_rows(feedback())), "]")))))))
