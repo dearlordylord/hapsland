@@ -451,7 +451,7 @@ export interface ResidentRuntime {
     readonly deliveryFindings: number;
     readonly delivery: "available" | "leased-unacknowledged" | "leased-acknowledged";
   }>>;
-  accountingMetrics(): {
+  accountingMetrics(): Effect.Effect<{
     readonly peakLedgerBytes: number;
     readonly maxMaterializedPreparedUnits: number;
     readonly successfulCacheEntries: number;
@@ -460,7 +460,7 @@ export interface ResidentRuntime {
     readonly operationalNoticeKeys: number;
     readonly pendingOperationalNotices: number;
     readonly operationalNoticeBytes: number;
-  };
+  }>;
   sweepQuietRounds(now?: number): number;
   handle(request: ResidentRequest): Promise<ResidentResponse>;
   listen(): Promise<void>;
@@ -1285,7 +1285,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }));
   });
 
-  const accountingMetricsEffect = Effect.fn("ResidentRuntime.accountingMetrics")(function* (): Effect.fn.Return<ReturnType<ResidentRuntime["accountingMetrics"]>> {
+  const accountingMetrics = Effect.fn("ResidentRuntime.accountingMetrics")(function* (): Effect.fn.Return<Effect.Success<ReturnType<ResidentRuntime["accountingMetrics"]>>> {
     const reuse = residentReuse.snapshot();
     const notices = yield* residentNotices.entries();
     return {
@@ -1302,10 +1302,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       ),
     };
   });
-
-  function accountingMetrics(): ReturnType<ResidentRuntime["accountingMetrics"]> {
-    return Effect.runSync(accountingMetricsEffect());
-  }
 
   const residentPendingNoticeCount = Effect.fn("ResidentRuntime.pendingNoticeCount")(function* (): Effect.fn.Return<number> {
     let count = 0;

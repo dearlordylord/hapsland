@@ -141,7 +141,7 @@ describe("Claude terminal collection", () => {
       expect(evaluatedIdentities.size).toBe(1);
       expect([...evaluatedContracts]).toEqual(["direct-event/type-shape/v1"]);
       // Primer, both blockers, and owner occupy four distinct session partitions.
-      expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 4, pendingEvaluations: 0 });
+      expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ successfulCacheEntries: 4, pendingEvaluations: 0 });
     const activity = readActivity({ statePath: activityPath, root: data.root,
       sessionId: data.observation.advicee.sessionId,
       resident: { available: true, lifetime: server.lifetime } });
@@ -164,12 +164,12 @@ describe("Claude terminal collection", () => {
     const first = server.admit(data.observation, dispatch, true);
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
     await server.whenIdle();
-    expect(server.accountingMetrics().pendingEvaluations).toBe(0);
+    expect((await Effect.runPromise(server.accountingMetrics())).pendingEvaluations).toBe(0);
     const second = server.admit(data.observation, dispatch, true);
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
     await server.whenIdle();
     expect(await collect(server, second.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
-    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 1, pendingEvaluations: 0 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ successfulCacheEntries: 1, pendingEvaluations: 0 });
   });
 
   it("waits for admitted work and leaves clear evidence in activity after completion", async () => {

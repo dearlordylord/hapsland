@@ -131,7 +131,10 @@ try {
         const starts = events.flatMap((event, index) => event.stage === "started" ? [index] : []);
         const reuseFollowsPhysicalSettlement = settlement > firstInterruption &&
           starts[8] > settlement && events[settlement]?.physical === 7 && physical === 8;
-        peakRetainedBytes = Math.max(peakRetainedBytes, measured ? server.accountingMetrics().peakLedgerBytes : 0);
+        // Keep the fixed class-based baseline measurable without a product compatibility path.
+        const metrics = measured ? runtimeModule.makeResidentRuntime === undefined
+          ? server.accountingMetrics() : yield* server.accountingMetrics() : undefined;
+        peakRetainedBytes = Math.max(peakRetainedBytes, metrics?.peakLedgerBytes ?? 0);
         peakRssBytes = Math.max(peakRssBytes, measured ? process.memoryUsage().rss : 0);
         closeFiber = yield* Effect.forkChild(Effect.promise(() => {
           const completion = server.close();

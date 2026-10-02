@@ -198,3 +198,9 @@ if (!noticeSurface.includes('record: Effect.fn("NoticeRecords.record")') ||
     !server.includes('yield* residentNotices.record(')) {
   throw new Error("notice recording must compose an atomic Effect");
 }
+
+const accounting = server.slice(server.indexOf('const accountingMetrics ='), server.indexOf('const residentPendingNoticeCount'));
+if (!accounting.includes('Effect.fn("ResidentRuntime.accountingMetrics")') || accounting.includes('Effect.runSync') ||
+    server.includes('function accountingMetrics(')) {
+  throw new Error("resident accounting metrics must execute in their caller's Effect workflow");
+}

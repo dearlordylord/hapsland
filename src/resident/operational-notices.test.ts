@@ -100,7 +100,7 @@ const fillAndFinalizeCooldownTable = async (
     expect(server.admit(scoped, context).status).toBe("accepted");
     await server.whenIdle();
   }
-  expect(server.accountingMetrics()).toMatchObject({
+  expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({
     operationalNoticeKeys: maximumKeys,
     pendingOperationalNotices: maximumKeys,
   });
@@ -108,7 +108,7 @@ const fillAndFinalizeCooldownTable = async (
     const notice = await collectAndFinalize(server, scoped, context);
     expect(notice.status).toBe("empty");
   }
-  expect(server.accountingMetrics()).toMatchObject({
+  expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({
     operationalNoticeKeys: maximumKeys,
     pendingOperationalNotices: maximumKeys,
   });
@@ -150,7 +150,7 @@ console.log('{"version":1,"status":"interaction-required"}');
       const result = await collectAndFinalize(server, observation, context);
       expect(result.status).toBe("empty");
       expect(existsSync(capturePath)).toBe(false);
-      expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
+      expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
     } finally {
       await server.close();
       if (previousHelper === undefined) delete process.env.REVIEW_CREDENTIAL_HELPER;
@@ -168,7 +168,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     await server.whenIdle();
     const first = await collectAndFinalize(server, observation, failed);
     expect(first.status).toBe("empty");
-    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
 
     now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1;
     expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
@@ -208,7 +208,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     await server.whenIdle();
     const result = await collectAndFinalize(server, observation, failed);
     expect(result.status).toBe("empty");
-    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
     await server.close();
   });
 
@@ -270,7 +270,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     now += PENDING_ADVICE_EXPIRY_MS;
     await installCapacityRule(root, 0.7, 32);
     expect(server.admit(observation, capacityDispatch(statePath)).status).toBe("accepted");
-    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 0 });
     await server.whenIdle();
     await server.close();
 
@@ -288,7 +288,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(excludedServer.admit(excluded, capacity).status).toBe("accepted");
     await excludedServer.whenIdle();
     expect(await excludedServer.collect(root, excluded.advicee, capacity)).toMatchObject({ status: "empty" });
-    expect(excludedServer.accountingMetrics()).toMatchObject({
+    expect((await Effect.runPromise(excludedServer.accountingMetrics()))).toMatchObject({
       operationalNoticeKeys: maximumKeys,
       pendingOperationalNotices: maximumKeys,
     });
@@ -296,7 +296,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(excludedServer.admit(excluded, capacity).status).toBe("accepted");
     await excludedServer.whenIdle();
     expect(await excludedServer.collect(root, excluded.advicee, capacity)).toMatchObject({ status: "empty" });
-    expect(excludedServer.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
+    expect((await Effect.runPromise(excludedServer.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 0 });
     await excludedServer.close();
   });
 
@@ -331,11 +331,11 @@ console.log('{"version":1,"status":"interaction-required"}');
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     expect(server.admit(observation, failed).status).toBe("accepted");
     await server.whenIdle();
-    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
 
     now += PENDING_ADVICE_EXPIRY_MS;
     expect(server.admit(observation, dispatch(statePath, { answers })).status).toBe("accepted");
-    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0, pendingOperationalNotices: 0 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 0, pendingOperationalNotices: 0 });
     await server.whenIdle();
     await server.close();
   });
@@ -346,7 +346,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const oversized = dispatch(statePath, { answers: { oversized: "x".repeat(2 * 1024 * 1024) } });
     const unknown = { ...observation, advicee: { ...observation.advicee, sessionId: "" } };
     expect(server.admit(unknown, oversized).status).toBe("accepted");
-    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 0 });
 
     await installCapacityRule(root);
     await put(root, ".env.local", "SECRET=not-read\n");
@@ -379,7 +379,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     expect(server.admit(unsupportedOperation, capacity).status).toBe("accepted");
     await server.whenIdle();
     expect(await server.collect(root, unsupported.advicee, capacity)).toMatchObject({ status: "empty" });
-    expect(server.accountingMetrics()).toMatchObject({ operationalNoticeKeys: 0 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 0 });
     await server.close();
   });
 });

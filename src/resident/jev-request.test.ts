@@ -71,7 +71,7 @@ describe("canonical Jev request boundary", () => {
       expect(reads).toContain("large.ts");
       expect(commands).toEqual([]);
       expect(existsSync(capturePath)).toBe(false);
-      expect(server.accountingMetrics().pendingOperationalNotices).toBe(0);
+      expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBe(0);
     } finally { await server.close(); }
   });
 
@@ -99,7 +99,7 @@ describe("canonical Jev request boundary", () => {
       await server.whenIdle();
       expect(commands.map((item) => item.stage)).toContain("started");
       expect(existsSync(capturePath)).toBe(true);
-      expect(server.accountingMetrics().pendingOperationalNotices).toBe(0);
+      expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBe(0);
     } finally { await server.close(); }
   });
   it("sends complete selected cross-file evidence and excludes denied supporting source", async () => {
@@ -131,7 +131,7 @@ describe("canonical Jev request boundary", () => {
       expect(gatedServer.admit(observation, { ...dispatch, controlled: { capturePath: gatedCalls } }).status).toBe("accepted");
       await gatedServer.whenIdle();
       expect(existsSync(gatedCalls)).toBe(true);
-      expect(gatedServer.accountingMetrics().pendingOperationalNotices).toBe(0);
+      expect((await Effect.runPromise(gatedServer.accountingMetrics())).pendingOperationalNotices).toBe(0);
     } finally { await gatedServer.close(); }
 
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, excludes: ["c.ts"] }));

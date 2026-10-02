@@ -11,7 +11,7 @@ it.effect("separate acquisitions own separate resident lifetimes", () => Effect.
   const first = yield* makeResidentRuntime();
   const second = yield* makeResidentRuntime();
   expect(first.lifetime).not.toBe(second.lifetime);
-  expect(first.accountingMetrics()).toEqual(second.accountingMetrics());
+  expect(yield* first.accountingMetrics()).toEqual(yield* second.accountingMetrics());
 })));
 
 it.effect("a provided layer shares one runtime within its scope", () => Effect.scoped(

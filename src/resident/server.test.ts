@@ -564,7 +564,7 @@ describe("resident delivery lease", () => {
       const collect = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary" as const, composed: true as const };
       expect((await server.handle(collect)).status).toBe("empty");
-      expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
+      expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0);
       await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" });
       const decision = await server.handle({ ...collect, mode: "turn-end", finish: { token: "finish", deadlineReached: false } });
@@ -1160,7 +1160,7 @@ describe("resident delivery lease", () => {
       if (mixed.status !== "advice") return;
       expect(mixed.findingCount).toBe(1);
       expect(claudeHostOutputText(mixed.output)).not.toMatch(/unavailable/i);
-      expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
+      expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0);
       (await Effect.runPromise(server.releaseDelivery(mixed.token)));
       expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: finding.advicee, token: "finish" })).toEqual({ status: "advanced" });
@@ -1407,7 +1407,7 @@ describe("resident delivery lease", () => {
     const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
     expect(collected.status).toBe("empty");
-    expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
+    expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0);
   });
 
   it("keeps submitted advice suppressed across prompt notifications in the same round", async () => {
@@ -1729,7 +1729,7 @@ describe("resident delivery lease", () => {
     expect((await Effect.runPromise(server.finalize(afterFailedAck.token))).status).toBe("finalized");
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   });
 
@@ -1755,7 +1755,7 @@ describe("resident delivery lease", () => {
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingAdvice: 1 });
-    expect(server.stats().retainedBytes).toBe(server.accountingMetrics().operationalNoticeBytes);
+    expect(server.stats().retainedBytes).toBe((await Effect.runPromise(server.accountingMetrics())).operationalNoticeBytes);
   });
 
   it("bounds 16-path/64-unit preparation and accounts accepted units exactly", async () => {
@@ -1814,13 +1814,13 @@ describe("resident delivery lease", () => {
     expect(stats).toMatchObject({ pendingAdvice: metadata.length });
     expect(stats.rejectedCapacity).toBeGreaterThan(0);
     expect(stats.retainedBytes).toBe(metadata.reduce((total, item) => total + item.retainedBytes, 0) +
-      server.accountingMetrics().successfulCacheBytes);
+      (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(metadata.length);
     expect(metadata.map((item) => item.sequence)).toEqual(
       [...metadata.map((item) => item.sequence)].sort((left, right) => left - right),
     );
-    expect(server.accountingMetrics()).toMatchObject({ maxMaterializedPreparedUnits: 64 });
-    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ maxMaterializedPreparedUnits: 64 });
+    expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
   });
 
   it("reserves large valid outcomes before evaluation and rejects unreservable outcomes without a call", async () => {
@@ -1878,19 +1878,19 @@ describe("resident delivery lease", () => {
       retained.dispatch,
     );
     expect(delivered).toMatchObject({ status: "empty" });
-    expect(retained.server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
+    expect((await Effect.runPromise(retained.server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0);
     expect(retained.server.stats()).toMatchObject({ pendingAdvice: 2 });
 
     const rejected = await run(2 * 1024 * 1024);
     expect(rejected.server.stats().rejectedCapacity).toBeGreaterThan(0);
     expect(existsSync(rejected.capturePath)).toBe(false);
-    expect(rejected.server.accountingMetrics().maxMaterializedPreparedUnits).toBeLessThanOrEqual(1);
-    expect(rejected.server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    expect((await Effect.runPromise(rejected.server.accountingMetrics())).maxMaterializedPreparedUnits).toBeLessThanOrEqual(1);
+    expect((await Effect.runPromise(rejected.server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
 
     const transportRejected = await run(300 * 1024);
     expect(transportRejected.server.stats()).toMatchObject({ pendingAdvice: 1, rejectedCapacity: 1 });
     expect(transportRejected.server.stats().retainedBytes).toBe(
-      transportRejected.server.accountingMetrics().operationalNoticeBytes,
+      (await Effect.runPromise(transportRejected.server.accountingMetrics())).operationalNoticeBytes,
     );
     expect(existsSync(transportRejected.capturePath)).toBe(false);
   });
@@ -1949,7 +1949,7 @@ describe("resident delivery lease", () => {
     await expect(collectFirst).resolves.toMatchObject({ status: "empty" });
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   });
 
@@ -1975,8 +1975,8 @@ describe("resident delivery lease", () => {
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
     expect(server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
-    expect(server.accountingMetrics().maxMaterializedPreparedUnits).toBe(0);
-    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    expect((await Effect.runPromise(server.accountingMetrics())).maxMaterializedPreparedUnits).toBe(0);
+    expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
     expect(existsSync(capturePath)).toBe(false);
   });
 
@@ -2077,11 +2077,11 @@ describe("resident delivery lease", () => {
     expect(new Set(metadata.map(({ generation }) => generation))).toEqual(new Set([1]));
     expect(new Set(metadata.flatMap(({ evaluationIdentities }) => evaluationIdentities)).size).toBe(1);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(1);
-    expect(server.accountingMetrics().pendingEvaluations).toBe(0);
+    expect((await Effect.runPromise(server.accountingMetrics())).pendingEvaluations).toBe(0);
     expect(server.stats().retainedBytes).toBe(
-      (metadata[0]?.retainedBytes ?? 0) + server.accountingMetrics().successfulCacheBytes,
+      (metadata[0]?.retainedBytes ?? 0) + (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     );
-    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
     await expect(server.collect(
       root,
       advicee({ turnId: "after-storm", toolUseId: "after-storm" }),
@@ -2192,7 +2192,7 @@ describe("resident delivery lease", () => {
     expect(server.stats()).toMatchObject({
       pendingAdvice: 1,
       currentWork: 1,
-      retainedBytes: replacementBytes + server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: replacementBytes + (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
     const delivered = await server.collect(
       root,
@@ -2206,7 +2206,7 @@ describe("resident delivery lease", () => {
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
       currentWork: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   });
 
@@ -2260,7 +2260,7 @@ describe("resident delivery lease", () => {
     };
 
     await admitSource("type OrderCount = boolean\n", "seed-B-clear", clearDispatch);
-    expect(server.accountingMetrics().successfulCacheEntries).toBe(1);
+    expect((await Effect.runPromise(server.accountingMetrics())).successfulCacheEntries).toBe(1);
     await admitSource("type OrderCount = number\n", "A", finding);
     expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(1);
 
@@ -2392,7 +2392,7 @@ describe("resident delivery lease", () => {
     )).resolves.toMatchObject({ status: "empty" });
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   });
 
@@ -2535,7 +2535,7 @@ describe("resident delivery lease", () => {
     }
     expect(readFileSync(clearCalls, "utf8").trim().split("\n")).toHaveLength(1);
     expect(server.stats().pendingAdvice).toBe(0);
-    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 1 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ successfulCacheEntries: 1 });
 
     const malformedCalls = join(root, "malformed-calls");
     const malformedDispatch: ResidentDispatchContext = {
@@ -2558,7 +2558,7 @@ describe("resident delivery lease", () => {
       await server.whenIdle();
     }
     expect(readFileSync(malformedCalls, "utf8").trim().split("\n")).toHaveLength(2);
-    expect(server.accountingMetrics().successfulCacheEntries).toBe(1);
+    expect((await Effect.runPromise(server.accountingMetrics())).successfulCacheEntries).toBe(1);
   });
 
   it("restores cached A after A to B to A without retaining delivery history", async () => {
@@ -2602,7 +2602,7 @@ describe("resident delivery lease", () => {
     expect(restored).toHaveLength(1);
     expect(restored[0]?.evaluationIdentities).toEqual([firstAIdentity]);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(2);
-    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 2, pendingEvaluations: 0 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ successfulCacheEntries: 2, pendingEvaluations: 0 });
   });
 
   it("bounds successful reuse by entry and byte limits and reevaluates evicted input", async () => {
@@ -2626,8 +2626,8 @@ describe("resident delivery lease", () => {
       await server.whenIdle();
     };
     for (let index = 0; index < 10; index += 1) await admit(index, `unique-${index}`);
-    expect(server.accountingMetrics().successfulCacheEntries).toBeLessThanOrEqual(8);
-    expect(server.accountingMetrics().successfulCacheBytes).toBeLessThanOrEqual(128 * 1024);
+    expect((await Effect.runPromise(server.accountingMetrics())).successfulCacheEntries).toBeLessThanOrEqual(8);
+    expect((await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes).toBeLessThanOrEqual(128 * 1024);
     await admit(0, "restored-evicted");
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(11);
   });
@@ -2690,11 +2690,11 @@ describe("resident delivery lease", () => {
     expect(server.stats().rejectedCapacity).toBe(0);
     expect(server.stats().retainedBytes).toBe(
       metadata.reduce((total, item) => total + item.retainedBytes, 0) +
-        server.accountingMetrics().successfulCacheBytes +
-        server.accountingMetrics().operationalNoticeBytes,
+        (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes +
+        (await Effect.runPromise(server.accountingMetrics())).operationalNoticeBytes,
     );
     expect(server.stats().retainedBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
-    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(metadata.length);
 
     expect(await server.collect(
@@ -2738,7 +2738,7 @@ describe("resident bounded advice batches", () => {
     expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   }, 10_000);
 
@@ -3134,13 +3134,13 @@ describe("resident bounded advice batches", () => {
     expect(at.collected.status).toBe("empty");
     expect(at.server.stats()).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: at.server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(at.server.accountingMetrics())).successfulCacheBytes,
     });
     const after = await run(PENDING_ADVICE_EXPIRY_MS + 1);
     expect(after.collected.status).toBe("empty");
     expect(after.server.stats()).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: after.server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(after.server.accountingMetrics())).successfulCacheBytes,
     });
   });
 });

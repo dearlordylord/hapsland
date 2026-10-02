@@ -62,7 +62,10 @@ try {
       await server.whenIdle();
       if (measured) {
         saturations.push(performance.now() - saturationStarted);
-        peakRetainedBytes = Math.max(peakRetainedBytes, server.accountingMetrics().peakLedgerBytes);
+        // The fixed class-based baseline exposes synchronous diagnostics.
+        const metrics = runtimeModule.makeResidentRuntime === undefined
+          ? server.accountingMetrics() : await Effect.runPromise(server.accountingMetrics());
+        peakRetainedBytes = Math.max(peakRetainedBytes, metrics.peakLedgerBytes);
         maximumConcurrentDecisionEffects = Math.max(maximumConcurrentDecisionEffects, maximum);
       }
       const shutdownStarted = performance.now();
