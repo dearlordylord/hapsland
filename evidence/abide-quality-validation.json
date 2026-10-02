@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "validatedAt": "2026-10-02T17:54:38.395Z",
+  "stageADetection": "abide-quality/summary.json",
+  "correctedNative": "abide-quality-native/index.json",
+  "blindScores": "abide-quality-native/blind-scores.json",
+  "repairComparison": "abide-quality-native/repair-comparison.json",
+  "originalNativeVariant": "abide-quality/native-interruption.json",
+  "requests": {
+    "stageA": 44,
+    "discontinuedNative": 9,
+    "correctedNative": 24,
+    "total": 77
+  },
+  "checks": {
+    "frozenFixtureDigests": true,
+    "fixtureDigestEncoding": "SHA256 of compact JSON.stringify(parsed fixtures)",
+    "attemptAccounting": true,
+    "controlledOfflineCells": 72,
+    "correctedNativeSuccessfulSessions": 18,
+    "correctedNativeTypechecks": 18
+  },
+  "claim": "Selected synthetic pilot, not population superiority or causal advice adoption."
+}

@@ -1,0 +1,7 @@
+{
+  "at": 1790962244.1198618,
+  "reason": "Hapsland fixture omitted owned async background hook; detection stage valid, native matrix not accepted as production delivery comparison.",
+  "completedNativeSessions": 5,
+  "interruptedNativeSessions": 1,
+  "replacementScope": "All six native triples with corrected hook configuration; no selective outcome reruns."
+}

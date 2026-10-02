@@ -1,0 +1,33 @@
+{
+  "stage": "B",
+  "taskId": "repair-4-clean-payment",
+  "candidate": "baseline",
+  "ordinal": 3,
+  "blindId": "3144463c1a37",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 160234,
+  "usage": {
+    "input_tokens": 152877,
+    "cached_input_tokens": 137728,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 4791,
+    "reasoning_output_tokens": 3421
+  },
+  "uncachedPlusOutputTokens": 19940,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "hookEvents": [],
+  "requests": [],
+  "agentMentionsRule": [],
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "3d2f0e1695bd787bb9f298d556192ba7614f67e8fa02c5686c82bd1e2e07aefa",
+  "changed": true
+}
