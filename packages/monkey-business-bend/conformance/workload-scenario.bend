@@ -278,7 +278,7 @@ def edited(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
 def permit_loop(fuel: Nat, state_queue: Types.State & Minimal.Queue, +duration: Nat) -> List<&2, List<&2, Nat>>:
   match fuel state_queue:
     case 0n _: [[98n]]
-    case 1n+rest (state, Minimal.Queue{+items, sequence, synced}):
+    case (1n+rest) (state, Minimal.Queue{+items, sequence, synced}):
       permit_taken(Engine.take(Minimal.sync(items, state, synced)), items, sequence, duration,
         pair => permit_loop(rest, pair, duration))
 
