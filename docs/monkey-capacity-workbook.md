@@ -576,3 +576,183 @@ ceilings and historical unknown-limit behavior remain checked. Logs:
 
 Astra's bounded rendered after-review confirmed the new local/resident labels fit
 and scope remains clear, with no UX blocker.
+
+
+## Pre-edit permit alternatives investigation
+
+**Brief / status / authority:** Targeted advisory architecture pass, 2026-10-02,
+applying the sibling research methodology. Question: can Hapsland remove the
+pre-edit hook while improving edit coverage and keeping bounded, current,
+agent-addressed advice? Existing baseline is the installed synchronous pre-edit
+permit plus post-edit intake. Scope is Claude Code and Codex CLI, ordinary and
+concurrent edits, Stop, delayed/lost hooks, restart, and stale source. This updates
+only admission alternatives, not the ticket investigation above. No production
+change or runtime conformance experiment was performed. The owner must decide
+whether strict edit-start freshness remains a product requirement before an
+alternative becomes an accepted contract; Astra review follows this investigation.
+Discovery stopped after official hook documentation, Codex payload source, and
+local contract/adapter inspection covered the candidate classes below; this is
+not an ecosystem survey.
+
+### Evidence ledger
+
+| ID | Proposition and source | Class / verification | Limit |
+| --- | --- | --- | --- |
+| PE1 | [Accepted target](advicing-target-contract.md), lines 86–141, requires only a provably fresh edit to reopen after closure; pre-edit issuance captures identity, lifetime, deadline and closure fence. [Composed adapter](../src/resident/composed-delivery.ts), lines 220–255, supplies start bounds and checks completed IDs. | DOC / DOCUMENTED; SRC / SOURCE-INSPECTED | Establishes current policy and mechanism, not that every runtime failure preserves it. |
+| PE2 | [Claude reference](https://code.claude.com/docs/en/hooks#posttooluse), accessed 2026-10-02, supplies post-success tool identity/input/result and optional duration; common fields include session, prompt and subagent identity. Async handlers do not delay execution and noninteractive teardown can kill them. | DOC / DOCUMENTED | No documented mutation timestamp, ordered receipt sequence, restart epoch or durable replay. Duration is not an absolute time. |
+| PE3 | [Codex reference](https://learn.chatgpt.com/docs/hooks#posttooluse), accessed 2026-10-02, supplies session/turn/tool identity. [Background hooks](https://learn.chatgpt.com/docs/hooks#run-hooks-in-the-background) may finish out of order, queue beyond eight concurrent handlers, and are canceled at session end. | DOC / DOCUMENTED | No documented Stop barrier that acknowledges all asynchronous intake, or replay after cancellation. |
+| PE4 | [Codex post payload source](https://github.com/openai/codex/blob/7135b303d918fc80fecb8053a92173bd211d2c0a/codex-rs/hooks/src/events/post_tool_use.rs#L138), lines 138–154, serializes session/turn/tool identity but no event timestamp. | SRC / SOURCE-INSPECTED | Upstream commit inspected; not a conformance claim for Hapsland's supported installed release. |
+| PE5 | [Current installation](../src/onboarding/claude-installation.ts), lines 140–149, and [Codex installation](../src/onboarding/codex-installation.ts), lines 147–162, install synchronous pre-edit and separate background delivery. [Glossary](../CONTEXT.md), lines 32–49, distinguishes attributed exact snapshots from unattributed reconciliation, whose baseline is lost on restart. | SRC / SOURCE-INSPECTED; DOC / DOCUMENTED | A receipt or file scan alone cannot attribute a later, different snapshot to its caller. |
+
+PE2–PE4 support an **inference**, not an observed failure: asynchronous post-hook
+arrival cannot prove filesystem edit order relative to Stop. Handler startup or
+resident arrival is later than the edit and may be delayed. Native prompt/turn
+IDs group events; they are not Hapsland closure fences, especially when quiet
+closure occurs within one native turn. An unseen old tool ID and a genuine new
+tool ID can both first arrive after closure. No inspected source distinguishes
+those cases with a mutation-time proof. Conversely, lack of such proof does not
+make reviewing a correctly attributed current snapshot inherently unsafe: that
+is a different product policy from PE1.
+
+Supported-profile separation: the local [supported profile](direct-event-v1-supported-profile.md), lines 18–26 and 171–175, records Codex CLI 0.155.1 and Claude 2.1.218 identity evidence. PE2–PE4 concern documentation accessed today and a pinned upstream source commit; they do not extend that released profile or establish its native ordering. No new host run was performed.
+
+### Candidate comparison and intended use
+
+| Candidate / classification | What it provides | What remains or changes |
+| --- | --- | --- |
+| Post-only identity dedupe + resident-arrival round — **BORROW**, if arrival defines the opportunity | Removes missing-permit rejection; bounded identity history prevents known repeats; asynchronous review stays resident-owned. | An unseen delayed old post can create a new opportunity after Stop or restart. This intentionally changes strict edit-start freshness; arrival must not be described as native order. Dedupe eviction and restart remain explicit coverage limits. |
+| Native provenance/time/order — **REJECT** as the present replacement proof | Session/agent/tool IDs support attribution and dedupe; turn/prompt IDs are useful provenance. | No documented total sequence, mutation timestamp or durable replay here. A future runtime stream could qualify after conformance tests; transcript or transport-emission timestamps need their own semantics, not presumed mutation time. |
+| Short synchronous post receipt before spawning review — **BORROW**, preferred intake prototype | A bounded admission-only acknowledgement freezes advicee, root, tool identity and supplied edit evidence before ordinary tool-loop continuation. Capture and semantic preparation can follow in the resident; their exact snapshot must then pass attribution checks. Review continues independently. | Keeps a small foreground IPC cost; synchronous exact capture is an optional stronger variant, not assumed necessary. Runtime-native `async:true` intake cannot promise the acknowledgement. Timeouts, killed handlers and concurrent events remain incomplete coverage. Receipt after edit is not proof that the edit began after the last closure. |
+| Separate observed snapshots from round reopening — **BORROW**, preferred policy alternative | Retain closed-round finality while recording a valid late/current observation for a separately defined review opportunity; never attach callbacks to whichever round is now active. | Requires deciding when that opportunity may deliver (for example next prompt/background) and whether it may request continuation. It cannot silently reuse an expired Stop token or reopen/reset the former continuation budget. |
+| Stop/start reconciliation — **BORROW** as supplemental recovery | Finds current eligible changes missed by hooks; can retry a retained attributed receipt whose exact snapshot still matches. | Unknown-origin changes remain unattributed. Two agents sharing a file defeat assigning all discovered content to the latest Stop caller. Restart loses the current in-memory baseline; absent history means unknown, not unchanged. |
+| Bounded durable receipt + epoch — **BORROW** only if crash recovery is required | Can retain acknowledged source-free receipt identities/fingerprints, processing state and originating epoch across resident restart, with explicit retention/cleanup. | Adds persistence and recovery policy. It preserves already recorded evidence, not a hook that never recorded anything. An epoch stamped only when a delayed post arrives cannot identify its original native edit epoch. Retaining fingerprints does not preserve source or establish later-file attribution. |
+
+### Worst cases and decision boundary
+
+- **n edits then Stop:** synchronous post acknowledgement gives Stop visibility
+  of successful receipts in the ordinary serial loop; Stop waits only within its
+  bounded deadline. Fully async post handlers can still be queued/unrecorded.
+  Reconciliation improves discovery but cannot invent attribution for missing
+  receipts. A failed Jev call remains a bounded unavailable review, not a lost edit
+  receipt or fabricated clear result.
+- **Old post after Stop/new round/restart:** known IDs can be ignored; an unseen
+  old ID is ambiguous. Either preserve strict freshness with stronger provenance,
+  accept a new arrival-based opportunity, or observe it without reopening. Store
+  the receipt's chosen round/opportunity/lifetime once; callbacks never rebind.
+- **Genuine edit after Stop:** rejecting every post while closed loses legitimate
+  work. Arrival-based admission accepts it but also the indistinguishable delayed
+  case; a “closed means never admit” substitute is inadequate.
+- **Concurrent hooks / two agents / stale source:** atomically dedupe and bind
+  each receipt to its own advicee. Match its retained reported edit evidence to the exact
+  subsequently captured snapshot; later source/revision checks fence stale results. If another
+  agent changed the file before capture, a path or old fingerprint cannot confer
+  attribution on the new content. Shared leases still prevent duplicate delivery.
+- **Lost hook / restart:** receipts cannot recover unrecorded events. Reconciliation
+  may find a change without an advicee, and cannot promise exactly-once historical
+  review. Durable receipts improve acknowledged-event recovery only; stale or
+  missing snapshots must be reported as unknown/incomplete.
+
+**Recommendation / handoff:** Take two decisions to specification and prototype:
+(1) whether strict edit-start freshness after closure is still wanted, versus
+arrival-based opportunities or observation decoupled from reopening (PE1–PE4);
+(2) whether a short synchronous post receipt is acceptable to cover normal
+n-edits→Stop intake without a pre-hook (PE2–PE5). Prefer receipt-first resident
+review plus explicit late-observation policy; add checkpoint recovery, and add
+durable receipts only if acknowledged-event crash recovery is a requirement.
+This improves coverage without claiming native event order. Keep delivery
+credentials, source currency, leases, bounded Stop and continuation ownership.
+
+The strongest case against this recommendation is a requirement that *no unseen
+pre-closure edit can ever start post-closure work*, together with no synchronous
+post cost: the inspected hook payloads cannot satisfy both. The existing pre-hook
+provides stronger fencing under its supported ordering assumptions, although
+missing/expired permits deliberately lose review coverage. The alternative is a
+product tradeoff, not proof that either definition of a round is necessary.
+
+**Unexecuted acceptance checks:** A prototype must retain traces for n edits then
+Stop, delayed post crossing closure and a new round, delayed post after restart,
+concurrent agents editing the same file, duplicate IDs before/after retention,
+genuine fresh edit after Stop, lost/killed/timed-out hook, stale source, receipt
+acknowledgement followed by crash, and Jev failure. Verify ordinary synchronous
+post→Stop ordering on each supported runtime release, queued async intake and
+headless teardown; test every trace against the chosen policy. If real hosts
+provide stronger ordered provenance, revisit the rejected proof candidate.
+
+### Astra medium assessment after the investigation
+
+**Status / authority:** Read-only architecture and product advice following the
+research above, 2026-10-02. This is not owner acceptance, a replacement contract,
+or native runtime validation. No production behavior changed. The final ranking
+below includes the reactivation challenge: treating all late posts as review-only
+also removes Stop coverage from indistinguishable genuine later edits.
+
+**First choice, conditional on a verified reset boundary:** remove the pre-edit
+hook, acknowledge a short synchronous **post-edit receipt**, and perform capture
+and review asynchronously in the resident. Let receipt arrival define admission
+into the current/new round, explicitly accepting that an unseen delayed post
+can enter that round. Arrival is not proof of native edit order or true
+edit-time origin. Freeze the chosen admission round/lifetime on existing
+observation/job/advice records; callbacks never rebind to whichever round is
+active later. No separate “opportunity” entity is needed.
+
+The receipt should perform bounded identity validation, deduplication and
+admission bookkeeping, without waiting for semantic preparation or Jev. Exact
+captured source must still match the reported edit evidence and intended agent;
+an acknowledgement of metadata does not attribute a later, different file
+snapshot. Recheck source currency and delivery authority before output.
+Ordinary serial post-to-Stop visibility is the reason to prefer this intake
+over fully asynchronous handlers, subject to supported-host conformance checks;
+it is not a universal ordering guarantee.
+
+**Budget condition:** receipt-driven reopening must not replenish Stop
+allowance. The concrete candidate is at most four Stop continuations per
+verified new user-request boundary for an advicee, rather than a new four each
+time a post creates a round. Store the counter and reset binding on existing
+advicee state. A post, quiet closure, callback, poll, or automatic tool/model
+turn cannot reset it. Restart must not silently replenish the same interaction's
+allowance either. This deliberately changes the current four-per-round contract;
+it must not be described as preserving that contract unchanged.
+
+The research has not established the required user-request reset signal on both
+supported hosts. Native prompt/turn fields alone are insufficient until their
+semantics are verified. First prototype the boundary and restart cases; if a
+trusted reset cannot be established, do not implement an implicit reset or claim
+complete Stop coverage. The recommendation is conditional on that result, not
+an assertion that the missing provenance already exists.
+
+**Why this policy is reasonable:** an old post arriving after Stop is not
+inherently harmful if it identifies an eligible current snapshot and the right
+agent. The concrete harms are budget replenishment, unexpectedly prolonging
+finishing, wrong-agent delivery, and reviewing superseded content as current.
+Arrival-defined admission deliberately tolerates late review while separately
+bounding its ability to prolong Stop. It cannot distinguish genuine new edits
+from unseen delayed ones, and does not pretend otherwise. Strict edit-start
+freshness is a product choice, not a necessary condition for all useful feedback.
+
+**Second choice, with an explicit coverage cost:** retain closed-round finality
+and admit unbound late work only for review without Stop authority. Do not guess
+its originating round from today's active round. Such advice needs a valid
+addressed delivery point or must expire; “background” does not authorize an
+expired output token. This also denies fresh Stop allowance to genuine later
+edits until some trusted reactivation boundary exists. It adds a review-only
+state to the current round-owned model, so is not automatically simpler than
+arrival-defined admission. Prefer it only when that coverage loss is acceptable.
+Strict edit-start freshness with the pre-hook or stronger verified provenance
+remains the choice when distinguishing old from fresh edits is itself required.
+
+Fully asynchronous post intake is lower-ranked because queued/killed handlers
+can miss the immediate Stop window; use it only for explicitly best-effort
+feedback. Stop/start reconciliation supplements discovery and retry but cannot
+attribute shared-root changes to the latest Stop caller. Unknown-origin changes
+stay unaddressed. Durable receipts are warranted only if recovery of acknowledged
+work is required; they cannot recover never-recorded hooks. This is distinct
+from whatever minimal durable reset/budget evidence the first choice needs to
+avoid replenishing allowance on restart.
+
+**Exact owner decision:** is it acceptable to review delayed posts according to
+arrival, remove the pre-hook, and bound Stop by a verified user-request allowance
+instead of strict edit-start rounds? If yes, verify the reset signal and budget
+restart behavior before specifying or implementing that candidate. If not,
+choose explicitly between review-only late feedback and retaining the stronger
+freshness fence. Do not design a new opportunity lifecycle to postpone this
+policy choice.
