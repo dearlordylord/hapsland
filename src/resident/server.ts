@@ -3146,9 +3146,9 @@ export class ResidentServer {
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
-    const sharedCollect = request.operation === "collect";
+    const validateAdviceCredentials = request.operation === "collect";
     let invalidCredential = false;
-    if (sharedCollect) for (const advice of this.#advice) {
+    if (validateAdviceCredentials) for (const advice of this.#advice) {
       if (advice.delivery?.token !== response.token || invalidCredential) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
       const observed = this.#ledger.transition({ kind: "deliveryCredentialObserveCheck",
@@ -3158,7 +3158,7 @@ export class ResidentServer {
       invalidCredential = observed.commands[0]?.kind === "deliveryCredentialInvalid";
     }
     const credentialGate = this.#ledger.transition({ kind: "deliveryFinalCredentialCheck",
-      sharedCollect, invalidSeen: invalidCredential });
+      sharedCollect: validateAdviceCredentials, invalidSeen: invalidCredential });
     if (credentialGate.rejection !== undefined || credentialGate.commands.length !== 1) throw new Error("canonical final credential gate refused");
     if (credentialGate.commands[0]?.kind !== "deliveryBatchProceed") {
       this.releaseComposedSubmission(response.token);
