@@ -310,19 +310,16 @@ p { line-height: 1.5; }
 .post-edit-timing summary { cursor:pointer; font-size:1.25rem; font-weight:700; color:#263c53; }
 .post-edit-timing p { color:#536b86; font-size:.88rem; line-height:1.5; }
 .post-edit-timing-scope { font-weight:600; }
-.post-edit-trace { border-top:1px solid #dce5ef; margin-top:20px; padding-top:12px; }
-.post-edit-trace h3 { margin:4px 0; font-size:1rem; }
 .post-edit-trace-scroll { overflow-x:auto; border:1px solid #dce5ef; border-radius:8px; background:#fafcfe; }
 .post-edit-trace-scroll svg { display:block; width:100%; min-width:900px; }
 @media(max-width:600px) { .post-edit-timing { padding:20px 16px; } }
 
-.current-hook-timing h2, .post-edit-proposals h2 { font-size:1.1rem; margin:24px 0 10px; }
+.current-hook-timing h2 { font-size:1.1rem; margin:24px 0 10px; }
 .current-hook-trace { border-top:1px solid #dce5ef; margin-top:20px; padding-top:12px; }
 .current-hook-trace h3 { margin:4px 0; font-size:1rem; }
 .current-stop-paths { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
 .current-stop-paths > div { border:1px solid #dce5ef; border-radius:8px; padding:14px; }
 .current-stop-paths h3 { font-size:.95rem; margin:0; }
-.post-edit-proposals { border-top:3px solid #dce5ef; margin-top:28px; }
 @media(max-width:600px) { .current-stop-paths { grid-template-columns:1fr; } }
 .product-brand { display: flex; align-items: center; gap: 10px; }
 .product-brand img { object-fit: contain; }

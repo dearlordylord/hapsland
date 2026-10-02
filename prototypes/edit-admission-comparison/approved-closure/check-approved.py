@@ -14,8 +14,8 @@ def run(file,name,expected=0,verdict=False,env=None,needle=None):
 run(HERE/'PROOF.bend','closure-proof',verdict=True,needle='ALL PROOFS CHECK')
 run(HERE/'controls.bend','closure-rejected-close-controls',needle='ALL PROOFS CHECK')
 run(HERE/'PROOF.bend','closure-kernel-disabled',1,True,dict(os.environ,BENDTT='/usr/bin/false'),'mismatch')
-p=subprocess.run(['python3',str(BASE/'approved-receipt'/'check-approved.py')],capture_output=True,text=True)
-checks.append({'name':'prior-two-approved-slices-preserved','exit':p.returncode,'expected':0,'pass':p.returncode==0})
+p=subprocess.run(['python3',str(BASE/'approved'/'check-approved.py')],capture_output=True,text=True)
+checks.append({'name':'prior-current-validity-slice-preserved','exit':p.returncode,'expected':0,'pass':p.returncode==0})
 mirror=BASE/'.proof-mutants'/'dropped-closure'
 if mirror.exists():shutil.rmtree(mirror)
 proto=mirror/'prototypes'/'edit-admission-comparison'

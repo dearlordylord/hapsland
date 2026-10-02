@@ -24,18 +24,6 @@
     "pass": true
   },
   {
-    "name": "indistinguishable",
-    "expected_exit": 0,
-    "observed_exit": 0,
-    "pass": true
-  },
-  {
-    "name": "false-arrival-freshness",
-    "expected_exit": 1,
-    "observed_exit": 1,
-    "pass": true
-  },
-  {
     "name": "false-current-coverage",
     "expected_exit": 1,
     "observed_exit": 1,

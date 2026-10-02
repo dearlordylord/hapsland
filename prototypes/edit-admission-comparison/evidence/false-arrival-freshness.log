@@ -1,9 +1,0 @@
-SOME PROOFS FAIL
-Error:
-- expected : 2n
-- observed : 1n
-Location: false_freshness
-5 | def false_freshness() -> {C.count(C.run(W.old(),C.Receipt{},C.initial())) == 1n : Nat}:
-6>|   {==}
-  |   ^^^^
-7 |

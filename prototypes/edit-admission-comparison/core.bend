@@ -3,7 +3,6 @@ import ../../packages/agent-flow-bend/Admission.bend as P
 
 type Model is Data:
   Current{}
-  Receipt{}
 
 type TraceEvent is Data:
   Pre{partition: Nat, lifetime: Nat, tool: Nat, start: Nat, deadline: Nat, now: Nat}
@@ -95,20 +94,6 @@ def accepted(state: State, tool: Nat) -> State:
     case State{permit, done, n, r, a, budget}:
       State{permit, retain(1000n, tool <> done), (n + 1n : Nat), P.candidate_round(r, a), True{}, budget}
 
-def post_guard(state: State, tool: Nat, allowed: Bool) -> State:
-  match allowed:
-    case False{}: state
-    case True{}: accepted(state, tool)
-
-# A sees only receipt scope, resident lifetime, arrival time and retained IDs.
-# It receives no native start/completion facts or monitor freshness Boolean.
-def receipt_eligible(+state: State, partition: Nat, live: Nat, tool: Nat, now: Nat) -> Bool:
-  match state:
-    case State{+permit, done, _, _, _, _}:
-      Bool.and(Nat.is_eq(partition, owner(permit)),
-        Bool.and(Nat.is_eq(live, lifetime(permit)),
-          Bool.and(Nat.is_gt(now, fence(permit)), Bool.not(seen(tool, done)))))
-
 def current_consume(state: State, tool: Nat, result: P.AdmissionResult) -> State:
   match result:
     case P.Rejected{permit, _}: replace_permit(state, permit)
@@ -163,7 +148,6 @@ def post(model: Model, +state: State, +partition: Nat, +live: Nat, +tool: Nat, +
     case Current{}:
       +expired = expire_now(state, now)
       current_post(expired, partition, live, tool, now, seen(tool, completed(expired)))
-    case Receipt{}: post_guard(state, tool, receipt_eligible(state, partition, live, tool, now))
 
 def issue_guard(state: State, partition: Nat, live: Nat, tool: Nat, start: Nat, deadline: Nat, now: Nat, allowed: Bool) -> State:
   match allowed:
@@ -177,7 +161,6 @@ def pending(state: State) -> Nat:
 
 def pre(model: Model, +state: State, partition: Nat, live: Nat, +tool: Nat, +start: Nat, deadline: Nat, +now: Nat) -> State:
   match model:
-    case Receipt{}: state
     case Current{}:
       +expired = expire_now(state, now)
       issue_guard(expired, partition, live, tool, start, deadline, now,
@@ -199,17 +182,9 @@ def close_result(+state: State, result: P.AdmissionResult) -> State:
 def close(+state: State, at: Nat) -> State:
   close_result(state, P.step(get_permit(state), owner(get_permit(state)), lifetime(get_permit(state)), P.CloseRound{at}))
 
-# A's own observed fence must close even though it holds no production permit.
-def close_receipt(state: State, at: Nat) -> State:
-  match state:
-    case State{+permit, done, n, +r, _, budget}:
-      State{P.AdmissionState{owner(permit), lifetime(permit), r, False{}, at, 1n, Nil{}},
-        done, n, r, False{}, budget}
-
 def stop(model: Model, state: State, at: Nat) -> State:
   match model:
     case Current{}: close(state, at)
-    case Receipt{}: close_receipt(state, at)
 
 def restart_result(state: State, result: P.AdmissionResult) -> State:
   match result:

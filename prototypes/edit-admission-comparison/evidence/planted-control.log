@@ -3,7 +3,7 @@ Error:
 - expected : 0n
 - observed : 1n
 Location: planted_control
-4 | def planted_control() -> {C.count(C.post(C.Receipt{},C.initial(),1n,1n,9n,1n)) == 1n : Nat}:
-5>|   {==}
+3 | def planted_control() -> {C.count(C.post(C.Current{},C.pre(C.Current{},C.initial(),1n,1n,9n,1n,10n,1n),1n,1n,9n,2n)) == 1n : Nat}:
+4>|   {==}
   |   ^^^^
-6 |
+5 |

@@ -14,8 +14,6 @@ check(HERE/'core.bend','core')
 check(HERE/'spec.bend','spec')
 check(HERE/'LAWS.bend','open-laws',1,'TODOs')
 check(HERE/'traces.bend','traces',execute=True)
-check(OUT/'indistinguishable.bend','indistinguishable')
-check(OUT/'false-arrival-freshness.bend','false-arrival-freshness',1,'expected : 2n')
 check(OUT/'false-current-coverage.bend','false-current-coverage',1,'expected : 0n')
 # Positive baseline for the planted exact-admission control.
 source=(OUT/'planted-control.bend').read_text().replace('../mutant-reject-all.bend','../core.bend')

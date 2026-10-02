@@ -3,8 +3,8 @@
   "approval_time_utc": "not separately captured",
   "authority": "User approved first plain-language law only; parent delegated proof of this slice.",
   "approved_meaning": "Current accepts an edit only with a correlated valid PRE record started after the closure boundary; A does not claim that guarantee.",
-  "draft_source_sha256": "fcb63ddac623bb151f248e23fb4a30a65e0f90700309ae64fe480363fe04be5e",
-  "core_sha256": "2996a23cfc25f8a002a0b35464ee29e32e0e04f9dec9d5951abbbea2462316fa",
+  "draft_source_sha256": "580ca5467dfdae407759c6991af03fec74f147867baabfabcd4bb5169fecf703",
+  "core_sha256": "217f1e8ae8de2c6f054cd0bb5b5540ba7a20336298c36685190b0e1e89e55577",
   "copied_subset": [
     "current_fence_witness"
   ],
@@ -20,5 +20,10 @@
     "current_valid_pre"
   ],
   "copied_subset_sha256": "cbd04392f8aa3f04ff4693c8a0b3338f621ad4716cffc797fd3eb5d3138add4d",
-  "clarification": "The preserved subset file header says first family; approval covers only current_fence_witness and its necessary valid-PRE soundness, not exact_post or the entire family."
+  "clarification": "The preserved subset file header says first family; approval covers only current_fence_witness and its necessary valid-PRE soundness, not exact_post or the entire family.",
+  "cleanup": {
+    "previous_core_sha256": "2996a23cfc25f8a002a0b35464ee29e32e0e04f9dec9d5951abbbea2462316fa",
+    "reason": "Owner requested deletion of rejected Receipt/A experiments; Current branch expressions and approved law/proof statements unchanged.",
+    "previous_draft_source_sha256": "fcb63ddac623bb151f248e23fb4a30a65e0f90700309ae64fe480363fe04be5e"
+  }
 }

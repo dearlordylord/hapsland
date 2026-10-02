@@ -26,7 +26,7 @@ for m in re.finditer(r'^law (\w+):\n(.*?)(?=^law |\Z)',text,re.M|re.S):
 instances=[]
 for name,binders,expr in laws:
   for hi,h in enumerate(histories):
-    for model in ('C.Current{}','C.Receipt{}'):
+    for model in ('C.Current{}',):
       for j in range(12):
         # Around premises: retained/new tools, exact/expired deadlines, correct/wrong scopes/lifetimes.
         vals={'history':h,'model':model,'state':f'C.run({h},{model},C.initial())',
@@ -50,17 +50,16 @@ for start in range(0,len(instances),40):
   report['batches'].append({'batch':start//40,'exit':p.returncode})
   for name,_ in rows:report['laws'][name]=report['laws'].get(name,0)+1
   if p.returncode: print("\n".join(line.rstrip() for line in (p.stdout+p.stderr).splitlines())+"\n");break
-# Control mutates receipt eligibility itself; must compile, then violate L1 exactness.
-mutant=(HERE/'core.bend').read_text().replace('def receipt_eligible(+state: State, partition: Nat, live: Nat, tool: Nat, now: Nat) -> Bool:',
- 'def receipt_eligible(+state: State, partition: Nat, live: Nat, tool: Nat, now: Nat) -> Bool:')
-a=mutant.index('  match state:',mutant.index('def receipt_eligible('));b=mutant.index('\ndef current_consume',a)
-mutant=mutant[:a]+'  False{}\n'+mutant[b:]
-# Mutant sits beside core so production relative import still resolves.
+# Compiling reject-all Current POST control; valid PRE is retained.
+mutant=(HERE/'core.bend').read_text()
+old='current_post(expired, partition, live, tool, now, seen(tool, completed(expired)))'
+assert mutant.count(old)==1
+mutant=mutant.replace(old,'expired')
 (HERE/'mutant-reject-all.bend').write_text(mutant)
 p=subprocess.run([str(HERE/'bend-check'),str(HERE/'mutant-reject-all.bend'),'--check-only'],capture_output=True,text=True)
 report['mutant_compile_exit']=p.returncode
-control='import Base\nimport ../mutant-reject-all.bend as C\nimport ../spec.bend as S\n'
-control+='def planted_control() -> {C.count(C.post(C.Receipt{},C.initial(),1n,1n,9n,1n)) == 1n : Nat}:\n  {==}\n'
+control='import Base\nimport ../mutant-reject-all.bend as C\n'
+control+='def planted_control() -> {C.count(C.post(C.Current{},C.pre(C.Current{},C.initial(),1n,1n,9n,1n,10n,1n),1n,1n,9n,2n)) == 1n : Nat}:\n  {==}\n'
 (OUT/'planted-control.bend').write_text(control)
 p=subprocess.run([str(HERE/'bend-check'),str(OUT/'planted-control.bend'),'--check-only'],capture_output=True,text=True)
 (OUT/'planted-control.log').write_text("\n".join(line.rstrip() for line in (p.stdout+p.stderr).splitlines())+"\n");report['planted_control_exit']=p.returncode

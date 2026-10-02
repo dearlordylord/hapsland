@@ -41,10 +41,6 @@ def eligible(model: C.Model, +state: C.State, partition: Nat, live: Nat, tool: N
   match model:
     case C.Current{}:
       current_found(find_tool(tool, permits(C.get_permit(state))), state, partition, live, now)
-    case C.Receipt{}:
-      Bool.and(Nat.is_eq(partition, C.owner(C.get_permit(state))),
-        Bool.and(Nat.is_eq(live, C.lifetime(C.get_permit(state))),
-          Bool.and(Nat.is_gt(now, C.fence(C.get_permit(state))), Bool.not(C.seen(tool, C.completed(state))))))
 
 def increment(allowed: Bool) -> Nat:
   match allowed:

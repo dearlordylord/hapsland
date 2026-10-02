@@ -65,7 +65,7 @@ law retention_bound:
   for tool: Nat
   {Nat.is_le(List.length(&2, Nat, C.completed(C.accepted(state, tool))), 1000n) == True{} : Bool}
 
-# L5 Hidden native history cannot give either reducer an oracle freshness fact.
+# L5 Hidden native history cannot give the Current reducer an oracle freshness fact.
 law native_erasure:
   for +state: C.State
   for +model: C.Model

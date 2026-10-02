@@ -15,7 +15,7 @@ run(HERE/'PROOF.bend','reopen-proof',verdict=True,needle='ALL PROOFS CHECK')
 run(HERE/'controls.bend','reopen-excluded-boundary-controls',needle='ALL PROOFS CHECK')
 run(HERE/'PROOF.bend','reopen-kernel-disabled',1,True,dict(os.environ,BENDTT='/usr/bin/false'),'mismatch')
 p=subprocess.run(['python3',str(BASE/'approved-closure'/'check-approved.py')],capture_output=True,text=True)
-checks.append({'name':'prior-three-approved-slices-preserved','exit':p.returncode,'expected':0,'pass':p.returncode==0})
+checks.append({'name':'prior-two-current-slices-preserved','exit':p.returncode,'expected':0,'pass':p.returncode==0})
 mirror=BASE/'.proof-mutants'/'reject-reopening-post'
 if mirror.exists():shutil.rmtree(mirror)
 proto=mirror/'prototypes'/'edit-admission-comparison'
