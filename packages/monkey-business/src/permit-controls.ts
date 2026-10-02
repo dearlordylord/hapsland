@@ -48,10 +48,10 @@ const outcomes = { success: "Successful", failure: "Failed", duplicate: "Duplica
 /** Capture is immutable. Changing a profile cannot change previously issued PRE facts. */
 export const encodePermitCapture = (value: unknown) => {
   const capture = readCapture(value);
-  return { $: "PermitScenario.Capture", partition: capture.partition, lifetime: capture.lifetime,
+  return Object.freeze({ $: "PermitScenario.Capture", partition: capture.partition, lifetime: capture.lifetime,
     tool: capture.tool, started: capture.started, deadline: capture.deadline,
-    post_delay: capture.postDelay, outcome: { $: `PermitScenario.${outcomes[capture.outcome]}` },
-    advicee_limit: capture.limits.perAdvicee, resident_limit: capture.limits.resident };
+    post_delay: capture.postDelay, outcome: Object.freeze({ $: `PermitScenario.${outcomes[capture.outcome]}` }),
+    advicee_limit: capture.limits.perAdvicee, resident_limit: capture.limits.resident });
 };
 const FactSchema = Schema.Struct({
   $: Schema.Literal("PermitScenario.Fact"),

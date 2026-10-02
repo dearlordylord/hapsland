@@ -15,6 +15,8 @@ it("captures PRE profile and rejects unknown or overflowing fields", () => {
   const limits = { perAdvicee: 16, resident: 64 };
   const input = { partition: 1, lifetime: 2, tool: 3, started: 4, deadline: 14, postDelay: 10, outcome: "success", limits };
   const captured = encodePermitCapture(input);
+  expect(Object.isFrozen(captured)).toBe(true);
+  expect(Object.isFrozen(captured.outcome)).toBe(true);
   limits.perAdvicee = 1;
   expect(captured).toMatchObject({ started: 4, deadline: 14, post_delay: 10, advicee_limit: 16, resident_limit: 64 });
   expect(() => encodePermitCapture({ ...input, started: 2 ** 48 - 1, deadline: 2 ** 48 - 1 })).toThrow(TypeError);
