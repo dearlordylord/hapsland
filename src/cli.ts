@@ -14,6 +14,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { execFileClosedStdin } from "./onboarding/host-process.ts";
 import { askConfirmation } from "./onboarding/confirmation.ts";
 import { fileURLToPath } from "node:url";
 import { discoverWorkingTreeRoot, rootRelativePath } from "./repository/root.ts";
@@ -935,10 +936,10 @@ const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
   const result = yield* logoutCredential();
   let environmentName: string = DEFAULT_CREDENTIAL_ENV_VAR;
   try {
-    const repository = spawnSync("git", ["rev-parse", "--show-toplevel"], {
-      cwd: process.cwd(), encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 1_000,
+    const repository = yield* execFileClosedStdin("git", ["rev-parse", "--show-toplevel"], {
+      cwd: process.cwd(), env: process.env, timeout: 1_000, maxBuffer: 1024 * 1024,
     });
-    const root = repository.status === 0 ? repository.stdout.trim() : "";
+    const root = repository.succeeded ? repository.stdout.trim() : "";
     if (root.length > 0) {
       environmentName = yield* loadReviewSettings(root).pipe(
         Effect.map((settings) => settings.credentialEnvVar),
@@ -1089,24 +1090,30 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
       process.exitCode = 6;
       return;
     }
-    const doctor = spawnSync(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
-      cwd,
+    const doctor = yield* execFileClosedStdin(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
+      cwd, env: process.env, maxBuffer: 1024 * 1024,
       input: JSON.stringify({ version: 1, operation: "doctor", cwd, ...hostFields(host) }),
-      encoding: "utf8",
       timeout: 10_000,
     });
-    if (doctor.status !== 0) {
+    if (!doctor.succeeded) {
       process.stderr.write(`Readiness check could not complete. Run hapsland setup ${host} again or hapsland doctor ${host}.\n`);
       process.exitCode = 6;
       return;
     }
-    let diagnosis: { status: string; nextSteps?: Array<{ action: string }>; checks?: Array<{ stage: string; status: string }> };
-    try { diagnosis = JSON.parse(doctor.stdout) as typeof diagnosis; }
-    catch {
+    const diagnosisResult = yield* Effect.try(() => JSON.parse(doctor.stdout)).pipe(
+      Effect.flatMap(Schema.decodeUnknownEffect(Schema.Struct({
+        status: Schema.String,
+        nextSteps: Schema.optionalKey(Schema.Array(Schema.Struct({ action: Schema.String }))),
+        checks: Schema.optionalKey(Schema.Array(Schema.Struct({ stage: Schema.String, status: Schema.String }))),
+      }))),
+      Effect.result,
+    );
+    if (diagnosisResult._tag === "Failure") {
       process.stderr.write(`Readiness result was unreadable. Rerun hapsland setup ${host} or hapsland doctor ${host}.\n`);
       process.exitCode = 6;
       return;
     }
+    const diagnosis = diagnosisResult.success;
     process.stderr.write(`Offline readiness: ${diagnosis.status}.\n`);
     for (const next of diagnosis.nextSteps ?? []) process.stderr.write(`Next: ${next.action}.\n`);
     for (const check of diagnosis.checks ?? []) if (check.status !== "ready") process.stderr.write(`${check.stage}: ${check.status}.\n`);

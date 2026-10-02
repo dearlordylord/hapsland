@@ -3661,5 +3661,37 @@
       "src/cli.ts": "74bbae4a958e2230365dcb79c162dbc27242c12bed3eb24086467edfbce70ce1"
     },
     "limitations": "No actual interactive lifecycle approved mutation or native readline fault injection; remaining native doctor/dispatcher, installation Config, external Clock deadlines and final full migration gates incomplete."
+  },
+  "cliReadinessProcessPort": {
+    "status": "guided setup doctor and logout Git context use scoped native Effect",
+    "scope": "Guided doctor preserves 10000ms deadline and JSON stdin, 1MiB output bound; checked partial display schema replaces unsafe cast. Logout Git preserves 1000ms deadline and default override fallback. Native environment only child passthrough.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "node scripts/check-configuration-boundary.mjs",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/cli.test.ts src/credentials/cli-credential.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 1,
+        "tests": 8,
+        "note": "Second supplied path nonexistent and matched no file; no coverage claimed for it."
+      },
+      {
+        "command": "npx vitest run src/credentials/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 1,
+        "tests": 5,
+        "durationSeconds": 4.62
+      }
+    ],
+    "sourceSha256": {
+      "src/cli.ts": "7346f61f84214b735e6e19055c1d6efdc4c1b6dbd13a63e9783b960ce390c8d7"
+    },
+    "limitations": "No actual interactive guided setup run. Standalone human doctor and active-package dispatcher still use synchronous subprocesses. Installation Config/inspection, external Clock deadline and final complete gates remain incomplete."
   }
 }
