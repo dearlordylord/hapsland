@@ -23,6 +23,7 @@ it.each(["finding", "clear"] as const)("executes a complete %s path with checked
   run.advance({ untilTime: 6 });
   expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "retainFinding")).toEqual([]);
   expect(run.observations.filter(frame => frame.event.kind === "jevRequestSettled")).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 1, bytes: 5 });
   const graphs = run.observations.filter(frame => frame.preparation);
   expect(graphs.map(frame => frame.preparation!.command.kind)).toEqual([
     "none", "resolveEdge", "checkPath", "readSource", "none", "unitComplete",
@@ -42,6 +43,8 @@ it.each(["finding", "clear"] as const)("executes a complete %s path with checked
   expect(frames.filter(frame => frame.event.kind === "submissionTerminal")).toHaveLength(outcome === "finding" ? 1 : 0);
   expect(run.projection.delivery.submissions.batches.map(batch => batch.phase)).toEqual(outcome === "finding" ? ["submitted"] : []);
   expect(run.projection.dispatch.running).toEqual([]);
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.global).toEqual(outcome === "finding" ? { items: 1, bytes: 5 } : { items: 0, bytes: 0 });
   expect(run.projection.collection.leases).toEqual([]);
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
 });
@@ -180,7 +183,7 @@ it("runs original source-free minimal scenarios through the native shared driver
     return run.observations.map(frame => {
       if (frame.preparation) {
         const { command, after } = frame.preparation;
-        return [21, frame.time, graphCodes[command.kind] ?? 99, after.files, after.readBytes, after.treeBytes];
+        return [21, frame.time, graphCodes[command.kind] ?? 99, after.files, after.readBytes, after.treeBytes, frame.after.global.items, frame.after.global.bytes, frame.after.dispatch.running.length, frame.after.dispatch.requests.length, frame.after.collection.leases.length];
       }
       const event = frame.event as unknown as Record<string, unknown>;
       const facts = event.kind === "finalCandidateCheck"
@@ -192,7 +195,7 @@ it("runs original source-free minimal scenarios through the native shared driver
               : event.kind === "preparationCompleted" ? [(event.unitBytes as number[]).length, (event.unitBytes as number[])[0] ?? 0, 0, 0, 0, 0]
                 : event.kind === "submissionBegin" ? [Number(event.authorizeNow), (event.fingerprints as number[]).length, (event.fingerprints as number[])[0] ?? 0, (event.units as number[]).length, (event.units as number[])[0] ?? 0, 0]
                   : event.kind === "collectionLeaseCheck" ? [Number(event.expired), Number(event.stopCollector), Number(event.sameGroup), Number(event.reofferable), 0, 0] : [0, 0, 0, 0, 0, 0];
-      return [eventCodes[frame.event.kind] ?? 99, frame.time, ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(key => ((frame.event as unknown as Record<string, unknown>)[key] ?? (key === "operation" ? event.observation : key === "partition" ? event.group : key === "token" ? event.fingerprint : undefined) ?? 0)), ...facts, ...frame.commands.map(command => { if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`); return commandCodes[command.kind]!; })];
+      return [eventCodes[frame.event.kind] ?? 99, frame.time, ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(key => ((frame.event as unknown as Record<string, unknown>)[key] ?? (key === "operation" ? event.observation : key === "partition" ? event.group : key === "token" ? event.fingerprint : undefined) ?? 0)), ...facts, frame.after.global.items, frame.after.global.bytes, frame.after.dispatch.running.length, frame.after.dispatch.requests.length, frame.after.collection.leases.length, ...frame.commands.map(command => { if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`); return commandCodes[command.kind]!; })];
     });
   });
   expect(nativeTraces).toEqual(traces);

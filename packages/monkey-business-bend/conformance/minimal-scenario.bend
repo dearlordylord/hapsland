@@ -6,6 +6,8 @@ import ../Scheduler.bend as Scheduler
 import ../../agent-flow-bend/Canonical.bend as Canonical
 import ../../agent-flow-bend/ImportGraph.bend as Graph
 import ../../agent-flow-bend/Ledger.bend as Ledger
+import ../../agent-flow-bend/Dispatch.bend as Dispatch
+import ../../agent-flow-bend/CollectionState.bend as Collection
 
 # A native edge adapter supplies original source-free inputs and graph facts.
 # Policy, command interpretation, callback generation and ordering are shared.
@@ -253,11 +255,36 @@ def graph_row(+state: Graph.Bounded, command: Graph.Command, now: Nat) -> List<&
   match state:
     case Graph.Bounded{graph, _}: 21n <> now <> graph_code(command) <> graph_counts(graph)
 
+def usage_counts(usage: Ledger.Usage) -> List<&2, Nat>:
+  match usage:
+    case Ledger.Usage{items, bytes}: [items, bytes]
+
+def ledger_counts(ledger: Ledger.Ledger) -> List<&2, Nat>:
+  match ledger:
+    case Ledger.Ledger{_, _, charges}: usage_counts(Ledger.total(charges))
+
+def dispatch_counts(dispatch: Dispatch.State) -> List<&2, Nat>:
+  match dispatch:
+    case Dispatch.State{_, running, _, _, requests}:
+      [List.length(&2, Dispatch.Entry, running), List.length(&2, Dispatch.Request, requests)]
+
+def lease_count(collection: Collection.State) -> List<&2, Nat>:
+  match collection:
+    case Collection.State{_, leases, _, _, _, _, _}: [List.length(&2, Collection.Lease, leases)]
+
+def canonical_counts(state: Canonical.State) -> List<&2, Nat>:
+  match state:
+    case Canonical.State{ledger, _, _, _, _, _, dispatch, collection, _}:
+      List.append(&2, Nat, ledger_counts(ledger), List.append(&2, Nat, dispatch_counts(dispatch), lease_count(collection)))
+
+def state_counts(state: Types.State) -> List<&2, Nat>:
+  canonical_counts(Engine.canonical(state))
+
 def graph_result(transition: Types.GraphTransition, queue: Queue, now: Nat,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match transition:
-    case Types.GraphTransition{state, _, Graph.BoundedStep{graph, command}}:
-      graph_row(graph, command, now) <> ih((state, queue))
+    case Types.GraphTransition{+state, _, Graph.BoundedStep{graph, command}}:
+      List.append(&2, Nat, graph_row(graph, command, now), state_counts(state)) <> ih((state, queue))
 
 def controlled(config: Config) -> Bool:
   match config:
@@ -282,7 +309,7 @@ def canonical_result(transition: Engine.Transition, +before: Types.State,
       +q = commands(list, queue, now, state, event, context(Driver.Action{event, delay, candidate, job, expiry}, config, now))
       +q = enqueue(Engine.after(before, state, event), q, now)
       +q = boundary_control(event, q, state, config, context(Driver.Action{event, delay, candidate, job, expiry}, config, now), now)
-      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), command_codes(list)))) <> ih((state, q))
+      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), List.append(&2, Nat, state_counts(state), command_codes(list))))) <> ih((state, q))
     case _ _: [ [98n, now] ]
 
 def execution_context(event: Canonical.CanonicalEvent, action: Driver.Action, config: Config, now: Nat) -> Driver.Context:
