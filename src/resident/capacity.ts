@@ -605,11 +605,11 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       return {
         entries: (): ReadonlyArray<readonly [string, NoticeCooldownSnapshot]> => [...Ref.getUnsafe(state).records.notices.entries],
         record: (...args: Parameters<NoticeRecordOperations["record"]>) => noticeCommit((operations) => operations.record(...args), randomUUID()),
-        prune: (...args: Parameters<NoticeRecordOperations["prune"]>) => noticeCommit((operations) => operations.prune(...args)),
-        drop: (...args: Parameters<NoticeRecordOperations["drop"]>) => noticeCommit((operations) => operations.drop(...args)),
+        prune: Effect.fn("NoticeRecords.prune")((...args: Parameters<NoticeRecordOperations["prune"]>) => commitAllEffect(noticeChange((operations) => operations.prune(...args)))),
+        drop: Effect.fn("NoticeRecords.drop")((...args: Parameters<NoticeRecordOperations["drop"]>) => commitAllEffect(noticeChange((operations) => operations.drop(...args)))),
         remove: Effect.fn("NoticeRecords.remove")((...args: Parameters<NoticeRecordOperations["remove"]>) => commitAllEffect(noticeChange((operations) => operations.remove(...args)))),
-        release: (...args: Parameters<NoticeRecordOperations["release"]>) => noticeCommit((operations) => operations.release(...args)),
-        acknowledge: (...args: Parameters<NoticeRecordOperations["acknowledge"]>) => noticeCommit((operations) => operations.acknowledge(...args)),
+        release: Effect.fn("NoticeRecords.release")((...args: Parameters<NoticeRecordOperations["release"]>) => commitAllEffect(noticeChange((operations) => operations.release(...args)))),
+        acknowledge: Effect.fn("NoticeRecords.acknowledge")((...args: Parameters<NoticeRecordOperations["acknowledge"]>) => commitAllEffect(noticeChange((operations) => operations.acknowledge(...args)))),
         renew: Effect.fn("NoticeRecords.renew")((...args: Parameters<NoticeRecordOperations["renew"]>) => commitAllEffect(noticeChange((operations) => operations.renew(...args)))),
       };
     },

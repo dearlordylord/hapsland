@@ -565,7 +565,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const statsEffect = Effect.fn("ResidentRuntime.stats")(function* (): Effect.fn.Return<Extract<ResidentResponse, { status: "stats" }>> {
     const now = residentNow();
     yield* residentExpirePending(now);
-    residentPruneNoticeCooldowns(now);
+    yield* residentPruneNoticeCooldowns(now);
     const dispatch = yield* residentDispatcher.snapshot();
     const capacity = residentLedger.snapshot();
     const reuse = residentReuse.snapshot();
@@ -596,7 +596,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (residentLedger.runtime.snapshot().lifecycle !== "active") return "busy";
     const now = residentNow();
     yield* residentExpirePending(now);
-    residentPruneNoticeCooldowns(now);
+    yield* residentPruneNoticeCooldowns(now);
     return yield* residentLedger.runtime.cleanup(logicalBytes);
   });
 
@@ -626,7 +626,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     yield* residentExpirePending(now);
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
-    residentPruneNoticeCooldowns(now);
+    yield* residentPruneNoticeCooldowns(now);
     if (residentLedger.runtime.snapshot().lifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     const group = adviceePartition(observation.root, observation.advicee);
     const generation = composed ? residentComposedDelivery.admitEdit(group,
@@ -808,7 +808,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (composed && mode !== "turn-end" && residentComposedDelivery.isDeciding(partition)) return residentResponse({ status: "empty" });
       const stopCollector = composed && mode === "turn-end" && residentComposedDelivery.isDeciding(partition);
       yield* residentExpirePending(now);
-      residentPruneNoticeCooldowns(now);
+      yield* residentPruneNoticeCooldowns(now);
       const credentialGeneration = dispatch.credential?.generation ?? null;
       for (const item of [...(yield* residentAdvice())]) {
         const sameScope = composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
@@ -1081,7 +1081,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const acknowledge = Effect.fn("ResidentRuntime.acknowledge")(function* (token: string): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
     yield* residentExpirePending(now);
-    residentPruneNoticeCooldowns(now);
+    yield* residentPruneNoticeCooldowns(now);
     const advice = (yield* residentLedger.advice.snapshots()).filter(({ content }) => content.delivery?.token === token);
     const notices = residentNoticesForToken(token);
     const expired = advice.some(({ content }) => content.delivery === undefined || content.delivery.leaseUntil <= now) ||
@@ -1092,7 +1092,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (decision.commands[0]?.kind === "deliveryAckEmpty") return { status: "empty" };
     if (decision.commands[0]?.kind === "deliveryAckExpired") {
       for (const { capability: item, content } of advice) yield* residentReleaseAdviceLease(item);
-      for (const item of notices) { residentNotices.release(item.id); }
+      for (const item of notices) { yield* residentNotices.release(item.id); }
       return { status: "empty" };
     }
     if (decision.commands[0]?.kind !== "deliveryAckReady") throw new Error("invalid canonical acknowledgement");
@@ -1103,14 +1103,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     for (const { capability: item, content } of advice) {
       yield* residentLedger.advice.updateDelivery(item, token, { acknowledged: true });
     }
-    for (const item of notices) residentNotices.acknowledge(item.id);
+    for (const item of notices) yield* residentNotices.acknowledge(item.id);
     return { status: "acknowledged" };
   }, Effect.uninterruptible);
 
   const finalize = Effect.fn("ResidentRuntime.finalize")(function* (token: string): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
     yield* residentExpirePending(now);
-    residentPruneNoticeCooldowns(now);
+    yield* residentPruneNoticeCooldowns(now);
     const advice = (yield* residentLedger.advice.snapshots()).filter(({ content }) => content.delivery?.token === token);
     const notices = residentNoticesForToken(token);
     const allAcknowledged = advice.every(({ content }) => content.delivery?.acknowledged === true) &&
@@ -1123,7 +1123,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (decision.commands[0]?.kind === "deliveryFinalEmpty") return { status: "empty" };
     if (decision.commands[0]?.kind === "deliveryFinalExpired") {
       for (const { capability: item, content } of advice) yield* residentReleaseAdviceLease(item);
-      for (const item of notices) { residentNotices.release(item.id); }
+      for (const item of notices) { yield* residentNotices.release(item.id); }
       return { status: "empty" };
     }
     if (decision.commands[0]?.kind !== "deliveryFinalReady") throw new Error("invalid canonical finalization");
@@ -1170,7 +1170,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     for (const notice of residentNoticesForToken(token)) {
       if (notice.delivery?.token === token &&
           residentReleaseUnacknowledged(notice.delivery.acknowledged)) {
-        residentNotices.release(notice.id);
+        yield* residentNotices.release(notice.id);
       }
     }
   }, Effect.uninterruptible);
@@ -1327,9 +1327,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentRemovePendingNotice = Effect.fn("ResidentRuntime.removePendingNotice")((id: string, token?: string) => residentNotices.remove(id, token));
 
-  function residentReleaseNoticeCooldown(key: string): void { residentNotices.drop(key); }
+  const residentReleaseNoticeCooldown = Effect.fn("ResidentRuntime.releaseNoticeCooldown")((key: string) => residentNotices.drop(key));
 
-  function residentPruneNoticeCooldowns(now: number, exceptKey?: string): void { residentNotices.prune(now, exceptKey); }
+  const residentPruneNoticeCooldowns = Effect.fn("ResidentRuntime.pruneNoticeCooldowns")((now: number, exceptKey?: string) => residentNotices.prune(now, exceptKey));
 
   function residentRecordOperationalFailure(observation: DirectObservation, kind: OperationalNoticeKind, now = residentNow()): void {
     if (residentLedger.runtime.snapshot().lifecycle !== "active" || !addressableAdvicee(observation.advicee)) return;
@@ -1418,7 +1418,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const sweepQuietRoundsEffect = Effect.fn("ResidentRuntime.sweepQuietRounds")(function* (now: number): Effect.fn.Return<number> {
     if (residentLedger.runtime.snapshot().lifecycle !== "active") return 0;
     yield* residentExpirePending(now);
-    residentPruneNoticeCooldowns(now);
+    yield* residentPruneNoticeCooldowns(now);
     let closedCount = 0;
     for (const [group, round] of (yield* residentLedger.rounds.entries())) {
       const work = (yield* residentDispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed));
@@ -1526,7 +1526,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     for (const job of discarded) yield* residentDiscardJob(job);
     for (const advice of [...(yield* residentAdvice())]) if (advice.round === round) yield* residentRemoveAdvice(advice.id);
     for (const [key, notice] of residentNotices.entries()) {
-      if (notice.partition === round.group) residentReleaseNoticeCooldown(key);
+      if (notice.partition === round.group) yield* residentReleaseNoticeCooldown(key);
     }
     residentReuse.discardPartition(round.group);
     yield* residentLedger.tickets.discardPartition(round.group);
@@ -2511,7 +2511,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const group = adviceePartition(request.root, request.advicee);
           if (!residentComposedDelivery.ownsStop(group, request.finish.token)) return residentResponse({ status: "empty" });
           // Expired leases represent uncertain external output, not live writers.
-          residentPruneNoticeCooldowns(residentNow());
+          yield* residentPruneNoticeCooldowns(residentNow());
           for (const { capability: advice, content } of (yield* residentLedger.advice.snapshots())) {
             if (adviceePartition(advice.observation.root, advice.observation.advicee) === group &&
                 content.delivery !== undefined && content.delivery.leaseUntil <= residentNow()) yield* residentReleaseAdviceLease(advice);
@@ -2686,7 +2686,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (request.requestRoute !== "ticketed" || request.operation !== "collect") return response;
       const now = residentNow();
       yield* residentExpirePending(now);
-      residentPruneNoticeCooldowns(now);
+      yield* residentPruneNoticeCooldowns(now);
       const ticket = yield* residentTicketFor(request.ticket, request.root, request.advicee,
         request.composed === true);
       if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
@@ -2696,7 +2696,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     const now = residentNow();
     yield* residentExpirePending(now);
-    residentPruneNoticeCooldowns(now);
+    yield* residentPruneNoticeCooldowns(now);
     const sharedCollect = request.operation === "collect" && request.requestRoute !== "ticketed";
     let invalidCredential = false;
     if (sharedCollect) for (const advice of (yield* residentAdvice())) {
@@ -3037,7 +3037,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         else residentLedger.release(job.reservation);
       }
       for (const advice of (yield* residentAdvice())) yield* residentRemoveAdvice(advice.id);
-      for (const key of [...residentNotices.entries().map(([key]) => key)]) residentReleaseNoticeCooldown(key);
+      for (const key of [...residentNotices.entries().map(([key]) => key)]) yield* residentReleaseNoticeCooldown(key);
       // Running work may be interrupted by process exit or finish later. Clear
       // its logical ownership after native effects settle. Issued Jev permits
       // remain reserved through an interruption attempt.

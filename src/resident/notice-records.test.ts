@@ -22,7 +22,7 @@ it.effect("commits bounded notice metadata, suppression and capacity together", 
   notices.record("b", "capacity", 60_000);
   notices.record("c", "backend", 60_000);
   expect(notices.entries()).toHaveLength(2);
-  notices.prune(180_001);
+  yield* notices.prune(180_001);
   expect(notices.entries()).toEqual([]);
   expect(owner.snapshot().items).toBe(0);
   expect(owner.canonicalProjection().notices).toEqual([]);
@@ -69,4 +69,24 @@ it.effect("refuses notice retention when its capacity reservation cannot fit", (
   owner.notices(2, 60_000, 120_000, () => 1).record("a", "backend", 0);
   // The fixed reservation overhead still exceeds this owner's configured budget.
   expect(notices.entries()).toEqual([]);
+}));
+
+it.effect("defers notice pruning and cooldown release until execution", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const notices = owner.notices(2, 60_000, 120_000, measure);
+  notices.record("a", "backend", 0);
+  const retained = notices.entries()[0];
+  if (retained === undefined) throw new Error("fixture notice missing");
+  const before = owner.canonicalProjection();
+  const prune = notices.prune(180_001);
+  const drop = notices.drop(retained[0]);
+  expect(owner.canonicalProjection()).toEqual(before);
+  expect(owner.snapshot().items).toBe(1);
+  yield* drop;
+  expect(notices.entries()).toEqual([]);
+  expect(owner.snapshot().items).toBe(0);
+  yield* prune;
+  yield* drop;
+  expect(owner.canonicalProjection().notices).toEqual([]);
+  expect(owner.snapshot().items).toBe(0);
 }));

@@ -182,7 +182,7 @@ if (/\bcommitAll\(|Ref.getUnsafe|adviceCommit/.test(adviceSurface) ||
   throw new Error("advice service must compose Effects without synchronous or unsafe bridges");
 }
 
-for (const operation of ["remove", "renew"]) {
+for (const operation of ["remove", "renew", "release", "acknowledge", "drop", "prune"]) {
   if (!state.includes(`${operation}: Effect.fn("NoticeRecords.${operation}")`) ||
       !state.includes(`commitAllEffect(noticeChange((operations) => operations.${operation}(...args)))`)) {
     throw new Error(`notice ${operation} must compose as an atomic Effect`);
