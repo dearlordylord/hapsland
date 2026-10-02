@@ -369,9 +369,36 @@ def scenario(config: Config) -> List<&2, List<&2, Nat>>:
   loop(100n, (Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
     Queue{[Item{0n, 0n, Edit{}}], 1n}), config)
 
-def main() -> List<&2, List<&2, List<&2, Nat>>>:
+def scenarios() -> List<&2, List<&2, List<&2, Nat>>>:
   [scenario(Config{Canonical.RequestFinding{}, True{}, True{}, True{}, True{}}),
    scenario(Config{Canonical.RequestClear{}, True{}, True{}, True{}, True{}}),
    scenario(Config{Canonical.RequestFinding{}, False{}, True{}, True{}, True{}}),
    scenario(Config{Canonical.RequestFinding{}, True{}, False{}, True{}, True{}}),
    scenario(Config{Canonical.RequestFinding{}, True{}, True{}, False{}, True{}})]
+
+
+def comma(rest: String) -> String:
+  match rest:
+    case SNil{}: SNil{}
+    case SCon{head, tail}: String.append(",", SCon{head, tail})
+
+def show_numbers(items: List<&2, Nat>) -> String:
+  match items:
+    case Nil{}: ""
+    case head <> tail: String.append(Nat.show(head), comma(show_numbers(tail)))
+
+def bracket(text: String) -> String:
+  String.append("[", String.append(text, "]"))
+
+def show_rows(rows: List<&2, List<&2, Nat>>) -> String:
+  match rows:
+    case Nil{}: ""
+    case head <> tail: String.append(bracket(show_numbers(head)), comma(show_rows(tail)))
+
+def show_traces(traces: List<&2, List<&2, List<&2, Nat>>>) -> String:
+  match traces:
+    case Nil{}: ""
+    case head <> tail: String.append(bracket(show_rows(head)), comma(show_traces(tail)))
+
+def main() -> IO(Unit):
+  IO.print(bracket(show_traces(scenarios())))
