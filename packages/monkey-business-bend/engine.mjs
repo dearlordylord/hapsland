@@ -159,6 +159,84 @@ function io_eff(k, run, need) {
 // Program
 // =======
 
+function $CredentialFacts$initial$() {
+  return {$: "CredentialFacts.State", "available": true, "generation": 1, "issued": {$: "Nil"}};
+}
+
+function $CredentialFacts$availability$(_state_0, _available_0) {
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
+}
+
+function $CredentialFacts$rotate$(_state_0) {
+  const _available_0 = _state_0["available"];
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": nat_chk(_generation_0 + 1), "issued": _issued_0};
+}
+
+function $CredentialFacts$authorized$(_state_0, _issued_generation_0) {
+  const _available_0 = _state_0["available"];
+  const _generation_0 = _state_0["generation"];
+  return $Bool$and$(_available_0, ($Nat$is_eq$(_generation_0, _issued_generation_0)));
+}
+
+function $CredentialFacts$configure$(_state_0, _available_0, _generation_0) {
+  const _issued_0 = _state_0["issued"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
+}
+
+function $CredentialFacts$lookup$(_items_0, _operation_0) {
+  if (_items_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _items_0["head"];
+    const _candidate_0 = _t_0["operation"];
+    const _generation_0 = _t_0["generation"];
+    const _tail_0 = _items_0["tail"];
+    return $Bool$pick$(($Nat$is_eq$(_candidate_0, _operation_0)), {$: "Some", "value": _generation_0}, ($CredentialFacts$lookup$(_tail_0, _operation_0)));
+  }
+}
+
+function $CredentialFacts$capture_found$(_found_0, _state_0, _operation_0) {
+  if (_found_0.$ === "None") {
+    const _available_0 = _state_0["available"];
+    const _generation_0 = _state_0["generation"];
+    const _issued_0 = _state_0["issued"];
+    return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": _generation_0}, "tail": _issued_0}};
+  } else {
+    return _state_0;
+  }
+}
+
+function $CredentialFacts$capture$(_state_0, _operation_0) {
+  const __0 = _state_0["available"];
+  const __1 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$capture_found$(($CredentialFacts$lookup$(_issued_0, _operation_0)), {$: "CredentialFacts.State", "available": __0, "generation": __1, "issued": _issued_0}, _operation_0);
+}
+
+function $CredentialFacts$captured$(_state_0, _operation_0) {
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$lookup$(_issued_0, _operation_0);
+}
+
+function $CredentialFacts$generation_found$(_current_0, _found_0) {
+  if (_found_0.$ === "None") {
+    return false;
+  } else {
+    const _generation_0 = _found_0["value"];
+    return $Nat$is_eq$(_current_0, _generation_0);
+  }
+}
+
+function $CredentialFacts$matches$(_state_0, _operation_0) {
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return $CredentialFacts$generation_found$(_generation_0, ($CredentialFacts$lookup$(_issued_0, _operation_0)));
+}
+
 function $$$$047agent$045flow$045bend$047Ledger$limits_for$(_purpose_0, _limits_0) {
   if (_purpose_0.$ === "Ledger.ObservationDispatch") {
     return _limits_0;
@@ -12543,6 +12621,80 @@ function $Driver$revalidate$(_state_0, _context_0) {
   return $Driver$revalidate_work$(($Driver$work_list$(_state_0)), _credential_0, _generation_0, _current_0, _readable_0, _background_0);
 }
 
+function $CredentialContext$captured_match$(_found_0, _current_0, _supplied_0) {
+  if (_found_0.$ === "None") {
+    return _supplied_0;
+  } else {
+    const _generation_0 = _found_0["value"];
+    return $Bool$and$(_supplied_0, ($Nat$is_eq$(_current_0, _generation_0)));
+  }
+}
+
+function $CredentialContext$operation_generation$(_state_0, _operation_0, _supplied_0) {
+  const _generation_0 = _state_0["generation"];
+  const _issued_0 = _state_0["issued"];
+  return $CredentialContext$captured_match$(($CredentialFacts$lookup$(_issued_0, _operation_0)), _generation_0, _supplied_0);
+}
+
+function $CredentialContext$candidate_generation$(_state_0, _candidate_0, _supplied_0) {
+  if (_candidate_0.$ === "Some") {
+    const _t_0 = _candidate_0["value"];
+    const _advice_0 = _t_0["advice"];
+    return $CredentialContext$operation_generation$(_state_0, _advice_0, _supplied_0);
+  } else {
+    return _supplied_0;
+  }
+}
+
+function $CredentialContext$event_generation$(_state_0, _event_0, _supplied_0) {
+  if (_event_0.$ === "Canonical.JevRequestReady") {
+    const _operation_0 = _event_0["operation"];
+    return $CredentialContext$operation_generation$(_state_0, _operation_0, _supplied_0);
+  } else if (_event_0.$ === "Canonical.JevRequestStarted") {
+    const _operation_1 = _event_0["operation"];
+    return $CredentialContext$operation_generation$(_state_0, _operation_1, _supplied_0);
+  } else if (_event_0.$ === "Canonical.JevRequestInterrupted") {
+    const _operation_2 = _event_0["operation"];
+    return $CredentialContext$operation_generation$(_state_0, _operation_2, _supplied_0);
+  } else if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _operation_3 = _event_0["operation"];
+    return $CredentialContext$operation_generation$(_state_0, _operation_3, _supplied_0);
+  } else if (_event_0.$ === "Canonical.CollectionReady") {
+    const _advice_0 = _event_0["advice"];
+    return $CredentialContext$operation_generation$(_state_0, _advice_0, _supplied_0);
+  } else {
+    return _supplied_0;
+  }
+}
+
+function $CredentialContext$apply$(_state_0, _event_0, _context_0) {
+  const _available_0 = _state_0["available"];
+  const __0 = _state_0["generation"];
+  const __1 = _state_0["issued"];
+  const _p_0 = _context_0["partition"];
+  const _l_0 = _context_0["lifetime"];
+  const _r_0 = _context_0["round"];
+  const _bytes_0 = _context_0["bytes"];
+  const _job_0 = _context_0["job"];
+  const _delay_0 = _context_0["jev_delay"];
+  const _outcome_0 = _context_0["outcome"];
+  const _current_0 = _context_0["current_work"];
+  const _credential_0 = _context_0["credential_ready"];
+  const _generation_0 = _context_0["credential_generation"];
+  const _readable_0 = _context_0["source_readable"];
+  const _lifetime_0 = _context_0["advice_lifetime"];
+  const _candidate_0 = _context_0["candidate"];
+  const _collection_0 = _context_0["automatic_collection"];
+  const _review_0 = _context_0["automatic_review"];
+  const _output_0 = _context_0["automatic_output"];
+  const _certain_0 = _context_0["output_certain"];
+  const _output_delay_0 = _context_0["output_delay"];
+  const _output_lease_0 = _context_0["output_lease"];
+  const _background_0 = _context_0["background"];
+  const _dispatch_0 = _context_0["automatic_dispatch"];
+  return {$: "Driver.Context", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "bytes": _bytes_0, "job": _job_0, "jev_delay": _delay_0, "outcome": _outcome_0, "current_work": _current_0, "credential_ready": ($Bool$and$(_credential_0, _available_0)), "credential_generation": ($CredentialContext$candidate_generation$({$: "CredentialFacts.State", "available": _available_0, "generation": __0, "issued": __1}, _candidate_0, ($CredentialContext$event_generation$({$: "CredentialFacts.State", "available": _available_0, "generation": __0, "issued": __1}, _event_0, _generation_0)))), "source_readable": _readable_0, "advice_lifetime": _lifetime_0, "candidate": _candidate_0, "automatic_collection": _collection_0, "automatic_review": _review_0, "automatic_output": _output_0, "output_certain": _certain_0, "output_delay": _output_delay_0, "output_lease": _output_lease_0, "background": _background_0, "automatic_dispatch": _dispatch_0};
+}
+
 function $AdmissionAttempts$contains$(_pending_0, _partition_0) {
   if (_pending_0.$ === "Nil") {
     return false;
@@ -15696,84 +15848,6 @@ function $FaultTargets$callback$(_event_0, _target_0) {
   }
 }
 
-function $CredentialFacts$initial$() {
-  return {$: "CredentialFacts.State", "available": true, "generation": 1, "issued": {$: "Nil"}};
-}
-
-function $CredentialFacts$availability$(_state_0, _available_0) {
-  const _generation_0 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
-}
-
-function $CredentialFacts$rotate$(_state_0) {
-  const _available_0 = _state_0["available"];
-  const _generation_0 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": nat_chk(_generation_0 + 1), "issued": _issued_0};
-}
-
-function $CredentialFacts$authorized$(_state_0, _issued_generation_0) {
-  const _available_0 = _state_0["available"];
-  const _generation_0 = _state_0["generation"];
-  return $Bool$and$(_available_0, ($Nat$is_eq$(_generation_0, _issued_generation_0)));
-}
-
-function $CredentialFacts$configure$(_state_0, _available_0, _generation_0) {
-  const _issued_0 = _state_0["issued"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": _issued_0};
-}
-
-function $CredentialFacts$lookup$(_items_0, _operation_0) {
-  if (_items_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _t_0 = _items_0["head"];
-    const _candidate_0 = _t_0["operation"];
-    const _generation_0 = _t_0["generation"];
-    const _tail_0 = _items_0["tail"];
-    return $Bool$pick$(($Nat$is_eq$(_candidate_0, _operation_0)), {$: "Some", "value": _generation_0}, ($CredentialFacts$lookup$(_tail_0, _operation_0)));
-  }
-}
-
-function $CredentialFacts$capture_found$(_found_0, _state_0, _operation_0) {
-  if (_found_0.$ === "None") {
-    const _available_0 = _state_0["available"];
-    const _generation_0 = _state_0["generation"];
-    const _issued_0 = _state_0["issued"];
-    return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": _generation_0}, "tail": _issued_0}};
-  } else {
-    return _state_0;
-  }
-}
-
-function $CredentialFacts$capture$(_state_0, _operation_0) {
-  const __0 = _state_0["available"];
-  const __1 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return $CredentialFacts$capture_found$(($CredentialFacts$lookup$(_issued_0, _operation_0)), {$: "CredentialFacts.State", "available": __0, "generation": __1, "issued": _issued_0}, _operation_0);
-}
-
-function $CredentialFacts$captured$(_state_0, _operation_0) {
-  const _issued_0 = _state_0["issued"];
-  return $CredentialFacts$lookup$(_issued_0, _operation_0);
-}
-
-function $CredentialFacts$generation_found$(_current_0, _found_0) {
-  if (_found_0.$ === "None") {
-    return false;
-  } else {
-    const _generation_0 = _found_0["value"];
-    return $Nat$is_eq$(_current_0, _generation_0);
-  }
-}
-
-function $CredentialFacts$matches$(_state_0, _operation_0) {
-  const _generation_0 = _state_0["generation"];
-  const _issued_0 = _state_0["issued"];
-  return $CredentialFacts$generation_found$(_generation_0, ($CredentialFacts$lookup$(_issued_0, _operation_0)));
-}
-
 function $Scheduler$precedes$(_a_0, _b_0) {
   const _at_0 = _a_0["at"];
   const _order_0 = _a_0["order"];
@@ -16511,8 +16585,13 @@ function $retire$(_state_0, _operation_0) {
   return {$: "Types.State", "canonical": _canonical_0, "graphs": ($Preparation$retire_entries$(_graphs_0, _operation_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
 }
 
+function $credential_state$(_state_0) {
+  const _credentials_0 = _state_0["credentials"];
+  return _credentials_0;
+}
+
 function $handle$(_state_0, _event_0, _command_0, _context_0) {
-  return $Driver$handle$(($canonical$(_state_0)), _event_0, _command_0, _context_0);
+  return $Driver$handle$(($canonical$(_state_0)), _event_0, _command_0, ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0)));
 }
 
 function $edit$(_state_0, _partition_0, _lifetime_0) {
@@ -16578,7 +16657,7 @@ function $cancel$(_state_0, _order_0) {
 }
 
 function $fence$(_state_0, _event_0, _generated_0, _context_0) {
-  return $Driver$fence$(($canonical$(_state_0)), _event_0, _generated_0, _context_0);
+  return $Driver$fence$(($canonical$(_state_0)), _event_0, _generated_0, ($CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0)));
 }
 
 function $preparation_fact_time$(_delay_0, _index_0, _count_0) {
@@ -16904,6 +16983,18 @@ function $callback_matches$(_event_0, _target_0) {
   return $FaultTargets$callback$(_event_0, _target_0);
 }
 
+function $context_credentials$(_state_0, _event_0, _context_0) {
+  return $CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0);
+}
+
+function $Bool$and$(_a_0, _b_0) {
+  if (!_a_0) {
+    return false;
+  } else {
+    return _b_0;
+  }
+}
+
 function $Nat$is_eq$(_a_0, _b_0) {
   return $Cmp$is_eq$(cmp_new(_a_0, _b_0));
 }
@@ -16940,14 +17031,6 @@ function $List$length$(_xs_0) {
   } else {
     const _t_0 = _xs_0["tail"];
     return nat_chk(($List$length$(_t_0)) + 1);
-  }
-}
-
-function $Bool$and$(_a_0, _b_0) {
-  if (!_a_0) {
-    return false;
-  } else {
-    return _b_0;
   }
 }
 
@@ -17055,8 +17138,33 @@ function $List$reverse$go$($0, $1) {
   }
 }
 
+function $0m2(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "CredentialFacts.Capture": at = at[key] = {...v, "operation": BigInt(v["operation"]), "generation": BigInt(v["generation"])}; return top[0];
+      default: throw "bend: CredentialFacts.Capture has no tag " + v?.$ + " (its tags: CredentialFacts.Capture); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:047fe42d2b7c9a803455c6ddeace9c41d720cd2d55a84ee64349ab9db6d468a6";
+function $0m1(v) {
+  const top = [v];
+  for (let at = top, key = 0;;) {
+    switch (v.$) {
+      case "Nil": at[key] = v; return top[0];
+      case "Con": at = at[key] = {...v, "head": $0m2(v["head"])}; key = "tail"; v = v[key]; continue;
+      default: throw "bend: List has no tag " + v?.$ + " (its tags: Nil, Con); a tag names its constructor as the"
+      + " loading file sees it, which a later version will make the same"
+      + " everywhere (#1105)";
+    }
+  }
+}
+
+
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:c2425fe4298ac1b2f680ff432a125115aaa3c2494656d2ab47e4ad6050ad8ca9";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:21b3255c6e5331343f54a58c07f91ea938d8f08f6dcf4e29830baeb4239152e9";
 
 const facts = value => {
@@ -17072,6 +17180,7 @@ const facts = value => {
   return value;
 };
 export default {
+ context_credentials: (state, event, context) => run_loop($context_credentials$(state, facts(event), facts(context))),
  credential_captured: (state, operation) => run_loop($credential_captured$(state, facts(operation))),
  credential_matches: (state, operation) => run_loop($credential_matches$(state, facts(operation))),
  callback_matches: (event, target) => run_loop($callback_matches$(facts(event), facts(target))),

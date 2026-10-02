@@ -4,6 +4,7 @@ export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unk
 export interface Transition { $: "Transition"; state: EngineState; result: unknown }
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
 declare const Engine: {
+ context_credentials(state: EngineState, event: unknown, context: unknown): unknown;
  credential_captured(state: EngineState, operation: bigint): unknown;
  credential_matches(state: EngineState, operation: bigint): boolean;
  callback_matches(event: unknown, target: unknown): boolean;

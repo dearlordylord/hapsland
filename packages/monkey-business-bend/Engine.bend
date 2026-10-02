@@ -1,4 +1,5 @@
 import Base
+import ./CredentialContext.bend as CredentialContext
 import ./PendingEffects.bend as PendingEffects
 import ./AdmissionAttempts.bend as AdmissionAttempts
 import ./AdviceeScope.bend as AdviceeScope
@@ -54,8 +55,12 @@ def retire(state: Types.State, operation: Nat) -> Types.State:
   match state:
     case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}: Types.State{canonical, Preparation.retire_entries(graphs, operation), scheduler, workloads, random, advicees, credentials, opening, retiring}
 
-def handle(state: Types.State, event: Canonical.CanonicalEvent, command: Canonical.Command, context: Driver.Context) -> Driver.Handled:
-  Driver.handle(canonical(state), event, command, context)
+def credential_state(state: Types.State) -> CredentialFacts.State:
+  match state:
+    case Types.State{_, _, _, _, _, _, credentials, _, _}: credentials
+
+def handle(+state: Types.State, +event: Canonical.CanonicalEvent, command: Canonical.Command, context: Driver.Context) -> Driver.Handled:
+  Driver.handle(canonical(state), event, command, CredentialContext.apply(credential_state(state), event, context))
 
 def edit(state: Types.State, partition: Nat, lifetime: Nat) -> Driver.EditPlan:
   Driver.edit(canonical(state), partition, lifetime)
@@ -89,8 +94,8 @@ def cancel(state: Types.State, order: Nat) -> Types.State:
   match state:
     case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}: Types.State{canonical, graphs, Scheduler.cancel(scheduler, order), workloads, random, advicees, credentials, opening, retiring}
 
-def fence(state: Types.State, event: Canonical.CanonicalEvent, generated: Bool, context: Driver.Context) -> Canonical.CanonicalEvent:
-  Driver.fence(canonical(state), event, generated, context)
+def fence(+state: Types.State, +event: Canonical.CanonicalEvent, generated: Bool, context: Driver.Context) -> Canonical.CanonicalEvent:
+  Driver.fence(canonical(state), event, generated, CredentialContext.apply(credential_state(state), event, context))
 
 def preparation_fact_time(delay: Nat, index: Nat, count: Nat) -> Nat:
   Driver.fact_time(delay, index, count)
@@ -302,3 +307,6 @@ def credential_matches(state: Types.State, operation: Nat) -> Bool:
 
 def callback_matches(event: Canonical.CanonicalEvent, target: FaultTargets.Target) -> Bool:
   FaultTargets.callback(event, target)
+
+def context_credentials(state: Types.State, event: Canonical.CanonicalEvent, context: Driver.Context) -> Driver.Context:
+  CredentialContext.apply(credential_state(state), event, context)
