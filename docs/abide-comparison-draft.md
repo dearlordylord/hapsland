@@ -32,4 +32,4 @@ The underlying advisory research separates product approaches, technical details
 
 - [Approaches and requirements](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-APPROACHES.md).
 - [Technical comparison](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-TECHNICAL.md).
-- [Coexistence investigation](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-COEXISTENCE.md) and [retained native evidence](../evidence/native-coexistence/index.json).
+- Coexistence investigation and retained native evidence: publication is pending; this checkout does not include a committed native evidence index.
