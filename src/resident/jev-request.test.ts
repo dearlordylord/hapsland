@@ -477,27 +477,27 @@ describe("canonical Jev request boundary", () => {
     };
     const held = Array.from({ length: 8 }, () => {
       const unit = reviewUnit();
-      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, Effect.runSync(ledger.roundId(partition)));
+      const ready = Effect.runSync(ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, Effect.runSync(ledger.roundId(partition))));
       if (ready.status !== "issued") throw new Error("Jev permit refused before saturation");
-      expect(ledger.startJevRequest(partition, unit.operation, ready.request)).toBe(true);
+      expect(Effect.runSync(ledger.startJevRequest(partition, unit.operation, ready.request))).toBe(true);
       return { unit, request: ready.request };
     });
     const interrupted = held[0]!;
-    expect(ledger.interruptJevRequest(partition, interrupted.unit.operation, interrupted.request)).toBe(true);
+    expect(Effect.runSync(ledger.interruptJevRequest(partition, interrupted.unit.operation, interrupted.request))).toBe(true);
     Effect.runSync(ledger.retireRound(partition, Effect.runSync(ledger.roundId(partition))));
     const nextPartition = partition;
     const premature = reviewUnit(nextPartition);
-    expect(ledger.readyJevRequest(nextPartition, premature.operation, premature.reservation, facts, Effect.runSync(ledger.roundId(nextPartition))).status)
+    expect(Effect.runSync(ledger.readyJevRequest(nextPartition, premature.operation, premature.reservation, facts, Effect.runSync(ledger.roundId(nextPartition)))).status)
       .toBe("unavailable");
     expect(Effect.runSync(ledger.settleJevRequest(partition, interrupted.unit.operation, interrupted.request,
       interrupted.unit.reservation, "interrupted", false))).not.toBe("stale");
     const replacement = reviewUnit(nextPartition);
-    const ready = ledger.readyJevRequest(nextPartition, replacement.operation, replacement.reservation, facts, Effect.runSync(ledger.roundId(nextPartition)));
+    const ready = Effect.runSync(ledger.readyJevRequest(nextPartition, replacement.operation, replacement.reservation, facts, Effect.runSync(ledger.roundId(nextPartition))));
     expect(ready.status).toBe("issued");
     if (ready.status !== "issued") return;
-    expect(ledger.startJevRequest(nextPartition, replacement.operation, ready.request)).toBe(true);
+    expect(Effect.runSync(ledger.startJevRequest(nextPartition, replacement.operation, ready.request))).toBe(true);
     const excess = reviewUnit(nextPartition);
-    expect(ledger.readyJevRequest(nextPartition, excess.operation, excess.reservation, facts, Effect.runSync(ledger.roundId(nextPartition))).status)
+    expect(Effect.runSync(ledger.readyJevRequest(nextPartition, excess.operation, excess.reservation, facts, Effect.runSync(ledger.roundId(nextPartition)))).status)
       .toBe("unavailable");
   });
 
@@ -517,9 +517,9 @@ describe("canonical Jev request boundary", () => {
         preparation.reservation, [10], Effect.runSync(ledger.roundId(partition))))[0];
       if (unit === undefined) throw new Error("unit refused");
       expect(Effect.runSync(ledger.startReview(partition, unit.operation, Effect.runSync(ledger.roundId(partition))))).toBe(true);
-      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, Effect.runSync(ledger.roundId(partition)));
+      const ready = Effect.runSync(ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, Effect.runSync(ledger.roundId(partition))));
       if (ready.status !== "issued") throw new Error("request refused");
-      expect(ledger.startJevRequest(partition, unit.operation, ready.request)).toBe(true);
+      expect(Effect.runSync(ledger.startJevRequest(partition, unit.operation, ready.request))).toBe(true);
       expect(Effect.runSync(ledger.settleJevRequest(partition, unit.operation, ready.request,
         unit.reservation, "clear", true))).toBe("settleClear");
       return ready.round;

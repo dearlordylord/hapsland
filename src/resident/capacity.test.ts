@@ -279,10 +279,10 @@ describe("resident logical capacity ledger", () => {
     expect(Effect.runSync(ledger.startReview("agent", unit.operation, oldRound))).toBe(false);
     expect(Effect.runSync(ledger.completeReview("agent", unit.operation, unit.reservation, "clear", oldRound))).toBe(false);
     expect(Effect.runSync(ledger.startReview("agent", unit.operation, nextRound))).toBe(true);
-    expect(ledger.readyJevRequest("agent", unit.operation, unit.reservation, {
+    expect(Effect.runSync(ledger.readyJevRequest("agent", unit.operation, unit.reservation, {
       rootValid: true, configurationValid: true, credentialReady: true,
       selected: true, currentWork: true, physicalAvailable: true,
-    }, oldRound)).toEqual({ status: "stale" });
+    }, oldRound))).toEqual({ status: "stale" });
     expect(ledger.canonicalProjection().rounds).toHaveLength(1);
     expect(ledger.snapshot()).toMatchObject({ items: 1, bytes: 5 });
   });

@@ -54,13 +54,13 @@ describe("canonical work projection", () => {
     expect(view().spawn(source, unit.operation)).toBe(unit.operation);
     expect(view().startUnit(unit.operation)).toBe(true);
     expect(Effect.runSync(ledger.startReview("agent", unit.operation, round))).toBe(true);
-    const ready = ledger.readyJevRequest("agent", unit.operation, unit.reservation, {
+    const ready = Effect.runSync(ledger.readyJevRequest("agent", unit.operation, unit.reservation, {
       rootValid: true, configurationValid: true, credentialReady: true,
       selected: true, currentWork: true, physicalAvailable: true,
-    }, round);
+    }, round));
     expect(ready.status).toBe("issued");
     if (ready.status !== "issued") return;
-    expect(ledger.startJevRequest("agent", unit.operation, ready.request)).toBe(true);
+    expect(Effect.runSync(ledger.startJevRequest("agent", unit.operation, ready.request))).toBe(true);
     expect(view().outcome(unit.operation, { $: "Finding" })).toBe(true);
     expect(Effect.runSync(ledger.settleJevRequest("agent", unit.operation, ready.request,
       unit.reservation, "finding", true))).toBe("retainFinding");

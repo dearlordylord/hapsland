@@ -2065,6 +2065,18 @@
       "boundaryChecksPassed": 15,
       "scope": "Public startReview, settleJevRequest, completeReview, observeReview, preparedOffer, emptyPrepared and reviewFailure use named atomic Effects. Runtime cached settlement, provider result settlement, failure and error finalizers compose these workflows. Prepared outcome filtering executes sequential Effects. Request authorization/start/interruption callback bridge remains for the next migration phase.",
       "validation": "Fresh five-file run passed after converting synchronous outcome flatMap into sequential Effect workflow; initial intermediate syntax failure is superseded."
+    },
+    {
+      "stage": "jev-request-lifecycle-effects",
+      "testsPassed": 149,
+      "testFiles": 5,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "roundContractCasesPassed": 18,
+      "roundContractEvidence": "evidence/effect4-migration/round-contract-request-lifecycle-effects.json",
+      "scope": "Request authorization, provider dispatch start and interruption are named atomic Effects. Runtime requestReady, denyReady and reportInterruption compose them. Scoped abort watcher owns native listener cleanup; callback only enters Effect, never mutates canonical state. Scope closes after error settlement and unit cleanup.",
+      "limitations": "Linux probe uses deterministic host-labelled fixtures, not installed agent-host or live backend support evidence. Remaining root capacity operations and synchronous runtime facades still require conversion."
     }
   ],
   "next": [

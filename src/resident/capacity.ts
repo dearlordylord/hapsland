@@ -285,6 +285,9 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    readyJevRequest: Effect.fn("Capacity.readyJevRequest")((...args: Arguments<typeof readyJevRequest>) => commitAllEffect((draft, records) => [readyJevRequest(draft, ...args), records])),
+    startJevRequest: Effect.fn("Capacity.startJevRequest")((...args: Arguments<typeof startJevRequest>) => commitAllEffect((draft, records) => [startJevRequest(draft, ...args), records])),
+    interruptJevRequest: Effect.fn("Capacity.interruptJevRequest")((...args: Arguments<typeof interruptJevRequest>) => commitAllEffect((draft, records) => [interruptJevRequest(draft, ...args), records])),
     startReview: Effect.fn("Capacity.startReview")((...args: Arguments<typeof startReview>) => commitAllEffect((draft, records) => [startReview(draft, ...args), records])),
     settleJevRequest: Effect.fn("Capacity.settleJevRequest")((...args: Arguments<typeof settleJevRequest>) => commitAllEffect((draft, records) => [settleJevRequest(draft, ...args), records])),
     completeReview: Effect.fn("Capacity.completeReview")((...args: Arguments<typeof completeReview>) => commitAllEffect((draft, records) => [completeReview(draft, ...args), records])),

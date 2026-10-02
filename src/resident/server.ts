@@ -1916,11 +1916,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         ...(outcome === undefined ? {} : { outcome }) });
     };
     const signal = job.work?.controller.signal ?? residentLifetimeController.signal;
-    const requestReady = (facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
+    const requestReady = Effect.fn("ResidentRuntime.requestReady")(function* (facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
       readonly credentialReady: boolean; readonly selected: boolean; readonly currentWork: boolean;
-      readonly physicalAvailable: boolean }) => {
+      readonly physicalAvailable: boolean }) {
       readyReported = true;
-      const decision = residentLedger.readyJevRequest(job.partition,
+      const decision = yield* residentLedger.readyJevRequest(job.partition,
         job.canonicalOperationId, job.reservation, facts, job.canonicalRound);
       if (decision.status !== "stale") {
         const canonicalPartition = residentLedger.knownPartitionId(job.partition);
@@ -1939,25 +1939,25 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         issuedRequest = decision.request;
         job.requestId = decision.request;
         observeRequest("issued", decision.request);
-        signal?.addEventListener("abort", reportInterruption, { once: true });
+        yield* workInvalidated(signal).pipe(Effect.catch(() => reportInterruption()), Effect.forkScoped);
       } else if (decision.status === "unavailable") {
         observeRequest("unavailable");
       }
       return decision;
-    };
-    const denyReady = (reason?: "credential") => {
-      const decision = requestReady({ rootValid: false, configurationValid: false,
+    });
+    const denyReady = Effect.fn("ResidentRuntime.denyReady")(function* (reason?: "credential") {
+      const decision = yield* requestReady({ rootValid: false, configurationValid: false,
         credentialReady: false, selected: false, currentWork: false,
         physicalAvailable: false });
       if (decision.status === "issued") throw new Error("canonical Jev request authorized unverified facts");
       return { status: "notAuthorized" as const, reason };
-    };
-    const reportInterruption = (): void => {
+    });
+    const reportInterruption = Effect.fn("ResidentRuntime.reportInterruption")(function* () {
       if (issuedRequest === undefined || !requestStarted || interruptionReported) return;
-      interruptionReported = residentLedger.interruptJevRequest(job.partition,
+      interruptionReported = yield* residentLedger.interruptJevRequest(job.partition,
         job.canonicalOperationId, issuedRequest);
       if (interruptionReported) observeRequest("interrupted", issuedRequest);
-    };
+    }, Effect.uninterruptible);
     return Effect.gen(function* () {
       if (job.round !== undefined && job.workUnitId !== undefined &&
           !(yield* residentLedger.rounds.policyWork(job.round)).startUnit(job.workUnitId)) {
@@ -1972,7 +1972,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
       yield* residentAwaitBackendGate();
       if (!(yield* residentJobActive(job)) || !(yield* residentIsCurrentWork(job.revision, job.prepared))) {
-        denyReady();
+        (yield* denyReady());
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "stale");
         yield* residentSettleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
@@ -1994,12 +1994,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
-        if (job.dispatch.controlled !== null && controlled === undefined) return denyReady();
+        if (job.dispatch.controlled !== null && controlled === undefined) return (yield* denyReady());
         const credentialRequired = controlled === undefined || controlled.requireCredential === true;
-        if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return denyReady("credential");
+        if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return (yield* denyReady("credential"));
         const dispatchCredential = job.dispatch.credential;
-        if (credentialRequired && dispatchCredential === null) return denyReady("credential");
-        if (!(yield* verifyObservationRoot(job.observation))) return denyReady();
+        if (credentialRequired && dispatchCredential === null) return (yield* denyReady("credential"));
+        if (!(yield* verifyObservationRoot(job.observation))) return (yield* denyReady());
         yield* residentDispatchControls.atBoundary("authorized").pipe(
           Effect.mapError(() => new ResidentAdapterError({ operation: "authorization barrier" })));
         const credential = !credentialRequired || dispatchCredential === null
@@ -2012,19 +2012,19 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               statePath: dispatchCredential.statePath,
             }));
         if (credentialRequired && credential?.status !== "present") {
-          return denyReady("credential");
+          return (yield* denyReady("credential"));
         }
         if (credential?.status === "present") {
           const current = readCredentialState(dispatchCredential?.statePath);
           if (current.generation !== credential.generation ||
-              (credential.source === "saved" && current.savedUseSuspended)) return denyReady("credential");
+              (credential.source === "saved" && current.savedUseSuspended)) return (yield* denyReady("credential"));
         }
         yield* residentDispatchControls.atBoundary("credentialResolved").pipe(
           Effect.mapError(() => new ResidentAdapterError({ operation: "credential barrier" })));
         if (credential?.status === "present") {
           const current = readCredentialState(dispatchCredential?.statePath);
           if (current.generation !== credential.generation ||
-              (credential.source === "saved" && current.savedUseSuspended)) return denyReady("credential");
+              (credential.source === "saved" && current.savedUseSuspended)) return (yield* denyReady("credential"));
         }
         // Prepared source can outlive its admission policy. Read authority again
         // after credential waits, then apply the current file policy before the
@@ -2033,7 +2033,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
-        if (credentialRequired && dispatchCredential?.name !== dispatchConfiguration.policy.credentialEnvVar.value) return denyReady("credential");
+        if (credentialRequired && dispatchCredential?.name !== dispatchConfiguration.policy.credentialEnvVar.value) return (yield* denyReady("credential"));
         const dispatchRootVerified = yield* verifyObservationRoot(job.observation);
         if (!dispatchRootVerified) {
           yield* observeDispatchAuthority({
@@ -2046,7 +2046,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             credentialStatus: credential?.status ?? "not-required",
             credentialGeneration: credential?.generation ?? null,
           });
-          return denyReady();
+          return (yield* denyReady());
         }
         const selected = selectedByDirectFilePolicy(
           job.prepared.input.path,
@@ -2076,7 +2076,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           credentialStatus: credential?.status ?? "not-required",
           credentialGeneration: credential?.generation ?? null,
         });
-        const ready = requestReady({
+        const ready = yield* requestReady({
             rootValid: dispatchRootVerified, configurationValid: true,
             credentialReady: !credentialRequired || credential?.status === "present",
             selected: selected && unitCurrent, currentWork: yield* isCurrentWork(),
@@ -2118,15 +2118,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             ));
         const beforeDispatch = credentialAuthority.pipe(
           Effect.andThen(budgetAuthority),
-          Effect.andThen(Effect.sync(() => {
-            if (!residentLedger.startJevRequest(job.partition,
-              job.canonicalOperationId, ready.request)) {
+          Effect.andThen(Effect.gen(function* () {
+            if (!(yield* residentLedger.startJevRequest(job.partition,
+              job.canonicalOperationId, ready.request))) {
               throw new Error("canonical Jev request start refused");
             }
             requestStarted = true;
             job.requestStarted = true;
             observeRequest("started", ready.request);
-            if (signal?.aborted) reportInterruption();
+            if (signal?.aborted) yield* reportInterruption();
           })),
         );
         const evaluation = evaluatePrepared(job.prepared, beforeDispatch).pipe(
@@ -2223,7 +2223,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* recordOutcome();
         return;
       }
-      if (signal?.aborted) reportInterruption();
+      if (signal?.aborted) yield* reportInterruption();
       const observed = issuedRequest === undefined ? undefined
         : signal?.aborted && requestStarted && interruptionReported ? "interrupted"
         : !requestStarted ? "neverSent"
@@ -2265,10 +2265,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       Effect.onError(() => Effect.gen(function* () {
         if (!readyReported && residentLedger.canonicalProjection().work.some((entry) =>
           entry.operation === job.canonicalOperationId && entry.kind === "reviewing")) {
-          denyReady();
+          (yield* denyReady());
         }
         if (issuedRequest !== undefined && !requestSettled) {
-          if (signal?.aborted) reportInterruption();
+          if (signal?.aborted) yield* reportInterruption();
           const observed = signal?.aborted && requestStarted && interruptionReported
             ? "interrupted" : requestStarted ? "backendFailure" : "neverSent";
           (yield* residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
@@ -2285,12 +2285,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       })),
       Effect.catch(() => Effect.void),
       Effect.ensuring(Effect.gen(function* () {
-        signal.removeEventListener("abort", reportInterruption);
         if (!job.completed) {
           yield* residentReleaseReuseClaim(job.evaluationKey);
           yield* residentReleaseUnit(job);
         }
       })),
+      Effect.scoped,
     );
   }));
 
