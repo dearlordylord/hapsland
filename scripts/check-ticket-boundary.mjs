@@ -54,3 +54,10 @@ if (!state.includes('hasAdmission: Effect.fn("JoinedReviews.hasAdmission")') ||
     !server.includes('yield* residentJoined.retireSuperseded(subject)')) {
   throw new Error("joined admission reads and supersession retirement must compose Effects");
 }
+
+for (const operation of ["append", "attachOwner"]) {
+  if (!state.includes(`${operation}: Effect.fn("JoinedReviews.${operation}")`) ||
+      !server.includes(`yield* residentJoined.${operation}(`)) {
+    throw new Error(`joined ${operation} must compose as an Effect`);
+  }
+}

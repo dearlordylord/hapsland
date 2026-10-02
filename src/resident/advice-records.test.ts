@@ -154,7 +154,7 @@ it.effect("publishes the owner result and independent joined subscribers togethe
   const ownerUnit = (yield* owner.ticketUnits.add(ticket));
   const subscriber = (yield* owner.ticketUnits.add(ticket));
   const joined = owner.joinedReviews(() => 1);
-  joined.append({ admission: initial.admissionId, evaluationKey: initial.evaluationKey,
+  yield* joined.append({ admission: initial.admissionId, evaluationKey: initial.evaluationKey,
     observation, activityPath: undefined, ticketUnit: subscriber, revision: initial.revision });
   const advice = owner.advice.insert(initial);
   expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("pending");

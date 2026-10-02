@@ -138,7 +138,8 @@
     "Revision count composes as a named Effect in runtime statistics; count and supersession checks use one Ref snapshot and private Bend query drafts without publishing state",
     "Revision generation uses a named snapshot-read Effect; finding selection and final handoff offer construction compose generation queries directly as Effects",
     "All revision service operations are Effects: current checks read one captured snapshot, synchronous revisionCommit removed, composed submission and revalidation yield checks directly",
-    "Joined-review admission lookup reads an Effect snapshot instead of Ref.getUnsafe; supersession retirement composes an atomic Effect across joined, ticket-unit, revision and reuse drafts"
+    "Joined-review admission lookup reads an Effect snapshot instead of Ref.getUnsafe; supersession retirement composes an atomic Effect across joined, ticket-unit, revision and reuse drafts",
+    "Joined-review append and owner attachment compose named atomic Effects; runtime callers yield directly and defect rollback fixtures preserve no-partial-state checks"
   ],
   "verification": [
     {
@@ -1771,12 +1772,22 @@
       "build": true,
       "boundaryChecksPassed": 15,
       "case": "Reusable admission lookup observes append and release at execution; supersession preserves independent subject and ticket state"
+    },
+    {
+      "stage": "joined-append-attach-effects",
+      "affectedTestsPassed": 100,
+      "affectedTestFiles": 3,
+      "supplementaryJoinedTestsPassed": 7,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "cases": "Deferred append preserves membership until execution; failed subscriber construction and attachment preserve canonical and ticket-unit snapshots"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Finish joined append/attach/release/settle Effects, then remaining capacity, reuse, delivery, advice/capture and notice domain bridges",
+    "Finish joined release/settle Effects, then remaining capacity, reuse, delivery, advice/capture and notice domain bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",

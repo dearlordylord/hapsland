@@ -107,9 +107,9 @@ export const joinedReviewOperations = (
   };
 };
 export interface JoinedReviews<Pending> {
-  readonly append: (review: JoinedReview) => void;
+  readonly append: (review: JoinedReview) => Effect.Effect<void>;
   readonly hasAdmission: (admission: number) => Effect.Effect<boolean>;
-  readonly attachOwner: (key: string, pending: Pending, revision: WorkRevision) => boolean;
+  readonly attachOwner: (key: string, pending: Pending, revision: WorkRevision) => Effect.Effect<boolean>;
   readonly releaseOwner: (key: string, reason: TicketReason) => ReadonlyArray<JoinedReview>;
   readonly retireSuperseded: (subject: string) => Effect.Effect<ReadonlyArray<JoinedReview>>;
   readonly settle: ReturnType<typeof joinedReviewOperations>["settle"];

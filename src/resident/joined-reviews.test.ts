@@ -19,10 +19,10 @@ it.effect("attaches one owner and independently settles all joining ticket units
   const first = (yield* owner.ticketUnits.add(ticket));
   const second = (yield* owner.ticketUnits.add(ticket));
   expect(reuse.claim("key")).toBe(true);
-  joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: first });
-  joined.append({ admission: 2, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: second });
+  yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: first });
+  yield* joined.append({ admission: 2, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: second });
   const pending = Object.freeze({ id: 1 });
-  expect(joined.attachOwner("key", pending, revision)).toBe(true);
+  expect(yield* joined.attachOwner("key", pending, revision)).toBe(true);
   expect(reuse.pending("key")).toBe(pending);
   expect((yield* owner.ticketUnits.current(first)).revision).toBe(revision);
   expect((yield* owner.ticketUnits.current(second)).revision).toBe(revision);
@@ -46,8 +46,8 @@ it.effect("releases unbound subscribers with the claim while retaining attached 
   const unbound = (yield* owner.ticketUnits.add(ticket));
   const attached = (yield* owner.ticketUnits.add(ticket));
   reuse.claim("key");
-  joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unbound });
-  joined.append({ admission: 2, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: attached, revision });
+  yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unbound });
+  yield* joined.append({ admission: 2, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: attached, revision });
   expect(joined.releaseOwner("key", "backend").map((review) => review.admission)).toEqual([1]);
   expect(reuse.hasPending("key")).toBe(false);
   expect((yield* owner.ticketUnits.stage(unbound))).toMatchObject({ stage: "unavailable", reason: "backend" });
@@ -63,9 +63,9 @@ it.effect("rolls back unit attachment when native subscriber construction fails"
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = (yield* owner.ticketUnits.add(ticket));
   const before = owner.canonicalProjection();
-  expect(() => joined.append({ admission: 1, evaluationKey: "key", activityPath: undefined, ticketUnit: unit, revision,
+  expect(yield* defectMessage(joined.append({ admission: 1, evaluationKey: "key", activityPath: undefined, ticketUnit: unit, revision,
     observation: { get root(): string { throw new Error("fixture subscriber construction failed"); }, advicee: advicee() },
-  })).toThrow("subscriber construction failed");
+  }))).toContain("subscriber construction failed");
   expect(owner.canonicalProjection()).toEqual(before);
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect(yield* joined.hasAdmission(1)).toBe(false);
@@ -82,7 +82,7 @@ it.effect("clears joined membership with its owner and keeps independent acquisi
   expect(yield* second.tickets.open(input).pipe(Effect.sandbox, Effect.flip, Effect.map(Cause.pretty))).toContain("ticket admission identity refused");
   expect(second.canonicalProjection()).toEqual(before);
   const joined = first.joinedReviews(measure);
-  joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, revision });
+  yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, revision });
   expect(yield* second.joinedReviews(measure).hasAdmission(1)).toBe(false);
   first.clear();
   expect(yield* joined.hasAdmission(1)).toBe(false);
@@ -96,9 +96,9 @@ it.effect("rolls back owner and subscriber attachment together when the native c
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = (yield* owner.ticketUnits.add(ticket));
   reuse.claim("key");
-  joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unit });
+  yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unit });
   const before = owner.canonicalProjection();
-  expect(() => joined.attachOwner("key", undefined, revision)).toThrow("native evaluation handles");
+  expect(yield* defectMessage(joined.attachOwner("key", undefined, revision))).toContain("native evaluation handles");
   expect(owner.canonicalProjection()).toEqual(before);
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect(reuse.hasPending("key")).toBe(true);
@@ -124,10 +124,10 @@ it.effect("retires superseded subscribers without changing another subject's mem
   const independent = (yield* owner.revision.register("b", item, true, "independent")).revision;
   reuse.claim("first");
   reuse.claim("independent");
-  joined.append({ admission: 1, evaluationKey: "first", observation, activityPath: undefined, ticketUnit: oldUnit });
-  joined.append({ admission: 2, evaluationKey: "independent", observation, activityPath: undefined, ticketUnit: independentUnit });
-  joined.attachOwner("first", { token: "first" }, old);
-  joined.attachOwner("independent", { token: "independent" }, independent);
+  yield* joined.append({ admission: 1, evaluationKey: "first", observation, activityPath: undefined, ticketUnit: oldUnit });
+  yield* joined.append({ admission: 2, evaluationKey: "independent", observation, activityPath: undefined, ticketUnit: independentUnit });
+  yield* joined.attachOwner("first", { token: "first" }, old);
+  yield* joined.attachOwner("independent", { token: "independent" }, independent);
   yield* owner.revision.register("a", prepare("type Count = string"), true, "replacement");
   expect((yield* joined.retireSuperseded(old.subject)).map((review) => review.admission)).toEqual([1]);
   expect((yield* owner.ticketUnits.stage(oldUnit))).toMatchObject({ stage: "unavailable", reason: "stale" });
@@ -141,9 +141,15 @@ it.effect("reads joined admission membership at execution", () => Effect.gen(fun
   const owner = yield* makeResidentState();
   const joined = owner.joinedReviews(measure);
   const member = joined.hasAdmission(42);
+  const append = joined.append({ admission: 42, evaluationKey: "deferred", observation, activityPath: undefined });
   expect(yield* member).toBe(false);
-  joined.append({ admission: 42, evaluationKey: "deferred", observation, activityPath: undefined });
+  yield* append;
   expect(yield* member).toBe(true);
   joined.releaseOwner("deferred", "lost");
   expect(yield* member).toBe(false);
 }));
+
+const defectMessage = <A>(effect: Effect.Effect<A>) => Effect.gen(function* () {
+  const exit = yield* Effect.exit(effect);
+  return exit._tag === "Failure" ? Cause.pretty(exit.cause) : "no defect";
+});

@@ -1750,7 +1750,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                   activityPath: job.dispatch.activityPath,
                   ...(ticketUnit === undefined ? {} : { ticketUnit }),
                   ...(pending === undefined ? {} : { revision: pending.revision }) };
-                residentJoined.append(joined);
+                yield* residentJoined.append(joined);
                 expectedActivityUnits.push(item.evaluationKey);
               }
             }
@@ -1841,7 +1841,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             })));
             continue;
           }
-          if (!residentJoined.attachOwner(item.evaluationKey, unit, revision)) {
+          if (!(yield* residentJoined.attachOwner(item.evaluationKey, unit, revision))) {
             throw new Error("canonical evaluation attachment refused");
           }
           unassignedClaims.delete(item.evaluationKey);

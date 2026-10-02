@@ -627,15 +627,16 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       const joinedCommit = <A>(operation: (joined: ReturnType<typeof joinedReviewOperations>, reuse: EvaluationReuse<Pending>) => A): A =>
         commitAll(joinedChange(operation));
       return {
-        append: (review) => joinedCommit((joined) => joined.append(review)),
+        append: Effect.fn("JoinedReviews.append")((review: Parameters<JoinedReviews<Pending>["append"]>[0]) =>
+          commitAllEffect(joinedChange((joined) => joined.append(review)))),
         hasAdmission: Effect.fn("JoinedReviews.hasAdmission")((admission: number) =>
           Ref.get(state).pipe(Effect.map((snapshot) => [...snapshot.records.joined.entries.values()]
             .some((reviews) => reviews.some((review) => review.admission === admission))))),
-        attachOwner: (key, pending, revision) => joinedCommit((joined, reuse) => {
+        attachOwner: Effect.fn("JoinedReviews.attachOwner")((key: string, pending: Pending, revision: WorkRevision) => commitAllEffect(joinedChange((joined, reuse) => {
           if (!reuse.attachPending(key, pending)) return false;
           joined.attach(key, revision);
           return true;
-        }),
+        }))),
         releaseOwner: (key, reason) => joinedCommit((joined, reuse) => {
           reuse.releaseClaim(key);
           return joined.releaseUnattached(key, reason);
