@@ -43,6 +43,15 @@ export interface AudioEncoding {
 
 This permits `sampleRate: 44100` alongside `track.encoding.sampleRate: 48000`, although the domain says both describe the stored track’s native rate. The clean resampling case has a similar shape but a different meaning: its root rate is a playback request, so that combination must remain valid.
 
+Read the four defective **starting-code examples**, each with related definitions and a concrete contradictory value accepted by TypeScript:
+
+- [Build provenance](./examples/duplicate-encoding/build-provenance.ts)
+- [Audio encoding](./examples/duplicate-encoding/audio-encoding.ts)
+- [Stored compression](./examples/duplicate-encoding/storage-envelope.ts)
+- [Session access](./examples/duplicate-encoding/session-grant.ts)
+
+All four exercise the same duplicate-encoding rule. For comparison, [audio resampling](./examples/duplicate-encoding/clean-audio-resampling.ts) and [future repack](./examples/duplicate-encoding/clean-storage-repack.ts) show similar shapes where different values are valid. These readable files combine the original two-file fixtures; the frozen inputs remain the evidence owner.
+
 The links below show **final source from repetition 1**, not starting inputs. Open the adjacent `support.ts` to inspect the related definitions. This is a code navigation example, not a replacement for the aggregate results across all three repetitions.
 
 | Case | Required domain behavior | Hapsland final code | Abide final code |
