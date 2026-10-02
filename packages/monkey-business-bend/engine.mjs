@@ -16581,7 +16581,8 @@ function $retained_captures$(_items_0, _canonical_0) {
     const _operation_0 = _t_0["operation"];
     const __0 = _t_0["generation"];
     const _tail_0 = _items_0["tail"];
-    return $Bool$pick$(($captured_authority_present$(_operation_0, _canonical_0)), {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": __0}, "tail": ($retained_captures$(_tail_0, _canonical_0))}, ($retained_captures$(_tail_0, _canonical_0)));
+    const _remaining_0 = ($retained_captures$(_tail_0, _canonical_0));
+    return $Bool$pick$(($captured_authority_present$(_operation_0, _canonical_0)), {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": __0}, "tail": _remaining_0}, _remaining_0);
   }
 }
 
@@ -17218,7 +17219,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:4727e0046d18986010a3ae63da8433d1da7d248e80189b464f8bfc7a9b9669b3";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:c5a3ee6a7555eeccee4bdc6f9bc2645db92fdec711be515bfbc2e3a9a54a59ea";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:21b3255c6e5331343f54a58c07f91ea938d8f08f6dcf4e29830baeb4239152e9";
 
 const facts = value => {

@@ -61,7 +61,8 @@ def retained_captures(items: List<&2, CredentialFacts.Capture>, +canonical: Cano
     case +item <> +tail:
       match item:
         case CredentialFacts.Capture{operation, _}:
-          Bool.pick(List<&2, CredentialFacts.Capture>, captured_authority_present(operation, canonical), item <> retained_captures(tail, canonical), retained_captures(tail, canonical))
+          +remaining = {retained_captures(tail, canonical) : List<&2, CredentialFacts.Capture>}
+          Bool.pick(List<&2, CredentialFacts.Capture>, captured_authority_present(operation, canonical), item <> remaining, remaining)
 
 def retained_credentials(credentials: CredentialFacts.State, canonical: Canonical.State) -> CredentialFacts.State:
   match credentials:
