@@ -14,18 +14,47 @@ After acquiring a verified package through the [installation lanes](installation
 
 ```sh
 hapsland setup codex
-hapsland doctor codex
-hapsland repair codex
-hapsland reinstall codex
-hapsland uninstall codex
-hapsland update codex
-hapsland update codex --channel=next
 ```
 
-Setup previews owned changes, asks before installation, offers masked entry for a missing saved key, and reports offline readiness without a Jev call. Updates reuse a verified identical target or stage it in a separate prefix, preview every owned hook, and apply the digest after confirmation. Public lifecycle commands follow the active package. Repair restores missing hooks; explicit reinstall replaces changed marked handlers while preserving user settings and credentials. Doctor and the other bare commands cover all registered Claude/Codex profiles. Finish current client work, restart, and complete native trust review. For local builds, use `npm run dev-install -- --host=codex`; add `--update` for an existing registration. Both client profiles default to user scope; effective file settings bound review across repositories.
+Setup previews owned hooks, asks before installation, offers masked entry for a
+missing Jev key, and reports offline readiness without contacting Jev. Finish
+current client work, restart the client, and complete its native trust prompts.
+The default registration is user-wide: [file settings](configuration.md) control
+which repositories and files can be reviewed.
+
+For a fresh checkout build, use `npm run dev-install -- --host=codex`; add
+`--update` when this profile already has Hapsland. See the
+[personal development workflow](installation-workflows.md#personal-development-on-your-own-clients).
+
+Update this integration separately:
+
+```sh
+hapsland update codex
+```
+
+Use `--channel=next` to select a published candidate. Updates stage or reuse a
+verified package, preview hook changes, and ask before applying them. Public
+lifecycle commands then follow the active package.
+
+If setup or review is not working, diagnose it without changing files:
+
+```sh
+hapsland doctor codex
+```
+
+Run recovery or removal only for the action you intend:
+
+| Command | Action |
+| --- | --- |
+| `hapsland repair codex` | Restore missing hooks or resume a supported interrupted operation. |
+| `hapsland reinstall codex` | Replace damaged marked Hapsland handlers while preserving user settings and credentials. |
+| `hapsland uninstall codex` | Preview and remove this integration. |
+
+See [recovery and removal](installation-workflows.md#disablement-removal-and-recovery)
+for ownership conflicts and interrupted operations. Omitting the client name
+checks or acts on every registered Claude/Codex profile; setup opens the selector.
 
 ## Lifecycle automation
-
 
 For supported source languages and limitations, see the
 [supported-language table](../README.md#supported-languages).

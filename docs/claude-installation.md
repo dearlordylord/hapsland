@@ -14,18 +14,47 @@ After acquiring a verified package through the [installation lanes](installation
 
 ```sh
 hapsland setup claude
-hapsland doctor claude
-hapsland repair claude
-hapsland reinstall claude
-hapsland uninstall claude
-hapsland update claude
-hapsland update claude --channel=next
 ```
 
-Setup previews owned changes, asks before installation, offers masked entry for a missing saved key, and reports offline readiness without a Jev call. Updates reuse a verified identical target or stage it in a separate prefix, preview every owned hook, and apply the digest after confirmation. Public lifecycle commands follow the active package. Repair restores missing hooks; explicit reinstall replaces changed marked handlers while preserving user settings and credentials. Doctor and the other bare commands cover all registered Claude/Codex profiles. Finish current client work, restart, and complete native trust review. For local builds, use `npm run dev-install -- --host=claude`; add `--update` for an existing registration. Both client profiles default to user scope; effective file settings bound review across repositories.
+Setup previews owned hooks, asks before installation, offers masked entry for a
+missing Jev key, and reports offline readiness without contacting Jev. Finish
+current client work, restart the client, and complete its native trust prompts.
+The default registration is user-wide: [file settings](configuration.md) control
+which repositories and files can be reviewed.
+
+For a fresh checkout build, use `npm run dev-install -- --host=claude`; add
+`--update` when this profile already has Hapsland. See the
+[personal development workflow](installation-workflows.md#personal-development-on-your-own-clients).
+
+Update this integration separately:
+
+```sh
+hapsland update claude
+```
+
+Use `--channel=next` to select a published candidate. Updates stage or reuse a
+verified package, preview hook changes, and ask before applying them. Public
+lifecycle commands then follow the active package.
+
+If setup or review is not working, diagnose it without changing files:
+
+```sh
+hapsland doctor claude
+```
+
+Run recovery or removal only for the action you intend:
+
+| Command | Action |
+| --- | --- |
+| `hapsland repair claude` | Restore missing hooks or resume a supported interrupted operation. |
+| `hapsland reinstall claude` | Replace damaged marked Hapsland handlers while preserving user settings and credentials. |
+| `hapsland uninstall claude` | Preview and remove this integration. |
+
+See [recovery and removal](installation-workflows.md#disablement-removal-and-recovery)
+for ownership conflicts and interrupted operations. Omitting the client name
+checks or acts on every registered Claude/Codex profile; setup opens the selector.
 
 ## Lifecycle automation
-
 
 For supported source languages and limitations, see the
 [supported-language table](../README.md#supported-languages).
@@ -43,8 +72,8 @@ printf '%s\n' '{"version":1,"operation":"uninstall","host":"claude"}' | hapsland
 printf '%s\n' '{"version":1,"operation":"uninstall","host":"claude","proposalDigest":"<digest>"}' | hapsland --uninstall
 ```
 
-The installer checks the selected executable's exact host version, Node `v24.20.0`, and the packaged CLI entrypoint. It installs a synchronous `PreToolUse` permit command, one marked `PostToolUse` `Edit|Write` group containing synchronous and asynchronous commands, and prompt, Stop, and SubagentStop commands. Those commands share the resident's admission, advice, lease, and round state. The synchronous edit command may return current advice within its hook budget; background or Stop may offer it later. The installer records owned fingerprints under `~/.claude/.realtime-review-tool/`. Existing settings and unrelated hooks remain in order. Inspection reports missing, duplicated, or modified owned entries as a damaged integration. Update/repair can restore missing entries; explicit reinstall replaces modified or duplicate marked handlers. Removal tolerates missing entries and preserves unrelated hooks. A digest mismatch requires a fresh preview.
+The installer checks the selected executable's exact host version, Node `v24.20.0`, and the packaged CLI entrypoint. It installs a synchronous `PreToolUse` permit command, one marked `PostToolUse` `Edit|Write` group containing one synchronous command, and prompt, Stop, and SubagentStop commands. Those commands share the resident's admission, advice, lease, and round state. The synchronous edit command may return current advice within its hook budget; Stop may offer it later as a safety net. Claude has no asynchronous PostToolUse collector, so background output cannot consume advice before Stop. The installer records owned fingerprints under `~/.claude/.realtime-review-tool/`. Existing settings and unrelated hooks remain in order. Inspection reports missing, duplicated, or modified owned entries as a damaged integration. Update/repair can restore missing entries; explicit reinstall replaces modified or duplicate marked handlers. Removal tolerates missing entries and preserves unrelated hooks. A digest mismatch requires a fresh preview.
 
-The hook has a five-second host timeout; the handler's resident collection bound is shorter. The preview discloses all events, matchers, foreground/background commands, timeouts and configuration files. Claude Code owns workspace trust and native hook approval. With Jev credentials available, effective file settings select otherwise eligible files by default. User exclusions can turn review off. The installer does not change native trust or file settings. `doctor` is read-only and reports native trust, file settings, and credential accessibility. Headless Claude Code trust behavior can differ from interactive use.
+The edit hook has a five-second host timeout; the handler's resident collection bound remains approximately 3.9 seconds. A finite deadline does not guarantee a review result. The preview discloses all events, matchers, foreground/background commands, timeouts and configuration files. Claude Code owns workspace trust and native hook approval. With Jev credentials available, effective file settings select otherwise eligible files by default. User exclusions can turn review off. The installer does not change native trust or file settings. `doctor` is read-only and reports native trust, file settings, and credential accessibility. Headless Claude Code trust behavior can differ from interactive use.
 
 For automation, `install-preview` and `install` accept `reinstall: true` with the same proposal-digest authorization. This explicitly replaces marked Hapsland entries and can replace damaged ownership metadata. See [recovery and removal](installation-workflows.md#disablement-removal-and-recovery) for journal recovery and the limits of safe reconstruction.

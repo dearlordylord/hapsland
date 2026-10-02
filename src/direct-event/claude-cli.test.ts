@@ -451,7 +451,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(readFileSync(path, "utf8")).toBe(source);
   });
 
-  it("submits six ready findings in one encoded Claude background response", async () => {
+  it("submits six ready findings through Stop without a background submission", async () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
@@ -495,11 +495,19 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 7_000, env,
       });
     expect(background.status).toBe(0);
-    const output = JSON.parse(background.stdout) as { hookSpecificOutput?: { additionalContext: string } };
-    const context = output.hookSpecificOutput?.additionalContext ?? "";
+    expect(background.stdout).toBe("");
+    const stop = spawnSync(process.execPath,
+      ["src/cli.ts", "--controlled-reviewer", "--composed-stop-hook", "--composed-host=claude-code"], {
+        cwd: process.cwd(), encoding: "utf8", timeout: 7_000, env,
+        input: JSON.stringify({ hook_event_name: "Stop", cwd: root, session_id: event.session_id, stop_hook_active: false }),
+      });
+    expect(stop.status).toBe(0);
+    const output = JSON.parse(stop.stdout) as { decision?: string; reason?: string };
+    expect(output.decision).toBe("block");
+    const context = output.reason ?? "";
     expect([...context.matchAll(/\[r6_bare_domain_value/g)]).toHaveLength(6);
     for (let index = 0; index < 6; index++) expect(context).toContain(`Count${index}`);
-    expect(Buffer.byteLength(background.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
+    expect(Buffer.byteLength(stop.stdout, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(readFileSync(path, "utf8")).toBe(source);
   });
 
@@ -651,16 +659,13 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         frame += chunk.toString("utf8");
         const newline = frame.indexOf("\n");
         if (newline < 0) return;
-        const request = JSON.parse(frame.slice(0, newline)) as { operation: string; version: number; ticketed?: boolean };
+        const request = JSON.parse(frame.slice(0, newline)) as { operation: string; version: number };
         operations.push(request.operation);
         versions.push(request.version);
         const response = request.operation === "hello"
           ? JSON.stringify({ version: 1, status: "ready", lifetime: "fake-lifetime", pid: process.pid })
-          : request.operation === "admit" && request.ticketed === true
-            ? JSON.stringify({ version: 1, status: "accepted",
-                ticket: { nonce: "fake-ticket", lifetime: "fake-lifetime" } })
-            : request.operation === "collect"
-              ? reply
+          : request.operation === "admit-and-collect"
+            ? reply
               : JSON.stringify({ version: 1, status: "unsupported" });
         socket.end(`${response}\n`);
       });
@@ -688,7 +693,9 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       expect(await completed, stderr).toBe(0);
       expect(JSON.parse(stdout)).toEqual({});
       expect(stdout).not.toContain("forged advice");
-      expect(operations).toContain("collect");
+      expect(operations).toContain("admit-and-collect");
+      expect(operations).not.toContain("admit");
+      expect(operations).not.toContain("collect");
       expect(versions.every((version) => version === 1)).toBe(true);
       expect(operations).not.toContain("begin-submission");
       expect(operations).not.toContain("acknowledge");
@@ -757,7 +764,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(readFileSync(path, "utf8")).toBe("type ConcurrentCount = number\n");
   }, 40_000);
 
-  it("returns quietly at the edit budget and offers slow advice to background", async () => {
+  it("returns quietly at the edit budget without a Claude background delivery", async () => {
     const root = await makeGitFixture();
     roots.push(root);
     const statePath = join(root, "consent");
@@ -789,9 +796,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         cwd: process.cwd(), input: JSON.stringify(event), encoding: "utf8", timeout: 22_000, env,
       });
     expect(background.status).toBe(0);
-    expect(JSON.parse(background.stdout)).toMatchObject({ hookSpecificOutput: {
-      hookEventName: "PostToolUse", additionalContext: expect.stringContaining("OrderCount"),
-    } });
+    expect(background.stdout).toBe("");
     expect(readFileSync(path, "utf8")).toBe("type OrderCount = number\n");
   });
 

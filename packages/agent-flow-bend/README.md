@@ -60,7 +60,7 @@ before passing its byte count to Bend.
 
 The resident enters `Canonical.step` through the shared adapter for admission permits, source and
 review work, composed rounds, finding selection and leases, finish waiting,
-ticket unit transitions and terminal outcomes, cancellation IDs, response
+response authority and joined evaluation disposition, cancellation IDs, response
 limits, logical capacity,
 background-writer claims,
 notice cooldown admission, collection order, readiness, expiry, output-token
@@ -81,12 +81,14 @@ it grants one same round Stop reoffer for terminal background advice.
 generation, and live same-input member counts. The resident uses its canonical
 register, release, and supersession commands to fence older review callbacks
 and retire their advice without changing another advicee's work.
-`TicketState.bend` retains admission identities and a flat set of per-unit
-review facts; every unit names its admission. It stores no reverse unit list
-or aggregate outcome phase. The resident derives collection availability from
-live work and advice, while canonical authority checks guard expiry and
-credentials. Duplicate delivered marks and late results for unavailable units
-are refused.
+`CollectorAuthority.bend` checks expiry, credential validity, and final opt-in
+for an active Claude edit response. The native RPC binds its immutable authority
+to the resident lifetime and original round, checked against common lifecycle
+and round state. The resident keeps this authority only in the bounded RPC
+context. It derives availability from common work and advice; no response
+authority registry or per-unit
+outcome mirror remains. `Reuse.bend` decides settlement of joined evaluations
+against the shared revision and advice state.
 `ReuseState.bend` retains source-free evaluation claims and successful cache
 LRU order. The resident follows canonical route, admission, eviction, and
 partition expiry commands while keeping request handles and cached payloads

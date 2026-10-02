@@ -383,7 +383,7 @@ export const actSimulation = (
         // One resident ledger and execution pool serve every independent generator.
         limits: { globalItems: 32, partitionItems: 16, globalBytes: 2000, partitionBytes: 2000 },
         lifecycles: { permits: { adviceeLimit: 16, residentLimit: 64, holdMs: 1 }, collectors: { capacity: 64 }, reuse: { entryLimit: demoLimits.entryLimit, byteLimit: demoLimits.byteLimit }, quietWindowMs: 60000 },
-        resourceScenarios: model.resourceScenario === "none" ? undefined : { ticketRetention: demoLimits.ticketRetention, noticeMaximumKeys: demoLimits.noticeMaximumKeys, tickets: model.resourceScenario === "tickets", notices: model.resourceScenario === "notices", outputFit: model.resourceScenario === "fit" || model.resourceScenario === "oversized", outputBytes: model.resourceScenario === "oversized" ? 10241 : 512 },
+        resourceScenarios: model.resourceScenario === "none" ? undefined : { noticeMaximumKeys: demoLimits.noticeMaximumKeys, notices: model.resourceScenario === "notices", outputFit: model.resourceScenario === "fit" || model.resourceScenario === "oversized", outputBytes: model.resourceScenario === "oversized" ? 10241 : 512 },
         environment: environmentFacts(model),
         outputProfile: outputProfile(model),
         seed: number(model.seed, "Seed", 0, 0xffffffff),
@@ -754,7 +754,7 @@ export const simulationView = <Message>(
         h.p([h.Class("simulation-tree-active")], [activeTrees ? `Applied to new preparations: ${treeSummary(activeTrees)} · source ${activeTrees.minSourceBytes}–${activeTrees.maxSourceBytes} B/file · evidence ${activeTrees.minTreeBytes}–${activeTrees.maxTreeBytes} B/file.` : "Start / reset applies the draft generation settings."]),
         h.p([], ["Changes apply when a preparation starts. In-flight trees stay fixed. Checked graph budgets remain 8 files read, depth 4 and 20 KiB of accepted evidence. Generation may exceed those budgets. Reservation bytes are a separate review admission fact."]),
       ]),
-      h.div([h.Class("simulation-resource-scenario")], [select("resourceScenario", "Optional resource exercise · applies on Start resident", model.resourceScenario, ["none", "tickets", "notices", "fit", "oversized"]), h.p([], ["Tickets are explicit exercises. Notices use simulated failures and cooldown clocks. Output bytes are supplied synthetic facts; native encoding is not measured."])]),
+      h.div([h.Class("simulation-resource-scenario")], [select("resourceScenario", "Optional resource exercise · applies on Start resident", model.resourceScenario, ["none", "notices", "fit", "oversized"]), h.p([], ["Notices use simulated failures and cooldown clocks. Output bytes are supplied synthetic facts; native encoding is not measured."])]),
       h.details([h.Class("simulation-outcome-mix")], [
         h.summary([], ["Simulated Jev outcome mix · " + draftMix]),
         h.p([], ["Changes affect new requests. Relative weights determine the displayed probabilities." ]),

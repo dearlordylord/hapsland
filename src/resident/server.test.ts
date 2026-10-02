@@ -72,7 +72,7 @@ describe("virtual round quiescence", () => {
       controlled: { answers: Object.fromEntries(configuredRules.map((rule) =>
         [rule.id, { _tag: "Probability" as const, probability: 0 }])) } };
     try {
-      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
       await server.whenIdle();
       expect(server.pendingAdviceMetadata()).toEqual([]);
       expect(server.sweepQuietRounds(1_000)).toBe(0);
@@ -141,7 +141,7 @@ describe("canonical resident capacity", () => {
       beforeEvaluate: async () => { started.resolve(); await release.promise; },
     });
     try {
-      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
       await started.promise;
       expect(captured).toEqual(["type.ts"]);
       clock = 200;
@@ -327,7 +327,7 @@ describe("resident delivery lease", () => {
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
     try {
-      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
       await entered.promise;
       expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "held" })).status).toBe("advanced");
@@ -364,7 +364,7 @@ describe("resident delivery lease", () => {
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
     try {
-      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
       await started.promise;
       expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "fanout" })).status).toBe("advanced");
@@ -402,7 +402,7 @@ describe("resident delivery lease", () => {
     });
     const dispatch = findingDispatch(statePath);
     try {
-      server.admit(observation, dispatch, false, true);
+      server.admit(observation, dispatch, true);
       await started.promise;
       await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" });
@@ -415,7 +415,7 @@ describe("resident delivery lease", () => {
       // A second admitted observation must keep already completed advice waiting.
       const next = { ...observation, advicee: { ...observation.advicee, toolUseId: "second" },
         candidates: [{ ...observation.candidates[0]!, path: "second.ts" }] };
-      server.admit(next, dispatch, false, true);
+      server.admit(next, dispatch, true);
       expect((await server.handle(request)).status).toBe("pending");
       await server.whenIdle();
       const decision = await server.handle(request);
@@ -442,12 +442,12 @@ describe("resident delivery lease", () => {
     });
     const dispatch = findingDispatch(statePath);
     try {
-      server.admit(observation, dispatch, false, true);
+      server.admit(observation, dispatch, true);
       await server.whenIdle();
       hold = true;
       const next = { ...observation, advicee: { ...observation.advicee, toolUseId: "second" },
         candidates: [{ ...observation.candidates[0]!, path: "second.ts" }] };
-      server.admit(next, dispatch, false, true);
+      server.admit(next, dispatch, true);
       await started.promise;
       await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" });
@@ -466,7 +466,7 @@ describe("resident delivery lease", () => {
       gate.resolve(); hold = false;
       await server.whenIdle();
       expect(server.stats().pendingFindingBatches).toBe(1);
-      expect(server.admit({ ...next, advicee: { ...next.advicee, toolUseId: "repair" } }, dispatch, false, true).status).toBe("accepted");
+      expect(server.admit({ ...next, advicee: { ...next.advicee, toolUseId: "repair" } }, dispatch, true).status).toBe("accepted");
       await server.whenIdle();
       expect(server.stats().pendingFindingBatches).toBe(2);
     } finally {
@@ -484,7 +484,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     try {
-      server.admit(observation, dispatch, false, true);
+      server.admit(observation, dispatch, true);
       await server.whenIdle();
       const background = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
@@ -530,7 +530,7 @@ describe("resident delivery lease", () => {
     const dispatch = findingDispatch(statePath);
     try {
       await server.listen();
-      server.admit(observation, dispatch, false, true);
+      server.admit(observation, dispatch, true);
       await started.promise;
       await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" });
@@ -552,7 +552,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
     const dispatch = { ...findingDispatch(statePath), controlled: { failure: "fixture unavailable" } };
     try {
-      server.admit(observation, dispatch, false, true);
+      server.admit(observation, dispatch, true);
       await server.whenIdle();
       const collect = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary" as const, composed: true as const };
@@ -565,7 +565,7 @@ describe("resident delivery lease", () => {
     } finally { await server.close(); }
   });
 
-  it.each(["shared", "ticketed"] as const)("rejects noncomposed %s socket admission before any review", async (requestRoute) => {
+  it.each(["shared"] as const)("rejects noncomposed %s socket admission before any review", async (requestRoute) => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
@@ -613,9 +613,9 @@ describe("resident delivery lease", () => {
     try {
       expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
         lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-      const admission = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit",
+      const admission = await residentRequest(paths, { requestRoute: "shared", operation: "admit",
         lifetime: server.lifetime, observation, dispatch, controlledWriter: true, composed: true });
-      if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("missing ticket");
+      if (admission.status !== "accepted") throw new Error("missing admission");
       await server.whenIdle();
       const collect = { requestRoute: "shared" as const, operation: "collect" as const,
         lifetime: server.lifetime, root, advicee: observation.advicee, dispatch, composed: true as const };
@@ -626,9 +626,9 @@ describe("resident delivery lease", () => {
           lifetime: server.lifetime, token: ordinary.token })).status).toBe("empty");
       }
       server.releaseDelivery(ordinary.token);
-      for (const requestRoute of ["shared", "ticketed"] as const) {
+      for (const requestRoute of ["shared"] as const) {
         for (const composed of [undefined, false, true]) {
-          const unsupported = { ...collect, requestRoute, ticket: admission.ticket, composed,
+          const unsupported = { ...collect, requestRoute, composed,
             mode: "turn-end" } as unknown as ResidentRequest;
           expect((await residentRequest(paths, unsupported)).status).toBe("unsupported");
           expect((await server.handle(unsupported)).status).toBe("unsupported");
@@ -749,7 +749,7 @@ describe("resident delivery lease", () => {
     });
     const activityPath = join(root, "activity");
     const dispatch = { ...findingDispatch(statePath), activityPath };
-    expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+    expect(server.admit(observation, dispatch, true).status).toBe("accepted");
     await started.promise;
     expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "stop" })).toEqual({ status: "advanced" });
@@ -759,7 +759,7 @@ describe("resident delivery lease", () => {
     await server.whenIdle();
     expect(server.stats().pendingAdvice).toBe(0);
     expect(server.stats().pendingEvaluations).toBe(0);
-    expect(server.admit({ ...observation, advicee: { ...observation.advicee, toolUseId: "late" } }, dispatch, false, true).status)
+    expect(server.admit({ ...observation, advicee: { ...observation.advicee, toolUseId: "late" } }, dispatch, true).status)
       .toBe("rejected-stale");
     expect((await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true })).status).toBe("empty");
@@ -794,7 +794,7 @@ describe("resident delivery lease", () => {
     });
     const dispatch = findingDispatch(join(root, "state"));
     try {
-      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
       await entered.promise;
       expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "old-stop" })).toEqual({ status: "advanced" });
@@ -803,7 +803,7 @@ describe("resident delivery lease", () => {
       const successor = { ...observation, advicee: { ...observation.advicee, toolUseId: "successor-edit" } };
       expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: successor.advicee, startedAt: monotonicNow() })).toEqual({ status: "advanced" });
-      expect(server.admit(successor, dispatch, false, true, true).status).toBe("accepted");
+      expect(server.admit(successor, dispatch, true, true).status).toBe("accepted");
       release.resolve();
       await server.whenIdle();
       expect(server.stats().pendingFindingBatches).toBe(1);
@@ -825,7 +825,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const activityPath = join(root, "activity");
     const dispatch = { ...findingDispatch(statePath), activityPath };
-    server.admit(observation, dispatch, false, true);
+    server.admit(observation, dispatch, true);
     await server.whenIdle();
     const collect = () => server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
@@ -876,7 +876,7 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     try {
       const dispatch = findingDispatch(statePath);
-      server.admit(observation, dispatch, false, true);
+      server.admit(observation, dispatch, true);
       await server.whenIdle();
       const background = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
@@ -903,7 +903,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return;
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const request = { requestRoute: "shared" as const, operation: "collect" as const,
       lifetime: server.lifetime, root, advicee: observation.advicee,
@@ -949,8 +949,8 @@ describe("resident delivery lease", () => {
     let clock = 100;
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(codex, dispatch, false, true)).toEqual({ status: "accepted" });
-    expect(server.admit(claude, dispatch, false, true)).toEqual({ status: "accepted" });
+    expect(server.admit(codex, dispatch, true)).toEqual({ status: "accepted" });
+    expect(server.admit(claude, dispatch, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const collect = (adviceeValue: typeof codex.advicee | typeof claude.advicee,
       mode: "ordinary" | "turn-end") => server.handle({
@@ -1024,7 +1024,7 @@ describe("resident delivery lease", () => {
     } };
     const paths = residentPaths(join(root, "runtime"));
     const server = new ResidentServer(paths);
-    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
@@ -1041,7 +1041,7 @@ describe("resident delivery lease", () => {
       writeFileSync(credentialStatePath, credentialState(2));
     } });
     try {
-      expect(gated.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+      expect(gated.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
       await gated.whenIdle();
       await gated.listen();
       const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: gated.lifetime,
@@ -1072,7 +1072,7 @@ describe("resident delivery lease", () => {
       writeFileSync(credentialStatePath, credentialState(2));
     } });
     try {
-      expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+      expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
       await server.whenIdle();
       await server.listen();
       expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
@@ -1104,7 +1104,7 @@ describe("resident delivery lease", () => {
         root, advicee: observation.advicee, token: "finish", close: false })).toEqual({ status: "advanced" });
     } });
     try {
-      expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+      expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
       await server.whenIdle();
       await server.listen();
       expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
@@ -1143,10 +1143,10 @@ describe("resident delivery lease", () => {
       if (invalidate) now = PENDING_ADVICE_EXPIRY_MS + 1;
     } });
     try {
-      expect(server.admit(finding, dispatch, false, true)).toEqual({ status: "accepted" });
+      expect(server.admit(finding, dispatch, true)).toEqual({ status: "accepted" });
       await server.whenIdle();
       now = Math.floor(PENDING_ADVICE_EXPIRY_MS / 2);
-      expect(server.admit(failure, failedDispatch, false, true)).toEqual({ status: "accepted" });
+      expect(server.admit(failure, failedDispatch, true)).toEqual({ status: "accepted" });
       await server.whenIdle();
       await server.listen();
       const request = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
@@ -1194,7 +1194,7 @@ describe("resident delivery lease", () => {
     }
   });
 
-  it("shares Claude capacity and canonical round across edits while keeping ticket authority", async () => {
+  it("shares Claude capacity and canonical round across edits and a common advice batch", async () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type FirstCount = number\n");
     await put(root, "second.ts", "type SecondCount = number\n");
@@ -1212,10 +1212,10 @@ describe("resident delivery lease", () => {
     });
     const dispatch = findingDispatch(join(root, "state"));
     try {
-      const admittedFirst = server.admit(first, dispatch, true, true);
+      const admittedFirst = server.admit(first, dispatch, true);
       expect(admittedFirst.status).toBe("accepted");
       await server.whenIdle();
-      const admittedSecond = server.admit(second, dispatch, true, true);
+      const admittedSecond = server.admit(second, dispatch, true);
       expect(admittedSecond.status).toBe("accepted");
       await server.whenIdle();
       expect(issued).toHaveLength(2);
@@ -1223,18 +1223,9 @@ describe("resident delivery lease", () => {
       expect(new Set(issued.map(({ round }) => round)).size).toBe(1);
       expect(issued[0]?.partition).not.toContain("toolUseId");
       expect(issued[0]?.partition).not.toContain("round:");
-      if (!("ticket" in admittedFirst) || !("ticket" in admittedSecond)) throw new Error("missing ticket");
-      const request = { requestRoute: "ticketed" as const, operation: "collect" as const,
-        lifetime: server.lifetime, root, advicee: second.advicee, dispatch,
-        mode: "ordinary" as const, composed: true as const };
-      expect(await server.handle({ ...request, ticket: admittedFirst.ticket }))
-        .toEqual({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
-      const collected = await server.handle({ ...request, ticket: admittedSecond.ticket });
-      expect(collected.status).toBe("advice");
-      if (collected.status !== "advice") throw new Error("missing advice");
-      const text = claudeHostOutputText(collected.output);
-      expect(text).toContain("first.ts");
-      expect(text).toContain("second.ts");
+      const collected = await server.handle({ requestRoute: "shared", operation: "collect",
+        lifetime: server.lifetime, root, advicee: second.advicee, dispatch, composed: true });
+      expect(collected).toMatchObject({ status: "advice", findingCount: 2 });
     } finally {
       await server.close();
     }
@@ -1256,10 +1247,10 @@ describe("resident delivery lease", () => {
     const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
     const dispatch = findingDispatch(statePath);
     try {
-      expect(server.admit(first, dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(first, dispatch, true).status).toBe("accepted");
       await server.whenIdle();
       now = Math.floor(PENDING_ADVICE_EXPIRY_MS / 2);
-      expect(server.admit(second, dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(second, dispatch, true).status).toBe("accepted");
       await server.whenIdle();
       expect(server.stats().pendingAdvice).toBe(2);
       expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
@@ -1294,7 +1285,7 @@ describe("resident delivery lease", () => {
     const mark = (marker: string) => server.handle({ requestRoute: "shared", operation: "prompt-marker",
       lifetime: server.lifetime, root, advicee: observation.advicee, marker });
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
-    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const first = await collect();
     expect(first.status).toBe("advice");
@@ -1330,7 +1321,7 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return;
     const server = new ResidentServer(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const request = { requestRoute: "shared" as const, operation: "collect" as const,
       lifetime: server.lifetime, root, advicee: observation.advicee, dispatch,
@@ -1420,7 +1411,7 @@ describe("resident delivery lease", () => {
     const mark = (marker: string) => server.handle({ requestRoute: "shared", operation: "prompt-marker",
       lifetime: server.lifetime, root, advicee: observation.advicee, marker });
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
-    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
     await server.whenIdle();
     const first = await collect();
     expect(first.status).toBe("advice");
@@ -1459,7 +1450,7 @@ describe("resident delivery lease", () => {
         root, advicee: selected, token: firstToken })).toEqual({ status: "busy" });
       expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: selected, startedAt: monotonicNow() - 1 })).toEqual({ status: "advanced" });
-      expect(server.admit({ ...observation, advicee: selected }, dispatch, false, true, true)).toEqual({ status: "accepted" });
+      expect(server.admit({ ...observation, advicee: selected }, dispatch, true, true)).toEqual({ status: "accepted" });
       expect(await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
         root, advicee: selected, token: firstToken })).toEqual({ status: "background-claimed" });
       expect(await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
@@ -1530,7 +1521,7 @@ describe("resident delivery lease", () => {
       afterPrepare: () => held.promise,
     });
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
     const collect = (adviceeValue: typeof observation.advicee, reportWorkState?: true) => server.handle({
       requestRoute: "shared", operation: "collect", lifetime: server.lifetime, root,
       advicee: adviceeValue, dispatch, composed: true,
@@ -3049,7 +3040,7 @@ describe("resident bounded advice batches", () => {
       afterAdvicePending: () => { ready.resolve(); },
     });
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
+    expect(server.admit(observation, dispatch, true).status).toBe("accepted");
     await bothEntered.promise;
     releases.get("a.ts")?.();
     await ready.promise;

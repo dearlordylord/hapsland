@@ -36,14 +36,13 @@ try {
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   await resident.screenshot({path:'/tmp/hapsland-capacity-resources-390.png'});
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-inspector-390.png'});
-  await page.getByLabel('Optional resource exercise · applies on Start resident',{exact:true}).selectOption('tickets');
+  await page.getByLabel('Optional resource exercise · applies on Start resident',{exact:true}).selectOption('notices');
   await click('Start resident'); await click('Step resident');
   await click('Export replay');
   const configured=JSON.parse(await page.getByLabel('Replay JSON',{exact:true}).inputValue());
-  assert.equal(configured.config.resourceScenarios.tickets,true);
+  assert.equal(configured.config.resourceScenarios.notices,true);
   assert.equal(configured.config.lifecycles.permits.adviceeLimit,16);
   assert.equal(configured.config.lifecycles.permits.residentLimit,64);
-  assert.equal(configured.config.resourceScenarios.ticketRetention,48);
   assert.equal(configured.config.lifecycles.reuse.entryLimit,6);
   assert.equal(configured.config.lifecycles.reuse.byteLimit,49152);
   await resident.screenshot({path:'/tmp/hapsland-demo-limits-390.png'});
@@ -60,10 +59,9 @@ try {
   };
   let focused = 'round';
   const focus = async stage => { await page.getByLabel('Diagram stage',{exact:true}).selectOption(stage); if(focused!==stage) await click('Inspect selected stage'); focused=stage; };
-  const retained = createRun({ inputs:[{at:0,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:['cached-example']}], outcome:'clear', lifecycles:{reuse:{entryLimit:2,byteLimit:100}}, resourceScenarios:{tickets:true,ticketRetention:2,notices:true,noticeMaximumKeys:1,startAt:10} });
+  const retained = createRun({ inputs:[{at:0,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:['cached-example']}], outcome:'clear', lifecycles:{reuse:{entryLimit:2,byteLimit:100}}, resourceScenarios:{notices:true,noticeMaximumKeys:1,startAt:10} });
   retained.advance({untilTime:13,maxEvents:1000});
   assert.equal(retained.projection.reuse.cache.length,1);
-  assert.equal(retained.projection.tickets.length,2);
   assert.equal(retained.projection.notices.length,1);
   await load(retained);
   const retainedText = await resident.innerText();
@@ -134,7 +132,7 @@ try {
   await resident.screenshot({path:'/tmp/hapsland-capacity-cache-eviction-1512.png'});
   retained.advance({untilTime:180020,maxEvents:1000});
   retained.schedule({at:180021,kind:'canonical',event:{kind:'cacheClear'}});retained.advance({untilTime:180021,maxEvents:1000});
-  assert.equal(retained.projection.notices.length,0);assert.equal(retained.projection.tickets.length,0);assert.equal(retained.projection.reuse.cache.length,0);assert.equal(retained.projection.global.bytes,0);
+  assert.equal(retained.projection.notices.length,0);assert.equal(retained.projection.reuse.cache.length,0);assert.equal(retained.projection.global.bytes,0);
   await load(retained);
   assert.equal(await resident.locator(".shared-capacity-total").innerText(), `0 / ${retained.projection.limits.globalItems} items · 0 / ${retained.projection.limits.globalBytes} bytes`);
   assert.doesNotMatch(await resident.innerText(),/Operational notice keys|Notice key|Notice ledger storage/);

@@ -159,7 +159,7 @@ per-record free/leased states. Stop output is an exclusive selected-group slot,
 not an aggregate slot count divided by one. Continuation marks display the selected
 current round and delivery group's checked consumed budget; absent or stale
 selection requires selection rather than silently choosing another record.
-Cache, ticket retention, and diagnostic operational-notice retention are
+Cache retention, and diagnostic operational-notice retention are
 intentionally omitted from the main diagram and its stage inspectors. Actual
 storage charges remain in common ledger totals; backend state and exercises
 remain. The empty retained-resource disclosure and its links must not return.
@@ -187,12 +187,15 @@ neither establishes native effect enforcement or release/platform support.
 
 Demo retention capacities are computed once from the configured generator count
 N and stored in replay configuration: cache entries `min(8, max(4, 2*N))`, cache
-bytes `entries * 8192`, ticket retention `min(256, 16*N)`, and notice keys
+bytes `entries * 8192`, notice keys
 `min(64, 8*N)`. These are one resident-wide demo set, still subject to the shared
 ledger, not additional capacity granted per agent. Native constants are unchanged
-(cache 8 entries/128 KiB, tickets 256, notices 64). Explicit tiny boundary fixtures
+(cache 8 entries/128 KiB, notices 64). Explicit tiny boundary fixtures
 retain their supplied maxima; existing replay values remain explicit and are not
-rewritten. Optional scenarios create at most three tickets and two notice
+rewritten. Optional scenarios create at most two notice
 identities independently of these maxima, so ordinary demos do not imply that a
 handful of records saturates native retention. The retained-resource inset proposal is rejected; retained resource details
 are omitted from the diagram.
+
+Ticket state and its exercise were removed with master issue #171; active review
+responses use response authority rather than retained ticket records.

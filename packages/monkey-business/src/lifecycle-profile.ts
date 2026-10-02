@@ -29,7 +29,6 @@ export type CapacityMetadata = {
   };
   readonly collectors?: { readonly capacity: number };
   readonly reuse?: { readonly entryLimit: number; readonly byteLimit: number };
-  readonly tickets?: { readonly retention: number };
   readonly notices?: { readonly maximumKeys: number };
   readonly encodedOutput?: {
     readonly bytes: number;

@@ -63,7 +63,7 @@
         { "kind": "preparedOfferCheck", "ready": false, "withinFrame": true, "expect": "preparedSkipped" },
         { "kind": "preparedOfferCheck", "ready": true, "withinFrame": true, "expect": "preparedAdmitted" },
         { "kind": "preparedOfferCheck", "ready": true, "withinFrame": false, "expect": "preparedCapacityRefused" },
-        { "kind": "emptyPreparedCheck", "readyCount": 0, "hasNonSkipped": true, "ticketed": true, "expect": "emptyLost" },
+        { "kind": "emptyPreparedCheck", "readyCount": 0, "hasNonSkipped": true, "authorityBound": true, "expect": "emptyLost" },
         { "kind": "reviewFailureCheck", "backendOrTimeout": true, "credential": false, "missing": false, "expect": "failureBackend" },
         { "kind": "beginObservedPreparation", "partition": 1, "lifetime": 1, "round": 1, "observation": 1, "bytes": 10, "expect": "prepare:2:1" },
         { "kind": "preparationCompleted", "partition": 1, "lifetime": 1, "round": 1, "operation": 2, "unitBytes": [8], "expect": "preparationReleased:1,unitAdmitted:3:2" },

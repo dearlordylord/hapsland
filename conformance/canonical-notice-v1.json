@@ -55,7 +55,7 @@
           "partition": 1,
           "group": 7,
           "composed": false,
-          "ticketed": false,
+          "authorityBound": false,
           "allowed": [],
           "expect": "noticeSelected:1"
         },
@@ -64,7 +64,7 @@
           "partition": 2,
           "group": 7,
           "composed": true,
-          "ticketed": false,
+          "authorityBound": false,
           "allowed": [],
           "expect": "noticeSelected:1"
         },
@@ -73,7 +73,7 @@
           "partition": 1,
           "group": 7,
           "composed": false,
-          "ticketed": true,
+          "authorityBound": true,
           "allowed": [],
           "expect": "noticeSelected:"
         },
@@ -82,7 +82,7 @@
           "partition": 1,
           "group": 7,
           "composed": false,
-          "ticketed": true,
+          "authorityBound": true,
           "allowed": [
             1
           ],
@@ -109,7 +109,7 @@
           "partition": 1,
           "group": 7,
           "composed": false,
-          "ticketed": false,
+          "authorityBound": false,
           "allowed": [],
           "expect": "noticeSelected:"
         },
@@ -127,7 +127,7 @@
           "partition": 1,
           "group": 7,
           "composed": false,
-          "ticketed": false,
+          "authorityBound": false,
           "allowed": [],
           "expect": "noticeSelected:1"
         },
@@ -253,7 +253,7 @@
           "partition": 9,
           "group": 9,
           "composed": true,
-          "ticketed": false,
+          "authorityBound": false,
           "allowed": [],
           "expect": "noticeSelected:2,1"
         },
@@ -262,7 +262,7 @@
           "partition": 9,
           "group": 9,
           "composed": true,
-          "ticketed": true,
+          "authorityBound": true,
           "allowed": [
             1
           ],
@@ -273,7 +273,7 @@
           "partition": 2,
           "group": 9,
           "composed": false,
-          "ticketed": false,
+          "authorityBound": false,
           "allowed": [],
           "expect": "noticeSelected:2"
         },

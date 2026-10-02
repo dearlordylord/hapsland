@@ -8,27 +8,37 @@
 
 ## Stable installation and ordinary use
 
-After a stable release is published and verified, install into a user-owned prefix:
+You can ask your coding agent to handle installation:
+
+> Install Hapsland for my coding agent using https://github.com/dearlordylord/hapsland/blob/master/docs/installation-workflows.md. Let me review and approve the setup changes interactively. Ask me to enter any Jev key in the masked setup prompt, not in chat.
+
+For manual installation after a stable release is published and verified:
 
 ```sh
-npm install --global --prefix "$HOME/.local" --ignore-scripts=true --include=optional @hapsland/hapsland@latest
-"$HOME/.local/bin/hapsland-doctor"
+npm install -g --ignore-scripts @hapsland/hapsland
+hapsland setup
 ```
 
-Keep optional dependencies enabled: Hapsland supplies its exact Node runtime. In the Git repository to review, run `hapsland setup`. Select Claude Code, Codex CLI, or both with arrows and Space, then press Enter. Existing valid registrations are labeled `installed` and checked by default; unchecking a client leaves its hooks intact. Each selected client has its own change preview and confirmation. Escape cancels without writing registrations.
+The short command uses npm's configured global prefix and assumes its `bin`
+directory is on PATH. npm selects the stable `latest` tag and includes optional
+dependencies by default. Keep those dependencies enabled: they supply Hapsland's
+exact Node runtime. `--ignore-scripts` skips dependency installation scripts;
+the package carries the required prebuilt assets.
+
+Run setup from the Git repository you want reviewed. Select Claude Code, Codex CLI, or both with arrows and Space, then press Enter. Existing valid registrations are labeled `installed` and checked by default; unchecking a client leaves its hooks intact. Each selected client has its own change preview and confirmation. Escape cancels without writing registrations.
 
 For a specific client, bypass the selector with:
 
 ```sh
-"$HOME/.local/bin/hapsland" setup claude
-"$HOME/.local/bin/hapsland" setup codex
+hapsland setup claude
+hapsland setup codex
 ```
 
 Setup previews the exact owned hooks, asks before installing them, offers masked credential entry when a saved key is missing, loads file settings, and reports offline readiness. It makes no Jev request. Both clients also accept the version-1 JSON `--setup` interface; `--pilot --host=claude|codex` invokes the same guided flow (bare `--pilot` opens the same client selector).
 
 The selected profile is user-wide by default. File settings control eligible repositories and files; invoking setup from a repository does not restrict the installed hooks to that repository. Use [configuration](configuration.md) to bound review scope. `--claude-home=PATH` / `--codex-home=PATH` and corresponding `--claude-executable=PATH` / `--codex-executable=PATH` select the registration and compatibility probe. An alternate registration home alone does not configure the client process to use that home.
 
-Start the client normally and complete its native repository/hook trust prompts. Make a supported edit and inspect [session activity](status.md). Installation and offline readiness do not prove a review or model repair happened. Diagnose without a JSON request:
+Finish current client work, restart the client normally, and complete its native repository/hook trust prompts. Make a supported edit and inspect [session activity](status.md). Installation and offline readiness do not prove a review or model repair happened. Diagnose without a JSON request:
 
 ```sh
 hapsland doctor              # All registered clients, read-only
@@ -38,6 +48,20 @@ hapsland doctor claude       # One client
 Use an absolute executable path if the prefix's `bin` directory is not on PATH. See the [Claude guide](claude-installation.md) and [Codex guide](codex-installation.md) for automation, ownership, credentials, and host-specific limits. Saved login uses the native credential store; hooks do not prompt.
 
 Registry latest lookup returned HTTP 404 on 2026-10-01 before these changes. The commands above become usable after publication; this document does not claim an existing registry release. Current exact adapter profiles are Claude 2.1.218 and Codex 0.155.1/0.156.0, with Node 24.20.0 on Linux/macOS arm64. See [installed-release compatibility](installed-release-compatibility.md): its pinned evidence predates current composed delivery and does not establish current interactive or registry-artifact support.
+
+### User-owned prefix alternative
+
+If your global npm prefix requires administrator permissions or `hapsland` is
+not on PATH, install into a user-owned prefix and invoke it by its full path:
+
+```sh
+npm install --global --prefix "$HOME/.local" --ignore-scripts=true --include=optional @hapsland/hapsland@latest
+"$HOME/.local/bin/hapsland" setup
+```
+
+Use that full executable path for later commands too, or add `$HOME/.local/bin`
+to PATH. The prefix changes where the package is installed; setup still registers
+hooks in the selected client profile.
 
 ## Client updates and published candidates
 
@@ -53,7 +77,7 @@ hapsland update codex
 
 With no client argument, update discovers Hapsland registrations in the selected/default Claude and Codex homes. It acquires one target for all registered clients, previews each separately, and asks once before applying all applicable proposals. It does not install integrations for clients without Hapsland. If none are registered, it directs you to setup without downloading anything. Already-current clients need no apply. A conflict or partial result is reported for its client, other applicable updates continue, and the command exits unsuccessfully if any client failed. Results are summarized per client.
 
-The default channel is `latest` (stable). `next` requires a prerelease version; stable selection rejects prereleases. `--version=VERSION` selects an exact version within the selected lane. Candidate publication never updates `latest`. For first installation of a published candidate, install `@hapsland/hapsland@next` into a separate prefix with the same npm flags, then select it explicitly with `hapsland setup CLIENT --target=/absolute/candidate-prefix/bin/hapsland`. An explicit target takes precedence over the active administrative package.
+The default channel is `latest` (stable). `next` requires a prerelease version; stable selection rejects prereleases. `--version=VERSION` selects an exact version within the selected lane. Candidate publication never updates `latest`. For first installation of a published candidate, install `@hapsland/hapsland@next` into a separate prefix using the [user-owned prefix flags](#user-owned-prefix-alternative), then select it explicitly with `hapsland setup CLIENT --target=/absolute/candidate-prefix/bin/hapsland`. An explicit target takes precedence over the active administrative package.
 
 Local packages use the same activation flow:
 
@@ -73,9 +97,6 @@ To return to stable from `next`, run `hapsland update --channel=latest` (all ins
 From the checkout with build prerequisites installed:
 
 ```sh
-npm run typecheck
-npm test
-npm run conformance:client-lifecycle
 npm run dev-install -- --host=claude
 # Or:
 npm run dev-install -- --host=codex
@@ -86,6 +107,14 @@ npm run dev-install -- --host=codex
 ```sh
 npm run dev-install -- --host=claude --update
 npm run dev-install -- --host=codex --update
+```
+
+Before submitting a code change, run the contributor checks separately:
+
+```sh
+npm run typecheck
+npm test
+npm run conformance:client-lifecycle
 ```
 
 `conformance:client-lifecycle` uses isolated profiles and a local registry fixture to check ordinary update twice, active command routing, repair, reinstall, missing-package fallback, and removal. It performs no Jev or authenticated client work. Package conformance separately checks the production archive.

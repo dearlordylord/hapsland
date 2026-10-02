@@ -28,9 +28,8 @@ export const projectAgent = (state: CanonicalProjection, partition: number): Can
       leases: state.collection.leases.filter(item => operations.has(item.advice)),
       claims: state.collection.claims.filter(item => item.group === partition),
     },
-    // Monkey Business does not issue native tickets or revision inputs. They
+    // Monkey Business does not issue native revision inputs. They
     // have no ownership binding in this projection and are not shown locally.
-    tickets: [],
     revision: { ...state.revision, entries: [] },
     notices: state.notices.filter(item => item.partition === partition),
     reuse: { claims, cache: state.reuse.cache.filter(item => item.partition === partition) },

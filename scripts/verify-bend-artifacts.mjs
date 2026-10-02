@@ -9,7 +9,7 @@ for (const name of ["import-graph.generated.js", "import-graph.generated.d.ts"])
     throw new Error(`${name} production copy is stale; copy the checked Bend artifact into src/canonical`);
   }
 }
-const canonicalSources = ["Ledger.bend", "Admission.bend", "Flow.bend", "Work.bend", "Retention.bend", "Dispatch.bend", "Collection.bend", "CollectionState.bend", "DeliveryState.bend", "SubmissionState.bend", "RevisionState.bend", "TicketState.bend", "Ticket.bend", "ReuseState.bend", "Reuse.bend", "Cache.bend", "Notice.bend", "NoticeState.bend", "Configuration.bend", "RulePolicy.bend", "Handoff.bend", "Delivery.bend", "Canonical.bend", "CanonicalRuntime.bend", "scripts/build-canonical.mjs"];
+const canonicalSources = ["Ledger.bend", "Admission.bend", "Flow.bend", "Work.bend", "Retention.bend", "Dispatch.bend", "Collection.bend", "CollectionState.bend", "DeliveryState.bend", "SubmissionState.bend", "RevisionState.bend", "CollectorAuthority.bend", "ReuseState.bend", "Reuse.bend", "Cache.bend", "Notice.bend", "NoticeState.bend", "Configuration.bend", "RulePolicy.bend", "Handoff.bend", "Delivery.bend", "Canonical.bend", "CanonicalRuntime.bend", "scripts/build-canonical.mjs"];
 const canonicalDigest = createHash("sha256");
 for (const source of canonicalSources) {
   canonicalDigest.update(source).update("\0")

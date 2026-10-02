@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { effectiveSessionAnalytics } from "./configuration/resolve.ts";
+import { readAnalytics, formatAnalyticsHuman } from "./activity/analytics.ts";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -36,8 +38,7 @@ import { attemptCodexHostOutput } from "./direct-event/writer.ts";
 import {
   acknowledgeAdvice,
   admitObservation,
-  admitTicketedObservation,
-  collectOutcome,
+  admitAndCollect,
   beginComposedSubmission,
   releaseComposedSubmission,
   ensureResident,
@@ -479,18 +480,10 @@ const runDirectBoundedHook = async (
     observation.root, statePath, activityPath, userConfigPath, controlled,
   ));
   if (dispatch === undefined) return {};
-  const accepted = await bounded(() => admitTicketedObservation(observation, dispatch, undefined, isComposedEditHook));
-  if (accepted?.status !== "accepted") return {};
-  while (remaining() > 150) {
-    const outcome = await bounded(() => collectOutcome(accepted.admission));
-    if (outcome === undefined) return {};
-    if (outcome.status === "advice") {
-      return { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice };
-    }
-    if (outcome.status !== "pending") return {};
-    await new Promise((resolve) => setTimeout(resolve, Math.min(50, remaining())));
-  }
-  return {};
+  const outcome = await bounded(() => admitAndCollect(observation, dispatch, deadline - 150));
+  return outcome?.status === "advice"
+    ? { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice }
+    : {};
 };
 
 const isDirectEventReady = (
@@ -548,6 +541,10 @@ const runOperation = (
         sessionId: operation.sessionId ?? "",
         resident,
       });
+      const analytics = readAnalytics({
+        enabled: settings !== undefined && effectiveSessionAnalytics(settings.configuration.policy),
+        statePath: activityPath, root, sessionId: operation.sessionId ?? "",
+      });
       const output = {
         version: 1,
         operation: "status",
@@ -566,10 +563,11 @@ const runOperation = (
           },
         },
         activity: residentActivity,
+        analytics,
         activitySource: "resident-v1",
       };
       return operation.format === "human"
-        ? `readiness: ${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}`
+        ? `readiness: ${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}\n${formatAnalyticsHuman(analytics)}`
         : output;
     }
     const settings = yield* loadReviewSettings(

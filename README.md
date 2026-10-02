@@ -1,117 +1,96 @@
-# Hapsland — reltime customisable context-aware agentic feedback with Jev. 
+# Hapsland
 
-## Slap this hand!
+<p align="center"><img src="./assets/brand/readme-splash.svg" alt="Hapsland: a human hand correcting a skeletal robot hand" width="900"></p>
 
-<p align="center"><img src="./assets/readme-splash.png" alt="Constructivist-inspired scene of a worker hand slapping a bony hand away from a laptop" width="480"></p>
+Review changed types and functions with their related code.
 
-## What is Hapsland
+Hapsland gives your coding agent early feedback on changed types and functions,
+using their related code. Start with built-in checks or add rules for your team's
+code-design concerns.
 
-With Jev-like AI backends, we can get real-time feedback on certain questions about our code.
+## Review the decisions behind an edit
 
-We can customize and write our own questions and rules,
-and we don't have to wait for a "classic" review agent to check the codestyle with 
-a lengthy and expensive turn-around manner.
+A type can allow a state that makes no sense. A function can make an assumption
+its inputs do not support. Those choices can spread as the agent writes more code.
+Hapsland reviews supported edits while the agent is working, giving it a chance
+to revisit the decision early.
 
-Hapsland lets your agent have immediate review feedback on your code.
+Hapsland starts from the edited lines, finds the changed type or function, then
+follows its references to build a tree of related definitions. Checks use that declaration and the related code they
+need. This lets review consider relationships beyond the changed lines. A check
+that lacks necessary code is skipped.
 
-How is it better? The agent won't go into the wrong direction and won't waste time and tokens. 
+<p align="center"><img src="./assets/review-flow.gif" alt="Illustrative review loop: an agent edit gains related code context, receives feedback, and is repaired and reviewed again" width="800"></p>
 
-> We slap its hand right away!
+The animation starts with a small edit, expands to the declaration and related
+code, then illustrates a feedback and repair loop. Feedback follows the edit; it does not
+undo it or guarantee a repair. Delivery and optional blocking feedback depend on
+the agent runtime and configuration. See the [architecture guide](./docs/architecture.md)
+for the flow and its boundaries.
 
-## Defining architectural and decision
+## Choose what leaves your repository
 
-Agents would often simply send a diff. Often it's enough to answer certain questions about code quality.
+Sending source to a review service is a data-sharing decision. Your task prompt
+and conversation with the agent are not sent to Jev.
 
-As I found out, certain very important questions, e.g. about data model integrity, could be left unanswered if we don't enhance the diff with context.
+You control which files are eligible through includes, exclusions, and privacy
+exclusions. Every supporting file passes the same selection checks before its
+source is read; project includes cannot restore a user exclusion. Limits bound
+the files explored and the code included in the review tree.
 
-TODO privacy (context link)
+Selected source code and rule questions are sent to [Jev](https://typesafe.ai),
+the external classifier. It sees that code and those questions, not the agent’s
+task or conversation. Hapsland maps its results to configured feedback messages.
+The review input excludes the full file, edit diff, agent conversation, and
+unrelated source. With Jev credentials and no
+file settings, all otherwise eligible files are selected. Set an explicit scope
+when you want a narrower boundary. See [configuration](./docs/configuration.md).
 
-Context enhancement unlocks the power of Jev to answer fundamental question about API and data model decisions.
+## A formally checked core
 
-Coincidentally, models are pretty bad at those decisions by default and need constant nudging.
+The review request must fit the model’s context, including the rule questions.
+Hapsland limits how much related code it collects. Formal proofs check that the
+core keeps selected code within that configured size limit.
+A checked access-refusal case issues no command to read the excluded file.*
+Deterministic simulations exercise failures and recovery using that core;
+native integration tests check separate filesystem, transport, and host boundaries.
 
-<p align="center"><img src="./assets/review-flow.gif" alt="Hapsland review flow: an agent edit is expanded into type context, reviewed, repaired, checked again, and committed" width="800"></p>
+\* In the checked exclusion case, the core issues no source-read command for
+the denied dependency. This is a proof of that case, not a general proof of
+absence of leaks across every execution. Source parsing, filesystem observations,
+and network calls remain native code. See [proof scope and evidence](./docs/architecture.md#what-verification-establishes).
 
-### Supported languages
+## Built-in rules and your own
 
-| Language | Reviewed code | Main limits |
-| --- | --- | --- |
-| TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with bounded local type/import context | Unsupported syntax or unresolved evidence can prevent review. |
-| Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Explicit local `mod`/`use` bindings and aliases are supported. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
-| Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, with bounded same-file and explicit relative `.bend` alias-import context | Functions, laws/proofs, dependent or computed types, and hub, bare, or absolute imports are unsupported. This first profile skips files with string literals and requires single-line constructors indented with two spaces. |
+Hapsland starts with the Noul rule pack: nine questions about code design, including
+whether a declaration allows meaningless combinations of values. Which rules
+run depends on the kind of declaration and the available related code.
 
-Rust cross-file context requires a selected `Cargo.toml` with an explicit
-2018, 2021, or 2024 edition and supported library/binary targets. Workspace-inherited
-editions, custom build targets, and test/example/bench target tables are outside
-this profile. Module paths must be unambiguous; excluded supporting files stay unread.
+You can add local rule packs for your team's concerns and configure their scope,
+when feedback should be returned, and what its messages say. Rules ask yes-or-no
+questions about the supplied type or function and its related code. See [custom rule packs](./docs/configuration.md#declarative-rule-packs)
+and the [type-design rules](./TYPE-DESIGN-RULES.md).
 
-Language support applies to source review; it does not select an agent runtime.
-If an edit lacks the evidence a rule needs, Hapsland skips that rule. Silence
-is not confirmation that the code passed review. See the
-[review contract](./docs/type-function-review-proposal.md#branch-contracts) for
-the exact supported syntax and [session status](./docs/status.md) to inspect
-review activity.
-
-TODO contribution guide
-
-## FAQ
-
-### What hand are we slapping?
-
-The agent who makes bad API and data structure decisions despite you instructing it in AGENTS.md one hundred times already.
-
-### Why are we slapping the hand?
-
-"Slap" has a nice ring to it. But also, we want to prevent certain very common agentic mistakes when it comes to interface modeling.
-
-### When are we slapping the hand?
-
-Right after the file been modified. The agent gets almost immediate *non-blocking* feedback. It makes its own decision whether to follow it.
-
-### Who's slapping the hand?
-
-The system works as agent hooks. Each agent host has its own implementation. TODO contribution. There is a background job that manages all queuing and async communication with Jev.
-
-### Jev is slapping the hand?
-
-More backends are planned.
-
-## Rule examples and default rules
-
-TODO
-
-The product began from one specific recurring failure in current coding agents: whenever an
-agent writes or changes an interface, type, or schema, review that declaration as its own
-type-shape artifact and determine whether it makes invalid domain states representable. Do this
-for every such declaration, automatically and early enough for the agent to repair the design
-before continuing.
-
-Here, an invalid state is a concrete value or field combination admitted by the declaration that
-has no meaning in the domain. The governing invariant and review question are Rule 2 in
-[`TYPE-DESIGN-RULES.md`](./TYPE-DESIGN-RULES.md#2-every-representable-combination-is-meaningful).
-This declaration-level use case is the product's origin, not a claim that every future rule must
-operate on a complete file or use the same evidence boundary.
+See [supported languages and limits](#supported-languages) before setup.
 
 ## Installation
 
-The locally packed candidate has been checked for Codex CLI 0.155.1 on Linux arm64
-and Codex CLI 0.156.0 on macOS arm64. The [local release preflight](./evidence/release/npm-0.1.0-preflight.md)
-records that `@hapsland/hapsland@0.1.0` was not available on the public registry
-when checked on 2026-09-26. The steps below apply after publication and registry
-artifact verification.
+Ask your coding agent to install it:
 
-1. Install Hapsland into a user-writable prefix. Keep optional dependencies enabled; the package
-   supplies its own Node 24.20.0 runtime.
+> Install Hapsland for my coding agent using https://github.com/dearlordylord/hapsland/blob/master/docs/installation-workflows.md. Let me review and approve the setup changes interactively. Ask me to enter any Jev key in the masked setup prompt, not in chat.
+
+Or install manually after a stable release is published and verified:
+
+1. Install Hapsland:
 
    ```sh
-   npm install --global --prefix "$HOME/.local" --ignore-scripts=true --include=optional @hapsland/hapsland@0.1.0
-   "$HOME/.local/bin/hapsland-doctor"
+   npm install -g --ignore-scripts @hapsland/hapsland
    ```
 
 2. In the Git repository you want reviewed, run:
 
    ```sh
-   "$HOME/.local/bin/hapsland" setup
+   hapsland setup
    ```
 
    Select Claude Code, Codex CLI, or both with the checkboxes (arrows to move,
@@ -120,29 +99,34 @@ artifact verification.
    `hapsland setup claude` or `hapsland setup codex`.
 
    Setup previews owned hooks, asks before applying them, accepts a missing Jev key
-   through masked input, and reports offline readiness. The hooks apply to the selected
-   client profile; [file configuration](./docs/configuration.md) controls review scope.
-3. Start the client normally, complete its native trust prompts, and make a supported
-   edit. Follow the [status guide](./docs/status.md) to inspect observed review activity;
+   through masked input, and reports offline readiness.
+
+3. Finish current client work, restart the client normally, complete its native
+   trust prompts, and make a supported edit. Follow the [status guide](./docs/status.md) to inspect observed review activity;
    installation alone does not establish that a review ran.
 
-Update every installed client integration with `hapsland update`. It acquires one target,
-previews each installed client, and asks once before applying the available changes.
-Use `hapsland update claude` or `hapsland update codex` for a specific client. Add `--channel=next`
-to opt into a published candidate. Updates stage a separate package, preview hook changes,
-and ask before applying them. See the [four installation lanes](./docs/installation-workflows.md)
-for stable/candidate installation, development builds, recovery, and removal. The
-[Claude guide](./docs/claude-installation.md) and [Codex guide](./docs/codex-installation.md)
-retain exact host support limits and automation contracts.
+The hooks apply across the selected user profile, not just the repository where
+you ran setup. Set [file selection](./docs/configuration.md) before reviewing
+private code. Installation and setup do not send code to Jev.
 
-`hapsland doctor` checks every installed client without changing files. Use `hapsland repair`
-to restore deleted hooks, `hapsland reinstall` to replace damaged marked Hapsland entries
-without losing user settings or credentials, and `hapsland uninstall` to remove integrations.
-Each accepts `claude` or `codex` to limit its scope. Changed or duplicate marked hooks require
-explicit reinstall; malformed client JSON/TOML must be corrected first. Repeating update
-with the same verified release does not rewrite hooks. Public lifecycle commands follow
-the active package after an update. See [recovery and removal](./docs/installation-workflows.md#disablement-removal-and-recovery).
+The npm command uses your configured global prefix and assumes its `bin`
+directory is on PATH. If installation fails on permissions or the command is
+missing, use the [user-owned prefix alternative](./docs/installation-workflows.md#user-owned-prefix-alternative).
+Keep optional dependencies enabled: they supply Hapsland's Node runtime.
 
+Public registry availability is not established by this guide. See the
+[installation lanes](./docs/installation-workflows.md#stable-installation-and-ordinary-use)
+for current distribution and host evidence.
+
+Update installed integrations with `hapsland update`; add `claude` or `codex`
+to select one client. The command previews hook changes and asks before applying
+them. Use `--channel=next` for a published candidate.
+
+If review is not working, start with `hapsland doctor`: it diagnoses registered
+clients without changing files. See [installation workflows](./docs/installation-workflows.md)
+for local builds, updates, recovery, and removal, or the
+[Claude](./docs/claude-installation.md) and [Codex](./docs/codex-installation.md)
+guides for exact host limits and automation.
 
 <!-- configuration-readme:start -->
 
@@ -164,6 +148,26 @@ A small project configuration:
 See the [complete configuration guide](./docs/configuration.md) for field details, rule packs, precedence, and runtime behavior.
 
 <!-- configuration-readme:end -->
+
+## Supported languages
+
+| Language | Reviewed code | Main limits |
+| --- | --- | --- |
+| TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | Interfaces, type aliases, and named functions, with related local types and imports, within configured limits | Unsupported syntax or unresolved evidence can prevent review. |
+| Rust (`.rs`) | Top-level structs, enums, and type aliases, with local type context across verified Cargo modules | Explicit local `mod`/`use` bindings and aliases are supported. External crates, re-exports, inline modules, functions, macros, and conditional compilation are not supported. Cargo metadata and supporting files must pass file selection. Attributes such as `derive` make evidence incomplete for the default rules. |
+| Bend (`.bend`) | Top-level `type` datatypes and constructor payloads, with related definitions from the same file or explicit relative `.bend` alias imports, within configured limits | Functions, laws/proofs, dependent or computed types, and hub, bare, or absolute imports are unsupported. This first profile skips files with string literals and requires single-line constructors indented with two spaces. |
+
+Rust cross-file context requires a selected `Cargo.toml` with an explicit
+2018, 2021, or 2024 edition and supported library/binary targets. Workspace-inherited
+editions, custom build targets, and test/example/bench target tables are outside
+this profile. Module paths must be unambiguous; excluded supporting files stay unread.
+
+Language support applies to source review; it does not select an agent runtime.
+If an edit lacks the evidence a rule needs, Hapsland skips that rule. Silence
+is not confirmation that the code passed review. See the
+[review contract](./docs/type-function-review-proposal.md#branch-contracts) for
+the exact supported syntax and [session status](./docs/status.md) to inspect
+review activity.
 
 ## Development
 
@@ -266,8 +270,11 @@ without that facility are unsupported rather than falling back to path-only sour
 Offline readiness diagnosis and headless activity inspection are documented in
 [`docs/status.md`](./docs/status.md). Doctor checks the selected installed integration
 without prompts, repairs, source reads, or Jev calls. Status uses an explicit host session
-ID and bounded source-free resident activity, labels legacy receipts separately, and never
-treats silence or missing instrumentation as a clear review.
+ID and bounded source-free resident activity, and never treats silence or missing
+instrumentation as a clear review. Optional [session analytics](./docs/status.md#optional-session-analytics)
+are disabled by default; user configuration can enable Jev outcome totals and recent
+rule-ID history. The shared activity store expires inactive sessions after 30 days and
+is capped at 20 MiB.
 
 The maintainer-only semantic evaluation protocol and its sanitized offline milestone
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and

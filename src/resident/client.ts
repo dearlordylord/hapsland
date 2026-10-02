@@ -1,3 +1,4 @@
+import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
@@ -19,12 +20,12 @@ import {
 } from "./paths.ts";
 import {
   CLIENT_REQUEST_DEADLINE_MS,
+  EDIT_REQUEST_DEADLINE_MS,
   MAX_IPC_FRAME_BYTES,
   STARTUP_READINESS_DEADLINE_MS,
   decodeCurrentResidentResponse,
   encodeCurrentResidentRequest,
   type ResidentDispatchContext,
-  type ResidentCollectionTicket,
   type ResidentRequest,
   type ResidentResponse,
 } from "./protocol.ts";
@@ -261,6 +262,7 @@ export const makeResidentDispatchContext = async (
   return {
     statePath: resolve(statePath),
     activityPath: resolve(activityPath),
+    sessionAnalytics: effectiveSessionAnalytics(settings.configuration.policy),
     userConfigPath: userConfigPath === undefined ? null : resolve(userConfigPath),
     demoBudgetPath: process.env.REVIEW_DEMO_BUDGET_PATH === undefined
       ? null
@@ -308,94 +310,38 @@ export const admitObservation = async (
   });
 };
 
-export type TicketedAdmission = {
-  readonly ticket: ResidentCollectionTicket;
-  readonly lifetime: string;
-  readonly paths: ResidentPaths;
-  readonly root: string;
-  readonly advicee: DirectAdvicee;
-  readonly dispatch: ResidentDispatchContext;
-  readonly composed: true;
-};
-
-export type TicketedAdmissionResult =
-  | { readonly status: "accepted"; readonly admission: TicketedAdmission }
-  | { readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported" };
-
-/** Only Claude's synchronous PostToolUse hook uses ticketed collection. */
-export const admitTicketedObservation = async (
-  observation: DirectObservation,
-  dispatch: ResidentDispatchContext,
-  paths = residentPaths(),
-  composed = true,
-): Promise<TicketedAdmissionResult> => {
-  if (!composed || observation.advicee.host !== "claude-code") return { status: "unsupported" };
-  const owner = await ensureResident(paths);
-  const response = await residentRequest(paths, {
-    requestRoute: "ticketed",
-    operation: "admit",
-    lifetime: owner.lifetime,
-    observation,
-    controlledWriter: true,
-    composed: true,
-    dispatch,
-  });
-  if (!("requestRoute" in response) || response.requestRoute !== "ticketed" || response.status === "unsupported") return { status: "unsupported" };
-  if (response.status === "accepted") {
-    if (response.ticket.lifetime !== owner.lifetime) return { status: "obsolete-lifetime" };
-    return { status: "accepted", admission: {
-      ticket: response.ticket,
-      lifetime: owner.lifetime,
-      paths,
-      root: observation.root,
-      advicee: observation.advicee,
-      dispatch,
-      composed: true,
-    } };
-  }
-  if (response.status === "rejected-capacity" || response.status === "rejected-stale" || response.status === "obsolete-lifetime") {
-    return { status: response.status };
-  }
-  return { status: "unsupported" };
-};
-
 export type CollectionOutcome =
   | { readonly status: "advice"; readonly advice: CollectedAdvice }
   | { readonly status: "pending" | "empty" }
   | { readonly status: "unavailable"; readonly reason: "backend" | "credential" | "capacity" | "stale" | "lost" | "expired" };
 
-/** Collect against the original owner. A replacement resident can never prove clear. */
-export const collectOutcome = async (
-  admission: TicketedAdmission,
-  mode: CollectionMode = "ordinary",
+/** One response attempt, bound to the original resident. No remotely collectible authority is issued. */
+export const admitAndCollect = async (
+  observation: DirectObservation,
+  dispatch: ResidentDispatchContext,
+  deadlineAt: number,
+  paths = residentPaths(),
 ): Promise<CollectionOutcome> => {
-  const response = await residentRequest(admission.paths, {
-    requestRoute: "ticketed",
-    operation: "collect",
-    lifetime: admission.lifetime,
-    ticket: admission.ticket,
-    root: admission.root,
-    advicee: admission.advicee,
-    dispatch: admission.dispatch,
-    mode,
-    composed: true,
-  }).catch(() => undefined);
-  if (response === undefined) return { status: "unavailable", reason: "lost" };
-  if (!("requestRoute" in response) || response.requestRoute !== "ticketed") return { status: "unavailable", reason: "lost" };
+  if (observation.advicee.host !== "claude-code") return { status: "unavailable", reason: "lost" };
+  const owner = await ensureResident(paths, Math.min(STARTUP_READINESS_DEADLINE_MS,
+    Math.max(1, deadlineAt - performance.now())));
+  const timeoutMs = Math.min(EDIT_REQUEST_DEADLINE_MS, deadlineAt - performance.now());
+  if (timeoutMs <= 150) return { status: "unavailable", reason: "expired" };
+  const response = await residentRequest(paths, {
+    requestRoute: "edit", operation: "admit-and-collect", lifetime: owner.lifetime,
+    observation, controlledWriter: true, composed: true, dispatch,
+    waitMs: Math.max(0, Math.floor(timeoutMs - 150)),
+  }, timeoutMs).catch(() => undefined);
+  if (response === undefined || !("requestRoute" in response) || response.requestRoute !== "edit") {
+    return { status: "unavailable", reason: "lost" };
+  }
   if (response.status === "advice") return { status: "advice", advice: {
-    output: response.output,
-    token: response.token,
-    lifetime: admission.lifetime,
-    paths: admission.paths,
-    root: admission.root,
-    advicee: admission.advicee,
-    activityPath: admission.dispatch.activityPath,
+    output: response.output, token: response.token, lifetime: owner.lifetime, paths,
+    root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath,
     findingCount: response.findingCount,
   } };
-  if (response.status === "unavailable") return { status: "unavailable", reason: response.reason };
-  if (response.status === "pending" || response.status === "empty") {
-    return { status: response.status };
-  }
+  if (response.status === "unavailable") return response;
+  if (response.status === "pending" || response.status === "empty") return { status: response.status };
   return { status: "unavailable", reason: "lost" };
 };
 

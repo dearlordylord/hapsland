@@ -824,3 +824,31 @@ behavior is changed.
 Astra's rendered after-review passed the desktop and narrow current-section
 captures without a blocking issue. Runtime-specific post-hook behavior, pre-hook
 fail-open semantics, optional collector overlap, and both Stop paths are clear.
+
+
+## Master reconciliation: ticket removal and response authority (2026-10-02)
+
+The authorized merge of master includes issue #171: ticket retention/state/events
+and native ticket routes are removed, with active response authority replacing
+those contracts. The superseded Monkey ticket exercise/config/metadata/tests and
+selector are removed rather than retained as a compatibility shim. Older workbook
+ticket investigations and capacity tables are historical and resolved by this
+removal, not outstanding implementation requirements. Notice diagnostics and
+cache performance scenarios remain. Outcomes now uses master's pending-finding
+facet, not a ticket facet. Multi-agent execution pools, 16/64 demo edit permits,
+and current/proposed hook timing illustrations remain. Claude's current
+foreground review wait now follows the merged active response RPC, so its
+illustrated wait/return ordering remains valid. Master site/analytics/branding
+changes are retained, and the diagnostic notice-storage comment is preserved.
+
+
+Merge validation passed both package typechecks, visualization build/projection
+checks, all 143 Monkey tests, and 88 focused native capacity/admission/protocol/
+collection tests. Timing, execution-pool, and resource browser checks passed.
+Astra's bounded post-merge rendered review found no blocker: the pending-findings
+facet fits, retained-resource UI remains absent, and current hook timing and the
+combined pool remain unchanged. Evidence logs use `/tmp/hapsland-merge-` followed
+by `typecheck.log`, `viz-build.log`, `monkey-tests.log`,
+`admission-tests.log`, `timing-browser.log`, `execution-browser.log`, and
+`resource-browser.log`. The untracked admission comparison prototype is outside
+this merge and is neither staged nor deleted.

@@ -44,7 +44,7 @@ it("quiet inactivity retires the settled round", () => {
  expect(restoreReplay(run.exportReplay()).projection).toEqual(run.projection);
 });
 it("optional resource scenarios execute and replay in the same resident", () => {
- const run = complete({ resourceScenarios: { tickets: true, notices: true, outputFit: true } });
+ const run = complete({ resourceScenarios: { notices: true, outputFit: true } });
  expect(run.observations.some(o => o.commands.some(c => c.kind === "noticeCommitted"))).toBe(true);
  expect(run.projection.notices).toEqual([]);
  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);

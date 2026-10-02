@@ -36,7 +36,7 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:3bf1c60bb920608412b200e91a652b8fdd8f7de6b4b42481de756d34c31b6395";
+  "canonical-source-sha256:c75c63f1c243f7df350237464e217d89518a9b0366e468b2a18ba782a9d4c061";
 export const PREPARATION_IDENTITY = "import-preparation-sha256:c85f59d667624daf084d024fab190a3e372bd1d0bdcd669d7241967ad3c497fa";
 import type { LifecycleProfile, CapacityMetadata } from "./lifecycle-profile.ts";
 export * from "./lifecycle-profile.ts";
@@ -251,7 +251,6 @@ export class Run {
     if (metadata.demoAgentCount !== undefined) {
       const limits = demoResourceLimits(metadata.demoAgentCount);
       if (metadata.reuse?.entryLimit !== limits.entryLimit || metadata.reuse.byteLimit !== limits.byteLimit
-        || (metadata.tickets !== undefined && metadata.tickets.retention !== limits.ticketRetention)
         || (metadata.notices !== undefined && metadata.notices.maximumKeys !== limits.noticeMaximumKeys))
         delete (metadata as { demoAgentCount?: number }).demoAgentCount;
     }
@@ -318,12 +317,10 @@ export class Run {
     if (config.demoAgentCount !== undefined) {
       const advertised = demoResourceLimits(config.demoAgentCount);
       if (config.lifecycles?.reuse?.entryLimit === advertised.entryLimit && config.lifecycles.reuse.byteLimit === advertised.byteLimit
-        && (config.resourceScenarios?.ticketRetention ?? demoLimits.ticketRetention) === advertised.ticketRetention
         && (config.resourceScenarios?.noticeMaximumKeys ?? demoLimits.noticeMaximumKeys) === advertised.noticeMaximumKeys)
         Object.assign(this.metadata, { demoAgentCount: config.demoAgentCount });
     }
-    if (config.resourceScenarios) config = { ...config, resourceScenarios: { ticketRetention: demoLimits.ticketRetention, noticeMaximumKeys: demoLimits.noticeMaximumKeys, ...config.resourceScenarios } };
-    if (config.resourceScenarios?.tickets) Object.assign(this.metadata, { tickets: { retention: config.resourceScenarios.ticketRetention ?? 16 } });
+    if (config.resourceScenarios) config = { ...config, resourceScenarios: { noticeMaximumKeys: demoLimits.noticeMaximumKeys, ...config.resourceScenarios } };
     if (config.resourceScenarios?.notices) Object.assign(this.metadata, { notices: { maximumKeys: config.resourceScenarios.noticeMaximumKeys ?? 8 } });
     if (config.lifecycles?.collectors) Object.assign(this.metadata, { collectors: { capacity: config.lifecycles.collectors.capacity } });
     this.fileTrees = validateFileTreeProfile(config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE);
@@ -572,7 +569,6 @@ export class Run {
     if (item.generated && event.kind === "jevRequestSettled") event = { ...event, currentWork: this.environment.currentWork && !this.staleOperations.has(event.operation) };
     if (item.generated && event.kind === "jevRequestReady") event = { ...event, currentWork: this.environment.currentWork, credentialReady: this.environment.credentialReady };
     if (event.kind === "cachePrepare" || event.kind === "cacheCommit") Object.assign(this.metadata, { reuse: { entryLimit: event.entryLimit, byteLimit: event.byteLimit } });
-    if (event.kind === "ticketRetentionCheck") Object.assign(this.metadata, { tickets: { retention: event.limit } });
     if (event.kind === "noticeAdvance" || event.kind === "noticeCommit") Object.assign(this.metadata, { notices: { maximumKeys: event.maximumKeys } });
     if (event.kind === "collectionFitCheck") Object.assign(this.metadata, { encodedOutput: { bytes: event.bytes, items: event.items, maximumBytes: 10240, synthetic: true } });
     if (event.kind === "issuePermit") {

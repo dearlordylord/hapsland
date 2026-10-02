@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "build:pages": "npm run build && node scripts/prepare-pages.mjs",
+    "deploy:pages": "npm run build:pages && npx --yes wrangler@4.146.0 pages deploy dist --project-name hapsland --branch master",
     "build": "node --experimental-strip-types scripts/build-capacity-inventory.mjs && npm --prefix ../agent-flow-projection run typecheck && tsc --noEmit && node scripts/check-flow-inference.mjs && node scripts/check-projection.mjs && vite build",
     "test:browser": "node scripts/check-browser.mjs",
     "test:simulation-browser": "node scripts/check-simulation-browser.mjs",
@@ -13,11 +15,12 @@
     "test:ensemble-browser": "node scripts/check-ensemble-browser.mjs",
     "test:resource-browser": "node scripts/check-resource-browser.mjs",
     "test:execution-pools-browser": "node scripts/check-execution-pools-browser.mjs",
-    "test:timing-browser": "node scripts/check-timing-browser.mjs"
+    "test:timing-browser": "node scripts/check-timing-browser.mjs",
+    "test:site": "node --experimental-strip-types scripts/check-site-scenarios.mjs && node scripts/check-site-browser.mjs"
   },
   "dependencies": {
-    "@hapsland/agent-flow-projection": "file:../agent-flow-projection",
     "@effect/platform-browser": "4.0.0-rc.116",
+    "@hapsland/agent-flow-projection": "file:../agent-flow-projection",
     "effect": "4.0.0-rc.116",
     "foldkit": "0.163.0"
   },

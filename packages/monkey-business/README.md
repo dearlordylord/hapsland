@@ -146,10 +146,8 @@ ownership without executing the original result callback. Neither option execute
 native cancellation. Duplicate settled callbacks still fail the environment
 identity guard rather than establishing native duplicate-callback behavior.
 
-`resourceScenarios` selects source-free ticket, notice and output-fit fixtures in
-the same resident queue. `tickets:true` exercises unit statuses, credential/expiry
-gates, retention eviction and forgetting; it does not make every background edit
-a ticket. `notices:true` supplies failure-count/cooldown/lease/registry-pressure
+`resourceScenarios` selects source-free notice and output-fit fixtures in
+the same resident queue. `notices:true` supplies failure-count/cooldown/lease/registry-pressure
 facts and follows checked storage reservation/release; it does not turn every
 Jev failure into native notice output. `outputFit:true` exercises the exact
 10,240-byte and oversized 10,241-byte fit boundaries and supplies a default

@@ -324,3 +324,5 @@ p { line-height: 1.5; }
 .current-stop-paths h3 { font-size:.95rem; margin:0; }
 .post-edit-proposals { border-top:3px solid #dce5ef; margin-top:28px; }
 @media(max-width:600px) { .current-stop-paths { grid-template-columns:1fr; } }
+.product-brand { display: flex; align-items: center; gap: 10px; }
+.product-brand img { object-fit: contain; }

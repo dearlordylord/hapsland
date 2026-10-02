@@ -18,8 +18,7 @@ import ./CollectionState.bend as CollectionState
 import ./Delivery.bend as Delivery
 import ./SubmissionState.bend as SubmissionState
 import ./Cache.bend as Cache
-import ./Ticket.bend as Ticket
-import ./TicketState.bend as TicketState
+import ./CollectorAuthority.bend as CollectorAuthority
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
@@ -334,7 +333,7 @@ law final_shared_credential_mismatch_releases_batch:
   {Delivery.final_credential_gate(True{}, True{}) ==
     Delivery.BatchRelease{} : Delivery.BatchGate}
 
-law ticket_credential_mismatch_does_not_use_shared_gate:
+law collector_credential_mismatch_does_not_use_shared_gate:
   {Delivery.final_credential_gate(False{}, True{}) ==
     Delivery.BatchProceed{} : Delivery.BatchGate}
 
@@ -400,17 +399,17 @@ law missing_result_reports_lost:
   {Work.failure_disposition(False{}, False{}, True{}) ==
     Work.LostUnavailable{} : Work.FailureDisposition}
 
-law stale_joined_ticket_preserves_stale_status:
-  {Ticket.joined_disposition(Ticket.JoinedFinding{}, True{}, True{}, True{}) ==
-    Ticket.KeepJoined{} : Ticket.JoinedDisposition}
+law stale_joined_member_preserves_stale_status:
+  {Reuse.joined_disposition(Reuse.JoinedFinding{}, True{}, True{}, True{}) ==
+    Reuse.KeepJoined{} : Reuse.JoinedDisposition}
 
 law joined_finding_without_identity_is_lost:
-  {Ticket.joined_disposition(Ticket.JoinedFinding{}, False{}, True{}, False{}) ==
-    Ticket.SetJoinedLost{} : Ticket.JoinedDisposition}
+  {Reuse.joined_disposition(Reuse.JoinedFinding{}, False{}, True{}, False{}) ==
+    Reuse.SetJoinedLost{} : Reuse.JoinedDisposition}
 
 law joined_clear_with_revision_settles_clear:
-  {Ticket.joined_disposition(Ticket.JoinedClear{}, False{}, True{}, False{}) ==
-    Ticket.SetJoinedClear{} : Ticket.JoinedDisposition}
+  {Reuse.joined_disposition(Reuse.JoinedClear{}, False{}, True{}, False{}) ==
+    Reuse.SetJoinedClear{} : Reuse.JoinedDisposition}
 
 law ready_unit_within_frame_is_admitted:
   {Work.prepared_offer(True{}, True{}) ==
@@ -424,11 +423,11 @@ law skipped_unit_is_not_admitted:
   {Work.prepared_offer(False{}, True{}) ==
     Work.SkipPrepared{} : Work.PreparedOffer}
 
-law empty_non_skipped_ticket_fails_lost:
+law empty_non_skipped_collector_fails_lost:
   {Work.empty_prepared(0n, True{}, True{}) ==
     Work.FailEmptyLost{} : Work.EmptyPrepared}
 
-law skipped_only_ticket_has_no_failure:
+law skipped_only_collector_has_no_failure:
   {Work.empty_prepared(0n, False{}, True{}) ==
     Work.NoEmptyFailure{} : Work.EmptyPrepared}
 
@@ -460,14 +459,6 @@ law ledger_residue_blocks_cleanup_commit:
   {Retention.cleanup_commit(False{}) ==
     Retention.CleanupBusy{} : Retention.CleanupGate}
 
-law excess_ticket_evicts_oldest:
-  {Retention.ticket_retention(2n, 1n, True{}) ==
-    Retention.EvictOldest{} : Retention.TicketRetention}
-
-law ticket_limit_keeps_existing:
-  {Retention.ticket_retention(1n, 1n, True{}) ==
-    Retention.KeepTickets{} : Retention.TicketRetention}
-
 law exact_cancellation_uses_named_jobs:
   {Retention.discard_scope(2n, 2n, False{}) ==
     Retention.NamedOnly{} : Retention.DiscardScope}
@@ -480,17 +471,17 @@ law unnamed_work_discards_all_unfinished:
   {Retention.discard_scope(2n, 2n, True{}) ==
     Retention.AllUnfinished{} : Retention.DiscardScope}
 
-law revoked_block_ticket_releases_final_selection:
-  {Ticket.final_authority(True{}, False{}) ==
-    Ticket.FinalRelease{} : Ticket.FinalAuthority}
+law revoked_block_collector_releases_final_selection:
+  {CollectorAuthority.final_authority(True{}, False{}) ==
+    CollectorAuthority.FinalRelease{} : CollectorAuthority.FinalAuthority}
 
-law current_block_ticket_proceeds:
-  {Ticket.final_authority(True{}, True{}) ==
-    Ticket.FinalProceed{} : Ticket.FinalAuthority}
+law current_block_collector_proceeds:
+  {CollectorAuthority.final_authority(True{}, True{}) ==
+    CollectorAuthority.FinalProceed{} : CollectorAuthority.FinalAuthority}
 
-law advisory_ticket_proceeds_without_block_opt_in:
-  {Ticket.final_authority(False{}, False{}) ==
-    Ticket.FinalProceed{} : Ticket.FinalAuthority}
+law advisory_collector_proceeds_without_block_opt_in:
+  {CollectorAuthority.final_authority(False{}, False{}) ==
+    CollectorAuthority.FinalProceed{} : CollectorAuthority.FinalAuthority}
 
 law replaced_candidate_is_ignored_before_revalidation_status:
   {Handoff.validation_route(False{}, Handoff.Stale{}) ==
@@ -540,7 +531,7 @@ law other_group_stop_cannot_drop_lease:
   {Delivery.collection_lease(True{}, False{}, True{}, False{}, True{}) ==
     Delivery.KeepLease{} : Delivery.CollectionLeaseAction}
 
-law available_advice_requires_ticket_and_unsuppressed_finding:
+law available_advice_requires_collector_and_unsuppressed_finding:
   {Delivery.advice_candidate(True{}, True{}, True{}, True{}) == True{} : Bool}
 
 law leased_advice_cannot_be_candidate:
@@ -802,21 +793,21 @@ law unreserved_stop_blocked_during_decision:
   {Delivery.unreserved_stop_allowed(
       Round.Round{1n, True{}, 0n, 0n, 1n, False{}, True{}, False{}}) == False{} : Bool}
 
-law ticket_collect_gate_proceeds_with_valid_authority:
-  {Ticket.collect_gate(False{}, True{}) ==
-    Ticket.CollectProceed{} : Ticket.CollectGate}
+law collector_collect_gate_proceeds_with_valid_authority:
+  {CollectorAuthority.collect_gate(False{}, True{}) ==
+    CollectorAuthority.CollectProceed{} : CollectorAuthority.CollectGate}
 
-law ticket_collect_gate_blocks_credential_change:
-  {Ticket.collect_gate(False{}, False{}) ==
-    Ticket.CollectUnavailable{Ticket.Credential{}} : Ticket.CollectGate}
+law collector_collect_gate_blocks_credential_change:
+  {CollectorAuthority.collect_gate(False{}, False{}) ==
+    CollectorAuthority.CollectUnavailable{CollectorAuthority.Credential{}} : CollectorAuthority.CollectGate}
 
-law ticket_collect_gate_blocks_expiry:
-  {Ticket.collect_gate(True{}, True{}) ==
-    Ticket.CollectUnavailable{Ticket.Expired{}} : Ticket.CollectGate}
+law collector_collect_gate_blocks_expiry:
+  {CollectorAuthority.collect_gate(True{}, True{}) ==
+    CollectorAuthority.CollectUnavailable{CollectorAuthority.Expired{}} : CollectorAuthority.CollectGate}
 
-law ticket_collect_gate_expiry_precedes_credential:
-  {Ticket.collect_gate(True{}, False{}) ==
-    Ticket.CollectUnavailable{Ticket.Expired{}} : Ticket.CollectGate}
+law collector_collect_gate_expiry_precedes_credential:
+  {CollectorAuthority.collect_gate(True{}, False{}) ==
+    CollectorAuthority.CollectUnavailable{CollectorAuthority.Expired{}} : CollectorAuthority.CollectGate}
 
 def submitted_background_lease() -> Handoff.Lease:
   Handoff.Lease{7n, 1n, False{}, False{}, Handoff.Submitted{Handoff.Background{}}}
@@ -950,40 +941,6 @@ law prospective_gate_rejects_reversed_clock:
   {Admission.prospective_gate(Admission.ProspectiveFacts{True{}, 2500n, 200n, 100n,
       32n, 4096n}, 200n, 100n) ==
     Admission.PermitInvalidClock{} : Admission.ProspectiveDecision}
-
-law ticket_admission_stores_only_identity_and_units:
-  {TicketState.open(TicketState.initial(), 1n) ==
-    TicketState.Granted{TicketState.State{TicketState.Record{1n} <> Nil{}, Nil{}}} : TicketState.Decision}
-
-law ticket_unit_requires_its_originating_admission:
-  {TicketState.unit_snapshot(TicketState.State{
-      TicketState.Record{1n} <> TicketState.Record{2n} <> Nil{},
-      TicketState.TicketUnit{10n, 1n, Ticket.UnitPending{}, None{}} <> Nil{}},
-    2n, 10n) == None{} : Maybe<&2, TicketState.TicketUnit>}
-
-law ticket_revision_only_updates_pending_unit:
-  {Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.Revise{}) ==
-    Ticket.UnitDenied{Ticket.UnitFinding{False{}}} : Ticket.UnitStep}
-
-law ticket_failure_overrides_previous_unit_result:
-  {Ticket.unit.step(Ticket.UnitFinding{True{}}, Ticket.FailUnit{}) ==
-    Ticket.UnitGranted{Ticket.UnitUnavailable{}} : Ticket.UnitStep}
-
-law unavailable_ticket_unit_cannot_become_clear:
-  {Ticket.unit.step(Ticket.UnitUnavailable{}, Ticket.ClearResult{}) ==
-    Ticket.UnitDenied{Ticket.UnitUnavailable{}} : Ticket.UnitStep}
-
-law unavailable_ticket_unit_cannot_become_finding:
-  {Ticket.unit.step(Ticket.UnitUnavailable{}, Ticket.FindingResult{}) ==
-    Ticket.UnitDenied{Ticket.UnitUnavailable{}} : Ticket.UnitStep}
-
-law ticket_finding_delivery_is_terminal_marker:
-  {Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.MarkDelivered{}) ==
-    Ticket.UnitGranted{Ticket.UnitFinding{True{}}} : Ticket.UnitStep}
-
-law ticket_clear_unit_cannot_mark_delivery:
-  {Ticket.unit.step(Ticket.UnitClear{}, Ticket.MarkDelivered{}) ==
-    Ticket.UnitDenied{Ticket.UnitClear{}} : Ticket.UnitStep}
 
 law existing_cache_entry_reuses_without_byte_check:
   {Cache.admit(True{}, 200n, 100n) == Cache.Already{} : Cache.Admission}

@@ -75,13 +75,13 @@ def collection_lease(has_lease: Bool, expired: Bool, stop_collector: Bool,
     DropLease{}, KeepLease{})
 
 def advice_candidate(same_partition: Bool, unleased: Bool,
-    has_unsuppressed_finding: Bool, ticket_owns: Bool) -> Bool:
+    has_unsuppressed_finding: Bool, authority_owns: Bool) -> Bool:
   Bool.and(same_partition, Bool.and(unleased,
-    Bool.and(has_unsuppressed_finding, ticket_owns)))
+    Bool.and(has_unsuppressed_finding, authority_owns)))
 
 def notice_candidate(same_partition: Bool, has_pending: Bool,
-    unleased: Bool, ticket_owns: Bool) -> Bool:
-  Bool.and(same_partition, Bool.and(has_pending, Bool.and(unleased, ticket_owns)))
+    unleased: Bool, authority_owns: Bool) -> Bool:
+  Bool.and(same_partition, Bool.and(has_pending, Bool.and(unleased, authority_owns)))
 
 def reserve_candidate(unleased: Bool) -> Bool:
   unleased
