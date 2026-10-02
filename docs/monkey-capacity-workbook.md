@@ -1,10 +1,18 @@
 # Shared-resident Monkey Business and capacity UX workbook
 
 **Purpose:** Coordinate generated Monkey Business coverage and Bend-governed capacity indicators in the system diagram.
-**Status:** Temporary implementation tracking workbook. Astra rendered review and heterogeneous per-agent permit verification are complete. The corrected 142-test execution suite, browser reruns and build passed. The initial 2026-10-01 advisory inventory is preserved.
+**Status:** Temporary implementation tracking workbook. The delivered diagram/Monkey scope has scoped validation and Astra review. Three approved admission-model laws are checked; six bounded PRE-only native probes are recorded separately. Current priorities are listed below; the initial 2026-10-01 advisory inventory and dated test results are preserved.
 **Authority:** Advisory inventory plus subsequent implementation and validation evidence, including Astra medium's capacity/UX review. This is not an accepted product contract. Existing specification owners and [dashboard rules](../packages/agent-flow-viz/DASHBOARD-RULES.md) retain decision authority.
 **Expected use:** Track authorized work, decisions and evidence, and coordinate implementation and UX reviews in the `feat/multi-agent-3d` worktree.
 **Lifecycle:** Retain this requested workbook beyond the final handoff. At the **Next planning-cycle workbook replacement milestone**, after the user has finished using this workbook and a named replacement artifact or accepted backlog contains its still-useful deferred proposals, **consolidate** current simulator behavior and evidence boundaries into [Monkey Business README](../packages/monkey-business/README.md), diagram behavior into [visualization README](../packages/agent-flow-viz/README.md), and projection rules into [DASHBOARD-RULES.md](../packages/agent-flow-viz/DASHBOARD-RULES.md). Move any accepted product-policy decisions to their named specification owners, update inbound links to the replacement/backlog or maintained owners, and **delete** this workbook. Receipt of the final answer alone does not trigger retirement. Git history retains its chronology.
+
+## Current navigation (2026-10-02)
+
+- **Delivered diagram/Monkey scope:** See [scope tracking](#scope-tracking-against-the-initial-inventory). Later owner decisions removed notice/cache/ticket indicators; master also removed the ticket subsystem. Earlier tables are dated inventories, not outstanding tasks.
+- **Admission decision:** Retain PRE and strict post-closure freshness. Bare arrival-only A is rejected. Three model laws are checked: necessary valid PRE for Current, positive receipt admission for A, and rejection/no reopening for a pending PRE's POST after successful closure.
+- **Suggested next law, awaiting approval:** After a completed round, a new correctly registered PRE and its timely matching POST are accepted and open the next round. Freshness here means the PRE start is after the closure fence; native ordering remains an external premise. This positive case prevents Current's soundness and rejection laws from being satisfied by rejecting all edits. Specify expiry, scope, lifetime, identity and successful registration before proving it; duplicate POST behavior is a separate property.
+- **Native evidence still bounded:** Six PRE-only probes characterize delayed/failed hooks; actual tool-start provenance, registration followed by cancellation, late IPC/retry and closure/restart remain separate validation work.
+- **Deferred simulator boundary:** Preparation result linkage still lacks source-free per-rule capability facts; do not infer that every incomplete graph makes every rule unusable.
 
 ## Working agreement
 
