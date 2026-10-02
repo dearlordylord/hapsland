@@ -12605,6 +12605,58 @@ function $AdmissionAttempts$edit$(_state_0, _pending_0, _partition_0, _lifetime_
   return $AdmissionAttempts$planned$(_pending_0, _partition_0, ($Driver$edit$(_state_0, _partition_0, _lifetime_0)));
 }
 
+function $PendingEffects$retiring$($0) {
+  for (;;) {
+    {
+      const _actions_0 = $0;
+      if (_actions_0.$ === "Nil") {
+        return {$: "None"};
+      } else {
+        const _t_0 = _actions_0["head"];
+        const _t_1 = _t_0["event"];
+        if (_t_1.$ === "Canonical.RetireReview") {
+          const _operation_0 = _t_1["operation"];
+          return {$: "Some", "value": _operation_0};
+        } else {
+          const __12 = _actions_0["tail"];
+          $0 = __12;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $PendingEffects$known$(_already_pending_0, _pending_0, _operation_0, _actions_0) {
+  if (_already_pending_0) {
+    return {$: "PendingEffects.Issued", "pending": _pending_0, "actions": {$: "Nil"}};
+  } else {
+    return {$: "PendingEffects.Issued", "pending": {$: "Con", "head": _operation_0, "tail": _pending_0}, "actions": _actions_0};
+  }
+}
+
+function $PendingEffects$found$(_operation_0, _pending_0, _actions_0) {
+  if (_operation_0.$ === "None") {
+    return {$: "PendingEffects.Issued", "pending": _pending_0, "actions": _actions_0};
+  } else {
+    const _operation_1 = _operation_0["value"];
+    return $PendingEffects$known$(($AdmissionAttempts$contains$(_pending_0, _operation_1)), _pending_0, _operation_1, _actions_0);
+  }
+}
+
+function $PendingEffects$issue$(_pending_0, _actions_0) {
+  return $PendingEffects$found$(($PendingEffects$retiring$(_actions_0)), _pending_0, _actions_0);
+}
+
+function $PendingEffects$consumed$(_pending_0, _event_0) {
+  if (_event_0.$ === "Canonical.RetireReview") {
+    const _operation_0 = _event_0["operation"];
+    return $AdmissionAttempts$remove$(_pending_0, _operation_0);
+  } else {
+    return _pending_0;
+  }
+}
+
 function $Advicees$initial$() {
   return {$: "Advicees.Registry", "next": 1, "scopes": {$: "Nil"}};
 }
@@ -16109,7 +16161,8 @@ function $Preparation$settle$(_state_0, _key_0, _position_0, _before_0, _result_
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return {$: "Types.GraphTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": {$: "Con", "head": ($Preparation$install$(_key_0, _position_0, ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0)))), "tail": ($Preparation$remove$(_graphs_0, _key_0))}, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "before": _before_0, "result": _result_0};
+  const _retiring_0 = _state_0["retiring"];
+  return {$: "Types.GraphTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": {$: "Con", "head": ($Preparation$install$(_key_0, _position_0, ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0)))), "tail": ($Preparation$remove$(_graphs_0, _key_0))}, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "before": _before_0, "result": _result_0};
 }
 
 function $Preparation$expected$(_found_0) {
@@ -16139,8 +16192,9 @@ function $Preparation$step$(_state_0, _key_0, _position_0, _limits_0, _event_0) 
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
   const _found_0 = ($Preparation$find$(_graphs_0, _key_0));
-  return $Preparation$checked$(($Nat$is_eq$(_position_0, ($Preparation$expected$(_found_0)))), {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, _key_0, _position_0, ($Preparation$graph$(_found_0, _limits_0)), _event_0);
+  return $Preparation$checked$(($Nat$is_eq$(_position_0, ($Preparation$expected$(_found_0)))), {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, _key_0, _position_0, ($Preparation$graph$(_found_0, _limits_0)), _event_0);
 }
 
 function $Preparation$retire_entry$(_entry_0, _rest_0, _operation_0) {
@@ -16284,18 +16338,18 @@ function $Postprocess$actions$(_before_0, _after_0, _event_0) {
 }
 
 function $initial$(_limits_0) {
-  return {$: "Types.State", "canonical": ($$$$047agent$045flow$045bend$047Canonical$initial$(_limits_0)), "graphs": {$: "Nil"}, "scheduler": ($Scheduler$initial$()), "workloads": {$: "Nil"}, "random": ($Random$streams$(1)), "advicees": ($Advicees$initial$()), "credentials": ($CredentialFacts$initial$()), "opening": {$: "Nil"}};
+  return {$: "Types.State", "canonical": ($$$$047agent$045flow$045bend$047Canonical$initial$(_limits_0)), "graphs": {$: "Nil"}, "scheduler": ($Scheduler$initial$()), "workloads": {$: "Nil"}, "random": ($Random$streams$(1)), "advicees": ($Advicees$initial$()), "credentials": ($CredentialFacts$initial$()), "opening": {$: "Nil"}, "retiring": {$: "Nil"}};
 }
 
-function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0) {
+function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0) {
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_1, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "result": {$: "Canonical.Rejected", "state": _state_1, "reason": _reason_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_1, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "result": {$: "Canonical.Rejected", "state": _state_1, "reason": _reason_0}};
   }
 }
 
@@ -16308,7 +16362,8 @@ function $step$(_state_0, _event_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, ($AdmissionAttempts$consumed$(_opening_0, _event_0)));
+  const _retiring_0 = _state_0["retiring"];
+  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, ($AdmissionAttempts$consumed$(_opening_0, _event_0)), ($PendingEffects$consumed$(_retiring_0, _event_0)));
 }
 
 function $canonical$(_state_0) {
@@ -16329,7 +16384,8 @@ function $retire$(_state_0, _operation_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": ($Preparation$retire_entries$(_graphs_0, _operation_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
+  const _retiring_0 = _state_0["retiring"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": ($Preparation$retire_entries$(_graphs_0, _operation_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
 }
 
 function $handle$(_state_0, _event_0, _command_0, _context_0) {
@@ -16357,13 +16413,14 @@ function $enqueue$(_state_0, _at_0, _order_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$enqueue$(_scheduler_0, _at_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
+  const _retiring_0 = _state_0["retiring"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$enqueue$(_scheduler_0, _at_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
 }
 
-function $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, _taken_0, _advicees_0, _credentials_0, _opening_0) {
+function $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, _taken_0, _advicees_0, _credentials_0, _opening_0, _retiring_0) {
   const _scheduler_0 = _taken_0["state"];
   const _entry_0 = _taken_0["entry"];
-  return {$: "Taken", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "entry": _entry_0};
+  return {$: "Taken", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "entry": _entry_0};
 }
 
 function $take$(_state_0) {
@@ -16375,7 +16432,8 @@ function $take$(_state_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, ($Scheduler$take$(_scheduler_0)), _advicees_0, _credentials_0, _opening_0);
+  const _retiring_0 = _state_0["retiring"];
+  return $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, ($Scheduler$take$(_scheduler_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0);
 }
 
 function $queued$(_state_0) {
@@ -16392,7 +16450,8 @@ function $cancel$(_state_0, _order_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$cancel$(_scheduler_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
+  const _retiring_0 = _state_0["retiring"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$cancel$(_scheduler_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
 }
 
 function $fence$(_state_0, _event_0, _generated_0, _context_0) {
@@ -16420,7 +16479,8 @@ function $configure_seed$(_state_0, _seed_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$streams$(_seed_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
+  const _retiring_0 = _state_0["retiring"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$streams$(_seed_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
 }
 
 function $configure_workload$(_state_0, _partition_0, _profile_0) {
@@ -16432,14 +16492,15 @@ function $configure_workload$(_state_0, _partition_0, _profile_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": ($Workload$configure$(_workloads_0, _partition_0, _profile_0)), "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
+  const _retiring_0 = _state_0["retiring"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": ($Workload$configure$(_workloads_0, _partition_0, _profile_0)), "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0};
 }
 
-function $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, _changed_0, _advicees_0, _credentials_0, _opening_0) {
+function $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, _changed_0, _advicees_0, _credentials_0, _opening_0, _retiring_0) {
   const _workloads_0 = _changed_0["advicees"];
   const _events_0 = _changed_0["events"];
   const _valid_0 = _changed_0["valid"];
-  return {$: "WorkloadTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "events": _events_0, "valid": _valid_0};
+  return {$: "WorkloadTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "events": _events_0, "valid": _valid_0};
 }
 
 function $workload_action$(_state_0, _partition_0, _action_0) {
@@ -16451,7 +16512,8 @@ function $workload_action$(_state_0, _partition_0, _action_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, ($Workload$run$(_workloads_0, _partition_0, ($Scheduler$clock$(_scheduler_0)), _action_0)), _advicees_0, _credentials_0, _opening_0);
+  const _retiring_0 = _state_0["retiring"];
+  return $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, ($Workload$run$(_workloads_0, _partition_0, ($Scheduler$clock$(_scheduler_0)), _action_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0);
 }
 
 function $workload_valid$(_state_0, _partition_0, _generation_0, _recurring_0) {
@@ -16464,10 +16526,10 @@ function $workload_duration$(_state_0, _partition_0, _fallback_0) {
   return $Workload$duration$(_workloads_0, _partition_0, _fallback_0);
 }
 
-function $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _streams_0, _sample_0, _advicees_0, _credentials_0, _opening_0) {
+function $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _streams_0, _sample_0, _advicees_0, _credentials_0, _opening_0, _retiring_0) {
   const _random_0 = _sample_0["random"];
   const _outcome_0 = _sample_0["outcome"];
-  return {$: "OutcomeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$set_outcomes$(_streams_0, _random_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "outcome": _outcome_0};
+  return {$: "OutcomeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$set_outcomes$(_streams_0, _random_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "outcome": _outcome_0};
 }
 
 function $sample_outcome$(_state_0, _weights_0) {
@@ -16479,7 +16541,8 @@ function $sample_outcome$(_state_0, _weights_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($Random$sample$(($Random$outcomes$(_random_0)), _weights_0)), _advicees_0, _credentials_0, _opening_0);
+  const _retiring_0 = _state_0["retiring"];
+  return $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($Random$sample$(($Random$outcomes$(_random_0)), _weights_0)), _advicees_0, _credentials_0, _opening_0, _retiring_0);
 }
 
 function $numeric_add$(_a_0, _b_0) {
@@ -16578,11 +16641,11 @@ function $credential_authorized$(_state_0, _issued_generation_0) {
   return $CredentialFacts$authorized$(_state_0, _issued_generation_0);
 }
 
-function $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, _declared_0, _opening_0) {
+function $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, _declared_0, _opening_0, _retiring_0) {
   const _advicees_0 = _declared_0["registry"];
   const _scope_0 = _declared_0["scope"];
   const _valid_0 = _declared_0["valid"];
-  return {$: "AdviceeDeclared", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "scope": _scope_0, "valid": _valid_0};
+  return {$: "AdviceeDeclared", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "scope": _scope_0, "valid": _valid_0};
 }
 
 function $declare_advicee$(_state_0, _identity_0, _seed_0) {
@@ -16594,7 +16657,8 @@ function $declare_advicee$(_state_0, _identity_0, _seed_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, ($Advicees$declare$(_advicees_0, _identity_0, _seed_0)), _opening_0);
+  const _retiring_0 = _state_0["retiring"];
+  return $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, ($Advicees$declare$(_advicees_0, _identity_0, _seed_0)), _opening_0, _retiring_0);
 }
 
 function $advicee_identity$(_state_0, _identity_0) {
@@ -16625,7 +16689,8 @@ function $configure_credentials$(_state_0, _available_0, _generation_0) {
   const _random_0 = _state_0["random"];
   const _advicees_0 = _state_0["advicees"];
   const _opening_0 = _state_0["opening"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0}, "opening": _opening_0};
+  const _retiring_0 = _state_0["retiring"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0}, "opening": _opening_0, "retiring": _retiring_0};
 }
 
 function $changed_credentials$(_credentials_0, _available_0, _rotation_0) {
@@ -16645,7 +16710,8 @@ function $credential_action$(_state_0, _available_0, _rotation_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($changed_credentials$(_credentials_0, _available_0, _rotation_0)), "opening": _opening_0};
+  const _retiring_0 = _state_0["retiring"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($changed_credentials$(_credentials_0, _available_0, _rotation_0)), "opening": _opening_0, "retiring": _retiring_0};
 }
 
 function $generate_tree$(_seed_0, _operation_0, _unit_0, _profile_0, _limits_0) {
@@ -16664,10 +16730,10 @@ function $scope_select$(_bindings_0, _partition_0) {
   return $AdviceeScope$select$(_bindings_0, _partition_0);
 }
 
-function $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _attempt_0) {
+function $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _attempt_0, _retiring_0) {
   const _opening_0 = _attempt_0["pending"];
   const _plan_0 = _attempt_0["plan"];
-  return {$: "EditAttempt", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "plan": _plan_0};
+  return {$: "EditAttempt", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "plan": _plan_0};
 }
 
 function $edit_attempt$(_state_0, _partition_0, _lifetime_0) {
@@ -16679,7 +16745,27 @@ function $edit_attempt$(_state_0, _partition_0, _lifetime_0) {
   const _advicees_0 = _state_0["advicees"];
   const _credentials_0 = _state_0["credentials"];
   const _opening_0 = _state_0["opening"];
-  return $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, ($AdmissionAttempts$edit$(_canonical_0, _opening_0, _partition_0, _lifetime_0)));
+  const _retiring_0 = _state_0["retiring"];
+  return $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, ($AdmissionAttempts$edit$(_canonical_0, _opening_0, _partition_0, _lifetime_0)), _retiring_0);
+}
+
+function $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, _issued_0) {
+  const _retiring_0 = _issued_0["pending"];
+  const _actions_0 = _issued_0["actions"];
+  return {$: "IssuedActions", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0, "retiring": _retiring_0}, "actions": _actions_0};
+}
+
+function $issue_actions$(_state_0, _actions_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  const _retiring_0 = _state_0["retiring"];
+  return $issued_effects$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _opening_0, ($PendingEffects$issue$(_retiring_0, _actions_0)));
 }
 
 function $Nat$is_eq$(_a_0, _b_0) {
@@ -16834,7 +16920,7 @@ function $List$reverse$go$($0, $1) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:85fc95e28d468ccc7884dcfdd6d3636a7fe855fd0c33dccd363b3115269e2a00";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:d0b8966c798664b5dfeb4d92a745747f9c84ca4c463c155e059f7f51ae5c5e08";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:fc81ee6d1b3e536a954faf66f528cbccc232d9513e4d129263b61eed9f5298ff";
 
 const facts = value => {
@@ -16850,6 +16936,7 @@ const facts = value => {
   return value;
 };
 export default {
+ issue_actions: (state, actions) => run_loop($issue_actions$(state, facts(actions))),
  edit_attempt: (state, partition, lifetime) => run_loop($edit_attempt$(state, facts(partition), facts(lifetime))),
  scope_event: (before, after, event, provided) => run_loop($scope_event$(before, after, facts(event), facts(provided))),
  scope_command: (before, after, command, provided) => run_loop($scope_command$(before, after, command, facts(provided))),
