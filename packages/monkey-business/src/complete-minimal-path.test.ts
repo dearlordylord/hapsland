@@ -145,3 +145,34 @@ it("keeps a wide delay exact in the compiled native driver execution lane", () =
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+it("runs original source-free minimal scenarios through the native shared driver and agrees on intermediate public traces", () => {
+  const native = spawnSync("bend", [fileURLToPath(new URL("../../monkey-business-bend/conformance/minimal-scenario.bend", import.meta.url))], { encoding: "utf8", timeout: 5000 });
+  expect(native.error).toBeUndefined();
+  expect(native.status, native.stdout + native.stderr).toBe(0);
+  const nativeTraces: number[][][] = JSON.parse(native.stdout.replace(/([0-9]+)n/g, "$1"));
+  const eventCodes: Record<string, number> = { openRound: 1, admitObservation: 2, queueDispatch: 3, startObservation: 4,
+    beginObservedPreparation: 5, preparationCompleted: 6, completeObservation: 7, dispatchSettled: 8, startReview: 9,
+    jevRequestReady: 10, jevRequestStarted: 11, jevRequestSettled: 12, collectionReady: 13, finalCandidateCheck: 14,
+    submissionSuppressCheck: 15, collectionReserveLease: 16, submissionBegin: 17, submissionTerminal: 18,
+    collectionLeaseCheck: 19, collectionReleaseLease: 20 };
+  const commandCodes: Record<string, number> = { roundStarted: 1, observationAdmitted: 2, dispatchStarted: 3, prepare: 4,
+    unitAdmitted: 5, jevRequestIssued: 6, retainFinding: 7, collectionEligible: 8, retainCandidate: 9,
+    submissionUnsuppressed: 10, collectionLeaseReserved: 11, submissionBegun: 12, submissionRecorded: 13,
+    observationStarted: 14, preparationReleased: 15, observationCompleted: 16, reviewStarted: 17,
+    jevRequestStartRecorded: 18, jevRequestOutcomeRecorded: 19, reservationReleased: 20, collectionLeaseKept: 21,
+    collectionLeaseReleased: 22, settleClear: 23, reviewRecorded: 24 };
+  const graphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 };
+  const traces = (["finding", "clear"] as const).map(outcome => {
+    const run = createRun(minimal(outcome));
+    run.advance({ untilTime: 10 });
+    return run.observations.map(frame => {
+      if (frame.preparation) {
+        const { command, after } = frame.preparation;
+        return [21, frame.time, graphCodes[command.kind] ?? 99, after.files, after.readBytes, after.treeBytes];
+      }
+      return [eventCodes[frame.event.kind] ?? 99, frame.time, ...frame.commands.map(command => { if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`); return commandCodes[command.kind]!; })];
+    });
+  });
+  expect(nativeTraces).toEqual(traces);
+});

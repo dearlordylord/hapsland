@@ -1,0 +1,231 @@
+import Base
+import ../Engine.bend as Engine
+import ../Types.bend as Types
+import ../Driver.bend as Driver
+import ../Scheduler.bend as Scheduler
+import ../../agent-flow-bend/Canonical.bend as Canonical
+import ../../agent-flow-bend/ImportGraph.bend as Graph
+import ../../agent-flow-bend/Ledger.bend as Ledger
+
+# A native edge adapter supplies original source-free inputs and graph facts.
+# Policy, command interpretation, callback generation and ordering are shared.
+type Input is Data:
+  Edit{}
+  Event{action: Driver.Action}
+  Fact{operation: Nat, step: Nat, event: Graph.GraphEvent}
+type Item is Data:
+  Item{at: Nat, order: Nat, input: Input}
+type Queue is Data:
+  Queue{items: List<&2, Item>, sequence: Nat}
+
+def keys(items: List<&2, Item>) -> List<&2, Scheduler.Entry>:
+  match items:
+    case Nil{}: Nil{}
+    case Item{at, order, _} <> tail: Scheduler.Entry{at, order} <> keys(tail)
+
+def lookup_if(found: Bool, input: Input, rest: Input) -> Input:
+  match found:
+    case True{}: input
+    case False{}: rest
+
+def lookup(items: List<&2, Item>, +order: Nat) -> Input:
+  match items:
+    case Nil{}: Edit{}
+    case Item{_, +id, input} <> tail: lookup_if(Nat.is_eq(id, order), input, lookup(tail, order))
+
+
+def remove_if(found: Bool, item: Item, rest: List<&2, Item>) -> List<&2, Item>:
+  match found:
+    case True{}: rest
+    case False{}: item <> rest
+
+def remove(items: List<&2, Item>, +order: Nat) -> List<&2, Item>:
+  match items:
+    case Nil{}: Nil{}
+    case Item{at, +id, input} <> tail: remove_if(Nat.is_eq(id, order), Item{at, id, input}, remove(tail, order))
+
+def append(queue: Queue, at: Nat, input: Input) -> Queue:
+  match queue:
+    case Queue{items, +sequence}: Queue{List.append(&2, Item, items, [Item{at, sequence, input}]), Nat.add(sequence, 1n)}
+
+def enqueue(actions: List<&2, Driver.Action>, queue: Queue, +now: Nat) -> Queue:
+  match actions:
+    case Nil{}: queue
+    case Driver.Action{event, +delay, candidate, job, expiry} <> tail:
+      enqueue(tail, append(queue, Nat.add(now, delay), Event{Driver.Action{event, delay, candidate, job, expiry}}), now)
+
+def context(action: Driver.Action, outcome: Canonical.RequestOutcome) -> Driver.Context:
+  match action:
+    case Driver.Action{_, _, candidate, job, _}:
+      Driver.Context{1n, 1n, 1n, 10n, True{}, 5n, outcome, True{}, True{}, True{}, True{},
+        600000n, candidate, True{}, True{}, True{}, True{}, 0n, 30n}
+
+def graph_facts(queue: Queue, +now: Nat, +operation: Nat) -> Queue:
+  +one = Nat.add(now, 1n)
+  +q = append(queue, now, Fact{operation, 0n, Graph.Root{1n, 100n, 20n, 0n, [2n]}})
+  +q = append(q, now, Fact{operation, 1n, Graph.Next{}})
+  +q = append(q, now, Fact{operation, 2n, Graph.Resolved{2n, Graph.Found{}}})
+  +q = append(q, one, Fact{operation, 3n, Graph.PathChecked{True{}}})
+  +q = append(q, one, Fact{operation, 4n, Graph.Captured{100n, 20n, 0n, Nil{}}})
+  +q = append(q, one, Fact{operation, 5n, Graph.Next{}})
+  enqueue([Engine.preparation_completed(1n, 1n, 1n, operation, [5n], 2n)], q, now)
+
+def handled(queue: Queue, now: Nat, result: Driver.Handled) -> Queue:
+  match result:
+    case Driver.Handled{_, actions}: enqueue(actions, queue, now)
+
+def command(queue: Queue, +now: Nat, +state: Types.State, +event: Canonical.CanonicalEvent,
+    command: Canonical.Command, +ctx: Driver.Context) -> Queue:
+  match command:
+    case Canonical.Prepare{operation, _}: graph_facts(queue, now, operation)
+    case command: handled(queue, now, Engine.handle(state, event, command, ctx))
+
+def commands(list: List<&2, Canonical.Command>, queue: Queue, +now: Nat, +state: Types.State, +event: Canonical.CanonicalEvent,
+    +ctx: Driver.Context) -> Queue:
+  match list:
+    case Nil{}: queue
+    case head <> tail: commands(tail, command(queue, now, state, event, head, ctx), now, state, event, ctx)
+
+def event_code(event: Canonical.CanonicalEvent) -> Nat:
+  match event:
+    case Canonical.OpenRound{_, _}: 1n
+    case Canonical.AdmitObservation{_, _, _}: 2n
+    case Canonical.QueueDispatch{_, _, _, _}: 3n
+    case Canonical.StartObservation{_, _, _, _}: 4n
+    case Canonical.BeginObservedPreparation{_, _, _, _, _}: 5n
+    case Canonical.PreparationCompleted{_, _, _, _, _}: 6n
+    case Canonical.CompleteObservation{_, _, _, _}: 7n
+    case Canonical.DispatchSettled{_, _, _, _}: 8n
+    case Canonical.StartReview{_, _, _, _}: 9n
+    case Canonical.JevRequestReady{_, _, _, _, _, _, _, _, _, _}: 10n
+    case Canonical.JevRequestStarted{_, _, _, _, _}: 11n
+    case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: 12n
+    case Canonical.CollectionReady{_, _, _, _, _, _}: 13n
+    case Canonical.FinalCandidateCheck{_, _, _, _, _, _}: 14n
+    case Canonical.SubmissionSuppressCheck{_, _, _, _}: 15n
+    case Canonical.CollectionReserveLease{_, _}: 16n
+    case Canonical.SubmissionBegin{_, _, _, _, _, _, _, _}: 17n
+    case Canonical.SubmissionTerminal{_, _, _}: 18n
+    case Canonical.CollectionLeaseCheck{_, _, _, _, _, _}: 19n
+    case Canonical.CollectionReleaseLease{_, _}: 20n
+    case _: 99n
+
+def command_code(command: Canonical.Command) -> Nat:
+  match command:
+    case Canonical.RoundStarted{_}: 1n
+    case Canonical.ObservationAdmitted{_}: 2n
+    case Canonical.DispatchStarted{_, _}: 3n
+    case Canonical.Prepare{_, _}: 4n
+    case Canonical.UnitAdmitted{_, _, _, _, _}: 5n
+    case Canonical.JevRequestIssued{_, _, _, _, _}: 6n
+    case Canonical.RetainFinding{}: 7n
+    case Canonical.CollectionEligible{}: 8n
+    case Canonical.RetainCandidate{}: 9n
+    case Canonical.SubmissionUnsuppressed{}: 10n
+    case Canonical.CollectionLeaseReserved{}: 11n
+    case Canonical.SubmissionBegun{}: 12n
+    case Canonical.SubmissionRecorded{}: 13n
+    case Canonical.ObservationStarted{}: 14n
+    case Canonical.PreparationReleased{_, _}: 15n
+    case Canonical.ObservationCompleted{}: 16n
+    case Canonical.ReviewStarted{}: 17n
+    case Canonical.JevRequestStartRecorded{}: 18n
+    case Canonical.JevRequestOutcomeRecorded{_}: 19n
+    case Canonical.ReservationReleased{_}: 20n
+    case Canonical.CollectionLeaseKept{}: 21n
+    case Canonical.CollectionLeaseReleased{}: 22n
+    case Canonical.SettleClear{}: 23n
+    case Canonical.ReviewRecorded{_}: 24n
+    case _: 99n
+
+def command_codes(items: List<&2, Canonical.Command>) -> List<&2, Nat>:
+  match items:
+    case Nil{}: Nil{}
+    case head <> tail: command_code(head) <> command_codes(tail)
+
+def graph_code(command: Graph.Command) -> Nat:
+  match command:
+    case Graph.NoCommand{}: 0n
+    case Graph.ResolveEdge{_}: 1n
+    case Graph.CheckPath{_}: 2n
+    case Graph.ReadSource{_}: 3n
+    case Graph.UnitComplete{}: 4n
+    case _: 99n
+
+
+def edit_retry(retry: Bool, queue: Queue, now: Nat) -> Queue:
+  match retry:
+    case True{}: append(queue, now, Edit{})
+    case False{}: queue
+
+def edit_plan(plan: Driver.EditPlan, state: Types.State, queue: Queue, +now: Nat,
+    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match plan:
+    case Driver.EditPlan{retry, actions}: ih((state, edit_retry(retry, enqueue(actions, queue, now), now)))
+
+def graph_counts(graph: Graph.Graph) -> List<&2, Nat>:
+  match graph:
+    case Graph.Graph{_, _, _, files, read, tree, _, _, _, _, _}: [files, read, tree]
+
+def graph_row(+state: Graph.Bounded, command: Graph.Command, now: Nat) -> List<&2, Nat>:
+  match state:
+    case Graph.Bounded{graph, _}: 21n <> now <> graph_code(command) <> graph_counts(graph)
+
+def graph_result(transition: Types.GraphTransition, queue: Queue, now: Nat,
+    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match transition:
+    case Types.GraphTransition{state, _, Graph.BoundedStep{graph, command}}:
+      graph_row(graph, command, now) <> ih((state, queue))
+
+def canonical_result(transition: Engine.Transition, +before: Types.State,
+    +action: Driver.Action, queue: Queue, +now: Nat, outcome: Canonical.RequestOutcome,
+    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match transition action:
+    case Engine.Transition{+state, Canonical.Advanced{_, +list}} Driver.Action{+event, delay, candidate, job, expiry}:
+      +q = commands(list, queue, now, state, event, context(Driver.Action{event, delay, candidate, job, expiry}, outcome))
+      +q = enqueue(Engine.after(before, state, event), q, now)
+      (event_code(event) <> now <> command_codes(list)) <> ih((state, q))
+    case _ _: [ [98n, now] ]
+
+def input(input: Input, +state: Types.State, queue: Queue, now: Nat,
+    outcome: Canonical.RequestOutcome,
+    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match input:
+    case Edit{}: edit_plan(Engine.edit(state, 1n, 1n), state, queue, now, ih)
+    case Event{Driver.Action{+event, delay, candidate, job, expiry}}:
+      canonical_result(Engine.step(state, event), state, Driver.Action{event, delay, candidate, job, expiry}, queue, now, outcome, ih)
+    case Fact{operation, step, event}:
+      graph_result(Engine.graph_step(state, Types.GraphKey{1n, 1n, 1n, operation, 0n}, step,
+        Graph.Limits{1n, 262144n, 20480n, 8n, 1572864n, 16n, 4n, 128n}, event), queue, now, ih)
+
+def selected_if(in_budget: Bool, +items: List<&2, Item>, state: Types.State, sequence: Nat,
+    at: Nat, +order: Nat, outcome: Canonical.RequestOutcome,
+    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match in_budget:
+    case False{}: Nil{}
+    case True{}: input(lookup(items, order), state, Queue{remove(items, order), sequence}, at, outcome, ih)
+
+def selected(entries: List<&2, Scheduler.Entry>, state: Types.State, +items: List<&2, Item>, sequence: Nat,
+    outcome: Canonical.RequestOutcome,
+    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match entries:
+    case Nil{}: Nil{}
+    case Scheduler.Entry{+at, +order} <> _:
+      selected_if(Nat.is_le(at, 10n), items, state, sequence, at, order, outcome, ih)
+
+def next(state_queue: Types.State & Queue, +outcome: Canonical.RequestOutcome,
+    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match state_queue:
+    case (state, Queue{+items, sequence}): selected(Engine.order(keys(items)), state, items, sequence, outcome, ih)
+
+def loop(fuel: Nat, state_queue: Types.State & Queue, +outcome: Canonical.RequestOutcome) -> List<&2, List<&2, Nat>>:
+  match fuel:
+    case 0n: Nil{}
+    case 1n+rest: next(state_queue, outcome, pair => loop(rest, pair, outcome))
+
+def scenario(outcome: Canonical.RequestOutcome) -> List<&2, List<&2, Nat>>:
+  loop(100n, (Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
+    Queue{[Item{0n, 0n, Edit{}}], 1n}), outcome)
+
+def main() -> List<&2, List<&2, List<&2, Nat>>>:
+  [scenario(Canonical.RequestFinding{}), scenario(Canonical.RequestClear{})]
