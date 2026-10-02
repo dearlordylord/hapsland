@@ -12,6 +12,7 @@
 | --- | --- | --- | --- |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
+| TypeScript quality gate | `npm run quality:check` | Full deterministic gate with fresh Istanbul coverage, then pinned crap4ts analysis of `src` | Per-function complexity and coverage policy; strict missing evidence; no correctness or assertion-quality guarantee |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout |
 | Direct-event conformance | `npm run conformance:direct-event` | Manifest, selected direct-event tests, retained evidence validation | Version-one event contract and sanitization; no new agent session |
 | Installed host | `npm run conformance:host -- --write-evidence` | Clean package with real Codex CLI and controlled reviewer | Pinned installed Codex profile, distinct from the source-checkout runner |
@@ -28,8 +29,40 @@ The selected adoption observations include six controlled offline passes and six
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
 `master`. It installs the frozen Bun lockfile, then runs documentation links,
-typecheck, `npm test`, and build. It does not invoke live Jev or native agent
+typecheck, `npm run quality:check`, and build. It does not invoke live Jev or native agent
 milestones; those remain separate declared checks above.
+
+The [crap4ts configuration](../crap4ts.json) selects all TypeScript under `src`
+(the tool excludes conventional tests and declarations) and enforces a CRAP
+threshold of **8** with missing evidence treated as an error.
+[`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
+to **1.0.4** (`DEPEND ON`); the V8 coverage provider is pinned to the same
+release as Vitest and emits Istanbul JSON, not raw V8 coverage.
+`npm run quality:check` regenerates coverage through
+`npm run test:coverage`, which includes the existing boundary checks and tests.
+The tool removes the previous JSON artifact before running that command and
+stops if tests fail, so stale coverage cannot produce a passing CI result.
+For machine-readable feedback, run
+`npm run --silent quality:check -- --format json > crap-report.json`;
+generated test output goes to stderr. Exit **2** means a score exceeded its threshold;
+exit **1** means invalid inputs, missing coverage, analysis failure, or a failed
+coverage command. Coverage reports and `crap-report.json` stay ignored.
+Coverage is also written on test failures for diagnosis, but the gate stops
+on the failed command and does not analyze it as a successful run.
+A failing existing function
+needs meaningful tests or simpler branching; do not raise thresholds or switch
+to report-only mode to hide a failure. Separate packages and JavaScript/Bend
+sources are outside this gate's current `src` scope. Review this policy when
+the production source roots, test runner, or pinned analysis tool change.
+
+The initial full test run with V8 coverage passed 1,292 tests, but crap4ts
+1.0.4 rejected the report with ambiguous function ownership in
+`src/activity/analytics.ts` (`readAnalytics`). The same attribution error was
+reproduced with direct Istanbul instrumentation and the focused analytics
+tests. The strict gate therefore currently exits **1**, before any CRAP scores
+can be assessed. Resolve the coverage/analyzer compatibility error before
+claiming the quality gate passes; do not exclude the affected source or suppress
+the error. Recheck this limitation when the coverage provider or analyzer changes.
 
 The link checker is [Lychee](https://lychee.cli.rs/guides/cli/) 0.24.2
 (`DEPEND ON`), selected because it checks Markdown and raw HTML links and images

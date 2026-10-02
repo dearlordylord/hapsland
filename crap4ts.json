@@ -1,0 +1,16 @@
+{
+  "sources": [
+    "src"
+  ],
+  "coverage": {
+    "path": "coverage/coverage-final.json",
+    "format": "istanbul",
+    "command": [
+      "npm",
+      "run",
+      "test:coverage"
+    ]
+  },
+  "threshold": 8,
+  "missing_evidence": "error"
+}

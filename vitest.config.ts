@@ -8,5 +8,12 @@ export default defineConfig({
       "packages/monkey-business/src/**/*.test.ts",
     ],
     exclude: ["vendor/**", "node_modules/**"],
+    coverage: {
+      provider: "v8",
+      reporter: ["json", "text-summary"],
+      reportOnFailure: true,
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/*.test.ts", "src/**/*.d.ts"],
+    },
   },
 });
