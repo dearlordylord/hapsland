@@ -71,7 +71,36 @@ def tasked(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
       edited(Engine.workload_action(at(state, time, 1000n), 1n, Workload.Next{}))
     case _: [[97n]]
 
-def main() -> IO(Unit):
-  IO.print(Minimal.bracket(Minimal.show_rows(tasked(Engine.workload_action(
+def trace() -> List<&2, List<&2, Nat>>:
+  tasked(Engine.workload_action(
     Engine.configure_workload(Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
-      1n, profile()), 1n, Workload.Next{})))))
+      1n, profile()), 1n, Workload.Next{}))
+
+def timing(value: Workload.PreTiming) -> List<&2, Nat>:
+  match value:
+    case Workload.PreTiming{started, deadline, post, duration, valid}:
+      [started, deadline, post, duration, Bool.pick(Nat, valid, 1n, 0n)]
+
+def duration_state(duration: Nat, time: Nat) -> Types.State:
+  at(Engine.configure_workload(Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
+    1n, Workload.Profile{Session.Settings{10, 0, 1, 100, 0, 20}, 7,
+      [119, 114, 105, 116, 101, 114], 10n, [5n], Some{duration}}), time, 1000n)
+
+def captured(duration: Nat, time: Nat) -> List<&2, Nat>:
+  timing(Engine.pre_timing(duration_state(duration, time), 1n, None{}, 30n, 10n))
+
+def changed_duration(transition: Engine.WorkloadTransition) -> List<&2, Nat>:
+  match transition:
+    case Engine.WorkloadTransition{state, Nil{}, True{}}:
+      timing(Engine.pre_timing(state, 1n, None{}, 30n, 10n))
+    case _: [97n]
+
+def timings() -> List<&2, List<&2, Nat>>:
+  [captured(9n, 10n), captured(10n, 10n), captured(11n, 10n),
+   changed_duration(Engine.workload_action(duration_state(11n, 10n), 1n,
+     Workload.Controlled{Workload.Duration{0n}})),
+   captured(9n, Nat.add(U32.to_nat(4294967295), 18n))]
+
+def main() -> IO(Unit):
+  IO.print(String.append("[", String.append(Minimal.bracket(Minimal.show_rows(trace())),
+    String.append(",", String.append(Minimal.bracket(Minimal.show_rows(timings())), "]")))))

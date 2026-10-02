@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run, type RunConfig } from "./index.ts";
 import type { OutcomeWeights } from "./outcomes.ts";
 import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
+import Shared from "../../monkey-business-bend/engine.mjs";
 
 const weights = (selected: Partial<OutcomeWeights>): OutcomeWeights => ({
   neverSent: 0, finding: 0, clear: 0, backendFailure: 0, timeout: 0, interrupted: 0,
@@ -146,8 +147,12 @@ it("preserves fractional scaling without making zero-weight outcomes reachable",
 });
 
 it("executes an original continuous arrival through the native shared workload and business driver", () => {
-  const native: number[][] = runWorkloadNative(new URL(
+  const [native, timing]: number[][][] = runWorkloadNative(new URL(
     "../../monkey-business-bend/conformance/workload-scenario.bend", import.meta.url));
+  expect(timing).toEqual([
+    [10, 20, 19, 9, 1], [10, 20, 20, 10, 1], [10, 20, 21, 11, 1],
+    [10, 20, 10, 0, 1], [4294967313, 4294967323, 4294967322, 9, 1],
+  ]);
   expect(native.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
   expect(native.filter(row => row[0] === 21).map(row => row.slice(1, 6))).toEqual([
     [10, 0, 1, 100, 20], [10, 1, 1, 100, 20], [10, 2, 1, 100, 20],
@@ -193,7 +198,30 @@ it("runs original IEEE64 weight words in the compiled native numeric owner", () 
     "../../monkey-business-bend/conformance/workload-numeric.bend", import.meta.url));
   expect(native[0]).toEqual([2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 2, 2]);
   expect(native[1]).toEqual(Array(16).fill(1));
+  expect(native[3]).toEqual([0, 1, 0, 1]);
+  expect(native[4]).toEqual([1072693248, 0, 1072693248, 2, 0, 2, 1072693248, 0]);
   const run = createRun({ seed: 7, inputs, outcomeWeights: weights({ finding: .25, clear: .75 }) });
   drain(run);
   expect(native[2]).toEqual(outcomes(run).map(outcome => outcome === "finding" ? 1 : outcome === "clear" ? 2 : -1));
 }, 30000);
+
+it("preserves raw MIN_VALUE words when either addend is exact zero", () => {
+  const zero = { $: "Numeric.Words", high: 0, low: 0 };
+  const minimum = { $: "Numeric.Words", high: 0, low: 1 };
+  expect(Shared.numeric_add(zero, minimum)).toEqual(minimum);
+  expect(Shared.numeric_add(minimum, zero)).toEqual(minimum);
+});
+
+it("rounds valid weight arithmetic to nearest even and normalizes subnormals", () => {
+  const one = { $: "Numeric.Words", high: 1072693248, low: 0 };
+  const halfUlp = { $: "Numeric.Words", high: 1017118720, low: 0 };
+  const minimum = { $: "Numeric.Words", high: 0, low: 1 };
+  expect(Shared.numeric_add(one, halfUlp)).toEqual(one);
+  expect(Shared.numeric_add({ ...one, low: 1 }, halfUlp)).toEqual({ ...one, low: 2 });
+  expect(Shared.numeric_add(minimum, minimum)).toEqual({ ...minimum, low: 2 });
+  expect(Shared.numeric_divide(minimum, minimum)).toEqual(one);
+  expect(Shared.numeric_add({ $: "Numeric.Words", high: 1048575, low: 4294967295 }, minimum))
+    .toEqual({ $: "Numeric.Words", high: 1048576, low: 0 });
+  expect(Shared.numeric_divide(minimum, { ...minimum, low: 6 }))
+    .toEqual({ $: "Numeric.Words", high: 1069897045, low: 1431655765 });
+});

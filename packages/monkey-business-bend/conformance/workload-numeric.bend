@@ -23,6 +23,26 @@ def json(values: List<&2, Nat>) -> String:
 def row(weights: List<&2, Numeric.Words>) -> String:
   String.append("[", String.append(json(draws(16n, Random.initial(7n), weights)), "]"))
 
+def raw(value: Numeric.Words) -> List<&2, Nat>:
+  match value:
+    case Numeric.Words{high, low}: [high, low]
+
+def zeros() -> String:
+  +words = List.append(&2, Nat,
+    raw(Numeric.plus(Numeric.Words{0n, 0n}, Numeric.Words{0n, 1n})),
+    raw(Numeric.plus(Numeric.Words{0n, 1n}, Numeric.Words{0n, 0n})))
+  String.append("[", String.append(json(words), "]"))
+
+def rounding() -> String:
+  +words = List.append(&2, Nat,
+    raw(Numeric.plus(Numeric.Words{1072693248n, 0n}, Numeric.Words{1017118720n, 0n})),
+    List.append(&2, Nat,
+      raw(Numeric.plus(Numeric.Words{1072693248n, 1n}, Numeric.Words{1017118720n, 0n})),
+      List.append(&2, Nat,
+        raw(Numeric.plus(Numeric.Words{0n, 1n}, Numeric.Words{0n, 1n})),
+        raw(Numeric.divide(Numeric.Words{0n, 1n}, Numeric.Words{0n, 1n})))))
+  String.append("[", String.append(json(words), "]"))
+
 def main() -> IO(Unit):
   IO.print(String.append("[", String.append(
     row(profile(Numeric.Words{1078525952n, 0n}, Numeric.Words{1078525952n, 0n})),
@@ -30,4 +50,5 @@ def main() -> IO(Unit):
       row(profile(Numeric.Words{0n, 1n}, Numeric.Words{0n, 0n})),
       String.append(",", String.append(
         row(profile(Numeric.Words{1070596096n, 0n}, Numeric.Words{1072168960n, 0n})),
-        "]")))))))
+        String.append(",", String.append(zeros(),
+          String.append(",", String.append(rounding(), "]")))))))))))
