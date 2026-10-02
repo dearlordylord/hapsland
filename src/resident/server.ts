@@ -2393,7 +2393,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           settings,
           beforeAnalyze: (path, sourceBytes, preflight) => Effect.gen(function* () {
             const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
-            const resized = residentLedger.adviceCaptures.resize(capture, required);
+            const resized = yield* residentLedger.adviceCaptures.resize(capture, required);
             if (resized) {
             } else capacityUnavailable = true;
             return resized;
@@ -2406,9 +2406,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return capacityUnavailable ? { status: "unavailable" as const, findings: [] } : current;
     }).pipe(
       Effect.catch(() => Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] })),
-      Effect.ensuring(Effect.sync(() => {
-        residentLedger.adviceCaptures.finish(capture);
-      })),
+      Effect.ensuring(residentLedger.adviceCaptures.finish(capture)),
     );
   }));
 

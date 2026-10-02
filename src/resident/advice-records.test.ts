@@ -100,7 +100,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
   expect(owner.snapshot().bytes).toBe(300);
   expect(yield* owner.revision.count()).toBe(1);
-  expect(owner.adviceCaptures.finish(capture)).toBe("retired");
+  expect(yield* owner.adviceCaptures.finish(capture)).toBe("retired");
   expect(owner.snapshot().items).toBe(0);
   expect(yield* owner.revision.count()).toBe(0);
   expect(yield* owner.advice.revise(advice, [], [])).toBe(false);

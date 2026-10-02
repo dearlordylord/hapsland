@@ -84,10 +84,10 @@ it.effect("settles a retired advice capture and its revision member in one owner
   if (reservation === undefined) throw new Error("missing capture reservation");
   const capture = yield* owner.adviceCaptures.start(reservation, revision, 200);
   if (capture === undefined) throw new Error("missing capture");
-  owner.adviceCaptures.retire(reservation);
+  yield* owner.adviceCaptures.retire(reservation);
   expect(yield* owner.revision.current(revision, item)).toBe(true);
   expect(owner.snapshot().bytes).toBe(300);
-  expect(owner.adviceCaptures.finish(capture)).toBe("retired");
+  expect(yield* owner.adviceCaptures.finish(capture)).toBe("retired");
   expect(yield* owner.revision.count()).toBe(0);
   expect(owner.snapshot().items).toBe(0);
 }));

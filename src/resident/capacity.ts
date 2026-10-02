@@ -551,8 +551,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         revisions.assert();
         return [value, { ...records, adviceCaptures: captures, revision }];
       };
-      const captureCommit = <A>(operation: (captures: Map<number, AdviceCaptureRecord>, owner: CapacityLedger, revision: RevisionOperations) => A): A =>
-        commitAll(captureChange(operation));
       return {
         start: Effect.fn("AdviceCaptures.start")((reservation: CapacityReservation, revision: WorkRevision, workspaceBytes: number): Effect.Effect<AdviceCapture | undefined> =>
           commitAllEffect(captureChange((captures, owner) => {
@@ -563,17 +561,17 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
             captures.set(reservation.id, Object.freeze({ capability, retired: false }));
             return capability;
           }))),
-        resize: (capture: AdviceCapture, workspaceBytes: number): boolean => captureCommit((captures, owner) => {
+        resize: Effect.fn("AdviceCaptures.resize")((capture: AdviceCapture, workspaceBytes: number): Effect.Effect<boolean> => commitAllEffect(captureChange((captures, owner) => {
           if (captures.get(capture.reservation.id)?.capability !== capture) return false;
           return owner.resize(capture.reservation, capture.retainedBytes + workspaceBytes, "adviceRecheck");
-        }),
-        retire: (reservation: CapacityReservation): boolean => captureCommit((captures) => {
+        }))),
+        retire: Effect.fn("AdviceCaptures.retire")((reservation: CapacityReservation): Effect.Effect<boolean> => commitAllEffect(captureChange((captures) => {
           const record = captures.get(reservation.id);
           if (record?.capability.reservation !== reservation) return false;
           captures.set(reservation.id, Object.freeze({ ...record, retired: true }));
           return true;
-        }),
-        finish: (capture: AdviceCapture): "retained" | "retired" | "stale" => captureCommit((captures, owner, revisions) => {
+        }))),
+        finish: Effect.fn("AdviceCaptures.finish")((capture: AdviceCapture): Effect.Effect<"retained" | "retired" | "stale"> => commitAllEffect(captureChange((captures, owner, revisions) => {
           const record = captures.get(capture.reservation.id);
           if (record?.capability !== capture) return "stale";
           if (record.retired) {
@@ -584,8 +582,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           }
           captures.delete(capture.reservation.id);
           return record.retired ? "retired" : "retained";
-        }),
-        count: (): number => Ref.getUnsafe(state).records.adviceCaptures.size,
+        }))),
+        count: Effect.fn("AdviceCaptures.count")(() => Ref.get(state).pipe(Effect.map((snapshot) => snapshot.records.adviceCaptures.size))),
       };
     })(),
     notices: (maximumKeys: number, cooldownMs: number, lifetimeMs: number, measure: (value: unknown) => number) => {

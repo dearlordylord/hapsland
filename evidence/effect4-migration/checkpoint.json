@@ -148,7 +148,8 @@
     "Advice delivery updates and runtime acknowledgement compose named Effects, including final handoff renewal and IPC acknowledgement; defect snapshot rollback remains atomic",
     "Advice lease expiry/reoffer checks compose atomic Effects in collection; caller preserves uninterruptible check of current delivery and Bend reoffer authority",
     "Advice lease release, delivery cleanup and composed-submission cleanup compose Effects; interrupted collection and native IPC finalizers yield cleanup directly, uninterruptible release preserved",
-    "Advice capture acquisition composes a named atomic Effect; revalidation acquires through an Effect generator"
+    "Advice capture acquisition composes a named atomic Effect; revalidation acquires through an Effect generator",
+    "Capture service composes Effects throughout: resize, retirement and completion commit atomically; count reads a snapshot; revalidation finalizer composes physical settlement directly; synchronous captureCommit removed"
   ],
   "verification": [
     {
@@ -1885,12 +1886,21 @@
       "build": true,
       "ticketBoundaryCheck": true,
       "case": "Sixteen deferred capture attempts retain one identity and charge workspace once; completion restores retained bytes"
+    },
+    {
+      "stage": "advice-capture-completion-effects",
+      "testsPassed": 134,
+      "testFiles": 5,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "case": "Sixteen competing completions settle once and restore retained bytes; retired capture holds charge until finish; stale capability fences replacement"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Finish capture resize/retire/finish/count Effects, advice reads/retirement, then remaining capacity, reuse, delivery and notice domain bridges",
+    "Finish advice reads/retirement, then remaining capacity, reuse, delivery and notice domain bridges; capture service is fully Effect-based",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",

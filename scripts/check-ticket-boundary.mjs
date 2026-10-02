@@ -123,3 +123,13 @@ if (!state.includes('start: Effect.fn("AdviceCaptures.start")') ||
     !server.includes('yield* residentLedger.adviceCaptures.start(')) {
   throw new Error("advice capture acquisition must compose as an Effect");
 }
+
+const captureSurface = state.slice(state.indexOf("    adviceCaptures: (() =>"), state.indexOf("    notices:", state.indexOf("    adviceCaptures: (() =>")));
+if (/\bcommitAll\(|Ref.getUnsafe|captureCommit/.test(captureSurface)) {
+  throw new Error("advice capture service restored a synchronous or unsafe bridge");
+}
+for (const operation of ["resize", "retire", "finish", "count"]) {
+  if (!captureSurface.includes(`${operation}: Effect.fn("AdviceCaptures.${operation}")`)) {
+    throw new Error(`advice capture ${operation} must compose as an Effect`);
+  }
+}
