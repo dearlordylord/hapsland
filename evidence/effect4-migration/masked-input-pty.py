@@ -18,15 +18,27 @@ console.log("MASKED_RESULT="+JSON.stringify(result._tag === "Success"
   ? {success: result.success === "synthetic-no-secret"}
   : {cancelled: result.failure.message === "credential input cancelled"}));
 '''
+interrupt_program = '''import * as Effect from "./node_modules/effect/dist/Effect.js";
+import * as Fiber from "./node_modules/effect/dist/Fiber.js";
+import {readMaskedCredential} from "./src/credentials/masked-input.ts";
+await Effect.runPromise(Effect.gen(function* () {
+  const fiber = yield* readMaskedCredential().pipe(Effect.forkScoped);
+  const interrupt = () => { Effect.runFork(Fiber.interrupt(fiber)); };
+  process.once("SIGUSR2", interrupt);
+  const result = yield* Fiber.await(fiber);
+  process.off("SIGUSR2", interrupt);
+  console.log("MASKED_RESULT="+JSON.stringify({interrupted: result._tag === "Failure"}));
+}).pipe(Effect.scoped));
+'''
 def controlling_terminal():
     os.setsid()
     fcntl.ioctl(0, termios.TIOCSCTTY, 0)
 results = []
-for name, keys, expected in [("enter", b"synthetic-no-secret\n", {"success": True}), ("signal", None, {"cancelled": True})]:
+for name, keys, expected in [("enter", b"synthetic-no-secret\n", {"success": True}), ("signal", None, {"cancelled": True}), ("fiber", None, {"interrupted": True})]:
     master, slave = pty.openpty()
     original = termios.tcgetattr(slave)
     child = subprocess.Popen(
-        ["node", "--experimental-strip-types", "--input-type=module", "-e", program],
+        ["node", "--experimental-strip-types", "--input-type=module", "-e", interrupt_program if name == "fiber" else program],
         cwd=root, stdin=slave, stdout=slave, stderr=slave, preexec_fn=controlling_terminal,
     )
     output = b""
@@ -38,7 +50,7 @@ for name, keys, expected in [("enter", b"synthetic-no-secret\n", {"success": Tru
             if select.select([master], [], [], 0.1)[0]:
                 output += os.read(master, 65536)
         if keys is None:
-            child.send_signal(signal.SIGTERM)
+            child.send_signal(signal.SIGUSR2 if name == "fiber" else signal.SIGTERM)
         else:
             os.write(master, keys)
         child.wait(timeout=5)

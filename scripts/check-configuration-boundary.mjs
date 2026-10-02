@@ -80,3 +80,15 @@ const host = read("src/onboarding/host-process.ts");
 if (/new Promise|Effect\.run(?:Sync|Promise|Fork)\(/u.test(host) || !host.includes("Effect.acquireUseRelease(")) {
   throw new Error("native Codex host process must use scoped Effect ownership");
 }
+
+const maskedInput = read("src/credentials/masked-input.ts");
+if (/new Promise|\basync\b|setInterval\(|setTimeout\(|spawnSync\(|Effect\.run(?:Sync|Promise|Fork)\(/u.test(maskedInput) ||
+    !maskedInput.includes("Effect.acquireUseRelease(") || !maskedInput.includes("Schedule.fromStep(") ||
+    !maskedInput.includes("execFileClosedStdin(")) {
+  throw new Error("masked credential input must use scoped Effect ownership, scheduled polling and scoped native processes");
+}
+const clientSelection = read("src/onboarding/client-selection.ts");
+if (/new Promise|\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(clientSelection) ||
+    !clientSelection.includes("Effect.acquireUseRelease(")) {
+  throw new Error("interactive client selection must use caller Effect runtime and scoped terminal ownership");
+}

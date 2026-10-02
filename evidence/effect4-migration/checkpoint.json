@@ -3569,5 +3569,26 @@
       "evidence/effect4-migration/masked-input-pty.py": "6287665312a145b88216317c880fa82e931dbb77481285c65ccf3c56c5022afa"
     },
     "limitations": "No native fiber-interruption/fault injection or macOS/Windows proof. Full-suite/current package conformance, remaining installation Config and external deadlines, live/performance and completion audit still required."
+  },
+  "maskedInputNativeFiberInterruptionValidation": {
+    "sourceCommit": "2047e47",
+    "status": "pass",
+    "command": "python3 evidence/effect4-migration/masked-input-pty.py",
+    "cases": [
+      "synthetic input success",
+      "SIGTERM cancellation",
+      "Effect fiber interruption via SIGUSR2 probe bridge"
+    ],
+    "nativeEvidence": "All three native Linux controlling-PTY cases exit 0 with exact termios restoration. Fiber case awaits interrupted fiber completion before boolean-only report; no credential persistence or printed input.",
+    "guard": {
+      "command": "node scripts/check-configuration-boundary.mjs",
+      "status": "pass",
+      "scope": "Reject Promise/async/private runtime in selector and masked reader; reject timers/spawnSync in masked input; require scoped ownership/Schedule/native adapter"
+    },
+    "sourceSha256": {
+      "evidence/effect4-migration/masked-input-pty.py": "0b3c5fca3b0d3ca1237c0c10a8011a3a6fffe4d77963fabf3491488a2aae8668",
+      "scripts/check-configuration-boundary.mjs": "3463d58f89777feb6f7b3baf384b3016402f8943d9dc08d8e52cca8ed864c569"
+    },
+    "limitations": "No native restoration failure injection, cross-platform proof or complete migration claim. Remaining installation Config/inspection, native lifecycle, external Clock deadline and final gates still required."
   }
 }
