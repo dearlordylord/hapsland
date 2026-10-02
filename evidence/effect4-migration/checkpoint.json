@@ -3294,5 +3294,32 @@
       "scripts/check-configuration-boundary.mjs": "9892b9f1f3b49efb09ec8df88a4d96dc0fd156d59d44a8c9313e7db3ee633ed3"
     },
     "limitations": "Synthetic host/adapter tests only, no actual OpenCode/Codex host support or universal descendant process closure claim. Codex/Claude installation Config, interactive/native terminal, coordinated hook deadlines and final full migration gates remain."
+  },
+  "fullValidationAfterWorkflowPorts": {
+    "sourceCommit": "3cf71c613c8c7950ff7c00864c553410bb15cb9a",
+    "commands": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npm run build",
+        "status": "pass"
+      },
+      {
+        "command": "npm test",
+        "status": "pass",
+        "exitCode": 0,
+        "testFilesPassed": 122,
+        "testFilesSkipped": 1,
+        "testsPassed": 1257,
+        "testsSkipped": 2,
+        "durationSeconds": 346.33
+      }
+    ],
+    "log": "/tmp/hapsland-effect4-full-3cf71c6.log",
+    "logSha256": "cd064d8c7d7acc176ec5b1e423fa09ae63a81123ea4d891e9818248ff45ceb64",
+    "scope": "Full npm test includes configuration, canonical/Bend artifact, production authority, boundary guards, progress proofs and all offline Vitest files. No source edits occurred during the run.",
+    "limitations": "Does not establish live Jev behavior, real host/platform conformance or completion of the full idiomatic migration. Codex/Claude installation configuration and inspection, interactive CLI/terminal ownership, coordinated external hook deadline Clock migration and final conformance/performance/completion audit remain incomplete."
   }
 }
