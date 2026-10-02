@@ -474,10 +474,14 @@ and 64 for the shared resident. Explicit replay/fixture ceilings remain unchange
 native permit defaults remain 32 per advicee and 4096 per resident.
 
 
-The expandable [Post-edit intake timing panel](#post-edit-timing) compares
-receipt-first registration, asynchronous post with bounded Stop grace, and a
-late-registration race in a fully asynchronous no-pre variant. These are
-illustrative ordering proposals, not measured timings or installed behavior.
-The installed flow still uses pre-edit permits and a synchronous post hook.
-`test:timing-browser` checks the direct anchor, keyboard disclosure, proposal
-labels, and contained narrow-screen timeline scrolling.
+The expandable [hook timing panel](#current-hook-timing) shows current installed
+Claude Code and Codex CLI paths first, followed by clearly separated no-pre
+proposals. Both pre hooks record the upcoming edit; failure does not block the
+native edit. Claude's synchronous post hook reports the completed edit and may
+wait for review until a result or time limit. Codex's post hook reports and
+returns, while resident review continues. A separate background collector can
+overlap these paths. Stop decides immediately when no review is unfinished and
+otherwise waits within its time limit; findings may continue the turn. The
+illustrations repeat per edit and do not assume one edit per turn or measured
+durations. `test:timing-browser` checks the direct anchor, keyboard disclosure,
+current/proposal labels, and contained narrow-screen scrolling.

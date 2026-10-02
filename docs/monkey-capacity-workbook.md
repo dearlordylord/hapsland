@@ -789,3 +789,38 @@ the owner-facing production captures are
 `/tmp/hapsland-post-edit-timing-build.log` and
 `/tmp/hapsland-post-edit-timing-browser.log`. This is advisory visualization
 validation only; the timing policies remain proposals.
+
+
+## Current installed hook timing shown before proposals (2026-10-02)
+
+The owner requested the actual installed sequence, rather than only no-pre
+proposals. The open timing panel now begins at `#current-hook-timing` with
+separate Claude Code and Codex CLI illustrations, based on current foreground
+adapter code (`src/cli.ts`, Codex admission around 430–452 and Claude bounded
+collection around 454–493) and pre/Stop/background paths in
+`src/resident/composed-hook.ts`. Both pre hooks record an upcoming edit for later
+review admission; failure does not prevent the native edit. Claude's synchronous
+post hook reports the edit and may wait for review until its result/time limit.
+Codex's post hook reports and returns while review proceeds in the resident.
+The background collector is independent and may overlap post collection and
+Stop. The illustrated Claude case reaches its post time limit before review
+finishes, so both traces correctly show unfinished review at Stop invocation.
+Separate cards explain immediate decisions when nothing is unfinished versus
+waiting within the Stop time limit, and findings may continue the turn rather
+than always allowing closure. A repeat-per-edit caption avoids implying one
+edit per turn. Plain labels explain reporting/recording the edit instead of
+opaque registration terminology. Existing proposals remain distinctly below;
+the delayed-post race is not presented as current installed behavior.
+
+Typecheck/build and the adapted bounded timing browser passed. Captures of the
+current section only are
+`/workspace/hapsland-review/current-hook-timing/current-1512.png` and
+`/workspace/hapsland-review/current-hook-timing/current-390.png`. Logs are
+`/tmp/hapsland-current-hook-timing-build.log` and
+`/tmp/hapsland-current-hook-timing-browser.log`. The diagrams illustrate code
+ordering, not measured durations or a live/native validation claim. No hook
+behavior is changed.
+
+Astra's rendered after-review passed the desktop and narrow current-section
+captures without a blocking issue. Runtime-specific post-hook behavior, pre-hook
+fail-open semantics, optional collector overlap, and both Stop paths are clear.
