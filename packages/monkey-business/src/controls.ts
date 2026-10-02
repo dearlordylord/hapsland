@@ -8,7 +8,7 @@ export type OutputProfile = { readonly outcome: "certain" | "uncertain" | "faile
 export type OutcomeChoice =
   | { readonly outcome: JevRequestOutcome; readonly outcomeWeights?: never }
   | { readonly outcome?: never; readonly outcomeWeights?: OutcomeWeights };
-export type LiveControl = { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
+export type LiveControl = { readonly kind: "editDuration"; readonly durationMs: number } | { readonly kind: "fileTrees"; readonly profile: FileTreeProfile } | SessionControl | ({ readonly kind: "environment" } & EnvironmentProfile) | ({ readonly kind: "outputProfile" } & OutputProfile) | ({ readonly kind: "jevProfile"; readonly delayMs: number } & OutcomeChoice);
 /** Bounds protect finite synthetic workload; they are not empirical Jev limits. */
 export const validateLiveControl = (control: LiveControl): LiveControl => {
   if (!control || typeof control !== "object") throw new TypeError("invalid live control");
@@ -31,6 +31,7 @@ export const validateLiveControl = (control: LiveControl): LiveControl => {
       validateSizeFacts({ sourceBytes: 0, evidenceTreeBytes: 0, encodedOutputBytes: 0,
         reservationBytes: control.reservationBytes, reviewUnitBytes: control.reviewUnitBytes });
       break;
+    case "editDuration": bounded(control.durationMs, "durationMs", 0, 1_000_000_000); break;
     case "editPace": bounded(control.intervalMs, "intervalMs", 1, 1_000_000_000); break;
     case "burst": bounded(control.count, "count", 1, 1024); break;
     case "suspendArrivals": if (typeof control.suspended !== "boolean") throw new TypeError("suspended must be boolean"); break;

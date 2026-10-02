@@ -171,3 +171,17 @@ checked adapters and bounded scenarios, not full native resident orchestration.
 Unspecified review outcomes use `DEFAULT_OUTCOME_WEIGHTS`: finding 50, clear 50, all failures zero. `RunConfig.outcomeWeights` and `{kind:'jevProfile',delayMs,outcomeWeights}` accept six finite weights in [0,100]; their positive total is normalized for sampling. An all-zero mix is rejected before a control is recorded. An explicit edit/config/control `outcome` remains a deterministic single-outcome override and is mutually exclusive with weights at that boundary. Already issued requests keep their sampled result and due time. The dedicated `jev-outcomes` xorshift32 stream uses the run seed and is independent of workload variation/rendering; only sampled request issuance consumes a draw, explicit overrides do not. Replay persists the initial weights, all later raw weights, algorithm, stream and stable outcome order. The distribution describes synthetic inputs, not empirical Jev rates.
 
 The ongoing session generator now delegates scheduling to the shared [Bend session core](../session-bend/README.md), compiled to an ES module. Its TypeScript adapter keeps the existing public API, validation and absolute clocks; the pre-port implementation survives only as an independent test fixture. Regenerate the module with `node packages/session-bend/build.mjs` after changing the Bend source.
+
+
+Generated sessions may supply `editDurationMs` (0–1,000,000,000 virtual ms).
+This is the supplied PRE-to-POST report delay, independent of edit cadence and
+Jev delay; it does not serialize a native agent's tools or measure native work.
+`applyControl({ kind: "editDuration", agent, durationMs })` changes future edits
+for that agent; omitting `agent` targets all generators. The duration is captured
+at PRE issuance, so in-flight POST timing and the original permit deadline stay
+unchanged. Scripted edits retain the shared lifecycle `holdMs` default unless an
+explicit edit duration is supplied. Bend still decides admission/expiry; a
+late POST cannot revive an expired permit. Replay remains format 1 and records
+session duration and targeted controls. The dashboard starts at 1 ms and places
+this setting beside Edit interval; Start seeds all agents, Apply targets the
+selected agent.

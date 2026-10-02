@@ -34,6 +34,7 @@ export const SimulationModel = Schema.Struct({
   resourceRound: Schema.String,
   seed: Schema.String,
   pace: Schema.String,
+  editDuration: Schema.String,
   burst: Schema.String,
   delay: Schema.String,
   weightNeverSent: Schema.String,
@@ -84,6 +85,7 @@ export const initialSimulation: SimulationModel = {
   resourceRound: "",
   seed: "7",
   pace: "100",
+  editDuration: "1",
   burst: "5",
   delay: "50",
   weightNeverSent: String(DEFAULT_OUTCOME_WEIGHTS.neverSent),
@@ -244,6 +246,7 @@ export const changeSimulation = (
     ![
       "seed",
       "pace",
+      "editDuration",
       "burst",
       "delay",
       "weightNeverSent",
@@ -345,7 +348,7 @@ export const actSimulation = (
       picker.click();
       return { ...model, feedback: "Choose a replay file, then Load replay to validate and reconstruct it." };
     }
-    if (replaySource && ["pace", "burst", "suspend", "sizes", "environment", "output", "fileTrees"].includes(action)) {
+    if (replaySource && ["pace", "editDuration", "burst", "suspend", "sizes", "environment", "output", "fileTrees"].includes(action)) {
       return { ...model, feedback: "Cannot apply: finish recorded replay before applying new environment controls. Draft fields remain editable." };
     }
     if (action.startsWith("preset:")) {
@@ -394,6 +397,7 @@ export const actSimulation = (
           agent: `agent-${index + 1}`,
           seed: (number(model.seed, "Seed", 0, 0xffffffff) + Math.imul(index, 2654435761)) >>> 0,
           editIntervalMs: number(model.pace, "Edit pace", 1, 1_000_000),
+          editDurationMs: number(model.editDuration, "Simulated edit duration", 0, 1_000_000_000),
           bytes: number(model.bytes, "Reservation bytes", 1, 1_000_000),
         })),
       });
@@ -454,6 +458,7 @@ export const actSimulation = (
         outputDelay: String(latest("outputProfile")?.delayMs ?? inputs.config.outputProfile?.delayMs ?? 0),
         outputLease: String(latest("outputProfile")?.leaseMs ?? inputs.config.outputProfile?.leaseMs ?? 30000),
         seed: String(inputs.config.seed ?? 1),
+        editDuration: String(latest("editDuration")?.durationMs ?? inputs.config.sessions?.[0]?.editDurationMs ?? inputs.config.session?.editDurationMs ?? inputs.config.lifecycles?.permits?.holdMs ?? 1),
         pace: String(
           latest("editPace")?.intervalMs ??
             inputs.config.sessions?.[0]?.editIntervalMs ?? inputs.config.session?.editIntervalMs ??
@@ -500,6 +505,10 @@ export const actSimulation = (
             intervalMs: number(model.pace, "Edit pace", 1, 1_000_000),
           });
           feedback = "Future edit pace updated at this virtual boundary.";
+          break;
+        case "editDuration":
+          run.applyControl({ kind: "editDuration", agent: model.agentId, durationMs: number(model.editDuration, "Simulated edit duration", 0, 1_000_000_000) });
+          feedback = "Future simulated PRE-to-POST duration updated for the selected agent. In-progress edits keep their timing.";
           break;
         case "burst":
           run.applyControl({
@@ -719,6 +728,8 @@ export const simulationView = <Message>(
         [h.Class("simulation-controls")],
         [
           ...(run && !run.agentScopes.length ? [h.p([], ["Scripted events · no generator controls"])] : [controlForm("pace", [input("pace", "Edit interval (virtual ms)", model.pace), submit("Apply edit pace")]),
+          controlForm("editDuration", [h.label([], ["Simulated edit duration (virtual ms)", h.input([h.Type("number"), h.AriaLabel("Simulated edit duration (virtual ms)"), h.Min("0"), h.Max("1000000000"), h.Step("1"), h.Value(model.editDuration), h.OnInput(raw => changed("editDuration", raw))])]), submit("Apply edit duration")]),
+          h.p([], ["Time between PRE and POST. Start applies it to all agents; Apply changes future edits for the selected agent. Edits already in progress keep their duration."]),
           controlForm("burst", [input("burst", "Burst count (1–100)", model.burst), submit("Inject edit burst")]),
           button(
             model.suspended
@@ -785,7 +796,7 @@ export const simulationView = <Message>(
       h.p([h.Class("simulation-inspection")], [model.selected < 0 ? "Viewing latest observation" : `Inspecting event ${current?.sequence ?? "unavailable"} at ${current?.time ?? 0} ms; run endpoint ${run?.now ?? 0} ms. Playback paused. Applied controls affect the run endpoint, not this historical event.`]),
       h.div([h.Class("simulation-controls")], [button("Previous event", "previous"), button("Next event", "next"), button("Return to latest", "latest"), button("Replay from start", "replay-start"), button("Inspect oldest retained event", "from-start"), button("Bookmark event", "bookmark"), button("Go to bookmark", "go-bookmark")]),
       h.p([h.Class("simulation-outcomes")], [`Run outcomes: ${totals.checked} checked events · ${totals.admitted} observations admitted · ${totals.refused} refusals · ${totals.failed} failures/timeouts · ${totals.advice} confirmed host submissions · ${totals.uncertain} uncertain advice submissions · ${totals.released} released output attempts. ${run && model.suspended && !run.projection.work.some((work) => work.kind !== "pendingFinding") && run.projection.dispatch.requests.length === 0 && run.projection.collection.leases.length === 0 && !run.projection.delivery.slots.some((slot) => ["reserved", "authorized", "uncertain"].includes(slot.phase)) && !run.projection.delivery.submissions.batches.some((batch) => ["reserved", "authorized", "uncertain"].includes(batch.phase)) ? `Transient work settled; ${run.projection.collection.ready.length} retained advice records; arrivals suspended.` : "Work or future arrivals remain."}`]),
-      h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.editIntervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · active mix ${mixSummary(appliedWeights(activeReplay))} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.bytes ?? activeReplay.config.session?.bytes ?? 100} bytes.` : "Start a run to apply environment settings."]),
+      h.p([h.Class("simulation-active-controls")], [activeReplay ? `Active environment: edit interval ${latestControl("editPace")?.intervalMs ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.editIntervalMs ?? activeReplay.config.session?.editIntervalMs ?? 100} ms · simulated edit duration ${latestControl("editDuration")?.durationMs ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.editDurationMs ?? activeReplay.config.session?.editDurationMs ?? activeReplay.config.lifecycles?.permits?.holdMs ?? 1} ms · Jev delay ${latestControl("jevProfile")?.delayMs ?? activeReplay.config.jevDelay ?? 5} ms · active mix ${mixSummary(appliedWeights(activeReplay))} · reservation ${latestControl("sizes")?.reservationBytes ?? activeReplay.config.sessions?.find(session => session.agent === model.agentId)?.bytes ?? activeReplay.config.session?.bytes ?? 100} bytes.` : "Start a run to apply environment settings."]),
       ...(run && showDiagram
         ? [productionFlowView(h, current?.after ?? run.projection, last, false, (place) => action(`focus:${place}`), preparationSnapshot(observations.filter(frame => frame.sequence <= (current?.sequence ?? -1)).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)]
         : []),
@@ -871,6 +882,7 @@ export const selectSimulationAgent = (model: SimulationModel, agent: string): Si
   const session = replay?.config.sessions?.find(session => session.agent === agent) ?? replay?.config.session;
   const latest = <Kind extends Control["kind"]>(kind: Kind) => replay?.controls.findLast(entry => entry.control.kind === kind && (!entry.control.agent || entry.control.agent === agent))?.control as Extract<Control, { kind: Kind }> | undefined;
   return { ...model, agentId: agent, item: "",
+    editDuration: String(latest("editDuration")?.durationMs ?? session?.editDurationMs ?? replay?.config.lifecycles?.permits?.holdMs ?? 1),
     pace: String(latest("editPace")?.intervalMs ?? session?.editIntervalMs ?? 100),
     bytes: String(latest("sizes")?.reservationBytes ?? session?.bytes ?? 100),
     suspended: latest("suspendArrivals")?.suspended ?? false,

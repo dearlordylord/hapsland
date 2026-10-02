@@ -1072,3 +1072,59 @@ Exact review captures are
 `/workspace/hapsland-review/edit-permits/before-ordinary-focus.png`,
 `/workspace/hapsland-review/edit-permits/after-ordinary-focus.png`, and
 `/workspace/hapsland-review/edit-permits/after-ordinary-detail.png`.
+
+## Adjustable simulated PRE-to-POST timing (2026-10-02)
+
+The owner requested a glossary definition and a setting for the interval during
+which a simulated edit permit is held. The existing Edit interval controls
+arrival cadence; Jev delay controls review completion. Neither previously
+changed the fixed one-millisecond PRE-to-POST timing. The glossary now defines
+Edit permit as temporary prospective admission authority, not permission for
+the native edit itself.
+
+Implementation scope: expose Simulated edit duration (virtual ms) next to edit
+interval, with concise source-free PRE-to-POST meaning. Start uses configured
+initial durations; applying a change targets future edits of the selected
+generator. Already issued permits retain their captured timing and original
+expiry; expiry and Jev delay remain distinct. Existing replay/control machinery
+records the setting and updates for exact replay, with format1 updated in place.
+This introduces no scheduler serialization or Bend policy decision.
+
+Astra's before-advice preserves the1ms default and uses300ms at100ms edit
+interval for the concrete overlap preview, with numeric constraints and visible
+scope/future-edits feedback. Implementation and rendered review are in progress.
+
+### Edit-duration delivery and evidence
+
+Implemented beside Edit interval with numeric range0–1,000,000,000 virtual ms
+and an Apply edit duration action. The1ms default is unchanged. Start seeds
+all agents; Apply targets future edits of the selected generator. Selecting an
+agent or loading a replay restores its recorded duration. Existing in-flight
+PRE-to-POST timing and permit deadline are captured unchanged. This setting
+controls a simulated report interval; it does not measure native tool execution
+or impose serial tool-loop scheduling.
+
+Five targeted backend tests passed: overlapping permits across agents, targeted
+future timing while earlier300ms edits remain unchanged, exact observation and
+projection replay, zero/equal/beyond-deadline cases, and invalid configuration,
+control and replay values. Both package typechecks and the dedicated UI-only
+browser passed, including Start, targeted Apply, reload and input bounds. An
+existing heavy lifecycle-drain test timed out during an accidentally expanded
+concurrent test run; its isolated rerun passed. This record does not claim that
+broad concurrent run passed.
+
+Astra's final desktop/narrow interaction and rendered review passed. With two
+agents at300ms and edit interval100ms, the actual194ms frame holds4/64 shared
+permits. Applying600ms to agent2 leaves agent1 at300ms. Final review artifacts:
+`/workspace/hapsland-review/edit-duration/settings-desktop.png`,
+`settings-narrow.png`, `overlap-focus.png`, and `applied-agent2-desktop.png`.
+
+**Boundary correction:** the parent's interim statement that a POST exactly at
+the deadline is rejected was inaccurate for Monkey Business. Its existing
+canonical timing fixture accepts equality; only a later POST is preceded by
+expiry and refused. The native composed adapter sweeps expiry before consuming
+a POST, using expiresAt <= now, so its exact-deadline behavior differs. The new
+control preserves existing Monkey semantics; it does not establish native
+expiry parity. A future admission-fidelity review must consider this explicit
+boundary separately, without changing the approved Current laws or silently
+rewriting accepted test expectations.

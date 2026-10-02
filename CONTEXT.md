@@ -19,6 +19,7 @@ material only beside the plain-language meaning it represents.
 | Hook invocation | One execution of a hook handler; an event may invoke zero or more handlers, and repeated events create new invocations. |
 | Edit hook | A hook handler invoked before or after an edit; edits may recur many times within a virtual round. |
 | Stop hook | A hook handler invoked for a finish attempt, following zero or more edits; continuation may lead to more edits and another attempt. |
+| Edit permit | An expiring resident pre-edit record linking an advicee and tool invocation to its start boundary. Its matching post-edit report consumes it to admit the edit for review; the permit does not authorize the native edit itself. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
 | Resident | Hapsland's local background process. An agent runtime starts a short Hapsland command when an edit or Stop event occurs. That command sends the event to the resident. The resident schedules review work, calls Jev, and holds temporary review state in its own memory. |

@@ -50,6 +50,7 @@ export type RunInput =
           readonly unitBytes: readonly number[];
           readonly outcome?: JevRequestOutcome;
           readonly tool?: number;
+          readonly editDurationMs?: number;
           /** Exact source-free prepared evaluation identities, one per review unit. */
           readonly evaluationInputs?: readonly string[];
           readonly evaluationTreeIdentity?: number;
@@ -286,6 +287,7 @@ export class Run {
   >();
   private jobs = new Map<number, Extract<RunInput, { kind: "edit" }>>();
   private readonly config: RunConfig;
+  private readonly editDurations = new Map<number, number>();
   private readonly generators = new Map<number, SessionGenerator>();
   private readonly scopes: { agent: string; partition: number; seed: number }[] = [];
   private get session() { return this.generators.get(this.partition); }
@@ -337,6 +339,7 @@ export class Run {
       const seed = settings.seed ?? ((config.seed ?? 1) + Math.imul(index, 2654435761)) >>> 0;
       const partition = index + 1;
       this.generators.set(partition, new SessionGenerator({ ...settings, agent, seed }));
+      if (settings.editDurationMs !== undefined) this.editDurations.set(partition, settings.editDurationMs);
       this.scopes.push({ agent, partition, seed });
     });
     if (config.outcome !== undefined && config.outcomeWeights !== undefined) throw new TypeError("choose explicit outcome or outcome weights");
@@ -448,6 +451,9 @@ export class Run {
       this.jevDelay = value.delayMs;
       if (value.outcome !== undefined) this.outcome = value.outcome;
       if (value.outcomeWeights !== undefined) { this.outcome = undefined; this.outcomeWeights = validateOutcomeWeights(value.outcomeWeights); }
+    } else if (value.kind === "editDuration") {
+      if (!this.generators.size) throw new Error("edit duration requires a session generator");
+      for (const scope of this.scopes) if (value.agent === undefined || value.agent === scope.agent) this.editDurations.set(scope.partition, value.durationMs);
     } else if (this.generators.size) {
       for (const scope of this.scopes) {
         if (value.agent !== undefined && value.agent !== scope.agent) continue;
@@ -555,6 +561,9 @@ export class Run {
       }
       if ("revisionSubject" in item.input && item.input.revisionSubject !== undefined && item.input.revisionInput === undefined) throw new TypeError("revisionInput required with revisionSubject");
       if (permits) {
+        const duration = item.input.editDurationMs ?? this.editDurations.get(this.partition) ?? permits.holdMs ?? 0;
+        validateLiveControl({ kind: "editDuration", durationMs: duration });
+        item.input = { ...item.input, editDurationMs: duration };
         const tool = "tool" in item.input && item.input.tool !== undefined ? item.input.tool : this.nextTool++;
         const lifetime = permits.lifetimeMs ?? 30000;
         const started = Math.max(1, this.clock);
@@ -627,10 +636,11 @@ export class Run {
           if (event.kind !== "issuePermit" || !item.job) break;
           const terminal = this.config.lifecycles?.permits?.terminal ?? "consume";
           const binding = { partition: event.partition, lifetime: event.lifetime, token: command.token };
-          if (terminal !== "expire" && (this.config.lifecycles?.permits?.holdMs ?? 0) > event.deadline - this.clock) this.event({ kind: "expirePermit", ...binding, deadlineReached: true }, event.deadline - this.clock);
+          const duration = item.job.editDurationMs ?? this.config.lifecycles?.permits?.holdMs ?? 0;
+          if (terminal !== "expire" && duration > event.deadline - this.clock) this.event({ kind: "expirePermit", ...binding, deadlineReached: true }, event.deadline - this.clock);
           if (terminal === "consume") this.event({ kind: "consumePermit", ...binding, tool: event.tool,
-            now: this.clock + (this.config.lifecycles?.permits?.holdMs ?? 0) }, this.config.lifecycles?.permits?.holdMs ?? 0, item.job);
-          else if (terminal === "release") this.event({ kind: "releasePermit", ...binding }, this.config.lifecycles?.permits?.holdMs ?? 0);
+            now: this.clock + duration }, duration, item.job);
+          else if (terminal === "release") this.event({ kind: "releasePermit", ...binding }, duration);
           else this.event({ kind: "expirePermit", ...binding, deadlineReached: true }, event.deadline - this.clock);
           break;
         }

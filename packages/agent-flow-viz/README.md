@@ -332,6 +332,11 @@ owned records and does not re-run or replace any product decision.
 Hovering or keyboard-focusing a layer card makes the other planes transparent
 without changing selection; leaving restores the full stack. Selecting an
 agent targets its edit pace, bursts, reservation size and arrival suspension.
+The **Simulated edit duration (virtual ms)** setting beside Edit interval
+controls time between PRE and POST. Start seeds every agent; Apply changes future
+edits for the selected agent. In-progress edits keep captured timing. The default
+is 1 ms; 300 ms duration with 100 ms interval makes overlapping permits visible.
+This supplied timing does not change Jev delay, permit expiry or edit cadence.
 Native environment, file-tree, output and Jev profiles are resident-wide.
 **Start / reset** resets the entire resident. Replay JSON stays at version one
 and includes all configured sessions, globally ordered inputs and targeted
