@@ -805,8 +805,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const claudeSurface: ComposedClaudeSurface | undefined = composed && ticket === undefined &&
         advicee.host === "claude-code" ? mode === "turn-end" ? "stop" : "background" : undefined;
       const now = residentNow();
-      if (composed && mode !== "turn-end" && residentComposedDelivery.isDeciding(partition)) return residentResponse({ status: "empty" });
-      const stopCollector = composed && mode === "turn-end" && residentComposedDelivery.isDeciding(partition);
+      if (composed && mode !== "turn-end" && (yield* residentComposedDelivery.isDeciding(partition))) return residentResponse({ status: "empty" });
+      const stopCollector = composed && mode === "turn-end" && (yield* residentComposedDelivery.isDeciding(partition));
       yield* residentExpirePending(now);
       yield* residentPruneNoticeCooldowns(now);
       const credentialGeneration = dispatch.credential?.generation ?? null;
@@ -1182,13 +1182,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     yield* residentExpirePending(now);
     const finishPermit = surface === "stop" && (yield* residentComposedDelivery.hasFinishPermit(token));
     if (finishPermit && (yield* residentComposedDelivery.isFinishAuthorized(token))) return { status: "empty" };
-    if (!residentComposedDelivery.canBeginExistingToken(surface, token)) return { status: "empty" };
+    if (!(yield* residentComposedDelivery.canBeginExistingToken(surface, token))) return { status: "empty" };
     const advice = (yield* residentLedger.advice.snapshots()).filter(({ content }) =>
       content.delivery?.token === token && content.delivery.leaseUntil > now &&
       content.delivery.findings.length > 0);
-    const selectionValid = !finishPermit || residentComposedDelivery.finishSelectionMatches(token,
+    const selectionValid = !finishPermit || (yield* residentComposedDelivery.finishSelectionMatches(token,
       advice.map(({ capability, content }) => ({ id: capability.id, unit: capability.canonicalOperationId,
-        findings: content.delivery?.findings ?? [] })));
+        findings: content.delivery?.findings ?? [] }))));
     let allValid = selectionValid;
     for (const { capability: item, content } of advice) {
       if (!allValid) break;
@@ -1202,8 +1202,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         hasDelivery: delivery !== undefined,
         pendingCapacity: round !== undefined && unit !== undefined && delivery !== undefined &&
           delivery.findings.length <= residentPendingCanonicalFindings(item.canonicalOperationId),
-        submissionAllowed: residentComposedDelivery.canBeginSubmission(
-          adviceePartition(item.observation.root, item.observation.advicee), surface, token),
+        submissionAllowed: (yield* residentComposedDelivery.canBeginSubmission(
+          adviceePartition(item.observation.root, item.observation.advicee), surface, token)),
         currentWork: (yield* residentIsCurrentWork(item.revision, item.prepared)),
         credentialAuthorized: residentAdviceCredentialAuthority(item),
       } });
@@ -1223,10 +1223,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     for (const { capability: item, content } of advice) {
       if (finishPermit) continue;
-      if (!residentComposedDelivery.beginSubmission(
+      if (!(yield* residentComposedDelivery.beginSubmission(
         item.id, adviceePartition(item.observation.root, item.observation.advicee),
         token, content.delivery?.findings ?? [], surface, now, item.canonicalOperationId,
-      )) {
+      ))) {
         yield* runtime.releaseComposedSubmission(token);
         return { status: "empty" };
       }
@@ -1247,7 +1247,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const dispatcherWork = jobs.queued + jobs.running;
     const round = composed ? yield* residentLedger.rounds.get(partition) : undefined;
     const work = composed ? round === undefined ? 0 : (yield* residentLedger.rounds.policyWork(round)).unfinished() : dispatcherWork;
-    return Number(composed && residentComposedDelivery.hasPendingEdits(partition)) +
+    return Number(composed && (yield* residentComposedDelivery.hasPendingEdits(partition))) +
       work +
       (yield* residentLedger.advice.snapshots()).filter(({ capability: item, content }) =>
         (composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
@@ -2476,9 +2476,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             Effect.catch(() => Effect.succeed(undefined)),
           );
         if (capture === undefined) return residentResponse({ status: "rejected-stale", reason: "InvalidConfiguration" });
-        const decision = residentComposedDelivery.registerEditDecision(group, request.advicee.toolUseId,
+        const decision = (yield* residentComposedDelivery.registerEditDecision(group, request.advicee.toolUseId,
           request.startedAt, monotonicNow(), effectiveEditPermitLimits(capture.policy),
-          effectiveVirtualRoundQuietMs(capture.policy));
+          effectiveVirtualRoundQuietMs(capture.policy)));
         if (!decision.accepted) return residentResponse({ status: "rejected-stale", reason: decision.reason });
         return residentResponse({ status: "advanced" });
       }
