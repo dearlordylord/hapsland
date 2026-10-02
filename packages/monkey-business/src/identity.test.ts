@@ -1,13 +1,11 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
 import { LOGIC_IDENTITY, PREPARATION_IDENTITY } from "./index.ts";
 
-it("replay names the exact checked canonical Bend artifact", () => {
-  const artifact = fileURLToPath(new URL("../../../src/canonical/canonical.generated.js", import.meta.url));
-  const header = readFileSync(artifact, "utf8").split("\n", 1)[0];
-  expect(LOGIC_IDENTITY).toBe(header?.replace("// hapsland-bend-source-sha256:", "canonical-source-sha256:"));
+it("replay names the exact shared engine and its consumed implementation", () => {
+  const manifest = JSON.parse(readFileSync(new URL("../../monkey-business-bend/generated.json", import.meta.url), "utf8"));
+  expect(LOGIC_IDENTITY).toBe(`shared-monkey-business-source-sha256:${manifest.identityHash}`);
 });
 
 it("replay names the exact import reducer and preparation composition", () => {

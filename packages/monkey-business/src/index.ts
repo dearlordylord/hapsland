@@ -1,3 +1,7 @@
+import { SOURCE_IDENTITY, PREPARATION_SOURCE_IDENTITY } from "../../monkey-business-bend/engine.mjs";
+import { readRecord, readBool } from "../../../src/canonical/boundary-schema.ts";
+import { decodeDriver, decodeDriverEvent, encodeDriverOutcome } from "./driver-codec.ts";
+import { SharedCore } from "./shared-core.ts";
 import { ResourceScenarios, demoResourceLimits, type ResourceScenarioConfig } from "./resource-scenarios.ts";
 import { freezeCanonicalData } from "../../../src/canonical/immutable.ts";
 import { Schema } from "effect";
@@ -6,7 +10,7 @@ export * from "./resource-scenarios.ts";
 export { projectAgent } from "./agent-projection.ts";
 import { generateFileTree, validateFileTreeProfile, DEFAULT_FILE_TREE_PROFILE, type FileTreeProfile } from "./file-trees.ts";
 export * from "./file-trees.ts";
-import { PreparationReplay, type PreparationEvent, type PreparationFrame } from "./preparation.ts";
+import { type PreparationEvent, type PreparationFrame } from "./preparation.ts";
 export * from "./preparation.ts";
 import { DEFAULT_OUTCOME_WEIGHTS, JEV_OUTCOME_ORDER, OUTCOME_RANDOM_ALGORITHM, OUTCOME_RANDOM_STREAM, SeededOutcomeSampler, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
 export * from "./outcomes.ts";
@@ -22,9 +26,7 @@ export { SessionGenerator } from "./session.ts";
 export type { SessionConfig, SessionInput, SessionControl } from "./session.ts";
 export * from "./sizes.ts";
 import {
-  initialCanonical,
-  projectCanonical,
-  stepCanonical,
+  type initialCanonical,
   type CanonicalEvent,
   type CanonicalCommand,
   type CanonicalProjection,
@@ -38,9 +40,8 @@ export type {
 };
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
-export const LOGIC_IDENTITY =
-  "canonical-source-sha256:c75c63f1c243f7df350237464e217d89518a9b0366e468b2a18ba782a9d4c061";
-export const PREPARATION_IDENTITY = "import-preparation-sha256:c85f59d667624daf084d024fab190a3e372bd1d0bdcd669d7241967ad3c497fa";
+export const LOGIC_IDENTITY = SOURCE_IDENTITY;
+export const PREPARATION_IDENTITY = PREPARATION_SOURCE_IDENTITY;
 import type { LifecycleProfile, CapacityMetadata } from "./lifecycle-profile.ts";
 export * from "./lifecycle-profile.ts";
 export type RunInput =
@@ -228,7 +229,7 @@ const defaults = {
 };
 /** Equal-time items follow insertion order; effects appended by a transition follow already queued items. */
 export class Run {
-  private state: unknown;
+  private core: SharedCore;
   private nextTool = 1;
   private revisionGenerations = new Map<string, number>();
   private operationRevisions = new Map<number, { subject: number; input: number; generation: number }>();
@@ -275,9 +276,34 @@ export class Run {
     }
     return metadata;
   }
-  private preparation = new PreparationReplay();
   private canonicalAllowed = true;
-  private queue: Scheduled[] = [];
+  private scheduled = new Map<number, Scheduled>();
+  private get queue(): Scheduled[] {
+    return this.core.queued.map(entry => {
+      const item = this.scheduled.get(entry.order);
+      if (!item) throw new Error("shared scheduler lost source facts");
+      return item;
+    });
+  }
+  private set queue(items: Scheduled[]) {
+    const retained = new Set(items.map(item => item.order));
+    for (const order of this.scheduled.keys()) if (!retained.has(order)) {
+      this.core.cancel(order);
+      this.scheduled.delete(order);
+    }
+  }
+  private queuePush(item: Scheduled) {
+    this.core.enqueue(item.at, item.order);
+    this.scheduled.set(item.order, item);
+  }
+  private queueShift(): Scheduled | undefined {
+    const entry = this.core.take();
+    if (!entry) return;
+    const item = this.scheduled.get(entry.order);
+    if (!item) throw new Error("shared scheduler lost source facts");
+    this.scheduled.delete(entry.order);
+    return item;
+  }
   private order = 0;
   private count = 0;
   private clock = 0;
@@ -394,7 +420,7 @@ export class Run {
     if (integer(config.adviceLifetime ?? 600_000, "advice lifetime") === 0)
       throw new RangeError("advice lifetime must be positive");
     integer(config.retention ?? 1000, "retention");
-    this.state = initialCanonical(config.limits ?? defaults);
+    this.core = new SharedCore(config.limits ?? defaults);
     for (const generator of this.generators.values())
       for (const input of generator.next(0)) this.enqueue(input);
     for (const input of this.config.inputs!) this.enqueue(input);
@@ -404,7 +430,7 @@ export class Run {
     return this.clock;
   }
   get projection() {
-    return projectCanonical(this.state);
+    return this.core.projection;
   }
   get observations(): readonly Observation[] {
     return this.history;
@@ -434,14 +460,13 @@ export class Run {
     integer(input.at, "virtual time");
     if (input.at < this.clock)
       throw new RangeError("cannot schedule in the past");
-    this.queue.push({
+    this.queuePush({
       at: input.at,
       order: this.order++,
       input: copy(input),
       ...(job ? { job } : {}),
       ...(expiryAdvice !== undefined ? { expiryAdvice } : {}),
     });
-    this.queue.sort((a, b) => a.at - b.at || a.order - b.order);
   }
   private event(
     event: CanonicalEvent,
@@ -466,8 +491,18 @@ export class Run {
       this.environment = { currentWork: value.currentWork, credentialReady: value.credentialReady,
         credentialGeneration: value.credentialGeneration ?? this.environment.credentialGeneration ?? 1,
         sourceReadable: value.sourceReadable ?? this.environment.sourceReadable ?? true };
-      for (const work of this.projection.work) if (work.kind === "pendingFinding")
-        this.validateAdvice(work.operation, work.round, work.operation, this.generators.has(work.partition) ? "background" : "edit");
+      const context = this.driverContext({ kind: "finalCandidateCheck", ownerCurrent: true, credentialGeneration: true,
+        credentialAuthorized: this.environment.credentialReady, expired: false, workCurrent: this.environment.currentWork, hasFindings: true },
+        { at: this.clock, order: 0, input: { at: this.clock, kind: "finish" } }, "clear");
+      context.background = this.generators.size > 0;
+      for (const action of decodeDriver({ handled: true, actions: this.core.revalidate(context) }).actions) {
+        this.event(action.event, action.delay);
+        if (action.candidate) {
+          const scheduled = this.scheduled.get(this.order - 1);
+          if (!scheduled) throw new Error("shared driver action lost source facts");
+          scheduled.candidate = action.candidate;
+        }
+      }
     } else if (value.kind === "outputProfile") {
       this.outputProfile = { outcome: value.outcome, delayMs: value.delayMs, leaseMs: value.leaseMs };
     } else if (value.kind === "jevProfile") {
@@ -492,6 +527,39 @@ export class Run {
     this.controls.push(record);
     return copy(record);
   }
+  private driverContext(event: CanonicalEvent, item: Scheduled, outcome: JevRequestOutcome, job?: Extract<RunInput, { kind: "edit" }>) {
+    const binding = "round" in event && "partition" in event && "lifetime" in event ? event : { partition: this.partition, lifetime: 1, round: 0 };
+    const automaticReview = !this.config.lifecycles?.reuse && !(this.config.lifecycles?.cancellation === "suppressed") && !(job && "revisionSubject" in job && job.revisionSubject !== undefined);
+    const automaticCollection = !this.config.lifecycles?.collectors && !this.finishes.has(this.partition);
+    const automaticOutput = this.candidateOutputBytes === undefined && this.outputProfile.outcome !== "failed" && this.outputProfile.delayMs < this.outputProfile.leaseMs;
+    const c = item.candidate;
+    return { $: "Driver.Context", partition: binding.partition, lifetime: binding.lifetime, round: binding.round,
+      bytes: job?.bytes ?? 0, job: !!job, jev_delay: this.jevDelay, outcome: encodeDriverOutcome(outcome),
+      current_work: this.environment.currentWork, credential_ready: this.environment.credentialReady,
+      credential_generation: (this.adviceCredentials.get(c?.advice ?? ("advice" in event ? event.advice : 0)) ?? 1) === (this.environment.credentialGeneration ?? 1),
+      source_readable: this.environment.sourceReadable ?? true, advice_lifetime: this.config.adviceLifetime ?? 600000,
+      candidate: c ? { $: "Some", value: { $: "Driver.Candidate", partition: c.partition, advice: c.advice, round: c.round,
+        token: c.token, surface: { $: `Handoff.${c.surface[0]!.toUpperCase()}${c.surface.slice(1)}` }, selection: c.selection ?? false } } : { $: "None" },
+      automatic_collection: automaticCollection, automatic_review: automaticReview, automatic_output: automaticOutput,
+      output_certain: this.outputProfile.outcome === "certain", output_delay: this.outputProfile.delayMs, output_lease: this.outputProfile.leaseMs, background: !!this.session, automatic_dispatch: !(this.config.lifecycles?.reuse && job && "evaluationInputs" in job && job.evaluationInputs) };
+  }
+  private drive(event: CanonicalEvent, command: CanonicalCommand, index: number, item: Scheduled) {
+    const job = item.job ?? ("operation" in command ? this.jobs.get(command.operation) : undefined);
+    const sampling = command.kind === "jevRequestIssued" && !this.config.lifecycles?.reuse && this.config.lifecycles?.cancellation !== "suppressed" && !(job && "revisionSubject" in job && job.revisionSubject !== undefined);
+    const outcome = job?.outcome ?? this.outcome ?? (sampling ? this.outcomeSampler.sample(this.outcomeWeights) : "clear");
+    const context = this.driverContext(event, item, outcome, job);
+    const handled = decodeDriver(this.core.handle(event, index, context));
+    if (!handled.handled) return { handled: false, outcome: undefined };
+    for (const action of handled.actions) {
+      this.event(action.event, action.delay, action.job ? job : undefined, action.expiryAdvice);
+      if (action.candidate) {
+        const scheduled = this.scheduled.get(this.order - 1);
+        if (!scheduled) throw new Error("shared driver action lost source facts");
+        scheduled.candidate = action.candidate;
+      }
+    }
+    return { handled: true, outcome };
+  }
   step(untilTime?: number): Observation | undefined {
     if (
       untilTime !== undefined &&
@@ -501,7 +569,7 @@ export class Run {
       return;
     if (!this.canonicalAllowed && ["canonical", "preparationGraph"].includes(this.queue[0]?.input.kind ?? ""))
       return;
-    const item = this.queue.shift();
+    const item = this.queueShift();
     if (!item) return;
     this.clock = item.at;
     this.partition = this.inputPartition(item);
@@ -509,10 +577,10 @@ export class Run {
       const event = item.input.event;
       const before = this.projection;
       if (!before.work.some(work => work.operation === event.operation && work.kind === "preparing")) {
-        this.preparation.retire(event.operation);
+        this.core.retire(event.operation);
         return this.step(untilTime);
       }
-      const preparation = this.preparation.step(event);
+      const preparation = this.core.graphStep(event);
       return this.record({ sequence: this.count++, time: this.clock, event,
         preparation, before, after: before, commands: [], effects: [], capacityMetadata: this.capacityMetadata, partition: this.partition, agent: this.agentName(this.partition) });
     }
@@ -561,16 +629,10 @@ export class Run {
       }
       const permits = this.config.lifecycles?.permits;
       if (!round && !permits) {
+        const plan = readRecord(this.core.edit(this.partition, 1));
         if (!this.queue.some(item => item.input.kind === "canonical" && item.input.event.kind === "openRound" && item.input.event.partition === this.partition))
-          this.event({ kind: "openRound", partition: this.partition, lifetime: 1 });
-        this.enqueue(
-          {
-            ...item.input,
-            at: this.clock + (this.config.lifecycles?.permits && this.clock === 0 ? 1 : 0),
-            ...("recurring" in item.input ? { recurring: false } : {}),
-          },
-          item.input,
-        );
+          for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) this.event(action.event, action.delay);
+        if (readBool(plan.retry)) this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input);
         return this.step(untilTime);
       }
       if (this.config.lifecycles?.reuse && "revision" in item.input && !("evaluationInputs" in item.input)) {
@@ -594,12 +656,18 @@ export class Run {
           started, deadline: started + lifetime, now: started, minimumStarted: 0,
           facts: { clockValid: true, hookWindow: lifetime, startedUpper: started, nowLower: started,
             adviceePermitLimit: permits.adviceeLimit, residentPermitLimit: permits.residentLimit } }, started - this.clock, item.input);
-      } else this.event({ kind: "admitObservation", partition: this.partition, lifetime: 1, round: round! }, 0, item.input);
+      } else {
+        const plan = readRecord(this.core.edit(this.partition, 1));
+        for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) this.event(action.event, action.delay, item.input);
+      }
       return this.step(untilTime);
     }
     let event = item.input.event;
-    if (item.generated && event.kind === "jevRequestSettled") event = { ...event, currentWork: this.environment.currentWork && !this.staleOperations.has(event.operation) };
-    if (item.generated && event.kind === "jevRequestReady") event = { ...event, currentWork: this.environment.currentWork, credentialReady: this.environment.credentialReady };
+    if (item.generated && ["jevRequestSettled", "jevRequestReady", "finalCandidateCheck"].includes(event.kind)) {
+      const context = this.driverContext(event, item, "clear");
+      if (event.kind === "jevRequestSettled" && this.staleOperations.has(event.operation)) context.current_work = false;
+      event = decodeDriverEvent(this.core.fence(event, true, context));
+    }
     if (event.kind === "cachePrepare" || event.kind === "cacheCommit") Object.assign(this.metadata, { reuse: { entryLimit: event.entryLimit, byteLimit: event.byteLimit } });
     if (event.kind === "noticeAdvance" || event.kind === "noticeCommit") Object.assign(this.metadata, { notices: { maximumKeys: event.maximumKeys } });
     if (event.kind === "collectionFitCheck") Object.assign(this.metadata, { encodedOutput: { bytes: event.bytes, items: event.items, maximumBytes: 10240, synthetic: true } });
@@ -615,11 +683,6 @@ export class Run {
       nativeWorkIdle: !before.work.some(w => w.partition === quiet.partition && w.kind !== "pendingFinding"),
       adviceEmpty: !before.work.some(w => w.partition === quiet.partition && w.kind === "pendingFinding"),
       handoffIdle: !before.collection.claims.some(c => c.group === quiet.partition) && !before.collection.leases.some(l => before.work.some(w => w.operation === l.advice && w.partition === quiet.partition)) && !before.delivery.submissions.batches.some(s => s.group === quiet.partition), stopAbsent: !this.finishes.has(quiet.partition) } }; }
-    if (item.generated && item.candidate && event.kind === "finalCandidateCheck") event = { ...event,
-      ownerCurrent: before.pendingFindings.some(finding => finding.operation === item.candidate!.advice),
-      credentialGeneration: (this.adviceCredentials.get(item.candidate.advice) ?? 1) === (this.environment.credentialGeneration ?? 1),
-      credentialAuthorized: this.environment.credentialReady,
-      workCurrent: this.environment.currentWork && (this.environment.sourceReadable ?? true) };
     // Callback identity is checked against issued work, before the product's stale-result fence.
     if (
       event.kind === "jevRequestSettled" &&
@@ -633,8 +696,7 @@ export class Run {
       )
     )
       throw new Error("mismatched completion identity");
-    const result = stepCanonical(this.state, event);
-    this.state = result.state;
+    const result = this.core.step(event);
     if (item.generated && event.kind === "cacheCommit" && !result.commands.some(command => command.kind === "cacheCommitted")) {
       this.event({ kind: "releaseCapacity", reservation: event.reservation });
       if (!this.projection.reuse.cache.some(entry => entry.id === event.id)) this.cachedOutcomes.delete(event.id);
@@ -653,7 +715,9 @@ export class Run {
             round: event.round,
           }
         : undefined;
-    for (const command of result.commands) {
+    for (const [commandIndex, command] of result.commands.entries()) {
+      const driver = this.drive(event, command, commandIndex, item);
+      const driven = driver.handled;
       switch (command.kind) {
         case "permitIssued": {
           if (event.kind !== "issuePermit" || !item.job) break;
@@ -691,7 +755,7 @@ export class Run {
           this.jobs.set(command.id, item.job);
           if (this.config.lifecycles?.quietWindowMs) this.event({ kind: "quietRoundReset", ...scope });
           if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) this.event({ kind: "revisionRegister", subject: this.identity(JSON.stringify([scope.partition, "subject", item.job.revisionSubject])), input: this.identity(JSON.stringify([scope.partition, "input", item.job.revisionInput])), addMember: false });
-          this.event({ kind: "queueDispatch", ...scope, operation: command.id });
+          if (!driven) throw new Error("unhandled shared observation dispatch");
           break;
         }
 
@@ -700,23 +764,12 @@ export class Run {
           const job = this.jobs.get(command.operation);
           if (!work || !job || !["awaitingSourceRead", "reviewing"].includes(work.kind))
             throw new Error("unhandled required command: dispatchStarted lacks synthetic source job");
-          const scope = { partition: work.partition, lifetime: work.lifetime, round: work.round };
-          if (work.kind === "reviewing") {
-            this.event({ kind: "startReview", ...scope, operation: work.operation });
-            this.event({ kind: "jevRequestReady", ...scope, operation: work.operation,
-              rootValid: true, configurationValid: true, credentialReady: this.environment.credentialReady,
-              selected: true, currentWork: this.environment.currentWork, physicalAvailable: true });
-            break;
-          }
-          this.event({ kind: "startObservation", ...scope, observation: work.operation });
-          this.event({ kind: "beginObservedPreparation", ...scope,
-            observation: work.operation, bytes: job.bytes }, 0, job);
+          if (!driven) throw new Error("unhandled shared source/review dispatch");
           break;
         }
         case "preparationRefused": {
           if (event.kind === "beginObservedPreparation") {
-            this.event({ kind: "completeObservation", ...scope!, observation: event.observation });
-            this.event({ kind: "dispatchSettled", ...scope!, operation: event.observation });
+            if (!driven) throw new Error("unhandled shared preparation refusal");
             this.jobs.delete(event.observation);
           }
           break;
@@ -743,19 +796,12 @@ export class Run {
           });
           facts.forEach((preparation, index) => {
             // Inner facts share the operation's virtual interval, including zero-delay cases.
-            const at = this.clock + Math.floor((this.config.preparationDelay ?? 2) * index / Math.max(1, facts.length));
-            this.queue.push({ at, order: this.order++, input: { kind: "preparationGraph", at, event: preparation }, generated: true, partition: scope.partition });
+            const at = this.clock + this.core.preparationFactTime(this.config.preparationDelay ?? 2, index, facts.length);
+            this.queuePush({ at, order: this.order++, input: { kind: "preparationGraph", at, event: preparation }, generated: true, partition: scope.partition });
           });
-          this.event(
-            {
-              kind: "preparationCompleted",
-              ...scope,
-              operation: command.operation,
-              unitBytes: item.job.unitBytes,
-            },
-            this.config.preparationDelay ?? 2,
-            item.job,
-          );
+          const completion = decodeDriver({ handled: true, actions: { $: "Con", head: this.core.preparationCompleted({ ...scope, operation: command.operation }, item.job.unitBytes, this.config.preparationDelay ?? 2), tail: { $: "Nil" } } }).actions[0];
+          if (!completion) throw new Error("missing preparation completion action");
+          this.event(completion.event, completion.delay, item.job);
           break;
         }
         case "unitAdmitted": {
@@ -777,7 +823,7 @@ export class Run {
             this.evaluations.set(command.operation, { id, bytes: command.bytes });
             this.event({ kind: "reuseRoute", id, liveAdvice: false });
             this.annotate({ reuseOperation: command.operation });
-          } else this.event({ kind: "queueDispatch", ...scope, operation: command.operation });
+          } else if (!driven) throw new Error("unhandled shared review unit dispatch");
           break;
         }
         case "revisionReused":
@@ -856,22 +902,23 @@ export class Run {
           this.requestCredentials.set(command.operation, this.environment.credentialGeneration ?? 1);
           const { kind: _kind, ...binding } = command;
           const job = this.jobs.get(command.operation);
-          const outcome = job?.outcome ?? this.outcome ?? this.outcomeSampler.sample(this.outcomeWeights);
-          if (outcome !== "neverSent") effects.push({
+          const selectedOutcome = driver.outcome ?? job?.outcome ?? this.outcome ?? this.outcomeSampler.sample(this.outcomeWeights);
+          if (selectedOutcome !== "neverSent") effects.push({
             kind: "jev",
             phase: "started",
             operation: command.operation,
             request: command.request,
             due: this.clock + this.jevDelay,
           });
+          if (driven) break;
           // Synthetic outcomes supply the same lifecycle facts required by native callbacks.
-          if (outcome !== "neverSent") this.event({ kind: "jevRequestStarted", ...binding });
-          if (outcome === "interrupted" && this.config.lifecycles?.cancellation === "suppressed") {
+          if (selectedOutcome !== "neverSent") this.event({ kind: "jevRequestStarted", ...binding });
+          if (selectedOutcome === "interrupted" && this.config.lifecycles?.cancellation === "suppressed") {
             this.event({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
             this.event({ kind: "jevRequestSettled", ...binding, outcome: "interrupted", currentWork: false }, this.jevDelay);
             break;
           }
-          if (outcome === "interrupted") this.event({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
+          if (selectedOutcome === "interrupted") this.event({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
           const revision = this.operationRevisions.get(command.operation);
           if (revision) {
             this.event({ kind: "revisionCurrentCheck", ...revision }, this.jevDelay);
@@ -881,7 +928,7 @@ export class Run {
             {
               kind: "jevRequestSettled",
               ...binding,
-              outcome,
+              outcome: selectedOutcome,
               currentWork: true,
             },
             this.jevDelay,
@@ -896,9 +943,7 @@ export class Run {
           if (!work || work.parent === 0) throw new Error("retained finding lacks its edit observation");
           this.adviceCredentials.set(advice, this.requestCredentials.get(advice) ?? this.environment.credentialGeneration ?? 1);
           effects.push({ kind: "advice", phase: "supplied", advice });
-          const lifetime = this.config.adviceLifetime ?? 600_000;
-          this.event({ kind: "collectionExpiryCheck", elapsed: lifetime, lifetime },
-            lifetime, undefined, advice);
+          if (!driven) throw new Error("unhandled shared finding retention");
           break;
         }
         case "collectionEligible": {
@@ -906,7 +951,7 @@ export class Run {
             if (this.config.lifecycles?.collectors) {
               this.collectorCandidates.set(event.advice, { advice: event.advice, round: event.round, token: event.advice });
               this.event({ kind: "collectionClaimBackground", group: event.partition, token: event.advice, active: true, capacity: this.config.lifecycles.collectors.capacity });
-            } else this.validateAdvice(event.advice, event.round, event.advice, this.session ? "background" : "edit");
+            } else if (!driven) this.validateAdvice(event.advice, event.round, event.advice, this.session ? "background" : "edit");
           }
           break;
         }
@@ -944,6 +989,7 @@ export class Run {
             advices: [event.advice],
           });
           const profile = this.outputProfile;
+          if (driven) break;
           if (profile.outcome === "failed") {
             this.event({ kind: "submissionRelease", advice: event.advice, token: event.token }, profile.delayMs);
             this.event({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, profile.delayMs);
@@ -969,6 +1015,7 @@ export class Run {
         }
         case "retainCandidate":
         case "continueCandidate": {
+          if (driven) break;
           if (item.candidate) {
             this.candidateEvent({ kind: "submissionSuppressCheck", advice: item.candidate.advice,
               fingerprint: item.candidate.advice, round: item.candidate.round, surface: item.candidate.surface }, item.candidate);
@@ -980,6 +1027,7 @@ export class Run {
             this.event({ kind: "submissionTerminal", advice: event.advice, token: event.token, certain: false });
           break;
         case "submissionUnsuppressed":
+          if (driven) break;
           if (item.candidate && !item.candidate.selection && this.candidateOutputBytes !== undefined) {
             this.candidateEvent({ kind: "collectionFitCheck", items: 1, bytes: this.candidateOutputBytes! }, item.candidate);
             break;
@@ -1013,7 +1061,11 @@ export class Run {
           }
           break;
         case "retireCandidate":
-          if (item.candidate) this.retireAdvice(item.candidate.advice);
+          if (driven && item.candidate) {
+            this.queue = this.queue.filter(queued => queued.expiryAdvice !== item.candidate!.advice);
+            this.jobs.delete(item.candidate.advice);
+            this.adviceCredentials.delete(item.candidate.advice);
+          } else if (item.candidate) this.retireAdvice(item.candidate.advice);
         case "releaseCandidate":
         case "ignoreCandidate":
         case "submissionSuppresses":
@@ -1036,8 +1088,7 @@ export class Run {
             }
           }
           if (event.kind === "jevRequestReady" && before.dispatch.running.some(entry => entry.operation === event.operation)) {
-            this.event({ kind: "dispatchSettled", partition: event.partition, lifetime: event.lifetime,
-              round: event.round, operation: event.operation });
+            if (!driven) throw new Error("unhandled shared request refusal");
             this.jobs.delete(event.operation);
           }
           break;
@@ -1191,22 +1242,12 @@ export class Run {
           break;
       }
     }
+    for (const action of decodeDriver({ handled: true, actions: result.afterActions }).actions)
+      this.event(action.event, action.delay, action.job ? item.job : undefined, action.expiryAdvice);
     if (event.kind === "preparationCompleted" && item.job) {
-      const parent = before.work.find(
-        (w) => w.operation === event.operation,
-      )?.parent;
-      if (parent && scope) {
-        this.event({
-          kind: "completeObservation",
-          ...scope,
-          observation: parent,
-        });
-        this.event({ kind: "dispatchSettled", ...scope, operation: parent });
-        this.jobs.delete(parent);
-      }
+      const parent = before.work.find(w => w.operation === event.operation)?.parent;
+      if (parent) this.jobs.delete(parent);
     }
-    if (["completeObservation", "jevRequestSettled", "reviewCompleted", "interruptObservation",
-      "interruptPreparation", "stopPolled"].includes(event.kind)) this.refreshAdviceReadiness();
     if (["preparationCompleted", "jevRequestSettled", "submissionTerminal", "collectionReleaseLease"].includes(event.kind)) {
       const owner = this.partition;
       for (const [partition, finish] of this.finishes) if (finish.waiting) {
@@ -1228,7 +1269,7 @@ export class Run {
       if (!this.projection.pendingFindings.some(f => f.operation === event.operation)) this.jobs.delete(event.operation);
     }
     if (event.kind === "preparationCompleted") {
-      this.preparation.retire(event.operation);
+      this.core.retire(event.operation);
       this.jobs.delete(event.operation);
       effects.push({
         kind: "preparation",
@@ -1255,8 +1296,6 @@ export class Run {
       }
       this.operationRevisions.delete(event.operation);
       this.staleOperations.delete(event.operation);
-      if (before.dispatch.running.some(entry => entry.operation === event.operation))
-        this.event({ kind: "dispatchSettled", partition: event.partition, lifetime: event.lifetime, round: event.round, operation: event.operation });
       this.issuedRequests.delete(event.request);
       this.requestCredentials.delete(event.operation);
       if (!this.projection.pendingFindings.some(finding => finding.operation === event.operation))
@@ -1347,21 +1386,9 @@ export class Run {
     this.event({ kind: "roundContinuationBudgetCheck", active: true,
       count: this.projection.delivery.counters.find(counter => counter.group === this.partition && counter.round === f.round)?.used ?? 0 });
   }
-  private refreshAdviceReadiness() {
-    const projection = this.projection;
-    for (const finding of projection.pendingFindings) {
-      if (projection.collection.ready.includes(finding.operation)) continue;
-      const work = projection.work.find((entry) => entry.operation === finding.operation);
-      if (!work || work.parent === 0) continue;
-      this.event({ kind: "collectionReady", advice: work.operation,
-        partition: work.partition, lifetime: work.lifetime, round: work.round,
-        observation: work.parent, joinedPending: false });
-    }
-  }
   private candidateEvent(event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" | "collectionFitCheck" }>, candidate: CandidateContext) {
-    this.queue.push({ at: this.clock, order: this.order++, generated: true,
+    this.queuePush({ at: this.clock, order: this.order++, generated: true,
       input: { at: this.clock, kind: "canonical", event }, candidate, partition: candidate.partition });
-    this.queue.sort((a, b) => a.at - b.at || a.order - b.order);
   }
   private validateAdvice(advice: number, round: number, token: number, surface: "edit" | "background" | "stop", selection = false) {
     this.candidateEvent({ kind: "finalCandidateCheck", ownerCurrent: true,
@@ -1386,7 +1413,7 @@ export class Run {
     if (!f) return;
     const at = this.clock + delay;
     if (this.queue.some(item => item.finishAttempt === f.attempt && item.partition === this.partition && item.at === at)) return;
-    this.queue.push({
+    this.queuePush({
       at,
       order: this.order++,
       finishAttempt: f.attempt,
@@ -1403,7 +1430,6 @@ export class Run {
         },
       },
     });
-    this.queue.sort((a, b) => a.at - b.at || a.order - b.order);
   }
   private endFinish(continuation: boolean) {
     const f = this.finish;
