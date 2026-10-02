@@ -629,8 +629,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     yield* residentPruneNoticeCooldowns(now);
     if (residentLedger.runtime.snapshot().lifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     const group = adviceePartition(observation.root, observation.advicee);
-    const generation = composed ? residentComposedDelivery.admitEdit(group,
-      observation.advicee.toolUseId, monotonicNow(), requirePermit) : undefined;
+    const generation = composed ? (yield* residentComposedDelivery.admitEdit(group,
+      observation.advicee.toolUseId, monotonicNow(), requirePermit)) : undefined;
     if (composed && generation === undefined) {
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee,
         lifetime: runtime.lifetime, stage: "incomplete" });
@@ -1219,7 +1219,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     if (surface === "stop") {
       const group = adviceePartition(advice[0]!.capability.observation.root, advice[0]!.capability.observation.advicee);
-      if (!residentComposedDelivery.authorizeFinishOutput(group, token)) return { status: "empty" };
+      if (!(yield* residentComposedDelivery.authorizeFinishOutput(group, token))) return { status: "empty" };
     }
     for (const { capability: item, content } of advice) {
       if (finishPermit) continue;
@@ -1403,7 +1403,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }, Effect.uninterruptible);
 
   const residentExpirePending = Effect.fn("ResidentRuntime.expirePending")(function* (now: number) {
-    residentComposedDelivery.expire(now);
+    (yield* residentComposedDelivery.expire(now));
     for (const advice of [...(yield* residentAdvice())]) {
       if (residentAdviceExpired(advice, now)) yield* residentRemoveAdvice(advice.id);
     }
@@ -1416,12 +1416,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     let closedCount = 0;
     for (const [group, round] of (yield* residentLedger.rounds.entries())) {
       const work = (yield* residentDispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed));
-      const counts = residentComposedDelivery.closureCounts(group);
-      const closed = residentComposedDelivery.tickQuietRound(group, now, {
+      const counts = (yield* residentComposedDelivery.closureCounts(group));
+      const closed = (yield* residentComposedDelivery.tickQuietRound(group, now, {
         nativeWorkIdle: work.queued === 0 && work.running === 0,
         adviceEmpty: !(yield* residentAdvice()).some((advice) => advice.round === round) &&
           ![...(yield* residentNotices.entries()).map(([, value]) => value)].some((notice) => notice.partition === group),
-      });
+      }));
       if (closed !== undefined) {
         yield* residentCloseRound(group, closed, "quiescent", counts);
         closedCount += 1;
@@ -1440,9 +1440,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   const residentAllowFinish = Effect.fn("ResidentRuntime.allowFinish")(function* (group: string, token: string, reason: RoundCloseReason): Effect.fn.Return<void> {
-    const counts = residentComposedDelivery.closureCounts(group);
-    const closed = residentComposedDelivery.finishStop(group, token, true,
-      residentNow());
+    const counts = (yield* residentComposedDelivery.closureCounts(group));
+    const closed = (yield* residentComposedDelivery.finishStop(group, token, true,
+      residentNow()));
     if (closed !== undefined) yield* residentCloseRound(group, closed, reason, counts);
   }, Effect.uninterruptible);
 
@@ -1498,7 +1498,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     counts: ReturnType<ComposedDelivery["closureCounts"]>): Effect.fn.Return<void> {
     // finishStop can release an unwritten provisional slot after callers took
     // the pre-cleanup snapshot. Report the final Bend reservation count.
-    const reservedContinuations = residentComposedDelivery.closureCounts(group).reservedContinuations;
+    const reservedContinuations = (yield* residentComposedDelivery.closureCounts(group)).reservedContinuations;
     const round = (yield* residentLedger.rounds.get(group));
     const snapshot = round === undefined ? undefined : yield* residentRoundSnapshot(round);
     const activity = snapshot?.activity;
@@ -2425,17 +2425,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (request.operation === "prompt-marker") {
         const group = adviceePartition(request.root, request.advicee);
         return residentResponse((request.onlyIfMissing === true
-          ? residentComposedDelivery.ensureFromHostTurn(group, request.marker, residentNow())
-          : residentComposedDelivery.advance(group, request.marker, residentNow(), request.promptDigest))
+          ? (yield* residentComposedDelivery.ensureFromHostTurn(group, request.marker, residentNow()))
+          : (yield* residentComposedDelivery.advance(group, request.marker, residentNow(), request.promptDigest)))
           ? { status: "advanced" } : { status: "rejected-capacity" });
       }
       if (request.operation === "begin-stop") {
         const group = adviceePartition(request.root, request.advicee);
-        if (!residentComposedDelivery.beginStop(group, request.token)) return residentResponse({ status: "busy" });
+        if (!(yield* residentComposedDelivery.beginStop(group, request.token))) return residentResponse({ status: "busy" });
         const expiry = yield* Effect.forkIn(Effect.sleep("5 seconds").pipe(Effect.andThen(Effect.gen(function* () {
           residentStopExpiries.delete(request.token);
-          const counts = residentComposedDelivery.closureCounts(group);
-          const closed = residentComposedDelivery.expireStop(group, request.token);
+          const counts = (yield* residentComposedDelivery.closureCounts(group));
+          const closed = (yield* residentComposedDelivery.expireStop(group, request.token));
           if (closed !== undefined) yield* residentCloseRound(group, closed, "abandoned-stop", counts);
         }))), residentDispatchScope);
         residentStopExpiries.set(request.token, expiry);
@@ -2447,9 +2447,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (expiry !== undefined) yield* Fiber.interrupt(expiry);
           residentStopExpiries.delete(request.token);
           const group = adviceePartition(request.root, request.advicee);
-          const counts = residentComposedDelivery.closureCounts(group);
-          const closed = residentComposedDelivery.finishStop(group, request.token, request.close === true,
-            residentNow());
+          const counts = (yield* residentComposedDelivery.closureCounts(group));
+          const closed = (yield* residentComposedDelivery.finishStop(group, request.token, request.close === true,
+            residentNow()));
           if (closed !== undefined) yield* residentCloseRound(group, closed, request.reason ?? "no-advice", counts);
           return residentResponse({ status: "advanced" });
         }));
@@ -2503,7 +2503,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         }
         if (request.finish !== undefined) {
           const group = adviceePartition(request.root, request.advicee);
-          if (!residentComposedDelivery.ownsStop(group, request.finish.token)) return residentResponse({ status: "empty" });
+          if (!(yield* residentComposedDelivery.ownsStop(group, request.finish.token))) return residentResponse({ status: "empty" });
           // Expired leases represent uncertain external output, not live writers.
           yield* residentPruneNoticeCooldowns(residentNow());
           for (const { capability: advice, content } of (yield* residentLedger.advice.snapshots())) {
@@ -2514,8 +2514,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const totalUnfinished = (yield* residentCollectionWorkCount(request.root, request.advicee, true));
           const ownUnfinished = round === undefined ? 0 : (yield* residentLedger.rounds.policyWork(round)).unfinished();
           const extraUnfinished = Math.max(0, totalUnfinished - ownUnfinished);
-          const gate = residentComposedDelivery.finishGate(group, request.finish.token,
-            extraUnfinished, request.finish.deadlineReached);
+          const gate = (yield* residentComposedDelivery.finishGate(group, request.finish.token,
+            extraUnfinished, request.finish.deadlineReached));
           if (gate === undefined) return residentResponse({ status: "empty" });
           if (gate.status === "waiting") return residentResponse({ status: "pending" });
           if (round !== undefined && !(yield* residentDiscardUnfinishedWork(round, gate))) {
@@ -2541,10 +2541,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               selectedAdvice.every(({ capability: advice, content }) => advice.round === round &&
                 advice.workUnitId !== undefined && content.delivery !== undefined &&
                 content.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
-          const output = residentComposedDelivery.decideFinishOutput(group, request.finish.token,
+          const output = (yield* residentComposedDelivery.decideFinishOutput(group, request.finish.token,
             collected.status === "advice" ? collected.token : "", selected, residentNow(),
             collected.status === "advice" && collected.findingCount === 0,
-            true, true, bindingValid, request.finish.deadlineReached);
+            true, true, bindingValid, request.finish.deadlineReached));
           if (output.kind === "failed") {
             if (collected.status === "advice") yield* server.releaseDelivery(collected.token);
             return residentResponse({ status: "empty" });
@@ -2830,7 +2830,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation !== "collect" || request.requestRoute === "ticketed" || request.finish === undefined ||
         provisional.status !== "advice" || provisional.findingCount === 0) return final;
     const group = adviceePartition(request.root, request.advicee);
-    if (!residentComposedDelivery.revokeProvisionalFinishOutput(group, request.finish.token, provisional.token)) {
+    if (!(yield* residentComposedDelivery.revokeProvisionalFinishOutput(group, request.finish.token, provisional.token))) {
       yield* runtime.releaseDelivery(provisional.token);
       yield* residentAllowFinish(group, request.finish.token, "unavailable");
       return { status: "empty" };
@@ -2846,11 +2846,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       (round !== undefined && selectedCount === final.findingCount && selectedAdvice.every(({ capability: advice, content }) =>
         advice.round === round && advice.workUnitId !== undefined && content.delivery !== undefined &&
         content.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
-    const output = residentComposedDelivery.decideFinishOutput(group, request.finish.token,
+    const output = (yield* residentComposedDelivery.decideFinishOutput(group, request.finish.token,
       final.status === "advice" ? final.token : "", selected, residentNow(),
       final.status === "advice" && final.findingCount === 0,
       false, canWrite && final.status === "advice" && final.token === provisional.token,
-      bindingValid, request.finish.deadlineReached);
+      bindingValid, request.finish.deadlineReached));
     if (output.kind === "reserved") return final;
     if (final.status === "advice") yield* runtime.releaseDelivery(final.token);
     yield* residentAllowFinish(group, request.finish.token,

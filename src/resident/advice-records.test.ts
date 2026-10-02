@@ -21,7 +21,7 @@ const finding = { path: "count.ts", declaration: "Count", ruleId: "noul", probab
 type Owner = Effect.Success<ReturnType<typeof makeResidentState<never, string, never>>>;
 const fixture = (existing?: Owner) => Effect.gen(function* () {
   const owner = existing ?? (yield* makeResidentState());
-  const generation = owner.delivery().admitEdit("agent", "edit", 0);
+  const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0));
   if (generation === undefined) throw new Error("fixture edit refused");
   const round = (yield* owner.rounds.bind("agent", generation, { root: observation.root, advicee: observation.advicee, activityPath: undefined }, "cohort"));
   const admissionId = owner.admitObservation("agent");
@@ -135,10 +135,10 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
   yield* owner.advice.eligible(advice, false);
   yield* owner.advice.reserveLease(advice, "collector");
   const delivery = owner.delivery();
-  expect(delivery.beginStop(advice.partition, "stop")).toBe(true);
-  delivery.finishGate(advice.partition, "stop", 0, true);
-  expect(delivery.reserveFinishOutput(advice.partition, "stop", "collector", [{ id: advice.id, unit: advice.canonicalOperationId, findings: [finding] }], 1)).toBe(true);
-  expect(delivery.authorizeFinishOutput(advice.partition, "collector")).toBe(true);
+  expect((yield* delivery.beginStop(advice.partition, "stop"))).toBe(true);
+  (yield* delivery.finishGate(advice.partition, "stop", 0, true));
+  expect((yield* delivery.reserveFinishOutput(advice.partition, "stop", "collector", [{ id: advice.id, unit: advice.canonicalOperationId, findings: [finding] }], 1))).toBe(true);
+  expect((yield* delivery.authorizeFinishOutput(advice.partition, "collector"))).toBe(true);
   const before = owner.canonicalProjection();
   expect(yield* defectMessage(owner.advice.remove(advice, "stale", "collector"))).toContain("canonical submission forget refused");
   expect(owner.canonicalProjection()).toEqual(before);

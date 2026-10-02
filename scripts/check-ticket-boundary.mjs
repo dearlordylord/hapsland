@@ -234,3 +234,10 @@ for (const operation of ["markSubmitted", "release", "claimBackground", "release
     throw new Error(`delivery ${operation} must compose as an atomic Effect`);
   }
 }
+
+for (const operation of ["advance", "ensureFromHostTurn", "admitEdit", "beginStop", "ownsStop", "finishGate", "reserveFinishOutput", "decideFinishOutput", "revokeProvisionalFinishOutput", "authorizeFinishOutput", "finishStop", "tickQuietRound", "closureCounts", "expireStop", "expire"]) {
+  if (!deliverySurface.includes(`${operation}: Effect.fn("ComposedDelivery.${operation}")`) ||
+      !deliverySurface.includes(`deliveryCommitEffect((operations) => operations.${operation}(...args))`)) {
+    throw new Error(`delivery ${operation} must compose as an atomic Effect`);
+  }
+}
