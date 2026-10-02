@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { createRun, restoreReplay } from "./index.ts";
+import { permitScenarioCases } from "./permit-scenarios.fixture.ts";
 
 const config = (outcome: "success" | "failure" | "duplicate" | "absent", durationMs = 5) => ({
   inputs: [{ at: 1, kind: "edit" as const, bytes: 10, unitBytes: [5], outcome: "clear" as const }],
@@ -37,4 +38,15 @@ it("retains explicit dashboard demo limits in replay", () => {
   expect(run.capacityMetadata.permits).toMatchObject({ adviceeLimit: 16, residentLimit: 64 });
   expect(run.exportReplay().config).toMatchObject({ editPermitLimits: { perAdvicee: 16, resident: 64 } });
   expect(restoreReplay(run.exportReplay()).capacityMetadata).toEqual(run.capacityMetadata);
+});
+
+it.each(permitScenarioCases)("bounded campaign observes $outcome POST at $durationMs ms", scenario => {
+  const run = createRun(config(scenario.outcome, scenario.durationMs));
+  run.advance({ untilTime: 40, maxEvents: 100 });
+  expect(run.observations.filter(frame => frame.commands.some(command => command.kind === "permitConsumed"))).toHaveLength(scenario.consumed);
+  expect(run.observations.filter(frame => frame.rejection)).toHaveLength(scenario.rejectedPosts);
+  expect(run.projection.admissions.flatMap(admission => admission.permits)).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
 });
