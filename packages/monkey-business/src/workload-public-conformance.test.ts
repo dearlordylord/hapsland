@@ -116,8 +116,9 @@ it("keeps an issued request's outcome and deadline across a profile control", ()
 });
 
 it("orders equal-time advicees identically under stepping and bounded advancement", () => {
-  const config: RunConfig = { ...session, session: undefined,
-    sessions: ["first", "second"].map(agent => ({ ...session.session, agent })),
+  const { session: generatedSession, ...base } = session;
+  const config: RunConfig = { ...base,
+    sessions: ["first", "second"].map(agent => ({ ...generatedSession, agent })),
     lifecycles: { permits: { adviceeLimit: 4, residentLimit: 8, holdMs: 1, lifetimeMs: 100 } },
   };
   const batched = createRun(config);
@@ -148,12 +149,40 @@ it("preserves fractional scaling without making zero-weight outcomes reachable",
 });
 
 it("executes an original continuous arrival through the native shared workload and business driver", () => {
-  const [native, timing, feedback]: number[][][] = runWorkloadNative(new URL(
-    "../../monkey-business-bend/conformance/workload-scenario.bend", import.meta.url));
+  const [native, timing, feedback, permitTraces] = runWorkloadNative(new URL(
+    "../../monkey-business-bend/conformance/workload-scenario.bend", import.meta.url)) as
+    [number[][], number[][], number[][], number[][][]];
   expect(timing).toEqual([
     [10, 20, 19, 9, 1], [10, 20, 20, 10, 1], [10, 20, 21, 11, 1],
     [10, 20, 10, 0, 1], [4294967313, 4294967323, 4294967322, 9, 1],
   ]);
+  expect(permitTraces).toEqual([
+    [[10, 31, 1, 20, 1, 0, 0, 1], [19, 32, 1, 0, 0, 1, 0, 2, 4]],
+    [[10, 31, 1, 20, 1, 0, 0, 1], [20, 32, 1, 0, 0, 1, 0, 2, 4]],
+    [[10, 31, 1, 20, 1, 0, 0, 1], [20, 33, 1, 0, 0, 0, 0, 3], [21, 32, 1, 0, 0, 0, 1]],
+  ]);
+  for (const [index, duration] of [9, 10, 11].entries()) {
+    const permitRun = createRun({ ...session,
+      session: { ...session.session, editDurationMs: duration },
+      lifecycles: { permits: { adviceeLimit: 2, residentLimit: 2, holdMs: 1, lifetimeMs: 10 } },
+    });
+    permitRun.advance({ untilTime: 11, maxEvents: 100 });
+    permitRun.applyControl({ kind: "editDuration", agent: "writer", durationMs: 0 });
+    permitRun.applyControl({ kind: "suspendArrivals", agent: "writer", suspended: true });
+    permitRun.advance({ untilTime: 100, maxEvents: 500 });
+    const publicPermits = permitRun.observations.flatMap(frame => {
+      const event = frame.event;
+      if (event.kind !== "issuePermit" && event.kind !== "consumePermit" && event.kind !== "expirePermit") return [];
+      const codes: Record<string, number> = { permitIssued: 1, permitConsumed: 2, permitExpired: 3, roundStarted: 4 };
+      return [[frame.time, event.kind === "issuePermit" ? 31 : event.kind === "consumePermit" ? 32 : 33,
+        event.kind === "issuePermit" ? frame.commands.find(command => command.kind === "permitIssued")?.token : event.token,
+        event.kind === "issuePermit" ? event.deadline : 0,
+        frame.after.admissions.flatMap(admission => admission.permits).length,
+        frame.after.rounds.length, frame.rejection ? 1 : 0, ...frame.commands.map(command => codes[command.kind])]];
+    });
+    expect(publicPermits).toEqual(permitTraces[index]);
+    expect(restoreReplay(permitRun.exportReplay()).observe()).toEqual(permitRun.observe());
+  }
   expect(feedback).toEqual([
     [50, 1, 0, 0, 1, 0, 10, 5, 0, 1],
     [60, 1, 0, 1, 1, 1, 10, 5, 0, 1],
@@ -222,8 +251,8 @@ it("executes an original continuous arrival through the native shared workload a
 }, 30000);
 
 it("runs original IEEE64 weight words in the compiled native numeric owner", () => {
-  const native: number[][] = runWorkloadNative(new URL(
-    "../../monkey-business-bend/conformance/workload-numeric.bend", import.meta.url));
+  const native = runWorkloadNative(new URL(
+    "../../monkey-business-bend/conformance/workload-numeric.bend", import.meta.url)) as number[][];
   expect(native[0]).toEqual([2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 2, 2]);
   expect(native[1]).toEqual(Array(16).fill(1));
   expect(native[3]).toEqual([0, 1, 0, 1]);
