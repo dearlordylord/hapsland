@@ -37,7 +37,7 @@ describe("canonical work projection", () => {
     const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 100, nextRound))!;
     const unit = Effect.runSync(ledger.completePreparation("agent", preparation.operation,
       preparation.reservation, [20], nextRound))[0]!;
-    ledger.completeReview("agent", unit.operation, unit.reservation, "finding", nextRound);
+    Effect.runSync(ledger.completeReview("agent", unit.operation, unit.reservation, "finding", nextRound));
     expect(oldView().pendingFor(unit.operation)).toBe(0);
     expect(oldView().pendingFindings()).toBe(0);
     expect(nextView().pendingFindings()).toBe(1);
@@ -53,7 +53,7 @@ describe("canonical work projection", () => {
     const unit = Effect.runSync(ledger.completePreparation("agent", preparation.operation, preparation.reservation, [20], round))[0]!;
     expect(view().spawn(source, unit.operation)).toBe(unit.operation);
     expect(view().startUnit(unit.operation)).toBe(true);
-    expect(ledger.startReview("agent", unit.operation, round)).toBe(true);
+    expect(Effect.runSync(ledger.startReview("agent", unit.operation, round))).toBe(true);
     const ready = ledger.readyJevRequest("agent", unit.operation, unit.reservation, {
       rootValid: true, configurationValid: true, credentialReady: true,
       selected: true, currentWork: true, physicalAvailable: true,
@@ -62,8 +62,8 @@ describe("canonical work projection", () => {
     if (ready.status !== "issued") return;
     expect(ledger.startJevRequest("agent", unit.operation, ready.request)).toBe(true);
     expect(view().outcome(unit.operation, { $: "Finding" })).toBe(true);
-    expect(ledger.settleJevRequest("agent", unit.operation, ready.request,
-      unit.reservation, "finding", true)).toBe("retainFinding");
+    expect(Effect.runSync(ledger.settleJevRequest("agent", unit.operation, ready.request,
+      unit.reservation, "finding", true))).toBe("retainFinding");
     expect(view().reviseFinding(unit.operation, 2, 20)).toBe(true);
     ledger.transition({ kind: "findingCountUpdated", partition: Effect.runSync(ledger.partitionId("agent")), lifetime: 1,
       round: Effect.runSync(ledger.roundId("agent")), operation: unit.operation, count: 2 });

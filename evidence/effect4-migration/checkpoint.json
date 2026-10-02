@@ -2055,6 +2055,16 @@
       "boundaryChecksPassed": 15,
       "scope": "Public observation, beginObservedPreparation and completePreparation now execute through named atomic Effects; runtime interruption finalizers compose them. Deferred callbacks execute against current state: retired observation/preparation callbacks are refused and retired reservation completion fails without state publication.",
       "validation": "Four focused files passed 115 tests; corrected capacity retirement contract assertion then fresh capacity run passed 28 tests. Initial incorrect empty-result expectation is superseded."
+    },
+    {
+      "stage": "review-settlement-outcome-effects",
+      "testsPassed": 143,
+      "testFiles": 5,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Public startReview, settleJevRequest, completeReview, observeReview, preparedOffer, emptyPrepared and reviewFailure use named atomic Effects. Runtime cached settlement, provider result settlement, failure and error finalizers compose these workflows. Prepared outcome filtering executes sequential Effects. Request authorization/start/interruption callback bridge remains for the next migration phase.",
+      "validation": "Fresh five-file run passed after converting synchronous outcome flatMap into sequential Effect workflow; initial intermediate syntax failure is superseded."
     }
   ],
   "next": [

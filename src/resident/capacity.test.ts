@@ -276,9 +276,9 @@ describe("resident logical capacity ledger", () => {
     const [unit] = Effect.runSync(ledger.completePreparation("agent", preparation.operation,
       preparation.reservation, [5], nextRound));
     if (unit === undefined) throw new Error("unit missing");
-    expect(ledger.startReview("agent", unit.operation, oldRound)).toBe(false);
-    expect(ledger.completeReview("agent", unit.operation, unit.reservation, "clear", oldRound)).toBe(false);
-    expect(ledger.startReview("agent", unit.operation, nextRound)).toBe(true);
+    expect(Effect.runSync(ledger.startReview("agent", unit.operation, oldRound))).toBe(false);
+    expect(Effect.runSync(ledger.completeReview("agent", unit.operation, unit.reservation, "clear", oldRound))).toBe(false);
+    expect(Effect.runSync(ledger.startReview("agent", unit.operation, nextRound))).toBe(true);
     expect(ledger.readyJevRequest("agent", unit.operation, unit.reservation, {
       rootValid: true, configurationValid: true, credentialReady: true,
       selected: true, currentWork: true, physicalAvailable: true,

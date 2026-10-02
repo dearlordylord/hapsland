@@ -1653,10 +1653,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }),
         job.work?.controller.signal ?? residentLifetimeController.signal).pipe(Effect.onError(() => Effect.sync(() => { residentLedger.release(workspace); })));
         if (!(yield* residentJobActive(job))) { residentLedger.release(workspace); return; }
-        const ready = prepared.outcomes.flatMap((outcome) => {
-          const offer = residentLedger.preparedOffer(outcome.status === "ready", true);
-          return offer === "preparedAdmitted" && outcome.status === "ready" ? [outcome] : [];
-        });
+        const ready: Extract<(typeof prepared.outcomes)[number], { status: "ready" }>[] = [];
+        for (const outcome of prepared.outcomes) {
+          const offer = yield* residentLedger.preparedOffer(outcome.status === "ready", true);
+          if (offer === "preparedAdmitted" && outcome.status === "ready") ready.push(outcome);
+        }
         if (ready.length === 0) {
           recordActivity({
             statePath: job.dispatch.activityPath,
@@ -1670,8 +1671,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         let rejectedDeliverable = false;
         const deliverable: typeof ready = [];
         for (const outcome of ready) {
-          const accepted = residentLedger.preparedOffer(true,
-            residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024) === "preparedAdmitted";
+          const accepted = (yield* residentLedger.preparedOffer(true,
+            residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024)) === "preparedAdmitted";
           if (!accepted) {
             yield* residentLedger.runtime.rejectCapacity();
             rejectedDeliverable = true;
@@ -1822,8 +1823,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             ...(job.ticket === undefined ? {} : { ticket: job.ticket }),
           };
           if (item.kind === "cached") {
-            if (!residentLedger.startReview(job.partition, admitted.operation, job.canonicalRound) ||
-                !residentLedger.completeReview(job.partition, admitted.operation, reservation, "finding", job.canonicalRound)) {
+            if (!(yield* residentLedger.startReview(job.partition, admitted.operation, job.canonicalRound)) ||
+                !(yield* residentLedger.completeReview(job.partition, admitted.operation, reservation, "finding", job.canonicalRound))) {
               throw new Error("canonical cached review settlement refused");
             }
             recordActivity({
@@ -1964,7 +1965,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentReleaseUnit(job);
         return;
       }
-      if (!residentLedger.startReview(job.partition, job.canonicalOperationId, job.canonicalRound)) {
+      if (!(yield* residentLedger.startReview(job.partition, job.canonicalOperationId, job.canonicalRound))) {
         yield* residentReleaseReuseClaim(job.evaluationKey);
         yield* residentReleaseUnit(job);
         return;
@@ -2165,9 +2166,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         if (issuedRequest === undefined || !requestStarted) {
           throw new Error("Jev result without a matching canonical request command and start");
         }
-        const disposition = residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
+        const disposition = (yield* residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
           issuedRequest, job.reservation,
-          result.findings.length === 0 ? "clear" : "finding", currentWork);
+          result.findings.length === 0 ? "clear" : "finding", currentWork));
         requestSettled = true;
         observeRequest("settled", issuedRequest,
           result.findings.length === 0 ? "clear" : "finding");
@@ -2227,16 +2228,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         : signal?.aborted && requestStarted && interruptionReported ? "interrupted"
         : !requestStarted ? "neverSent"
         : result?.status === "timeout" ? "timeout" : "backendFailure";
-      const failure = residentLedger.reviewFailure(
+      const failure = (yield* residentLedger.reviewFailure(
         observed === "backendFailure" || observed === "timeout" ||
           (issuedRequest === undefined && (result?.status === "backend" || result?.status === "timeout")),
-        false, observed === "neverSent" || observed === "interrupted" || result === undefined);
+        false, observed === "neverSent" || observed === "interrupted" || result === undefined));
       if (issuedRequest === undefined) {
-        if (!residentLedger.completeReview(job.partition, job.canonicalOperationId,
-          job.reservation, "unavailable", job.canonicalRound)) return;
+        if (!(yield* residentLedger.completeReview(job.partition, job.canonicalOperationId,
+          job.reservation, "unavailable", job.canonicalRound))) return;
       } else {
-        residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
-          issuedRequest, job.reservation, observed ?? "neverSent", false);
+        (yield* residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
+          issuedRequest, job.reservation, observed ?? "neverSent", false));
         requestSettled = true;
         observeRequest("settled", issuedRequest, observed ?? "neverSent");
       }
@@ -2270,8 +2271,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (signal?.aborted) reportInterruption();
           const observed = signal?.aborted && requestStarted && interruptionReported
             ? "interrupted" : requestStarted ? "backendFailure" : "neverSent";
-          residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
-            issuedRequest, job.reservation, observed, false);
+          (yield* residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
+            issuedRequest, job.reservation, observed, false));
           requestSettled = true;
           observeRequest("settled", issuedRequest, observed);
         }

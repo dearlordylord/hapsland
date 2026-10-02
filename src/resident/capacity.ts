@@ -285,6 +285,13 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    startReview: Effect.fn("Capacity.startReview")((...args: Arguments<typeof startReview>) => commitAllEffect((draft, records) => [startReview(draft, ...args), records])),
+    settleJevRequest: Effect.fn("Capacity.settleJevRequest")((...args: Arguments<typeof settleJevRequest>) => commitAllEffect((draft, records) => [settleJevRequest(draft, ...args), records])),
+    completeReview: Effect.fn("Capacity.completeReview")((...args: Arguments<typeof completeReview>) => commitAllEffect((draft, records) => [completeReview(draft, ...args), records])),
+    observeReview: Effect.fn("Capacity.observeReview")((...args: Arguments<typeof observeReview>) => commitAllEffect((draft, records) => [observeReview(draft, ...args), records])),
+    preparedOffer: Effect.fn("Capacity.preparedOffer")((...args: Arguments<typeof preparedOffer>) => commitAllEffect((draft, records) => [preparedOffer(draft, ...args), records])),
+    emptyPrepared: Effect.fn("Capacity.emptyPrepared")((...args: Arguments<typeof emptyPrepared>) => commitAllEffect((draft, records) => [emptyPrepared(draft, ...args), records])),
+    reviewFailure: Effect.fn("Capacity.reviewFailure")((...args: Arguments<typeof reviewFailure>) => commitAllEffect((draft, records) => [reviewFailure(draft, ...args), records])),
     observation: Effect.fn("Capacity.observation")((...args: Arguments<typeof observation>) => commitAllEffect((draft, records) => [observation(draft, ...args), records])),
     beginObservedPreparation: Effect.fn("Capacity.beginObservedPreparation")((...args: Arguments<typeof beginObservedPreparation>) => commitAllEffect((draft, records) => [beginObservedPreparation(draft, ...args), records])),
     completePreparation: Effect.fn("Capacity.completePreparation")((...args: Arguments<typeof completePreparation>) => commitAllEffect((draft, records) => [completePreparation(draft, ...args), records])),

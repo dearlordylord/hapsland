@@ -30,7 +30,7 @@ const fixture = (existing?: Owner) => Effect.gen(function* () {
   if (preparation === undefined) throw new Error("fixture preparation refused");
   const [unit] = (yield* owner.completePreparation("agent", preparation.operation, preparation.reservation, [100], round.canonicalRound));
   if (unit === undefined) throw new Error("fixture unit refused");
-  expect(owner.observeReview("agent", unit.operation, unit.reservation, "finding", true, round.canonicalRound)).toBe("retainFinding");
+  expect((yield* owner.observeReview("agent", unit.operation, unit.reservation, "finding", true, round.canonicalRound))).toBe("retainFinding");
   (yield* owner.observation("agent", admissionId, "completeObservation", round.canonicalRound));
   const revision = (yield* owner.revision.register("agent", prepared, true, "revision")).revision;
   const initial: AdviceInitial = {
