@@ -1,5 +1,5 @@
-import { Cause, Duration, Effect, Schedule, Schema } from "effect";
-import { spawnSync } from "node:child_process";
+import { Cause, Deferred, Duration, Effect, Schedule, Schema } from "effect";
+import { execFileClosedStdin } from "../onboarding/host-process.ts";
 import { closeSync, constants, openSync, readSync } from "node:fs";
 import { terminalModeArguments } from "./terminal.ts";
 
@@ -8,32 +8,36 @@ export class MaskedInputError extends Schema.TaggedError<MaskedInputError>()("Ma
 }) {}
 const unavailable = () => new MaskedInputError({ message: "masked terminal input is unavailable; retry with --credential-stdin" });
 
+const terminalMode = Effect.fn("CredentialTerminal.mode")((...args: ReadonlyArray<string>) =>
+  execFileClosedStdin("stty", terminalModeArguments(process.platform, ...args), {
+    env: process.env, timeout: 2_000, maxBuffer: 65_536,
+  }));
+
 export const readMaskedCredential = Effect.fn("CredentialTerminal.readMasked")(function* () {
   return yield* Effect.acquireUseRelease(
     Effect.try({ try: () => ({
       descriptor: openSync("/dev/tty", constants.O_RDONLY | constants.O_NONBLOCK),
       mode: "", prompted: false, value: Buffer.alloc(0),
       handlers: new Map<NodeJS.Signals, () => void>(),
+      cancelled: Deferred.makeUnsafe<never, MaskedInputError>(),
     }), catch: unavailable }),
     (owned) => Effect.gen(function* () {
-      yield* Effect.try({ try: () => {
-        const original = spawnSync("stty", terminalModeArguments(process.platform, "-g"), {
-          encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
-        });
-        owned.mode = original.status === 0 ? original.stdout.trim() : "";
-        if (owned.mode.length === 0) throw unavailable();
-        const disabled = spawnSync("stty", terminalModeArguments(process.platform, "-echo"), { stdio: "ignore" });
-        if (disabled.status !== 0) throw unavailable();
-        owned.prompted = true;
-        process.stderr.write("Jev API key: ");
-      }, catch: unavailable });
-      const cancelled = Effect.callback<never, MaskedInputError>((complete) => {
+      yield* Effect.sync(() => {
         for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
-          const handler = () => complete(Effect.fail(new MaskedInputError({ message: "credential input cancelled" })));
+          const handler = () => { Deferred.doneUnsafe(owned.cancelled,
+            Effect.fail(new MaskedInputError({ message: "credential input cancelled" }))); };
           owned.handlers.set(signal, handler);
           process.once(signal, handler);
         }
       });
+      const original = yield* terminalMode("-g");
+      owned.mode = original.succeeded ? original.stdout.trim() : "";
+      if (owned.mode.length === 0) return yield* Effect.fail(unavailable());
+      const disabled = yield* terminalMode("-echo");
+      if (!disabled.succeeded) return yield* Effect.fail(unavailable());
+      owned.prompted = true;
+      yield* Effect.try({ try: () => process.stderr.write("Jev API key: "), catch: unavailable });
+      const cancelled = Deferred.await(owned.cancelled);
       const poll = Effect.fn("CredentialTerminal.poll")(() => Effect.try({ try: () => {
         const chunk = Buffer.alloc(256);
         try {
@@ -59,26 +63,33 @@ export const readMaskedCredential = Effect.fn("CredentialTerminal.readMasked")(f
       if (value === undefined) return yield* Effect.fail(unavailable());
       return value;
     }),
-    (owned) => Effect.try({ try: () => {
+    (owned) => Effect.gen(function* () {
       for (const [signal, handler] of owned.handlers) process.off(signal, handler);
       owned.value.fill(0);
-      let failed = false;
-      try { closeSync(owned.descriptor); } catch { failed = true; }
+      const closed = yield* Effect.try({ try: () => closeSync(owned.descriptor), catch: unavailable }).pipe(Effect.result);
+      let restored = true;
       if (owned.mode.length > 0) {
-        let restored = false;
-        for (let attempt = 0; attempt < 5; attempt += 1) {
-          try {
-            spawnSync("stty", terminalModeArguments(process.platform, owned.mode), { stdio: "ignore" });
-            const observed = spawnSync("stty", terminalModeArguments(process.platform, "-g"), {
-              encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
-            });
-            if (observed.status === 0 && observed.stdout.trim() === owned.mode) { restored = true; break; }
-          } catch { /* bounded native restoration attempts */ }
-        }
-        if (!restored) failed = true;
+        const attempt = Effect.fn("CredentialTerminal.restoreAttempt")(function* () {
+          yield* terminalMode(owned.mode);
+          const observed = yield* terminalMode("-g");
+          return observed.succeeded && observed.stdout.trim() === owned.mode;
+        });
+        const policy = Schedule.fromStep(Effect.sync(() => {
+          let attempts = 0;
+          return (_now: number, success: boolean) => {
+            attempts += 1;
+            return success || attempts >= 5 ? Cause.done(success)
+              : Effect.succeed([false, Duration.zero] as [boolean, Duration.Duration]);
+          };
+        }));
+        restored = yield* attempt().pipe(Effect.repeat(policy));
       }
-      if (owned.prompted) { try { process.stderr.write("\n"); } catch { failed = true; } }
-      if (failed) throw new Error("credential terminal restoration failed");
-    }, catch: () => new MaskedInputError({ message: "credential terminal restoration failed" }) }),
+      const newline = owned.prompted
+        ? yield* Effect.try({ try: () => process.stderr.write("\n"), catch: unavailable }).pipe(Effect.result)
+        : undefined;
+      if (closed._tag === "Failure" || !restored || newline?._tag === "Failure") {
+        return yield* Effect.fail(new MaskedInputError({ message: "credential terminal restoration failed" }));
+      }
+    }),
   );
 });

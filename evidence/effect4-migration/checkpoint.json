@@ -3541,5 +3541,33 @@
       "src/onboarding/setup.ts": "9f5d0bc637788e6918a08a6be91d7175cc0726b3115ded5fa3e84d43096dd3ed"
     },
     "limitations": "Actual native masked input/TTY cancellation and fault injection not exercised by these tests. stty setup/restoration still uses synchronous native subprocesses and five-attempt loop; scoped process/Schedule restoration audit remains. No credentials entered. Full migration and final requirement audit incomplete."
+  },
+  "maskedTerminalProcessPort": {
+    "status": "stty uses scoped process adapter; restoration uses Schedule with at most five attempts",
+    "scope": "All stty calls close stdin, bound output to 65536 bytes and timeout at 2000ms while awaiting physical child closure. Restoration uses repeated set/query until verified mode or five attempts exhausted. Signals registered before native setup through Deferred callback bridge.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/cli.test.ts src/credentials/terminal.test.ts src/onboarding/host-process.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 14,
+        "durationSeconds": 8.46
+      },
+      {
+        "command": "python3 evidence/effect4-migration/masked-input-pty.py",
+        "status": "pass",
+        "cases": 2
+      }
+    ],
+    "nativeEvidence": "Linux controlling PTY synthetic text submission and immediate SIGTERM after prompt both exit 0, return expected boolean-only outcome and exactly restore pre-execution termios. No credential persisted or printed.",
+    "testCorrection": "Initial SIGTERM PTY case failed with exit -15 due handler-registration window after prompt; termios was restored but cancellation outcome absent. Signal observers now registered before setup; both cases pass.",
+    "sourceSha256": {
+      "src/credentials/masked-input.ts": "307cb3456fa8d4d9c714fa60ce6c94872f34a5185471f4dc1940d4b0b925e2fd",
+      "evidence/effect4-migration/masked-input-pty.py": "6287665312a145b88216317c880fa82e931dbb77481285c65ccf3c56c5022afa"
+    },
+    "limitations": "No native fiber-interruption/fault injection or macOS/Windows proof. Full-suite/current package conformance, remaining installation Config and external deadlines, live/performance and completion audit still required."
   }
 }
