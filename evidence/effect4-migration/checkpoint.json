@@ -3213,5 +3213,33 @@
       "src/onboarding/opencode-installation.ts": "76227ae487511c9b660f1b3c6fbf8f3284cd256823845308c18485b71ea6bdd6"
     },
     "remaining": "OpenCode installation Config and native mutation ownership still require audit/port. External hook deadlines require coordinated CLI/composed-hook/client/output Clock migration. Full migration and final validation remain incomplete."
+  },
+  "openCodeInstallationConfigurationPort": {
+    "status": "OpenCode configuration composed through caller Config; inspect and diagnose are named Effects",
+    "scope": "XDG_CONFIG_HOME, REVIEW_INSTALL_RUNTIME and REVIEW_INSTALL_ENTRYPOINT use NonEmptyString with missing-only defaults. Explicit request home keeps precedence. Inputs resolve once per operation; native plan rechecks files for cleanup under existing lock. CLI doctor directly yields the Effect. Unsupported install/update remain unchanged.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "node scripts/check-configuration-boundary.mjs",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/opencode-installation.test.ts src/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 2,
+        "tests": 12,
+        "durationSeconds": 7.77
+      }
+    ],
+    "configurationEvidence": "Caller provider preserving empty runtime causes bounded configuration conflict before any owned plugin cleanup; existing unsupported install/update and modified-plugin protection tests pass.",
+    "sourceSha256": {
+      "src/onboarding/opencode-installation.ts": "4a746799bb411eea447327957f7e95424160110a1296f0be16c78476299f18d9",
+      "src/onboarding/opencode-installation.test.ts": "4e2cc3c466e545558df7f6d988239681e0f917c0fbf9dc3c45d8fd22c52754b3",
+      "src/cli.ts": "79285ee1a898f9546c64d1e714427ef79cf60f373ed54ee2d68bb8320556422b"
+    },
+    "remaining": "Native synchronous host compatibility and uninstall lock/journal boundaries still need full idiomatic ownership audit. Codex/Claude installation Config and preview/inspect APIs, interactive CLI, coordinated hook deadline port and final gates remain incomplete."
   }
 }

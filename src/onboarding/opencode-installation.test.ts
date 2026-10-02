@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { ConfigProvider, Effect } from "effect";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -54,7 +54,7 @@ describe("OpenCode unsupported installation and owned cleanup", () => {
     expect((await Effect.runPromise(installOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" }))).status).toBe("unsupported");
     expect((await Effect.runPromise(updateOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" }))).status).toBe("unsupported");
     expect(readFileSync(join(home, "plugins", "hapsland.mjs"), "utf8")).toBe(ownedPlugin);
-    const doctor = diagnoseOpenCodeIntegration(request);
+    const doctor = await Effect.runPromise(diagnoseOpenCodeIntegration(request));
     expect(doctor.status).toBe("not-ready");
     expect(doctor.checks.find((check) => check.stage === "pre-edit-permit")?.status).toBe("unsupported");
     const removal = await Effect.runPromise(uninstallOpenCodeIntegration(request));
@@ -63,6 +63,22 @@ describe("OpenCode unsupported installation and owned cleanup", () => {
     expect((await Effect.runPromise(uninstallOpenCodeIntegration({ ...request, proposalDigest: removal.proposal.digest }))).status).toBe("complete");
     expect(existsSync(join(home, "plugins", "hapsland.mjs"))).toBe(false);
     expect(readFileSync(join(home, "plugins", "other.mjs"), "utf8")).toBe("other plugin");
+  });
+
+  it("rejects an explicitly empty runtime through caller configuration before cleanup", async () => {
+    const { home, request } = fixture();
+    seedOwnedPlugin(home);
+    const plugin = join(home, "plugins", "hapsland.mjs");
+    const before = readFileSync(plugin, "utf8");
+    const result = await Effect.runPromise(uninstallOpenCodeIntegration(request).pipe(
+      Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
+        REVIEW_INSTALL_RUNTIME: "",
+      }, { preserveEmptyStrings: true }))),
+    ));
+    expect(result).toMatchObject({ status: "conflict", error: {
+      message: "OpenCode installation configuration is invalid",
+    } });
+    expect(readFileSync(plugin, "utf8")).toBe(before);
   });
 
   it("refuses a modified owned file and never removes it", async () => {

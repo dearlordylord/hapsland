@@ -680,7 +680,7 @@ const program = Effect.gen(function* () {
           ? {} : { proposalDigest: operation.proposalDigest }),
       };
       switch (operation.operation) {
-        case "doctor": return diagnoseOpenCodeIntegration(opencodeRequest);
+        case "doctor": return yield* diagnoseOpenCodeIntegration(opencodeRequest);
         case "install-preview": return previewOpenCodeInstallation(opencodeRequest);
         case "install": return yield* installOpenCodeIntegration(opencodeRequest);
         case "update-preview": return previewOpenCodeUpdate(opencodeRequest);
