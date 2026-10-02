@@ -1,0 +1,7882 @@
+{
+  "stage": "B",
+  "taskId": "coverage-muted-topics",
+  "candidate": "hapsland",
+  "ordinal": 0,
+  "blindId": "f56cc6c1b448",
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 80593,
+  "usage": {
+    "input_tokens": 116268,
+    "cached_input_tokens": 105472,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2287,
+    "reasoning_output_tokens": 1327
+  },
+  "uncachedPlusOutputTokens": 13083,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "nativeEvents": [
+    {
+      "type": "thread.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "turn.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "turn.completed",
+      "itemType": null
+    }
+  ],
+  "nativeErrorCategories": [
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    },
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    }
+  ],
+  "deliveryDebug": true,
+  "transportTrace": [
+    {
+      "at": 1790983864202,
+      "pid": 4034036,
+      "invocation": "6d32c4db044dbedb",
+      "trace": "process-start",
+      "elapsedMs": 18.825897
+    },
+    {
+      "at": 1790983864634,
+      "pid": 4034061,
+      "invocation": "6d32c4db044dbedb",
+      "trace": "process-start",
+      "elapsedMs": 17.468679
+    },
+    {
+      "at": 1790983865094,
+      "pid": 4034036,
+      "invocation": "6d32c4db044dbedb",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983865100,
+      "pid": 4034036,
+      "invocation": "6d32c4db044dbedb",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983865101,
+      "pid": 4034036,
+      "invocation": "6d32c4db044dbedb",
+      "trace": "ipc-request",
+      "operation": "prompt-marker",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983865104,
+      "pid": 4034036,
+      "invocation": "6d32c4db044dbedb",
+      "trace": "ipc-response",
+      "status": "advanced",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983865105,
+      "pid": 4034036,
+      "invocation": "6d32c4db044dbedb",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 921.745454
+    },
+    {
+      "at": 1790983865105,
+      "pid": 4034036,
+      "invocation": "6d32c4db044dbedb",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 922.181791
+    },
+    {
+      "at": 1790983868985,
+      "pid": 4034284,
+      "invocation": "689c5116cb61e0e7",
+      "trace": "process-start",
+      "elapsedMs": 15.0202
+    },
+    {
+      "at": 1790983869386,
+      "pid": 4034284,
+      "invocation": "689c5116cb61e0e7",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 415.535706
+    },
+    {
+      "at": 1790983869387,
+      "pid": 4034284,
+      "invocation": "689c5116cb61e0e7",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 416.662965
+    },
+    {
+      "at": 1790983869481,
+      "pid": 4034329,
+      "invocation": "999c5064ab9cc5f9",
+      "trace": "process-start",
+      "elapsedMs": 17.104342
+    },
+    {
+      "at": 1790983869488,
+      "pid": 4034335,
+      "invocation": "9eaad0f957a086da",
+      "trace": "process-start",
+      "elapsedMs": 18.653313
+    },
+    {
+      "at": 1790983869938,
+      "pid": 4034329,
+      "invocation": "999c5064ab9cc5f9",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 474.511959
+    },
+    {
+      "at": 1790983869939,
+      "pid": 4034329,
+      "invocation": "999c5064ab9cc5f9",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 475.628051
+    },
+    {
+      "at": 1790983869966,
+      "pid": 4034335,
+      "invocation": "9eaad0f957a086da",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983869967,
+      "pid": 4034335,
+      "invocation": "9eaad0f957a086da",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983869968,
+      "pid": 4034335,
+      "invocation": "9eaad0f957a086da",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "20e628c8-1603-4d66-94ff-7f31bfd9a534"
+    },
+    {
+      "at": 1790983869970,
+      "pid": 4034335,
+      "invocation": "9eaad0f957a086da",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983869970,
+      "pid": 4034335,
+      "invocation": "9eaad0f957a086da",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 500.688539
+    },
+    {
+      "at": 1790983875589,
+      "pid": 4034604,
+      "invocation": "fd892d085ea1fd28",
+      "trace": "process-start",
+      "elapsedMs": 33.319886
+    },
+    {
+      "at": 1790983875592,
+      "pid": 4034611,
+      "invocation": "144344e27d6c7283",
+      "trace": "process-start",
+      "elapsedMs": 25.416741
+    },
+    {
+      "at": 1790983875598,
+      "pid": 4034612,
+      "invocation": "1178c0e098b759e4",
+      "trace": "process-start",
+      "elapsedMs": 33.053758
+    },
+    {
+      "at": 1790983875605,
+      "pid": 4034623,
+      "invocation": "f98825b45eb4953c",
+      "trace": "process-start",
+      "elapsedMs": 29.318354
+    },
+    {
+      "at": 1790983876494,
+      "pid": 4034604,
+      "invocation": "fd892d085ea1fd28",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 938.935214
+    },
+    {
+      "at": 1790983876500,
+      "pid": 4034612,
+      "invocation": "1178c0e098b759e4",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 935.1651
+    },
+    {
+      "at": 1790983876534,
+      "pid": 4034604,
+      "invocation": "fd892d085ea1fd28",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 978.501523
+    },
+    {
+      "at": 1790983876551,
+      "pid": 4034623,
+      "invocation": "f98825b45eb4953c",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 974.937703
+    },
+    {
+      "at": 1790983876552,
+      "pid": 4034623,
+      "invocation": "f98825b45eb4953c",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 976.321339
+    },
+    {
+      "at": 1790983876553,
+      "pid": 4034611,
+      "invocation": "144344e27d6c7283",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 986.916672
+    },
+    {
+      "at": 1790983876556,
+      "pid": 4034612,
+      "invocation": "1178c0e098b759e4",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 991.949044
+    },
+    {
+      "at": 1790983876577,
+      "pid": 4034611,
+      "invocation": "144344e27d6c7283",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1010.920027
+    },
+    {
+      "at": 1790983876708,
+      "pid": 4034694,
+      "invocation": "6802581bb72f828a",
+      "trace": "process-start",
+      "elapsedMs": 31.549413
+    },
+    {
+      "at": 1790983876714,
+      "pid": 4034714,
+      "invocation": "132cfe764943c4d3",
+      "trace": "process-start",
+      "elapsedMs": 24.818027
+    },
+    {
+      "at": 1790983876720,
+      "pid": 4034740,
+      "invocation": "1f64d3be3c2399d1",
+      "trace": "process-start",
+      "elapsedMs": 18.330269
+    },
+    {
+      "at": 1790983876721,
+      "pid": 4034713,
+      "invocation": "8ba34d669d333807",
+      "trace": "process-start",
+      "elapsedMs": 32.613296
+    },
+    {
+      "at": 1790983876727,
+      "pid": 4034739,
+      "invocation": "c304f88c8921fb7a",
+      "trace": "process-start",
+      "elapsedMs": 25.736409
+    },
+    {
+      "at": 1790983876730,
+      "pid": 4034716,
+      "invocation": "d7563f2893d605b9",
+      "trace": "process-start",
+      "elapsedMs": 36.105449
+    },
+    {
+      "at": 1790983876732,
+      "pid": 4034720,
+      "invocation": "c4fb810c09d95002",
+      "trace": "process-start",
+      "elapsedMs": 37.499251
+    },
+    {
+      "at": 1790983876736,
+      "pid": 4034753,
+      "invocation": "64473af31d364776",
+      "trace": "process-start",
+      "elapsedMs": 26.909168
+    },
+    {
+      "at": 1790983878612,
+      "pid": 4034739,
+      "invocation": "c304f88c8921fb7a",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 1911.09552
+    },
+    {
+      "at": 1790983878641,
+      "pid": 4034694,
+      "invocation": "6802581bb72f828a",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 1964.567272
+    },
+    {
+      "at": 1790983878644,
+      "pid": 4034694,
+      "invocation": "6802581bb72f828a",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1966.607746
+    },
+    {
+      "at": 1790983878696,
+      "pid": 4034739,
+      "invocation": "c304f88c8921fb7a",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1995.397554
+    },
+    {
+      "at": 1790983878743,
+      "pid": 4034740,
+      "invocation": "1f64d3be3c2399d1",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 2040.739284
+    },
+    {
+      "at": 1790983878752,
+      "pid": 4034714,
+      "invocation": "132cfe764943c4d3",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 2063.063958
+    },
+    {
+      "at": 1790983878800,
+      "pid": 4034720,
+      "invocation": "c4fb810c09d95002",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983878807,
+      "pid": 4034720,
+      "invocation": "c4fb810c09d95002",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983878810,
+      "pid": 4034720,
+      "invocation": "c4fb810c09d95002",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "466126cb-f9e2-4d2c-8dab-083ed6b40fd0"
+    },
+    {
+      "at": 1790983878811,
+      "pid": 4034740,
+      "invocation": "1f64d3be3c2399d1",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2109.382987
+    },
+    {
+      "at": 1790983878829,
+      "pid": 4034720,
+      "invocation": "c4fb810c09d95002",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983878838,
+      "pid": 4034714,
+      "invocation": "132cfe764943c4d3",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2148.88192
+    },
+    {
+      "at": 1790983878846,
+      "pid": 4034720,
+      "invocation": "c4fb810c09d95002",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2152.174155
+    },
+    {
+      "at": 1790983878857,
+      "pid": 4034716,
+      "invocation": "d7563f2893d605b9",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983878862,
+      "pid": 4034716,
+      "invocation": "d7563f2893d605b9",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983878865,
+      "pid": 4034716,
+      "invocation": "d7563f2893d605b9",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "f41cec4e-dc76-4293-865f-9fb6e6d3c326"
+    },
+    {
+      "at": 1790983878870,
+      "pid": 4034716,
+      "invocation": "d7563f2893d605b9",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983878872,
+      "pid": 4034716,
+      "invocation": "d7563f2893d605b9",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2178.156983
+    },
+    {
+      "at": 1790983878885,
+      "pid": 4034753,
+      "invocation": "64473af31d364776",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983878887,
+      "pid": 4034753,
+      "invocation": "64473af31d364776",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983878889,
+      "pid": 4034753,
+      "invocation": "64473af31d364776",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "fe148eb4-1d0d-4590-819f-73d0020e1ffa"
+    },
+    {
+      "at": 1790983878897,
+      "pid": 4034753,
+      "invocation": "64473af31d364776",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983878900,
+      "pid": 4034753,
+      "invocation": "64473af31d364776",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2190.40587
+    },
+    {
+      "at": 1790983878954,
+      "pid": 4034713,
+      "invocation": "8ba34d669d333807",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983878955,
+      "pid": 4034713,
+      "invocation": "8ba34d669d333807",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983878957,
+      "pid": 4034713,
+      "invocation": "8ba34d669d333807",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "12551271-6691-453f-9581-3a0e794e3581"
+    },
+    {
+      "at": 1790983878962,
+      "pid": 4034713,
+      "invocation": "8ba34d669d333807",
+      "trace": "ipc-response",
+      "status": "busy",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983878970,
+      "pid": 4034713,
+      "invocation": "8ba34d669d333807",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2281.468373
+    },
+    {
+      "at": 1790983886119,
+      "pid": 4034967,
+      "invocation": "75bf60409ec73392",
+      "trace": "process-start",
+      "elapsedMs": 17.164467
+    },
+    {
+      "at": 1790983886514,
+      "pid": 4034967,
+      "invocation": "75bf60409ec73392",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983886515,
+      "pid": 4034967,
+      "invocation": "75bf60409ec73392",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983886516,
+      "pid": 4034967,
+      "invocation": "75bf60409ec73392",
+      "trace": "ipc-request",
+      "operation": "register-edit",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983886526,
+      "pid": 4034967,
+      "invocation": "75bf60409ec73392",
+      "trace": "ipc-response",
+      "status": "advanced",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983886528,
+      "pid": 4034967,
+      "invocation": "75bf60409ec73392",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 426.24729
+    },
+    {
+      "at": 1790983886528,
+      "pid": 4034967,
+      "invocation": "75bf60409ec73392",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 426.768294
+    },
+    {
+      "at": 1790983886601,
+      "pid": 4035000,
+      "invocation": "6bb150f972021185",
+      "trace": "process-start",
+      "elapsedMs": 26.233747
+    },
+    {
+      "at": 1790983886608,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "process-start",
+      "elapsedMs": 21.013498
+    },
+    {
+      "at": 1790983887042,
+      "pid": 4035000,
+      "invocation": "6bb150f972021185",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887043,
+      "pid": 4035000,
+      "invocation": "6bb150f972021185",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887062,
+      "pid": 4035000,
+      "invocation": "6bb150f972021185",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887063,
+      "pid": 4035000,
+      "invocation": "6bb150f972021185",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887063,
+      "pid": 4035000,
+      "invocation": "6bb150f972021185",
+      "trace": "ipc-request",
+      "operation": "admit",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887074,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887076,
+      "pid": 4035000,
+      "invocation": "6bb150f972021185",
+      "trace": "ipc-response",
+      "status": "accepted",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887076,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887077,
+      "pid": 4035000,
+      "invocation": "6bb150f972021185",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 501.676629
+    },
+    {
+      "at": 1790983887077,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "6fff4620-456a-493d-b993-d8624c9bc969"
+    },
+    {
+      "at": 1790983887078,
+      "pid": 4035000,
+      "invocation": "6bb150f972021185",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 502.627887
+    },
+    {
+      "at": 1790983887079,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "background-claimed",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887080,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887088,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887089,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983887093,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "pending",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887146,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887150,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887151,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983887159,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "pending",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887210,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887212,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887213,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983887214,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "pending",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887268,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887269,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887269,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983887271,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "pending",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887322,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887323,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887324,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983887325,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "pending",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887377,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887378,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887378,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983887380,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "pending",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887432,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887441,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887442,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983887505,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "advice",
+      "findingCount": 1,
+      "token": "abb2cf55-5320-4c67-8a06-6ecca93d5262"
+    },
+    {
+      "at": 1790983887505,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "begin-submission",
+      "mode": null,
+      "token": "abb2cf55-5320-4c67-8a06-6ecca93d5262"
+    },
+    {
+      "at": 1790983887511,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "submitting",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887511,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "stdout-write",
+      "bytes": 235,
+      "elapsedMs": 924.215016
+    },
+    {
+      "at": 1790983887513,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "acknowledge",
+      "mode": null,
+      "token": "abb2cf55-5320-4c67-8a06-6ecca93d5262"
+    },
+    {
+      "at": 1790983887516,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "acknowledged",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887517,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "finalize",
+      "mode": null,
+      "token": "abb2cf55-5320-4c67-8a06-6ecca93d5262"
+    },
+    {
+      "at": 1790983887521,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "finalized",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887522,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983887523,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887523,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-request",
+      "operation": "release-background",
+      "mode": null,
+      "token": "6fff4620-456a-493d-b993-d8624c9bc969"
+    },
+    {
+      "at": 1790983887525,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "ipc-response",
+      "status": "released",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983887525,
+      "pid": 4035006,
+      "invocation": "c2162c752c50431e",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 938.071707
+    },
+    {
+      "at": 1790983891643,
+      "pid": 4035181,
+      "invocation": "3ce05f4b461c38ab",
+      "trace": "process-start",
+      "elapsedMs": 18.235101
+    },
+    {
+      "at": 1790983892067,
+      "pid": 4035181,
+      "invocation": "3ce05f4b461c38ab",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 442.393124
+    },
+    {
+      "at": 1790983892068,
+      "pid": 4035181,
+      "invocation": "3ce05f4b461c38ab",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 443.456049
+    },
+    {
+      "at": 1790983892158,
+      "pid": 4035208,
+      "invocation": "ae550f1727130b80",
+      "trace": "process-start",
+      "elapsedMs": 17.451428
+    },
+    {
+      "at": 1790983892161,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "process-start",
+      "elapsedMs": 15.768373
+    },
+    {
+      "at": 1790983893019,
+      "pid": 4035208,
+      "invocation": "ae550f1727130b80",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 878.362698
+    },
+    {
+      "at": 1790983893020,
+      "pid": 4035208,
+      "invocation": "ae550f1727130b80",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 879.591083
+    },
+    {
+      "at": 1790983893091,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893093,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893096,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "d479d49a-3061-4020-b5da-ab00cbc5bcad"
+    },
+    {
+      "at": 1790983893098,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "background-claimed",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893101,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893101,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893103,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893110,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893164,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893166,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893168,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893175,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893229,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893230,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893230,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893237,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893291,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893291,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893292,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893295,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893348,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893350,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893350,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893354,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893406,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893407,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893408,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893410,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893463,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893465,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893466,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893468,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893520,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893521,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893521,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893524,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893575,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893576,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893577,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893579,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893631,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893631,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893632,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893635,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893688,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893689,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893689,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893692,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893746,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893747,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893747,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893750,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893802,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893802,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893803,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893806,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893857,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893859,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893859,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893863,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893914,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893915,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893916,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893918,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893972,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983893973,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983893973,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983893975,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894027,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894028,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894028,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894031,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894085,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894086,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894086,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894088,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894140,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894141,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894142,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894144,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894197,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894199,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894200,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894204,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894258,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894261,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894261,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894269,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894324,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894328,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894329,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894337,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894393,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894394,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894394,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894400,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894459,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894461,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894461,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894475,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894527,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894527,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894528,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894532,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894584,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894586,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894587,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894589,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894644,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894645,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894648,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894652,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894703,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894704,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894704,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894709,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894761,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894762,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894763,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894766,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894819,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894820,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894821,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894827,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894881,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894882,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894884,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894888,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894942,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983894944,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983894945,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983894950,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983895004,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983895004,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983895005,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983895009,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983895064,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983895065,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983895066,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983895069,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983895121,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983895122,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983895123,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983895125,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983895126,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983895126,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983895127,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-request",
+      "operation": "release-background",
+      "mode": null,
+      "token": "d479d49a-3061-4020-b5da-ab00cbc5bcad"
+    },
+    {
+      "at": 1790983895128,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "ipc-response",
+      "status": "released",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983895128,
+      "pid": 4035214,
+      "invocation": "2c32fc99873ad8b3",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2982.796772
+    },
+    {
+      "at": 1790983915321,
+      "pid": 4037337,
+      "invocation": "e53bcb220d469930",
+      "trace": "process-start",
+      "elapsedMs": 19.569278
+    },
+    {
+      "at": 1790983915862,
+      "pid": 4037337,
+      "invocation": "e53bcb220d469930",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 560.784425
+    },
+    {
+      "at": 1790983915863,
+      "pid": 4037337,
+      "invocation": "e53bcb220d469930",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 561.784183
+    },
+    {
+      "at": 1790983916083,
+      "pid": 4037545,
+      "invocation": "b3eb51790a8ead69",
+      "trace": "process-start",
+      "elapsedMs": 14.685615
+    },
+    {
+      "at": 1790983916085,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "process-start",
+      "elapsedMs": 16.208793
+    },
+    {
+      "at": 1790983916555,
+      "pid": 4037545,
+      "invocation": "b3eb51790a8ead69",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 486.775721
+    },
+    {
+      "at": 1790983916574,
+      "pid": 4037545,
+      "invocation": "b3eb51790a8ead69",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 506.040705
+    },
+    {
+      "at": 1790983916595,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983916597,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916598,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "65dc599f-2c9f-4571-b328-29a5886ff1b5"
+    },
+    {
+      "at": 1790983916600,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "background-claimed",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916602,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983916602,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916603,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983916606,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916660,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983916660,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916661,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983916665,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916718,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983916719,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916720,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983916724,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916776,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983916778,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916779,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983916782,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916834,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983916837,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916838,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983916841,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916895,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983916896,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916898,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983916901,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916953,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983916954,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983916954,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983916958,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917009,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917010,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917011,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917014,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917065,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917066,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917066,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917069,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917121,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917122,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917123,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917126,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917181,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917182,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917183,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917185,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917237,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917238,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917239,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917243,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917293,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917294,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917295,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917299,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917351,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917351,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917353,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917355,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917407,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917408,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917409,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917411,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917464,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917465,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917465,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917468,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917521,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917522,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917523,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917525,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917577,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917578,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917578,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917580,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917630,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917631,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917634,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917636,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917688,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917690,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917691,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917694,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917748,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917749,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917750,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917753,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917804,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917805,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917806,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917808,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917863,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917864,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917865,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917867,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917921,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917923,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917924,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917927,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917978,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983917980,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983917981,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983917984,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918039,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918040,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918040,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918043,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918095,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918096,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918097,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918100,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918154,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918155,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918156,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918159,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918212,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918213,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918214,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918218,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918270,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918271,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918271,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918276,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918330,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918330,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918331,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918335,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918386,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918387,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918389,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918392,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918445,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918446,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918447,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918451,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918503,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918504,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918504,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918508,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918562,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918564,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918564,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918567,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918620,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918620,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918621,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983918624,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918625,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983918626,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918626,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-request",
+      "operation": "release-background",
+      "mode": null,
+      "token": "65dc599f-2c9f-4571-b328-29a5886ff1b5"
+    },
+    {
+      "at": 1790983918627,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "ipc-response",
+      "status": "released",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983918628,
+      "pid": 4037547,
+      "invocation": "2edd68e530dcf1c1",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2559.302087
+    },
+    {
+      "at": 1790983921011,
+      "pid": 4038079,
+      "invocation": "4f560097356b160a",
+      "trace": "process-start",
+      "elapsedMs": 49.120758
+    },
+    {
+      "at": 1790983922419,
+      "pid": 4038079,
+      "invocation": "4f560097356b160a",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 1456.489467
+    },
+    {
+      "at": 1790983922439,
+      "pid": 4038079,
+      "invocation": "4f560097356b160a",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1476.727542
+    },
+    {
+      "at": 1790983923012,
+      "pid": 4038165,
+      "invocation": "2fdcf5d08394f954",
+      "trace": "process-start",
+      "elapsedMs": 25.877411
+    },
+    {
+      "at": 1790983923012,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "process-start",
+      "elapsedMs": 22.137298
+    },
+    {
+      "at": 1790983924050,
+      "pid": 4038165,
+      "invocation": "2fdcf5d08394f954",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 1064.445403
+    },
+    {
+      "at": 1790983924055,
+      "pid": 4038165,
+      "invocation": "2fdcf5d08394f954",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 1068.827354
+    },
+    {
+      "at": 1790983924109,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924110,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924114,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "e6bdd898-072f-460e-986a-6f312727d318"
+    },
+    {
+      "at": 1790983924117,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "background-claimed",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924122,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924126,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924128,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924136,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924197,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924199,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924203,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924214,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924279,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924281,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924283,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924288,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924343,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924345,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924346,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924355,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924412,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924414,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924418,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924454,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924505,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924506,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924506,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924512,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924566,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924567,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924568,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924571,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924622,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924628,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924630,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924637,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924691,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924691,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924694,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924705,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924759,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924761,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924762,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924766,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924820,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924823,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924823,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924826,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924892,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924899,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924901,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924917,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924971,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983924973,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983924973,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983924978,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925030,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925035,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925038,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925045,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925098,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925099,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925100,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925106,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925162,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925163,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925166,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925173,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925227,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925228,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925230,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925236,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925288,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925291,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925294,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925297,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925350,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925352,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925354,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925358,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925412,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925413,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925414,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925418,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925473,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925478,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925481,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925488,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925543,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925543,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925544,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925549,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925602,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925603,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925604,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925610,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925661,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925662,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925663,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925667,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925720,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925722,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925724,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925729,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925781,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925782,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925783,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925788,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925842,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925846,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925847,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925852,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925906,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925908,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925909,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925912,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925965,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983925966,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983925967,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983925970,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983926029,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983926032,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983926033,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983926043,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983926099,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983926101,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983926102,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983926105,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983926158,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983926159,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983926160,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983926167,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983926169,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983926172,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983926174,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-request",
+      "operation": "release-background",
+      "mode": null,
+      "token": "e6bdd898-072f-460e-986a-6f312727d318"
+    },
+    {
+      "at": 1790983926177,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "ipc-response",
+      "status": "released",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983926179,
+      "pid": 4038166,
+      "invocation": "7b4863fee368de63",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 3188.926717
+    },
+    {
+      "at": 1790983930090,
+      "pid": 4038358,
+      "invocation": "0e15c4c1cf5b1080",
+      "trace": "process-start",
+      "elapsedMs": 20.922414
+    },
+    {
+      "at": 1790983930712,
+      "pid": 4038358,
+      "invocation": "0e15c4c1cf5b1080",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 642.420938
+    },
+    {
+      "at": 1790983930713,
+      "pid": 4038358,
+      "invocation": "0e15c4c1cf5b1080",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 643.76449
+    },
+    {
+      "at": 1790983930817,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "process-start",
+      "elapsedMs": 19.630779
+    },
+    {
+      "at": 1790983930817,
+      "pid": 4038390,
+      "invocation": "060f6d943c3094c2",
+      "trace": "process-start",
+      "elapsedMs": 19.742988
+    },
+    {
+      "at": 1790983931400,
+      "pid": 4038390,
+      "invocation": "060f6d943c3094c2",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 602.274374
+    },
+    {
+      "at": 1790983931401,
+      "pid": 4038390,
+      "invocation": "060f6d943c3094c2",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 603.353591
+    },
+    {
+      "at": 1790983931440,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931442,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931443,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "claim-background",
+      "mode": null,
+      "token": "8c7afdba-7c32-4e0e-add7-95e5e8a3ea76"
+    },
+    {
+      "at": 1790983931445,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "background-claimed",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931446,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931446,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931447,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931449,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931505,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931506,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931506,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931508,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931562,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931563,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931563,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931567,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931619,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931620,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931620,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931623,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931675,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931676,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931677,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931679,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931734,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931735,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931736,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931738,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931790,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931791,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931792,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931794,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931846,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931847,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931848,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931851,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931903,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931903,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931904,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931906,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931958,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983931959,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983931961,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983931963,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932019,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932020,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932021,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932024,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932080,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932082,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932083,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932085,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932138,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932140,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932140,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932145,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932197,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932198,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932199,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932200,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932254,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932255,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932256,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932258,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932312,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932313,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932314,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932316,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932368,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932369,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932370,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932372,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932425,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932425,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932426,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932428,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932482,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932483,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932484,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932486,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932538,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932539,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932539,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932543,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932598,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932598,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932599,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932601,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932657,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932657,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932658,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932660,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932715,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932716,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932716,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932719,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932774,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932775,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932775,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932777,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932833,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932834,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932835,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932837,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932893,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932897,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932899,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932902,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932953,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983932954,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983932954,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983932957,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933010,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933011,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933011,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983933013,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933069,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933070,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933073,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983933076,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933129,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933132,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933133,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983933138,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933192,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933193,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933193,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983933195,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933250,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933251,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933251,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983933253,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933305,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933306,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933307,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983933308,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933360,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933361,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933362,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983933364,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933417,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933418,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933419,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983933421,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933473,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933474,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933475,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "ordinary",
+      "token": null
+    },
+    {
+      "at": 1790983933477,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933478,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983933479,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933479,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-request",
+      "operation": "release-background",
+      "mode": null,
+      "token": "8c7afdba-7c32-4e0e-add7-95e5e8a3ea76"
+    },
+    {
+      "at": 1790983933479,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "ipc-response",
+      "status": "released",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983933480,
+      "pid": 4038389,
+      "invocation": "77bf81df8f2d0b39",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 2682.230548
+    },
+    {
+      "at": 1790983938092,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "process-start",
+      "elapsedMs": 16.38417
+    },
+    {
+      "at": 1790983938684,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983938685,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983938686,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-request",
+      "operation": "prompt-marker",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983938687,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-response",
+      "status": "advanced",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983938696,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983938697,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983938697,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-request",
+      "operation": "begin-stop",
+      "mode": null,
+      "token": "07232a08-0fdb-4e7d-a2c9-2b096a02adb4"
+    },
+    {
+      "at": 1790983938700,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-response",
+      "status": "advanced",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983938701,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983938703,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983938703,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-request",
+      "operation": "collect",
+      "mode": "turn-end",
+      "token": "07232a08-0fdb-4e7d-a2c9-2b096a02adb4"
+    },
+    {
+      "at": 1790983938713,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-response",
+      "status": "empty",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983938714,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-request",
+      "operation": "hello",
+      "mode": null,
+      "token": null
+    },
+    {
+      "at": 1790983938716,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-response",
+      "status": "ready",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983938717,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-request",
+      "operation": "finish-stop",
+      "mode": null,
+      "token": "07232a08-0fdb-4e7d-a2c9-2b096a02adb4"
+    },
+    {
+      "at": 1790983938717,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "ipc-response",
+      "status": "advanced",
+      "findingCount": null,
+      "token": null
+    },
+    {
+      "at": 1790983938718,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "stdout-write",
+      "bytes": 3,
+      "elapsedMs": 642.114269
+    },
+    {
+      "at": 1790983938718,
+      "pid": 4038444,
+      "invocation": "a9ba9811bb71ff2f",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 642.749941
+    }
+  ],
+  "hookEvents": [
+    {
+      "trace": "start",
+      "invocation": "6d32c4db044dbedb",
+      "kind": "prompt",
+      "at": 1790983864180,
+      "event": "UserPromptSubmit",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "6d32c4db044dbedb",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "prompt",
+      "at": 1790983864180,
+      "doneAt": 1790983865114,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "start",
+      "invocation": "689c5116cb61e0e7",
+      "kind": "before-edit",
+      "at": 1790983868967,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "689c5116cb61e0e7",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983868967,
+      "doneAt": 1790983869394,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "start",
+      "invocation": "999c5064ab9cc5f9",
+      "kind": "edit",
+      "at": 1790983869461,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "9eaad0f957a086da",
+      "kind": "background",
+      "at": 1790983869466,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "999c5064ab9cc5f9",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983869461,
+      "doneAt": 1790983869948,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "9eaad0f957a086da",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983869466,
+      "doneAt": 1790983869980,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "start",
+      "invocation": "fd892d085ea1fd28",
+      "kind": "before-edit",
+      "at": 1790983875552,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "144344e27d6c7283",
+      "kind": "before-edit",
+      "at": 1790983875558,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "1178c0e098b759e4",
+      "kind": "before-edit",
+      "at": 1790983875559,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "f98825b45eb4953c",
+      "kind": "before-edit",
+      "at": 1790983875568,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "fd892d085ea1fd28",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983875552,
+      "doneAt": 1790983876559,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "f98825b45eb4953c",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983875568,
+      "doneAt": 1790983876568,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "1178c0e098b759e4",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983875559,
+      "doneAt": 1790983876577,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "144344e27d6c7283",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983875558,
+      "doneAt": 1790983876590,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "start",
+      "invocation": "6802581bb72f828a",
+      "kind": "edit",
+      "at": 1790983876666,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "8ba34d669d333807",
+      "kind": "background",
+      "at": 1790983876682,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "132cfe764943c4d3",
+      "kind": "edit",
+      "at": 1790983876685,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "d7563f2893d605b9",
+      "kind": "background",
+      "at": 1790983876688,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "c4fb810c09d95002",
+      "kind": "background",
+      "at": 1790983876690,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "c304f88c8921fb7a",
+      "kind": "edit",
+      "at": 1790983876696,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "1f64d3be3c2399d1",
+      "kind": "edit",
+      "at": 1790983876698,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "64473af31d364776",
+      "kind": "background",
+      "at": 1790983876705,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "6802581bb72f828a",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983876666,
+      "doneAt": 1790983878657,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "c304f88c8921fb7a",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983876696,
+      "doneAt": 1790983878708,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "1f64d3be3c2399d1",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983876698,
+      "doneAt": 1790983878850,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "c4fb810c09d95002",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983876690,
+      "doneAt": 1790983878862,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "132cfe764943c4d3",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983876685,
+      "doneAt": 1790983878862,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "d7563f2893d605b9",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983876688,
+      "doneAt": 1790983878891,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "64473af31d364776",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983876705,
+      "doneAt": 1790983878912,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "complete",
+      "invocation": "8ba34d669d333807",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983876682,
+      "doneAt": 1790983879024,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "start",
+      "invocation": "75bf60409ec73392",
+      "kind": "before-edit",
+      "at": 1790983886098,
+      "event": "PreToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "75bf60409ec73392",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983886098,
+      "doneAt": 1790983886539,
+      "event": "PreToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "312ca44cc602f37efa9b70cffa169f8d5096254030e647398fa07c98835eb5f0"
+    },
+    {
+      "trace": "start",
+      "invocation": "6bb150f972021185",
+      "kind": "edit",
+      "at": 1790983886572,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "start",
+      "invocation": "c2162c752c50431e",
+      "kind": "background",
+      "at": 1790983886579,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "6bb150f972021185",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983886572,
+      "doneAt": 1790983887087,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "complete",
+      "invocation": "c2162c752c50431e",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 235,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983886579,
+      "doneAt": 1790983887534,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [
+        "r5_absence_confusion"
+      ],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": true,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "start",
+      "invocation": "3ce05f4b461c38ab",
+      "kind": "before-edit",
+      "at": 1790983891622,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "3ce05f4b461c38ab",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983891622,
+      "doneAt": 1790983892077,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "start",
+      "invocation": "ae550f1727130b80",
+      "kind": "edit",
+      "at": 1790983892137,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "2c32fc99873ad8b3",
+      "kind": "background",
+      "at": 1790983892142,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "ae550f1727130b80",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983892137,
+      "doneAt": 1790983893032,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "complete",
+      "invocation": "2c32fc99873ad8b3",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983892142,
+      "doneAt": 1790983895137,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "start",
+      "invocation": "e53bcb220d469930",
+      "kind": "before-edit",
+      "at": 1790983915298,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "e53bcb220d469930",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983915298,
+      "doneAt": 1790983915871,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "start",
+      "invocation": "b3eb51790a8ead69",
+      "kind": "edit",
+      "at": 1790983916065,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "2edd68e530dcf1c1",
+      "kind": "background",
+      "at": 1790983916066,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "b3eb51790a8ead69",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983916065,
+      "doneAt": 1790983916582,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "complete",
+      "invocation": "2edd68e530dcf1c1",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983916066,
+      "doneAt": 1790983918637,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "start",
+      "invocation": "4f560097356b160a",
+      "kind": "before-edit",
+      "at": 1790983920928,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "4f560097356b160a",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983920928,
+      "doneAt": 1790983922459,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "start",
+      "invocation": "2fdcf5d08394f954",
+      "kind": "edit",
+      "at": 1790983922981,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "7b4863fee368de63",
+      "kind": "background",
+      "at": 1790983922985,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "2fdcf5d08394f954",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983922981,
+      "doneAt": 1790983924074,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "complete",
+      "invocation": "7b4863fee368de63",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983922985,
+      "doneAt": 1790983926194,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "start",
+      "invocation": "0e15c4c1cf5b1080",
+      "kind": "before-edit",
+      "at": 1790983930064,
+      "event": "PreToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "0e15c4c1cf5b1080",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "before-edit",
+      "at": 1790983930064,
+      "doneAt": 1790983930722,
+      "event": "PreToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "start",
+      "invocation": "77bf81df8f2d0b39",
+      "kind": "background",
+      "at": 1790983930794,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "start",
+      "invocation": "060f6d943c3094c2",
+      "kind": "edit",
+      "at": 1790983930794,
+      "event": "PostToolUse",
+      "tool": "Bash"
+    },
+    {
+      "trace": "complete",
+      "invocation": "060f6d943c3094c2",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "edit",
+      "at": 1790983930794,
+      "doneAt": 1790983931409,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "complete",
+      "invocation": "77bf81df8f2d0b39",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "background",
+      "at": 1790983930794,
+      "doneAt": 1790983933488,
+      "event": "PostToolUse",
+      "tool": "Bash",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    },
+    {
+      "trace": "start",
+      "invocation": "a9ba9811bb71ff2f",
+      "kind": "stop",
+      "at": 1790983938072,
+      "event": "Stop",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "a9ba9811bb71ff2f",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 3,
+      "stderrBytes": 0,
+      "kind": "stop",
+      "at": 1790983938072,
+      "doneAt": 1790983938728,
+      "event": "Stop",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "configured-message-match",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2"
+    }
+  ],
+  "requests": [
+    {
+      "id": "20db1d72-c282-4fc7-bb10-763c0ceb195c",
+      "at": 1790983887194,
+      "candidate": "hapsland",
+      "caseId": "coverage-muted-topics",
+      "phase": "prompt",
+      "stage": "B",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 1914,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r5_absence_confusion"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "20db1d72-c282-4fc7-bb10-763c0ceb195c",
+      "at": 1790983887194,
+      "candidate": "hapsland",
+      "caseId": "coverage-muted-topics",
+      "phase": "prompt",
+      "stage": "B",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 235,
+      "answers": {
+        "r5_absence_confusion": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 842,
+        "output_tokens": 26
+      }
+    }
+  ],
+  "agentMentionsRule": [],
+  "feedbackReceipt": {
+    "nonceSha256": "299b0c78365b2744dffee1710a1e483389cf6ee23c4242d9bde984758861479a",
+    "requestedByHook": true,
+    "echoedInFinalAgentMessage": true,
+    "reportedOutcome": "NOT_APPLIED",
+    "markerChangesFeedbackContent": true,
+    "reasonCategories": [],
+    "reasonClassifierIsNotSemanticProof": true
+  },
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "c589042aa16136be651b8345964e20dcccb8593e73a1aec0fdde26a94cf689b2",
+  "changed": true
+}

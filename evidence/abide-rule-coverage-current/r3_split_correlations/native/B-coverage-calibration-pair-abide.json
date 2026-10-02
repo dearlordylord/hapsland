@@ -1,0 +1,427 @@
+{
+  "stage": "B",
+  "taskId": "coverage-calibration-pair",
+  "candidate": "abide",
+  "ordinal": 1,
+  "blindId": "d73eb74237fd",
+  "agentRuntime": "Codex CLI",
+  "agentRuntimeVersion": "0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 62940,
+  "usage": {
+    "input_tokens": 87009,
+    "cached_input_tokens": 77312,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2464,
+    "reasoning_output_tokens": 1490
+  },
+  "uncachedPlusOutputTokens": 12161,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "nativeEvents": [
+    {
+      "type": "thread.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "turn.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "turn.completed",
+      "itemType": null
+    }
+  ],
+  "nativeErrorCategories": [
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    },
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    }
+  ],
+  "deliveryDebug": true,
+  "transportTrace": [
+    {
+      "at": 1790983748460,
+      "pid": 4024778,
+      "invocation": "04874cacdb287c51",
+      "trace": "process-start",
+      "elapsedMs": 25.561034
+    },
+    {
+      "at": 1790983748555,
+      "pid": 4024778,
+      "invocation": "04874cacdb287c51",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 120.119859
+    },
+    {
+      "at": 1790983748605,
+      "pid": 4024829,
+      "invocation": "d224989753c7f257",
+      "trace": "process-start",
+      "elapsedMs": 17.314636
+    },
+    {
+      "at": 1790983748701,
+      "pid": 4024829,
+      "invocation": "d224989753c7f257",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 113.707642
+    },
+    {
+      "at": 1790983793096,
+      "pid": 4027235,
+      "invocation": "9aa9ea2e54d7ed74",
+      "trace": "process-start",
+      "elapsedMs": 16.027577
+    },
+    {
+      "at": 1790983793403,
+      "pid": 4027235,
+      "invocation": "9aa9ea2e54d7ed74",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 322.470357
+    },
+    {
+      "at": 1790983806436,
+      "pid": 4028328,
+      "invocation": "6da1b9e047ec8331",
+      "trace": "process-start",
+      "elapsedMs": 20.835788
+    },
+    {
+      "at": 1790983806833,
+      "pid": 4028328,
+      "invocation": "6da1b9e047ec8331",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 417.468888
+    }
+  ],
+  "hookEvents": [
+    {
+      "trace": "start",
+      "invocation": "04874cacdb287c51",
+      "kind": "session-start",
+      "at": 1790983748430,
+      "event": "SessionStart",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "04874cacdb287c51",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "session-start",
+      "at": 1790983748430,
+      "doneAt": 1790983748558,
+      "event": "SessionStart",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "15adbed69969be019f36350252e8278c3f83c2a314b5207174664ebcc3259e68"
+    },
+    {
+      "trace": "start",
+      "invocation": "d224989753c7f257",
+      "kind": "turn-start",
+      "at": 1790983748584,
+      "event": "UserPromptSubmit",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "d224989753c7f257",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "turn-start",
+      "at": 1790983748584,
+      "doneAt": 1790983748704,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "15adbed69969be019f36350252e8278c3f83c2a314b5207174664ebcc3259e68"
+    },
+    {
+      "trace": "start",
+      "invocation": "9aa9ea2e54d7ed74",
+      "kind": "post-tool-use",
+      "at": 1790983793077,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "9aa9ea2e54d7ed74",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "post-tool-use",
+      "at": 1790983793077,
+      "doneAt": 1790983793440,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "419e6bedd898044848fcd0698861fd826b2503c68b00bb06dd286767adda76cd"
+    },
+    {
+      "trace": "start",
+      "invocation": "6da1b9e047ec8331",
+      "kind": "stop",
+      "at": 1790983806411,
+      "event": "Stop",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "6da1b9e047ec8331",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "stop",
+      "at": 1790983806411,
+      "doneAt": 1790983806896,
+      "event": "Stop",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "419e6bedd898044848fcd0698861fd826b2503c68b00bb06dd286767adda76cd"
+    }
+  ],
+  "requests": [
+    {
+      "id": "8b59a1e1-c9fb-4cbb-bab2-875008dbbbcd",
+      "at": 1790983793190,
+      "candidate": "abide",
+      "caseId": "coverage-calibration-pair",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2697,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r3-split-correlations"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "8b59a1e1-c9fb-4cbb-bab2-875008dbbbcd",
+      "at": 1790983793190,
+      "candidate": "abide",
+      "caseId": "coverage-calibration-pair",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 209,
+      "answers": {
+        "r3_split_correlations": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 861,
+        "output_tokens": 26
+      }
+    },
+    {
+      "id": "3327bc57-510c-43d1-a5ed-0b7147bfa576",
+      "at": 1790983806621,
+      "candidate": "abide",
+      "caseId": "coverage-calibration-pair",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2632,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r3-split-correlations"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "3327bc57-510c-43d1-a5ed-0b7147bfa576",
+      "at": 1790983806621,
+      "candidate": "abide",
+      "caseId": "coverage-calibration-pair",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 207,
+      "answers": {
+        "r3_split_correlations": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 854,
+        "output_tokens": 26
+      }
+    }
+  ],
+  "agentMentionsRule": [],
+  "feedbackReceipt": {
+    "nonceSha256": "66583083cc1a86952781d28e8b3869a84c5de6113faae776c268768a1e447667",
+    "requestedByHook": false,
+    "echoedInFinalAgentMessage": false,
+    "reportedOutcome": "NO_FEEDBACK",
+    "markerChangesFeedbackContent": true,
+    "reasonCategories": [],
+    "reasonClassifierIsNotSemanticProof": true
+  },
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "419e6bedd898044848fcd0698861fd826b2503c68b00bb06dd286767adda76cd",
+  "changed": true
+}

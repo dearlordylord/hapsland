@@ -1,31 +1,25 @@
-# Contextual review and repair: a Hapsland–Abide study
+# Hapsland and Abide: readable rule examples and measured outcomes
 
-**Purpose:** Explain a measured comparison of contextual review and subsequent agent repairs, with its method and limitations.
-**Status:** Draft for publication review; current campaign completed on 2026-10-02.
-**Authority:** Validation evidence and comparative research advisory; not an accepted product contract.
-**Expected use:** Assess whether this workflow is relevant to your code and inspect the evidence behind the README excerpt.
-**Lifecycle:** Review when an implementation, feedback policy, or scoring method changes. When a successor study is published, replace this account, update inbound links, and delete superseded narrative and uncited campaign snapshots. Retain the frozen evidence supporting the current claims.
+**Purpose:** Show concrete examples for all nine bundled Noul rules and explain their comparative validation.
+**Status:** Draft for publication review; the fixed matrices completed on 2026-10-02 (UTC).
+**Authority:** Comparative research advisory and validation evidence; not an accepted product contract or release certification.
+**Expected use:** Read the code, inspect measured differences and limitations, and assess relevance to your workflow.
+**Lifecycle:** Review when rules, review inputs, feedback policy or scoring change. Replace this account when its supporting validation is superseded; update inbound links and delete obsolete narrative and uncited snapshots. Retain evidence supporting current claims.
 
-## What we observed
+## What this comparison establishes
 
-On four selected cross-file duplicate-fact defects, repeated three times, **Codex completed independently checked repairs in 12/12 sessions with Hapsland and 1/12 with Abide configured with the same Noul concern**. Each product supplied its own response instructions during the same maintenance task.
+All native sessions used **Codex CLI 0.155.1, model `gpt-6-luna`, reasoning effort `max`**. Each product supplied its own response instructions during the same maintenance task. Abide 0.0.7 used a custom active rubric expressing the same target Noul concern; both reviewers used Jev.
 
-**Hapsland also warned on all six clean-control observations.** Final checks found independent facts preserved in 6/6 Hapsland clean artifacts and 6/6 Abide clean artifacts. All six Hapsland clean sessions confirmed receipt and reported that they did not apply the warning. A warning is therefore not sufficient authority for automatic application. These are constructed, previously tested cases covering one rule, not evidence of general review superiority.
+The four selected cross-file duplicate-fact designs produced **12/12 checked repairs with Hapsland and 1/12 with Abide** across three repetitions. Hapsland also warned on all six clean-control observations. This advantage belongs to those selected conditions, not all rules.
 
-## A concrete example
+Across two constructed defects for each of the eight other rules, one native session per case and arm produced **4/16 checked repairs with Hapsland and 3/16 with Abide**. Results by rule, including ties and failures, are below. Detection and native repair are different measurements; their denominators differ. Some examples are local and do not need cross-file context.
 
-An audio record stored `sampleRate` at its root and inside `track.encoding.sampleRate`, defined in an unchanged supporting file. Both represented the same encoded rate, but the type allowed them to disagree. The assigned task was to rename the presentation field `label` to `displayLabel`.
+## Start with one example
 
-A repair had to prevent contradictory copies while retaining valid values and independent information, such as channel count. Removing a redundant field or correctly constraining the relationship could pass. The clean resampling control instead had independent native and requested playback rates: requiring equality would introduce a defect. Other cases covered build provenance, stored compression, and access grants; a second clean control distinguished stored compression from a requested future repack format.
-
-## Cases and code
-
-Each case consists of `subject.ts` (the public record), `support.ts` (related definitions), and a domain description. The [frozen fixture definitions](../evidence/abide-contextual-current/abide-contextual-fixtures.mjs) contain the starting code and domain text for all six cases. Native sessions started from each fixture’s `after` shape; the assigned maintenance task renamed `label` to `displayLabel`.
-
-For example, the audio defect started with:
+A stored audio track has one native encoding rate, but this type permits two copies to disagree:
 
 ```typescript
-// subject.ts
+// subject.ts — edited public record
 import type { AudioTrack } from "./support";
 export interface CaseState {
   label: string;
@@ -33,7 +27,7 @@ export interface CaseState {
   sampleRate: 44100 | 48000;
 }
 
-// support.ts
+// support.ts — unchanged related definitions
 export interface AudioTrack { encoding: AudioEncoding; }
 export interface AudioEncoding {
   sampleRate: 44100 | 48000;
@@ -41,99 +35,113 @@ export interface AudioEncoding {
 }
 ```
 
-This permits `sampleRate: 44100` alongside `track.encoding.sampleRate: 48000`, although the domain says both describe the stored track’s native rate. The clean resampling case has a similar shape but a different meaning: its root rate is a playback request, so that combination must remain valid.
+For example, the root can say `44100` while `track.encoding.sampleRate` says `48000`. The domain says both describe the stored track. A repair removes a redundant copy or constrains their relationship while retaining independent channel count.
 
-Read the four defective **starting-code examples**, each with related definitions and a concrete contradictory value accepted by TypeScript:
+Read all four defective starting examples:
 
-- [Build provenance](./examples/duplicate-encoding/build-provenance.ts)
-- [Audio encoding](./examples/duplicate-encoding/audio-encoding.ts)
-- [Stored compression](./examples/duplicate-encoding/storage-envelope.ts)
-- [Session access](./examples/duplicate-encoding/session-grant.ts)
+- [Build provenance](./examples/duplicate-encoding/build-provenance.ts): two copies of the source commit.
+- [Audio encoding](./examples/duplicate-encoding/audio-encoding.ts): two copies of the native rate.
+- [Stored compression](./examples/duplicate-encoding/storage-envelope.ts): two copies of the stored format.
+- [Session access](./examples/duplicate-encoding/session-grant.ts): two copies of the granted permission.
 
-All four exercise the same duplicate-encoding rule. For comparison, [audio resampling](./examples/duplicate-encoding/clean-audio-resampling.ts) and [future repack](./examples/duplicate-encoding/clean-storage-repack.ts) show similar shapes where different values are valid. These readable files combine the original two-file fixtures; the frozen inputs remain the evidence owner.
+The [audio resampling](./examples/duplicate-encoding/clean-audio-resampling.ts) and [future repack](./examples/duplicate-encoding/clean-storage-repack.ts) controls look similar but contain independent current and requested values. Those values must be allowed to differ.
 
-The links below show **final source from repetition 1**, not starting inputs. Open the adjacent `support.ts` to inspect the related definitions. This is a code navigation example, not a replacement for the aggregate results across all three repetitions.
+## Examples for every other rule
 
-| Case | Required domain behavior | Hapsland final code | Abide final code |
-| --- | --- | --- | --- |
-| Build provenance | Root commit and nested source commit describe the same revision; repository stays independent. | [record](../evidence/abide-contextual-current/repeat-1/blind/c8d040c398d0/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/c8d040c398d0/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/79b84f6da380/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/79b84f6da380/support.ts) |
-| Audio encoding | Root sample rate and native encoding rate describe the same rate; channels stay independent. | [record](../evidence/abide-contextual-current/repeat-1/blind/084f63c2aa9b/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/084f63c2aa9b/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/7e645e7a69a4/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/7e645e7a69a4/support.ts) |
-| Stored compression | Root compression and wire compression describe the same stored format; generation stays independent. | [record](../evidence/abide-contextual-current/repeat-1/blind/9a2af89c92c5/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/9a2af89c92c5/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/10f85b390f14/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/10f85b390f14/support.ts) |
-| Session access | Root access and nested granted access describe the same permission; tenant stays independent. | [record](../evidence/abide-contextual-current/repeat-1/blind/05abe0e72d23/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/05abe0e72d23/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/b7e61e6633f5/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/b7e61e6633f5/support.ts) |
-| Clean: audio resampling | Requested playback rate may differ from native encoding rate. | [record](../evidence/abide-contextual-current/repeat-1/blind/3e0e6e97380d/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/3e0e6e97380d/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/ebf9febd6611/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/ebf9febd6611/support.ts) |
-| Clean: future repack | Requested future compression may differ from current stored compression. | [record](../evidence/abide-contextual-current/repeat-1/blind/72cb6a1a2098/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/72cb6a1a2098/support.ts) | [record](../evidence/abide-contextual-current/repeat-1/blind/891695a07237/subject.ts) · [definitions](../evidence/abide-contextual-current/repeat-1/blind/891695a07237/support.ts) |
+Each TypeScript file combines the starting declaration and its related definitions for reading, and explains the permitted problematic value or observable dependency. The files show **inputs**, not claimed repairs. `CaseState` is the study harness export name; function examples explain the operation it represents.
 
-All repetition mappings are retained in the indexes for [1](../evidence/abide-contextual-current/repeat-1/index.json), [2](../evidence/abide-contextual-current/repeat-2/index.json), and [3](../evidence/abide-contextual-current/repeat-3/index.json). The [scorer](../evidence/abide-contextual-current/score-abide-contextual-artifacts.mjs) defines the executable repair checks; [control checks](../evidence/abide-contextual-current/adjudicate-abide-contextual-controls.mjs) test preservation of independent values.
+| Rule concern | Two defective examples | Nearby correct control |
+| --- | --- | --- |
+| Name alternative operations | [retention action](./examples/inferred-case/retention-action.ts) · [render destination](./examples/inferred-case/render-destination.ts) | [clean profile attributes](./examples/inferred-case/clean-profile-attributes.ts) |
+| Prevent meaningless combinations | [cache retention](./examples/meaningless-combinations/cache-retention.ts) · [document signature](./examples/meaningless-combinations/document-signature.ts) | [clean cache variant](./examples/meaningless-combinations/clean-cache-variant.ts) |
+| Keep parts of one fact together | [color channels](./examples/split-correlations/color-channels.ts) · [calibration pair](./examples/split-correlations/calibration-pair.ts) | [clean independent measurements](./examples/split-correlations/clean-independent-measurements.ts) |
+| Give absence one meaning | [muted topics](./examples/absence-confusion/muted-topics.ts) · [required recipients](./examples/absence-confusion/required-recipients.ts) | [clean known empty set](./examples/absence-confusion/clean-known-empty-set.ts) |
+| Distinguish domain values | [seat class](./examples/bare-domain-value/seat-class.ts) · [account project identities](./examples/bare-domain-value/account-project-identities.ts) | [clean free form description](./examples/bare-domain-value/clean-free-form-description.ts) |
+| Enforce what a name promises | [worker count](./examples/name-wider-than-type/worker-count.ts) · [http endpoint](./examples/name-wider-than-type/http-endpoint.ts) | [clean worker count](./examples/name-wider-than-type/clean-worker-count.ts) |
+| Declare the resource an operation names | [publish bulletin](./examples/name-claims-resource/publish-bulletin.ts) · [load preview](./examples/name-claims-resource/load-preview.ts) | [clean explicit channel](./examples/name-claims-resource/clean-explicit-channel.ts) |
+| Declare the resources a body uses | [clock sensitive expiry](./examples/body-reaches-undeclared/clock-sensitive-expiry.ts) · [hidden audit write](./examples/body-reaches-undeclared/hidden-audit-write.ts) | [clean explicit time](./examples/body-reaches-undeclared/clean-explicit-time.ts) |
 
-## Results
+The [frozen fixtures](../evidence/abide-rule-coverage-current/abide-rule-coverage-fixtures.mjs) own the tested inputs. For naturally contextual cases, related definitions were in unchanged `support.ts`; the [offline preparation record](../evidence/abide-rule-coverage-current/preflight.json) records which definitions entered Hapsland's graph. Count/HTTP-prefix examples are local. A related-definition example is not by itself proof that context caused an advantage.
 
-The campaign contained **54 native Codex sessions**: six cases, three repetitions, and three arms. A separate fixed-edit stage contained 36 observations across the two reviewers.
+## Results by rule
 
-| Measure | Hapsland | Abide with custom Noul rubric |
-| --- | ---: | ---: |
-| Completed sessions with final artifacts repairing the defect | 12/12 | 1/12 |
-| Fixed-edit flawed cases warned on, at the configured 0.7 threshold | 12/12 | 0/12 |
-| Fixed-edit false warnings on clean cases | 6/6 | 0/6 |
-| Clean domains preserved under predeclared control checks | 6/6 | 6/6 |
+In each paired cell, **Hapsland / Abide** is the order. The following matrix uses two defective designs and one clean design per rule, **three detection repetitions and one native repetition**. The three observations of a clean design are not three independent controls. Detection counts use a probability threshold of 0.7; lower-band notices do not count as flagged defects.
 
-54/54 sessions completed successfully; 54/54 final projects compiled. There were 0 actor timeouts, 0 review transport errors, and 0 recorded request-budget stops. 0 artifacts remained unassessed after the predeclared checks. All outcomes remain in the [comparison](../evidence/abide-contextual-current/comparison.json).
+| Rule concern | Defects flagged (each /6) | Clean warnings (each /3) | Completed repairs (each /2) | Clean domain preserved (each /1) |
+| --- | ---: | ---: | ---: | ---: |
+| Name alternative operations | H 0/6 · A 3/6 | H 0/3 · A 0/3 | H 0/2 · A 0/2 | H 1/1 · A 1/1 |
+| Prevent meaningless combinations | H 6/6 · A 3/6 | H 0/3 · A 0/3 | H 1/2 · A 0/2 | H 1/1 · A 1/1 |
+| Keep parts of one fact together | H 3/6 · A 3/6 | H 0/3 · A 0/3 | H 0/2 · A 0/2 | H 1/1 · A 1/1 |
+| Give absence one meaning | H 3/6 · A 3/6 | H 0/3 · A 0/3 | H 0/2 · A 0/2 | H 1/1 · A 1/1 |
+| Distinguish domain values | H 3/6 · A 3/6 | H 0/3 · A 0/3 | H 1/2 · A 1/2 | H 1/1 · A 1/1 |
+| Enforce what a name promises | H 6/6 · A 6/6 | H 0/3 · A 0/3 | H 2/2 · A 0/2 | H 1/1 · A 1/1 |
+| Declare the resource an operation names | H 6/6 · A 3/6 | H 0/3 · A 0/3 | H 0/2 · A 0/2 | H 1/1 · A 1/1 |
+| Declare the resources a body uses | Not evaluated (6) · A 6/6 | H 0/3 · A 0/3 | H 0/2 · A 2/2 | H 1/1 · A 1/1 |
 
-Hapsland had 12 defect repairs with recorded finding output, an echoed receipt marker, and a subsequent source change passing the probes. No Abide repair had that confirmed receipt-to-repair sequence; its single repaired artifact lacked verified receipt. Artifact repair counts are separate from reviewer attribution: a passing artifact without recorded receipt cannot safely be credited to that advice. The [validation record](../evidence/abide-contextual-current/validation.json) reconciles requests and source hashes.
+**Hapsland did not evaluate the two defective resource-body examples.** It included imported helper bodies, but references such as `Date.now()` and `auditEntries.push()` made the graph incomplete. The bundled rule requires full function capabilities, so no Jev assessment was requested in those six detection observations. This is an observed integration limitation, distinct from Jev returning clear. The explicitly supplied-time control remained eligible.
 
-## What the agent receives
+The [coverage comparison](../evidence/abide-rule-coverage-current/comparison.json) retains every cell. Clean artifacts were preserved in 8/8 Hapsland and 8/8 Abide sessions; Two Hapsland artifacts remained unassessed: `color-channels` and `publish-bulletin`; Abide had no unassessed artifacts. Neither receives repair credit. There were 0 actor timeouts, 0 recorded native review transport errors and 0 native request-budget stops. Successfully completed sessions: 72/72; final compilations: 72/72.
 
-Hapsland uses [one runtime-neutral formatter](../src/feedback/message.ts):
+The duplicate-fact matrix has a separate fixed declaration: four defective designs and two controls, each repeated three times. Detection was Hapsland 12/12 versus Abide 0/12; clean warnings were 6/6 versus 0/6; native repairs were 12/12 versus 1/12. Both preserved 6/6 clean domains. See its [comparison](../evidence/abide-contextual-current/comparison.json). These counts are not pooled with the eight-rule matrix.
+
+## Inspect final code
+
+These links show one defective design per remaining rule after the native session. Open adjacent `support.ts` where present. The comparison JSON maps all cases and arms to anonymous artifact IDs; the duplicate-fact [repetition indexes](../evidence/abide-contextual-current/repeat-1/index.json) provide its mappings.
+
+| Example | Hapsland final code | Abide final code |
+| --- | --- | --- |
+| retention action | [final source](../evidence/abide-rule-coverage-current/r1_inferred_case/native/blind/bdf1c1b346aa/subject.ts) | [final source](../evidence/abide-rule-coverage-current/r1_inferred_case/native/blind/5ea9a71f91ef/subject.ts) |
+| cache retention | [final source](../evidence/abide-rule-coverage-current/r2_meaningless_combinations/native/blind/5a60c78905ac/subject.ts) | [final source](../evidence/abide-rule-coverage-current/r2_meaningless_combinations/native/blind/171e4547ae98/subject.ts) |
+| color channels | [final source](../evidence/abide-rule-coverage-current/r3_split_correlations/native/blind/9bc8cad0a592/subject.ts) | [final source](../evidence/abide-rule-coverage-current/r3_split_correlations/native/blind/536aba90b34d/subject.ts) |
+| muted topics | [final source](../evidence/abide-rule-coverage-current/r5_absence_confusion/native/blind/f56cc6c1b448/subject.ts) | [final source](../evidence/abide-rule-coverage-current/r5_absence_confusion/native/blind/7da41fbd726a/subject.ts) |
+| seat class | [final source](../evidence/abide-rule-coverage-current/r6_bare_domain_value/native/blind/51258a96bc4a/subject.ts) | [final source](../evidence/abide-rule-coverage-current/r6_bare_domain_value/native/blind/dfdddd59d704/subject.ts) |
+| worker count | [final source](../evidence/abide-rule-coverage-current/r7_name_wider_than_type/native/blind/38136ab3a4c0/subject.ts) | [final source](../evidence/abide-rule-coverage-current/r7_name_wider_than_type/native/blind/270bb386ae73/subject.ts) |
+| publish bulletin | [final source](../evidence/abide-rule-coverage-current/r8_name_claims_resource/native/blind/3ad513f3d2a1/subject.ts) | [final source](../evidence/abide-rule-coverage-current/r8_name_claims_resource/native/blind/a077ba850a2c/subject.ts) |
+| clock sensitive expiry | [final source](../evidence/abide-rule-coverage-current/r9_body_reaches_undeclared/native/blind/ddfba26361af/subject.ts) | [final source](../evidence/abide-rule-coverage-current/r9_body_reaches_undeclared/native/blind/1049940cac31/subject.ts) |
+
+## Methodology and interpretation
+
+This is a team-authored, selected synthetic study, not an external or held-out production benchmark. The duplicate-fact designs were previously tested; the remaining-rule candidates were reviewed and frozen before their live outcomes. Two defects and a nearby valid control were chosen per remaining family. Losses, ties, false positives and unchecked cases were not replaced.
+
+The flaws were seeded before the maintenance edit; this tests review of a touched declaration, rather than discovery of newly introduced bugs. Native agents renamed `label` to `displayLabel`, preserved the documented domain, and ran compiler checks. Their task did not add a repair-response protocol. Every arm received the same diagnostic reporting instructions; fresh neutral receipt markers were appended only to rule-bearing reviewer output. These markers change the messages and establish cooperative recorded receipt, not correctness or causation. This measures maintenance with diagnostic instrumentation.
+
+Hapsland supplied selected declaration graphs; Abide supplied its released diff/task review boundary. Its custom rubric targeted `subject.ts`; Hapsland could reassess changed supporting declarations. Context collection, input boundaries and response instructions therefore vary together. This comparison cannot isolate context alone. All synthetic source files were eligible for Hapsland; file exclusions, data-access policy and simultaneous use of both products were not tested.
+
+The [coverage declaration](../evidence/abide-rule-coverage-current/declaration.json) fixes 144 detection cells, 72 native sessions, a 336-request ceiling, no retries and five-minute actor timeouts. Actual coverage requests: **220**. The [duplicate-fact declaration](../evidence/abide-contextual-current/declaration.json) fixes its separate matrix, which used 98 requests. An interrupted setup consumed 28 additional preparatory detection requests with no native sessions; those are excluded from campaign metrics. Tool versions and hashes are in the coverage [platform record](../evidence/abide-rule-coverage-current/platform.json) and duplicate-fact [platform record](../evidence/abide-contextual-current/platform.json). These are source-checkout observations, not installed-package or platform certification.
+
+### Independent checking
+
+The [fixed oracle](../evidence/abide-rule-coverage-current/score-abide-rule-coverage.mjs) used independent TypeScript 5.9.3 and passed 67 pre-execution self-checks. It tests predefined valid and invalid structural variable assignments, retained domain fields and clean-control independence. An excess-property error alone cannot earn repair credit. Compilation failure, valid-domain restriction and unknown adaptations receive no repair credit. These are finite checks, not a proof for every possible value.
+
+Operation naming, nominal identity separation and resource declarations require additional semantic judgment. Their [acceptance rubric](../evidence/abide-rule-coverage-current/manual-scoring-declaration.json) was fixed before live execution. AI-assisted adjudicators within the research team inspected anonymous artifacts without reviewer identities, then retained source reasoning and concrete compiler/runtime probes under [manual evidence](../evidence/abide-rule-coverage-current/manual/). Source judgments and executed checks are distinguished in each record. Judgments were frozen before the [arm join](../evidence/abide-rule-coverage-current/unblinding-receipt.json); anonymity reduces identity bias but does not make this study external.
+
+The no-review arm is a methodology control, not a third review product: 2/16 defective artifacts were repaired without reviewer feedback in the coverage matrix. Finding, emitted message, confirmed receipt and verified repair are recorded separately. Hapsland had 4 coverage repairs following confirmed receipt and reported application; Abide had 3. A repaired artifact without verified receipt cannot be attributed to the advice.
+
+### What reaches the agent
+
+Hapsland's [shared formatter](../src/feedback/message.ts) sends:
 
 ```text
 Hapsland
 Check these findings. Fix valid issues and verify; otherwise explain why.
-subject.ts :: CaseState: The type appears to store the same fact in places that can disagree.
+subject.ts :: CaseState: <configured rule message>
 ```
 
-`hapsland --feedback-preview` displays a synthetic example without calling Jev. Actual messages come from configured rules. IDs and probabilities remain internal metadata; Claude and Codex carry the same text in their native envelopes.
+`hapsland --feedback-preview` shows an offline synthetic example. IDs and probabilities remain internal metadata. Claude and Codex carry the same text in their native envelopes.
 
-Abide 0.0.7 uses a [shared source formatter](https://github.com/coldteadotai/abide/blob/ea6d0976a0cbac70f71a460ece348bd68d777350/packages/cli/src/lib/reason.ts#L14) naming the rule, its source and verdict, followed by `Repair <file> now, then continue with the task.` At turn end it asks for repair before finishing. Uncertain-result notices are separate and explicitly say they are not sent to the agent; a notice naming a rule is not necessarily actionable advice.
+Abide 0.0.7 uses its [shared formatter](https://github.com/coldteadotai/abide/blob/ea6d0976a0cbac70f71a460ece348bd68d777350/packages/cli/src/lib/reason.ts#L14), naming the rule, source and verdict, followed by a request to repair the file and continue. At turn end it asks for repair before finishing. Uncertain-result notices are separate from actionable advice.
 
-Every arm received identical maintenance and diagnostic reporting instructions. The task did **not** add a repair-response protocol. Fresh receipt markers were appended to rule-bearing output, asking the agent to echo them only if received. A marker establishes recorded receipt, not correctness or causation. This measures ordinary maintenance **with diagnostic instrumentation**, not completely uninstrumented default behavior.
+Under the [comparative research methodology](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-METHODOLOGY.md), advisory classifications remain **BORROW** for relevant-definition collection, readable feedback and independent checking; **OPTIONAL INTEGRATION** for Abide as a neighboring tool subject to separate coexistence validation; **REJECT** for unconditional application or general superiority claims; no new **DEPEND ON** recommendation.
 
-## Methodology and fairness
+Observed results are **RUN / RUNTIME-TESTED** within their stated checks. Source-only judgments are **SRC / SOURCE-INSPECTED**. Explanations assigning a causal role to context are **INFERRED**. False warnings and incomplete graphs limit any claim of advantage.
 
-This in-house study was designed and executed by the Hapsland team. **The constructed cases had previously been tested and their outcomes were known.** They were selected to investigate relationships outside an edit’s diff and frozen before this campaign. Repetitions measure consistency within four defect designs; they are not twelve independent designs or a held-out benchmark.
-
-The comparator was the released Abide **0.0.7** handler, unchanged, with a manually active custom rubric expressing the same Noul duplicate-encoding concern. Both used Jev. Hapsland supplied a declaration and related definitions; Abide supplied its diff and task context. These configured input boundaries, response instructions, and delivery paths differ together. The experiment does not isolate a causal effect of context collection or feedback wording alone.
-
-All fixture source files were eligible; exclusions were empty. Privacy settings, other rules, installed-release support, and simultaneous use of both products were not tested here.
-
-Runs used Codex CLI **0.155.1**, **gpt-6-luna**, maximum reasoning effort, Linux arm64, and Node 24.20.0. Hapsland was source checkout `6c36462dd846c66fff95f8fce2453e63216b017a`. Native trust and sandbox bypass were configured for the experiment. The [platform record](../evidence/abide-contextual-current/platform.json) identifies binaries and hashes.
-
-The no-review arm controlled for spontaneous repair during the same task: 0/12 defects were repaired and 6/6 clean domains preserved. This is a methodology control, not a third review product. The campaign had a 180-request ceiling, no automatic retries, and no outcome-selected replacements. It used 98 physical Jev requests. A setup failure consumed 28 additional preparatory detection requests before the final configuration was frozen, with no native sessions and no outcome-based replacement. These are excluded from campaign metrics; total requests including preparation were 126. See the [pre-execution declaration](../evidence/abide-contextual-current/declaration.json) and [request ledger](../evidence/abide-contextual-current/attempts.jsonl).
-
-## Scoring and interpretation
-
-An independent TypeScript 5.9.3 scorer read anonymous final artifacts without reviewer identity, answers, or conversation. Finite-domain probes checked predefined valid witnesses and contradictory copies. Structural variable assignments prevented excess-property errors from masquerading as semantic repairs. Unknown shapes received no repair credit. These checks are not a general proof of type correctness.
-
-Clean-control scoring was [declared before execution](../evidence/abide-contextual-current/control-scoring-declaration.json), applied across all arms, and checked eight independent combinations per control. It accepted canonical field names or explicit `requestedSampleRate` / `requestedCompression` clarifications. Domain preservation does not mean preservation of all original API field names. Primary scores and [control results](../evidence/abide-contextual-current/control-adjudication.json) were frozen before the [arm join](../evidence/abide-contextual-current/unblinding-receipt.json). Anonymous algorithmic scoring reduces identity bias; it does not make a team-authored study external or independent.
-
-Detection, submitted feedback, confirmed receipt, repair, and clean-domain preservation are separate observations. The current result supports this selected workflow and its observed trade-off; wider quality and uninstrumented agent behavior remain unknown.
-
-Under the [comparative research methodology](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-METHODOLOGY.md), the advisory classifications are **BORROW** for collecting relevant definitions and supporting justified disagreement; **OPTIONAL INTEGRATION** for Abide as a comparator or neighboring tool, subject to separate coexistence validation; **REJECT** for mandatory acceptance of every positive classification or general superiority claims; and no new **DEPEND ON** recommendation.
-
-Result observations are **RUN / RUNTIME-TESTED** within these conditions. Formatter and scorer descriptions are **SRC / SOURCE-INSPECTED**, with their executed outcomes recorded separately. Explanations attributing the result to a particular architectural difference are **INFERRED**.
-
-## Inspect or replay
-
-The [current campaign directory](../evidence/abide-contextual-current/) retains frozen declarations, synthetic source artifacts, scores, receipt evidence, and accounting, without credentials or private project source. Run the oracle’s 17 self-checks offline:
+## Replay offline
 
 ```sh
-node scripts/score-abide-contextual-artifacts.mjs --self-check
+node scripts/score-abide-rule-coverage.mjs --self-check
+node scripts/score-abide-rule-coverage.mjs --score \
+  --blind-root=evidence/abide-rule-coverage-current/r2_meaningless_combinations/native/blind \
+  --output=/tmp/hapsland-replayed-rule-scores.json --expected-count=9
 ```
 
-With TypeScript 5.9.3 installed at `/tmp/hapsland-quality-scorer/node_modules/typescript`, replay a saved repetition to a new output file:
-
-```sh
-node scripts/score-abide-contextual-artifacts.mjs --score \
-  --blind-root=evidence/abide-contextual-current/repeat-1/blind \
-  --output=/tmp/hapsland-replayed-scores.json --expected-count=18
-```
-
-This invokes no reviewer. The [live runner](../scripts/run-abide-contextual-study.mjs) records pinned tools and bounded execution; a live rerun needs credentials and a new destination and incurs review requests.
+The scorer requires TypeScript 5.9.3 at `/tmp/hapsland-quality-scorer/node_modules/typescript`. This calls no reviewer. A live rerun of the [fixed runner](../scripts/run-abide-rule-coverage.mjs) needs credentials and a fresh destination; it incurs review requests.

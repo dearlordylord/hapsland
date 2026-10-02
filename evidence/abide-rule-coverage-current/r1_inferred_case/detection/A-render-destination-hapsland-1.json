@@ -1,0 +1,105 @@
+{
+  "stage": "A",
+  "caseId": "render-destination",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "998a20ab3393df193cacfd3ab4a1148cdf2df3f8ce0664b437f0eb6439b0c7a3",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "ruleIds": [
+          "r1_inferred_case"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r1_inferred_case"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "51c70968-704a-4787-a08f-57cfe143a71e",
+      "at": 1790982786564,
+      "candidate": "hapsland",
+      "caseId": "render-destination",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 2636,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r1_inferred_case"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "51c70968-704a-4787-a08f-57cfe143a71e",
+      "at": 1790982786564,
+      "candidate": "hapsland",
+      "caseId": "render-destination",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 173,
+      "answers": {
+        "r1_inferred_case": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 1052,
+        "output_tokens": 25
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

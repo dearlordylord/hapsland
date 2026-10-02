@@ -1,0 +1,105 @@
+{
+  "stage": "A",
+  "caseId": "account-project-identities",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "15f759d406d556ff5aa7ae543e56a3be261bd277dd74cb375f616c44814bc416",
+        "sourcePaths": [
+          "subject.ts",
+          "support.ts"
+        ],
+        "ruleIds": [
+          "r6_bare_domain_value"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r6_bare_domain_value"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "4d61d94c-b09c-4d84-a41e-9fa6ee5b5000",
+      "at": 1790982859067,
+      "candidate": "hapsland",
+      "caseId": "account-project-identities",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 3901,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r6_bare_domain_value"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "4d61d94c-b09c-4d84-a41e-9fa6ee5b5000",
+      "at": 1790982859067,
+      "candidate": "hapsland",
+      "caseId": "account-project-identities",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 177,
+      "answers": {
+        "r6_bare_domain_value": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 1353,
+        "output_tokens": 25
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

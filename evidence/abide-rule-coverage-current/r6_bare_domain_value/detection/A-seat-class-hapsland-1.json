@@ -1,0 +1,105 @@
+{
+  "stage": "A",
+  "caseId": "seat-class",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null,
+        "analysisStatus": "complete",
+        "analysisReason": null,
+        "analysisFailures": []
+      }
+    ],
+    "unitSummaries": [
+      {
+        "root": "CaseState",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "omissions": []
+      }
+    ],
+    "preparedUnits": [
+      {
+        "declaration": "CaseState",
+        "contract": "direct-event/type-shape/v1",
+        "completeness": "complete",
+        "inputSha256": "38cc2ff5e661dad003dc85fcbc6504090807984a9f66edcdeeb0779952af49e7",
+        "sourcePaths": [
+          "subject.ts"
+        ],
+        "ruleIds": [
+          "r6_bare_domain_value"
+        ]
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r6_bare_domain_value"
+        ],
+        "findingIds": [
+          "r6_bare_domain_value"
+        ]
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "517bb0f0-750b-4bd3-a5e5-58fc3d2d2439",
+      "at": 1790982856170,
+      "candidate": "hapsland",
+      "caseId": "seat-class",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 3302,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r6_bare_domain_value"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "517bb0f0-750b-4bd3-a5e5-58fc3d2d2439",
+      "at": 1790982856170,
+      "candidate": "hapsland",
+      "caseId": "seat-class",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 186,
+      "answers": {
+        "r6_bare_domain_value": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 1109,
+        "output_tokens": 25
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

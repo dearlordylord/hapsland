@@ -1,0 +1,62 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-02T23:20:26.072Z",
+  "records": [
+    {
+      "stage": "B",
+      "id": "coverage-retention-action",
+      "candidate": "baseline",
+      "blindId": "685685bd1c50"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-retention-action",
+      "candidate": "hapsland",
+      "blindId": "bdf1c1b346aa"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-retention-action",
+      "candidate": "abide",
+      "blindId": "5ea9a71f91ef"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-render-destination",
+      "candidate": "hapsland",
+      "blindId": "412d958dc26d"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-render-destination",
+      "candidate": "abide",
+      "blindId": "4c16d62de7b8"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-render-destination",
+      "candidate": "baseline",
+      "blindId": "d66ea6e933fc"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-clean-profile-attributes",
+      "candidate": "abide",
+      "blindId": "39b4c6e4a8b4"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-clean-profile-attributes",
+      "candidate": "baseline",
+      "blindId": "2da67f61e60a"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-clean-profile-attributes",
+      "candidate": "hapsland",
+      "blindId": "2628740d2964"
+    }
+  ],
+  "attempts": 147,
+  "hostUncachedPlusOutputTokens": 130908
+}

@@ -1,0 +1,62 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-02T23:45:36.723Z",
+  "records": [
+    {
+      "stage": "B",
+      "id": "coverage-worker-count",
+      "candidate": "baseline",
+      "blindId": "f3dbb95c42d3"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-worker-count",
+      "candidate": "hapsland",
+      "blindId": "38136ab3a4c0"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-worker-count",
+      "candidate": "abide",
+      "blindId": "270bb386ae73"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-http-endpoint",
+      "candidate": "hapsland",
+      "blindId": "6279020b90b0"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-http-endpoint",
+      "candidate": "abide",
+      "blindId": "1bd86435de8d"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-http-endpoint",
+      "candidate": "baseline",
+      "blindId": "9d8641105daf"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-clean-worker-count",
+      "candidate": "abide",
+      "blindId": "96d312501a79"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-clean-worker-count",
+      "candidate": "baseline",
+      "blindId": "ba34435869fb"
+    },
+    {
+      "stage": "B",
+      "id": "coverage-clean-worker-count",
+      "candidate": "hapsland",
+      "blindId": "e058fdba8203"
+    }
+  ],
+  "attempts": 200,
+  "hostUncachedPlusOutputTokens": 124462
+}

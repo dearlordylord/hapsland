@@ -99,19 +99,18 @@ See [supported languages and limits](#supported-languages) before setup.
 
 ## A contextual comparison with Abide
 
-In a constructed study of four cross-file duplicate-fact defects, repeated three
-times, Codex completed independently checked repairs in **12/12 sessions with
-Hapsland and 1/12 with Abide configured with the same Noul concern**. Both
-groups performed the same maintenance task with experimental tracking of
-feedback receipt; each product supplied its own response instructions.
+Our [readable examples and comparative study](./docs/abide-contextual-review-study.md)
+cover all nine bundled Noul rules. Native sessions used **Codex CLI 0.155.1,
+model `gpt-6-luna`, reasoning `max`**, with experimental feedback-receipt tracking.
 
-**Hapsland also issued false warnings on all six clean-control observations.**
-Final checks found independent facts preserved in 6/6 Hapsland clean artifacts
-and 6/6 Abide clean artifacts. These previously tested cases cover one rule
-and do not establish general review superiority.
+Four selected cross-file duplicate-fact designs produced **12/12 checked repairs
+with Hapsland and 1/12 with Abide configured with the same Noul concern**.
+**Hapsland also warned on all six clean-control observations.**
 
-See the [study and methodology](./docs/abide-contextual-review-study.md)
-for tasks, feedback messages, scoring, and reproducible evidence.
+The other eight rules produced **4/16 Hapsland repairs and 3/16 Abide repairs**
+in one native session per defective case and arm. Across the two matrices, results include local examples,
+false warnings and incomplete function graphs; they do not establish general
+review superiority. The report links starting and final code for inspection.
 
 ## Installation
 
