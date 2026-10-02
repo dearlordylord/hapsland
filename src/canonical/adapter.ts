@@ -1,16 +1,17 @@
+import { Schema } from "effect";
+import { decoder, readRecord, readTag, readNat, readPositiveNat, readBytes, readBool, readBendList, Probability, ProbabilityWordsSchema } from "./boundary-schema.ts";
+import { decodeCanonicalConstructor, decodeCanonicalRejection } from "./constructors.ts";
+import { CanonicalEventSchema, CanonicalLimitsSchema, type JevRequestOutcome, type CompletedEditReason, type QuietRoundFacts, type CapacityPurpose, type CollectorReason, type ReuseMemberState, type ProspectiveFacts, type CleanupFacts, type CapacityRefusal, type CapacityCharge, type CapacityView, type DispatchEntry, type CanonicalProjection, type CanonicalCommand, type CanonicalEvent } from "./models.ts";
+export type { JevRequestOutcome, CompletedEditReason, QuietRoundFacts, CapacityPurpose, CollectorReason, ReuseMemberState, ProspectiveFacts, CleanupFacts, CapacityRefusal, CapacityCharge, CapacityView, CanonicalProjection, CanonicalCommand, CanonicalEvent } from "./models.ts";
 import { freezeCanonicalData } from "./immutable.ts";
 import { bendCanonicalInitial, bendCanonicalInventory, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal, bendPreparationLimit, bendJevRequestLimit } from "./canonical.generated.js";
 
-const MAX_NAT = 2 ** 48 - 1;
 // Keep reserved + requested bytes within Bend's 48-bit immediate Nat range.
 export const CANONICAL_MAX_BYTES = 2 ** 47 - 1;
-const MAX_BYTES = CANONICAL_MAX_BYTES;
 export const CANONICAL_MAX_UNITS = 1024;
-const MAX_UNITS = CANONICAL_MAX_UNITS;
-export type JevRequestOutcome = "neverSent" | "finding" | "clear" | "backendFailure" | "timeout" | "interrupted";
-export type CompletedEditReason = "consumed" | "released" | "expired" | "closed";
-export type QuietRoundFacts = Readonly<{ nativeWorkIdle: boolean; adviceEmpty: boolean;
-  handoffIdle: boolean; stopAbsent: boolean }>;
+
+
+
 const completedEditTags: Record<CompletedEditReason, string> = {
   consumed: "Consumed", released: "Released", expired: "Expired", closed: "Closed",
 };
@@ -20,314 +21,44 @@ const decodeCompletedEditReason = (value: unknown): CompletedEditReason => {
   const entry = (Object.entries(completedEditTags) as [CompletedEditReason, string][])
     .find(([, name]) => tag(value) === `EditHistory.${name}`);
   if (entry === undefined) throw new TypeError("invalid completed edit reason");
-  fields(value, `EditHistory.${entry[1]}`, []);
+  decodeCanonicalConstructor(value, `EditHistory.${entry[1]}`);
   return entry[0];
 };
-type RecordValue = Record<string, unknown>;
-const object = (value: unknown): RecordValue => {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid canonical object");
-  return value as RecordValue;
-};
+const object = readRecord;
 const tag = (value: unknown): string => {
-  const name = object(value).$;
-  if (typeof name !== "string") throw new TypeError("missing canonical constructor");
-  return name;
+  try { return readTag(value).$; }
+  catch (cause) { throw new TypeError("missing canonical constructor", { cause }); }
 };
-const nat = (value: unknown, positive = false): number => {
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value > MAX_NAT ||
-      value < (positive ? 1 : 0)) throw new TypeError("invalid canonical Nat");
-  return value;
-};
-const bytes = (value: unknown): number => {
-  const amount = nat(value, true);
-  if (amount > MAX_BYTES) throw new TypeError("canonical byte count exceeds safe sum bound");
-  return amount;
-};
-const bool = (value: unknown): boolean => {
-  if (typeof value !== "boolean") throw new TypeError("invalid canonical Bool");
-  return value;
-};
-const ruleOrderTag = (value: unknown): string => {
-  if (value !== "before" && value !== "equal" && value !== "after") throw new TypeError("invalid rule order fact");
+const nat = (value: unknown, positive = false): number => positive ? readPositiveNat(value) : readNat(value);
+const bytes = readBytes;
+const bool = readBool;
+const ruleOrderTag = (value: "before" | "equal" | "after"): string => {
   return `RulePolicy.${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
-};
-const fields = (value: unknown, expectedTag: string, names: readonly string[]): RecordValue => {
-  const item = object(value);
-  if (tag(item) !== expectedTag || Object.keys(item).sort().join() !== ["$", ...names].sort().join()) {
-    throw new TypeError(`invalid ${expectedTag} constructor`);
-  }
-  return item;
-};
-const inputFields = (value: unknown, names: readonly string[]): void => {
-  if (Object.keys(object(value)).sort().join() !== names.slice().sort().join()) {
-    throw new TypeError("invalid canonical event fields");
-  }
 };
 declare const probabilityWordsBrand: unique symbol;
 export type ProbabilityWords = Readonly<{
   high: number; low: number; [probabilityWordsBrand]: true;
 }>;
 export const probabilityWords = (value: number): ProbabilityWords => {
-  if (!Number.isFinite(value) || value < 0 || value > 1) {
+  if (!Schema.is(Probability)(value)) {
     throw new RangeError("probability must be finite in [0, 1]");
   }
   const bytes = new DataView(new ArrayBuffer(8));
   bytes.setFloat64(0, Object.is(value, -0) ? 0 : value, false);
   return { high: bytes.getUint32(0, false), low: bytes.getUint32(4, false) } as ProbabilityWords;
 };
-const encodedProbabilityWords = (value: unknown): unknown => {
-  inputFields(value, ["high", "low"]);
-  const word = object(value);
-  const high = nat(word.high);
-  const low = nat(word.low);
-  if (high > 0xffffffff || low > 0xffffffff) throw new TypeError("invalid probability word");
-  const bytes = new DataView(new ArrayBuffer(8));
-  bytes.setUint32(0, high, false);
-  bytes.setUint32(4, low, false);
-  const probability = bytes.getFloat64(0, false);
-  if (!Number.isFinite(probability) || probability < 0 || probability > 1 || Object.is(probability, -0)) {
-    throw new TypeError("invalid probability words");
-  }
-  return { $: "RulePolicy.Words", high, low };
-};
-const list = (values: readonly number[]): unknown => {
-  if (!Array.isArray(values) || values.length > MAX_UNITS) throw new TypeError("too many units");
-  return values.reduceRight<unknown>((tail, value) => ({ $: "Con", head: bytes(value), tail }), { $: "Nil" });
-};
-const readList = <T>(value: unknown, decode: (item: unknown) => T, limit = 2048): T[] => {
-  const result: T[] = [];
-  let cursor = value;
-  while (tag(cursor) === "Con") {
-    if (result.length >= limit) throw new TypeError("canonical list exceeded bound");
-    const cell = fields(cursor, "Con", ["head", "tail"]);
-    result.push(decode(cell.head));
-    cursor = cell.tail;
-  }
-  fields(cursor, "Nil", []);
-  return result;
-};
-
-export type CanonicalEvent =
-  | { readonly kind: "reserveCapacity"; readonly partition: number; readonly bytes: number; readonly purpose: CapacityPurpose }
-  | { readonly kind: "resizeCapacity"; readonly reservation: number; readonly bytes: number; readonly purpose: CapacityPurpose }
-  | { readonly kind: "releaseCapacity"; readonly reservation: number }
-  | { readonly kind: "replaceCapacity"; readonly reservation: number; readonly unitBytes: readonly number[] }
-  | { readonly kind: "issuePermit"; readonly partition: number; readonly lifetime: number; readonly tool: number; readonly started: number; readonly deadline: number; readonly now: number; readonly minimumStarted: number; readonly facts: ProspectiveFacts }
-  | { readonly kind: "checkCompletedEdit"; readonly tool: number }
-  | { readonly kind: "rememberCompletedEdit"; readonly tool: number; readonly reason: CompletedEditReason }
-  | { readonly kind: "quietRoundTick"; readonly partition: number; readonly lifetime: number; readonly round: number;
-      readonly now: number; readonly window: number; readonly facts: QuietRoundFacts }
-  | { readonly kind: "quietRoundReset"; readonly partition: number; readonly lifetime: number; readonly round: number }
-  | { readonly kind: "consumePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly tool: number; readonly now: number }
-  | { readonly kind: "releasePermit"; readonly partition: number; readonly lifetime: number; readonly token: number }
-  | { readonly kind: "expirePermit"; readonly partition: number; readonly lifetime: number; readonly token: number; readonly deadlineReached: boolean }
-  | { readonly kind: "closePermitRound"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly at: number }
-  | { readonly kind: "forgetAdmission"; readonly partition: number; readonly lifetime: number }
-  | { readonly kind: "openRound"; readonly partition: number; readonly lifetime: number }
-  | { readonly kind: "admitObservation"; readonly partition: number; readonly lifetime: number; readonly round: number }
-  | { readonly kind: "startObservation" | "completeObservation" | "interruptObservation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number }
-  | { readonly kind: "beginPreparation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly bytes: number }
-  | { readonly kind: "beginObservedPreparation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number; readonly bytes: number }
-  | { readonly kind: "interruptPreparation"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
-  | { readonly kind: "preparationCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly unitBytes: readonly number[] }
-  | { readonly kind: "startReview" | "retireReview"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
-  | { readonly kind: "jevRequestReady"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly rootValid: boolean; readonly configurationValid: boolean; readonly credentialReady: boolean; readonly selected: boolean; readonly currentWork: boolean; readonly physicalAvailable: boolean }
-  | { readonly kind: "jevRequestStarted" | "jevRequestInterrupted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }
-  | { readonly kind: "jevRequestSettled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number; readonly outcome: JevRequestOutcome; readonly currentWork: boolean }
-  | { readonly kind: "reviewCompleted"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded" }
-  | { readonly kind: "reviewObserved"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "finding" | "clear"; readonly currentWork: boolean }
-  | { readonly kind: "findingCountUpdated"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly count: number }
-  | { readonly kind: "queueDispatch" | "dispatchSettled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }
-  | { readonly kind: "discardDispatch"; readonly operations: readonly number[] }
-  | { readonly kind: "dispatchScopeCheck"; readonly namedCount: number; readonly cancelledCount: number; readonly hasUnnamed: boolean }
-  | { readonly kind: "closeDispatch" }
-  | { readonly kind: "preparedOfferCheck"; readonly ready: boolean; readonly withinFrame: boolean }
-  | { readonly kind: "emptyPreparedCheck"; readonly readyCount: number; readonly hasNonSkipped: boolean; readonly authorityBound: boolean }
-  | { readonly kind: "reviewFailureCheck"; readonly backendOrTimeout: boolean; readonly credential: boolean; readonly missing: boolean }
-  | { readonly kind: "stopPolled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly deadline: boolean }
-  | { readonly kind: "stopGroupPolled"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[]; readonly deadline: boolean; readonly extraPending: boolean; readonly continuations: number }
-  | { readonly kind: "stopGroupEnded"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[] }
-  | { readonly kind: "collectionReady"; readonly advice: number; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number; readonly joinedPending: boolean }
-  | { readonly kind: "collectionCredentialCheck"; readonly sameScope: boolean; readonly generationValid: boolean }
-  | { readonly kind: "collectionCandidateCheck"; readonly samePartition: boolean; readonly unleased: boolean; readonly hasUnsuppressed: boolean; readonly authorityOwns: boolean }
-  | { readonly kind: "collectionOrderCheck"; readonly leftSequence: number; readonly rightSequence: number }
-  | { readonly kind: "collectionExpiryCheck"; readonly elapsed: number; readonly lifetime: number }
-  | { readonly kind: "collectionFitCheck"; readonly items: number; readonly bytes: number }
-  | { readonly kind: "collectionFindingCheck"; readonly selectionPartition: number; readonly selectionRound: number; readonly unit: number; readonly partition: number; readonly round: number; readonly snapshot: number; readonly currentSnapshot: number; readonly credential: number; readonly currentCredential: number; readonly ageMs: number; readonly soloBytes: number; readonly collectionReady: boolean; readonly selectedCount: number; readonly prospectiveBytes: number }
-  | { readonly kind: "collectionNoticeCheck"; readonly items: number; readonly bytes: number; readonly skipUnfitting: boolean }
-  | { readonly kind: "collectionReserveLease" | "collectionReleaseLease"; readonly advice: number; readonly token: number }
-  | { readonly kind: "collectionLeaseCheck"; readonly advice: number; readonly token: number; readonly expired: boolean; readonly stopCollector: boolean; readonly sameGroup: boolean; readonly reofferable: boolean }
-  | { readonly kind: "collectionRetireAdvice"; readonly advice: number }
-  | { readonly kind: "collectionClaimBackground"; readonly group: number; readonly token: number; readonly active: boolean; readonly capacity: number }
-  | { readonly kind: "collectionReleaseBackground"; readonly group: number; readonly token: number }
-  | { readonly kind: "collectionExpireBackground"; readonly group: number; readonly token: number; readonly elapsed: number; readonly lifetime: number }
-  | { readonly kind: "finishReserve"; readonly group: number; readonly lifetime: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly hasNotice: boolean; readonly passNotices: boolean; readonly canWrite: boolean; readonly bindingValid: boolean; readonly deadlineReached: boolean }
-  | { readonly kind: "finishRelease"; readonly group: number; readonly round: number; readonly attempt: number; readonly token: number }
-  | { readonly kind: "finishAuthorize"; readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[] }
-  | { readonly kind: "finishTerminal"; readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly outcome: "acknowledged" | "failed" | "unknown" }
-  | { readonly kind: "finishEnd"; readonly group: number; readonly round: number; readonly attempt: number; readonly token: number }
-  | { readonly kind: "continuationConsume"; readonly group: number; readonly round: number }
-  | { readonly kind: "submissionBegin"; readonly advice: number; readonly group: number; readonly round: number; readonly token: number; readonly surface: "edit" | "background" | "stop"; readonly authorizeNow: boolean; readonly fingerprints: readonly number[]; readonly units: readonly number[] }
-  | { readonly kind: "submissionAuthorize" | "submissionRelease" | "submissionReofferCheck"; readonly advice: number; readonly token: number }
-  | { readonly kind: "submissionTerminal"; readonly advice: number; readonly token: number; readonly certain: boolean }
-  | { readonly kind: "submissionForget"; readonly advice: number }
-  | { readonly kind: "submissionSuppressCheck"; readonly advice: number; readonly fingerprint: number; readonly round: number; readonly surface: "edit" | "background" | "stop" }
-  | { readonly kind: "submissionExpiryCheck"; readonly advice: number; readonly token: number; readonly elapsed: number; readonly lifetime: number }
-  | { readonly kind: "revisionRegister"; readonly subject: number; readonly input: number; readonly addMember: boolean }
-  | { readonly kind: "revisionRelease"; readonly subject: number; readonly generation: number }
-  | { readonly kind: "revisionSupersededCheck"; readonly subject: number; readonly candidateSubject: number; readonly generation: number }
-  | { readonly kind: "revisionCurrentCheck"; readonly subject: number; readonly input: number; readonly generation: number }
-  | { readonly kind: "revisionGenerationCheck"; readonly subject: number }
-  | { readonly kind: "revisionCountCheck" }
-  | { readonly kind: "collectorGateCheck"; readonly expired: boolean; readonly credentialValid: boolean }
-  | { readonly kind: "collectorFinalAuthorityCheck"; readonly admittedBlock: boolean; readonly currentBlock: boolean }
-  | { readonly kind: "reuseMemberCheck"; readonly state: ReuseMemberState; readonly staleUnavailable: boolean; readonly hasRevision: boolean; readonly hasAdviceId: boolean }
-  | { readonly kind: "cleanupCheck"; readonly facts: CleanupFacts }
-  | { readonly kind: "cleanupCommit" }
-  | { readonly kind: "deliveryReleaseCheck"; readonly acknowledged: boolean }
-  | { readonly kind: "deliveryAcknowledgeCheck"; readonly items: number; readonly anyExpired: boolean }
-  | { readonly kind: "deliveryFinalizeCheck"; readonly items: number; readonly allAcknowledged: boolean; readonly anyExpired: boolean }
-  | { readonly kind: "deliveryFindingDispositionCheck"; readonly composed: boolean; readonly remaining: number }
-  | { readonly kind: "deliverySubmissionCandidateCheck"; readonly facts: { readonly roundActive: boolean; readonly hasRound: boolean; readonly hasUnit: boolean; readonly hasDelivery: boolean; readonly pendingCapacity: boolean; readonly submissionAllowed: boolean; readonly currentWork: boolean; readonly credentialAuthorized: boolean } }
-  | { readonly kind: "deliverySubmissionBatchCheck"; readonly count: number; readonly allValid: boolean }
-  | { readonly kind: "deliveryCredentialObserveCheck"; readonly invalidSeen: boolean; readonly generationValid: boolean; readonly authorized: boolean }
-  | { readonly kind: "deliveryFinalCredentialCheck"; readonly sharedCollect: boolean; readonly invalidSeen: boolean }
-  | { readonly kind: "validationRouteCheck"; readonly ownerCurrent: boolean; readonly status: "current" | "stale" | "unavailable" | "unattributed" }
-  | { readonly kind: "postValidationCheck"; readonly workAccepted: boolean; readonly expired: boolean; readonly hasFitting: boolean }
-  | { readonly kind: "finalCandidateCheck"; readonly ownerCurrent: boolean; readonly credentialGeneration: boolean; readonly credentialAuthorized: boolean; readonly expired: boolean; readonly workCurrent: boolean; readonly hasFindings: boolean }
-  | { readonly kind: "roundBeginStopCheck"; readonly active: boolean; readonly hasStop: boolean; readonly token: number }
-  | { readonly kind: "roundActivityCheck"; readonly bound: boolean; readonly hasAdmission: boolean; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly expectedGeneration: number }
-  | { readonly kind: "roundBarrierCheck"; readonly hasStop: boolean; readonly usedAtStart: number; readonly usedNow: number }
-  | { readonly kind: "roundOwnsStopCheck"; readonly active: boolean; readonly tokenMatches: boolean; readonly deciding: boolean }
-  | { readonly kind: "roundStopTerminalCheck"; readonly hasOutput: boolean; readonly authorized: boolean; readonly requestedClose: boolean }
-  | { readonly kind: "roundExpireCloseCheck"; readonly barrier: boolean; readonly authorizedOutput: boolean }
-  | { readonly kind: "roundContinuationBudgetCheck"; readonly active: boolean; readonly count: number }
-  | { readonly kind: "deliverySubmissionAllowedCheck"; readonly active: boolean; readonly barrier: boolean; readonly deciding: boolean; readonly surface: "edit" | "background" | "stop"; readonly existingToken: boolean; readonly finishPermit: boolean }
-  | { readonly kind: "deliveryExistingTokenCheck"; readonly surface: "edit" | "background" | "stop"; readonly existingToken: boolean; readonly finishPermit: boolean }
-  | { readonly kind: "deliveryUnreservedStopCheck"; readonly active: boolean; readonly deciding: boolean }
-  | { readonly kind: "includeLayerCheck"; readonly supplied: boolean; readonly currentRank: number; readonly candidateRank: number }
-  | { readonly kind: "fileSelectionCheck"; readonly protected: boolean; readonly excluded: boolean; readonly includesEmpty: boolean; readonly included: boolean }
-  | { readonly kind: "fileProtectionInvalid" }
-  | { readonly kind: "fileProtectionCheck"; readonly sensitiveName: boolean; readonly generatedOrVendor: boolean; readonly allowedExtension: boolean }
-  | { readonly kind: "candidateFileCheck"; readonly gitAdmin: boolean; readonly physicalSafe: boolean; readonly gitAllowed: boolean }
-  | { readonly kind: "reviewAdmissionCheck"; readonly rootValid: boolean; readonly configurationValid: boolean; readonly credentialReady: boolean; readonly selected: boolean }
-  | { readonly kind: "ruleEnableCheck"; readonly packEnabled: boolean; readonly ruleEnabled: boolean }
-  | { readonly kind: "ruleApplicabilityCheck"; readonly consent: boolean; readonly complete: boolean; readonly target: "typeShape" | "functionTarget" | "unsupportedTarget"; readonly globalIncluded: boolean; readonly globalExcluded: boolean; readonly packEnabled: boolean; readonly ruleEnabled: boolean; readonly ruleIncluded: boolean; readonly ruleExcluded: boolean; readonly targetDeclared: boolean; readonly capabilitiesAvailable: boolean; readonly sourceRung: number; readonly minimumRung: number }
-  | { readonly kind: "ruleFindingCheck"; readonly probability: ProbabilityWords; readonly threshold: ProbabilityWords }
-  | { readonly kind: "ruleRankOrderCheck"; readonly left: ProbabilityWords; readonly right: ProbabilityWords; readonly leftRank: number; readonly rightRank: number }
-  | { readonly kind: "adviceOrderCheck"; readonly left: ProbabilityWords; readonly right: ProbabilityWords; readonly pathOrder: "before" | "equal" | "after"; readonly idOrder: "before" | "equal" | "after" }
-  | { readonly kind: "ruleBudgetCheck"; readonly position: number; readonly limit: number }
-  | { readonly kind: "reuseRoute"; readonly id: number; readonly liveAdvice: boolean }
-  | { readonly kind: "reuseClaim" | "reuseAttach" | "reuseRelease" | "reuseTouch"; readonly id: number }
-  | { readonly kind: "cachePrepare"; readonly id: number; readonly bytes: number; readonly entryLimit: number; readonly byteLimit: number }
-  | { readonly kind: "cacheCommit"; readonly id: number; readonly partition: number; readonly bytes: number; readonly reservation: number; readonly entryLimit: number; readonly byteLimit: number }
-  | { readonly kind: "cacheDiscardPartition"; readonly partition: number }
-  | { readonly kind: "cacheClear" }
-  | { readonly kind: "noticeAdvance"; readonly key: number; readonly remaining?: number; readonly maximumKeys: number; readonly proposed: number; readonly sequence: number; readonly maxCount: number }
-  | { readonly kind: "noticeCommit"; readonly key: number; readonly partition: number; readonly group: number; readonly reservation: number; readonly pending: number; readonly sequence: number; readonly maximumKeys: number }
-  | { readonly kind: "noticePrune"; readonly key: number; readonly leaseExpired: boolean; readonly pendingExpired: boolean; readonly excepted: boolean; readonly cooldownExpired: boolean }
-  | { readonly kind: "noticeDrop" | "noticeClearPending"; readonly key: number }
-  | { readonly kind: "noticeLease"; readonly key: number; readonly leased: boolean }
-  | { readonly kind: "noticeSelect"; readonly partition: number; readonly group: number; readonly composed: boolean; readonly authorityBound: boolean; readonly allowed: readonly number[] }
-  | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
-  | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
-  | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
-
-export type CleanupFacts = {
-  readonly active: boolean; readonly dispatcherIdle: boolean; readonly noAdvice: boolean;
-  readonly noNotices: boolean; readonly noPendingEvaluations: boolean;
-  readonly noCurrentWork: boolean; readonly noCooldowns: boolean;
-  readonly connectionCountOk: boolean; readonly cacheMatchesLedger: boolean;
-};
-
-export type CollectorReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired";
-export type ReuseMemberState = "pending" | "clear" | "finding" | "unavailable";
-
-export type CanonicalCommand =
-  | { readonly kind: "capacityGranted"; readonly id: number; readonly after: CapacityView }
-  | { readonly kind: "capacityRefused"; readonly reason: CapacityRefusal; readonly after: CapacityView }
-  | { readonly kind: "capacityResized"; readonly id: number; readonly after: CapacityView }
-  | { readonly kind: "capacityUnitAdmitted"; readonly reservation: number; readonly position: number; readonly bytes: number; readonly after: CapacityView }
-  | { readonly kind: "capacityUnitRefused"; readonly position: number; readonly bytes: number; readonly reason: CapacityRefusal; readonly after: CapacityView }
-  | { readonly kind: "permitIssued"; readonly token: number; readonly round: number }
-  | { readonly kind: "completedEditAbsent" }
-  | { readonly kind: "completedEditSeen"; readonly reason: CompletedEditReason; readonly report: boolean }
-  | { readonly kind: "completedEditRemembered"; readonly evicted?: number }
-  | { readonly kind: "quietRoundBusy" | "quietRoundResetRecorded" }
-  | { readonly kind: "quietRoundWaiting" | "quietRoundExpired"; readonly since: number }
-  | { readonly kind: "permitConsumed"; readonly round: number }
-  | { readonly kind: "permitReleased" | "permitExpired" | "permitKept" }
-  | { readonly kind: "permitRoundClosed"; readonly round: number }
-  | { readonly kind: "roundStarted"; readonly id: number }
-  | { readonly kind: "observationAdmitted"; readonly id: number }
-  | { readonly kind: "observationStarted" | "observationCompleted" | "observationInterrupted" | "reviewStarted" }
-  | { readonly kind: "jevRequestIssued"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }
-  | { readonly kind: "jevRequestUnavailable" | "jevRequestStartRecorded" | "jevInterruptionRecorded" | "jevObservationIgnored" }
-  | { readonly kind: "jevRequestOutcomeRecorded"; readonly outcome: JevRequestOutcome }
-  | { readonly kind: "prepare"; readonly operation: number; readonly reservation: number }
-  | { readonly kind: "preparationRefused" }
-  | { readonly kind: "unitAdmitted"; readonly operation: number; readonly reservation: number; readonly position: number; readonly bytes: number; readonly after: CapacityView }
-  | { readonly kind: "unitRefused"; readonly position: number; readonly bytes: number; readonly reason: CapacityRefusal; readonly after: CapacityView }
-  | { readonly kind: "preparationReleased"; readonly id: number; readonly after: CapacityView }
-  | { readonly kind: "reservationReleased"; readonly id: number }
-  | { readonly kind: "reviewRecorded"; readonly outcome: "finding" | "clear" | "unavailable" | "interrupted" | "discarded" }
-  | { readonly kind: "retainFinding" | "settleClear" | "settleStaleClear" | "retireStaleFinding" | "findingCountRecorded" }
-  | { readonly kind: "preparedSkipped" | "preparedAdmitted" | "preparedCapacityRefused" | "emptyLost" | "emptyAccepted" | "failureBackend" | "failureCredential" | "failureLost" | "failureNone" }
-  | { readonly kind: "dispatchStarted"; readonly operation: number; readonly sequence: number }
-  | { readonly kind: "dispatchDiscarded"; readonly operation: number; readonly running: boolean }
-  | { readonly kind: "discardNamedOnly" | "discardAllUnfinished" }
-  | { readonly kind: "waitForWork" }
-  | { readonly kind: "cancelWork"; readonly operation: number }
-  | { readonly kind: "finishReady" }
-  | { readonly kind: "finishLimit" }
-  | { readonly kind: "stopEnded" }
-  | { readonly kind: "collectionEligible" | "collectionWaiting" | "collectionRetireCredential" | "collectionRetainCredential" | "collectionCandidate" | "collectionSkip" | "collectionBefore" | "collectionEqual" | "collectionAfter" | "collectionExpired" | "collectionCurrent" | "collectionFits" | "collectionLimited" | "collectionFindingSelected" | "collectionFindingRetained" | "collectionFindingLimited" | "collectionFindingExpired" | "collectionNoticeIncluded" | "collectionNoticeSkipped" | "collectionNoticeStopped" | "collectionLeaseReserved" | "collectionLeaseRefused" | "collectionLeaseReleased" | "collectionLeaseKept" | "collectionAdviceRetired" | "collectionBackgroundClaimed" | "collectionBackgroundRefused" | "collectionBackgroundReleased" | "collectionBackgroundKept" }
-  | { readonly kind: "finishReserved" | "finishNotices" | "finishAllowedNoAdvice" | "finishAllowedDeadline" | "finishAllowedUnavailable" | "finishRefused" | "finishReleased" | "finishAuthorized" | "finishEnded" | "continuationConsumed" | "continuationRefused" }
-  | { readonly kind: "finishRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
-  | { readonly kind: "submissionBegun" | "submissionAuthorized" | "submissionRecorded" | "submissionReleased" | "submissionRefused" | "submissionForgotten" | "submissionSuppresses" | "submissionUnsuppressed" | "submissionReofferable" | "submissionNotReofferable" | "submissionExpired" | "submissionCurrent" }
-  | { readonly kind: "revisionReused" | "revisionReplaced" | "revisionGeneration"; readonly generation: number }
-  | { readonly kind: "revisionCount"; readonly count: number }
-  | { readonly kind: "revisionReleased" | "revisionCurrent" | "revisionStale" | "revisionSuperseded" | "revisionNotSuperseded" }
-  | { readonly kind: "collectorProceed" | "collectorFinalProceed" | "collectorFinalRelease" | "reuseKeepMember" | "reuseSetMemberClear" | "reuseSetMemberFinding" | "reuseSetMemberUnavailable" | "reuseSetMemberLost" }
-  | { readonly kind: "collectorUnavailable"; readonly reason: CollectorReason }
-  | { readonly kind: "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" }
-  | { readonly kind: "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" }
-  | { readonly kind: "deliverySubmissionCandidate" | "deliverySubmissionRefused" | "deliveryBatchProceed" | "deliveryBatchRelease" | "deliveryCredentialInvalid" | "deliveryCredentialValid" }
-  | { readonly kind: "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" }
-  | { readonly kind: "roundStopBegun" | "roundStopRefused" | "roundActive" | "roundInactive" | "roundBarrierRaised" | "roundBarrierClear" | "roundStopOwned" | "roundStopNotOwned" | "roundExpireCloses" | "roundExpireKeeps" | "roundContinuationAvailable" | "roundContinuationExhausted" | "deliverySubmissionAllowed" | "deliverySubmissionDenied" | "deliveryExistingTokenAllowed" | "deliveryExistingTokenDenied" | "deliveryUnreservedStopAllowed" | "deliveryUnreservedStopDenied" }
-  | { readonly kind: "roundStopTerminal"; readonly revokeProvisional: boolean; readonly close: boolean }
-  | { readonly kind: "reuseJoinAdvice" | "reuseJoinPending" | "reuseJoinClaimed" | "reuseCached" | "reuseOwn" | "reuseClaimed" | "reuseAttached" | "reuseReleased" | "reuseRefused" | "cacheAlready" | "cacheRejected" | "cacheCommitted" }
-  | { readonly kind: "cachePrepared"; readonly evicted: readonly number[] }
-  | { readonly kind: "cacheDiscarded"; readonly ids: readonly number[] }
-  | { readonly kind: "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending"; readonly count: number }
-  | { readonly kind: "noticePruned"; readonly dropLease: boolean; readonly dropPending: boolean; readonly dropKey: boolean }
-  | { readonly kind: "noticeSelected"; readonly ids: readonly number[] }
-  | { readonly kind: "includeChoice"; readonly choice: "replaceIncludes" | "keepIncludes" }
-  | { readonly kind: "fileSelection"; readonly selection: "protected" | "excluded" | "emptyIncludes" | "notIncluded" | "selected" }
-  | { readonly kind: "fileProtection"; readonly protection: "allowedPath" | "repositoryBoundary" | "sensitivePath" | "generatedOrVendor" | "fileExtension" }
-  | { readonly kind: "candidateFile"; readonly candidate: "candidateAllowed" | "refuseGitAdmin" | "refuseFileKind" | "refuseGitIgnore" }
-  | { readonly kind: "reviewAdmission"; readonly admission: "admitReview" | "refuseRoot" | "refuseConfiguration" | "refuseCredential" | "refuseSelection" }
-  | { readonly kind: "ruleGate"; readonly gate: "admit" | "omit" }
-  | { readonly kind: "ruleOrder"; readonly order: "before" | "equal" | "after" }
-  | { readonly kind: "noticeRejectedFull" | "noticeCreateKey" | "noticeKeepLeased" | "noticeRefused" | "noticeCommitted" | "noticeDropped" | "noticeLeased" | "noticePendingCleared" }
-  | { readonly kind: "writeAuthorized"; readonly operation: number }
-  | { readonly kind: "writeRecorded"; readonly outcome: "acknowledged" | "failed" | "unknown" }
-  | { readonly kind: "waitForOutput" }
-  | { readonly kind: "reofferAtStop" }
-  | { readonly kind: "partitionRetired"; readonly round: number }
-  | { readonly kind: "admissionForgotten" };
-
-export type ProspectiveFacts = {
-  readonly clockValid: boolean; readonly hookWindow: number;
-  readonly startedUpper: number; readonly nowLower: number;
-  readonly adviceePermitLimit: number; readonly residentPermitLimit: number;
-};
+const encodedProbabilityWords = (value: typeof ProbabilityWordsSchema.Type): unknown =>
+  ({ $: "RulePolicy.Words", high: value.high, low: value.low });
+const list = (values: readonly number[]): unknown =>
+  values.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
+const readList = <T>(value: unknown, decode: (item: unknown) => T, limit = 2048): T[] =>
+  readBendList(value, decode, limit);
 
 const encodeFacts = (facts: ProspectiveFacts): unknown => {
-  inputFields(facts, ["clockValid", "hookWindow", "startedUpper", "nowLower", "adviceePermitLimit", "residentPermitLimit"]);
-  return { $: "Admission.ProspectiveFacts", clock_valid: bool(facts.clockValid), hook_window: nat(facts.hookWindow, true),
-    started_upper: nat(facts.startedUpper), now_lower: nat(facts.nowLower),
-    advicee_permit_limit: nat(facts.adviceePermitLimit, true), resident_permit_limit: nat(facts.residentPermitLimit, true) };
+
+  return { $: "Admission.ProspectiveFacts", clock_valid: facts.clockValid, hook_window: facts.hookWindow,
+    started_upper: facts.startedUpper, now_lower: facts.nowLower,
+    advicee_permit_limit: facts.adviceePermitLimit, resident_permit_limit: facts.residentPermitLimit };
 };
 
 const encodePurpose = (value: CapacityPurpose): unknown => {
@@ -337,30 +68,25 @@ const encodePurpose = (value: CapacityPurpose): unknown => {
     operationalNotice: "Ledger.OperationalNotice", adviceRecheck: "Ledger.AdviceRecheck",
   };
   const name = names[value];
-  if (!name) throw new TypeError("invalid capacity purpose");
   return { $: name };
 };
-const identity = (event: Extract<CanonicalEvent, { readonly partition: number; readonly lifetime: number }>) => ({ partition: nat(event.partition, true), lifetime: nat(event.lifetime, true) });
+const identity = (event: Extract<CanonicalEvent, { readonly partition: number; readonly lifetime: number }>) => ({ partition: event.partition, lifetime: event.lifetime });
 const submissionSurface = (surface: "edit" | "background" | "stop"): unknown => {
   const name = { edit: "Handoff.Edit", background: "Handoff.Background", stop: "Handoff.Stop" }[surface];
-  if (name === undefined) throw new TypeError("invalid submission surface");
   return { $: name };
 };
 const deliverySurface = (surface: "edit" | "background" | "stop"): unknown => {
   const name = { edit: "Delivery.Edit", background: "Delivery.Background", stop: "Delivery.Stop" }[surface];
-  if (name === undefined) throw new TypeError("invalid delivery surface");
   return { $: name };
 };
 const collectorReason = (reason: CollectorReason): unknown => {
   const name = { backend: "Backend", credential: "Credential", capacity: "Capacity",
     stale: "Stale", lost: "Lost", expired: "Expired" }[reason];
-  if (name === undefined) throw new TypeError("invalid collector reason");
   return { $: `CollectorAuthority.${name}` };
 };
 const reuseMemberState = (state: ReuseMemberState): unknown => {
   const name = { pending: "JoinedPending", clear: "JoinedClear", finding: "JoinedFinding",
     unavailable: "JoinedUnavailable" }[state];
-  if (name === undefined) throw new TypeError("invalid joined state");
   return { $: `Reuse.${name}` };
 };
 const jevOutcomeTags: Record<JevRequestOutcome, string> = {
@@ -370,7 +96,6 @@ const jevOutcomeTags: Record<JevRequestOutcome, string> = {
 };
 const encodeJevRequestOutcome = (outcome: JevRequestOutcome): unknown => {
   const name = jevOutcomeTags[outcome];
-  if (name === undefined) throw new TypeError("invalid Jev request outcome");
   return { $: `Canonical.${name}` };
 };
 const decodeJevRequestOutcome = (value: unknown): JevRequestOutcome => {
@@ -378,211 +103,206 @@ const decodeJevRequestOutcome = (value: unknown): JevRequestOutcome => {
   const outcome = (Object.entries(jevOutcomeTags) as [JevRequestOutcome, string][])
     .find(([, variant]) => name === `Canonical.${variant}`)?.[0];
   if (outcome === undefined) throw new TypeError("invalid Jev request outcome");
-  fields(value, name, []);
+  decodeCanonicalConstructor(value, name);
   return outcome;
 };
-const encode = (event: CanonicalEvent): unknown => {
+const decodeEvent = decoder(CanonicalEventSchema);
+const encode = (input: CanonicalEvent): unknown => {
+  const event = decodeEvent(input);
   switch (event.kind) {
-    case "reserveCapacity": inputFields(event, ["kind", "partition", "bytes", "purpose"]); return { $: "Canonical.ReserveCapacity", partition: nat(event.partition, true), bytes: bytes(event.bytes), purpose: encodePurpose(event.purpose) };
-    case "resizeCapacity": inputFields(event, ["kind", "reservation", "bytes", "purpose"]); return { $: "Canonical.ResizeCapacity", reservation: nat(event.reservation, true), bytes: nat(event.bytes), purpose: encodePurpose(event.purpose) };
-    case "releaseCapacity": inputFields(event, ["kind", "reservation"]); return { $: "Canonical.ReleaseCapacity", reservation: nat(event.reservation, true) };
-    case "replaceCapacity": inputFields(event, ["kind", "reservation", "unitBytes"]); return { $: "Canonical.ReplaceCapacity", reservation: nat(event.reservation, true), unit_bytes: list(event.unitBytes) };
-    case "issuePermit": inputFields(event, ["kind", "partition", "lifetime", "tool", "started", "deadline", "now", "minimumStarted", "facts"]); return { $: "Canonical.IssuePermit", ...identity(event), tool: nat(event.tool, true), started: nat(event.started), deadline: nat(event.deadline), now: nat(event.now), minimum_started: nat(event.minimumStarted), facts: encodeFacts(event.facts) };
-    case "checkCompletedEdit": inputFields(event, ["kind", "tool"]); return { $: "Canonical.CheckCompletedEdit", tool: nat(event.tool, true) };
-    case "rememberCompletedEdit": inputFields(event, ["kind", "tool", "reason"]); return { $: "Canonical.RememberCompletedEdit", tool: nat(event.tool, true), reason: encodeCompletedEditReason(event.reason) };
-    case "quietRoundTick": inputFields(event, ["kind", "partition", "lifetime", "round", "now", "window", "facts"]); inputFields(event.facts, ["nativeWorkIdle", "adviceEmpty", "handoffIdle", "stopAbsent"]); return { $: "Canonical.QuietRoundTick", ...identity(event), round: nat(event.round, true), now: nat(event.now), window: nat(event.window, true), facts: { $: "Quiescence.Facts", native_work_idle: bool(event.facts.nativeWorkIdle), advice_empty: bool(event.facts.adviceEmpty), handoff_idle: bool(event.facts.handoffIdle), stop_absent: bool(event.facts.stopAbsent) } };
-    case "quietRoundReset": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.QuietRoundReset", ...identity(event), round: nat(event.round, true) };
-    case "consumePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "tool", "now"]); return { $: "Canonical.ConsumePermit", ...identity(event), token: nat(event.token, true), tool: nat(event.tool, true), now: nat(event.now) };
-    case "releasePermit": inputFields(event, ["kind", "partition", "lifetime", "token"]); return { $: "Canonical.ReleasePermit", ...identity(event), token: nat(event.token, true) };
-    case "expirePermit": inputFields(event, ["kind", "partition", "lifetime", "token", "deadlineReached"]); return { $: "Canonical.ExpirePermit", ...identity(event), token: nat(event.token, true), deadline_reached: bool(event.deadlineReached) };
-    case "closePermitRound": inputFields(event, ["kind", "partition", "lifetime", "round", "at"]); return { $: "Canonical.ClosePermitRound", ...identity(event), round: nat(event.round, true), at: nat(event.at) };
-    case "forgetAdmission": inputFields(event, ["kind", "partition", "lifetime"]); return { $: "Canonical.ForgetAdmission", ...identity(event) };
-    case "openRound": inputFields(event, ["kind", "partition", "lifetime"]); return { $: "Canonical.OpenRound", ...identity(event) };
-    case "admitObservation": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.AdmitObservation", ...identity(event), round: nat(event.round, true) };
+    case "reserveCapacity": return { $: "Canonical.ReserveCapacity", partition: event.partition, bytes: event.bytes, purpose: encodePurpose(event.purpose) };
+    case "resizeCapacity": return { $: "Canonical.ResizeCapacity", reservation: event.reservation, bytes: event.bytes, purpose: encodePurpose(event.purpose) };
+    case "releaseCapacity": return { $: "Canonical.ReleaseCapacity", reservation: event.reservation };
+    case "replaceCapacity": return { $: "Canonical.ReplaceCapacity", reservation: event.reservation, unit_bytes: list(event.unitBytes) };
+    case "issuePermit": return { $: "Canonical.IssuePermit", ...identity(event), tool: event.tool, started: event.started, deadline: event.deadline, now: event.now, minimum_started: event.minimumStarted, facts: encodeFacts(event.facts) };
+    case "checkCompletedEdit": return { $: "Canonical.CheckCompletedEdit", tool: event.tool };
+    case "rememberCompletedEdit": return { $: "Canonical.RememberCompletedEdit", tool: event.tool, reason: encodeCompletedEditReason(event.reason) };
+    case "quietRoundTick":   return { $: "Canonical.QuietRoundTick", ...identity(event), round: event.round, now: event.now, window: event.window, facts: { $: "Quiescence.Facts", native_work_idle: event.facts.nativeWorkIdle, advice_empty: event.facts.adviceEmpty, handoff_idle: event.facts.handoffIdle, stop_absent: event.facts.stopAbsent } };
+    case "quietRoundReset": return { $: "Canonical.QuietRoundReset", ...identity(event), round: event.round };
+    case "consumePermit": return { $: "Canonical.ConsumePermit", ...identity(event), token: event.token, tool: event.tool, now: event.now };
+    case "releasePermit": return { $: "Canonical.ReleasePermit", ...identity(event), token: event.token };
+    case "expirePermit": return { $: "Canonical.ExpirePermit", ...identity(event), token: event.token, deadline_reached: event.deadlineReached };
+    case "closePermitRound": return { $: "Canonical.ClosePermitRound", ...identity(event), round: event.round, at: event.at };
+    case "forgetAdmission": return { $: "Canonical.ForgetAdmission", ...identity(event) };
+    case "openRound": return { $: "Canonical.OpenRound", ...identity(event) };
+    case "admitObservation": return { $: "Canonical.AdmitObservation", ...identity(event), round: event.round };
     case "startObservation": case "completeObservation": case "interruptObservation": {
-      inputFields(event, ["kind", "partition", "lifetime", "round", "observation"]);
+
       const name = { startObservation: "StartObservation", completeObservation: "CompleteObservation", interruptObservation: "InterruptObservation" }[event.kind];
-      return { $: `Canonical.${name}`, ...identity(event), round: nat(event.round, true), observation: nat(event.observation, true) };
+      return { $: `Canonical.${name}`, ...identity(event), round: event.round, observation: event.observation };
     }
-    case "beginPreparation": inputFields(event, ["kind", "partition", "lifetime", "round", "bytes"]); return { $: "Canonical.BeginPreparation", ...identity(event), round: nat(event.round, true), bytes: bytes(event.bytes) };
-    case "beginObservedPreparation": inputFields(event, ["kind", "partition", "lifetime", "round", "observation", "bytes"]); return { $: "Canonical.BeginObservedPreparation", ...identity(event), round: nat(event.round, true), observation: nat(event.observation, true), bytes: bytes(event.bytes) };
-    case "interruptPreparation": inputFields(event, ["kind", "partition", "lifetime", "round", "operation"]); return { $: "Canonical.InterruptPreparation", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true) };
-    case "preparationCompleted": inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "unitBytes"]); return { $: "Canonical.PreparationCompleted", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), unit_bytes: list(event.unitBytes) };
+    case "beginPreparation": return { $: "Canonical.BeginPreparation", ...identity(event), round: event.round, bytes: event.bytes };
+    case "beginObservedPreparation": return { $: "Canonical.BeginObservedPreparation", ...identity(event), round: event.round, observation: event.observation, bytes: event.bytes };
+    case "interruptPreparation": return { $: "Canonical.InterruptPreparation", ...identity(event), round: event.round, operation: event.operation };
+    case "preparationCompleted": return { $: "Canonical.PreparationCompleted", ...identity(event), round: event.round, operation: event.operation, unit_bytes: list(event.unitBytes) };
     case "startReview": case "retireReview": {
-      inputFields(event, ["kind", "partition", "lifetime", "round", "operation"]);
-      return { $: event.kind === "startReview" ? "Canonical.StartReview" : "Canonical.RetireReview", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true) };
+
+      return { $: event.kind === "startReview" ? "Canonical.StartReview" : "Canonical.RetireReview", ...identity(event), round: event.round, operation: event.operation };
     }
     case "jevRequestReady":
-      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "rootValid", "configurationValid", "credentialReady", "selected", "currentWork", "physicalAvailable"]);
-      return { $: "Canonical.JevRequestReady", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), root_valid: bool(event.rootValid), configuration_valid: bool(event.configurationValid), credential_ready: bool(event.credentialReady), selected: bool(event.selected), current_work: bool(event.currentWork), physical_available: bool(event.physicalAvailable) };
+
+      return { $: "Canonical.JevRequestReady", ...identity(event), round: event.round, operation: event.operation, root_valid: event.rootValid, configuration_valid: event.configurationValid, credential_ready: event.credentialReady, selected: event.selected, current_work: event.currentWork, physical_available: event.physicalAvailable };
     case "jevRequestStarted": case "jevRequestInterrupted":
-      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "request"]);
-      return { $: event.kind === "jevRequestStarted" ? "Canonical.JevRequestStarted" : "Canonical.JevRequestInterrupted", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), request: nat(event.request, true) };
+
+      return { $: event.kind === "jevRequestStarted" ? "Canonical.JevRequestStarted" : "Canonical.JevRequestInterrupted", ...identity(event), round: event.round, operation: event.operation, request: event.request };
     case "jevRequestSettled":
-      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "request", "outcome", "currentWork"]);
-      return { $: "Canonical.JevRequestSettled", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), request: nat(event.request, true), outcome: encodeJevRequestOutcome(event.outcome), current_work: bool(event.currentWork) };
+
+      return { $: "Canonical.JevRequestSettled", ...identity(event), round: event.round, operation: event.operation, request: event.request, outcome: encodeJevRequestOutcome(event.outcome), current_work: event.currentWork };
     case "reviewCompleted": {
-      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
+
       const outcome = { finding: "Canonical.Finding", clear: "Canonical.Clear", unavailable: "Canonical.Unavailable", interrupted: "Canonical.Interrupted", discarded: "Canonical.Discarded" }[event.outcome];
-      if (!outcome) throw new TypeError("invalid review outcome");
-      return { $: "Canonical.ReviewCompleted", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), outcome: { $: outcome } };
+      return { $: "Canonical.ReviewCompleted", ...identity(event), round: event.round, operation: event.operation, outcome: { $: outcome } };
     }
     case "reviewObserved": {
-      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome", "currentWork"]);
-      return { $: "Canonical.ReviewObserved", ...identity(event), round: nat(event.round, true),
-        operation: nat(event.operation, true), outcome: { $: event.outcome === "finding" ? "Canonical.Finding" : "Canonical.Clear" },
-        current_work: bool(event.currentWork) };
+
+      return { $: "Canonical.ReviewObserved", ...identity(event), round: event.round,
+        operation: event.operation, outcome: { $: event.outcome === "finding" ? "Canonical.Finding" : "Canonical.Clear" },
+        current_work: event.currentWork };
     }
-    case "findingCountUpdated": inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "count"]); return { $: "Canonical.FindingCountUpdated", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), count: nat(event.count, true) };
+    case "findingCountUpdated": return { $: "Canonical.FindingCountUpdated", ...identity(event), round: event.round, operation: event.operation, count: event.count };
     case "queueDispatch": case "dispatchSettled":
-      inputFields(event, ["kind", "partition", "lifetime", "round", "operation"]);
+
       return { $: event.kind === "queueDispatch" ? "Canonical.QueueDispatch" : "Canonical.DispatchSettled",
-        ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true) };
-    case "discardDispatch": inputFields(event, ["kind", "operations"]); return { $: "Canonical.DiscardDispatch", operations: list(event.operations) };
-    case "dispatchScopeCheck": inputFields(event, ["kind", "namedCount", "cancelledCount", "hasUnnamed"]); return { $: "Canonical.DispatchScopeCheck", named_count: nat(event.namedCount), cancelled_count: nat(event.cancelledCount), has_unnamed: bool(event.hasUnnamed) };
-    case "closeDispatch": inputFields(event, ["kind"]); return { $: "Canonical.CloseDispatch" };
-    case "preparedOfferCheck": inputFields(event, ["kind", "ready", "withinFrame"]); return { $: "Canonical.PreparedOfferCheck", ready: bool(event.ready), within_frame: bool(event.withinFrame) };
-    case "emptyPreparedCheck": inputFields(event, ["kind", "readyCount", "hasNonSkipped", "authorityBound"]); return { $: "Canonical.EmptyPreparedCheck", ready_count: nat(event.readyCount), has_non_skipped: bool(event.hasNonSkipped), authority_bound: bool(event.authorityBound) };
-    case "reviewFailureCheck": inputFields(event, ["kind", "backendOrTimeout", "credential", "missing"]); return { $: "Canonical.ReviewFailureCheck", backend_or_timeout: bool(event.backendOrTimeout), credential: bool(event.credential), missing: bool(event.missing) };
-    case "stopPolled": inputFields(event, ["kind", "partition", "lifetime", "round", "deadline"]); return { $: "Canonical.StopPolled", ...identity(event), round: nat(event.round, true), deadline: bool(event.deadline) };
+        ...identity(event), round: event.round, operation: event.operation };
+    case "discardDispatch": return { $: "Canonical.DiscardDispatch", operations: list(event.operations) };
+    case "dispatchScopeCheck": return { $: "Canonical.DispatchScopeCheck", named_count: event.namedCount, cancelled_count: event.cancelledCount, has_unnamed: event.hasUnnamed };
+    case "closeDispatch": return { $: "Canonical.CloseDispatch" };
+    case "preparedOfferCheck": return { $: "Canonical.PreparedOfferCheck", ready: event.ready, within_frame: event.withinFrame };
+    case "emptyPreparedCheck": return { $: "Canonical.EmptyPreparedCheck", ready_count: event.readyCount, has_non_skipped: event.hasNonSkipped, authority_bound: event.authorityBound };
+    case "reviewFailureCheck": return { $: "Canonical.ReviewFailureCheck", backend_or_timeout: event.backendOrTimeout, credential: event.credential, missing: event.missing };
+    case "stopPolled": return { $: "Canonical.StopPolled", ...identity(event), round: event.round, deadline: event.deadline };
     case "stopGroupPolled": case "stopGroupEnded": {
       const polled = event.kind === "stopGroupPolled";
-      inputFields(event, polled ? ["kind", "group", "lifetime", "round", "scopes", "deadline", "extraPending", "continuations"] : ["kind", "group", "lifetime", "round", "scopes"]);
-      if (!Array.isArray(event.scopes) || event.scopes.length > MAX_UNITS) throw new TypeError("invalid stop scopes");
+
       const scopes = event.scopes.reduceRight<unknown>((tail, scope) => {
-        inputFields(scope, ["partition", "round"]);
-        return { $: "Con", head: { $: "Canonical.StopScope", partition: nat(scope.partition, true), round: nat(scope.round, true) }, tail };
+
+        return { $: "Con", head: { $: "Canonical.StopScope", partition: scope.partition, round: scope.round }, tail };
       }, { $: "Nil" });
-      const common = { group: nat(event.group, true), lifetime: nat(event.lifetime, true), round: nat(event.round, true), scopes };
-      return polled ? { $: "Canonical.StopGroupPolled", ...common, deadline: bool(event.deadline), extra_pending: bool(event.extraPending), continuations: nat(event.continuations) }
+      const common = { group: event.group, lifetime: event.lifetime, round: event.round, scopes };
+      return polled ? { $: "Canonical.StopGroupPolled", ...common, deadline: event.deadline, extra_pending: event.extraPending, continuations: event.continuations }
         : { $: "Canonical.StopGroupEnded", ...common };
     }
-    case "collectionReady": inputFields(event, ["kind", "advice", "partition", "lifetime", "round", "observation", "joinedPending"]); return { $: "Canonical.CollectionReady", advice: nat(event.advice, true), partition: nat(event.partition, true), lifetime: nat(event.lifetime, true), round: nat(event.round, true), observation: nat(event.observation, true), joined_pending: bool(event.joinedPending) };
-    case "collectionCredentialCheck": inputFields(event, ["kind", "sameScope", "generationValid"]); return { $: "Canonical.CollectionCredentialCheck", same_scope: bool(event.sameScope), generation_valid: bool(event.generationValid) };
-    case "collectionCandidateCheck": inputFields(event, ["kind", "samePartition", "unleased", "hasUnsuppressed", "authorityOwns"]); return { $: "Canonical.CollectionCandidateCheck", same_partition: bool(event.samePartition), unleased: bool(event.unleased), has_unsuppressed: bool(event.hasUnsuppressed), authority_owns: bool(event.authorityOwns) };
-    case "collectionOrderCheck": inputFields(event, ["kind", "leftSequence", "rightSequence"]); return { $: "Canonical.CollectionOrderCheck", left_sequence: nat(event.leftSequence), right_sequence: nat(event.rightSequence) };
-    case "collectionExpiryCheck": inputFields(event, ["kind", "elapsed", "lifetime"]); return { $: "Canonical.CollectionExpiryCheck", elapsed: nat(event.elapsed), lifetime: nat(event.lifetime, true) };
-    case "collectionFitCheck": inputFields(event, ["kind", "items", "bytes"]); return { $: "Canonical.CollectionFitCheck", items: nat(event.items), bytes: nat(event.bytes) };
-    case "collectionFindingCheck": inputFields(event, ["kind", "selectionPartition", "selectionRound", "unit", "partition", "round", "snapshot", "currentSnapshot", "credential", "currentCredential", "ageMs", "soloBytes", "collectionReady", "selectedCount", "prospectiveBytes"]); return { $: "Canonical.CollectionFindingCheck", selection_partition: nat(event.selectionPartition, true), selection_round: nat(event.selectionRound), unit: nat(event.unit), partition: nat(event.partition, true), round: nat(event.round), snapshot: nat(event.snapshot), current_snapshot: nat(event.currentSnapshot), credential: nat(event.credential), current_credential: nat(event.currentCredential), age_ms: nat(event.ageMs), solo_bytes: nat(event.soloBytes), collection_ready: bool(event.collectionReady), selected_count: nat(event.selectedCount), prospective_bytes: nat(event.prospectiveBytes) };
-    case "collectionNoticeCheck": inputFields(event, ["kind", "items", "bytes", "skipUnfitting"]); return { $: "Canonical.CollectionNoticeCheck", items: nat(event.items), bytes: nat(event.bytes), skip_unfitting: bool(event.skipUnfitting) };
-    case "collectionReserveLease": case "collectionReleaseLease": inputFields(event, ["kind", "advice", "token"]); return { $: event.kind === "collectionReserveLease" ? "Canonical.CollectionReserveLease" : "Canonical.CollectionReleaseLease", advice: nat(event.advice, true), token: nat(event.token, true) };
-    case "collectionLeaseCheck": inputFields(event, ["kind", "advice", "token", "expired", "stopCollector", "sameGroup", "reofferable"]); return { $: "Canonical.CollectionLeaseCheck", advice: nat(event.advice, true), token: nat(event.token, true), expired: bool(event.expired), stop_collector: bool(event.stopCollector), same_group: bool(event.sameGroup), reofferable: bool(event.reofferable) };
-    case "collectionRetireAdvice": inputFields(event, ["kind", "advice"]); return { $: "Canonical.CollectionRetireAdvice", advice: nat(event.advice, true) };
-    case "collectionClaimBackground": inputFields(event, ["kind", "group", "token", "active", "capacity"]); return { $: "Canonical.CollectionClaimBackground", group: nat(event.group, true), token: nat(event.token, true), active: bool(event.active), capacity: nat(event.capacity, true) };
-    case "collectionReleaseBackground": inputFields(event, ["kind", "group", "token"]); return { $: "Canonical.CollectionReleaseBackground", group: nat(event.group, true), token: nat(event.token, true) };
-    case "collectionExpireBackground": inputFields(event, ["kind", "group", "token", "elapsed", "lifetime"]); return { $: "Canonical.CollectionExpireBackground", group: nat(event.group, true), token: nat(event.token, true), elapsed: nat(event.elapsed), lifetime: nat(event.lifetime, true) };
-    case "finishReserve": inputFields(event, ["kind", "group", "lifetime", "round", "attempt", "token", "selected", "hasNotice", "passNotices", "canWrite", "bindingValid", "deadlineReached"]); return { $: "Canonical.FinishReserve", group: nat(event.group, true), lifetime: nat(event.lifetime, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true), selected: list(event.selected), has_notice: bool(event.hasNotice), pass_notices: bool(event.passNotices), can_write: bool(event.canWrite), binding_valid: bool(event.bindingValid), deadline_reached: bool(event.deadlineReached) };
-    case "finishRelease": inputFields(event, ["kind", "group", "round", "attempt", "token"]); return { $: "Canonical.FinishRelease", group: nat(event.group, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true) };
-    case "finishAuthorize": inputFields(event, ["kind", "group", "round", "attempt", "token", "selected"]); return { $: "Canonical.FinishAuthorize", group: nat(event.group, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true), selected: list(event.selected) };
+    case "collectionReady": return { $: "Canonical.CollectionReady", advice: event.advice, partition: event.partition, lifetime: event.lifetime, round: event.round, observation: event.observation, joined_pending: event.joinedPending };
+    case "collectionCredentialCheck": return { $: "Canonical.CollectionCredentialCheck", same_scope: event.sameScope, generation_valid: event.generationValid };
+    case "collectionCandidateCheck": return { $: "Canonical.CollectionCandidateCheck", same_partition: event.samePartition, unleased: event.unleased, has_unsuppressed: event.hasUnsuppressed, authority_owns: event.authorityOwns };
+    case "collectionOrderCheck": return { $: "Canonical.CollectionOrderCheck", left_sequence: event.leftSequence, right_sequence: event.rightSequence };
+    case "collectionExpiryCheck": return { $: "Canonical.CollectionExpiryCheck", elapsed: event.elapsed, lifetime: event.lifetime };
+    case "collectionFitCheck": return { $: "Canonical.CollectionFitCheck", items: event.items, bytes: event.bytes };
+    case "collectionFindingCheck": return { $: "Canonical.CollectionFindingCheck", selection_partition: event.selectionPartition, selection_round: event.selectionRound, unit: event.unit, partition: event.partition, round: event.round, snapshot: event.snapshot, current_snapshot: event.currentSnapshot, credential: event.credential, current_credential: event.currentCredential, age_ms: event.ageMs, solo_bytes: event.soloBytes, collection_ready: event.collectionReady, selected_count: event.selectedCount, prospective_bytes: event.prospectiveBytes };
+    case "collectionNoticeCheck": return { $: "Canonical.CollectionNoticeCheck", items: event.items, bytes: event.bytes, skip_unfitting: event.skipUnfitting };
+    case "collectionReserveLease": case "collectionReleaseLease": return { $: event.kind === "collectionReserveLease" ? "Canonical.CollectionReserveLease" : "Canonical.CollectionReleaseLease", advice: event.advice, token: event.token };
+    case "collectionLeaseCheck": return { $: "Canonical.CollectionLeaseCheck", advice: event.advice, token: event.token, expired: event.expired, stop_collector: event.stopCollector, same_group: event.sameGroup, reofferable: event.reofferable };
+    case "collectionRetireAdvice": return { $: "Canonical.CollectionRetireAdvice", advice: event.advice };
+    case "collectionClaimBackground": return { $: "Canonical.CollectionClaimBackground", group: event.group, token: event.token, active: event.active, capacity: event.capacity };
+    case "collectionReleaseBackground": return { $: "Canonical.CollectionReleaseBackground", group: event.group, token: event.token };
+    case "collectionExpireBackground": return { $: "Canonical.CollectionExpireBackground", group: event.group, token: event.token, elapsed: event.elapsed, lifetime: event.lifetime };
+    case "finishReserve": return { $: "Canonical.FinishReserve", group: event.group, lifetime: event.lifetime, round: event.round, attempt: event.attempt, token: event.token, selected: list(event.selected), has_notice: event.hasNotice, pass_notices: event.passNotices, can_write: event.canWrite, binding_valid: event.bindingValid, deadline_reached: event.deadlineReached };
+    case "finishRelease": return { $: "Canonical.FinishRelease", group: event.group, round: event.round, attempt: event.attempt, token: event.token };
+    case "finishAuthorize": return { $: "Canonical.FinishAuthorize", group: event.group, round: event.round, attempt: event.attempt, token: event.token, selected: list(event.selected) };
     case "finishTerminal": {
-      inputFields(event, ["kind", "group", "round", "attempt", "token", "selected", "outcome"]);
+
       const outcome = { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" }[event.outcome];
-      if (!outcome) throw new TypeError("invalid write outcome");
-      return { $: "Canonical.FinishTerminal", group: nat(event.group, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true), selected: list(event.selected), outcome: { $: outcome } };
+      return { $: "Canonical.FinishTerminal", group: event.group, round: event.round, attempt: event.attempt, token: event.token, selected: list(event.selected), outcome: { $: outcome } };
     }
-    case "finishEnd": inputFields(event, ["kind", "group", "round", "attempt", "token"]); return { $: "Canonical.FinishEnd", group: nat(event.group, true), round: nat(event.round, true), attempt: nat(event.attempt, true), token: nat(event.token, true) };
-    case "continuationConsume": inputFields(event, ["kind", "group", "round"]); return { $: "Canonical.ContinuationConsume", group: nat(event.group, true), round: nat(event.round, true) };
-    case "submissionBegin": inputFields(event, ["kind", "advice", "group", "round", "token", "surface", "authorizeNow", "fingerprints", "units"]); return { $: "Canonical.SubmissionBegin", advice: nat(event.advice, true), group: nat(event.group, true), round: nat(event.round, true), token: nat(event.token, true), surface: submissionSurface(event.surface), authorize_now: bool(event.authorizeNow), fingerprints: list(event.fingerprints), units: list(event.units) };
-    case "submissionAuthorize": case "submissionRelease": case "submissionReofferCheck": inputFields(event, ["kind", "advice", "token"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, advice: nat(event.advice, true), token: nat(event.token, true) };
-    case "submissionTerminal": inputFields(event, ["kind", "advice", "token", "certain"]); return { $: "Canonical.SubmissionTerminal", advice: nat(event.advice, true), token: nat(event.token, true), certain: bool(event.certain) };
-    case "submissionForget": inputFields(event, ["kind", "advice"]); return { $: "Canonical.SubmissionForget", advice: nat(event.advice, true) };
-    case "submissionSuppressCheck": inputFields(event, ["kind", "advice", "fingerprint", "round", "surface"]); return { $: "Canonical.SubmissionSuppressCheck", advice: nat(event.advice, true), fingerprint: nat(event.fingerprint, true), round: nat(event.round, true), surface: submissionSurface(event.surface) };
-    case "submissionExpiryCheck": inputFields(event, ["kind", "advice", "token", "elapsed", "lifetime"]); return { $: "Canonical.SubmissionExpiryCheck", advice: nat(event.advice, true), token: nat(event.token, true), elapsed: nat(event.elapsed), lifetime: nat(event.lifetime, true) };
-    case "revisionRegister": inputFields(event, ["kind", "subject", "input", "addMember"]); return { $: "Canonical.RevisionRegister", subject: nat(event.subject, true), input: nat(event.input, true), add_member: bool(event.addMember) };
-    case "revisionRelease": inputFields(event, ["kind", "subject", "generation"]); return { $: "Canonical.RevisionRelease", subject: nat(event.subject, true), generation: nat(event.generation, true) };
-    case "revisionSupersededCheck": inputFields(event, ["kind", "subject", "candidateSubject", "generation"]); return { $: "Canonical.RevisionSupersededCheck", subject: nat(event.subject, true), candidate_subject: nat(event.candidateSubject, true), generation: nat(event.generation, true) };
-    case "revisionCurrentCheck": inputFields(event, ["kind", "subject", "input", "generation"]); return { $: "Canonical.RevisionCurrentCheck", subject: nat(event.subject, true), input: nat(event.input, true), generation: nat(event.generation, true) };
-    case "revisionGenerationCheck": inputFields(event, ["kind", "subject"]); return { $: "Canonical.RevisionGenerationCheck", subject: nat(event.subject, true) };
-    case "revisionCountCheck": inputFields(event, ["kind"]); return { $: "Canonical.RevisionCountCheck" };
-    case "collectorGateCheck": inputFields(event, ["kind", "expired", "credentialValid"]); return { $: "Canonical.CollectorGateCheck", expired: bool(event.expired), credential_valid: bool(event.credentialValid) };
-    case "collectorFinalAuthorityCheck": inputFields(event, ["kind", "admittedBlock", "currentBlock"]); return { $: "Canonical.CollectorFinalAuthorityCheck", admitted_block: bool(event.admittedBlock), current_block: bool(event.currentBlock) };
-    case "reuseMemberCheck": inputFields(event, ["kind", "state", "staleUnavailable", "hasRevision", "hasAdviceId"]); return { $: "Canonical.ReuseMemberCheck", joined_state: reuseMemberState(event.state), stale_unavailable: bool(event.staleUnavailable), has_revision: bool(event.hasRevision), has_advice_id: bool(event.hasAdviceId) };
+    case "finishEnd": return { $: "Canonical.FinishEnd", group: event.group, round: event.round, attempt: event.attempt, token: event.token };
+    case "continuationConsume": return { $: "Canonical.ContinuationConsume", group: event.group, round: event.round };
+    case "submissionBegin": return { $: "Canonical.SubmissionBegin", advice: event.advice, group: event.group, round: event.round, token: event.token, surface: submissionSurface(event.surface), authorize_now: event.authorizeNow, fingerprints: list(event.fingerprints), units: list(event.units) };
+    case "submissionAuthorize": case "submissionRelease": case "submissionReofferCheck": return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, advice: event.advice, token: event.token };
+    case "submissionTerminal": return { $: "Canonical.SubmissionTerminal", advice: event.advice, token: event.token, certain: event.certain };
+    case "submissionForget": return { $: "Canonical.SubmissionForget", advice: event.advice };
+    case "submissionSuppressCheck": return { $: "Canonical.SubmissionSuppressCheck", advice: event.advice, fingerprint: event.fingerprint, round: event.round, surface: submissionSurface(event.surface) };
+    case "submissionExpiryCheck": return { $: "Canonical.SubmissionExpiryCheck", advice: event.advice, token: event.token, elapsed: event.elapsed, lifetime: event.lifetime };
+    case "revisionRegister": return { $: "Canonical.RevisionRegister", subject: event.subject, input: event.input, add_member: event.addMember };
+    case "revisionRelease": return { $: "Canonical.RevisionRelease", subject: event.subject, generation: event.generation };
+    case "revisionSupersededCheck": return { $: "Canonical.RevisionSupersededCheck", subject: event.subject, candidate_subject: event.candidateSubject, generation: event.generation };
+    case "revisionCurrentCheck": return { $: "Canonical.RevisionCurrentCheck", subject: event.subject, input: event.input, generation: event.generation };
+    case "revisionGenerationCheck": return { $: "Canonical.RevisionGenerationCheck", subject: event.subject };
+    case "revisionCountCheck": return { $: "Canonical.RevisionCountCheck" };
+    case "collectorGateCheck": return { $: "Canonical.CollectorGateCheck", expired: event.expired, credential_valid: event.credentialValid };
+    case "collectorFinalAuthorityCheck": return { $: "Canonical.CollectorFinalAuthorityCheck", admitted_block: event.admittedBlock, current_block: event.currentBlock };
+    case "reuseMemberCheck": return { $: "Canonical.ReuseMemberCheck", joined_state: reuseMemberState(event.state), stale_unavailable: event.staleUnavailable, has_revision: event.hasRevision, has_advice_id: event.hasAdviceId };
     case "cleanupCheck": {
-      inputFields(event, ["kind", "facts"]);
+
       const facts = event.facts;
-      inputFields(facts, ["active", "dispatcherIdle", "noAdvice", "noNotices", "noPendingEvaluations", "noCurrentWork", "noCooldowns", "connectionCountOk", "cacheMatchesLedger"]);
-      return { $: "Canonical.CleanupCheck", facts: { $: "Retention.CleanupFacts", active: bool(facts.active), dispatcher_idle: bool(facts.dispatcherIdle), no_advice: bool(facts.noAdvice), no_notices: bool(facts.noNotices), no_pending_evaluations: bool(facts.noPendingEvaluations), no_current_work: bool(facts.noCurrentWork), no_cooldowns: bool(facts.noCooldowns), connection_count_ok: bool(facts.connectionCountOk), cache_matches_ledger: bool(facts.cacheMatchesLedger) } };
+
+      return { $: "Canonical.CleanupCheck", facts: { $: "Retention.CleanupFacts", active: facts.active, dispatcher_idle: facts.dispatcherIdle, no_advice: facts.noAdvice, no_notices: facts.noNotices, no_pending_evaluations: facts.noPendingEvaluations, no_current_work: facts.noCurrentWork, no_cooldowns: facts.noCooldowns, connection_count_ok: facts.connectionCountOk, cache_matches_ledger: facts.cacheMatchesLedger } };
     }
-    case "cleanupCommit": inputFields(event, ["kind"]); return { $: "Canonical.CleanupCommit" };
-    case "deliveryReleaseCheck": inputFields(event, ["kind", "acknowledged"]); return { $: "Canonical.DeliveryReleaseCheck", acknowledged: bool(event.acknowledged) };
-    case "deliveryAcknowledgeCheck": inputFields(event, ["kind", "items", "anyExpired"]); return { $: "Canonical.DeliveryAcknowledgeCheck", items: nat(event.items), any_expired: bool(event.anyExpired) };
-    case "deliveryFinalizeCheck": inputFields(event, ["kind", "items", "allAcknowledged", "anyExpired"]); return { $: "Canonical.DeliveryFinalizeCheck", items: nat(event.items), all_acknowledged: bool(event.allAcknowledged), any_expired: bool(event.anyExpired) };
-    case "deliveryFindingDispositionCheck": inputFields(event, ["kind", "composed", "remaining"]); return { $: "Canonical.DeliveryFindingDispositionCheck", composed: bool(event.composed), remaining: nat(event.remaining) };
+    case "cleanupCommit": return { $: "Canonical.CleanupCommit" };
+    case "deliveryReleaseCheck": return { $: "Canonical.DeliveryReleaseCheck", acknowledged: event.acknowledged };
+    case "deliveryAcknowledgeCheck": return { $: "Canonical.DeliveryAcknowledgeCheck", items: event.items, any_expired: event.anyExpired };
+    case "deliveryFinalizeCheck": return { $: "Canonical.DeliveryFinalizeCheck", items: event.items, all_acknowledged: event.allAcknowledged, any_expired: event.anyExpired };
+    case "deliveryFindingDispositionCheck": return { $: "Canonical.DeliveryFindingDispositionCheck", composed: event.composed, remaining: event.remaining };
     case "deliverySubmissionCandidateCheck": {
-      inputFields(event, ["kind", "facts"]);
+
       const facts = event.facts;
-      inputFields(facts, ["roundActive", "hasRound", "hasUnit", "hasDelivery", "pendingCapacity", "submissionAllowed", "currentWork", "credentialAuthorized"]);
+
       return { $: "Canonical.DeliverySubmissionCandidateCheck", facts: { $: "Delivery.SubmissionFacts",
-        round_active: bool(facts.roundActive), has_round: bool(facts.hasRound),
-        has_unit: bool(facts.hasUnit), has_delivery: bool(facts.hasDelivery),
-        pending_capacity: bool(facts.pendingCapacity), submission_allowed: bool(facts.submissionAllowed),
-        current_work: bool(facts.currentWork), credential_authorized: bool(facts.credentialAuthorized) } };
+        round_active: facts.roundActive, has_round: facts.hasRound,
+        has_unit: facts.hasUnit, has_delivery: facts.hasDelivery,
+        pending_capacity: facts.pendingCapacity, submission_allowed: facts.submissionAllowed,
+        current_work: facts.currentWork, credential_authorized: facts.credentialAuthorized } };
     }
-    case "deliverySubmissionBatchCheck": inputFields(event, ["kind", "count", "allValid"]); return { $: "Canonical.DeliverySubmissionBatchCheck", count: nat(event.count), all_valid: bool(event.allValid) };
-    case "deliveryCredentialObserveCheck": inputFields(event, ["kind", "invalidSeen", "generationValid", "authorized"]); return { $: "Canonical.DeliveryCredentialObserveCheck", invalid_seen: bool(event.invalidSeen), generation_valid: bool(event.generationValid), authorized: bool(event.authorized) };
-    case "deliveryFinalCredentialCheck": inputFields(event, ["kind", "sharedCollect", "invalidSeen"]); return { $: "Canonical.DeliveryFinalCredentialCheck", shared_collect: bool(event.sharedCollect), invalid_seen: bool(event.invalidSeen) };
+    case "deliverySubmissionBatchCheck": return { $: "Canonical.DeliverySubmissionBatchCheck", count: event.count, all_valid: event.allValid };
+    case "deliveryCredentialObserveCheck": return { $: "Canonical.DeliveryCredentialObserveCheck", invalid_seen: event.invalidSeen, generation_valid: event.generationValid, authorized: event.authorized };
+    case "deliveryFinalCredentialCheck": return { $: "Canonical.DeliveryFinalCredentialCheck", shared_collect: event.sharedCollect, invalid_seen: event.invalidSeen };
     case "validationRouteCheck": {
-      inputFields(event, ["kind", "ownerCurrent", "status"]);
-      if (!["current", "stale", "unavailable", "unattributed"].includes(event.status)) throw new TypeError("invalid validation status");
-      return { $: "Canonical.ValidationRouteCheck", owner_current: bool(event.ownerCurrent),
+      return { $: "Canonical.ValidationRouteCheck", owner_current: event.ownerCurrent,
         status: { $: `Handoff.${event.status.slice(0, 1).toUpperCase()}${event.status.slice(1)}` } };
     }
-    case "postValidationCheck": inputFields(event, ["kind", "workAccepted", "expired", "hasFitting"]); return { $: "Canonical.PostValidationCheck", work_accepted: bool(event.workAccepted), expired: bool(event.expired), has_fitting: bool(event.hasFitting) };
-    case "finalCandidateCheck": inputFields(event, ["kind", "ownerCurrent", "credentialGeneration", "credentialAuthorized", "expired", "workCurrent", "hasFindings"]); return { $: "Canonical.FinalCandidateCheck", owner_current: bool(event.ownerCurrent), credential_generation: bool(event.credentialGeneration), credential_authorized: bool(event.credentialAuthorized), expired: bool(event.expired), work_current: bool(event.workCurrent), has_findings: bool(event.hasFindings) };
-    case "roundBeginStopCheck": inputFields(event, ["kind", "active", "hasStop", "token"]); return { $: "Canonical.RoundBeginStopCheck", active: bool(event.active), has_stop: bool(event.hasStop), token: nat(event.token, true) };
-    case "roundActivityCheck": inputFields(event, ["kind", "bound", "hasAdmission", "round", "active", "closedAt", "expectedGeneration"]); return { $: "Canonical.RoundActivityCheck", bound: bool(event.bound), has_admission: bool(event.hasAdmission), round: nat(event.round), active: bool(event.active), closed_at: nat(event.closedAt), expected_generation: nat(event.expectedGeneration) };
-    case "roundBarrierCheck": inputFields(event, ["kind", "hasStop", "usedAtStart", "usedNow"]); return { $: "Canonical.RoundBarrierCheck", has_stop: bool(event.hasStop), used_at_start: nat(event.usedAtStart), used_now: nat(event.usedNow) };
-    case "roundOwnsStopCheck": inputFields(event, ["kind", "active", "tokenMatches", "deciding"]); return { $: "Canonical.RoundOwnsStopCheck", active: bool(event.active), token_matches: bool(event.tokenMatches), deciding: bool(event.deciding) };
-    case "roundStopTerminalCheck": inputFields(event, ["kind", "hasOutput", "authorized", "requestedClose"]); return { $: "Canonical.RoundStopTerminalCheck", has_output: bool(event.hasOutput), authorized: bool(event.authorized), requested_close: bool(event.requestedClose) };
-    case "roundExpireCloseCheck": inputFields(event, ["kind", "barrier", "authorizedOutput"]); return { $: "Canonical.RoundExpireCloseCheck", barrier: bool(event.barrier), authorized_output: bool(event.authorizedOutput) };
-    case "roundContinuationBudgetCheck": inputFields(event, ["kind", "active", "count"]); return { $: "Canonical.RoundContinuationBudgetCheck", active: bool(event.active), count: nat(event.count) };
-    case "deliverySubmissionAllowedCheck": inputFields(event, ["kind", "active", "barrier", "deciding", "surface", "existingToken", "finishPermit"]); return { $: "Canonical.DeliverySubmissionAllowedCheck", active: bool(event.active), barrier: bool(event.barrier), deciding: bool(event.deciding), surface: deliverySurface(event.surface), existing_token: bool(event.existingToken), finish_permit: bool(event.finishPermit) };
-    case "deliveryExistingTokenCheck": inputFields(event, ["kind", "surface", "existingToken", "finishPermit"]); return { $: "Canonical.DeliveryExistingTokenCheck", surface: deliverySurface(event.surface), existing_token: bool(event.existingToken), finish_permit: bool(event.finishPermit) };
-    case "deliveryUnreservedStopCheck": inputFields(event, ["kind", "active", "deciding"]); return { $: "Canonical.DeliveryUnreservedStopCheck", active: bool(event.active), deciding: bool(event.deciding) };
-    case "includeLayerCheck": inputFields(event, ["kind", "supplied", "currentRank", "candidateRank"]); return { $: "Canonical.IncludeLayerCheck", supplied: bool(event.supplied), current_rank: nat(event.currentRank), candidate_rank: nat(event.candidateRank) };
-    case "fileSelectionCheck": inputFields(event, ["kind", "protected", "excluded", "includesEmpty", "included"]); return { $: "Canonical.FileSelectionCheck", protected: bool(event.protected), excluded: bool(event.excluded), includes_empty: bool(event.includesEmpty), included: bool(event.included) };
-    case "fileProtectionInvalid": inputFields(event, ["kind"]); return { $: "Canonical.FileProtectionInvalid" };
-    case "fileProtectionCheck": inputFields(event, ["kind", "sensitiveName", "generatedOrVendor", "allowedExtension"]); return { $: "Canonical.FileProtectionCheck", sensitive_name: bool(event.sensitiveName), generated_or_vendor: bool(event.generatedOrVendor), allowed_extension: bool(event.allowedExtension) };
-    case "candidateFileCheck": inputFields(event, ["kind", "gitAdmin", "physicalSafe", "gitAllowed"]); return { $: "Canonical.CandidateFileCheck", git_admin: bool(event.gitAdmin), physical_safe: bool(event.physicalSafe), git_allowed: bool(event.gitAllowed) };
-    case "reviewAdmissionCheck": inputFields(event, ["kind", "rootValid", "configurationValid", "credentialReady", "selected"]); return { $: "Canonical.ReviewAdmissionCheck", root_valid: bool(event.rootValid), configuration_valid: bool(event.configurationValid), credential_ready: bool(event.credentialReady), selected: bool(event.selected) };
-    case "ruleEnableCheck": inputFields(event, ["kind", "packEnabled", "ruleEnabled"]); return { $: "Canonical.RuleEnableCheck", pack_enabled: bool(event.packEnabled), rule_enabled: bool(event.ruleEnabled) };
+    case "postValidationCheck": return { $: "Canonical.PostValidationCheck", work_accepted: event.workAccepted, expired: event.expired, has_fitting: event.hasFitting };
+    case "finalCandidateCheck": return { $: "Canonical.FinalCandidateCheck", owner_current: event.ownerCurrent, credential_generation: event.credentialGeneration, credential_authorized: event.credentialAuthorized, expired: event.expired, work_current: event.workCurrent, has_findings: event.hasFindings };
+    case "roundBeginStopCheck": return { $: "Canonical.RoundBeginStopCheck", active: event.active, has_stop: event.hasStop, token: event.token };
+    case "roundActivityCheck": return { $: "Canonical.RoundActivityCheck", bound: event.bound, has_admission: event.hasAdmission, round: event.round, active: event.active, closed_at: event.closedAt, expected_generation: event.expectedGeneration };
+    case "roundBarrierCheck": return { $: "Canonical.RoundBarrierCheck", has_stop: event.hasStop, used_at_start: event.usedAtStart, used_now: event.usedNow };
+    case "roundOwnsStopCheck": return { $: "Canonical.RoundOwnsStopCheck", active: event.active, token_matches: event.tokenMatches, deciding: event.deciding };
+    case "roundStopTerminalCheck": return { $: "Canonical.RoundStopTerminalCheck", has_output: event.hasOutput, authorized: event.authorized, requested_close: event.requestedClose };
+    case "roundExpireCloseCheck": return { $: "Canonical.RoundExpireCloseCheck", barrier: event.barrier, authorized_output: event.authorizedOutput };
+    case "roundContinuationBudgetCheck": return { $: "Canonical.RoundContinuationBudgetCheck", active: event.active, count: event.count };
+    case "deliverySubmissionAllowedCheck": return { $: "Canonical.DeliverySubmissionAllowedCheck", active: event.active, barrier: event.barrier, deciding: event.deciding, surface: deliverySurface(event.surface), existing_token: event.existingToken, finish_permit: event.finishPermit };
+    case "deliveryExistingTokenCheck": return { $: "Canonical.DeliveryExistingTokenCheck", surface: deliverySurface(event.surface), existing_token: event.existingToken, finish_permit: event.finishPermit };
+    case "deliveryUnreservedStopCheck": return { $: "Canonical.DeliveryUnreservedStopCheck", active: event.active, deciding: event.deciding };
+    case "includeLayerCheck": return { $: "Canonical.IncludeLayerCheck", supplied: event.supplied, current_rank: event.currentRank, candidate_rank: event.candidateRank };
+    case "fileSelectionCheck": return { $: "Canonical.FileSelectionCheck", protected: event.protected, excluded: event.excluded, includes_empty: event.includesEmpty, included: event.included };
+    case "fileProtectionInvalid": return { $: "Canonical.FileProtectionInvalid" };
+    case "fileProtectionCheck": return { $: "Canonical.FileProtectionCheck", sensitive_name: event.sensitiveName, generated_or_vendor: event.generatedOrVendor, allowed_extension: event.allowedExtension };
+    case "candidateFileCheck": return { $: "Canonical.CandidateFileCheck", git_admin: event.gitAdmin, physical_safe: event.physicalSafe, git_allowed: event.gitAllowed };
+    case "reviewAdmissionCheck": return { $: "Canonical.ReviewAdmissionCheck", root_valid: event.rootValid, configuration_valid: event.configurationValid, credential_ready: event.credentialReady, selected: event.selected };
+    case "ruleEnableCheck": return { $: "Canonical.RuleEnableCheck", pack_enabled: event.packEnabled, rule_enabled: event.ruleEnabled };
     case "ruleApplicabilityCheck": {
-      inputFields(event, ["kind", "consent", "complete", "target", "globalIncluded", "globalExcluded", "packEnabled", "ruleEnabled", "ruleIncluded", "ruleExcluded", "targetDeclared", "capabilitiesAvailable", "sourceRung", "minimumRung"]);
-      if (!["typeShape", "functionTarget", "unsupportedTarget"].includes(event.target)) throw new TypeError("invalid rule target fact");
-      return { $: "Canonical.RuleApplicabilityCheck", consent: bool(event.consent), complete: bool(event.complete), target: { $: `RulePolicy.${event.target.slice(0, 1).toUpperCase()}${event.target.slice(1)}` }, global_included: bool(event.globalIncluded), global_excluded: bool(event.globalExcluded), pack_enabled: bool(event.packEnabled), rule_enabled: bool(event.ruleEnabled), rule_included: bool(event.ruleIncluded), rule_excluded: bool(event.ruleExcluded), target_declared: bool(event.targetDeclared), capabilities_available: bool(event.capabilitiesAvailable), source_rung: nat(event.sourceRung), minimum_rung: nat(event.minimumRung) };
+      return { $: "Canonical.RuleApplicabilityCheck", consent: event.consent, complete: event.complete, target: { $: `RulePolicy.${event.target.slice(0, 1).toUpperCase()}${event.target.slice(1)}` }, global_included: event.globalIncluded, global_excluded: event.globalExcluded, pack_enabled: event.packEnabled, rule_enabled: event.ruleEnabled, rule_included: event.ruleIncluded, rule_excluded: event.ruleExcluded, target_declared: event.targetDeclared, capabilities_available: event.capabilitiesAvailable, source_rung: event.sourceRung, minimum_rung: event.minimumRung };
     }
-    case "ruleFindingCheck": inputFields(event, ["kind", "probability", "threshold"]); return { $: "Canonical.RuleFindingCheck", probability: encodedProbabilityWords(event.probability), threshold: encodedProbabilityWords(event.threshold) };
-    case "ruleRankOrderCheck": inputFields(event, ["kind", "left", "right", "leftRank", "rightRank"]); return { $: "Canonical.RuleRankOrderCheck", left: encodedProbabilityWords(event.left), right: encodedProbabilityWords(event.right), left_rank: nat(event.leftRank), right_rank: nat(event.rightRank) };
-    case "adviceOrderCheck": inputFields(event, ["kind", "left", "right", "pathOrder", "idOrder"]); return { $: "Canonical.AdviceOrderCheck", left: encodedProbabilityWords(event.left), right: encodedProbabilityWords(event.right), path_order: { $: ruleOrderTag(event.pathOrder) }, id_order: { $: ruleOrderTag(event.idOrder) } };
-    case "ruleBudgetCheck": inputFields(event, ["kind", "position", "limit"]); return { $: "Canonical.RuleBudgetCheck", position: nat(event.position), limit: nat(event.limit) };
-    case "reuseRoute": inputFields(event, ["kind", "id", "liveAdvice"]); return { $: "Canonical.ReuseRoute", id: nat(event.id, true), live_advice: bool(event.liveAdvice) };
-    case "reuseClaim": case "reuseAttach": case "reuseRelease": case "reuseTouch": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
-    case "cachePrepare": inputFields(event, ["kind", "id", "bytes", "entryLimit", "byteLimit"]); return { $: "Canonical.CachePrepare", id: nat(event.id, true), bytes: nat(event.bytes), entry_limit: nat(event.entryLimit, true), byte_limit: nat(event.byteLimit, true) };
-    case "cacheCommit": inputFields(event, ["kind", "id", "partition", "bytes", "reservation", "entryLimit", "byteLimit"]); return { $: "Canonical.CacheCommit", id: nat(event.id, true), partition: nat(event.partition, true), bytes: nat(event.bytes), reservation: nat(event.reservation, true), entry_limit: nat(event.entryLimit, true), byte_limit: nat(event.byteLimit, true) };
-    case "cacheDiscardPartition": inputFields(event, ["kind", "partition"]); return { $: "Canonical.CacheDiscardPartition", partition: nat(event.partition, true) };
-    case "cacheClear": inputFields(event, ["kind"]); return { $: "Canonical.CacheClear" };
+    case "ruleFindingCheck": return { $: "Canonical.RuleFindingCheck", probability: encodedProbabilityWords(event.probability), threshold: encodedProbabilityWords(event.threshold) };
+    case "ruleRankOrderCheck": return { $: "Canonical.RuleRankOrderCheck", left: encodedProbabilityWords(event.left), right: encodedProbabilityWords(event.right), left_rank: event.leftRank, right_rank: event.rightRank };
+    case "adviceOrderCheck": return { $: "Canonical.AdviceOrderCheck", left: encodedProbabilityWords(event.left), right: encodedProbabilityWords(event.right), path_order: { $: ruleOrderTag(event.pathOrder) }, id_order: { $: ruleOrderTag(event.idOrder) } };
+    case "ruleBudgetCheck": return { $: "Canonical.RuleBudgetCheck", position: event.position, limit: event.limit };
+    case "reuseRoute": return { $: "Canonical.ReuseRoute", id: event.id, live_advice: event.liveAdvice };
+    case "reuseClaim": case "reuseAttach": case "reuseRelease": case "reuseTouch": return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: event.id };
+    case "cachePrepare": return { $: "Canonical.CachePrepare", id: event.id, bytes: event.bytes, entry_limit: event.entryLimit, byte_limit: event.byteLimit };
+    case "cacheCommit": return { $: "Canonical.CacheCommit", id: event.id, partition: event.partition, bytes: event.bytes, reservation: event.reservation, entry_limit: event.entryLimit, byte_limit: event.byteLimit };
+    case "cacheDiscardPartition": return { $: "Canonical.CacheDiscardPartition", partition: event.partition };
+    case "cacheClear": return { $: "Canonical.CacheClear" };
     case "noticeAdvance": {
-      inputFields(event, event.remaining === undefined ? ["kind", "key", "maximumKeys", "proposed", "sequence", "maxCount"] : ["kind", "key", "remaining", "maximumKeys", "proposed", "sequence", "maxCount"]);
-      return { $: "Canonical.NoticeAdvance", key: nat(event.key, true), remaining: event.remaining === undefined ? { $: "None" } : { $: "Some", value: nat(event.remaining) }, maximum_keys: nat(event.maximumKeys, true), proposed: nat(event.proposed, true), sequence: nat(event.sequence, true), max_count: nat(event.maxCount, true) };
+
+      return { $: "Canonical.NoticeAdvance", key: event.key, remaining: event.remaining === undefined ? { $: "None" } : { $: "Some", value: event.remaining }, maximum_keys: event.maximumKeys, proposed: event.proposed, sequence: event.sequence, max_count: event.maxCount };
     }
-    case "noticeCommit": inputFields(event, ["kind", "key", "partition", "group", "reservation", "pending", "sequence", "maximumKeys"]); return { $: "Canonical.NoticeCommit", key: nat(event.key, true), partition: nat(event.partition, true), group: nat(event.group, true), reservation: nat(event.reservation, true), pending: nat(event.pending, true), sequence: nat(event.sequence, true), maximum_keys: nat(event.maximumKeys, true) };
-    case "noticePrune": inputFields(event, ["kind", "key", "leaseExpired", "pendingExpired", "excepted", "cooldownExpired"]); return { $: "Canonical.NoticePrune", key: nat(event.key, true), lease_expired: bool(event.leaseExpired), pending_expired: bool(event.pendingExpired), excepted: bool(event.excepted), cooldown_expired: bool(event.cooldownExpired) };
-    case "noticeDrop": case "noticeClearPending": inputFields(event, ["kind", "key"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, key: nat(event.key, true) };
-    case "noticeLease": inputFields(event, ["kind", "key", "leased"]); return { $: "Canonical.NoticeLease", key: nat(event.key, true), leased: bool(event.leased) };
-    case "noticeSelect": inputFields(event, ["kind", "partition", "group", "composed", "authorityBound", "allowed"]); return { $: "Canonical.NoticeSelect", partition: nat(event.partition, true), group: nat(event.group, true), composed: bool(event.composed), authority_bound: bool(event.authorityBound), allowed: list(event.allowed) };
-    case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
+    case "noticeCommit": return { $: "Canonical.NoticeCommit", key: event.key, partition: event.partition, group: event.group, reservation: event.reservation, pending: event.pending, sequence: event.sequence, maximum_keys: event.maximumKeys };
+    case "noticePrune": return { $: "Canonical.NoticePrune", key: event.key, lease_expired: event.leaseExpired, pending_expired: event.pendingExpired, excepted: event.excepted, cooldown_expired: event.cooldownExpired };
+    case "noticeDrop": case "noticeClearPending": return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, key: event.key };
+    case "noticeLease": return { $: "Canonical.NoticeLease", key: event.key, leased: event.leased };
+    case "noticeSelect": return { $: "Canonical.NoticeSelect", partition: event.partition, group: event.group, composed: event.composed, authority_bound: event.authorityBound, allowed: list(event.allowed) };
+    case "outputStarted": return { $: "Canonical.OutputStarted", ...identity(event), round: event.round };
     case "outputTerminal": {
-      inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
+
       const outcome = { acknowledged: "Canonical.Acknowledged", failed: "Canonical.Failed", unknown: "Canonical.Unknown" }[event.outcome];
-      if (!outcome) throw new TypeError("invalid write outcome");
-      return { $: "Canonical.OutputTerminal", ...identity(event), round: nat(event.round, true), operation: nat(event.operation, true), outcome: { $: outcome } };
+      return { $: "Canonical.OutputTerminal", ...identity(event), round: event.round, operation: event.operation, outcome: { $: outcome } };
     }
-    case "retirePartition": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.RetirePartition", ...identity(event), round: nat(event.round, true) };
+    case "retirePartition": return { $: "Canonical.RetirePartition", ...identity(event), round: event.round };
     default: throw new TypeError("unknown canonical event");
   }
 };
 const outcome = (value: unknown): "finding" | "clear" | "unavailable" | "interrupted" | "discarded" => {
   const name = tag(value);
+  decodeCanonicalConstructor(value, name);
   if (name === "Canonical.Finding") return "finding";
   if (name === "Canonical.Clear") return "clear";
   if (name === "Canonical.Unavailable") return "unavailable";
@@ -592,6 +312,7 @@ const outcome = (value: unknown): "finding" | "clear" | "unavailable" | "interru
 };
 const writeOutcome = (value: unknown): "acknowledged" | "failed" | "unknown" => {
   const name = tag(value);
+  decodeCanonicalConstructor(value, name);
   if (name === "Canonical.Acknowledged") return "acknowledged";
   if (name === "Canonical.Failed") return "failed";
   if (name === "Canonical.Unknown") return "unknown";
@@ -604,17 +325,13 @@ const decodeCollectorReason = (value: unknown): CollectorReason => {
     "CollectorAuthority.Stale": "stale", "CollectorAuthority.Lost": "lost", "CollectorAuthority.Expired": "expired" };
   const reason = reasons[name];
   if (reason === undefined) throw new TypeError("unknown collector reason");
-  fields(value, name, []);
+  decodeCanonicalConstructor(value, name);
   return reason;
 };
-export type CapacityRefusal = "globalItems" | "globalBytes" | "partitionItems" | "partitionBytes";
-export type CapacityView = {
-  readonly global: { readonly items: number; readonly bytes: number };
-  readonly local: { readonly items: number; readonly bytes: number };
-  readonly charges: readonly CapacityCharge[];
-};
-export type CapacityPurpose = "observationDispatch" | "preparation" | "reviewUnit" | "storedResult" | "operationalNotice" | "adviceRecheck";
-export type CapacityCharge = { readonly id: number; readonly partition: number; readonly bytes: number; readonly purpose: CapacityPurpose };
+
+
+
+
 const purpose = (value: unknown): CapacityPurpose => {
   const names: Record<string, CapacityPurpose> = {
     "Ledger.ObservationDispatch": "observationDispatch", "Ledger.Preparation": "preparation",
@@ -624,19 +341,19 @@ const purpose = (value: unknown): CapacityPurpose => {
   const name = tag(value);
   const result = names[name];
   if (!result) throw new TypeError("unknown capacity purpose");
-  fields(value, name, []);
+  decodeCanonicalConstructor(value, name);
   return result;
 };
 const charge = (value: unknown): CapacityCharge => {
-  const x = fields(value, "Ledger.Charge", ["id", "partition", "bytes", "purpose"]);
+  const x = decodeCanonicalConstructor(value, "Ledger.Charge");
   return { id: nat(x.id, true), partition: nat(x.partition, true), bytes: nat(x.bytes), purpose: purpose(x.purpose) };
 };
 const usage = (value: unknown): { readonly items: number; readonly bytes: number } => {
-  const x = fields(value, "Ledger.Usage", ["items", "bytes"]);
+  const x = decodeCanonicalConstructor(value, "Ledger.Usage");
   return { items: nat(x.items), bytes: nat(x.bytes) };
 };
 const capacityView = (value: unknown): CapacityView => {
-  const x = fields(value, "Canonical.CapacityView", ["global", "local", "charges"]);
+  const x = decodeCanonicalConstructor(value, "Canonical.CapacityView");
   const charges = readList(x.charges, charge);
   const global = usage(x.global);
   const local = usage(x.local);
@@ -651,71 +368,71 @@ const capacityRefusal = (value: unknown): CapacityRefusal => {
   };
   const reason = reasons[tag(value)];
   if (!reason) throw new TypeError("unknown capacity refusal");
-  fields(value, tag(value), []);
+  decodeCanonicalConstructor(value, tag(value));
   return reason;
 };
 const decodeCommand = (value: unknown): CanonicalCommand => {
   switch (tag(value)) {
-    case "Canonical.CapacityGranted": { const x = fields(value, "Canonical.CapacityGranted", ["id", "after"]); return { kind: "capacityGranted", id: nat(x.id, true), after: capacityView(x.after) }; }
-    case "Canonical.CapacityRefused": { const x = fields(value, "Canonical.CapacityRefused", ["reason", "after"]); return { kind: "capacityRefused", reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
-    case "Canonical.CapacityResized": { const x = fields(value, "Canonical.CapacityResized", ["id", "after"]); return { kind: "capacityResized", id: nat(x.id, true), after: capacityView(x.after) }; }
-    case "Canonical.CapacityUnitAdmitted": { const x = fields(value, "Canonical.CapacityUnitAdmitted", ["reservation", "position", "bytes", "after"]); return { kind: "capacityUnitAdmitted", reservation: nat(x.reservation, true), position: nat(x.position, true), bytes: bytes(x.bytes), after: capacityView(x.after) }; }
-    case "Canonical.CapacityUnitRefused": { const x = fields(value, "Canonical.CapacityUnitRefused", ["position", "bytes", "reason", "after"]); return { kind: "capacityUnitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
-    case "Canonical.PermitIssued": { const x = fields(value, "Canonical.PermitIssued", ["token", "round"]); return { kind: "permitIssued", token: nat(x.token, true), round: nat(x.round, true) }; }
-    case "Canonical.CompletedEditAbsent": fields(value, "Canonical.CompletedEditAbsent", []); return { kind: "completedEditAbsent" };
-    case "Canonical.CompletedEditSeen": { const x = fields(value, "Canonical.CompletedEditSeen", ["reason", "report"]); return { kind: "completedEditSeen", reason: decodeCompletedEditReason(x.reason), report: bool(x.report) }; }
-    case "Canonical.CompletedEditRemembered": { const x = fields(value, "Canonical.CompletedEditRemembered", ["evicted"]); const evicted = tag(x.evicted) === "Some" ? nat(fields(x.evicted, "Some", ["value"]).value, true) : undefined; if (evicted === undefined) fields(x.evicted, "None", []); return { kind: "completedEditRemembered", ...(evicted === undefined ? {} : { evicted }) }; }
-    case "Canonical.QuietRoundBusy": fields(value, "Canonical.QuietRoundBusy", []); return { kind: "quietRoundBusy" };
-    case "Canonical.QuietRoundResetRecorded": fields(value, "Canonical.QuietRoundResetRecorded", []); return { kind: "quietRoundResetRecorded" };
-    case "Canonical.QuietRoundWaiting": return { kind: "quietRoundWaiting", since: nat(fields(value, "Canonical.QuietRoundWaiting", ["since"]).since) };
-    case "Canonical.QuietRoundExpired": return { kind: "quietRoundExpired", since: nat(fields(value, "Canonical.QuietRoundExpired", ["since"]).since) };
-    case "Canonical.PermitConsumed": return { kind: "permitConsumed", round: nat(fields(value, "Canonical.PermitConsumed", ["round"]).round, true) };
-    case "Canonical.PermitReleased": fields(value, "Canonical.PermitReleased", []); return { kind: "permitReleased" };
-    case "Canonical.PermitExpired": fields(value, "Canonical.PermitExpired", []); return { kind: "permitExpired" };
-    case "Canonical.PermitKept": fields(value, "Canonical.PermitKept", []); return { kind: "permitKept" };
-    case "Canonical.PermitRoundClosed": return { kind: "permitRoundClosed", round: nat(fields(value, "Canonical.PermitRoundClosed", ["round"]).round, true) };
-    case "Canonical.RoundStarted": return { kind: "roundStarted", id: nat(fields(value, "Canonical.RoundStarted", ["id"]).id, true) };
-    case "Canonical.ObservationAdmitted": return { kind: "observationAdmitted", id: nat(fields(value, "Canonical.ObservationAdmitted", ["id"]).id, true) };
-    case "Canonical.ObservationStarted": fields(value, "Canonical.ObservationStarted", []); return { kind: "observationStarted" };
-    case "Canonical.ObservationCompleted": fields(value, "Canonical.ObservationCompleted", []); return { kind: "observationCompleted" };
-    case "Canonical.ObservationInterrupted": fields(value, "Canonical.ObservationInterrupted", []); return { kind: "observationInterrupted" };
-    case "Canonical.Prepare": { const x = fields(value, "Canonical.Prepare", ["operation", "reservation"]); return { kind: "prepare", operation: nat(x.operation, true), reservation: nat(x.reservation, true) }; }
-    case "Canonical.PreparationRefused": fields(value, "Canonical.PreparationRefused", []); return { kind: "preparationRefused" };
-    case "Canonical.UnitAdmitted": { const x = fields(value, "Canonical.UnitAdmitted", ["operation", "reservation", "position", "bytes", "after"]); return { kind: "unitAdmitted", operation: nat(x.operation, true), reservation: nat(x.reservation, true), position: nat(x.position, true), bytes: bytes(x.bytes), after: capacityView(x.after) }; }
-    case "Canonical.UnitRefused": { const x = fields(value, "Canonical.UnitRefused", ["position", "bytes", "reason", "after"]); return { kind: "unitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
-    case "Canonical.PreparationReleased": { const x = fields(value, "Canonical.PreparationReleased", ["id", "after"]); return { kind: "preparationReleased", id: nat(x.id, true), after: capacityView(x.after) }; }
-    case "Canonical.ReviewStarted": fields(value, "Canonical.ReviewStarted", []); return { kind: "reviewStarted" };
-    case "Canonical.JevRequestIssued": { const x = fields(value, "Canonical.JevRequestIssued", ["partition", "lifetime", "round", "operation", "request"]); return { kind: "jevRequestIssued", partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true), operation: nat(x.operation, true), request: nat(x.request, true) }; }
-    case "Canonical.JevRequestUnavailable": fields(value, "Canonical.JevRequestUnavailable", []); return { kind: "jevRequestUnavailable" };
-    case "Canonical.JevRequestStartRecorded": fields(value, "Canonical.JevRequestStartRecorded", []); return { kind: "jevRequestStartRecorded" };
-    case "Canonical.JevInterruptionRecorded": fields(value, "Canonical.JevInterruptionRecorded", []); return { kind: "jevInterruptionRecorded" };
-    case "Canonical.JevObservationIgnored": fields(value, "Canonical.JevObservationIgnored", []); return { kind: "jevObservationIgnored" };
-    case "Canonical.JevRequestOutcomeRecorded": return { kind: "jevRequestOutcomeRecorded", outcome: decodeJevRequestOutcome(fields(value, "Canonical.JevRequestOutcomeRecorded", ["outcome"]).outcome) };
-    case "Canonical.ReservationReleased": return { kind: "reservationReleased", id: nat(fields(value, "Canonical.ReservationReleased", ["id"]).id, true) };
-    case "Canonical.ReviewRecorded": return { kind: "reviewRecorded", outcome: outcome(fields(value, "Canonical.ReviewRecorded", ["outcome"]).outcome) };
-    case "Canonical.RetainFinding": fields(value, "Canonical.RetainFinding", []); return { kind: "retainFinding" };
-    case "Canonical.FindingCountRecorded": fields(value, "Canonical.FindingCountRecorded", []); return { kind: "findingCountRecorded" };
-    case "Canonical.SettleClear": fields(value, "Canonical.SettleClear", []); return { kind: "settleClear" };
-    case "Canonical.SettleStaleClear": fields(value, "Canonical.SettleStaleClear", []); return { kind: "settleStaleClear" };
-    case "Canonical.RetireStaleFinding": fields(value, "Canonical.RetireStaleFinding", []); return { kind: "retireStaleFinding" };
-    case "Canonical.PreparedSkipped": fields(value, "Canonical.PreparedSkipped", []); return { kind: "preparedSkipped" };
-    case "Canonical.PreparedAdmitted": fields(value, "Canonical.PreparedAdmitted", []); return { kind: "preparedAdmitted" };
-    case "Canonical.PreparedCapacityRefused": fields(value, "Canonical.PreparedCapacityRefused", []); return { kind: "preparedCapacityRefused" };
-    case "Canonical.EmptyLost": fields(value, "Canonical.EmptyLost", []); return { kind: "emptyLost" };
-    case "Canonical.EmptyAccepted": fields(value, "Canonical.EmptyAccepted", []); return { kind: "emptyAccepted" };
-    case "Canonical.FailureBackend": fields(value, "Canonical.FailureBackend", []); return { kind: "failureBackend" };
-    case "Canonical.FailureCredential": fields(value, "Canonical.FailureCredential", []); return { kind: "failureCredential" };
-    case "Canonical.FailureLost": fields(value, "Canonical.FailureLost", []); return { kind: "failureLost" };
-    case "Canonical.FailureNone": fields(value, "Canonical.FailureNone", []); return { kind: "failureNone" };
-    case "Canonical.DispatchStarted": { const x = fields(value, "Canonical.DispatchStarted", ["operation", "sequence"]); return { kind: "dispatchStarted", operation: nat(x.operation, true), sequence: nat(x.sequence) }; }
-    case "Canonical.DispatchDiscarded": { const x = fields(value, "Canonical.DispatchDiscarded", ["operation", "running"]); return { kind: "dispatchDiscarded", operation: nat(x.operation, true), running: bool(x.running) }; }
-    case "Canonical.DiscardNamedOnly": fields(value, "Canonical.DiscardNamedOnly", []); return { kind: "discardNamedOnly" };
-    case "Canonical.DiscardAllUnfinished": fields(value, "Canonical.DiscardAllUnfinished", []); return { kind: "discardAllUnfinished" };
-    case "Canonical.WaitForWork": fields(value, "Canonical.WaitForWork", []); return { kind: "waitForWork" };
-    case "Canonical.CancelWork": return { kind: "cancelWork", operation: nat(fields(value, "Canonical.CancelWork", ["operation"]).operation, true) };
-    case "Canonical.FinishReady": fields(value, "Canonical.FinishReady", []); return { kind: "finishReady" };
-    case "Canonical.FinishLimit": fields(value, "Canonical.FinishLimit", []); return { kind: "finishLimit" };
-    case "Canonical.StopEnded": fields(value, "Canonical.StopEnded", []); return { kind: "stopEnded" };
+    case "Canonical.CapacityGranted": { const x = decodeCanonicalConstructor(value, "Canonical.CapacityGranted"); return { kind: "capacityGranted", id: nat(x.id, true), after: capacityView(x.after) }; }
+    case "Canonical.CapacityRefused": { const x = decodeCanonicalConstructor(value, "Canonical.CapacityRefused"); return { kind: "capacityRefused", reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
+    case "Canonical.CapacityResized": { const x = decodeCanonicalConstructor(value, "Canonical.CapacityResized"); return { kind: "capacityResized", id: nat(x.id, true), after: capacityView(x.after) }; }
+    case "Canonical.CapacityUnitAdmitted": { const x = decodeCanonicalConstructor(value, "Canonical.CapacityUnitAdmitted"); return { kind: "capacityUnitAdmitted", reservation: nat(x.reservation, true), position: nat(x.position, true), bytes: bytes(x.bytes), after: capacityView(x.after) }; }
+    case "Canonical.CapacityUnitRefused": { const x = decodeCanonicalConstructor(value, "Canonical.CapacityUnitRefused"); return { kind: "capacityUnitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
+    case "Canonical.PermitIssued": { const x = decodeCanonicalConstructor(value, "Canonical.PermitIssued"); return { kind: "permitIssued", token: nat(x.token, true), round: nat(x.round, true) }; }
+    case "Canonical.CompletedEditAbsent": decodeCanonicalConstructor(value, "Canonical.CompletedEditAbsent"); return { kind: "completedEditAbsent" };
+    case "Canonical.CompletedEditSeen": { const x = decodeCanonicalConstructor(value, "Canonical.CompletedEditSeen"); return { kind: "completedEditSeen", reason: decodeCompletedEditReason(x.reason), report: bool(x.report) }; }
+    case "Canonical.CompletedEditRemembered": { const x = decodeCanonicalConstructor(value, "Canonical.CompletedEditRemembered"); const evicted = tag(x.evicted) === "Some" ? nat(decodeCanonicalConstructor(x.evicted, "Some").value, true) : undefined; if (evicted === undefined) decodeCanonicalConstructor(x.evicted, "None"); return { kind: "completedEditRemembered", ...(evicted === undefined ? {} : { evicted }) }; }
+    case "Canonical.QuietRoundBusy": decodeCanonicalConstructor(value, "Canonical.QuietRoundBusy"); return { kind: "quietRoundBusy" };
+    case "Canonical.QuietRoundResetRecorded": decodeCanonicalConstructor(value, "Canonical.QuietRoundResetRecorded"); return { kind: "quietRoundResetRecorded" };
+    case "Canonical.QuietRoundWaiting": return { kind: "quietRoundWaiting", since: nat(decodeCanonicalConstructor(value, "Canonical.QuietRoundWaiting").since) };
+    case "Canonical.QuietRoundExpired": return { kind: "quietRoundExpired", since: nat(decodeCanonicalConstructor(value, "Canonical.QuietRoundExpired").since) };
+    case "Canonical.PermitConsumed": return { kind: "permitConsumed", round: nat(decodeCanonicalConstructor(value, "Canonical.PermitConsumed").round, true) };
+    case "Canonical.PermitReleased": decodeCanonicalConstructor(value, "Canonical.PermitReleased"); return { kind: "permitReleased" };
+    case "Canonical.PermitExpired": decodeCanonicalConstructor(value, "Canonical.PermitExpired"); return { kind: "permitExpired" };
+    case "Canonical.PermitKept": decodeCanonicalConstructor(value, "Canonical.PermitKept"); return { kind: "permitKept" };
+    case "Canonical.PermitRoundClosed": return { kind: "permitRoundClosed", round: nat(decodeCanonicalConstructor(value, "Canonical.PermitRoundClosed").round, true) };
+    case "Canonical.RoundStarted": return { kind: "roundStarted", id: nat(decodeCanonicalConstructor(value, "Canonical.RoundStarted").id, true) };
+    case "Canonical.ObservationAdmitted": return { kind: "observationAdmitted", id: nat(decodeCanonicalConstructor(value, "Canonical.ObservationAdmitted").id, true) };
+    case "Canonical.ObservationStarted": decodeCanonicalConstructor(value, "Canonical.ObservationStarted"); return { kind: "observationStarted" };
+    case "Canonical.ObservationCompleted": decodeCanonicalConstructor(value, "Canonical.ObservationCompleted"); return { kind: "observationCompleted" };
+    case "Canonical.ObservationInterrupted": decodeCanonicalConstructor(value, "Canonical.ObservationInterrupted"); return { kind: "observationInterrupted" };
+    case "Canonical.Prepare": { const x = decodeCanonicalConstructor(value, "Canonical.Prepare"); return { kind: "prepare", operation: nat(x.operation, true), reservation: nat(x.reservation, true) }; }
+    case "Canonical.PreparationRefused": decodeCanonicalConstructor(value, "Canonical.PreparationRefused"); return { kind: "preparationRefused" };
+    case "Canonical.UnitAdmitted": { const x = decodeCanonicalConstructor(value, "Canonical.UnitAdmitted"); return { kind: "unitAdmitted", operation: nat(x.operation, true), reservation: nat(x.reservation, true), position: nat(x.position, true), bytes: bytes(x.bytes), after: capacityView(x.after) }; }
+    case "Canonical.UnitRefused": { const x = decodeCanonicalConstructor(value, "Canonical.UnitRefused"); return { kind: "unitRefused", position: nat(x.position, true), bytes: bytes(x.bytes), reason: capacityRefusal(x.reason), after: capacityView(x.after) }; }
+    case "Canonical.PreparationReleased": { const x = decodeCanonicalConstructor(value, "Canonical.PreparationReleased"); return { kind: "preparationReleased", id: nat(x.id, true), after: capacityView(x.after) }; }
+    case "Canonical.ReviewStarted": decodeCanonicalConstructor(value, "Canonical.ReviewStarted"); return { kind: "reviewStarted" };
+    case "Canonical.JevRequestIssued": { const x = decodeCanonicalConstructor(value, "Canonical.JevRequestIssued"); return { kind: "jevRequestIssued", partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true), operation: nat(x.operation, true), request: nat(x.request, true) }; }
+    case "Canonical.JevRequestUnavailable": decodeCanonicalConstructor(value, "Canonical.JevRequestUnavailable"); return { kind: "jevRequestUnavailable" };
+    case "Canonical.JevRequestStartRecorded": decodeCanonicalConstructor(value, "Canonical.JevRequestStartRecorded"); return { kind: "jevRequestStartRecorded" };
+    case "Canonical.JevInterruptionRecorded": decodeCanonicalConstructor(value, "Canonical.JevInterruptionRecorded"); return { kind: "jevInterruptionRecorded" };
+    case "Canonical.JevObservationIgnored": decodeCanonicalConstructor(value, "Canonical.JevObservationIgnored"); return { kind: "jevObservationIgnored" };
+    case "Canonical.JevRequestOutcomeRecorded": return { kind: "jevRequestOutcomeRecorded", outcome: decodeJevRequestOutcome(decodeCanonicalConstructor(value, "Canonical.JevRequestOutcomeRecorded").outcome) };
+    case "Canonical.ReservationReleased": return { kind: "reservationReleased", id: nat(decodeCanonicalConstructor(value, "Canonical.ReservationReleased").id, true) };
+    case "Canonical.ReviewRecorded": return { kind: "reviewRecorded", outcome: outcome(decodeCanonicalConstructor(value, "Canonical.ReviewRecorded").outcome) };
+    case "Canonical.RetainFinding": decodeCanonicalConstructor(value, "Canonical.RetainFinding"); return { kind: "retainFinding" };
+    case "Canonical.FindingCountRecorded": decodeCanonicalConstructor(value, "Canonical.FindingCountRecorded"); return { kind: "findingCountRecorded" };
+    case "Canonical.SettleClear": decodeCanonicalConstructor(value, "Canonical.SettleClear"); return { kind: "settleClear" };
+    case "Canonical.SettleStaleClear": decodeCanonicalConstructor(value, "Canonical.SettleStaleClear"); return { kind: "settleStaleClear" };
+    case "Canonical.RetireStaleFinding": decodeCanonicalConstructor(value, "Canonical.RetireStaleFinding"); return { kind: "retireStaleFinding" };
+    case "Canonical.PreparedSkipped": decodeCanonicalConstructor(value, "Canonical.PreparedSkipped"); return { kind: "preparedSkipped" };
+    case "Canonical.PreparedAdmitted": decodeCanonicalConstructor(value, "Canonical.PreparedAdmitted"); return { kind: "preparedAdmitted" };
+    case "Canonical.PreparedCapacityRefused": decodeCanonicalConstructor(value, "Canonical.PreparedCapacityRefused"); return { kind: "preparedCapacityRefused" };
+    case "Canonical.EmptyLost": decodeCanonicalConstructor(value, "Canonical.EmptyLost"); return { kind: "emptyLost" };
+    case "Canonical.EmptyAccepted": decodeCanonicalConstructor(value, "Canonical.EmptyAccepted"); return { kind: "emptyAccepted" };
+    case "Canonical.FailureBackend": decodeCanonicalConstructor(value, "Canonical.FailureBackend"); return { kind: "failureBackend" };
+    case "Canonical.FailureCredential": decodeCanonicalConstructor(value, "Canonical.FailureCredential"); return { kind: "failureCredential" };
+    case "Canonical.FailureLost": decodeCanonicalConstructor(value, "Canonical.FailureLost"); return { kind: "failureLost" };
+    case "Canonical.FailureNone": decodeCanonicalConstructor(value, "Canonical.FailureNone"); return { kind: "failureNone" };
+    case "Canonical.DispatchStarted": { const x = decodeCanonicalConstructor(value, "Canonical.DispatchStarted"); return { kind: "dispatchStarted", operation: nat(x.operation, true), sequence: nat(x.sequence) }; }
+    case "Canonical.DispatchDiscarded": { const x = decodeCanonicalConstructor(value, "Canonical.DispatchDiscarded"); return { kind: "dispatchDiscarded", operation: nat(x.operation, true), running: bool(x.running) }; }
+    case "Canonical.DiscardNamedOnly": decodeCanonicalConstructor(value, "Canonical.DiscardNamedOnly"); return { kind: "discardNamedOnly" };
+    case "Canonical.DiscardAllUnfinished": decodeCanonicalConstructor(value, "Canonical.DiscardAllUnfinished"); return { kind: "discardAllUnfinished" };
+    case "Canonical.WaitForWork": decodeCanonicalConstructor(value, "Canonical.WaitForWork"); return { kind: "waitForWork" };
+    case "Canonical.CancelWork": return { kind: "cancelWork", operation: nat(decodeCanonicalConstructor(value, "Canonical.CancelWork").operation, true) };
+    case "Canonical.FinishReady": decodeCanonicalConstructor(value, "Canonical.FinishReady"); return { kind: "finishReady" };
+    case "Canonical.FinishLimit": decodeCanonicalConstructor(value, "Canonical.FinishLimit"); return { kind: "finishLimit" };
+    case "Canonical.StopEnded": decodeCanonicalConstructor(value, "Canonical.StopEnded"); return { kind: "stopEnded" };
     case "Canonical.CollectionEligible": case "Canonical.CollectionWaiting":
     case "Canonical.CollectionRetireCredential": case "Canonical.CollectionRetainCredential":
     case "Canonical.CollectionCandidate": case "Canonical.CollectionSkip":
@@ -730,7 +447,7 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.CollectionBackgroundClaimed": case "Canonical.CollectionBackgroundRefused":
     case "Canonical.CollectionBackgroundReleased": case "Canonical.CollectionBackgroundKept": {
       const name = tag(value);
-      fields(value, name, []);
+      decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Extract<CanonicalCommand, { kind: `collection${string}` }>["kind"] };
     }
     case "Canonical.FinishReserved": case "Canonical.FinishNotices":
@@ -740,13 +457,13 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.FinishEnded": case "Canonical.ContinuationConsumed":
     case "Canonical.ContinuationRefused": {
       const name = tag(value);
-      fields(value, name, []);
+      decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as
         "finishReserved" | "finishNotices" | "finishAllowedNoAdvice" | "finishAllowedDeadline" |
         "finishAllowedUnavailable" | "finishRefused" | "finishReleased" | "finishAuthorized" |
         "finishEnded" | "continuationConsumed" | "continuationRefused" };
     }
-    case "Canonical.FinishRecorded": return { kind: "finishRecorded", outcome: writeOutcome(fields(value, "Canonical.FinishRecorded", ["outcome"]).outcome) };
+    case "Canonical.FinishRecorded": return { kind: "finishRecorded", outcome: writeOutcome(decodeCanonicalConstructor(value, "Canonical.FinishRecorded").outcome) };
     case "Canonical.SubmissionBegun": case "Canonical.SubmissionAuthorized":
     case "Canonical.SubmissionRecorded": case "Canonical.SubmissionReleased":
     case "Canonical.SubmissionRefused": case "Canonical.SubmissionForgotten":
@@ -754,37 +471,37 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.SubmissionReofferable": case "Canonical.SubmissionNotReofferable":
     case "Canonical.SubmissionExpired": case "Canonical.SubmissionCurrent": {
       const name = tag(value);
-      fields(value, name, []);
+      decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Extract<CanonicalCommand, { kind: `submission${string}` }>["kind"] };
     }
     case "Canonical.RevisionReused": case "Canonical.RevisionReplaced": case "Canonical.RevisionGeneration": {
-      const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "revisionReused" | "revisionReplaced" | "revisionGeneration", generation: nat(fields(value, name, ["generation"]).generation) };
+      const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "revisionReused" | "revisionReplaced" | "revisionGeneration", generation: nat(decodeCanonicalConstructor(value, name).generation) };
     }
-    case "Canonical.RevisionCount": return { kind: "revisionCount", count: nat(fields(value, "Canonical.RevisionCount", ["count"]).count) };
+    case "Canonical.RevisionCount": return { kind: "revisionCount", count: nat(decodeCanonicalConstructor(value, "Canonical.RevisionCount").count) };
     case "Canonical.RevisionReleased": case "Canonical.RevisionCurrent": case "Canonical.RevisionStale":
     case "Canonical.RevisionSuperseded": case "Canonical.RevisionNotSuperseded": {
-      const name = tag(value); fields(value, name, []);
+      const name = tag(value); decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "revisionReleased" | "revisionCurrent" | "revisionStale" | "revisionSuperseded" | "revisionNotSuperseded" };
     }
     case "Canonical.CollectorUnavailable":
-      return { kind: "collectorUnavailable", reason: decodeCollectorReason(fields(value, "Canonical.CollectorUnavailable", ["reason"]).reason) };
+      return { kind: "collectorUnavailable", reason: decodeCollectorReason(decodeCanonicalConstructor(value, "Canonical.CollectorUnavailable").reason) };
     case "Canonical.CleanupReady": case "Canonical.CleanupBusy": case "Canonical.CleanupCommitted":
     case "Canonical.DeliveryReleaseUnacknowledged": case "Canonical.DeliveryKeepAcknowledged":
     case "Canonical.DeliveryAckReady": case "Canonical.DeliveryAckExpired": case "Canonical.DeliveryAckEmpty":
     case "Canonical.DeliveryFinalReady": case "Canonical.DeliveryFinalExpired": case "Canonical.DeliveryFinalEmpty":
     case "Canonical.DeliveryRetireAdvice": case "Canonical.DeliveryKeepRemaining": case "Canonical.DeliveryKeepForReoffer": {
-      const name = tag(value); fields(value, name, []);
+      const name = tag(value); decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" | "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" };
     }
     case "Canonical.DeliverySubmissionCandidate": case "Canonical.DeliverySubmissionRefused":
     case "Canonical.DeliveryBatchProceed": case "Canonical.DeliveryBatchRelease":
     case "Canonical.DeliveryCredentialInvalid": case "Canonical.DeliveryCredentialValid": {
-      const name = tag(value); fields(value, name, []);
+      const name = tag(value); decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "deliverySubmissionCandidate" | "deliverySubmissionRefused" | "deliveryBatchProceed" | "deliveryBatchRelease" | "deliveryCredentialInvalid" | "deliveryCredentialValid" };
     }
     case "Canonical.IgnoreCandidate": case "Canonical.ReleaseCandidate": case "Canonical.RetireCandidate":
     case "Canonical.ContinueCandidate": case "Canonical.RetainCandidate": {
-      const name = tag(value); fields(value, name, []);
+      const name = tag(value); decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" };
     }
     case "Canonical.RoundStopBegun": case "Canonical.RoundStopRefused":
@@ -796,89 +513,89 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.DeliverySubmissionAllowed": case "Canonical.DeliverySubmissionDenied":
     case "Canonical.DeliveryExistingTokenAllowed": case "Canonical.DeliveryExistingTokenDenied":
     case "Canonical.DeliveryUnreservedStopAllowed": case "Canonical.DeliveryUnreservedStopDenied": {
-      const name = tag(value); fields(value, name, []);
+      const name = tag(value); decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "roundStopBegun" | "roundStopRefused" | "roundActive" | "roundInactive" | "roundBarrierRaised" | "roundBarrierClear" | "roundStopOwned" | "roundStopNotOwned" | "roundExpireCloses" | "roundExpireKeeps" | "roundContinuationAvailable" | "roundContinuationExhausted" | "deliverySubmissionAllowed" | "deliverySubmissionDenied" | "deliveryExistingTokenAllowed" | "deliveryExistingTokenDenied" | "deliveryUnreservedStopAllowed" | "deliveryUnreservedStopDenied" };
     }
     case "Canonical.RoundStopTerminal": {
-      const command = fields(value, "Canonical.RoundStopTerminal", ["revoke_provisional", "close"]);
+      const command = decodeCanonicalConstructor(value, "Canonical.RoundStopTerminal");
       return { kind: "roundStopTerminal", revokeProvisional: bool(command.revoke_provisional), close: bool(command.close) };
     }
     case "Canonical.NoticeSuppressed": case "Canonical.NoticeCreatePending": case "Canonical.NoticeMergePending": {
-      const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending", count: nat(fields(value, name, ["count"]).count) };
+      const name = tag(value); return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "noticeSuppressed" | "noticeCreatePending" | "noticeMergePending", count: nat(decodeCanonicalConstructor(value, name).count) };
     }
     case "Canonical.NoticePruned": {
-      const item = fields(value, "Canonical.NoticePruned", ["drop_lease", "drop_pending", "drop_key"]);
+      const item = decodeCanonicalConstructor(value, "Canonical.NoticePruned");
       return { kind: "noticePruned", dropLease: bool(item.drop_lease), dropPending: bool(item.drop_pending), dropKey: bool(item.drop_key) };
     }
-    case "Canonical.NoticeSelected": return { kind: "noticeSelected", ids: readList(fields(value, "Canonical.NoticeSelected", ["ids"]).ids, (id) => nat(id, true)) };
+    case "Canonical.NoticeSelected": return { kind: "noticeSelected", ids: readList(decodeCanonicalConstructor(value, "Canonical.NoticeSelected").ids, (id) => nat(id, true)) };
     case "Canonical.IncludeChoice": {
-      const choice = fields(value, "Canonical.IncludeChoice", ["choice"]).choice;
+      const choice = decodeCanonicalConstructor(value, "Canonical.IncludeChoice").choice;
       const name = tag(choice);
       if (name !== "Configuration.ReplaceIncludes" && name !== "Configuration.KeepIncludes") throw new TypeError("invalid include choice");
-      fields(choice, name, []);
+      decodeCanonicalConstructor(choice, name);
       return { kind: "includeChoice", choice: name === "Configuration.ReplaceIncludes" ? "replaceIncludes" : "keepIncludes" };
     }
     case "Canonical.FileSelection": {
-      const selection = fields(value, "Canonical.FileSelection", ["selection"]).selection;
+      const selection = decodeCanonicalConstructor(value, "Canonical.FileSelection").selection;
       const names = ["Protected", "Excluded", "EmptyIncludes", "NotIncluded", "Selected"];
       const name = tag(selection);
       if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid file selection");
-      fields(selection, name, []);
+      decodeCanonicalConstructor(selection, name);
       return { kind: "fileSelection", selection: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "protected" | "excluded" | "emptyIncludes" | "notIncluded" | "selected" };
     }
     case "Canonical.FileProtection": {
-      const protection = fields(value, "Canonical.FileProtection", ["protection"]).protection;
+      const protection = decodeCanonicalConstructor(value, "Canonical.FileProtection").protection;
       const names = ["AllowedPath", "RepositoryBoundary", "SensitivePath", "GeneratedOrVendor", "FileExtension"];
       const name = tag(protection);
       if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid file protection");
-      fields(protection, name, []);
+      decodeCanonicalConstructor(protection, name);
       return { kind: "fileProtection", protection: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "allowedPath" | "repositoryBoundary" | "sensitivePath" | "generatedOrVendor" | "fileExtension" };
     }
     case "Canonical.CandidateFile": {
-      const candidate = fields(value, "Canonical.CandidateFile", ["candidate"]).candidate;
+      const candidate = decodeCanonicalConstructor(value, "Canonical.CandidateFile").candidate;
       const names = ["CandidateAllowed", "RefuseGitAdmin", "RefuseFileKind", "RefuseGitIgnore"];
       const name = tag(candidate);
       if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid candidate file");
-      fields(candidate, name, []);
+      decodeCanonicalConstructor(candidate, name);
       return { kind: "candidateFile", candidate: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "candidateAllowed" | "refuseGitAdmin" | "refuseFileKind" | "refuseGitIgnore" };
     }
     case "Canonical.ReviewAdmission": {
-      const admission = fields(value, "Canonical.ReviewAdmission", ["admission"]).admission;
+      const admission = decodeCanonicalConstructor(value, "Canonical.ReviewAdmission").admission;
       const names = ["AdmitReview", "RefuseRoot", "RefuseConfiguration", "RefuseCredential", "RefuseSelection"];
       const name = tag(admission);
       if (!names.some((item) => name === `Configuration.${item}`)) throw new TypeError("invalid review admission");
-      fields(admission, name, []);
+      decodeCanonicalConstructor(admission, name);
       return { kind: "reviewAdmission", admission: name.slice("Configuration.".length).replace(/^./, (first) => first.toLowerCase()) as "admitReview" | "refuseRoot" | "refuseConfiguration" | "refuseCredential" | "refuseSelection" };
     }
     case "Canonical.RuleGate": {
-      const gate = fields(value, "Canonical.RuleGate", ["gate"]).gate;
+      const gate = decodeCanonicalConstructor(value, "Canonical.RuleGate").gate;
       const name = tag(gate);
       if (name !== "RulePolicy.Admit" && name !== "RulePolicy.Omit") throw new TypeError("invalid rule gate");
-      fields(gate, name, []);
+      decodeCanonicalConstructor(gate, name);
       return { kind: "ruleGate", gate: name === "RulePolicy.Admit" ? "admit" : "omit" };
     }
     case "Canonical.RuleOrder": {
-      const order = fields(value, "Canonical.RuleOrder", ["order"]).order;
+      const order = decodeCanonicalConstructor(value, "Canonical.RuleOrder").order;
       const name = tag(order);
       if (name !== "RulePolicy.Before" && name !== "RulePolicy.Equal" && name !== "RulePolicy.After") throw new TypeError("invalid rule order");
-      fields(order, name, []);
+      decodeCanonicalConstructor(order, name);
       return { kind: "ruleOrder", order: name === "RulePolicy.Before" ? "before" : name === "RulePolicy.After" ? "after" : "equal" };
     }
     case "Canonical.NoticeRejectedFull": case "Canonical.NoticeCreateKey": case "Canonical.NoticeKeepLeased":
     case "Canonical.NoticeRefused": case "Canonical.NoticeCommitted": case "Canonical.NoticeDropped":
     case "Canonical.NoticeLeased": case "Canonical.NoticePendingCleared": {
-      const name = tag(value); fields(value, name, []);
+      const name = tag(value); decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "noticeRejectedFull" | "noticeCreateKey" | "noticeKeepLeased" | "noticeRefused" | "noticeCommitted" | "noticeDropped" | "noticeLeased" | "noticePendingCleared" };
     }
-    case "Canonical.CachePrepared": return { kind: "cachePrepared", evicted: readList(fields(value, "Canonical.CachePrepared", ["evicted"]).evicted, (id) => nat(id, true)) };
-    case "Canonical.CacheDiscarded": return { kind: "cacheDiscarded", ids: readList(fields(value, "Canonical.CacheDiscarded", ["ids"]).ids, (id) => nat(id, true)) };
+    case "Canonical.CachePrepared": return { kind: "cachePrepared", evicted: readList(decodeCanonicalConstructor(value, "Canonical.CachePrepared").evicted, (id) => nat(id, true)) };
+    case "Canonical.CacheDiscarded": return { kind: "cacheDiscarded", ids: readList(decodeCanonicalConstructor(value, "Canonical.CacheDiscarded").ids, (id) => nat(id, true)) };
     case "Canonical.ReuseJoinAdvice": case "Canonical.ReuseJoinPending":
     case "Canonical.ReuseJoinClaimed": case "Canonical.ReuseCached":
     case "Canonical.ReuseOwn": case "Canonical.ReuseClaimed":
     case "Canonical.ReuseAttached": case "Canonical.ReuseReleased":
     case "Canonical.ReuseRefused": case "Canonical.CacheAlready":
     case "Canonical.CacheRejected": case "Canonical.CacheCommitted": {
-      const name = tag(value); fields(value, name, []);
+      const name = tag(value); decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `reuse${string}` | `cache${string}` }>["kind"], "cachePrepared" | "cacheDiscarded"> };
     }
     case "Canonical.CollectorProceed":
@@ -886,68 +603,57 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
     case "Canonical.ReuseKeepMember": case "Canonical.ReuseSetMemberClear":
     case "Canonical.ReuseSetMemberFinding": case "Canonical.ReuseSetMemberUnavailable":
     case "Canonical.ReuseSetMemberLost": {
-      const name = tag(value); fields(value, name, []);
+      const name = tag(value); decodeCanonicalConstructor(value, name);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `collector${string}` | `reuse${string}` }>["kind"], "collectorUnavailable"> };
     }
-    case "Canonical.WriteAuthorized": return { kind: "writeAuthorized", operation: nat(fields(value, "Canonical.WriteAuthorized", ["operation"]).operation, true) };
-    case "Canonical.WriteRecorded": return { kind: "writeRecorded", outcome: writeOutcome(fields(value, "Canonical.WriteRecorded", ["outcome"]).outcome) };
-    case "Canonical.WaitForOutput": fields(value, "Canonical.WaitForOutput", []); return { kind: "waitForOutput" };
-    case "Canonical.ReofferAtStop": fields(value, "Canonical.ReofferAtStop", []); return { kind: "reofferAtStop" };
-    case "Canonical.PartitionRetired": return { kind: "partitionRetired", round: nat(fields(value, "Canonical.PartitionRetired", ["round"]).round, true) };
-    case "Canonical.AdmissionForgotten": fields(value, "Canonical.AdmissionForgotten", []); return { kind: "admissionForgotten" };
+    case "Canonical.WriteAuthorized": return { kind: "writeAuthorized", operation: nat(decodeCanonicalConstructor(value, "Canonical.WriteAuthorized").operation, true) };
+    case "Canonical.WriteRecorded": return { kind: "writeRecorded", outcome: writeOutcome(decodeCanonicalConstructor(value, "Canonical.WriteRecorded").outcome) };
+    case "Canonical.WaitForOutput": decodeCanonicalConstructor(value, "Canonical.WaitForOutput"); return { kind: "waitForOutput" };
+    case "Canonical.ReofferAtStop": decodeCanonicalConstructor(value, "Canonical.ReofferAtStop"); return { kind: "reofferAtStop" };
+    case "Canonical.PartitionRetired": return { kind: "partitionRetired", round: nat(decodeCanonicalConstructor(value, "Canonical.PartitionRetired").round, true) };
+    case "Canonical.AdmissionForgotten": decodeCanonicalConstructor(value, "Canonical.AdmissionForgotten"); return { kind: "admissionForgotten" };
     default: throw new TypeError("unknown canonical command");
   }
 };
 
-export type CanonicalProjection = {
-  readonly executionLimits: { readonly preparation: number; readonly jevRequests: number };
-  readonly global: { readonly items: number; readonly bytes: number };
-  readonly limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number };
-  readonly partitions: readonly { readonly partition: number; readonly items: number; readonly bytes: number }[];
-  readonly charges: readonly CapacityCharge[];
-  readonly inventory: readonly { readonly purpose: CapacityPurpose; readonly limits: CanonicalProjection["limits"] }[];
-  readonly rounds: readonly { readonly partition: number; readonly lifetime: number; readonly id: number; readonly waiting: boolean; readonly deciding: boolean; readonly write?: number; readonly uncertain: boolean; readonly quietSince?: number }[];
-  readonly admissions: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly active: boolean; readonly closedAt: number; readonly permits: readonly { readonly token: number; readonly tool: number; readonly round: number; readonly deadline: number }[] }[];
-  readonly completedEdits: readonly { readonly tool: number; readonly reason: CompletedEditReason; readonly reported: boolean }[];
-  readonly work: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly reservation: number; readonly parent: number; readonly kind: "awaitingSourceRead" | "sourceReading" | "preparing" | "reviewing" | "atJev" | "pendingFinding" }[];
-  readonly pendingFindings: readonly { readonly operation: number; readonly count: number }[];
-  readonly dispatch: { readonly queued: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly closed: boolean; readonly requests: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number; readonly started: boolean; readonly interrupted: boolean }[] };
-  readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
-  readonly notices: readonly { readonly id: number; readonly partition: number; readonly group: number; readonly reservation: number; readonly suppressed: number; readonly pending?: { readonly id: number; readonly count: number; readonly sequence: number; readonly leased: boolean } }[];
-  readonly reuse: { readonly claims: readonly { readonly id: number; readonly attached: boolean }[]; readonly cache: readonly { readonly id: number; readonly partition: number; readonly bytes: number; readonly reservation: number }[] };
-  readonly revision: { readonly entries: readonly { readonly subject: number; readonly input: number; readonly generation: number; readonly members: number }[]; readonly nextGeneration: number };
-  readonly delivery: { readonly slots: readonly { readonly group: number; readonly round: number; readonly attempt: number; readonly token: number; readonly selected: readonly number[]; readonly phase: "reserved" | "authorized" | "submitted" | "failed" | "uncertain" }[]; readonly counters: readonly { readonly group: number; readonly round: number; readonly used: number }[]; readonly submissions: { readonly batches: readonly { readonly advice: number; readonly group: number; readonly round: number; readonly token: number; readonly surface: "edit" | "background" | "stop"; readonly phase: "reserved" | "authorized" | "submitted" | "uncertain"; readonly fingerprints: readonly number[]; readonly units: readonly number[] }[]; readonly leases: readonly { readonly advice: number; readonly fingerprint: number; readonly round: number; readonly phase: "available" | "reserved" | "authorized" | "submitted" | "uncertain"; readonly reoffered: boolean }[] } };
-};
-type DispatchEntry = { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly sequence: number; readonly cancelled: boolean; readonly preparation: boolean };
 const known = new WeakSet<object>();
 // Projections contain validated numeric facts, not native handles or payloads.
 // Weak keys do not extend canonical-state lifetime beyond its actual owner.
 const projections = new WeakMap<object, CanonicalProjection>();
 const registerCanonical = (state: unknown): void => {
-  known.add(freezeCanonicalData(object(state)));
-  projectCanonical(state);
+  const identity = freezeCanonicalData(object(state));
+  known.add(identity);
+  try { projectCanonical(identity); }
+  catch (cause) {
+    known.delete(identity);
+    projections.delete(identity);
+    throw cause;
+  }
 };
 export const projectCanonical = (state: unknown): CanonicalProjection => {
+  // Only registered, fully frozen Bend states enter this weak-key cache.
+  if (typeof state === "object" && state !== null) {
+    const cached = projections.get(state);
+    if (cached !== undefined) return cached;
+  }
   const identity = object(state);
   if (!known.has(identity)) throw new TypeError("foreign canonical state");
-  const cached = projections.get(identity);
-  if (cached !== undefined) return cached;
-  const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions", "dispatch", "collection", "history"]);
+  const s = decodeCanonicalConstructor(state, "Canonical.State");
   nat(s.next_round, true); nat(s.next_operation, true);
-  const history = fields(s.history, "EditHistory.State", ["entries"]);
+  const history = decodeCanonicalConstructor(s.history, "EditHistory.State");
   const completedEdits = readList(history.entries, (value) => {
-    const entry = fields(value, "EditHistory.Completed", ["tool", "reason", "reported"]);
+    const entry = decodeCanonicalConstructor(value, "EditHistory.Completed");
     return { tool: nat(entry.tool, true), reason: decodeCompletedEditReason(entry.reason), reported: bool(entry.reported) };
   }, 1000);
   if (new Set(completedEdits.map((entry) => entry.tool)).size !== completedEdits.length) throw new TypeError("duplicate completed edit identity");
-  const rawDispatch = fields(s.dispatch, "Dispatch.State", ["queued", "running", "next_sequence", "closed", "requests"]);
+  const rawDispatch = decodeCanonicalConstructor(s.dispatch, "Dispatch.State");
   const dispatchEntry = (value: unknown): DispatchEntry => {
-    const x = fields(value, "Dispatch.Entry", ["partition", "lifetime", "round", "operation", "sequence", "cancelled", "preparation"]);
+    const x = decodeCanonicalConstructor(value, "Dispatch.Entry");
     return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true),
       operation: nat(x.operation, true), sequence: nat(x.sequence), cancelled: bool(x.cancelled), preparation: bool(x.preparation) };
   };
   const requests = readList(rawDispatch.requests, (value) => {
-    const x = fields(value, "Dispatch.Request", ["partition", "lifetime", "round", "operation", "request", "started", "interrupted"]);
+    const x = decodeCanonicalConstructor(value, "Dispatch.Request");
     return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round, true),
       operation: nat(x.operation, true), request: nat(x.request, true), started: bool(x.started), interrupted: bool(x.interrupted) };
   });
@@ -955,28 +661,28 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     running: readList(rawDispatch.running, dispatchEntry), nextSequence: nat(rawDispatch.next_sequence),
     closed: bool(rawDispatch.closed), requests };
   const dispatchEntries = [...dispatch.queued, ...dispatch.running];
-  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery", "revision", "reuse", "notices"]);
-  const noticeState = fields(collectionState.notices, "NoticeState.State", ["records"]);
+  const collectionState = decodeCanonicalConstructor(s.collection, "CollectionState.State");
+  const noticeState = decodeCanonicalConstructor(collectionState.notices, "NoticeState.State");
   const notices: CanonicalProjection["notices"] = readList(noticeState.records, (value) => {
-    const item = fields(value, "NoticeState.Record", ["id", "partition", "group", "reservation", "suppressed", "pending"]);
+    const item = decodeCanonicalConstructor(value, "NoticeState.Record");
     const pending = tag(item.pending) === "Some" ? (() => {
-      const p = fields(fields(item.pending, "Some", ["value"]).value, "NoticeState.Pending", ["id", "count", "sequence", "leased"]);
+      const p = decodeCanonicalConstructor(decodeCanonicalConstructor(item.pending, "Some").value, "NoticeState.Pending");
       return { id: nat(p.id, true), count: nat(p.count), sequence: nat(p.sequence, true), leased: bool(p.leased) };
-    })() : (fields(item.pending, "None", []), undefined);
+    })() : (decodeCanonicalConstructor(item.pending, "None"), undefined);
     return { id: nat(item.id, true), partition: nat(item.partition, true), group: nat(item.group, true), reservation: nat(item.reservation, true), suppressed: nat(item.suppressed), ...(pending === undefined ? {} : { pending }) };
   });
   if (new Set(notices.map((item) => item.id)).size !== notices.length ||
       new Set(notices.map((item) => item.reservation)).size !== notices.length ||
       new Set(notices.flatMap((item) => item.pending === undefined ? [] : [item.pending.id])).size !== notices.filter((item) => item.pending !== undefined).length ||
       new Set(notices.flatMap((item) => item.pending === undefined ? [] : [item.pending.sequence])).size !== notices.filter((item) => item.pending !== undefined).length) throw new TypeError("duplicate canonical notice identity");
-  const reuseState = fields(collectionState.reuse, "ReuseState.State", ["claims", "cache"]);
+  const reuseState = decodeCanonicalConstructor(collectionState.reuse, "ReuseState.State");
   const reuse: CanonicalProjection["reuse"] = {
     claims: readList(reuseState.claims, (value) => {
-      const item = fields(value, "ReuseState.Claim", ["id", "attached"]);
+      const item = decodeCanonicalConstructor(value, "ReuseState.Claim");
       return { id: nat(item.id, true), attached: bool(item.attached) };
     }),
     cache: readList(reuseState.cache, (value) => {
-      const item = fields(value, "ReuseState.Entry", ["id", "partition", "bytes", "reservation"]);
+      const item = decodeCanonicalConstructor(value, "ReuseState.Entry");
       return { id: nat(item.id, true), partition: nat(item.partition, true), bytes: nat(item.bytes), reservation: nat(item.reservation, true) };
     }),
   };
@@ -984,9 +690,9 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       new Set(reuse.cache.map((item) => item.id)).size !== reuse.cache.length) {
     throw new TypeError("duplicate canonical evaluation identity");
   }
-  const rawRevision = fields(collectionState.revision, "RevisionState.State", ["entries", "next_generation"]);
+  const rawRevision = decodeCanonicalConstructor(collectionState.revision, "RevisionState.State");
   const revision = { entries: readList(rawRevision.entries, (value) => {
-    const entry = fields(value, "RevisionState.Entry", ["subject", "input", "generation", "members"]);
+    const entry = decodeCanonicalConstructor(value, "RevisionState.Entry");
     return { subject: nat(entry.subject, true), input: nat(entry.input, true), generation: nat(entry.generation, true), members: nat(entry.members, true) };
   }), nextGeneration: nat(rawRevision.next_generation, true) };
   if (new Set(revision.entries.map((entry) => entry.subject)).size !== revision.entries.length) throw new TypeError("duplicate canonical revision subject");
@@ -994,11 +700,11 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   const collection = {
     ready: readList(collectionState.ready, (id) => nat(id, true)),
     leases: readList(collectionState.leases, (value) => {
-      const item = fields(value, "CollectionState.Lease", ["advice", "owner"]);
+      const item = decodeCanonicalConstructor(value, "CollectionState.Lease");
       return { advice: nat(item.advice, true), owner: nat(item.owner, true) };
     }),
     claims: readList(collectionState.claims, (value) => {
-      const item = fields(value, "CollectionState.Claim", ["group", "owner"]);
+      const item = decodeCanonicalConstructor(value, "CollectionState.Claim");
       return { group: nat(item.group, true), owner: nat(item.owner, true) };
     }),
   };
@@ -1008,18 +714,30 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       new Set(collection.claims.map((item) => item.group)).size !== collection.claims.length) {
     throw new TypeError("inconsistent canonical collection state");
   }
-  const deliveryState = fields(collectionState.delivery, "DeliveryState.State", ["slots", "counters", "submissions"]);
-  const rawSubmissions = fields(deliveryState.submissions, "SubmissionState.State", ["leases", "batches"]);
+  const deliveryState = decodeCanonicalConstructor(collectionState.delivery, "DeliveryState.State");
+  const rawSubmissions = decodeCanonicalConstructor(deliveryState.submissions, "SubmissionState.State");
   const surface = (value: unknown): "edit" | "background" | "stop" => {
     const name = tag(value);
+    decodeCanonicalConstructor(value, name);
     if (name === "Handoff.Edit") return "edit";
     if (name === "Handoff.Background") return "background";
     if (name === "Handoff.Stop") return "stop";
     throw new TypeError("invalid submission surface");
   };
+  const decodeLease = (value: unknown) => {
+    const lease = decodeCanonicalConstructor(value, "Handoff.Lease");
+    const phaseName = tag(lease.phase);
+    const leasePhase = decodeCanonicalConstructor(lease.phase, phaseName);
+    if ("surface" in leasePhase) surface(leasePhase.surface);
+    const phase = phaseName.slice("Handoff.".length).toLowerCase();
+    if (!["available", "reserved", "authorized", "submitted", "uncertain"].includes(phase)) throw new TypeError("invalid submission lease phase");
+    nat(lease.item, true); bool(lease.closed);
+    return { round: nat(lease.round, true), phase: phase as "available" | "reserved" | "authorized" | "submitted" | "uncertain", reoffered: bool(lease.reoffered) };
+  };
   const delivery = {
     slots: readList(deliveryState.slots, (value) => {
-      const item = fields(value, "DeliveryState.Slot", ["group", "round", "attempt", "token", "selected", "phase"]);
+      const item = decodeCanonicalConstructor(value, "DeliveryState.Slot");
+      decodeCanonicalConstructor(item.phase, tag(item.phase));
       const phase = tag(item.phase).slice("DeliveryState.".length).toLowerCase();
       if (!["reserved", "authorized", "submitted", "failed", "uncertain"].includes(phase)) throw new TypeError("invalid canonical delivery phase");
       return { group: nat(item.group, true), round: nat(item.round, true), attempt: nat(item.attempt, true),
@@ -1027,12 +745,13 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
         phase: phase as "reserved" | "authorized" | "submitted" | "failed" | "uncertain" };
     }),
     counters: readList(deliveryState.counters, (value) => {
-      const item = fields(value, "DeliveryState.Counter", ["group", "round", "used"]);
+      const item = decodeCanonicalConstructor(value, "DeliveryState.Counter");
       return { group: nat(item.group, true), round: nat(item.round, true), used: nat(item.used) };
     }),
     submissions: {
       batches: readList(rawSubmissions.batches, (value) => {
-        const item = fields(value, "SubmissionState.Batch", ["advice", "group", "round", "token", "surface", "phase", "fingerprints", "units"]);
+        const item = decodeCanonicalConstructor(value, "SubmissionState.Batch");
+        decodeCanonicalConstructor(item.phase, tag(item.phase));
         const phase = tag(item.phase).slice("Delivery.".length).toLowerCase();
         if (!["reserved", "authorized", "submitted", "uncertain"].includes(phase)) throw new TypeError("invalid submission phase");
         return { advice: nat(item.advice, true), group: nat(item.group, true), round: nat(item.round, true),
@@ -1041,15 +760,11 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
           units: readList(item.units, (id) => nat(id, true)) };
       }),
       leases: readList(rawSubmissions.leases, (value) => {
-        const item = fields(value, "SubmissionState.LeaseRecord", ["advice", "fingerprint", "current", "previous"]);
-        const lease = fields(item.current, "Handoff.Lease", ["item", "round", "closed", "reoffered", "phase"]);
-        const phase = tag(lease.phase).slice("Handoff.".length).toLowerCase();
-        if (!["available", "reserved", "authorized", "submitted", "uncertain"].includes(phase)) throw new TypeError("invalid submission lease phase");
-        nat(lease.item, true); bool(lease.closed);
-        if (tag(item.previous) === "Some") fields(item.previous, "Some", ["value"]);
-        else fields(item.previous, "None", []);
-        return { advice: nat(item.advice, true), fingerprint: nat(item.fingerprint, true), round: nat(lease.round, true),
-          phase: phase as "available" | "reserved" | "authorized" | "submitted" | "uncertain", reoffered: bool(lease.reoffered) };
+        const item = decodeCanonicalConstructor(value, "SubmissionState.LeaseRecord");
+        const lease = decodeLease(item.current);
+        if (tag(item.previous) === "Some") decodeLease(decodeCanonicalConstructor(item.previous, "Some").value);
+        else decodeCanonicalConstructor(item.previous, "None");
+        return { advice: nat(item.advice, true), fingerprint: nat(item.fingerprint, true), ...lease };
       }),
     },
   };
@@ -1070,23 +785,23 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       dispatchEntries.some((x) => x.sequence >= dispatch.nextSequence)) {
     throw new TypeError("inconsistent canonical dispatch state");
   }
-  const ledger = fields(s.ledger, "Ledger.Ledger", ["limits", "next_id", "charges"]);
+  const ledger = decodeCanonicalConstructor(s.ledger, "Ledger.Ledger");
   nat(ledger.next_id, true);
-  const limits = fields(ledger.limits, "Ledger.Limits", ["global_items", "global_bytes", "partition_items", "partition_bytes"]);
+  const limits = decodeCanonicalConstructor(ledger.limits, "Ledger.Limits");
   for (const value of Object.values(limits).slice(1)) nat(value, true);
   const charges = readList(ledger.charges, charge);
   const rounds = readList(s.rounds, (value) => {
-    const x = fields(value, "Canonical.Round", ["partition", "lifetime", "id", "waiting", "deciding", "write", "uncertain", "quiet_since"]);
-    const write = tag(x.write) === "Some" ? nat(fields(x.write, "Some", ["value"]).value, true) : undefined;
-    if (write === undefined) fields(x.write, "None", []);
-    const quietSince = tag(x.quiet_since) === "Some" ? nat(fields(x.quiet_since, "Some", ["value"]).value) : undefined;
-    if (quietSince === undefined) fields(x.quiet_since, "None", []);
+    const x = decodeCanonicalConstructor(value, "Canonical.Round");
+    const write = tag(x.write) === "Some" ? nat(decodeCanonicalConstructor(x.write, "Some").value, true) : undefined;
+    if (write === undefined) decodeCanonicalConstructor(x.write, "None");
+    const quietSince = tag(x.quiet_since) === "Some" ? nat(decodeCanonicalConstructor(x.quiet_since, "Some").value) : undefined;
+    if (quietSince === undefined) decodeCanonicalConstructor(x.quiet_since, "None");
     return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), id: nat(x.id, true), waiting: bool(x.waiting), deciding: bool(x.deciding), ...(write === undefined ? {} : { write }), uncertain: bool(x.uncertain), ...(quietSince === undefined ? {} : { quietSince }) };
   });
   const admissions = readList(s.admissions, (value) => {
-    const x = fields(value, "Admission.AdmissionState", ["partition", "lifetime", "round", "active", "closed_at", "next_token", "permits"]);
+    const x = decodeCanonicalConstructor(value, "Admission.AdmissionState");
     const permits = readList(x.permits, (entry) => {
-      const permit = fields(entry, "Admission.Permit", ["token", "tool", "round", "started", "deadline"]);
+      const permit = decodeCanonicalConstructor(entry, "Admission.Permit");
       const started = nat(permit.started); const deadline = nat(permit.deadline);
       if (deadline < started) throw new TypeError("invalid permit deadline");
       return { token: nat(permit.token, true), tool: nat(permit.tool, true), round: nat(permit.round, true), deadline };
@@ -1098,8 +813,9 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     return { partition: nat(x.partition, true), lifetime: nat(x.lifetime, true), round: nat(x.round), active: bool(x.active), closedAt: nat(x.closed_at), permits };
   });
   const work = readList(s.work, (value) => {
-    const x = fields(value, "Canonical.Work", ["partition", "lifetime", "round", "operation", "charge", "kind", "parent"]);
+    const x = decodeCanonicalConstructor(value, "Canonical.Work");
     const kind = tag(x.kind);
+    decodeCanonicalConstructor(x.kind, kind);
     const names = { "Canonical.AwaitingSourceRead": "awaitingSourceRead", "Canonical.SourceReading": "sourceReading",
       "Canonical.Preparing": "preparing", "Canonical.Reviewing": "reviewing",
       "Canonical.AtJev": "atJev", "Canonical.PendingFinding": "pendingFinding" } as const;
@@ -1109,9 +825,9 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       operation: nat(x.operation, true), reservation: nat(x.charge), parent: nat(x.parent), kind: stage };
   });
   const pendingFindings = readList(s.work, (value) => {
-    const x = fields(value, "Canonical.Work", ["partition", "lifetime", "round", "operation", "charge", "kind", "parent"]);
+    const x = decodeCanonicalConstructor(value, "Canonical.Work");
     return tag(x.kind) === "Canonical.PendingFinding"
-      ? { operation: nat(x.operation, true), count: nat(fields(x.kind, "Canonical.PendingFinding", ["count"]).count, true) }
+      ? { operation: nat(x.operation, true), count: nat(decodeCanonicalConstructor(x.kind, "Canonical.PendingFinding").count, true) }
       : undefined;
   }).filter((item): item is { operation: number; count: number } => item !== undefined);
   const chargeIds = new Set(charges.map((x) => x.id));
@@ -1150,17 +866,17 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
       charges.length > (limits.global_items as number) || usedBytes > (limits.global_bytes as number)) {
     throw new TypeError("inconsistent canonical state");
   }
-  const total = fields(bendCanonicalTotal(state), "Ledger.Usage", ["items", "bytes"]);
+  const total = decodeCanonicalConstructor(bendCanonicalTotal(state), "Ledger.Usage");
   const global = { items: nat(total.items), bytes: nat(total.bytes) };
   if (global.items !== charges.length || global.bytes !== usedBytes) throw new TypeError("Bend ledger total mismatch");
   const partitionIds = [...new Set([...rounds.map((round) => round.partition), ...charges.map((item) => item.partition)])];
   const partitions = partitionIds.map((partition) => {
-    const usage = fields(bendCanonicalPartitionUsage(state, partition), "Ledger.Usage", ["items", "bytes"]);
+    const usage = decodeCanonicalConstructor(bendCanonicalPartitionUsage(state, partition), "Ledger.Usage");
     return { partition, items: nat(usage.items), bytes: nat(usage.bytes) };
   });
   const inventory = readList(bendCanonicalInventory(state), (entry) => {
-    const x = fields(entry, "Ledger.InventoryEntry", ["purpose", "limits"]);
-    const entryLimits = fields(x.limits, "Ledger.Limits", ["global_items", "global_bytes", "partition_items", "partition_bytes"]);
+    const x = decodeCanonicalConstructor(entry, "Ledger.InventoryEntry");
+    const entryLimits = decodeCanonicalConstructor(x.limits, "Ledger.Limits");
     return { purpose: purpose(x.purpose), limits: {
       globalItems: nat(entryLimits.global_items, true), globalBytes: nat(entryLimits.global_bytes, true),
       partitionItems: nat(entryLimits.partition_items, true), partitionBytes: nat(entryLimits.partition_bytes, true),
@@ -1171,7 +887,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
         entry.limits.globalBytes !== limits.global_bytes ||
         entry.limits.partitionItems !== limits.partition_items ||
         entry.limits.partitionBytes !== limits.partition_bytes)) throw new TypeError("inconsistent capacity inventory");
-  const projection = freezeCanonicalData({ global, executionLimits,
+  const projection: CanonicalProjection = freezeCanonicalData({ global, executionLimits,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
     partitions, charges, inventory, rounds, admissions, completedEdits, work, pendingFindings,
@@ -1179,11 +895,9 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
   projections.set(identity, projection);
   return projection;
 };
-export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
-  const values = Object.values(limits);
-  if (values.length !== 4 || values.some((value) => !Number.isSafeInteger(value) || value <= 0 || value > MAX_NAT) ||
-      limits.globalItems > 512 || limits.partitionItems > 16 ||
-      limits.globalBytes > MAX_BYTES || limits.partitionBytes > MAX_BYTES) throw new TypeError("invalid canonical limits");
+const decodeLimits = decoder(CanonicalLimitsSchema);
+export const initialCanonical = (input: typeof CanonicalLimitsSchema.Type): unknown => {
+  const limits = decodeLimits(input);
   const state = bendCanonicalInitial({ $: "Ledger.Limits", global_items: limits.globalItems, global_bytes: limits.globalBytes, partition_items: limits.partitionItems, partition_bytes: limits.partitionBytes });
   registerCanonical(state);
   return state;
@@ -1194,21 +908,19 @@ export const stepCanonical = (state: unknown, event: CanonicalEvent): { readonly
   const raw = bendCanonicalStep(state, encode(event));
   switch (tag(raw)) {
     case "Canonical.Advanced": {
-      const x = fields(raw, "Canonical.Advanced", ["state", "commands"]);
+      const x = decodeCanonicalConstructor(raw, "Canonical.Advanced");
+      const commands = readList(x.commands, decodeCommand);
       registerCanonical(x.state);
-      return { state: x.state, commands: readList(x.commands, decodeCommand) };
+      return { state: x.state, commands };
     }
     case "Canonical.Rejected": {
-      const x = fields(raw, "Canonical.Rejected", ["state", "reason"]);
+      const x = decodeCanonicalConstructor(raw, "Canonical.Rejected");
+      const reason = decodeCanonicalRejection(x.reason);
+      const rejection = reason.$ === "Canonical.PermitDenied"
+        ? reason.reason.$.slice("Admission.".length)
+        : reason.$.slice("Canonical.".length);
       registerCanonical(x.state);
-      const reason = tag(x.reason);
-      if (reason === "Canonical.PermitDenied") {
-        const detail = tag(fields(x.reason, "Canonical.PermitDenied", ["reason"]).reason);
-        if (!/^Admission\.(WrongPartition|WrongLifetime|StaleInvocation|Expired|DuplicateTool|NoPermit|WrongTool|OldRound|InvalidClock|RoundAlreadyClosed|LifetimeNotFresh)$/.test(detail)) throw new TypeError("unknown permit refusal");
-        return { state: x.state, commands: [], rejection: detail.slice("Admission.".length) };
-      }
-      if (!/^Canonical\.(InvalidIdentity|RoundLimit|StaleRound|StaleOperation|WrongStage|InconsistentLedger|ProspectiveDenied|AdviceePermitLimit|ResidentPermitLimit)$/.test(reason)) throw new TypeError("unknown rejection");
-      return { state: x.state, commands: [], rejection: reason.slice("Canonical.".length) };
+      return { state: x.state, commands: [], rejection };
     }
     default: throw new TypeError("unknown canonical step");
   }

@@ -8,6 +8,24 @@
 
 This ledger records **decisions**, not every measurement or external effect. Each entry must name the concrete choice, its TypeScript owner, what Bend receives, why the choice stays outside Bend, and the scope of its review. A new runtime adapter or a move into Bend requires review of the affected entry.
 
+The synchronous [canonical adapter](../src/canonical/adapter.ts) and
+[import-graph adapter](../src/canonical/graph-adapter.ts) validate representations
+with Effect Schema. Their [canonical models](../src/canonical/models.ts),
+[constructor schemas](../src/canonical/constructors.ts), and
+[graph schemas](../src/canonical/graph-schema.ts) own exact field sets and numeric
+shape constraints. The [shared boundary codecs](../src/canonical/boundary-schema.ts)
+check array size before visiting elements and traverse linked lists iteratively
+with fixed bounds. These checks establish representation validity; generated Bend
+remains the sole authority for admission, dispatch, reuse and delivery decisions.
+Schema decoding preserves the canonical state identity fence and synchronous
+atomic publication. Registered snapshots and projections remain immutable;
+weak-key projection memoization does not admit foreign canonical copies.
+The [boundary tests](../src/canonical/boundary.test.ts) and
+[authority check](../scripts/check-canonical-authority.mjs) provide deterministic
+validation evidence. The [adapter benchmark](../scripts/benchmark-canonical-adapters.mjs)
+compares fixed traces across checkouts; it does not declare a new timing budget or
+establish native platform support.
+
 ## TS-001 — Recognize a runtime event as a direct edit
 
 | Field | Reviewed boundary |

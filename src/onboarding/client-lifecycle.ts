@@ -13,41 +13,6 @@ import type { SetupClient } from "./client-selection.ts";
 export const clientCommands = ["setup", "update", "doctor", "repair", "reinstall", "uninstall"] as const;
 export type ClientCommand = typeof clientCommands[number];
 export const clients: ReadonlyArray<SetupClient> = ["claude", "codex"];
-const valueFlags = ["--host", "--claude-home", "--claude-executable", "--codex-home", "--codex-executable"];
-const releaseFlags = ["--target", "--tarball", "--channel", "--version"];
-export const parseClientArguments = (command: ClientCommand, args: ReadonlyArray<string>) => {
-  const flags = new Map<string, string>();
-  let host: SetupClient | undefined;
-  for (let index = 0; index < args.length; index++) {
-    const argument = args[index]!;
-    if (!argument.startsWith("--")) {
-      if (host !== undefined || !clients.some(client => client === argument)) throw new Error(`Unexpected argument: ${argument}. Use hapsland ${command} [claude|codex].`);
-      host = argument as SetupClient;
-      continue;
-    }
-    const equals = argument.indexOf("=");
-    const name = equals < 0 ? argument : argument.slice(0, equals);
-    if (![...valueFlags, ...(command === "update" ? releaseFlags : command === "setup" || command === "repair" || command === "reinstall" ? ["--target"] : [])].includes(name)) throw new Error(`Unknown option: ${name}. Run hapsland --help.`);
-    const value = equals < 0 ? args[++index] : argument.slice(equals + 1);
-    if (value === undefined || value.trim() === "" || value.startsWith("--")) throw new Error(`${name} requires a nonempty value.`);
-    if (flags.has(name)) throw new Error(`Repeated option: ${name}.`);
-    flags.set(name, value);
-  }
-  const flagHost = flags.get("--host");
-  if (flagHost !== undefined) {
-    if (!clients.some(client => client === flagHost)) throw new Error("--host must be claude or codex.");
-    if (host !== undefined && host !== flagHost) throw new Error("Positional client and --host disagree.");
-    host = flagHost as SetupClient;
-  }
-  if (command === "update") {
-    const sourceFlags = releaseFlags.filter(flag => flags.has(flag));
-    if (flags.has("--target") && sourceFlags.length > 1) throw new Error("--target cannot be combined with other release options.");
-    if (flags.has("--tarball") && sourceFlags.length > 1) throw new Error("--tarball cannot be combined with other release options.");
-    const channel = flags.get("--channel");
-    if (channel !== undefined && channel !== "latest" && channel !== "next") throw new Error("--channel must be latest or next.");
-  }
-  return { host, flags };
-};
 export const profileFields = (host: SetupClient, flags: ReadonlyMap<string, string>) => {
   const home = flags.get(`--${host}-home`);
   const executable = flags.get(`--${host}-executable`);

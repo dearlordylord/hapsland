@@ -10,6 +10,12 @@ Start with the [repository map](docs/agents/navigation.md) to find each task's
 contract, implementation, tests, website, and research assets. Use the
 [testing matrix](docs/testing-matrix.md) to select checks.
 
+Agent work is complete when the required local checks selected from the testing
+matrix pass. Do not wait for GitHub CI or treat it as an additional completion
+gate unless the user explicitly requests it or an accepted release contract
+requires it. Report any known GitHub CI status separately, and make validation
+claims only for checks actually run.
+
 ## TypeScript quality gate
 
 After changing TypeScript or TSX under `src`, run `npm run quality:check`.

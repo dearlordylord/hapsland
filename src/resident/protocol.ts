@@ -1,5 +1,5 @@
 import { ROUND_CLOSE_REASONS, type RoundCloseReason } from "../activity/status.ts";
-import { isCodexHostVersion, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts";
+import { CODEX_HOST_VERSIONS, type DirectObservation, type DirectAdvicee } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -158,189 +158,114 @@ const record = (value: unknown): Readonly<Record<string, unknown>> | undefined =
     ? value as Readonly<Record<string, unknown>>
     : undefined;
 
-const string = (value: unknown): value is string =>
-  typeof value === "string" && value.length > 0 && value.length <= 16_384;
+// These schemas own structural wire validity; runtime ownership and credentials
+// remain in the resident handlers. Decode with excess-property errors recursively.
+const BoundedString = Schema.NonEmptyString.check(Schema.isMaxLength(16_384));
+const AbsolutePath = BoundedString.check(Schema.isPattern(/^\//));
+const Digest = Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/));
+const SafeNatural = Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }));
+const adviceeFields = {
+  sessionId: BoundedString, toolUseId: BoundedString, subagentId: Schema.NullOr(BoundedString),
+};
+const ClaudeAdvicee = Schema.Struct({ ...adviceeFields,
+  host: Schema.Literal("claude-code"), hostVersion: Schema.Literal("2.1.218"), turnId: Schema.Null,
+});
+const Advicee = Schema.Union([ClaudeAdvicee, Schema.Struct({ ...adviceeFields,
+  host: Schema.Literal("codex-cli"), hostVersion: Schema.Literals(CODEX_HOST_VERSIONS), turnId: BoundedString,
+})]);
+const ControlledOptions = Schema.Struct({
+  answers: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+  delayMs: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+  failure: Schema.optionalKey(Schema.String),
+  failureOnSourceIncludes: Schema.optionalKey(Schema.String),
+  findingOnSourceIncludes: Schema.optionalKey(Schema.String),
+  capturePath: Schema.optionalKey(Schema.String),
+  requestSummaryPath: Schema.optionalKey(Schema.String),
+  outcomePath: Schema.optionalKey(Schema.String),
+  requireCredential: Schema.optionalKey(Schema.Boolean),
+  syntheticR6BrandedRepair: Schema.optionalKey(Schema.Literals(["control", "finding"])),
+});
+const Dispatch = Schema.Struct({
+  statePath: AbsolutePath,
+  activityPath: Schema.optionalKey(AbsolutePath),
+  sessionAnalytics: Schema.optionalKey(Schema.Boolean),
+  userConfigPath: Schema.NullOr(AbsolutePath),
+  demoBudgetPath: Schema.optionalKey(Schema.NullOr(AbsolutePath)),
+  credential: Schema.NullOr(Schema.Struct({
+    name: Schema.String.check(Schema.isPattern(/^[A-Z_][A-Z0-9_]*$/)),
+    environmentValue: Schema.NullOr(Schema.String.check(Schema.makeFilter((value) =>
+      Buffer.byteLength(value, "utf8") <= 32_768))),
+    environmentOnly: Schema.Boolean,
+    generation: SafeNatural,
+    // Preserve the credential owner's path contract independently of general path bounds.
+    statePath: Schema.String.check(Schema.isPattern(/^\//)),
+  })),
+  controlled: Schema.NullOr(ControlledOptions),
+});
+const AddedLines = Schema.Array(Schema.String).check(Schema.isMaxLength(65_536));
+const Candidate = Schema.Union([
+  Schema.Struct({ operation: Schema.Literal("add"), path: BoundedString, addedLines: Schema.optionalKey(AddedLines) }),
+  Schema.Struct({ operation: Schema.Literal("update"), path: BoundedString, addedLines: AddedLines }),
+  Schema.Struct({ operation: Schema.Literals(["delete", "move"]), path: BoundedString, addedLines: Schema.Tuple([]) }),
+]);
+const Coordinate = SafeNatural.check(Schema.isGreaterThanOrEqualTo(1));
+const Position = Schema.Struct({ line: Coordinate, column: Coordinate });
+const VerifiedHunks = Schema.Struct({
+  path: BoundedString, contentHash: Digest,
+  hunks: Schema.Array(Schema.Struct({ path: BoundedString, verified: Schema.Literal(true),
+    location: Schema.Struct({ start: Position, end: Position }),
+  })).check(Schema.isMinLength(1), Schema.isMaxLength(64)),
+}).check(Schema.makeFilter((value) => value.hunks.every((hunk) => hunk.path === value.path)));
+const observationFields = {
+  root: BoundedString,
+  rootIdentity: Schema.Struct({ rootDevice: BoundedString, rootInode: BoundedString,
+    gitDirectory: BoundedString, gitDevice: BoundedString, gitInode: BoundedString }),
+  candidates: Schema.Array(Candidate).check(Schema.isMinLength(1), Schema.isMaxLength(16)),
+  nativePatchCommand: Schema.optionalKey(Schema.String),
+  verifiedPostEditHunks: Schema.optionalKey(VerifiedHunks),
+};
+const Observation = Schema.Struct({ ...observationFields, advicee: Advicee });
+const ClaudeObservation = Schema.Struct({ ...observationFields, advicee: ClaudeAdvicee });
+const shared = { requestRoute: Schema.Literal("shared") };
+const lifetime = { ...shared, lifetime: BoundedString };
+const owner = { ...lifetime, root: BoundedString, advicee: Advicee };
+const token = { ...lifetime, token: BoundedString };
+const admission = { controlledWriter: Schema.Literal(true), composed: Schema.Literal(true), dispatch: Dispatch };
+const collection = { ...owner, operation: Schema.Literal("collect"), dispatch: Dispatch,
+  reportWorkState: Schema.optionalKey(Schema.Literal(true)), composed: Schema.Literal(true) };
 
-const advicee = (value: unknown): value is DirectAdvicee => {
-  const item = record(value);
-  if (item?.host === "claude-code") return item.hostVersion === "2.1.218" &&
-    string(item.sessionId) && item.turnId === null && string(item.toolUseId) &&
-    (item.subagentId === null || string(item.subagentId));
-  return item?.host === "codex-cli" && isCodexHostVersion(item.hostVersion) &&
-    string(item.sessionId) && string(item.turnId) && string(item.toolUseId) &&
-    (item.subagentId === null || string(item.subagentId));
-};
-
-const controlled = (value: unknown): value is ResidentControlledOptions => {
-  const item = record(value);
-  if (item === undefined) return false;
-  if (item.answers !== undefined && record(item.answers) === undefined) return false;
-  if (item.delayMs !== undefined && (typeof item.delayMs !== "number" || !Number.isFinite(item.delayMs) || item.delayMs < 0)) return false;
-  if (item.failure !== undefined && typeof item.failure !== "string") return false;
-  if (item.failureOnSourceIncludes !== undefined && typeof item.failureOnSourceIncludes !== "string") return false;
-  if (item.findingOnSourceIncludes !== undefined && typeof item.findingOnSourceIncludes !== "string") return false;
-  if (item.capturePath !== undefined && typeof item.capturePath !== "string") return false;
-  if (item.requestSummaryPath !== undefined && typeof item.requestSummaryPath !== "string") return false;
-  if (item.outcomePath !== undefined && typeof item.outcomePath !== "string") return false;
-  if (item.requireCredential !== undefined && typeof item.requireCredential !== "boolean") return false;
-  if (item.syntheticR6BrandedRepair !== undefined &&
-    item.syntheticR6BrandedRepair !== "control" && item.syntheticR6BrandedRepair !== "finding") return false;
-  return true;
-};
-
-const dispatch = (value: unknown): value is ResidentDispatchContext => {
-  const item = record(value);
-  const credential = item?.credential === null ? null : record(item?.credential);
-  return item !== undefined && string(item.statePath) && item.statePath.startsWith("/") &&
-    (item.activityPath === undefined || (string(item.activityPath) && item.activityPath.startsWith("/"))) &&
-    (item.sessionAnalytics === undefined || typeof item.sessionAnalytics === "boolean") &&
-    (item.userConfigPath === null || (string(item.userConfigPath) && item.userConfigPath.startsWith("/"))) &&
-    (item.demoBudgetPath === undefined || item.demoBudgetPath === null ||
-      (string(item.demoBudgetPath) && item.demoBudgetPath.startsWith("/"))) &&
-    (credential === null || (
-      typeof credential === "object" &&
-      typeof credential.name === "string" && /^[A-Z_][A-Z0-9_]*$/.test(credential.name) &&
-      (credential.environmentValue === null || (
-        typeof credential.environmentValue === "string" &&
-        Buffer.byteLength(credential.environmentValue, "utf8") <= 32_768
-      )) &&
-      typeof credential.environmentOnly === "boolean" &&
-      typeof credential.generation === "number" && Number.isSafeInteger(credential.generation) && credential.generation >= 0 &&
-      typeof credential.statePath === "string" && credential.statePath.startsWith("/")
-    )) &&
-    (item.controlled === null || controlled(item.controlled));
-};
-const observation = (value: unknown): value is DirectObservation => {
-  const item = record(value);
-  const identity = record(item?.rootIdentity);
-  if (!string(item?.root) || !advicee(item?.advicee) || !Array.isArray(item?.candidates)) return false;
-  if (
-    !string(identity?.rootDevice) || !string(identity.rootInode) ||
-    !string(identity.gitDirectory) || !string(identity.gitDevice) || !string(identity.gitInode)
-  ) return false;
-  if (item?.verifiedPostEditHunks !== undefined) {
-    const verified = record(item.verifiedPostEditHunks);
-    if (!string(verified?.path) || !/^[a-f0-9]{64}$/.test(String(verified.contentHash)) ||
-      !Array.isArray(verified.hunks) || verified.hunks.length < 1 || verified.hunks.length > 64 ||
-      !verified.hunks.every((raw) => {
-        const hunk = record(raw);
-        const location = record(hunk?.location);
-        const start = record(location?.start);
-        const end = record(location?.end);
-        return hunk?.verified === true && hunk.path === verified.path &&
-          [start?.line, start?.column, end?.line, end?.column].every((part) =>
-            typeof part === "number" && Number.isSafeInteger(part) && part >= 1);
-      })) return false;
-  }
-  return item.candidates.length > 0 && item.candidates.length <= 16 && item.candidates.every((candidate) => {
-    const entry = record(candidate);
-    if (entry === undefined || !string(entry.path)) return false;
-    if (entry.operation === "add" && entry.addedLines === undefined) return true;
-    if (!Array.isArray(entry.addedLines)) return false;
-    if (entry.addedLines.length > 65_536 || !entry.addedLines.every((line) => typeof line === "string")) return false;
-    if (entry.operation === "add" || entry.operation === "update") return true;
-    return (entry.operation === "delete" || entry.operation === "move") && entry.addedLines.length === 0;
-  });
-};
+const ResidentRequestSchema = Schema.Union([
+  Schema.Struct({ requestRoute: Schema.Literal("edit"), operation: Schema.Literal("admit-and-collect"),
+    lifetime: BoundedString, ...admission, observation: ClaudeObservation,
+    waitMs: SafeNatural.check(Schema.isLessThanOrEqualTo(EDIT_REQUEST_DEADLINE_MS)),
+  }),
+  Schema.Struct({ ...shared, operation: Schema.Literal("hello") }),
+  Schema.Struct({ ...owner, operation: Schema.Literal("prompt-marker"), marker: Digest,
+    promptDigest: Schema.optionalKey(Digest), onlyIfMissing: Schema.optionalKey(Schema.Literal(true)) }),
+  Schema.Struct({ ...owner, operation: Schema.Literals(["begin-stop", "finish-stop"]), token: BoundedString,
+    close: Schema.optionalKey(Schema.Boolean), reason: Schema.optionalKey(Schema.Literals(ROUND_CLOSE_REASONS)) }),
+  Schema.Struct({ ...owner, operation: Schema.Literal("register-edit"),
+    startedAt: Schema.Finite.check(Schema.isGreaterThan(0)),
+    activityPath: Schema.optionalKey(AbsolutePath), userConfigPath: Schema.optionalKey(AbsolutePath) }),
+  Schema.Struct({ ...owner, operation: Schema.Literals(["claim-background", "release-background"]),
+    token: Schema.String.check(Schema.isPattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)) }),
+  Schema.Struct({ ...token, operation: Schema.Literal("begin-submission"), surface: Schema.Literals(["edit", "background", "stop"]) }),
+  Schema.Struct({ ...token, operation: Schema.Literals(["release", "acknowledge", "finalize"]) }),
+  Schema.Struct({ ...lifetime, operation: Schema.Literal("admit"), ...admission, observation: Observation }),
+  // Separate alternatives make finish mandatory only for turn-end collection.
+  Schema.Struct({ ...collection, mode: Schema.optionalKey(Schema.Literal("ordinary")) }),
+  Schema.Struct({ ...collection, mode: Schema.Literal("turn-end"),
+    finish: Schema.Struct({ token: BoundedString, deadlineReached: Schema.Boolean }) }),
+  Schema.Struct({ ...lifetime, operation: Schema.Literals(["stats", "cleanup"]) }),
+]);
+const decodeRequest = Schema.decodeUnknownOption(ResidentRequestSchema, { onExcessProperty: "error" });
 
 /** Decode only after the transport has enforced MAX_IPC_FRAME_BYTES. */
 export const decodeResidentRequest = (encoded: string): ResidentRequest | undefined => {
-  let unknown: unknown;
-  try {
-    unknown = JSON.parse(encoded);
-  } catch {
-    return undefined;
-  }
-  const value = record(unknown);
-  if ((value?.requestRoute !== "shared" && value?.requestRoute !== "edit") ||
-      value.version !== undefined || typeof value.operation !== "string") return undefined;
-  if (value.requestRoute === "edit") {
-    if (value.operation !== "admit-and-collect" || !string(value.lifetime) ||
-        value.composed !== true || value.controlledWriter !== true || !observation(value.observation) ||
-        value.observation.advicee.host !== "claude-code" || !dispatch(value.dispatch) ||
-        !Number.isSafeInteger(value.waitMs) || typeof value.waitMs !== "number" ||
-        value.waitMs < 0 || value.waitMs > EDIT_REQUEST_DEADLINE_MS) return undefined;
-    return { requestRoute: "edit", operation: "admit-and-collect", lifetime: value.lifetime,
-      observation: value.observation, controlledWriter: true, composed: true,
-      dispatch: value.dispatch, waitMs: value.waitMs };
-  }
-  if (value.operation === "hello") return { requestRoute: "shared", operation: "hello" };
-  if (!string(value.lifetime)) return undefined;
-  if (value.operation === "prompt-marker" && string(value.root) && advicee(value.advicee) &&
-      typeof value.marker === "string" && /^[a-f0-9]{64}$/.test(value.marker) &&
-      (value.promptDigest === undefined || (typeof value.promptDigest === "string" && /^[a-f0-9]{64}$/.test(value.promptDigest))) &&
-      (value.onlyIfMissing === undefined || value.onlyIfMissing === true)) {
-    return { requestRoute: "shared", operation: "prompt-marker", lifetime: value.lifetime,
-      root: value.root, advicee: value.advicee, marker: value.marker,
-      ...(typeof value.promptDigest === "string" ? { promptDigest: value.promptDigest } : {}),
-      ...(value.onlyIfMissing === true ? { onlyIfMissing: true as const } : {}) };
-  }
-  if ((value.operation === "begin-stop" || value.operation === "finish-stop") &&
-      string(value.root) && advicee(value.advicee) && string(value.token) &&
-      (value.close === undefined || typeof value.close === "boolean") &&
-      (value.reason === undefined || ROUND_CLOSE_REASONS.includes(value.reason as RoundCloseReason))) {
-    return { requestRoute: "shared", operation: value.operation, lifetime: value.lifetime,
-      root: value.root, advicee: value.advicee, token: value.token,
-      ...(typeof value.close === "boolean" ? { close: value.close } : {}),
-      ...(value.reason === undefined ? {} : { reason: value.reason as RoundCloseReason }) };
-  }
-  if (value.operation === "register-edit" && string(value.root) && advicee(value.advicee) &&
-      typeof value.startedAt === "number" && Number.isFinite(value.startedAt) && value.startedAt > 0 &&
-      (value.activityPath === undefined || (string(value.activityPath) && value.activityPath.startsWith("/"))) &&
-      (value.userConfigPath === undefined || (string(value.userConfigPath) && value.userConfigPath.startsWith("/")))) {
-    return { requestRoute: "shared", operation: "register-edit", lifetime: value.lifetime,
-      root: value.root, advicee: value.advicee, startedAt: value.startedAt,
-      ...(typeof value.activityPath === "string" ? { activityPath: value.activityPath } : {}),
-      ...(typeof value.userConfigPath === "string" ? { userConfigPath: value.userConfigPath } : {}) };
-  }
-  if ((value.operation === "claim-background" || value.operation === "release-background") &&
-      string(value.root) && advicee(value.advicee) &&
-      typeof value.token === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.token)) {
-    return { requestRoute: "shared", operation: value.operation, lifetime: value.lifetime,
-      root: value.root, advicee: value.advicee, token: value.token };
-  }
-  if (value.operation === "begin-submission" && string(value.token) &&
-      (value.surface === "edit" || value.surface === "background" || value.surface === "stop")) {
-    return { requestRoute: "shared", operation: "begin-submission", lifetime: value.lifetime,
-      token: value.token, surface: value.surface };
-  }
-  if (value.operation === "release" && string(value.token)) {
-    return { requestRoute: "shared", operation: "release", lifetime: value.lifetime, token: value.token };
-  }
-  if (value.operation === "admit" && value.composed === true && value.controlledWriter === true && observation(value.observation) && dispatch(value.dispatch)) {
-    return { requestRoute: "shared", operation: "admit", lifetime: value.lifetime, observation: value.observation, controlledWriter: true, dispatch: value.dispatch, composed: true };
-  }
-  const finish = record(value.finish);
-  const finishToken = finish?.token;
-  const deadlineReached = finish?.deadlineReached;
-  if (
-    value.operation === "collect" && string(value.root) && advicee(value.advicee) && dispatch(value.dispatch) &&
-    (value.mode === undefined || value.mode === "ordinary" || value.mode === "turn-end") &&
-    (value.reportWorkState === undefined || value.reportWorkState === true) &&
-    (value.finish === undefined || (value.composed === true && value.mode === "turn-end" &&
-      string(finishToken) && typeof deadlineReached === "boolean")) &&
-    value.composed === true && (value.mode !== "turn-end" || value.finish !== undefined)
-  ) {
-    return {
-      requestRoute: "shared",
-      operation: "collect",
-      lifetime: value.lifetime,
-      root: value.root,
-      advicee: value.advicee,
-      dispatch: value.dispatch,
-      ...(value.mode === undefined ? {} : { mode: value.mode }),
-      ...(value.reportWorkState === true ? { reportWorkState: true } : {}),
-      ...(string(finishToken) && typeof deadlineReached === "boolean" ? { finish: { token: finishToken, deadlineReached } } : {}),
-      composed: true,
-    };
-  }
-  if ((value.operation === "acknowledge" || value.operation === "finalize") && string(value.token)) {
-    return { requestRoute: "shared", operation: value.operation, lifetime: value.lifetime, token: value.token };
-  }
-  if (value.operation === "stats" || value.operation === "cleanup") {
-    return { requestRoute: "shared", operation: value.operation, lifetime: value.lifetime };
-  }
-  return undefined;
+  let parsed: unknown;
+  try { parsed = JSON.parse(encoded); } catch { return undefined; }
+  const decoded = decodeRequest(parsed);
+  return Option.isSome(decoded) ? decoded.value : undefined;
 };
 
 const HostOutput = Schema.Struct({
@@ -408,15 +333,22 @@ export const encodeCurrentResidentRequest = (request: ResidentRequest): string =
   });
 };
 
+// Preserve operation-specific fields until the strict request alternative decodes
+// them; forbidden internal route keys are rejected before route adaptation.
+const CurrentRequestEnvelope = Schema.StructWithRest(
+  Schema.Struct({ version: Schema.Literal(CURRENT_IPC_VERSION), operation: Schema.String }),
+  [Schema.Record(Schema.String, Schema.Unknown)],
+).check(Schema.makeFilter((value) => !("requestRoute" in value)));
+
 export const decodeCurrentResidentRequest = (encoded: string): ResidentRequest | undefined => {
   let parsed: unknown;
   try { parsed = JSON.parse(encoded); } catch { return undefined; }
-  const value = record(parsed);
-  if (value?.version !== CURRENT_IPC_VERSION || typeof value.operation !== "string") return undefined;
-  if (value.ticketed !== undefined || value.ticket !== undefined || value.requestRoute !== undefined) return undefined;
-  const requestRoute: ResidentRequestRoute = value.operation === "admit-and-collect" ? "edit" : "shared";
-  const { version: _version, ...fields } = value;
-  return decodeResidentRequest(JSON.stringify({ ...fields, requestRoute }));
+  const envelope = Schema.decodeUnknownOption(CurrentRequestEnvelope)(parsed);
+  if (Option.isNone(envelope)) return undefined;
+  const { version: _version, ...fields } = envelope.value;
+  const decoded = decodeRequest({ ...fields,
+    requestRoute: fields.operation === "admit-and-collect" ? "edit" : "shared" });
+  return Option.isSome(decoded) ? decoded.value : undefined;
 };
 
 export const encodeCurrentResidentResponse = (response: ResidentResponse): string => {
