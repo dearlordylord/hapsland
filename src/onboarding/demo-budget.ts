@@ -1,24 +1,21 @@
+import { Option, Schema } from "effect";
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-type BudgetState = {
-  readonly version: 1;
-  readonly root: string;
-  readonly expiresAt: number;
-  readonly sourceByteBudget: number;
-  readonly providerCallBudget: number;
-  readonly usedSourceBytes: number;
-  readonly usedProviderCalls: number;
-};
+const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+const BudgetState = Schema.Struct({
+  version: Schema.Literal(1),
+  root: Schema.String.check(Schema.isPattern(/^\//)),
+  expiresAt: NonNegativeInteger,
+  sourceByteBudget: NonNegativeInteger,
+  providerCallBudget: NonNegativeInteger,
+  usedSourceBytes: NonNegativeInteger,
+  usedProviderCalls: NonNegativeInteger,
+});
+interface BudgetState extends Schema.Schema.Type<typeof BudgetState> {}
 
-const decode = (value: unknown): BudgetState | undefined => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
-  const item = value as Readonly<Record<string, unknown>>;
-  const integers = [item.expiresAt, item.sourceByteBudget, item.providerCallBudget, item.usedSourceBytes, item.usedProviderCalls];
-  if (item.version !== 1 || typeof item.root !== "string" || !item.root.startsWith("/") ||
-      !integers.every((entry) => typeof entry === "number" && Number.isSafeInteger(entry) && entry >= 0)) return undefined;
-  return item as BudgetState;
-};
+const decode = (value: unknown): BudgetState | undefined =>
+  Option.getOrUndefined(Schema.decodeUnknownOption(BudgetState)(value));
 
 export const writeDemoBudget = (path: string, options: {
   readonly root: string;

@@ -3093,5 +3093,27 @@
       "src/resident/server.ts": "533d8ec117457d7161e5cb4da0d80b5df098f39d346c9bfb89ff49d20046f663"
     },
     "limitations": "Existing tests prove native expiration, reservation limits and contention behavior. No dedicated caller-clock integration test or full resident suite ran for this change; full migration remains incomplete."
+  },
+  "demoBudgetSchemaPort": {
+    "status": "native persisted budget decoder uses Effect Schema",
+    "contract": "Version 1 unchanged; absolute root and nonnegative safe integer requirements retained; atomic reservation and fail-closed contention unchanged",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/demo-budget.test.ts src/onboarding/first-review-demo.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 2,
+        "tests": 17
+      }
+    ],
+    "coverage": "Malformed version, relative root, negative expiration, fractional call limit, unsafe byte count and string call count are rejected; existing expiry, contention, cumulative reservation and demo workflow tests pass",
+    "sourceSha256": {
+      "src/onboarding/demo-budget.ts": "b91ad3bd7e0cd0b0367cd761f256cd916b98994d30f44b490e541f990a9e5ee2",
+      "src/onboarding/demo-budget.test.ts": "ac6f5df0eb97ea70646e2a6be90aec77ba9b179a40cf2685004f4d31adb3123c"
+    },
+    "limitations": "No full resident/conformance/live suite for this change. Installation Config and interactive workflows remain to migrate."
   }
 }
