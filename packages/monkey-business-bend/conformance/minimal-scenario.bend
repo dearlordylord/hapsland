@@ -310,8 +310,10 @@ def canonical_result(transition: Engine.Transition, +before: Types.State,
       +q = commands(list, queue, now, state, event, context(Driver.Action{event, delay, candidate, job, expiry}, config, now))
       +q = enqueue(Engine.after(before, state, event), q, now)
       +q = boundary_control(event, q, state, config, context(Driver.Action{event, delay, candidate, job, expiry}, config, now), now)
-      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), List.append(&2, Nat, state_counts(state), command_codes(list))))) <> ih((state, q))
-    case _ _: [ [98n, now] ]
+      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), List.append(&2, Nat, state_counts(state), 0n <> command_codes(list))))) <> ih((state, q))
+    case Engine.Transition{+state, Canonical.Rejected{_, _}} Driver.Action{+event, _, _, _, _}:
+      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), List.append(&2, Nat, state_counts(state), [1n])))) <>
+        ih((state, enqueue(Engine.after(before, state, event), queue, now)))
 
 def execution_context(event: Canonical.CanonicalEvent, action: Driver.Action, config: Config, now: Nat) -> Driver.Context:
   match event:
