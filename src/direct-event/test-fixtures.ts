@@ -25,6 +25,11 @@ export const put = async (root: string, path: string, value: string | Uint8Array
   return target;
 };
 
+/** Track generated source in one Git operation so real parsing avoids repeated untracked scans. */
+export const stageFiles = async (root: string, paths: ReadonlyArray<string>) => {
+  await execFileAsync("git", ["-C", root, "add", "--", ...paths]);
+};
+
 export const advicee = (overrides: Partial<Extract<DirectAdvicee, { host: "codex-cli" }>> = {}): DirectAdvicee => ({
   host: "codex-cli",
   hostVersion: "0.155.1",
