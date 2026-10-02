@@ -1,5 +1,5 @@
-import Shared from "../../session-bend/session.mjs";
-import type { Settings, Stream, Emission, Changed, BendList } from "../../session-bend/session.mjs";
+import Shared from "../../monkey-business-bend/session.mjs";
+import type { Settings, Stream, Emission, Changed, BendList } from "../../monkey-business-bend/session.mjs";
 import { validateSizeFacts } from "./sizes.ts";
 import type { JevRequestOutcome } from "../../../src/canonical/adapter.ts";
 

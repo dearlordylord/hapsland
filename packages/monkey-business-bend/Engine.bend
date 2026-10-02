@@ -17,7 +17,7 @@ import ./Postprocess.bend as Postprocess
 import ./Workload.bend as Workload
 import ./Random.bend as Random
 import ./Numeric.bend as Numeric
-import ../session-bend/Session.bend as Session
+import ./Session.bend as Session
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/ImportGraph.bend as ImportGraph
 import ../agent-flow-bend/Ledger.bend as Ledger

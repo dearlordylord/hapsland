@@ -7,9 +7,8 @@ const hash = value => createHash("sha256").update(value).digest("hex");
 const sourceHash = hash(readFileSync(join(root, "Session.bend")));
 const declarationHash = hash(readFileSync(join(root, "session.d.mts")));
 const buildHash = hash(readFileSync(fileURLToPath(import.meta.url)));
-// Single authoritative source is consumed by the shared engine. This package
-// retains only the existing game import location and standalone projection API.
-const module = `import Engine from "../monkey-business-bend/engine.mjs";
+// This projection delegates to the single shared engine and source owner.
+const module = `import Engine from "./engine.mjs";
 export default {
  initial: Engine.session_initial, next: Engine.session_next, sample_delay: Engine.session_delay,
  finish_state: Engine.session_finish,
@@ -24,8 +23,8 @@ export default {
 `;
 const manifest = { sourceHash, declarationHash, buildHash, moduleHash: hash(module) };
 if (process.argv.includes("--check")) {
-  if (readFileSync(join(root, "session.mjs"), "utf8") !== module || JSON.stringify(JSON.parse(readFileSync(join(root, "generated.json"), "utf8"))) !== JSON.stringify(manifest)) throw new Error("Stale Session projection bridge; run node packages/session-bend/build.mjs");
+  if (readFileSync(join(root, "session.mjs"), "utf8") !== module || JSON.stringify(JSON.parse(readFileSync(join(root, "session.generated.json"), "utf8"))) !== JSON.stringify(manifest)) throw new Error("Stale Session projection bridge; run node packages/monkey-business-bend/build-session.mjs");
 } else {
   writeFileSync(join(root, "session.mjs"), module);
-  writeFileSync(join(root, "generated.json"), JSON.stringify(manifest, null, 2) + "\n");
+  writeFileSync(join(root, "session.generated.json"), JSON.stringify(manifest, null, 2) + "\n");
 }

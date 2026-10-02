@@ -14179,67 +14179,67 @@ function $Numeric$draw$(_word_0) {
   return $Numeric$integer_words$(run_loop($Numeric$normalize$(52, {$: "Numeric.Limb", "high": ($Nat$div$(_word_0, 268435456)), "low": ($Nat$mod$(_word_0, 268435456))}, 3123)));
 }
 
-function $$$$047session$045bend$047Session$state_random$(_s_0) {
+function $Session$state_random$(_s_0) {
   const _random_0 = _s_0["random"];
   return _random_0;
 }
 
-function $$$$047session$045bend$047Session$state_phase$(_s_0) {
+function $Session$state_phase$(_s_0) {
   const _phase_0 = _s_0["phase"];
   return _phase_0;
 }
 
-function $$$$047session$045bend$047Session$state_edit$(_s_0) {
+function $Session$state_edit$(_s_0) {
   const _edit_0 = _s_0["edit"];
   return _edit_0;
 }
 
-function $$$$047session$045bend$047Session$state_task$(_s_0) {
+function $Session$state_task$(_s_0) {
   const _task_0 = _s_0["task"];
   return _task_0;
 }
 
-function $$$$047session$045bend$047Session$state_revision$(_s_0) {
+function $Session$state_revision$(_s_0) {
   const _revision_0 = _s_0["revision"];
   return _revision_0;
 }
 
-function $$$$047session$045bend$047Session$state_generation$(_s_0) {
+function $Session$state_generation$(_s_0) {
   const _generation_0 = _s_0["generation"];
   return _generation_0;
 }
 
-function $$$$047session$045bend$047Session$state_suspended$(_s_0) {
+function $Session$state_suspended$(_s_0) {
   const _suspended_0 = _s_0["suspended"];
   return _suspended_0;
 }
 
-function $$$$047session$045bend$047Session$state_pendingPhase$(_s_0) {
+function $Session$state_pendingPhase$(_s_0) {
   const _pendingPhase_0 = _s_0["pendingPhase"];
   return _pendingPhase_0;
 }
 
-function $$$$047session$045bend$047Session$state_pendingEdit$(_s_0) {
+function $Session$state_pendingEdit$(_s_0) {
   const _pendingEdit_0 = _s_0["pendingEdit"];
   return _pendingEdit_0;
 }
 
-function $$$$047session$045bend$047Session$state_pendingTask$(_s_0) {
+function $Session$state_pendingTask$(_s_0) {
   const _pendingTask_0 = _s_0["pendingTask"];
   return _pendingTask_0;
 }
 
-function $$$$047session$045bend$047Session$state_bytes$(_s_0) {
+function $Session$state_bytes$(_s_0) {
   const _bytes_0 = _s_0["bytes"];
   return _bytes_0;
 }
 
-function $$$$047session$045bend$047Session$state_units$(_s_0) {
+function $Session$state_units$(_s_0) {
   const _units_0 = _s_0["units"];
   return _units_0;
 }
 
-function $$$$047session$045bend$047Session$set_random$(_s_0, _value_0) {
+function $Session$set_random$(_s_0, _value_0) {
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
   const _task_0 = _s_0["task"];
@@ -14254,7 +14254,7 @@ function $$$$047session$045bend$047Session$set_random$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _value_0, "phase": _phase_0, "edit": _edit_0, "task": _task_0, "revision": _revision_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_phase$(_s_0, _value_0) {
+function $Session$set_phase$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _edit_0 = _s_0["edit"];
   const _task_0 = _s_0["task"];
@@ -14269,7 +14269,7 @@ function $$$$047session$045bend$047Session$set_phase$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _value_0, "edit": _edit_0, "task": _task_0, "revision": _revision_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_edit$(_s_0, _value_0) {
+function $Session$set_edit$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _task_0 = _s_0["task"];
@@ -14284,7 +14284,7 @@ function $$$$047session$045bend$047Session$set_edit$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _value_0, "task": _task_0, "revision": _revision_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_task$(_s_0, _value_0) {
+function $Session$set_task$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
@@ -14299,7 +14299,7 @@ function $$$$047session$045bend$047Session$set_task$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _edit_0, "task": _value_0, "revision": _revision_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_revision$(_s_0, _value_0) {
+function $Session$set_revision$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
@@ -14314,7 +14314,7 @@ function $$$$047session$045bend$047Session$set_revision$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _edit_0, "task": _task_0, "revision": _value_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_generation$(_s_0, _value_0) {
+function $Session$set_generation$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
@@ -14329,7 +14329,7 @@ function $$$$047session$045bend$047Session$set_generation$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _edit_0, "task": _task_0, "revision": _revision_0, "generation": _value_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_suspended$(_s_0, _value_0) {
+function $Session$set_suspended$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
@@ -14344,7 +14344,7 @@ function $$$$047session$045bend$047Session$set_suspended$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _edit_0, "task": _task_0, "revision": _revision_0, "generation": _generation_0, "suspended": _value_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_pendingPhase$(_s_0, _value_0) {
+function $Session$set_pendingPhase$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
@@ -14359,7 +14359,7 @@ function $$$$047session$045bend$047Session$set_pendingPhase$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _edit_0, "task": _task_0, "revision": _revision_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _value_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_pendingEdit$(_s_0, _value_0) {
+function $Session$set_pendingEdit$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
@@ -14374,7 +14374,7 @@ function $$$$047session$045bend$047Session$set_pendingEdit$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _edit_0, "task": _task_0, "revision": _revision_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _value_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_pendingTask$(_s_0, _value_0) {
+function $Session$set_pendingTask$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
@@ -14389,7 +14389,7 @@ function $$$$047session$045bend$047Session$set_pendingTask$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _edit_0, "task": _task_0, "revision": _revision_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _value_0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_bytes$(_s_0, _value_0) {
+function $Session$set_bytes$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
@@ -14404,7 +14404,7 @@ function $$$$047session$045bend$047Session$set_bytes$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _edit_0, "task": _task_0, "revision": _revision_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _value_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$set_units$(_s_0, _value_0) {
+function $Session$set_units$(_s_0, _value_0) {
   const _random_0 = _s_0["random"];
   const _phase_0 = _s_0["phase"];
   const _edit_0 = _s_0["edit"];
@@ -14419,62 +14419,62 @@ function $$$$047session$045bend$047Session$set_units$(_s_0, _value_0) {
   return {$: "Session.Stream", "random": _random_0, "phase": _phase_0, "edit": _edit_0, "task": _task_0, "revision": _revision_0, "generation": _generation_0, "suspended": _suspended_0, "pendingPhase": _pendingPhase_0, "pendingEdit": _pendingEdit_0, "pendingTask": _pendingTask_0, "bytes": _bytes_0, "units": _value_0};
 }
 
-function $$$$047session$045bend$047Session$transition_state$(_t_0) {
+function $Session$transition_state$(_t_0) {
   const _s_0 = _t_0["state"];
   return _s_0;
 }
 
-function $$$$047session$045bend$047Session$transition_events$(_t_0) {
+function $Session$transition_events$(_t_0) {
   const _events_0 = _t_0["events"];
   return _events_0;
 }
 
-function $$$$047session$045bend$047Session$event_delay$(_e_0) {
+function $Session$event_delay$(_e_0) {
   const _delay_0 = _e_0["delay"];
   return _delay_0;
 }
 
-function $$$$047session$045bend$047Session$event_kind$(_e_0) {
+function $Session$event_kind$(_e_0) {
   const _kind_0 = _e_0["kind"];
   return _kind_0;
 }
 
-function $$$$047session$045bend$047Session$event_task$(_e_0) {
+function $Session$event_task$(_e_0) {
   const _task_0 = _e_0["task"];
   return _task_0;
 }
 
-function $$$$047session$045bend$047Session$event_revision$(_e_0) {
+function $Session$event_revision$(_e_0) {
   const _revision_0 = _e_0["revision"];
   return _revision_0;
 }
 
-function $$$$047session$045bend$047Session$event_generation$(_e_0) {
+function $Session$event_generation$(_e_0) {
   const _generation_0 = _e_0["generation"];
   return _generation_0;
 }
 
-function $$$$047session$045bend$047Session$event_bytes$(_e_0) {
+function $Session$event_bytes$(_e_0) {
   const _bytes_0 = _e_0["bytes"];
   return _bytes_0;
 }
 
-function $$$$047session$045bend$047Session$event_units$(_e_0) {
+function $Session$event_units$(_e_0) {
   const _units_0 = _e_0["units"];
   return _units_0;
 }
 
-function $$$$047session$045bend$047Session$event_repair$(_e_0) {
+function $Session$event_repair$(_e_0) {
   const _repair_0 = _e_0["repair"];
   return _repair_0;
 }
 
-function $$$$047session$045bend$047Session$event_recurring$(_e_0) {
+function $Session$event_recurring$(_e_0) {
   const _recurring_0 = _e_0["recurring"];
   return _recurring_0;
 }
 
-function $$$$047session$045bend$047Session$seed_hash$($0, $1) {
+function $Session$seed_hash$($0, $1) {
   for (;;) {
     {
       const _codes_0 = $0;
@@ -14493,15 +14493,15 @@ function $$$$047session$045bend$047Session$seed_hash$($0, $1) {
   }
 }
 
-function $$$$047session$045bend$047Session$nonzero$(_seed_0) {
+function $Session$nonzero$(_seed_0) {
   return $Bool$pick$((_seed_0 === 0), 1, _seed_0);
 }
 
-function $$$$047session$045bend$047Session$initial$(_config_0, _seed_0, _codes_0, _bytes_0, _units_0) {
-  return {$: "Session.Stream", "random": ($$$$047session$045bend$047Session$nonzero$(($$$$047session$045bend$047Session$seed_hash$(_codes_0, _seed_0)))), "phase": 0, "edit": 0, "task": 0, "revision": 0, "generation": 0, "suspended": false, "pendingPhase": 0, "pendingEdit": 0, "pendingTask": 0, "bytes": _bytes_0, "units": _units_0};
+function $Session$initial$(_config_0, _seed_0, _codes_0, _bytes_0, _units_0) {
+  return {$: "Session.Stream", "random": ($Session$nonzero$(($Session$seed_hash$(_codes_0, _seed_0)))), "phase": 0, "edit": 0, "task": 0, "revision": 0, "generation": 0, "suspended": false, "pendingPhase": 0, "pendingEdit": 0, "pendingTask": 0, "bytes": _bytes_0, "units": _units_0};
 }
 
-function $$$$047session$045bend$047Session$random_step$(_random_0) {
+function $Session$random_step$(_random_0) {
   const _x_0 = (13 >= 32 ? 0 : (_random_0 << 13) >>> 0);
   const _a_0 = ((_random_0 ^ _x_0) >>> 0);
   const _x_1 = (17 >= 32 ? 0 : (_a_0 >>> 17) >>> 0);
@@ -14510,113 +14510,113 @@ function $$$$047session$045bend$047Session$random_step$(_random_0) {
   return ((_b_0 ^ _x_2) >>> 0);
 }
 
-function $$$$047session$045bend$047Session$positive_delay$(_total_0, _variation_0) {
+function $Session$positive_delay$(_total_0, _variation_0) {
   return $Bool$pick$((_total_0 > _variation_0), ((_total_0 - _variation_0) >>> 0), 1);
 }
 
-function $$$$047session$045bend$047Session$sample_delay$(_config_0, _random_0) {
+function $Session$sample_delay$(_config_0, _random_0) {
   const _interval_0 = _config_0["interval"];
   const _variation_0 = _config_0["variation"];
   const _x_0 = (Math.imul(2, _variation_0) >>> 0);
   const _x_1 = ((_x_0 + 1) >>> 0);
   const _x_2 = (_x_1 === 0 ? _random_0 : _random_0 % _x_1);
-  return $$$$047session$045bend$047Session$positive_delay$(((_interval_0 + _x_2) >>> 0), _variation_0);
+  return $Session$positive_delay$(((_interval_0 + _x_2) >>> 0), _variation_0);
 }
 
-function $$$$047session$045bend$047Session$snapshot$(_s_0) {
-  return $$$$047session$045bend$047Session$set_pendingTask$(($$$$047session$045bend$047Session$set_pendingEdit$(($$$$047session$045bend$047Session$set_pendingPhase$(_s_0, ($$$$047session$045bend$047Session$state_phase$(_s_0)))), ($$$$047session$045bend$047Session$state_edit$(_s_0)))), ($$$$047session$045bend$047Session$state_task$(_s_0)));
+function $Session$snapshot$(_s_0) {
+  return $Session$set_pendingTask$(($Session$set_pendingEdit$(($Session$set_pendingPhase$(_s_0, ($Session$state_phase$(_s_0)))), ($Session$state_edit$(_s_0)))), ($Session$state_task$(_s_0)));
 }
 
-function $$$$047session$045bend$047Session$emission$(_s_0, _delay_0, _kind_0, _repair_0, _recurring_0) {
-  return {$: "Session.Emission", "delay": _delay_0, "kind": _kind_0, "task": ($$$$047session$045bend$047Session$state_task$(_s_0)), "revision": ($$$$047session$045bend$047Session$state_revision$(_s_0)), "generation": ($$$$047session$045bend$047Session$state_generation$(_s_0)), "bytes": ($$$$047session$045bend$047Session$state_bytes$(_s_0)), "units": ($$$$047session$045bend$047Session$state_units$(_s_0)), "repair": _repair_0, "recurring": _recurring_0};
+function $Session$emission$(_s_0, _delay_0, _kind_0, _repair_0, _recurring_0) {
+  return {$: "Session.Emission", "delay": _delay_0, "kind": _kind_0, "task": ($Session$state_task$(_s_0)), "revision": ($Session$state_revision$(_s_0)), "generation": ($Session$state_generation$(_s_0)), "bytes": ($Session$state_bytes$(_s_0)), "units": ($Session$state_units$(_s_0)), "repair": _repair_0, "recurring": _recurring_0};
 }
 
-function $$$$047session$045bend$047Session$fresh$(_s_0, _delay_0, _repair_0, _recurring_0) {
-  const _x_0 = ($$$$047session$045bend$047Session$state_revision$(_s_0));
-  const _updated_0 = ($$$$047session$045bend$047Session$set_revision$(_s_0, nat_chk(_x_0 + 1)));
-  return {$: "Session.Changed", "state": _updated_0, "events": {$: "Con", "head": ($$$$047session$045bend$047Session$emission$(_updated_0, _delay_0, 1, _repair_0, _recurring_0)), "tail": {$: "Nil"}}};
+function $Session$fresh$(_s_0, _delay_0, _repair_0, _recurring_0) {
+  const _x_0 = ($Session$state_revision$(_s_0));
+  const _updated_0 = ($Session$set_revision$(_s_0, nat_chk(_x_0 + 1)));
+  return {$: "Session.Changed", "state": _updated_0, "events": {$: "Con", "head": ($Session$emission$(_updated_0, _delay_0, 1, _repair_0, _recurring_0)), "tail": {$: "Nil"}}};
 }
 
-function $$$$047session$045bend$047Session$task_next$(_config_0, _s_0) {
+function $Session$task_next$(_config_0, _s_0) {
   const _pause_0 = _config_0["pause"];
-  const _delay_0 = ($Bool$pick$(($Nat$is_eq$(($$$$047session$045bend$047Session$state_task$(_s_0)), 0)), 0, _pause_0));
-  const _x_0 = ($$$$047session$045bend$047Session$state_task$(_s_0));
-  const _updated_0 = ($$$$047session$045bend$047Session$set_task$(($$$$047session$045bend$047Session$set_edit$(($$$$047session$045bend$047Session$set_phase$(_s_0, 1)), 0)), nat_chk(_x_0 + 1)));
-  return {$: "Session.Changed", "state": _updated_0, "events": {$: "Con", "head": ($$$$047session$045bend$047Session$emission$(_updated_0, _delay_0, 0, false, true)), "tail": {$: "Nil"}}};
+  const _delay_0 = ($Bool$pick$(($Nat$is_eq$(($Session$state_task$(_s_0)), 0)), 0, _pause_0));
+  const _x_0 = ($Session$state_task$(_s_0));
+  const _updated_0 = ($Session$set_task$(($Session$set_edit$(($Session$set_phase$(_s_0, 1)), 0)), nat_chk(_x_0 + 1)));
+  return {$: "Session.Changed", "state": _updated_0, "events": {$: "Con", "head": ($Session$emission$(_updated_0, _delay_0, 0, false, true)), "tail": {$: "Nil"}}};
 }
 
-function $$$$047session$045bend$047Session$edit_next$(_config_0, _s_0) {
+function $Session$edit_next$(_config_0, _s_0) {
   const __0 = _config_0["interval"];
   const __1 = _config_0["variation"];
   const _edits_0 = _config_0["edits"];
   const __2 = _config_0["pause"];
   const __3 = _config_0["response"];
   const __4 = _config_0["repairDelay"];
-  const _x_0 = ($$$$047session$045bend$047Session$state_edit$(_s_0));
+  const _x_0 = ($Session$state_edit$(_s_0));
   const _count_0 = ((_x_0 + 1) >>> 0);
-  const _random_0 = ($$$$047session$045bend$047Session$random_step$(($$$$047session$045bend$047Session$state_random$(_s_0))));
-  const _updated_0 = ($$$$047session$045bend$047Session$set_random$(($$$$047session$045bend$047Session$set_edit$(($$$$047session$045bend$047Session$set_phase$(_s_0, ($Bool$pick$((_count_0 >= _edits_0), 2, 1)))), _count_0)), _random_0));
-  return $$$$047session$045bend$047Session$fresh$(_updated_0, ($$$$047session$045bend$047Session$sample_delay$({$: "Session.Settings", "interval": __0, "variation": __1, "edits": _edits_0, "pause": __2, "response": __3, "repairDelay": __4}, _random_0)), false, true);
+  const _random_0 = ($Session$random_step$(($Session$state_random$(_s_0))));
+  const _updated_0 = ($Session$set_random$(($Session$set_edit$(($Session$set_phase$(_s_0, ($Bool$pick$((_count_0 >= _edits_0), 2, 1)))), _count_0)), _random_0));
+  return $Session$fresh$(_updated_0, ($Session$sample_delay$({$: "Session.Settings", "interval": __0, "variation": __1, "edits": _edits_0, "pause": __2, "response": __3, "repairDelay": __4}, _random_0)), false, true);
 }
 
-function $$$$047session$045bend$047Session$finish_next$(_config_0, _s_0) {
-  const _random_0 = ($$$$047session$045bend$047Session$random_step$(($$$$047session$045bend$047Session$state_random$(_s_0))));
-  const _updated_0 = ($$$$047session$045bend$047Session$set_random$(($$$$047session$045bend$047Session$set_phase$(_s_0, 0)), _random_0));
-  return {$: "Session.Changed", "state": _updated_0, "events": {$: "Con", "head": ($$$$047session$045bend$047Session$emission$(_updated_0, ($$$$047session$045bend$047Session$sample_delay$(_config_0, _random_0)), 2, false, true)), "tail": {$: "Nil"}}};
+function $Session$finish_next$(_config_0, _s_0) {
+  const _random_0 = ($Session$random_step$(($Session$state_random$(_s_0))));
+  const _updated_0 = ($Session$set_random$(($Session$set_phase$(_s_0, 0)), _random_0));
+  return {$: "Session.Changed", "state": _updated_0, "events": {$: "Con", "head": ($Session$emission$(_updated_0, ($Session$sample_delay$(_config_0, _random_0)), 2, false, true)), "tail": {$: "Nil"}}};
 }
 
-function $$$$047session$045bend$047Session$phase_next$(_config_0, _s_0, _phase_0) {
+function $Session$phase_next$(_config_0, _s_0, _phase_0) {
   if (_phase_0 == 0) {
-    return $$$$047session$045bend$047Session$task_next$(_config_0, _s_0);
+    return $Session$task_next$(_config_0, _s_0);
   } else if ((_phase_0 & 1) == 0) {
-    return $$$$047session$045bend$047Session$finish_next$(_config_0, _s_0);
+    return $Session$finish_next$(_config_0, _s_0);
   } else if (_phase_0 == 1) {
-    return $$$$047session$045bend$047Session$edit_next$(_config_0, _s_0);
+    return $Session$edit_next$(_config_0, _s_0);
   } else {
-    return $$$$047session$045bend$047Session$finish_next$(_config_0, _s_0);
+    return $Session$finish_next$(_config_0, _s_0);
   }
 }
 
-function $$$$047session$045bend$047Session$enabled_next$(_config_0, _s_0, _suspended_0) {
+function $Session$enabled_next$(_config_0, _s_0, _suspended_0) {
   if (_suspended_0) {
     return {$: "Session.Changed", "state": _s_0, "events": {$: "Nil"}};
   } else {
-    const _saved_0 = ($$$$047session$045bend$047Session$snapshot$(_s_0));
-    return $$$$047session$045bend$047Session$phase_next$(_config_0, _saved_0, ($$$$047session$045bend$047Session$state_phase$(_saved_0)));
+    const _saved_0 = ($Session$snapshot$(_s_0));
+    return $Session$phase_next$(_config_0, _saved_0, ($Session$state_phase$(_saved_0)));
   }
 }
 
-function $$$$047session$045bend$047Session$next$(_config_0, _s_0) {
-  return $$$$047session$045bend$047Session$enabled_next$(_config_0, _s_0, ($$$$047session$045bend$047Session$state_suspended$(_s_0)));
+function $Session$next$(_config_0, _s_0) {
+  return $Session$enabled_next$(_config_0, _s_0, ($Session$state_suspended$(_s_0)));
 }
 
-function $$$$047session$045bend$047Session$finish_state$(_s_0, _continuation_0) {
+function $Session$finish_state$(_s_0, _continuation_0) {
   if (_continuation_0) {
-    return $$$$047session$045bend$047Session$set_edit$(($$$$047session$045bend$047Session$set_phase$(_s_0, 1)), 0);
+    return $Session$set_edit$(($Session$set_phase$(_s_0, 1)), 0);
   } else {
-    return $$$$047session$045bend$047Session$set_phase$(_s_0, 0);
+    return $Session$set_phase$(_s_0, 0);
   }
 }
 
-function $$$$047session$045bend$047Session$on_finish$(_config_0, _s_0, _continuation_0) {
-  return $$$$047session$045bend$047Session$next$(_config_0, ($$$$047session$045bend$047Session$finish_state$(_s_0, _continuation_0)));
+function $Session$on_finish$(_config_0, _s_0, _continuation_0) {
+  return $Session$next$(_config_0, ($Session$finish_state$(_s_0, _continuation_0)));
 }
 
-function $$$$047session$045bend$047Session$rewind$(_config_0, _s_0) {
-  const _x_0 = ($$$$047session$045bend$047Session$state_generation$(_s_0));
-  const _updated_0 = ($$$$047session$045bend$047Session$set_task$(($$$$047session$045bend$047Session$set_edit$(($$$$047session$045bend$047Session$set_phase$(($$$$047session$045bend$047Session$set_generation$(_s_0, nat_chk(_x_0 + 1))), ($$$$047session$045bend$047Session$state_pendingPhase$(_s_0)))), ($$$$047session$045bend$047Session$state_pendingEdit$(_s_0)))), ($$$$047session$045bend$047Session$state_pendingTask$(_s_0))));
-  return $$$$047session$045bend$047Session$next$(_config_0, _updated_0);
+function $Session$rewind$(_config_0, _s_0) {
+  const _x_0 = ($Session$state_generation$(_s_0));
+  const _updated_0 = ($Session$set_task$(($Session$set_edit$(($Session$set_phase$(($Session$set_generation$(_s_0, nat_chk(_x_0 + 1))), ($Session$state_pendingPhase$(_s_0)))), ($Session$state_pendingEdit$(_s_0)))), ($Session$state_pendingTask$(_s_0))));
+  return $Session$next$(_config_0, _updated_0);
 }
 
-function $$$$047session$045bend$047Session$sizes$(_s_0, _bytes_0, _units_0) {
-  return $$$$047session$045bend$047Session$set_units$(($$$$047session$045bend$047Session$set_bytes$(_s_0, _bytes_0)), _units_0);
+function $Session$sizes$(_s_0, _bytes_0, _units_0) {
+  return $Session$set_units$(($Session$set_bytes$(_s_0, _bytes_0)), _units_0);
 }
 
-function $$$$047session$045bend$047Session$suspend$(_config_0, _s_0, _suspended_0) {
-  return $$$$047session$045bend$047Session$rewind$(_config_0, ($$$$047session$045bend$047Session$set_suspended$(_s_0, _suspended_0)));
+function $Session$suspend$(_config_0, _s_0, _suspended_0) {
+  return $Session$rewind$(_config_0, ($Session$set_suspended$(_s_0, _suspended_0)));
 }
 
-function $$$$047session$045bend$047Session$set_interval$(_config_0, _interval_0) {
+function $Session$set_interval$(_config_0, _interval_0) {
   const _variation_0 = _config_0["variation"];
   const _edits_0 = _config_0["edits"];
   const _pause_0 = _config_0["pause"];
@@ -14625,42 +14625,42 @@ function $$$$047session$045bend$047Session$set_interval$(_config_0, _interval_0)
   return {$: "Session.Settings", "interval": _interval_0, "variation": _variation_0, "edits": _edits_0, "pause": _pause_0, "response": _response_0, "repairDelay": _repairDelay_0};
 }
 
-function $$$$047session$045bend$047Session$advice_case$(_s_0, _response_0, _repairDelay_0) {
+function $Session$advice_case$(_s_0, _response_0, _repairDelay_0) {
   if (_response_0 == 0) {
     return {$: "Session.Changed", "state": _s_0, "events": {$: "Nil"}};
   } else if ((_response_0 & 3) == 0) {
-    return $$$$047session$045bend$047Session$fresh$(_s_0, _repairDelay_0, true, false);
+    return $Session$fresh$(_s_0, _repairDelay_0, true, false);
   } else if (_response_0 == 2) {
-    return $$$$047session$045bend$047Session$fresh$(_s_0, 1, true, false);
+    return $Session$fresh$(_s_0, 1, true, false);
   } else if ((_response_0 & 3) == 2) {
-    return $$$$047session$045bend$047Session$fresh$(_s_0, _repairDelay_0, true, false);
+    return $Session$fresh$(_s_0, _repairDelay_0, true, false);
   } else if (_response_0 == 1) {
     return {$: "Session.Changed", "state": _s_0, "events": {$: "Nil"}};
   } else {
-    return $$$$047session$045bend$047Session$fresh$(_s_0, _repairDelay_0, true, false);
+    return $Session$fresh$(_s_0, _repairDelay_0, true, false);
   }
 }
 
-function $$$$047session$045bend$047Session$on_advice$(_config_0, _s_0) {
+function $Session$on_advice$(_config_0, _s_0) {
   const _response_0 = _config_0["response"];
   const _repairDelay_0 = _config_0["repairDelay"];
-  return $$$$047session$045bend$047Session$advice_case$(_s_0, _response_0, _repairDelay_0);
+  return $Session$advice_case$(_s_0, _response_0, _repairDelay_0);
 }
 
-function $$$$047session$045bend$047Session$burst_events$(_count_0, _s_0) {
+function $Session$burst_events$(_count_0, _s_0) {
   if (_count_0 === 0) {
     return {$: "Nil"};
   } else {
     const _p_0 = (_count_0 - 1);
-    const _x_0 = ($$$$047session$045bend$047Session$state_revision$(_s_0));
-    const _updated_0 = ($$$$047session$045bend$047Session$set_revision$(_s_0, nat_chk(_x_0 + 1)));
-    return {$: "Con", "head": ($$$$047session$045bend$047Session$emission$(_updated_0, 0, 1, false, false)), "tail": ($$$$047session$045bend$047Session$burst_events$(_p_0, _updated_0))};
+    const _x_0 = ($Session$state_revision$(_s_0));
+    const _updated_0 = ($Session$set_revision$(_s_0, nat_chk(_x_0 + 1)));
+    return {$: "Con", "head": ($Session$emission$(_updated_0, 0, 1, false, false)), "tail": ($Session$burst_events$(_p_0, _updated_0))};
   }
 }
 
-function $$$$047session$045bend$047Session$burst$(_count_0, _s_0) {
-  const _x_0 = ($$$$047session$045bend$047Session$state_revision$(_s_0));
-  return {$: "Session.Changed", "state": ($$$$047session$045bend$047Session$set_revision$(_s_0, nat_chk(_x_0 + _count_0))), "events": ($$$$047session$045bend$047Session$burst_events$(_count_0, _s_0))};
+function $Session$burst$(_count_0, _s_0) {
+  const _x_0 = ($Session$state_revision$(_s_0));
+  return {$: "Session.Changed", "state": ($Session$set_revision$(_s_0, nat_chk(_x_0 + _count_0))), "events": ($Session$burst_events$(_count_0, _s_0))};
 }
 
 function $Random$word_bits$($0, $1, $2, $3) {
@@ -14696,7 +14696,7 @@ function $Random$folded$(_seed_0) {
 }
 
 function $Random$named_initial$(_seed_0, _codes_0) {
-  return $$$$047session$045bend$047Session$nonzero$(($$$$047session$045bend$047Session$seed_hash$(_codes_0, ($Random$folded$(_seed_0)))));
+  return $Session$nonzero$(($Session$seed_hash$(_codes_0, ($Random$folded$(_seed_0)))));
 }
 
 function $Random$initial$(_seed_0) {
@@ -14771,7 +14771,7 @@ function $Random$sampled$(_random_0, _weights_0) {
 }
 
 function $Random$sample$(_random_0, _weights_0) {
-  return $Random$sampled$(($$$$047session$045bend$047Session$random_step$(_random_0)), _weights_0);
+  return $Random$sampled$(($Session$random_step$(_random_0)), _weights_0);
 }
 
 function $Random$outcomes$(_state_0) {
@@ -14934,7 +14934,7 @@ function $TreeFacts$decimal$(_value_0) {
 }
 
 function $TreeFacts$initial$(_seed_0, _operation_0, _unit_0) {
-  return $$$$047session$045bend$047Session$nonzero$(($$$$047session$045bend$047Session$seed_hash$(($List$append$({$: "Con", "head": 105, "tail": {$: "Con", "head": 109, "tail": {$: "Con", "head": 112, "tail": {$: "Con", "head": 111, "tail": {$: "Con", "head": 114, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 45, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 114, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 115, "tail": {$: "Con", "head": 58, "tail": {$: "Nil"}}}}}}}}}}}}}}, ($List$append$(($TreeFacts$decimal$(_operation_0)), ($List$append$({$: "Con", "head": 58, "tail": {$: "Nil"}}, ($TreeFacts$decimal$(_unit_0)))))))), ($Random$folded$(_seed_0)))));
+  return $Session$nonzero$(($Session$seed_hash$(($List$append$({$: "Con", "head": 105, "tail": {$: "Con", "head": 109, "tail": {$: "Con", "head": 112, "tail": {$: "Con", "head": 111, "tail": {$: "Con", "head": 114, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 45, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 114, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 115, "tail": {$: "Con", "head": 58, "tail": {$: "Nil"}}}}}}}}}}}}}}, ($List$append$(($TreeFacts$decimal$(_operation_0)), ($List$append$({$: "Con", "head": 58, "tail": {$: "Nil"}}, ($TreeFacts$decimal$(_unit_0)))))))), ($Random$folded$(_seed_0)))));
 }
 
 function $TreeFacts$scaled$(_word_0, _range_0) {
@@ -14952,7 +14952,7 @@ function $TreeFacts$drawn$(_random_0, _min_0, _range_0) {
 
 function $TreeFacts$between$(_random_0, _min_0, _max_0) {
   const _x_0 = (_max_0 < _min_0 ? 0 : _max_0 - _min_0);
-  return $TreeFacts$drawn$(($$$$047session$045bend$047Session$random_step$(_random_0)), _min_0, nat_chk(_x_0 + 1));
+  return $TreeFacts$drawn$(($Session$random_step$(_random_0)), _min_0, nat_chk(_x_0 + 1));
 }
 
 function $TreeFacts$chance_drawn$(_random_0, _percent_0) {
@@ -14966,7 +14966,7 @@ function $TreeFacts$chance_enabled$(_enabled_0, _random_0, _percent_0) {
   if (!_enabled_0) {
     return {$: "TreeFacts.Chance", "random": _random_0, "yes": false};
   } else {
-    return $TreeFacts$chance_drawn$(($$$$047session$045bend$047Session$random_step$(_random_0)), _percent_0);
+    return $TreeFacts$chance_drawn$(($Session$random_step$(_random_0)), _percent_0);
   }
 }
 
@@ -14978,7 +14978,7 @@ function $TreeFacts$allowed$(_root_0, _random_0, _percent_0) {
   if (_root_0) {
     return {$: "TreeFacts.Chance", "random": _random_0, "yes": false};
   } else {
-    return $TreeFacts$chance_drawn$(($$$$047session$045bend$047Session$random_step$(_random_0)), _percent_0);
+    return $TreeFacts$chance_drawn$(($Session$random_step$(_random_0)), _percent_0);
   }
 }
 
@@ -15966,7 +15966,7 @@ function $Workload$initial$(_partition_0, _profile_0) {
   const _bytes_0 = _profile_0["bytes"];
   const _units_0 = _profile_0["units"];
   const _duration_0 = _profile_0["duration"];
-  return {$: "Workload.Advicee", "partition": _partition_0, "settings": _settings_0, "stream": ($$$$047session$045bend$047Session$initial$(_settings_0, _seed_0, _codes_0, _bytes_0, _units_0)), "duration": _duration_0};
+  return {$: "Workload.Advicee", "partition": _partition_0, "settings": _settings_0, "stream": ($Session$initial$(_settings_0, _seed_0, _codes_0, _bytes_0, _units_0)), "duration": _duration_0};
 }
 
 function $Workload$kept$(_remove_0, _head_0, _tail_0) {
@@ -16052,7 +16052,7 @@ function $Workload$next$(_advicee_0) {
   const _settings_0 = _advicee_0["settings"];
   const _stream_0 = _advicee_0["stream"];
   const _duration_0 = _advicee_0["duration"];
-  return $Workload$update$(_partition_0, _settings_0, _duration_0, ($$$$047session$045bend$047Session$next$(_settings_0, _stream_0)));
+  return $Workload$update$(_partition_0, _settings_0, _duration_0, ($Session$next$(_settings_0, _stream_0)));
 }
 
 function $Workload$finish$(_advicee_0, _continuation_0) {
@@ -16060,7 +16060,7 @@ function $Workload$finish$(_advicee_0, _continuation_0) {
   const _settings_0 = _advicee_0["settings"];
   const _stream_0 = _advicee_0["stream"];
   const _duration_0 = _advicee_0["duration"];
-  return $Workload$update$(_partition_0, _settings_0, _duration_0, ($$$$047session$045bend$047Session$on_finish$(_settings_0, _stream_0, _continuation_0)));
+  return $Workload$update$(_partition_0, _settings_0, _duration_0, ($Session$on_finish$(_settings_0, _stream_0, _continuation_0)));
 }
 
 function $Workload$advice$(_advicee_0) {
@@ -16068,12 +16068,12 @@ function $Workload$advice$(_advicee_0) {
   const _settings_0 = _advicee_0["settings"];
   const _stream_0 = _advicee_0["stream"];
   const _duration_0 = _advicee_0["duration"];
-  return $Workload$update$(_partition_0, _settings_0, _duration_0, ($$$$047session$045bend$047Session$on_advice$(_settings_0, _stream_0)));
+  return $Workload$update$(_partition_0, _settings_0, _duration_0, ($Session$on_advice$(_settings_0, _stream_0)));
 }
 
 function $Workload$paced$(_partition_0, _settings_0, _stream_0, _duration_0, _interval_0) {
-  const _config_0 = ($$$$047session$045bend$047Session$set_interval$(_settings_0, _interval_0));
-  return $Workload$update$(_partition_0, _config_0, _duration_0, ($$$$047session$045bend$047Session$rewind$(_config_0, _stream_0)));
+  const _config_0 = ($Session$set_interval$(_settings_0, _interval_0));
+  return $Workload$update$(_partition_0, _config_0, _duration_0, ($Session$rewind$(_config_0, _stream_0)));
 }
 
 function $Workload$control$(_advicee_0, _control_0) {
@@ -16087,13 +16087,13 @@ function $Workload$control$(_advicee_0, _control_0) {
   } else if (_control_0.$ === "Workload.Sizes") {
     const _bytes_0 = _control_0["bytes"];
     const _units_0 = _control_0["units"];
-    return {$: "Workload.Updated", "advicee": {$: "Workload.Advicee", "partition": _partition_0, "settings": _settings_0, "stream": ($$$$047session$045bend$047Session$sizes$(_stream_0, _bytes_0, _units_0)), "duration": _duration_0}, "events": {$: "Nil"}};
+    return {$: "Workload.Updated", "advicee": {$: "Workload.Advicee", "partition": _partition_0, "settings": _settings_0, "stream": ($Session$sizes$(_stream_0, _bytes_0, _units_0)), "duration": _duration_0}, "events": {$: "Nil"}};
   } else if (_control_0.$ === "Workload.Burst") {
     const _count_0 = _control_0["count"];
-    return $Workload$update$(_partition_0, _settings_0, _duration_0, ($$$$047session$045bend$047Session$burst$(_count_0, _stream_0)));
+    return $Workload$update$(_partition_0, _settings_0, _duration_0, ($Session$burst$(_count_0, _stream_0)));
   } else if (_control_0.$ === "Workload.Suspend") {
     const _suspended_0 = _control_0["suspended"];
-    return $Workload$update$(_partition_0, _settings_0, _duration_0, ($$$$047session$045bend$047Session$suspend$(_settings_0, _stream_0, _suspended_0)));
+    return $Workload$update$(_partition_0, _settings_0, _duration_0, ($Session$suspend$(_settings_0, _stream_0, _suspended_0)));
   } else {
     const _duration_1 = _control_0["duration"];
     return {$: "Workload.Updated", "advicee": {$: "Workload.Advicee", "partition": _partition_0, "settings": _settings_0, "stream": _stream_0, "duration": {$: "Some", "value": _duration_1}}, "events": {$: "Nil"}};
@@ -16106,7 +16106,7 @@ function $Workload$valid_found$(_found_0, _generation_0) {
   } else {
     const _t_0 = _found_0["value"];
     const _stream_0 = _t_0["stream"];
-    return $Nat$is_eq$(($$$$047session$045bend$047Session$state_generation$(_stream_0)), _generation_0);
+    return $Nat$is_eq$(($Session$state_generation$(_stream_0)), _generation_0);
   }
 }
 
@@ -16826,43 +16826,43 @@ function $random_sample$(_random_0, _weights_0) {
 }
 
 function $session_initial$(_settings_0, _seed_0, _codes_0, _bytes_0, _units_0) {
-  return $$$$047session$045bend$047Session$initial$(_settings_0, _seed_0, _codes_0, _bytes_0, _units_0);
+  return $Session$initial$(_settings_0, _seed_0, _codes_0, _bytes_0, _units_0);
 }
 
 function $session_next$(_settings_0, _stream_0) {
-  return $$$$047session$045bend$047Session$next$(_settings_0, _stream_0);
+  return $Session$next$(_settings_0, _stream_0);
 }
 
 function $session_generation$(_stream_0) {
-  return $$$$047session$045bend$047Session$state_generation$(_stream_0);
+  return $Session$state_generation$(_stream_0);
 }
 
 function $session_sizes$(_stream_0, _bytes_0, _units_0) {
-  return $$$$047session$045bend$047Session$sizes$(_stream_0, _bytes_0, _units_0);
+  return $Session$sizes$(_stream_0, _bytes_0, _units_0);
 }
 
 function $session_burst$(_count_0, _stream_0) {
-  return $$$$047session$045bend$047Session$burst$(_count_0, _stream_0);
+  return $Session$burst$(_count_0, _stream_0);
 }
 
 function $session_interval$(_settings_0, _interval_0) {
-  return $$$$047session$045bend$047Session$set_interval$(_settings_0, _interval_0);
+  return $Session$set_interval$(_settings_0, _interval_0);
 }
 
 function $session_rewind$(_settings_0, _stream_0) {
-  return $$$$047session$045bend$047Session$rewind$(_settings_0, _stream_0);
+  return $Session$rewind$(_settings_0, _stream_0);
 }
 
 function $session_suspend$(_settings_0, _stream_0, _suspended_0) {
-  return $$$$047session$045bend$047Session$suspend$(_settings_0, _stream_0, _suspended_0);
+  return $Session$suspend$(_settings_0, _stream_0, _suspended_0);
 }
 
 function $session_finish$(_stream_0, _continuation_0) {
-  return $$$$047session$045bend$047Session$finish_state$(_stream_0, _continuation_0);
+  return $Session$finish_state$(_stream_0, _continuation_0);
 }
 
 function $session_advice$(_settings_0, _stream_0) {
-  return $$$$047session$045bend$047Session$on_advice$(_settings_0, _stream_0);
+  return $Session$on_advice$(_settings_0, _stream_0);
 }
 
 function $pre_timing$(_state_0, _partition_0, _provided_0, _fallback_0, _lifetime_0) {
@@ -16882,7 +16882,7 @@ function $permit_actions$(_state_0, _capture_0) {
 }
 
 function $session_delay$(_settings_0, _random_0) {
-  return $$$$047session$045bend$047Session$sample_delay$(_settings_0, _random_0);
+  return $Session$sample_delay$(_settings_0, _random_0);
 }
 
 function $intervene_request$(_state_0, _target_0, _outcome_0, _delay_0) {
@@ -17226,7 +17226,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:6a87ea59bed6b7bd1805c1b31894dde93720fde907c02725be99ac5933111a06";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:5f81ab1c4faa708b006a5e7efa0fbb56de7e0a8e4607412289d12f54c5659cdb";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:21b3255c6e5331343f54a58c07f91ea938d8f08f6dcf4e29830baeb4239152e9";
 
 const facts = value => {

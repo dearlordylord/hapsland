@@ -1,6 +1,6 @@
 import Base
 import ./Random.bend as Random
-import ../session-bend/Session.bend as Session
+import ./Session.bend as Session
 
 # Source-free environment facts. Production ImportGraph alone chooses traversal.
 type Profile is Data:

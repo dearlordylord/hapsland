@@ -6,7 +6,7 @@ import { SessionGenerator as Reference } from "./session-reference.fixture.ts";
 
 describe("shared Bend session port", () => {
   test("generated module matches its source and generator", () => {
-    execFileSync(process.execPath, [fileURLToPath(new URL("../../session-bend/build.mjs", import.meta.url)), "--check"]);
+    execFileSync(process.execPath, [fileURLToPath(new URL("../../monkey-business-bend/build-session.mjs", import.meta.url)), "--check"]);
   });
   test("preserves the independent pre-port stream across seeds, Unicode, controls and large clocks", () => {
     const agents = ["agent-1", "é", "a😀z", "𝌆", "a\u0000b"];

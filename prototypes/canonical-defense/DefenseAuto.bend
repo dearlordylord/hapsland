@@ -1,6 +1,6 @@
 # Host campaign schedule. Recurring Tasks come from the same Session source as Monkey Business.
 import Base
-import ../../packages/session-bend/Session.bend as Session
+import ../../packages/monkey-business-bend/Session.bend as Session
 
 type State is Data:
   Schedule{wave: U32, enabled: Bool, pending: Bool, left: U32, live: Bool, task: Nat, session: Session.State}

@@ -5,7 +5,7 @@ import ./DefenseModel.bend as M
 import ./DefenseHost.bend as H
 import ./DefenseProjection.bend as P
 import ./DefenseOutput.bend as O
-import ../../packages/session-bend/Session.bend as Session
+import ../../packages/monkey-business-bend/Session.bend as Session
 
 def require(ok: Bool, message: String) -> IO(Unit):
   match ok:

@@ -27,7 +27,7 @@ Initial gold is 160 and shared health is 100. Towers fire or provide support aut
 
 ## What is actually reused
 
-The game imports `../../packages/agent-flow-bend/Canonical.bend` directly, holds a real `Canonical.State`, and supplies facts through `Canonical.step`. Production and dashboard use the generated adapter for that same source. This prototype does not use the older game's lifecycle reducer. Automatic waves directly import `packages/session-bend/Session.bend`, the same scheduler used by Monkey Business; they reuse its tasks and finish transitions. Each wave retires its drained partition and opens a real canonical round.
+The game imports `../../packages/agent-flow-bend/Canonical.bend` directly, holds a real `Canonical.State`, and supplies facts through `Canonical.step`. Production and dashboard use the generated adapter for that same source. This prototype does not use the older game's lifecycle reducer. Automatic waves directly import `packages/monkey-business-bend/Session.bend`, the same scheduler used by Monkey Business; they reuse its tasks and finish transitions. Each wave retires its drained partition and opens a real canonical round.
 
 Canonical owns admission, preparation fan-out, review requests, shared permits, retained findings, collection eligibility, Stop, leases, delivery authorization and retirement. The host authors work, simulated durations/outcomes, road arrival, gold and damage. Towers affect these simulated facts and timings; they do not create product features or overwrite canonical ownership. The imported-source manifest records the actual unchanged core files.
 

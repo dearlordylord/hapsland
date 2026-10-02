@@ -1,5 +1,5 @@
 import Base
-import ../session-bend/Session.bend as Session
+import ./Session.bend as Session
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/Admission.bend as Admission
 import ./Driver.bend as Driver

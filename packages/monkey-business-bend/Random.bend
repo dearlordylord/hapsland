@@ -1,6 +1,6 @@
 import Base
 import ./Numeric.bend as Numeric
-import ../session-bend/Session.bend as Session
+import ./Session.bend as Session
 
 type Sampled is Data:
   Sampled{random: U32, outcome: Nat}

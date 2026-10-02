@@ -4,7 +4,7 @@ import Base
 import ./Scheduler.bend as Scheduler
 import ./Driver.bend as Driver
 import ./Workload.bend as Workload
-import ../session-bend/Session.bend as Session
+import ./Session.bend as Session
 import ../agent-flow-bend/Canonical.bend as Canonical
 
 # Every arbitrary Nat insertion into an empty queue retains exactly the identity

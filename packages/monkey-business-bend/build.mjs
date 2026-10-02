@@ -38,7 +38,7 @@ if (process.argv.includes("--check")) {
     // Keep all emitted policy code; avoid re-marshalling original opaque state.
     const marshaling = compiled.indexOf("function $0m0(");
     if (marshaling < 0 || marshaling >= offset) throw new Error("Bend shared engine marshalling layout changed");
-    const emitted = compiled.slice(0, marshaling).replaceAll("../agent-flow-bend/", "").replaceAll("../session-bend/Session.", "Session.");
+    const emitted = compiled.slice(0, marshaling).replaceAll("../agent-flow-bend/", "").replaceAll("./Session.", "Session.");
     const module = emitted + `
 export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:${identityHash}";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:${preparationHash}";

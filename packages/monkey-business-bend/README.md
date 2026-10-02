@@ -87,11 +87,13 @@ it does not prove permit admission or whole-driver progress. Like the earlier
 three candidates it remains unapproved. Its literal and profile-discarding mutant
 are checked by the existing bounded proposal runner.
 
-The sole `session-bend/Session.bend` implementation remains an imported dependency
-until #199 transfers `DefenseAuto.bend` and the retained `RoadAuto.bend` consumer.
-`session.mjs` is now a thin projection bridge to this generated engine, not a
-second emitted scheduler. That transfer permits relocating the source and
-removing the remaining package; preserve these game imports until then.
+`Session.bend` is the sole shared workload scheduler in this core. Native game
+consumers import that source directly; `session.mjs` delegates its standalone
+projection to this same generated engine. Regenerate the projection with
+`node packages/monkey-business-bend/build-session.mjs`; check seeded native/JS
+projection agreement with `node packages/monkey-business-bend/verify-session-native.mjs`.
+`SessionLaws.bend` retains the proposed, unapproved scheduler laws. Relative
+session delays remain U32 while counters and byte facts preserve the u48 domain.
 
 
 The #181/#183/#184 composition adds `Advicees` and `AdviceeScope` for opaque

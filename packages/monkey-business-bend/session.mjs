@@ -1,4 +1,4 @@
-import Engine from "../monkey-business-bend/engine.mjs";
+import Engine from "./engine.mjs";
 export default {
  initial: Engine.session_initial, next: Engine.session_next, sample_delay: Engine.session_delay,
  finish_state: Engine.session_finish,

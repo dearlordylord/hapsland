@@ -4,7 +4,7 @@ import ../Types.bend as Types
 import ../Workload.bend as Workload
 import ../Scheduler.bend as Scheduler
 import ../Driver.bend as Driver
-import ../../session-bend/Session.bend as Session
+import ../Session.bend as Session
 import ../../agent-flow-bend/Ledger.bend as Ledger
 import ../../agent-flow-bend/Canonical.bend as Canonical
 import ../../agent-flow-bend/Admission.bend as Admission

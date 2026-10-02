@@ -8,7 +8,7 @@ import ../Scheduler.bend as Scheduler
 import ../TreeFacts.bend as TreeFacts
 import ../PreparationScenario.bend as Preparation
 import ../Workload.bend as Workload
-import ../../session-bend/Session.bend as Session
+import ../Session.bend as Session
 import ../../agent-flow-bend/Canonical.bend as Canonical
 import ../../agent-flow-bend/ImportGraph.bend as Graph
 import ../../agent-flow-bend/Ledger.bend as Ledger

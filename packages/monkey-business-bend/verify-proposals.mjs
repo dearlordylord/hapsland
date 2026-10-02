@@ -14,14 +14,13 @@ try {
   const copy = join(temp, "monkey-business-bend");
   cpSync(root, copy, { recursive: true });
   symlinkSync(join(root, "../agent-flow-bend"), join(temp, "agent-flow-bend"), "dir");
-  symlinkSync(join(root, "../session-bend"), join(temp, "session-bend"), "dir");
   // Literal falsification precedes checking the general candidate proofs.
   const literals = `import Base
 import ./Scheduler.bend as S
 import ./Driver.bend as D
 import ./Workload.bend as W
 import ./PendingEffects.bend as P
-import ../session-bend/Session.bend as Session
+import ./Session.bend as Session
 import ../agent-flow-bend/Canonical.bend as C
 law selected_literal:
   {S.take(S.enqueue(S.State{[], 0n}, 3n, 2n)) == S.Taken{S.State{[], 3n}, Some{S.Entry{3n, 2n}}} : S.Taken}
