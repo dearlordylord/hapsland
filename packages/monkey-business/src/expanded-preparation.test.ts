@@ -13,6 +13,9 @@ const base: FileTreeProfile = { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 3, maxFi
   minTreeBytes: 3, maxTreeBytes: 3 };
 const limits: GraphLimits = { version: 1, sourceBytes: 4, treeBytes: 100, files: 8,
   readBytes: 32, outgoingEdges: 2, depth: 2, work: 128 };
+const pair: FileTreeProfile = { ...base, minFiles: 2, maxFiles: 2, maxImports: 1, maxDepth: 1 };
+const single: FileTreeProfile = { ...base, minFiles: 1, maxFiles: 1, localWork: 5 };
+const exact: GraphLimits = { version: 1, sourceBytes: 4, treeBytes: 3, files: 1, readBytes: 4, outgoingEdges: 1, depth: 1, work: 5 };
 const cases: readonly { profile: FileTreeProfile; limits: GraphLimits; reason?: string }[] = [
   { profile: base, limits },
   { profile: { ...base, deniedPercent: 100 }, limits, reason: "Excluded" },
@@ -23,6 +26,15 @@ const cases: readonly { profile: FileTreeProfile; limits: GraphLimits; reason?: 
   { profile: { ...base, deadlineStep: 1 }, limits, reason: "Deadline" },
   { profile: base, limits: { ...limits, files: 2 }, reason: "Omitted" },
   { profile: { ...base, localWork: 129 }, limits, reason: "WorkLimit" },
+  { profile: single, limits: exact },
+  { profile: { ...single, minSourceBytes: 5, maxSourceBytes: 5 }, limits: exact, reason: "ReadLimit" },
+  { profile: { ...single, minTreeBytes: 4, maxTreeBytes: 4 }, limits: exact, reason: "TreeLimit" },
+  { profile: pair, limits: { ...limits, readBytes: 7 }, reason: "Omitted" },
+  { profile: { ...base, maxImports: 1 }, limits: { ...limits, depth: 1 }, reason: "DepthLimit" },
+  { profile: base, limits: { ...limits, outgoingEdges: 1 }, reason: "WorkLimit" },
+  { profile: { ...pair, deadlineStep: 4 }, limits, reason: "Deadline" },
+  { profile: { ...pair, deadlineStep: 5 }, limits, reason: "Deadline" },
+  { profile: { ...pair, deadlineStep: 6 }, limits },
 ];
 const replayTree = (profile: FileTreeProfile, graphLimits = limits) => {
   const tree = generateFileTree(7, 3, 0, profile, graphLimits);
@@ -60,7 +72,7 @@ describe("expanded preparation through production decisions", () => {
     expect(terminal?.after.phase).toBe(reason ? "incomplete" : "complete");
     expect(terminal?.after.reason).toBe(reason);
     expect(tree.limits).toEqual(graphLimits);
-    expect(tree.rootEligible).toBe(reason !== "WorkLimit");
+    expect(tree.rootEligible).toBe(!["WorkLimit", "ReadLimit", "TreeLimit"].includes(reason ?? ""));
     expect(tree.closureEligible).toBe(reason === undefined);
     if (profile.deniedPercent === 100 || profile.missingPercent === 100 || profile.unsupportedPercent === 100)
       expect(frames.filter(frame => frame.command.kind === "readSource")).toHaveLength(0);
@@ -84,6 +96,27 @@ describe("expanded preparation through production decisions", () => {
     const terminal = replay.step({ kind: "preparationGraph", example: "simple", partition: 1, lifetime: 1, round: 1, operation: 9, unit: 0, step: 1,
       graphLimits: GRAPH_LIMIT_CEILINGS, fact: { kind: "next" } });
     expect(terminal.after.limits).toEqual(exact);
+  });
+
+  it("distinguishes depth, edge-work and read-reservation boundaries from generated facts", () => {
+    const chain = { ...base, minFiles: 3, maxFiles: 3, maxImports: 1, maxDepth: 2 };
+    expect(replayTree(chain, { ...limits, depth: 2 }).frames.at(-1)?.after).toMatchObject({ phase: "complete", files: 3 });
+    expect(replayTree(chain, { ...limits, depth: 1 }).frames.at(-1)?.after.reason).toBe("DepthLimit");
+    expect(replayTree(base, { ...limits, outgoingEdges: 1 }).frames.at(-1)?.after.reason).toBe("WorkLimit");
+    const pair = { ...base, minFiles: 2, maxFiles: 2, maxImports: 1, maxDepth: 1 };
+    expect(replayTree(pair, { ...limits, outgoingEdges: 1, readBytes: 8 }).frames.at(-1)?.after).toMatchObject({ phase: "complete", readBytes: 8 });
+    expect(replayTree(pair, { ...limits, outgoingEdges: 1, readBytes: 9 }).frames.at(-1)?.after.phase).toBe("complete");
+    const refused = replayTree(pair, { ...limits, outgoingEdges: 1, readBytes: 7 });
+    expect(refused.frames.some(frame => frame.command.kind === "skipImport" && frame.command.reason === "ReadLimit")).toBe(true);
+    expect(refused.frames.at(-1)?.after).toMatchObject({ phase: "incomplete", reason: "Omitted", files: 1, readBytes: 4 });
+  });
+
+  it("fires deadlines before and at completion, while a later fact index preserves completion", () => {
+    // Two files require root, next, resolved, path gate, capture, next: terminal index 5.
+    const pair = { ...base, minFiles: 2, maxFiles: 2, maxImports: 1, maxDepth: 1 };
+    expect(replayTree({ ...pair, deadlineStep: 4 }).frames.at(-1)?.after).toMatchObject({ phase: "incomplete", reason: "Deadline", files: 1 });
+    expect(replayTree({ ...pair, deadlineStep: 5 }).frames.at(-1)?.after).toMatchObject({ phase: "incomplete", reason: "Deadline", files: 2 });
+    expect(replayTree({ ...pair, deadlineStep: 6 }).frames.at(-1)?.after).toMatchObject({ phase: "complete", files: 2 });
   });
 
   it("retains separate multi-unit inner facts and independent supplied offers through ordinary replay", () => {

@@ -100,6 +100,18 @@ def trace(value: Scenario.Generated, +limits: Graph.Limits) -> List<&2, List<&2,
 def run(profile: TreeFacts.Profile, +limits: Graph.Limits) -> List<&2, List<&2, Nat>>:
   trace(Engine.generate_tree(7n, 3n, 0n, profile, limits), limits)
 
+def pair(deadline: Nat) -> TreeFacts.Profile:
+  TreeFacts.Profile{2n, 2n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, deadline, 0n, 4n, 4n, 3n, 3n}
+
+def chain() -> TreeFacts.Profile:
+  TreeFacts.Profile{3n, 3n, 1n, 2n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 4n, 4n, 3n, 3n}
+
+def single(+source: Nat, +tree: Nat) -> TreeFacts.Profile:
+  TreeFacts.Profile{1n, 1n, 2n, 2n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 5n, source, source, tree, tree}
+
+def exact() -> Graph.Limits:
+  Graph.Limits{1n, 4n, 3n, 1n, 4n, 1n, 1n, 5n}
+
 def scenarios() -> List<&2, List<&2, List<&2, Nat>>>:
   [run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n), limits()),
    run(profile(0n, 100n, 0n, 0n, 0n, 0n, 0n, 0n), limits()),
@@ -109,7 +121,14 @@ def scenarios() -> List<&2, List<&2, List<&2, Nat>>>:
    run(profile(0n, 0n, 0n, 0n, 100n, 100n, 0n, 0n), limits()),
    run(profile(0n, 0n, 0n, 0n, 0n, 0n, 1n, 0n), limits()),
    run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n), Graph.Limits{1n, 4n, 100n, 2n, 32n, 2n, 2n, 128n}),
-   run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 129n), limits())]
+   run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 129n), limits()),
+   run(single(4n, 3n), exact()),
+   run(single(5n, 3n), exact()),
+   run(single(4n, 4n), exact()),
+   run(pair(0n), Graph.Limits{1n, 4n, 100n, 8n, 7n, 2n, 2n, 128n}),
+   run(chain(), Graph.Limits{1n, 4n, 100n, 8n, 32n, 2n, 1n, 128n}),
+   run(profile(0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n), Graph.Limits{1n, 4n, 100n, 8n, 32n, 1n, 2n, 128n}),
+   run(pair(4n), limits()), run(pair(5n), limits()), run(pair(6n), limits())]
 
 def main() -> IO(Unit):
   do IO<Unit>:
