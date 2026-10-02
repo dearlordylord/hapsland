@@ -109,14 +109,14 @@
       "requirement": "Current native macOS host/package conformance identified by advisory adoption gate",
       "status": "deferred-by-owner",
       "evidence": [
-        "docs/PRODUCT-RESEARCH-ADVISORY-2026-10-01-functional-runtime.md"
+        "https://github.com/dearlordylord/hapsland/issues/172"
       ],
       "reason": "Linux host cannot execute macOS native capture, terminal, Keychain or agent profiles. Historical records do not prove migrated source.",
       "followupIssue": "https://github.com/dearlordylord/hapsland/issues/172",
       "requiredForCurrentMigration": false
     }
   ],
-  "next": "Ready to merge the local refactor/effect4-migration branch. Perform macOS validation later under #172.",
+  "next": "Migration merged into master at 474cc8e52e5c78c609770e775e3cdfeff1f3e380 and pushed. Perform macOS validation later under #172.",
   "sourceInventory": {
     "evidence": "source-inventory-current.json",
     "reproducer": "node evidence/effect4-migration/source-inventory.mjs",
