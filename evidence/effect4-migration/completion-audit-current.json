@@ -6,7 +6,7 @@
   "requirements": [
     {
       "requirement": "Full effectful product workflows compose as Effect; runtimes at process/host boundaries",
-      "status": "source-inspected",
+      "status": "pass",
       "evidence": [
         "docs/architecture.md",
         "src/resident/server.ts",
@@ -95,7 +95,7 @@
         "masked-input-pty-current.json",
         "checkpoint.json"
       ],
-      "scope": "Offline setup/lifecycle and native Linux PTY Enter/Escape/signal/fiber restoration."
+      "scope": "Fresh setup/package and public two-client lifecycle replays on final source pass offline, zero provider calls. Native Linux PTY Enter/Escape/signal/fiber restoration receipts remain for unchanged terminal source."
     },
     {
       "requirement": "Original latency, retention, RSS and concurrency budgets",
@@ -298,5 +298,10 @@
       }
     },
     "interpretation": "Read-only ancestry observation; release declaration is not rewritten. A failed ancestry gate cannot validate current source."
-  }
+  },
+  "localVerification": "Complete for final production source 0c86f40: typecheck/build, full suite, scoped native IPC context, unchanged budget workloads, fresh installed Codex, exact Claude, fresh public setup/lifecycle, stable visualization build/browser and unchanged live Decision source hashes.",
+  "remainingVerification": [
+    "Native macOS arm64 package/capture/credential/host checks; no machine access supplied yet.",
+    "Historical pinned installed-release gate ancestry fails on original task baseline, current branch and master. Current Linux receipts do not replace historical release acceptance."
+  ]
 }

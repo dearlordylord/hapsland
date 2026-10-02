@@ -11,5 +11,9 @@
     "disabled-completion",
     "interactive-masked-terminal",
     "guided-pilot"
-  ]
+  ],
+  "postExecutionMetadata": {
+    "productionSourceCommit": "0c86f40",
+    "timing": "After execution; fresh setup-package replay on final source, zero provider calls."
+  }
 }

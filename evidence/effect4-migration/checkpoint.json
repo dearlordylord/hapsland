@@ -4216,5 +4216,15 @@
     "clearFollowUp": true,
     "hookFailures": [],
     "limitations": "Bounded native Linux synthetic source case with controlled backend; no current installed Claude package or macOS acceptance."
+  },
+  "latestSetupAndPublicLifecycle": {
+    "productionSourceCommit": "0c86f40",
+    "setupReceipt": "setup-package-current.json",
+    "setupStatus": "pass",
+    "setupProviderCalls": 0,
+    "publicLifecycle": "pass",
+    "scope": "Registry update twice, single snapshot and no repeated approval; active package dispatch, partial repair recovery, both-client doctor/repair/reinstall/uninstall, missing active package recovery and settings preservation.",
+    "liveDecisionReceiptApplicability": "Recorded Jev Decision provider/question source hashes match current files exactly.",
+    "limitations": "Offline synthetic lifecycle fixtures; no new current macOS evidence."
   }
 }
