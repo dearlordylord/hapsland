@@ -908,3 +908,109 @@ clock covers Node startup, not earlier runtime/shell queuing. A delayed PRE is
 not itself an old-edit counterexample if the actual edit remains blocked behind
 it. Next validation must distinguish hook invocation from actual tool execution
 and inspect timeout/cancellation and replay behavior per supported runtime.
+
+### Runtime premise audit (2026-10-02)
+
+**Scope and classification:** Advisory research into the existing PRE premise,
+not a new admission policy or runtime-conformance result. The declared adapter
+profiles are Claude Code `2.1.218` and Codex CLI `0.155.1`/`0.156.0`; platform and
+execution scope remain those of each [supported-profile record](direct-event-v1-supported-profile.md).
+Local package metadata and executable symlinks currently identify newer
+`0.160.0`/`2.1.281` binaries; neither was run for this audit, and they do not
+replace the declared profiles.
+
+| Evidence class / verification | Bounded finding |
+| --- | --- |
+| Official DOC / inspected, rolling documentation | [Claude's hooks reference](https://code.claude.com/docs/en/hooks#timeouts) describes PRE before tool execution; a timed-out command hook is canceled and its output discarded, but the tool can continue through normal permission handling. This documents fail-open edit behavior, not successful review admission or proof that every descendant process stopped. |
+| Official DOC / inspected, rolling documentation | [Codex's hooks reference](https://developers.openai.com/codex/hooks#run-hooks-in-the-background) says command hooks wait by default; explicit asynchronous handlers continue separately. It documents `apply_patch` coverage with specialized-path exceptions and a tool-call ID, not an original edit timestamp or resident epoch. Current documentation is not version-pinned conformance evidence. |
+| Local SRC / inspected | Installed PRE uses `exec`, timeout five seconds, and no `async` (`src/onboarding/claude-installation.ts:141`, `src/onboarding/codex-installation.ts:140`). Node process start is sampled once and passed unchanged through startup; permit expiry derives from it and pending duplicates do not renew it (`src/resident/hook-clock.ts:4`, `src/resident/client.ts:518`, `src/resident/composed-delivery.ts:224`, `:247`). This does not measure earlier native/shell queuing. |
+| Native SRC evidence / selected prior execution | The [negative matrix](../evidence/native-negative/index.json) covers selected controlled source-checkout trials, not installed-package or normal-trust validation. Its [Claude timeout sample](../evidence/native-negative/claude-typescript-hook-timeout-controlled-offline-1790857421849.json) and [Codex timeout sample](../evidence/native-negative/codex-typescript-hook-timeout-controlled-offline-1790858004083.json) pin `2.1.218` and `0.155.1` respectively. Timeout/crash injection targets POST edit/background handlers, not PRE (`scripts/run-native-crossfile-current.mjs:111`). Normal PRE/POST traces correlate a hashed tool ID but do not log actual tool start; they establish neither PRE-timeout cancellation nor the closure-order premise. |
+
+No inspected source establishes preservation of an original native invocation
+start across a runtime retry that launches a new hook process. A delayed PRE is
+not an old-edit counterexample while actual tool execution remains blocked
+behind it. The exact distinction between native invocation, command startup,
+Node startup, and actual edit execution must remain explicit when validating
+the target contract's closure fence.
+
+Next empirical cases, on each exact supported runtime/platform profile:
+
+- Record native invocation before closure, delayed PRE process startup after
+  closure, and actual tool execution; identify which observed start supplies
+  the accepted fence evidence.
+- Timeout or cancel PRE before and after resident registration; check surviving
+  descendants, late IPC registration, and whether an edit that continues without
+  a permit remains unadmitted for review.
+- Delay resident startup and retry an invocation; track unchanged tool/session/
+  advicee/root, original start/deadline, and resident lifetime without refreshing
+  a stale attempt.
+- Replay POST after closure and across resident restart or retained-identity
+  eviction; verify that missing original authority cannot open a successor.
+
+A delayed invocation followed by an edit after closure tests original-start
+stamping; it is not evidence that an old mutation reopened a round. Keep
+invocation request, actual tool start, first file mutation, and POST arrival
+separate: a file watcher is a proxy, and missing completion logs do not prove
+process termination. Existing valid POST-fault evidence remains useful under
+its stated scope; dedicated PRE scenarios must carry distinct declarations.
+
+These cases are proposals, not executed results. Retain PRE; resolving its
+external runtime premise does not require proving arrival-only A or treating
+lost-POST/fail-open edit coverage as a freshness guarantee.
+
+## Executed PRE-only native fault probes (2026-10-02)
+
+Validation evidence, separate from the broader audit proposals above. Six bounded
+runs used source-checkout hooks with pinned Claude Code 2.1.218 and Codex CLI
+0.155.1, one persistent synthetic TypeScript creation per run, no automatic
+retries, no controlled reviewer calls and no Jev requests. PRE used the installed
+command shape's `exec` prefix. The injected wrapper deliberately bypassed permit
+registration: these are native hook-wait/failure observations, not production PRE
+admission conformance. The declarations were written before each host execution.
+
+| Runtime | PRE injection | Observed fixture mutation | Completion observation | Bounded checks |
+| --- | --- | --- | --- | --- |
+| Claude 2.1.218 | 1,500 ms hold, 5 s hook deadline | 17.8 ms after hold completion | 31 samples remained absent; completion sentinel present | 17/17 |
+| Codex 0.155.1 | 1,500 ms hold, 5 s hook deadline | 6.8 ms after hold completion | 31 samples remained absent; completion sentinel present | 17/17 |
+| Claude 2.1.218 | 10 s hold, 2 s hook deadline | 2,001.7 ms after PRE Node entry | No natural-completion sentinel; mutation-time PID probe false | 12/12 |
+| Codex 0.155.1 | 10 s hold, 2 s hook deadline | 1,967.3 ms after PRE Node entry | No natural-completion sentinel; mutation-time PID probe false | 12/12 |
+| Claude 2.1.218 | PRE exits 42 | 190.9 ms after PRE Node entry | Exit-42 completion marker present | 12/12 |
+| Codex 0.155.1 | PRE exits 42 | 5.7 ms after PRE Node entry | Exit-42 completion marker present | 12/12 |
+
+All six observed exactly one matched PRE/POST identity and the expected final
+fixture, with no advice delivered or applied. The timeout gates establish those
+bounded observations; they do **not** prove deadline enforcement or process
+termination. The configured runtime deadline covers earlier command startup too,
+so it is not measured from Node entry. A false PID probe and missing completion
+sentinel do not establish a kill signal or cancellation of every descendant.
+
+The independent filesystem observer was armed before host execution; the PRE
+process also sampled fixture existence/hash every 50 ms during the delay. Seven
+offline controls passed, including forced persistent mutation detected by the
+same sampling function, an early-mutation/async-PRE rejection, unrelated/multiple
+POST rejection, and absence of provider-observer rejection. The observation is
+first detectable fixture mutation, an upper bound on native tool start, **not**
+an instrumented native start. Samples do not rule out transient write/revert
+between samples. No deliberate resident closure, late registration, IPC retry,
+lifetime restamping, or restart was tested here; those remain audit proposals.
+This source-checkout/controlled-trust profile does not validate an installed
+package, ordinary trust configuration, or all executions of either runtime.
+
+Source-free evidence and matching `-declaration.json` files are in
+[`evidence/native-negative`](../evidence/native-negative), with these run IDs:
+
+- `claude-typescript-pre-delay-controlled-offline-1790951227977`
+- `codex-typescript-pre-delay-controlled-offline-1790951233648`
+- `claude-typescript-pre-timeout-controlled-offline-1790951379155`
+- `codex-typescript-pre-timeout-controlled-offline-1790951380147`
+- `claude-typescript-pre-crash-controlled-offline-1790951439591`
+- `codex-typescript-pre-crash-controlled-offline-1790951425205`
+
+Raw host streams, source, provider bodies and credentials were discarded with
+the disposable repositories. Existing POST crash/timeout cases remain POST-only
+fault evidence. The runner's unsupported requirement that missing natural
+completion demonstrated timeout cancellation has been removed; earlier evidence
+and declarations are preserved as dated observations, not rewritten. Run
+`node --test scripts/native-hook-faults.test.mjs` for the checker controls.
+The accepted closure freshness contract and unapproved conditional proof remain
+unchanged.

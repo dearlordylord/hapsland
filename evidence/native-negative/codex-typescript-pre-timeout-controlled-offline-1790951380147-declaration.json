@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-02T14:29:40.147Z",
+  "host": "codex",
+  "language": "typescript",
+  "mode": "controlled-offline",
+  "scenario": "pre-timeout",
+  "declaration": {
+    "scenario": "pre-timeout",
+    "maximumProviderRequests": 0,
+    "automaticHostRetries": 0,
+    "hostCeilingMs": 240000,
+    "syntheticRepositoryOnly": true,
+    "maximumSourceEditCalls": 1,
+    "sourceProfile": "bounded local cross-file types",
+    "runtimeVersion": "codex-cli 0.155.1",
+    "hookPhase": "PRE",
+    "injectedDelayMs": 10000,
+    "nativePreHookDeadlineMs": 2000,
+    "permitRegistrationBypassed": true,
+    "productionPreAdmissionConformance": false,
+    "maximumReviewerRequests": 0,
+    "actualNativeToolStartObservable": false,
+    "holdSampleIntervalMs": 50,
+    "onePersistentFixtureCreation": true,
+    "mutationLandmark": "filesystem observer proxy"
+  }
+}
