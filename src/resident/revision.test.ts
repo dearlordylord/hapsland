@@ -25,12 +25,12 @@ it.effect("reuses one native revision and accounts for independent members", () 
   expect(joined).toEqual({ revision: first.revision, replaced: false });
   expect(Object.isFrozen(first.revision)).toBe(true);
   expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([2]);
-  owner.revision.release({ ...first.revision, token: "foreign-token" });
+  yield* owner.revision.release({ ...first.revision, token: "foreign-token" });
   expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([2]);
-  owner.revision.release(first.revision);
+  yield* owner.revision.release(first.revision);
   expect(owner.revision.current(joined.revision, item)).toBe(true);
   expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([1]);
-  owner.revision.release(joined.revision);
+  yield* owner.revision.release(joined.revision);
   expect(owner.revision.count()).toBe(0);
   expect(owner.revision.current(first.revision, item)).toBe(false);
   expect(owner.revision.generation(first.revision.subject)).toBe(0);
@@ -44,16 +44,16 @@ it.effect("replaces only the matching subject and ignores an old generation's re
   const independent = (yield* owner.revision.register("other-agent", item, true, "independent")).revision;
   const replacement = (yield* owner.revision.register("agent", changed, true, "replacement")).revision;
   expect(replacement.generation).toBeGreaterThan(old.generation);
-  expect(owner.revision.superseded(replacement.subject, old)).toBe(true);
-  expect(owner.revision.superseded(replacement.subject, independent)).toBe(false);
+  expect(yield* owner.revision.superseded(replacement.subject, old)).toBe(true);
+  expect(yield* owner.revision.superseded(replacement.subject, independent)).toBe(false);
   expect(owner.revision.current(old, item)).toBe(false);
   expect(owner.revision.current(replacement, changed)).toBe(true);
   expect(owner.revision.current(independent, item)).toBe(true);
-  owner.revision.release(old);
+  yield* owner.revision.release(old);
   expect(owner.revision.count()).toBe(2);
-  owner.revision.release(independent);
+  yield* owner.revision.release(independent);
   expect(owner.revision.count()).toBe(1);
-  owner.revision.release(replacement);
+  yield* owner.revision.release(replacement);
   expect(owner.revision.count()).toBe(0);
 }));
 
@@ -70,7 +70,7 @@ it.effect("isolates acquisitions and fences stale native tokens when generation 
   const replacement = (yield* first.revision.register("agent", item, true, "replacement")).revision;
   expect(replacement.generation).toBe(old.generation);
   expect(first.revision.current(old, item)).toBe(false);
-  first.revision.release(old);
+  yield* first.revision.release(old);
   expect(first.revision.current(replacement, item)).toBe(true);
   expect(first.revision.count()).toBe(1);
 }));
@@ -101,6 +101,23 @@ it.effect("executes deferred registrations atomically across competing members",
   expect(members.filter((member) => member.replaced)).toHaveLength(1);
   expect(new Set(members.map((member) => member.revision.token))).toEqual(new Set(["shared-token"]));
   expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([16]);
-  for (const member of members) owner.revision.release(member.revision);
+  yield* Effect.all(members.map((member) => owner.revision.release(member.revision)), { concurrency: 16 });
+  expect(owner.revision.count()).toBe(0);
+}));
+
+
+it.effect("checks supersession and releases against execution-time state", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const item = prepared();
+  const old = (yield* owner.revision.register("agent", item, true, "old")).revision;
+  const superseded = owner.revision.superseded(old.subject, old);
+  const release = owner.revision.release(old);
+  expect(owner.revision.count()).toBe(1);
+  expect(yield* superseded).toBe(false);
+  const replacement = (yield* owner.revision.register("agent", prepared("type Count = string"), true, "new")).revision;
+  expect(yield* superseded).toBe(true);
+  yield* release;
+  expect(owner.revision.count()).toBe(1);
+  yield* owner.revision.release(replacement);
   expect(owner.revision.count()).toBe(0);
 }));

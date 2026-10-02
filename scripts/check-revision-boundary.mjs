@@ -25,3 +25,10 @@ if (!capacity.includes('register: Effect.fn("RevisionRecords.register")') ||
     !server.includes('yield* residentLedger.revision.register(')) {
   throw new Error("revision registration must compose as an atomic Effect");
 }
+
+for (const operation of ["release", "superseded"]) {
+  if (!capacity.includes(`${operation}: Effect.fn("RevisionRecords.${operation}")`) ||
+      !capacity.includes(`commitAllEffect(revisionChange((operations) => operations.${operation}(...args)))`)) {
+    throw new Error(`revision ${operation} must compose as an atomic Effect`);
+  }
+}

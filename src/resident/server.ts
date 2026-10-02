@@ -1378,12 +1378,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     residentRegisterRevision(partition, prepared, true));
 
   const residentRetireSuperseded = Effect.fn("ResidentRuntime.retireSuperseded")(function* (subject: string, generation: number, includeTickets: boolean) {
-    const superseded = (revision: WorkRevision): boolean => residentLedger.revision.superseded(subject, revision);
+    const superseded = (revision: WorkRevision) => residentLedger.revision.superseded(subject, revision);
     if (residentCurrentRevisionGeneration(subject) !== generation) throw new Error("canonical revision changed");
     if (includeTickets) {
       for (const unit of (yield* residentLedger.ticketUnits.values())) {
         const revision = (yield* residentLedger.ticketUnits.current(unit)).revision;
-        if (revision !== undefined && superseded(revision)) yield* residentLedger.ticketUnits.fail(unit, "stale");
+        if (revision !== undefined && (yield* superseded(revision))) yield* residentLedger.ticketUnits.fail(unit, "stale");
       }
       for (const review of residentJoined.retireSuperseded(subject)) {
         recordActivity({ statePath: review.activityPath, root: review.observation.root,
@@ -1392,7 +1392,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     }
     for (const advice of [...residentAdvice()]) {
-      if (superseded(advice.revision)) residentRemoveAdvice(advice.id);
+      if (yield* superseded(advice.revision)) residentRemoveAdvice(advice.id);
     }
   });
 
@@ -1403,14 +1403,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return residentLedger.revision.current(revision, prepared);
   }
 
-  function residentReleaseCurrentWork(revision: WorkRevision): void { residentLedger.revision.release(revision); }
+  const residentReleaseCurrentWork = Effect.fn("ResidentRuntime.releaseCurrentWork")((revision: WorkRevision) => residentLedger.revision.release(revision));
 
-  function residentReleaseUnit(job: Pick<UnitJob, "reservation" | "revision" | "released">): void {
+  const residentReleaseUnit = Effect.fn("ResidentRuntime.releaseUnit")(function* (job: Pick<UnitJob, "reservation" | "revision" | "released">) {
     if (job.released) return;
     job.released = true;
     residentLedger.release(job.reservation);
-    residentReleaseCurrentWork(job.revision);
-  }
+    yield* residentReleaseCurrentWork(job.revision);
+  }, Effect.uninterruptible);
 
   function residentRemoveAdvice(id: string, token?: string): boolean {
     const advice = residentAdvice().find((item) => item.id === id);
@@ -1504,7 +1504,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       residentSettleJoined(job.evaluationKey, "unavailable", "lost");
       residentReleaseReuseClaim(job.evaluationKey);
       // An issued Jev permit remains reserved until its native Effect settles.
-      if (job.requestId === undefined) residentReleaseUnit(job);
+      if (job.requestId === undefined) yield* residentReleaseUnit(job);
     } else residentLedger.release(job.reservation);
     recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
       advicee: job.observation.advicee, lifetime: runtime.lifetime, stage: "incomplete" });
@@ -1731,7 +1731,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = yield* residentRegisterCurrentWork(job.partition, item.outcome.prepared);
             if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.clear(ticketUnit, revision);
-            residentReleaseCurrentWork(revision);
+            yield* residentReleaseCurrentWork(revision);
             expectedActivityUnits.push(item.evaluationKey);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "clear", unitIdentity: item.evaluationKey });
           } else if (item.kind === "joined") {
@@ -1797,7 +1797,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "lost");
             if (item.kind === "owner") residentReleaseReuseClaim(item.evaluationKey);
             residentLedger.release(reservation);
-            residentReleaseCurrentWork(revision);
+            yield* residentReleaseCurrentWork(revision);
             continue;
           }
           expectedActivityUnits.push(item.evaluationKey);
@@ -1840,7 +1840,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }, sequence).pipe(Effect.ensuring(Effect.gen(function* () {
               if (!unit.completed && job.round !== undefined && workUnitId !== undefined) {
                 (yield* residentLedger.rounds.policyWork(job.round)).retire(workUnitId);
-                residentReleaseUnit(unit);
+                yield* residentReleaseUnit(unit);
               }
             })));
             continue;
@@ -1852,7 +1852,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (!(yield* residentDispatcher.enqueue(job.partition, unit))) {
             if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "capacity");
             residentReleaseReuseClaim(item.evaluationKey, "capacity");
-            residentReleaseUnit(unit);
+            yield* residentReleaseUnit(unit);
             yield* residentLedger.runtime.rejectCapacity();
             residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: item.evaluationKey });
@@ -1957,12 +1957,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (job.round !== undefined && job.workUnitId !== undefined &&
           !(yield* residentLedger.rounds.policyWork(job.round)).startUnit(job.workUnitId)) {
         residentReleaseReuseClaim(job.evaluationKey);
-        residentReleaseUnit(job);
+        yield* residentReleaseUnit(job);
         return;
       }
       if (!residentLedger.startReview(job.partition, job.canonicalOperationId, job.canonicalRound)) {
         residentReleaseReuseClaim(job.evaluationKey);
-        residentReleaseUnit(job);
+        yield* residentReleaseUnit(job);
         return;
       }
       yield* residentAwaitBackendGate();
@@ -1972,7 +1972,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         residentSettleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
         residentReleaseReuseClaim(job.evaluationKey);
-        residentReleaseUnit(job);
+        yield* residentReleaseUnit(job);
         return;
       }
       yield* residentAdapter("evaluation barrier", () => Promise.resolve(residentBeforeEvaluate?.(job.prepared)));
@@ -2142,11 +2142,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable", unitIdentity: job.evaluationKey });
         residentReleaseReuseClaim(job.evaluationKey);
-        residentReleaseUnit(job);
+        yield* residentReleaseUnit(job);
         return;
       }
       if (!residentJobActive(job) && issuedRequest === undefined) {
-        residentReleaseReuseClaim(job.evaluationKey); residentReleaseUnit(job); return;
+        residentReleaseReuseClaim(job.evaluationKey); yield* residentReleaseUnit(job); return;
       }
       if (result?.status === "evaluated") {
         if (residentJobActive(job) && residentLedger.runtime.snapshot().lifecycle === "active" &&
@@ -2169,7 +2169,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           result.findings.length === 0 ? "clear" : "finding");
         if (disposition === "ignored" || disposition === "stale") {
           residentReleaseReuseClaim(job.evaluationKey);
-          residentReleaseUnit(job);
+          yield* residentReleaseUnit(job);
           return;
         }
         recordDemoTrace(job.dispatch.demoBudgetPath, job.observation.root, job.observation.advicee, {
@@ -2210,7 +2210,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             disposition === "settleClear" ? "clear" : "unavailable",
             "stale");
           job.completed = true;
-          residentReleaseUnit(job);
+          yield* residentReleaseUnit(job);
           yield* recordOutcome();
           return;
         }
@@ -2279,11 +2279,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           stage: "unavailable", unitIdentity: job.evaluationKey });
       })),
       Effect.catch(() => Effect.void),
-      Effect.ensuring(Effect.sync(() => {
+      Effect.ensuring(Effect.gen(function* () {
         signal.removeEventListener("abort", reportInterruption);
         if (!job.completed) {
           residentReleaseReuseClaim(job.evaluationKey);
-          residentReleaseUnit(job);
+          yield* residentReleaseUnit(job);
         }
       })),
     );
@@ -2320,7 +2320,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return Effect.gen(function* () {
       if (!residentJobActive(job)) {
         if (job.round !== undefined && job.workUnitId !== undefined) (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
-        residentReleaseUnit(job);
+        yield* residentReleaseUnit(job);
         return;
       }
       if (residentAdvice().some((item) => item.evaluationKey === job.evaluationKey)) {
@@ -2328,7 +2328,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         if (existing !== undefined) residentRecordJoinedOutcomes(
           residentLedger.advice.publish(existing, job.ticketUnit, job.revision), existing.id);
         if (job.round !== undefined && job.workUnitId !== undefined) (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
-        residentReleaseUnit(job);
+        yield* residentReleaseUnit(job);
         return;
       }
       const advice = residentLedger.advice.insert({
@@ -3039,7 +3039,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       for (const job of (yield* residentDispatcher.close())) {
         if (job.kind === "unit") {
           residentReleaseReuseClaim(job.evaluationKey);
-          residentReleaseUnit(job);
+          yield* residentReleaseUnit(job);
         }
         else residentLedger.release(job.reservation);
       }
