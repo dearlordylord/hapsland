@@ -32,7 +32,7 @@ if (process.argv.includes("--check")) {
     const compiled = readFileSync(join(temp, "engine.mjs"), "utf8");
     const marker = "export default {";
     const offset = compiled.lastIndexOf(marker);
-    const names = ["scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "retire", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "pre_issue", "permit_actions", "session_delay"];
+    const names = ["edit_attempt", "scope_event", "scope_command", "scope_select", "intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "retire", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "pre_issue", "permit_actions", "session_delay"];
     if (offset < 0 || names.some(name => !compiled.includes(`function $${name}$(`))) throw new Error("Bend shared engine JavaScript layout changed");
     // Same immediate-Nat ABI convention as agent-flow-bend's checked builds.
     // Keep all emitted policy code; avoid re-marshalling original opaque state.
@@ -56,6 +56,7 @@ const facts = value => {
   return value;
 };
 export default {
+ edit_attempt: (state, partition, lifetime) => run_loop($edit_attempt$(state, facts(partition), facts(lifetime))),
  scope_event: (before, after, event, provided) => run_loop($scope_event$(before, after, facts(event), facts(provided))),
  scope_command: (before, after, command, provided) => run_loop($scope_command$(before, after, command, facts(provided))),
  scope_select: (bindings, partition) => run_loop($scope_select$(facts(bindings), facts(partition))),

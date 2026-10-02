@@ -77,9 +77,10 @@ export const driveSharedCommand = (state: EngineState, event: CanonicalEvent, in
   return decodeSharedValue(SharedEngine.handle(state, encodeSharedValue(encodeCanonicalEvent(event)), command, encodeSharedValue(context)));
 };
 
-export const editSharedCanonical = (state: EngineState, partition: number, lifetime: number): unknown => {
+export const editSharedCanonical = (state: EngineState, partition: number, lifetime: number) => {
   sharedCheck(state);
-  return decodeSharedValue(SharedEngine.edit(state, BigInt(readNat(partition)), BigInt(readNat(lifetime))));
+  const transition = SharedEngine.edit_attempt(state, BigInt(readNat(partition)), BigInt(readNat(lifetime)));
+  return { state: retain(state, transition.state), plan: decodeSharedValue(transition.plan) };
 };
 
 const schedulerEntry = decoder(Schema.Struct({ $: Schema.Literal("Scheduler.Entry"), at: Schema.Number, order: Schema.Number }));

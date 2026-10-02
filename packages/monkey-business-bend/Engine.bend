@@ -1,4 +1,5 @@
 import Base
+import ./AdmissionAttempts.bend as AdmissionAttempts
 import ./AdviceeScope.bend as AdviceeScope
 import ./PreparationScenario.bend as PreparationScenario
 import ./TreeFacts.bend as TreeFacts
@@ -23,27 +24,27 @@ type Transition is Data:
   Transition{state: Types.State, result: Canonical.Step}
 
 def initial(limits: Ledger.Limits) -> Types.State:
-  Types.State{Canonical.initial(limits), Nil{}, Scheduler.initial(), Nil{}, Random.streams(1n), Advicees.initial(), CredentialFacts.initial()}
+  Types.State{Canonical.initial(limits), Nil{}, Scheduler.initial(), Nil{}, Random.streams(1n), Advicees.initial(), CredentialFacts.initial(), Nil{}}
 
-def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State) -> Transition:
+def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>) -> Transition:
   match result:
-    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials}, Canonical.Advanced{state, commands}}
-    case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials}, Canonical.Rejected{state, reason}}
+    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening}, Canonical.Advanced{state, commands}}
+    case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening}, Canonical.Rejected{state, reason}}
 
-def step(state: Types.State, event: Canonical.CanonicalEvent) -> Transition:
+def step(state: Types.State, +event: Canonical.CanonicalEvent) -> Transition:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}: settle(graphs, scheduler, workloads, random, Canonical.step(canonical, event), advicees, credentials)
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}: settle(graphs, scheduler, workloads, random, Canonical.step(canonical, event), advicees, credentials, AdmissionAttempts.consumed(opening, event))
 
 def canonical(state: Types.State) -> Canonical.State:
   match state:
-    case Types.State{canonical, _, _, _, _, _, _}: canonical
+    case Types.State{canonical, _, _, _, _, _, _, _}: canonical
 
 def graph_step(state: Types.State, key: Types.GraphKey, position: Nat, limits: ImportGraph.Limits, event: ImportGraph.GraphEvent) -> Types.GraphTransition:
   Preparation.step(state, key, position, limits, event)
 
 def retire(state: Types.State, operation: Nat) -> Types.State:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}: Types.State{canonical, Preparation.retire_entries(graphs, operation), scheduler, workloads, random, advicees, credentials}
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}: Types.State{canonical, Preparation.retire_entries(graphs, operation), scheduler, workloads, random, advicees, credentials, opening}
 
 def handle(state: Types.State, event: Canonical.CanonicalEvent, command: Canonical.Command, context: Driver.Context) -> Driver.Handled:
   Driver.handle(canonical(state), event, command, context)
@@ -62,23 +63,23 @@ type Taken is Data:
 
 def enqueue(state: Types.State, at: Nat, order: Nat) -> Types.State:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}: Types.State{canonical, graphs, Scheduler.enqueue(scheduler, at, order), workloads, random, advicees, credentials}
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}: Types.State{canonical, graphs, Scheduler.enqueue(scheduler, at, order), workloads, random, advicees, credentials, opening}
 
-def take_result(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry>, workloads: List<&2, Workload.Advicee>, random: Random.State, taken: Scheduler.Taken, advicees: Advicees.Registry, credentials: CredentialFacts.State) -> Taken:
+def take_result(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry>, workloads: List<&2, Workload.Advicee>, random: Random.State, taken: Scheduler.Taken, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>) -> Taken:
   match taken:
-    case Scheduler.Taken{scheduler, entry}: Taken{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}, entry}
+    case Scheduler.Taken{scheduler, entry}: Taken{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}, entry}
 
 def take(state: Types.State) -> Taken:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}: take_result(canonical, graphs, workloads, random, Scheduler.take(scheduler), advicees, credentials)
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}: take_result(canonical, graphs, workloads, random, Scheduler.take(scheduler), advicees, credentials, opening)
 
 def queued(state: Types.State) -> List<&2, Scheduler.Entry>:
   match state:
-    case Types.State{_, _, scheduler, _, _, _, _}: Scheduler.entries(scheduler)
+    case Types.State{_, _, scheduler, _, _, _, _, _}: Scheduler.entries(scheduler)
 
 def cancel(state: Types.State, order: Nat) -> Types.State:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}: Types.State{canonical, graphs, Scheduler.cancel(scheduler, order), workloads, random, advicees, credentials}
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}: Types.State{canonical, graphs, Scheduler.cancel(scheduler, order), workloads, random, advicees, credentials, opening}
 
 def fence(state: Types.State, event: Canonical.CanonicalEvent, generated: Bool, context: Driver.Context) -> Canonical.CanonicalEvent:
   Driver.fence(canonical(state), event, generated, context)
@@ -91,45 +92,45 @@ def revalidate(state: Types.State, context: Driver.Context) -> List<&2, Driver.A
 
 def clock(state: Types.State) -> Nat:
   match state:
-    case Types.State{_, _, scheduler, _, _, _, _}: Scheduler.clock(scheduler)
+    case Types.State{_, _, scheduler, _, _, _, _, _}: Scheduler.clock(scheduler)
 
 def configure_seed(state: Types.State, seed: Nat) -> Types.State:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, _, advicees, credentials}: Types.State{canonical, graphs, scheduler, workloads, Random.streams(seed), advicees, credentials}
+    case Types.State{canonical, graphs, scheduler, workloads, _, advicees, credentials, opening}: Types.State{canonical, graphs, scheduler, workloads, Random.streams(seed), advicees, credentials, opening}
 
 def configure_workload(state: Types.State, partition: Nat, profile: Workload.Profile) -> Types.State:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}: Types.State{canonical, graphs, scheduler, Workload.configure(workloads, partition, profile), random, advicees, credentials}
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}: Types.State{canonical, graphs, scheduler, Workload.configure(workloads, partition, profile), random, advicees, credentials, opening}
 
 type WorkloadTransition is Data:
   WorkloadTransition{state: Types.State, events: List<&2, Workload.Emission>, valid: Bool}
 
-def workload_changed(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, random: Random.State, changed: Workload.Changed, advicees: Advicees.Registry, credentials: CredentialFacts.State) -> WorkloadTransition:
+def workload_changed(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, random: Random.State, changed: Workload.Changed, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>) -> WorkloadTransition:
   match changed:
-    case Workload.Changed{workloads, events, valid}: WorkloadTransition{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}, events, valid}
+    case Workload.Changed{workloads, events, valid}: WorkloadTransition{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}, events, valid}
 
 def workload_action(state: Types.State, partition: Nat, action: Workload.Action) -> WorkloadTransition:
   match state:
-    case Types.State{canonical, graphs, +scheduler, workloads, random, advicees, credentials}: workload_changed(canonical, graphs, scheduler, random, Workload.run(workloads, partition, Scheduler.clock(scheduler), action), advicees, credentials)
+    case Types.State{canonical, graphs, +scheduler, workloads, random, advicees, credentials, opening}: workload_changed(canonical, graphs, scheduler, random, Workload.run(workloads, partition, Scheduler.clock(scheduler), action), advicees, credentials, opening)
 
 def workload_valid(state: Types.State, partition: Nat, generation: Nat, recurring: Bool) -> Bool:
   match state:
-    case Types.State{_, _, _, workloads, _, _, _}: Workload.valid(workloads, partition, generation, recurring)
+    case Types.State{_, _, _, workloads, _, _, _, _}: Workload.valid(workloads, partition, generation, recurring)
 
 def workload_duration(state: Types.State, partition: Nat, fallback: Nat) -> Nat:
   match state:
-    case Types.State{_, _, _, workloads, _, _, _}: Workload.duration(workloads, partition, fallback)
+    case Types.State{_, _, _, workloads, _, _, _, _}: Workload.duration(workloads, partition, fallback)
 
 type OutcomeTransition is Data:
   OutcomeTransition{state: Types.State, outcome: Nat}
 
-def sampled_outcome(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, streams: Random.State, sample: Random.Sampled, advicees: Advicees.Registry, credentials: CredentialFacts.State) -> OutcomeTransition:
+def sampled_outcome(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, streams: Random.State, sample: Random.Sampled, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>) -> OutcomeTransition:
   match sample:
-    case Random.Sampled{random, outcome}: OutcomeTransition{Types.State{canonical, graphs, scheduler, workloads, Random.set_outcomes(streams, random), advicees, credentials}, outcome}
+    case Random.Sampled{random, outcome}: OutcomeTransition{Types.State{canonical, graphs, scheduler, workloads, Random.set_outcomes(streams, random), advicees, credentials, opening}, outcome}
 
 def sample_outcome(state: Types.State, weights: List<&2, Numeric.Words>) -> OutcomeTransition:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, +random, advicees, credentials}: sampled_outcome(canonical, graphs, scheduler, workloads, random, Random.sample(Random.outcomes(random), weights), advicees, credentials)
+    case Types.State{canonical, graphs, scheduler, workloads, +random, advicees, credentials, opening}: sampled_outcome(canonical, graphs, scheduler, workloads, random, Random.sample(Random.outcomes(random), weights), advicees, credentials, opening)
 
 def numeric_add(a: Numeric.Words, b: Numeric.Words) -> Numeric.Words:
   Numeric.plus(a, b)
@@ -175,11 +176,11 @@ def session_advice(settings: Session.Config, stream: Session.State) -> Session.T
 
 def pre_timing(state: Types.State, partition: Nat, provided: Maybe<&2, Nat>, fallback: Nat, lifetime: Nat) -> Workload.PreTiming:
   match state:
-    case Types.State{_, _, scheduler, workloads, _, _, _}: Workload.pre_timing(workloads, partition, Scheduler.clock(scheduler), provided, fallback, lifetime)
+    case Types.State{_, _, scheduler, workloads, _, _, _, _}: Workload.pre_timing(workloads, partition, Scheduler.clock(scheduler), provided, fallback, lifetime)
 
 def pre_issue(state: Types.State, facts: Workload.PermitFacts) -> Driver.Handled:
   match state:
-    case Types.State{_, _, scheduler, workloads, _, _, _}: Workload.issue(workloads, Scheduler.clock(scheduler), facts)
+    case Types.State{_, _, scheduler, workloads, _, _, _, _}: Workload.issue(workloads, Scheduler.clock(scheduler), facts)
 
 def permit_actions(state: Types.State, capture: Workload.PermitCapture) -> Driver.Handled:
   Workload.post_actions(capture, clock(state))
@@ -206,36 +207,36 @@ def credential_authorized(state: CredentialFacts.State, issued_generation: Nat) 
 type AdviceeDeclared is Data:
   AdviceeDeclared{state: Types.State, scope: Maybe<&2, Advicees.Scope>, valid: Bool}
 
-def declared_state(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, credentials: CredentialFacts.State, declared: Advicees.Declared) -> AdviceeDeclared:
+def declared_state(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, credentials: CredentialFacts.State, declared: Advicees.Declared, opening: List<&2, Nat>) -> AdviceeDeclared:
   match declared:
     case Advicees.Declared{advicees, scope, valid}:
-      AdviceeDeclared{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}, scope, valid}
+      AdviceeDeclared{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}, scope, valid}
 
 def declare_advicee(state: Types.State, identity: Nat, seed: U32) -> AdviceeDeclared:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}:
-      declared_state(canonical, graphs, scheduler, workloads, random, credentials, Advicees.declare(advicees, identity, seed))
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}:
+      declared_state(canonical, graphs, scheduler, workloads, random, credentials, Advicees.declare(advicees, identity, seed), opening)
 
 def advicee_identity(state: Types.State, identity: Nat) -> Maybe<&2, Advicees.Scope>:
   match state:
-    case Types.State{_, _, _, _, _, advicees, _}: Advicees.lookup_identity(advicees, identity)
+    case Types.State{_, _, _, _, _, advicees, _, _}: Advicees.lookup_identity(advicees, identity)
 
 def advicee_partition(state: Types.State, partition: Nat) -> Maybe<&2, Advicees.Scope>:
   match state:
-    case Types.State{_, _, _, _, _, advicees, _}: Advicees.lookup_partition(advicees, partition)
+    case Types.State{_, _, _, _, _, advicees, _, _}: Advicees.lookup_partition(advicees, partition)
 
 def advicee_targets(state: Types.State, identity: Maybe<&2, Nat>) -> Advicees.Targeted:
   match state:
-    case Types.State{_, _, _, _, _, advicees, _}: Advicees.targets(advicees, identity)
+    case Types.State{_, _, _, _, _, advicees, _, _}: Advicees.targets(advicees, identity)
 
 def credentials(state: Types.State) -> CredentialFacts.State:
   match state:
-    case Types.State{_, _, _, _, _, _, credentials}: credentials
+    case Types.State{_, _, _, _, _, _, credentials, _}: credentials
 
 def configure_credentials(state: Types.State, available: Bool, generation: Nat) -> Types.State:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, _}:
-      Types.State{canonical, graphs, scheduler, workloads, random, advicees, CredentialFacts.State{available, generation}}
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, _, opening}:
+      Types.State{canonical, graphs, scheduler, workloads, random, advicees, CredentialFacts.State{available, generation}, opening}
 
 def changed_credentials(credentials: CredentialFacts.State, available: Bool, rotation: Bool) -> CredentialFacts.State:
   match rotation:
@@ -244,8 +245,8 @@ def changed_credentials(credentials: CredentialFacts.State, available: Bool, rot
 
 def credential_action(state: Types.State, available: Bool, rotation: Bool) -> Types.State:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}:
-      Types.State{canonical, graphs, scheduler, workloads, random, advicees, changed_credentials(credentials, available, rotation)}
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}:
+      Types.State{canonical, graphs, scheduler, workloads, random, advicees, changed_credentials(credentials, available, rotation), opening}
 
 def generate_tree(seed: Nat, operation: Nat, unit: Nat, profile: TreeFacts.Profile, limits: ImportGraph.Limits) -> PreparationScenario.Generated:
   PreparationScenario.generate(seed, operation, unit, profile, limits)
@@ -258,3 +259,16 @@ def scope_command(before: Types.State, after: Types.State, command: Canonical.Co
 
 def scope_select(bindings: List<&2, AdviceeScope.Binding>, partition: Nat) -> List<&2, Nat>:
   AdviceeScope.select(bindings, partition)
+
+type EditAttempt is Data:
+  EditAttempt{state: Types.State, plan: Driver.EditPlan}
+
+def attempted_edit(canonical: Canonical.State, graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, advicees: Advicees.Registry, credentials: CredentialFacts.State, attempt: AdmissionAttempts.Attempt) -> EditAttempt:
+  match attempt:
+    case AdmissionAttempts.Attempt{opening, plan}:
+      EditAttempt{Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}, plan}
+
+def edit_attempt(state: Types.State, +partition: Nat, lifetime: Nat) -> EditAttempt:
+  match state:
+    case Types.State{+canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}:
+      attempted_edit(canonical, graphs, scheduler, workloads, random, advicees, credentials, AdmissionAttempts.edit(canonical, opening, partition, lifetime))

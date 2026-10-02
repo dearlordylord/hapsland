@@ -666,8 +666,7 @@ export class Run {
       const permits = this.config.lifecycles?.permits;
       if (!round && !permits) {
         const plan = readRecord(this.core.edit(partition, 1));
-        if (!this.queue.some(item => item.input.kind === "canonical" && item.input.event.kind === "openRound" && item.input.event.partition === partition))
-          for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emit(action.event, action.delay);
+        for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emit(action.event, action.delay);
         if (readBool(plan.retry)) this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input);
         return this.step(untilTime);
       }

@@ -94,7 +94,11 @@ export class SharedCore {
   take() { const result = takeShared(this.state); this.state = result.state; this.queuedProjection = undefined; return result.entry; }
   get queued() { return this.queuedProjection ??= queuedShared(this.state); }
   cancel(order: number) { this.state = cancelShared(this.state, order); this.queuedProjection = undefined; }
-  edit(partition: number, lifetime: number) { return editSharedCanonical(this.state, partition, lifetime); }
+  edit(partition: number, lifetime: number) {
+    const attempt = editSharedCanonical(this.state, partition, lifetime);
+    this.state = attempt.state;
+    return attempt.plan;
+  }
   revalidate(context: unknown) { return revalidateSharedCanonical(this.state, context); }
   fence(event: CanonicalEvent, generated: boolean, context: unknown) { return fenceSharedCanonical(this.state, event, generated, context); }
   handle(event: CanonicalEvent, index: number, context: unknown) { return driveSharedCommand(this.state, event, index, context); }
