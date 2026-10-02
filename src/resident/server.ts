@@ -1369,7 +1369,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   function residentCurrentRevisionGeneration(subject: string): number { return residentLedger.revision.generation(subject); }
 
   const residentRegisterRevision = Effect.fn("ResidentRuntime.registerRevision")(function* (partition: string, prepared: PreparedUnit, addMember: boolean): Effect.fn.Return<WorkRevision> {
-    const { revision, replaced } = residentLedger.revision.register(partition, prepared, addMember, randomUUID());
+    const { revision, replaced } = yield* residentLedger.revision.register(partition, prepared, addMember, randomUUID());
     if (replaced) yield* residentRetireSuperseded(revision.subject, revision.generation, addMember);
     return revision;
   }, Effect.uninterruptible);

@@ -132,7 +132,8 @@
     "Admission, source/evaluation progression, cutoff, collection/finish and disposal now compose round reads in their Effect fibers; cached-work cleanup finalizer composes the policy view as an Effect.",
     "Ticket-unit identity capabilities expose Effect reads, atomic transitions and lifecycle updates; metadata snapshots remain immutable and copied capabilities cannot access live state",
     "Delivery finalization and revision supersession compose ticket-unit Effects; batch advice-delivery retirement commits atomically",
-    "Linux contract probe uses scoped runtime acquisition and current accepted contracts; deterministic preparation holds verify queued and running deadline cleanup for both fixture hosts"
+    "Linux contract probe uses scoped runtime acquisition and current accepted contracts; deterministic preparation holds verify queued and running deadline cleanup for both fixture hosts",
+    "Revision registration is a named atomic Effect over the shared owner; production and fixture callers compose it directly, with deferred execution and sixteen competing members covered"
   ],
   "verification": [
     {
@@ -1700,12 +1701,22 @@
       "casesPassed": 18,
       "standaloneStrictTypecheck": true,
       "limitations": "Fixture runtime events and controlled DecisionModel; no native agent or live Jev. Earlier failing probe reports retained. Bun launch failed native GLIBCXX compatibility; Node execution passed."
+    },
+    {
+      "stage": "revision-registration-effect",
+      "affectedTestsPassed": 104,
+      "affectedTestFiles": 4,
+      "supplementaryRevisionTestsPassed": 5,
+      "supplementaryCase": "Deferred registration and sixteen concurrent members retain one identity and exact accounting",
+      "typecheck": true,
+      "build": true,
+      "revisionBoundaryCheck": true
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Replace remaining synchronous domain commit/read bridges with Effect service operations; round and ticket-unit surfaces are migrated, revision operations remain next",
+    "Finish revision reads/checks/releases and remaining synchronous domain commit/read bridges; revision registration now composes as an atomic Effect",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",

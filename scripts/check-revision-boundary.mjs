@@ -18,3 +18,10 @@ if (/#currentWork\b|#revisionIds\b|#nextRevisionId\b/.test(server)) {
 if (/\bRef\.(?:make|modify|update|set)\s*(?:<|\()/.test(revision)) {
   throw new Error("revision operations must share the resident state Ref");
 }
+
+const capacity = readFileSync(resolve(root, "src/resident/capacity.ts"), "utf8");
+if (!capacity.includes('register: Effect.fn("RevisionRecords.register")') ||
+    !capacity.includes('commitAllEffect(revisionChange((operations) => operations.register(...args)))') ||
+    !server.includes('yield* residentLedger.revision.register(')) {
+  throw new Error("revision registration must compose as an atomic Effect");
+}

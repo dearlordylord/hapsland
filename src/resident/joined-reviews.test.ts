@@ -120,15 +120,15 @@ it.effect("retires superseded subscribers without changing another subject's mem
   const oldUnit = (yield* owner.ticketUnits.add(ticket));
   const independentUnit = (yield* owner.ticketUnits.add(ticket));
   const item = prepare("type Count = number");
-  const old = owner.revision.register("a", item, true, "old").revision;
-  const independent = owner.revision.register("b", item, true, "independent").revision;
+  const old = (yield* owner.revision.register("a", item, true, "old")).revision;
+  const independent = (yield* owner.revision.register("b", item, true, "independent")).revision;
   reuse.claim("first");
   reuse.claim("independent");
   joined.append({ admission: 1, evaluationKey: "first", observation, activityPath: undefined, ticketUnit: oldUnit });
   joined.append({ admission: 2, evaluationKey: "independent", observation, activityPath: undefined, ticketUnit: independentUnit });
   joined.attachOwner("first", { token: "first" }, old);
   joined.attachOwner("independent", { token: "independent" }, independent);
-  owner.revision.register("a", prepare("type Count = string"), true, "replacement");
+  yield* owner.revision.register("a", prepare("type Count = string"), true, "replacement");
   expect(joined.retireSuperseded(old.subject).map((review) => review.admission)).toEqual([1]);
   expect((yield* owner.ticketUnits.stage(oldUnit))).toMatchObject({ stage: "unavailable", reason: "stale" });
   expect(joined.hasAdmission(1)).toBe(false);

@@ -19,8 +19,8 @@ const prepared = (source = "type Count = number"): PreparedUnit => {
 it.effect("reuses one native revision and accounts for independent members", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const item = prepared();
-  const first = owner.revision.register("agent", item, true, "first-token");
-  const joined = owner.revision.register("agent", item, true, "unused-token");
+  const first = yield* owner.revision.register("agent", item, true, "first-token");
+  const joined = yield* owner.revision.register("agent", item, true, "unused-token");
   expect(first.replaced).toBe(true);
   expect(joined).toEqual({ revision: first.revision, replaced: false });
   expect(Object.isFrozen(first.revision)).toBe(true);
@@ -40,9 +40,9 @@ it.effect("replaces only the matching subject and ignores an old generation's re
   const owner = yield* makeResidentState();
   const item = prepared();
   const changed = prepared("type Count = string");
-  const old = owner.revision.register("agent", item, true, "old").revision;
-  const independent = owner.revision.register("other-agent", item, true, "independent").revision;
-  const replacement = owner.revision.register("agent", changed, true, "replacement").revision;
+  const old = (yield* owner.revision.register("agent", item, true, "old")).revision;
+  const independent = (yield* owner.revision.register("other-agent", item, true, "independent")).revision;
+  const replacement = (yield* owner.revision.register("agent", changed, true, "replacement")).revision;
   expect(replacement.generation).toBeGreaterThan(old.generation);
   expect(owner.revision.superseded(replacement.subject, old)).toBe(true);
   expect(owner.revision.superseded(replacement.subject, independent)).toBe(false);
@@ -62,12 +62,12 @@ it.effect("isolates acquisitions and fences stale native tokens when generation 
   const first = yield* acquire;
   const second = yield* acquire;
   const item = prepared();
-  const old = first.revision.register("agent", item, true, "old").revision;
+  const old = (yield* first.revision.register("agent", item, true, "old")).revision;
   expect(second.revision.count()).toBe(0);
   expect(second.revision.current(old, item)).toBe(false);
   first.clear();
   expect(first.revision.count()).toBe(0);
-  const replacement = first.revision.register("agent", item, true, "replacement").revision;
+  const replacement = (yield* first.revision.register("agent", item, true, "replacement")).revision;
   expect(replacement.generation).toBe(old.generation);
   expect(first.revision.current(old, item)).toBe(false);
   first.revision.release(old);
@@ -79,7 +79,7 @@ it.effect("isolates acquisitions and fences stale native tokens when generation 
 it.effect("settles a retired advice capture and its revision member in one owner commit", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const item = prepared();
-  const revision = owner.revision.register("agent", item, true, "capture").revision;
+  const revision = (yield* owner.revision.register("agent", item, true, "capture")).revision;
   const reservation = owner.reserve("agent", 100, "storedResult");
   if (reservation === undefined) throw new Error("missing capture reservation");
   const capture = owner.adviceCaptures.start(reservation, revision, 200);
@@ -90,4 +90,17 @@ it.effect("settles a retired advice capture and its revision member in one owner
   expect(owner.adviceCaptures.finish(capture)).toBe("retired");
   expect(owner.revision.count()).toBe(0);
   expect(owner.snapshot().items).toBe(0);
+}));
+
+it.effect("executes deferred registrations atomically across competing members", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const item = prepared();
+  const register = owner.revision.register("agent", item, true, "shared-token");
+  expect(owner.revision.count()).toBe(0);
+  const members = yield* Effect.all(Array.from({ length: 16 }, () => register), { concurrency: 16 });
+  expect(members.filter((member) => member.replaced)).toHaveLength(1);
+  expect(new Set(members.map((member) => member.revision.token))).toEqual(new Set(["shared-token"]));
+  expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([16]);
+  for (const member of members) owner.revision.release(member.revision);
+  expect(owner.revision.count()).toBe(0);
 }));

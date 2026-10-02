@@ -345,19 +345,22 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     }),
     revision: (() => {
-      const revisionCommit = <A>(operation: (operations: RevisionOperations) => A): A =>
-        commitAll((draft, records) => {
+      const revisionChange = <A>(operation: (operations: RevisionOperations) => A): Parameters<typeof commitAllEffect<A>>[0] =>
+        (draft, records) => {
           const revision = draftRevision(records.revision);
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
           const operations = revisionOperations(revision, owner);
           const value = operation(operations);
           operations.assert();
           return [value, { ...records, revision }];
-        });
+        };
+      const revisionCommit = <A>(operation: (operations: RevisionOperations) => A): A =>
+        commitAll(revisionChange(operation));
       return {
         count: (...args: Parameters<RevisionOperations["count"]>) => revisionCommit((operations) => operations.count(...args)),
         generation: (...args: Parameters<RevisionOperations["generation"]>) => revisionCommit((operations) => operations.generation(...args)),
-        register: (...args: Parameters<RevisionOperations["register"]>) => revisionCommit((operations) => operations.register(...args)),
+        register: Effect.fn("RevisionRecords.register")((...args: Parameters<RevisionOperations["register"]>) =>
+          commitAllEffect(revisionChange((operations) => operations.register(...args)))),
         superseded: (...args: Parameters<RevisionOperations["superseded"]>) => revisionCommit((operations) => operations.superseded(...args)),
         current: (...args: Parameters<RevisionOperations["current"]>) => revisionCommit((operations) => operations.current(...args)),
         release: (...args: Parameters<RevisionOperations["release"]>) => revisionCommit((operations) => operations.release(...args)),
