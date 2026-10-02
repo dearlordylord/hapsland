@@ -41,3 +41,21 @@ def intervene(found: Maybe<&2, Dispatch.Request>, +outcome: Canonical.RequestOut
       Applied{issued(outcome, p, l, r, o, id, delay)}
     case Some{Dispatch.Request{p, l, r, o, id, True{}, interrupted}}:
       started(outcome, p, l, r, o, id, delay, interrupted)
+
+# Candidate proposal under #176, not an accepted product law. For every Nat
+# attribution/delay and either interruption fact, a started request cannot be
+# rewritten to NeverSent. Excludes the historical Started/NeverSent defect.
+law started_never_sent_refused:
+  for +p: Nat
+  for +l: Nat
+  for +r: Nat
+  for +o: Nat
+  for +id: Nat
+  for +delay: Nat
+  for interrupted: Bool
+  {intervene(Some{Dispatch.Request{p, l, r, o, id, True{}, interrupted}}, Canonical.NeverSent{}, delay) == RefusedStarted{} : Intervention}
+
+def started_never_sent_refused(p, l, r, o, id, delay, interrupted):
+  match interrupted:
+    case False{}: {==}
+    case True{}: {==}
