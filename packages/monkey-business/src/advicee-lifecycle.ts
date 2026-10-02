@@ -1,23 +1,25 @@
 import { Schema } from "effect";
 import { decoder, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
 
-export type AdviceeLifecycleAction = "disconnect" | "remove" | "resume";
-export type AdviceeLifecycleControl = {
-  readonly kind: "adviceeLifecycle";
-  readonly agent: string;
-  readonly action: AdviceeLifecycleAction;
-};
-export type AdviceeLifecycleEntry = {
-  readonly partition: number;
-  readonly lifetime: number;
-  readonly status: "active" | "departed" | "removed";
-};
+const Action = Schema.Literals(["disconnect", "remove", "resume"]);
+const Control = Schema.Struct({
+  kind: Schema.Literal("adviceeLifecycle"),
+  agent: Schema.String.check(Schema.isMinLength(1)),
+  action: Action,
+});
+const ProjectedEntry = Schema.Struct({
+  partition: PositiveNat,
+  lifetime: PositiveNat,
+  status: Schema.Literals(["active", "departed", "removed"]),
+});
+export type AdviceeLifecycleAction = typeof Action.Type;
+export type AdviceeLifecycleControl = typeof Control.Type;
+export type AdviceeLifecycleEntry = typeof ProjectedEntry.Type;
+const readControl = decoder(Control);
 
 /** Syntax validation only. The shared owner decides target and applicability. */
 export function validateAdviceeLifecycle(control: AdviceeLifecycleControl): AdviceeLifecycleControl {
-  if (control?.kind !== "adviceeLifecycle" || typeof control.agent !== "string" || !control.agent.length
-    || !["disconnect", "remove", "resume"].includes(control.action)) throw new TypeError("invalid advicee lifecycle action");
-  return Object.freeze({ kind: "adviceeLifecycle", agent: control.agent, action: control.action });
+  return Object.freeze(readControl(control));
 }
 
 export function encodeAdviceeLifecycle(action: AdviceeLifecycleAction): { readonly $: string } {

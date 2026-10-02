@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeAdviceeLifecycleEntry, decodeAdviceeLifecycles } from "./advicee-lifecycle.ts";
+import { decodeAdviceeLifecycleEntry, decodeAdviceeLifecycles, validateAdviceeLifecycle } from "./advicee-lifecycle.ts";
 
 const entry = () => ({ $: "AdviceeLifecycle.Entry", partition: 4294967313n,
   lifetime: 2n ** 48n - 1n, status: { $: "AdviceeLifecycle.Disconnected" } });
@@ -11,6 +11,13 @@ const list = (count: number): unknown => {
 };
 
 describe("exact lifecycle representation boundary", () => {
+  it("validates control syntax with exact fields without deciding applicability", () => {
+    expect(validateAdviceeLifecycle({ kind: "adviceeLifecycle", agent: "opaque:removed", action: "resume" }))
+      .toEqual({ kind: "adviceeLifecycle", agent: "opaque:removed", action: "resume" });
+    expect(() => validateAdviceeLifecycle({ kind: "adviceeLifecycle", agent: "", action: "resume" })).toThrow(TypeError);
+    const extra = { kind: "adviceeLifecycle" as const, agent: "opaque", action: "resume" as const, unexpected: true };
+    expect(() => validateAdviceeLifecycle(extra)).toThrow(TypeError);
+  });
   it("projects opaque wide identities without rounding", () => {
     expect(decodeAdviceeLifecycleEntry(entry())).toEqual({ partition: 4294967313,
       lifetime: 281474976710655, status: "departed" });
