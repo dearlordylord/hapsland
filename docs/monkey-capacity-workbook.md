@@ -11,7 +11,7 @@
 - **Delivered diagram/Monkey scope:** See [scope tracking](#scope-tracking-against-the-initial-inventory). Later owner decisions removed notice/cache/ticket indicators; master also removed the ticket subsystem. Earlier tables are dated inventories, not outstanding tasks.
 - **Admission decision:** Retain PRE and strict post-closure freshness. Bare arrival-only A is rejected. Three Current model laws are checked: necessary valid PRE, rejection/no reopening for a pending PRE's POST after successful closure, and positive reopening after fresh successful PRE registration.
 - **Positive reopening, approved and checked:** A completed round's fresh successfully registered PRE and timely matching POST add one acceptance and open the successor round. The law is conditional on actual registration success; it excludes reject-all reopening POST, not reject-all PRE. Original deadline, scope, lifetime, retained-unseen identity and clock predicates are explicit. Duplicate POST remains separate and unapproved.
-- **Next work:** Implement and inspect background collector capacity inside Advice collection; [no further comparison proofs are required](#proof-value-filter-before-returning-to-shared-resource-design-2026-10-02). Preserve the three Current gates. Registration-enabled timeout/late-IPC/retry evidence remains deferred before stronger runtime support claims.
+- **Next work:** Collector placement accepted; implement the selected-group Stop output slot marker with Astra advice/review; [no further comparison proofs are required](#proof-value-filter-before-returning-to-shared-resource-design-2026-10-02). Preserve the three Current gates. Registration-enabled timeout/late-IPC/retry evidence remains deferred before stronger runtime support claims.
 - **Native evidence still bounded:** Six PRE-only probes characterize delayed/failed hooks; actual tool-start provenance, registration followed by cancellation, late IPC/retry and closure/restart remain separate validation work.
 - **Deferred simulator boundary:** Preparation result linkage still lacks source-free per-rule capability facts; do not infer that every incomplete graph makes every rule unusable.
 
@@ -1213,3 +1213,54 @@ edit-permit browsers, TypeScript check and diff check passed. The focused test
 also checks wrong-token refusal, release/expiry recovery, exact recorded maxima,
 layer mirrors, selection, history and replay reconstruction. Superseded capture
 mode and unused upper-wrapper styles were removed.
+
+## Collector placement accepted (2026-10-02)
+
+The owner accepted the Advice collection collector placement as convenient.
+This accepts the location and shared used/max presentation, not native-runtime
+validation. Consolidated placement guidance lives in DASHBOARD-RULES.md.
+Before adding another meter, review existing advice lease, output-slot, round
+budget and output-fit representations with Astra; completed inventory rows are
+not automatically outstanding tasks.
+
+## Next preview: selected-group Stop output slot (2026-10-02)
+
+Astra reviewed remaining indicators and recommended a single missing capacity
+representation: Host output currently labels a selected group's slot as
+occupied/free but does not show its exclusive maximum. Replace only its existing
+row with Stop slot, group,0/1 or1/1 and a single occupied/free cell. Keep square
+geometry and other output facts. Use the actual resident slot for an explicitly
+selected known group; no selected/known group means a selection prompt, not0/1.
+Do not infer an agent-to-group mapping or divide aggregate slots by one.
+
+Advice leases remain per-record inspector states; continuation already has
+scoped consumed marks; encoded output fit remains a supplied candidate fact in
+details rather than a pooled occupancy bar. This preview changes display only,
+not allocation or output policy. Before/after occupied and free group cases,
+history/replay and Astra rendered review are required.
+
+Astra's follow-up prioritization: the Stop slot glyph is a small presentation
+refinement, because occupied/free already represents the invariant. After this
+bounded preview, prefer a concrete three-agent shared-contention demonstration
+to another meter: preparation8/8 and Jev8/8 simultaneously, waiting work, then
+release/progress, with shared totals stable under selection/hover. Existing
+separate saturation fixtures do not by themselves show this combined scenario.
+Queue lengths remain counts without invented maxima. No automatic delivery
+group selection is proposed.
+
+After owner collector placement acceptance, superseded collector before-images
+were deleted from `/workspace/hapsland-review/collectors/` as requested. Current
+after captures remain available; earlier dated before references record retired
+review evidence and are not current deliverable links.
+
+Stop-slot preview implemented with no allocation-policy change. Host output
+shows the selected known group's0/1 outline or1/1 filled cell. Exact group,
+round and phase remain accessible in title/label. Existing output facets are
+unchanged. Unknown historical selection has a prompt and no cell. Focused
+browser checks passed held/free, multiple occupied groups each1/1, ownership,
+history and replay; affected resource browser, TypeScript and diff checks passed.
+Astra rendered review passed focused, narrow, held/free and unknown views.
+Captures: `/workspace/hapsland-review/stop-slot/after-held-focus.png`,
+`after-held-detail.png`, `after-free-detail.png` and
+`after-historical-unknown-detail.png`. Owner acceptance of this new preview is
+pending. Next substantive demonstration is simultaneous shared pool contention.

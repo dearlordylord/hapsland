@@ -148,8 +148,12 @@ ledger on each layer; Admission retains its agent-local meters. The top rail
 contains no duplicate global item/byte ledger. These resource cards have different
 units and lifecycles: retained data may remain charged after execution slots are
 released. Common styling expresses shared resident ownership, not a fixed ratio
-or a resource-conversion edge. Edit permits and collectors retain their current
-placement until separately reviewed.
+or a resource-conversion edge. Edit permits retain their current placement
+until separately reviewed. The accepted collector meter lives inside Advice
+collection, mirrors the resident-wide claims used/recorded maximum across
+layers, and has no top-rail duplicate. It remains separate from advice leases;
+collector group/token ownership is available in details, without inferred
+agent-color attribution.
 
 Effective limits come from checked projection limits or capacity metadata captured
 at the selected frame. Known initial configuration and subsequent event-supplied

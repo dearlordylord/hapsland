@@ -1,0 +1,41 @@
+import assert from 'node:assert/strict';
+import { chromium } from 'playwright';
+import { createServer } from 'vite';
+import { createRun } from '../../monkey-business/src/index.ts';
+const directory='/workspace/hapsland-review/stop-slot';
+const server=await createServer({server:{host:'127.0.0.1',port:0,hmr:false}});let browser;
+try{
+  await server.listen();browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1512,height:1300}});
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(server.resolvedUrls.local[0]);
+  const ensemble=page.locator('#agent-ensemble'),inspector=page.locator('#agent-simulation');
+  const settle=()=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const click=async name=>{await page.getByRole('button',{name,exact:true}).click();await settle();};
+  const load=async run=>{await inspector.getByLabel('Replay JSON',{exact:true}).fill(JSON.stringify(run.exportReplay()));await click('Load replay');await page.waitForFunction(()=>document.querySelector('.ensemble-feedback').textContent.startsWith('Replay reconstructed'));await settle();};
+  const node=()=>ensemble.locator('.is-selected').getByRole('button',{name:'Inspect Host output',exact:true});
+  const select=async group=>{await inspector.getByLabel('Resource delivery group',{exact:true}).selectOption(String(group));await settle();};
+  const check=async (projection,group)=>{
+    const row=node().locator('.delivery-stop-slot');assert.equal(await row.count(),1);
+    const slot=projection.delivery.slots.find(slot=>slot.group===group);
+    assert.equal(await row.getAttribute('aria-label'),`Stop output slot, group ${group}: ${slot?`occupied; round ${slot.round}; ${slot.phase}`:'free; no active output slot'}`);
+    assert.equal(await row.locator('text').textContent(),`Stop slot · G${group} ${slot?'1/1':'0/1'}`);
+    assert.equal(await row.locator('.delivery-stop-slot-cell').getAttribute('fill'),slot?'#168f83':'#fff');
+    assert.equal(await row.locator('.delivery-stop-slot-cell').getAttribute('width'),'14');
+    assert.equal(await row.locator('.delivery-stop-slot-cell').getAttribute('height'),'10');
+    assert.equal(await node().locator('.topology-facet').count(),3);
+    assert.equal(await ensemble.locator('.ensemble-layer:not(.is-selected) .delivery-stop-slot-cell').count(),0);
+  };
+  const sessions=['agent-1','agent-2'].map(agent=>({agent,editIntervalMs:1000000}));
+  const run=createRun({sessions,inputs:[...sessions.map((_,index)=>({at:0,kind:'canonical',event:{kind:'collectionClaimBackground',group:index+1,token:500+index,active:true,capacity:3}})),...sessions.map((session,index)=>({agent:session.agent,generation:0,recurring:false,revision:index+1,at:1,kind:'edit',bytes:10,unitBytes:[5],outcome:'finding'})),{agent:'agent-1',generation:0,recurring:false,at:20,kind:'finish'},{agent:'agent-2',generation:0,recurring:false,at:30,kind:'finish'}],outcome:'finding',outputProfile:{outcome:'certain',delayMs:10000,leaseMs:30000},lifecycles:{collectors:{capacity:3},encodedOutputBytes:512}});
+  run.advance({untilTime:25,maxEvents:1000});assert.equal(run.projection.delivery.slots.length,1);await load(run);
+  await node().focus();await page.keyboard.press('Enter');await settle();await select(1);await check(run.projection,1);
+  await ensemble.screenshot({path:`${directory}/after-held-focus.png`});await node().screenshot({path:`${directory}/after-held-detail.png`});
+  await select(2);await check(run.projection,2);await node().screenshot({path:`${directory}/after-free-detail.png`});
+  await select(1);await click('3D layers');await ensemble.screenshot({path:`${directory}/after-held-3d.png`});await click('Focus selected agent');
+  await page.setViewportSize({width:390,height:844});await settle();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  const viewport=ensemble.locator('.ensemble-viewport');await viewport.evaluate(element=>{const box=element.querySelector('.topology-node[aria-label="Inspect Host output"]').getBoundingClientRect(),view=element.getBoundingClientRect();element.scrollLeft+=box.left-view.left-(element.clientWidth-box.width)/2;});await settle();await viewport.screenshot({path:`${directory}/after-held-narrow.png`});
+    await page.setViewportSize({width:1512,height:1300});run.advance({untilTime:35,maxEvents:1000});assert.equal(run.projection.delivery.slots.length,2);await load(run);await select(1);await check(run.projection,1);await select(2);await check(run.projection,2);
+    await click('Export replay');await click('Load replay');await select(2);await check(run.projection,2);
+    const unknown=createRun({inputs:[{at:0,kind:'canonical',event:{kind:'reserveCapacity',partition:1,bytes:5,purpose:'observationDispatch'}},{at:1,kind:'canonical',event:{kind:'collectionClaimBackground',group:9,token:9,active:true,capacity:1}}]});unknown.advance({untilTime:1,maxEvents:100});await load(unknown);await select(9);await check(unknown.projection,9);
+    await click('Previous event');assert.equal(await node().locator('.delivery-stop-slot-cell').count(),0);assert.match(await node().textContent(),/Stop slot · select group in inspector/);await node().screenshot({path:`${directory}/after-historical-unknown-detail.png`});
+  assert.deepEqual(errors,[]);console.log('Stop-slot browser passed: actual held/free selected group, multiple occupied groups each1/1, exact round/phase, no stale unknown-group cell, facets preserved, replay, 3D/focus/narrow.');
+}finally{await browser?.close();await server.close();}

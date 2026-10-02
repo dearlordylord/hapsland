@@ -511,7 +511,11 @@ totals; backend state and selectable exercises remain available.
 
 Select an agent and a stage to inspect its local records beside the resident
 resources. Advice details mark individual records free or leased. Host output
-requires a delivery-group selection for occupied/free exclusivity. Round details
+shows one Stop output slot cell for the selected known delivery group: `0/1`
+free or `1/1` occupied. Its title records the occupied slot's exact round and
+phase. Without a current known group, it prompts for selection and shows no cell.
+Several occupied groups each retain their own exclusive slot; they never become
+an aggregate `N/1` meter. Round details
 require a current round and group for the four consumed/available continuation
 marks. Multiple groups never become an aggregate `N / 1` output-slot meter.
 Selections that no longer identify a current group or round show a selection
@@ -550,6 +554,8 @@ placement, different local ceilings, unknown history, replay and narrow layouts.
 `node scripts/check-collectors-browser.mjs` covers shared collector placement,
 checked release/expiry, recorded and unknown historical maxima, agent selection
 and replay across 3D, focused and narrow views.
+`npm run test:stop-slot-browser` covers the selected-group cell, held/free and
+multiple occupied groups, unknown historical selection and replay.
 `test:execution-pools-browser` covers both pool rows, ownership, saturation,
 keyboard inspection and replay; `test:ensemble-browser` covers shared pools/history and agent selection;
 `test:simulation-browser` covers the single-agent controls and inspector.
