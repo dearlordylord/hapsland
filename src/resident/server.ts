@@ -560,7 +560,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentBeforeResponseHandoff = options.beforeResponseHandoff;
   const residentReuse = residentLedger.reuse(logicalBytes);
 
-  const residentAdvice = (): ReadonlyArray<Advice> => { return residentLedger.advice.values(); };
+  const residentAdvice = Effect.fn("ResidentRuntime.advice")(() => residentLedger.advice.values());
 
   const statsEffect = Effect.fn("ResidentRuntime.stats")(function* (): Effect.fn.Return<Extract<ResidentResponse, { status: "stats" }>> {
     const now = residentNow();
@@ -573,8 +573,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       status: "stats",
       queued: dispatch.queued,
       running: dispatch.running,
-      pendingAdvice: residentAdvice().length + residentPendingNoticeCount(),
-      pendingFindingBatches: residentAdvice().length,
+      pendingAdvice: (yield* residentAdvice()).length + residentPendingNoticeCount(),
+      pendingFindingBatches: (yield* residentAdvice()).length,
       pendingOperationalNotices: residentPendingNoticeCount(),
       retainedBytes: capacity.bytes,
       rejectedCapacity: residentLedger.runtime.snapshot().rejectedCapacity,
@@ -810,7 +810,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentExpirePending(now);
       residentPruneNoticeCooldowns(now);
       const credentialGeneration = dispatch.credential?.generation ?? null;
-      for (const item of [...residentAdvice()]) {
+      for (const item of [...(yield* residentAdvice())]) {
         const sameScope = composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
           : item.partition === partition;
         const disposition = residentLedger.transition({ kind: "collectionCredentialCheck",
@@ -882,7 +882,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         if (!(yield* residentReserveAdviceLease(advice, token))) continue;
         yield* residentAdapter("collection revalidation barrier", () => Promise.resolve(residentBeforeRevalidate?.(advice.id)));
         const validity = yield* residentRevalidate(advice, dispatch);
-        const retained = residentAdvice().find((item) => item.id === advice.id);
+        const retained = (yield* residentAdvice()).find((item) => item.id === advice.id);
         const route = residentCandidateRoute({ kind: "validationRouteCheck",
           ownerCurrent: retained === advice && (yield* residentLedger.advice.current(advice)).delivery?.token === token,
           status: validity.status });
@@ -938,7 +938,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         for (const advice of selected) {
           yield* residentAdapter("final collection revalidation barrier", () => Promise.resolve(residentBeforeFinalRevalidate?.(advice.id)));
           const validity = yield* residentRevalidate(advice, dispatch);
-          const retained = residentAdvice().find((item) => item.id === advice.id);
+          const retained = (yield* residentAdvice()).find((item) => item.id === advice.id);
           const route = residentCandidateRoute({ kind: "validationRouteCheck",
             ownerCurrent: retained === advice && (yield* residentLedger.advice.current(advice)).delivery?.token === token,
             status: validity.status });
@@ -997,7 +997,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const handoffNow = residentNow();
           const handoff: Array<Advice> = [];
           for (const advice of final) {
-            const retained = residentAdvice().find((item) => item.id === advice.id);
+            const retained = (yield* residentAdvice()).find((item) => item.id === advice.id);
             const delivery = retained === undefined ? undefined : (yield* residentLedger.advice.current(retained)).delivery;
             const ownerCurrent = retained === advice && delivery?.token === token;
             const credentialGenerationValid = advice.credentialGeneration === credentialGeneration;
@@ -1382,7 +1382,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           stage: "unavailable", unitIdentity: review.evaluationKey });
       }
     }
-    for (const advice of [...residentAdvice()]) {
+    for (const advice of [...(yield* residentAdvice())]) {
       if (yield* superseded(advice.revision)) yield* residentRemoveAdvice(advice.id);
     }
   });
@@ -1403,14 +1403,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }, Effect.uninterruptible);
 
   const residentRemoveAdvice = Effect.fn("ResidentRuntime.removeAdvice")(function* (id: string, token?: string) {
-    const advice = residentAdvice().find((item) => item.id === id);
+    const advice = (yield* residentAdvice()).find((item) => item.id === id);
     return advice !== undefined && (yield* residentLedger.advice.remove(advice,
       residentAdviceExpired(advice, residentNow()) ? "expired" : "stale", token));
   }, Effect.uninterruptible);
 
   const residentExpirePending = Effect.fn("ResidentRuntime.expirePending")(function* (now: number) {
     residentComposedDelivery.expire(now);
-    for (const advice of [...residentAdvice()]) {
+    for (const advice of [...(yield* residentAdvice())]) {
       if (residentAdviceExpired(advice, now)) yield* residentRemoveAdvice(advice.id);
     }
   }, Effect.uninterruptible);
@@ -1425,7 +1425,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const counts = residentComposedDelivery.closureCounts(group);
       const closed = residentComposedDelivery.tickQuietRound(group, now, {
         nativeWorkIdle: work.queued === 0 && work.running === 0,
-        adviceEmpty: !residentAdvice().some((advice) => advice.round === round) &&
+        adviceEmpty: !(yield* residentAdvice()).some((advice) => advice.round === round) &&
           ![...residentNotices.entries().map(([, value]) => value)].some((notice) => notice.partition === group),
       });
       if (closed !== undefined) {
@@ -1514,7 +1514,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       root: activity.root, advicee: activity.advicee, lifetime: runtime.lifetime,
       roundIdentity: `${group}:${round?.canonicalRound ?? generation}`, reason, reservedContinuations,
       discarded: { queued: work.queued + (snapshot?.discarded.queued ?? 0),
-        running: work.running + (snapshot?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : residentAdvice().filter((advice) => advice.round === round).length,
+        running: work.running + (snapshot?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : (yield* residentAdvice()).filter((advice) => advice.round === round).length,
         submitted: counts.submitted, uncertain: counts.uncertain, editPermits: counts.editPermits } });
     if (round === undefined || round.generation !== generation) return;
     // The admission/output fence is already published. Abort Effect fibers and
@@ -1524,7 +1524,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     snapshot.work.controller.abort();
     const discarded = (yield* residentDispatcher.discardWhere(({ value }) => value.round === round));
     for (const job of discarded) yield* residentDiscardJob(job);
-    for (const advice of [...residentAdvice()]) if (advice.round === round) yield* residentRemoveAdvice(advice.id);
+    for (const advice of [...(yield* residentAdvice())]) if (advice.round === round) yield* residentRemoveAdvice(advice.id);
     for (const [key, notice] of residentNotices.entries()) {
       if (notice.partition === round.group) residentReleaseNoticeCooldown(key);
     }
@@ -1671,7 +1671,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const planned = yield* Effect.forEach(deliverable, Effect.fn("ResidentRuntime.planPreparedUnit")(function* (outcome) {
           const generationPartition = `${job.partition}\0work:${job.work?.id ?? "standalone"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
           const evaluationKey = residentReuse.key(generationPartition, outcome.prepared);
-          const liveAdvice = residentAdvice().some((advice) => advice.evaluationKey === evaluationKey);
+          const liveAdvice = (yield* residentAdvice()).some((advice) => advice.evaluationKey === evaluationKey);
           switch (residentReuse.route(evaluationKey, liveAdvice)) {
             case "joinedAdvice":
               return { kind: "joined" as const, join: "advice" as const, outcome, evaluationKey };
@@ -1725,7 +1725,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             expectedActivityUnits.push(item.evaluationKey);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "clear", unitIdentity: item.evaluationKey });
           } else if (item.kind === "joined") {
-            const existing = residentAdvice().find((advice) => advice.evaluationKey === item.evaluationKey);
+            const existing = (yield* residentAdvice()).find((advice) => advice.evaluationKey === item.evaluationKey);
             if (existing !== undefined) {
               yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing, ticketUnit), existing.id);
               recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
@@ -2313,8 +2313,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentReleaseUnit(job);
         return;
       }
-      if (residentAdvice().some((item) => item.evaluationKey === job.evaluationKey)) {
-        const existing = residentAdvice().find((item) => item.evaluationKey === job.evaluationKey);
+      if ((yield* residentAdvice()).some((item) => item.evaluationKey === job.evaluationKey)) {
+        const existing = (yield* residentAdvice()).find((item) => item.evaluationKey === job.evaluationKey);
         if (existing !== undefined) yield* residentRecordJoinedOutcomes(
           yield* residentLedger.advice.publish(existing, job.ticketUnit, job.revision), existing.id);
         if (job.round !== undefined && job.workUnitId !== undefined) (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
@@ -2613,7 +2613,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentTicketCollectionStatus = Effect.fn("ResidentRuntime.ticketCollectionStatus")(function* (ticket: TicketRecord, root: string, advicee: DirectAdvicee,
     composed: boolean, now: number): Effect.fn.Return<ResidentResponse> {
     const partition = composed ? adviceePartition(root, advicee) : ticket.partition;
-    const hasAdvice = residentAdvice().some((item) =>
+    const hasAdvice = (yield* residentAdvice()).some((item) =>
       (composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
         : item.partition === partition) && !residentAdviceExpired(item, now));
     return { requestRoute: "ticketed", status: hasAdvice || (yield* residentCollectionWorkCount(root, advicee, composed)) > 0
@@ -2664,7 +2664,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return Effect.gen(function* () {
       const current = new Map<string, boolean>();
       if (response.status !== "advice") return current;
-      for (const advice of residentAdvice()) {
+      for (const advice of (yield* residentAdvice())) {
         if ((yield* residentLedger.advice.current(advice)).delivery?.token !== response.token) continue;
         const relativePath = advice.prepared.input.path;
         const captured = yield* captureStable(advice.observation.root, {
@@ -2699,7 +2699,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     residentPruneNoticeCooldowns(now);
     const sharedCollect = request.operation === "collect" && request.requestRoute !== "ticketed";
     let invalidCredential = false;
-    if (sharedCollect) for (const advice of residentAdvice()) {
+    if (sharedCollect) for (const advice of (yield* residentAdvice())) {
       if (invalidCredential || (yield* residentLedger.advice.current(advice)).delivery?.token !== response.token) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
       const observed = residentLedger.transition({ kind: "deliveryCredentialObserveCheck",
@@ -2716,7 +2716,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return { status: "empty" };
     }
     const handoff: Array<Advice> = [];
-    for (const advice of [...residentAdvice()]) {
+    for (const advice of [...(yield* residentAdvice())]) {
       if ((yield* residentLedger.advice.current(advice)).delivery?.token !== response.token) continue;
       const route = residentCandidateRoute({ kind: "finalCandidateCheck",
         ownerCurrent: true, credentialGeneration: true, credentialAuthorized: true,
@@ -3036,7 +3036,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         }
         else residentLedger.release(job.reservation);
       }
-      for (const advice of residentAdvice()) yield* residentRemoveAdvice(advice.id);
+      for (const advice of (yield* residentAdvice())) yield* residentRemoveAdvice(advice.id);
       for (const key of [...residentNotices.entries().map(([key]) => key)]) residentReleaseNoticeCooldown(key);
       // Running work may be interrupted by process exit or finish later. Clear
       // its logical ownership after native effects settle. Issued Jev permits

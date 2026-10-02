@@ -175,3 +175,9 @@ const adviceInsertion = state.slice(state.indexOf('insert: Effect.fn("AdviceReco
 if (/get (evaluations|findings|collectionEligible|delivery)\(|Ref.getUnsafe/.test(adviceInsertion)) {
   throw new Error("advice identity capabilities must not expose live content getters");
 }
+
+const adviceSurface = state.slice(state.indexOf("    advice: (() =>"), state.indexOf("    adviceCaptures: (() =>"));
+if (/\bcommitAll\(|Ref.getUnsafe|adviceCommit/.test(adviceSurface) ||
+    !adviceSurface.includes('values: Effect.fn("AdviceRecords.values")')) {
+  throw new Error("advice service must compose Effects without synchronous or unsafe bridges");
+}

@@ -70,7 +70,7 @@ it.effect("rolls back retention and lease updates when native payload snapshotti
   const invalid = { ...finding, get message(): string { throw new Error("snapshot failed"); } };
   expect(yield* defectMessage(owner.advice.insert({ ...initial, findings: [finding, invalid] }))).toContain("snapshot failed");
   expect(owner.canonicalProjection()).toEqual(before);
-  expect(owner.advice.values()).toEqual([]);
+  expect((yield* owner.advice.values())).toEqual([]);
   const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
   yield* owner.advice.reserveLease(advice, "collector");
@@ -93,7 +93,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   if (capture === undefined) throw new Error("capture refused");
   expect(yield* owner.advice.remove(advice, "stale", "wrong")).toBe(false);
   expect(yield* owner.advice.remove(advice, "stale", "collector")).toBe(true);
-  expect(owner.advice.values()).toEqual([]);
+  expect((yield* owner.advice.values())).toEqual([]);
   expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
   expect((yield* owner.ticketUnits.stage(unit))).toMatchObject({ stage: "unavailable", reason: "stale" });
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
@@ -116,7 +116,7 @@ it.effect("fences a stale capability after the owner clears and advice identity 
   expect(yield* owner.advice.revise(advice, [], [])).toBe(false);
   expect(yield* owner.advice.eligible(advice, false)).toBe(false);
   expect(yield* owner.advice.remove(advice, "stale")).toBe(false);
-  expect(owner.advice.values()).toEqual([replacement]);
+  expect((yield* owner.advice.values())).toEqual([replacement]);
   expect(owner.snapshot().bytes).toBe(100);
 }));
 
@@ -126,7 +126,7 @@ it.effect("rejects native retention without canonical finding authority", () => 
   const before = owner.canonicalProjection();
   expect(yield* defectMessage(owner.advice.insert({ ...initial, canonicalOperationId: 999 }))).toContain("canonical finding owner");
   expect(owner.canonicalProjection()).toEqual(before);
-  expect(owner.advice.values()).toEqual([]);
+  expect((yield* owner.advice.values())).toEqual([]);
 }));
 
 it.effect("rolls back advice retirement when authorized Stop output prevents submission cleanup", () => Effect.gen(function* () {
@@ -142,7 +142,7 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
   const before = owner.canonicalProjection();
   expect(yield* defectMessage(owner.advice.remove(advice, "stale", "collector"))).toContain("canonical submission forget refused");
   expect(owner.canonicalProjection()).toEqual(before);
-  expect(owner.advice.values()).toEqual([advice]);
+  expect((yield* owner.advice.values())).toEqual([advice]);
   expect(owner.snapshot().bytes).toBe(100);
   expect((yield* owner.advice.current(advice)).delivery?.token).toBe("collector");
 }));
@@ -199,13 +199,13 @@ it.effect("defers advice retention and snapshots source payloads at execution", 
   const { owner, initial } = yield* fixture();
   const pendingFindings = [...initial.findings];
   const insert = owner.advice.insert({ ...initial, findings: pendingFindings });
-  expect(owner.advice.values()).toEqual([]);
+  expect((yield* owner.advice.values())).toEqual([]);
   pendingFindings.length = 0;
   const retained = yield* insert;
   expect((yield* owner.advice.current(retained)).findings).toEqual([]);
   pendingFindings.push(finding);
   expect((yield* owner.advice.current(retained)).findings).toEqual([]);
-  expect(owner.advice.values()).toEqual([retained]);
+  expect((yield* owner.advice.values())).toEqual([retained]);
 }));
 
 
@@ -271,10 +271,10 @@ it.effect("retires advice once across competing deferred removals", () => Effect
   const { owner, initial } = yield* fixture();
   const advice = yield* owner.advice.insert(initial);
   const remove = owner.advice.remove(advice, "stale");
-  expect(owner.advice.values()).toEqual([advice]);
+  expect((yield* owner.advice.values())).toEqual([advice]);
   const results = yield* Effect.all(Array.from({ length: 16 }, () => remove), { concurrency: 16 });
   expect(results.filter(Boolean)).toHaveLength(1);
-  expect(owner.advice.values()).toEqual([]);
+  expect((yield* owner.advice.values())).toEqual([]);
   expect(yield* owner.revision.count()).toBe(0);
   expect(owner.snapshot().items).toBe(0);
 }));
