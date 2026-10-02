@@ -65,8 +65,8 @@ describe("canonical work projection", () => {
     expect(Effect.runSync(ledger.settleJevRequest("agent", unit.operation, ready.request,
       unit.reservation, "finding", true))).toBe("retainFinding");
     expect(view().reviseFinding(unit.operation, 2, 20)).toBe(true);
-    ledger.transition({ kind: "findingCountUpdated", partition: Effect.runSync(ledger.partitionId("agent")), lifetime: 1,
-      round: Effect.runSync(ledger.roundId("agent")), operation: unit.operation, count: 2 });
+    Effect.runSync(ledger.transition({ kind: "findingCountUpdated", partition: Effect.runSync(ledger.partitionId("agent")), lifetime: 1,
+      round: Effect.runSync(ledger.roundId("agent")), operation: unit.operation, count: 2 }));
     expect(view().pendingFor(unit.operation)).toBe(2);
     expect(view().pendingFindings()).toBe(2);
     expect(view().unfinished()).toBe(1);

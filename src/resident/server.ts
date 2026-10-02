@@ -506,16 +506,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentIdleChecks = yield* FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
   const residentQuietChecks = yield* FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
   const residentLifetimeController = new AbortController();
-  const residentCollectionFindingOffer: CanonicalFindingOffer = Effect.fn("ResidentRuntime.collectionFindingOffer")((input) => Effect.sync(() => {
+  const residentCollectionFindingOffer: CanonicalFindingOffer = Effect.fn("ResidentRuntime.collectionFindingOffer")(function* (input) {
     const facts = input.facts;
-    const result = residentLedger.transition({ kind: "collectionFindingCheck",
+    const result = (yield* residentLedger.transition({ kind: "collectionFindingCheck",
       selectionPartition: input.selectionPartition, selectionRound: input.selectionRound,
       unit: facts.unit, partition: facts.partition, round: facts.round,
       snapshot: facts.snapshot, currentSnapshot: facts.currentSnapshot,
       credential: facts.credential, currentCredential: facts.currentCredential,
       ageMs: facts.ageMs, soloBytes: input.soloBytes,
       collectionReady: facts.collectionReady, selectedCount: input.selectedCount,
-      prospectiveBytes: input.prospectiveBytes });
+      prospectiveBytes: input.prospectiveBytes }));
     if (result.rejection !== undefined) throw new Error("canonical finding fit refused");
     switch (result.commands[0]?.kind) {
       case "collectionFindingSelected": return "selected";
@@ -524,7 +524,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       case "collectionFindingExpired": return "expired";
       default: throw new Error("invalid canonical finding fit");
     }
-  }));
+  });
 
   const maximumOperationalNoticeKeys = options.maximumOperationalNoticeKeys ?? MAX_OPERATIONAL_NOTICE_KEYS;
   if (
@@ -718,20 +718,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       item.operation === operation)?.count ?? 0;
   });
 
-  function residentAdviceExpired(advice: Pick<Advice, "pendingAt">, now: number): boolean {
-    const result = residentLedger.transition({ kind: "collectionExpiryCheck",
+  const residentAdviceExpired = Effect.fn("ResidentRuntime.adviceExpired")(function* (advice: Pick<Advice, "pendingAt">, now: number) {
+    const result = (yield* residentLedger.transition({ kind: "collectionExpiryCheck",
       elapsed: residentCollectionElapsed(now, advice.pendingAt, PENDING_ADVICE_EXPIRY_MS),
-      lifetime: PENDING_ADVICE_EXPIRY_MS });
+      lifetime: PENDING_ADVICE_EXPIRY_MS }));
     if (result.rejection !== undefined) throw new Error("canonical advice expiry refused");
     const command = result.commands[0]?.kind;
     if (command !== "collectionExpired" && command !== "collectionCurrent") throw new Error("invalid canonical advice expiry");
     return command === "collectionExpired";
-  }
+  });
 
-  function residentCollectionOrder(left: Pick<Advice, "sequence">,
-    right: Pick<Advice, "sequence">): number {
-    const result = residentLedger.transition({ kind: "collectionOrderCheck",
-      leftSequence: left.sequence, rightSequence: right.sequence });
+  const residentCollectionOrder = Effect.fn("ResidentRuntime.collectionOrder")(function* (left: Pick<Advice, "sequence">,
+    right: Pick<Advice, "sequence">) {
+    const result = (yield* residentLedger.transition({ kind: "collectionOrderCheck",
+      leftSequence: left.sequence, rightSequence: right.sequence }));
     if (result.rejection !== undefined) throw new Error("canonical collection order refused");
     switch (result.commands[0]?.kind) {
       case "collectionBefore": return -1;
@@ -739,7 +739,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       case "collectionAfter": return 1;
       default: throw new Error("invalid canonical collection order");
     }
-  }
+  });
 
   const residentReserveAdviceLease = Effect.fn("ResidentRuntime.reserveAdviceLease")((advice: Advice, token: string) =>
     residentLedger.advice.reserveLease(advice, token));
@@ -825,8 +825,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       for (const item of [...(yield* residentAdvice())]) {
         const sameScope = composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
           : item.partition === partition;
-        const disposition = residentLedger.transition({ kind: "collectionCredentialCheck",
-          sameScope, generationValid: item.credentialGeneration === credentialGeneration });
+        const disposition = (yield* residentLedger.transition({ kind: "collectionCredentialCheck",
+          sameScope, generationValid: item.credentialGeneration === credentialGeneration }));
         if (disposition.rejection !== undefined) throw new Error("canonical credential check refused");
         if (disposition.commands[0]?.kind === "collectionRetireCredential") {
           yield* residentRemoveAdvice(item.id);
@@ -850,8 +850,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const hasUnsuppressed = samePartition && unleased &&
           (yield* residentUnsuppressedFindings(item, content.findings, stopCollector, true)).length > 0;
         const ticketOwns = ticket === undefined || ticket.partition === item.partition;
-        const result = residentLedger.transition({ kind: "collectionCandidateCheck",
-          samePartition, unleased, hasUnsuppressed, ticketOwns });
+        const result = (yield* residentLedger.transition({ kind: "collectionCandidateCheck",
+          samePartition, unleased, hasUnsuppressed, ticketOwns }));
         if (result.rejection !== undefined) throw new Error("canonical advice candidate refused");
         if (result.commands[0]?.kind !== "collectionCandidate" && result.commands[0]?.kind !== "collectionSkip") {
           throw new Error("invalid canonical advice candidate");
@@ -863,9 +863,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
       const eligible = (yield* Effect.forEach(available, Effect.fn("ResidentRuntime.eligibleAdvice")(function* (item) {
         return { item, content: yield* residentLedger.advice.current(item) };
-      }))).filter(({ content }) => content.collectionEligible).map(({ item }) => item)
-        .sort((left, right) => residentCollectionOrder(left, right))
-        .map((item) => item.id);
+      }))).filter(({ content }) => content.collectionEligible).map(({ item }) => item);
+      for (let index = 1; index < eligible.length; index++) {
+        const item = eligible[index];
+        if (item === undefined) throw new Error("eligible advice disappeared during ordering");
+        let previous = index - 1;
+        while (previous >= 0) {
+          const left = eligible[previous];
+          if (left === undefined) throw new Error("eligible advice disappeared during ordering");
+          if ((yield* residentCollectionOrder(left, item)) <= 0) break;
+          eligible[previous + 1] = left;
+          previous--;
+        }
+        eligible[previous + 1] = item;
+      }
       const token = collectionToken = randomUUID();
       const fittingFindings = Effect.fn("ResidentRuntime.fittingFindings")(function* (
         retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>,
@@ -887,7 +898,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       let handoffFindings: Array<Finding> = [];
       const selected: Array<Advice> = [];
       let selectedFindings: Array<Finding> = [];
-      for (const id of eligible) {
+      for (const { id } of eligible) {
         const advice = (yield* residentLedger.advice.snapshots())
           .find(({ capability, content }) => capability.id === id && content.delivery === undefined)?.capability;
         if (advice === undefined) continue;
@@ -895,9 +906,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentAdapter("collection revalidation barrier", () => Promise.resolve(residentBeforeRevalidate?.(advice.id)));
         const validity = yield* residentRevalidate(advice, dispatch);
         const retained = (yield* residentAdvice()).find((item) => item.id === advice.id);
-        const route = residentCandidateRoute({ kind: "validationRouteCheck",
+        const route = (yield* residentCandidateRoute({ kind: "validationRouteCheck",
           ownerCurrent: retained === advice && (yield* residentLedger.advice.current(advice)).delivery?.token === token,
-          status: validity.status });
+          status: validity.status }));
         if (route === "ignoreCandidate") continue;
         if (route === "releaseCandidate") {
           yield* residentReleaseAdviceLease(advice);
@@ -914,8 +925,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
           (yield* residentLedger.rounds.policyWork(advice.round)).reviseFinding(advice.workUnitId,
             validity.findings.length, logicalBytes(validity.findings));
-        const workRoute = residentCandidateRoute({ kind: "postValidationCheck",
-          workAccepted, expired: false, hasFitting: true });
+        const workRoute = (yield* residentCandidateRoute({ kind: "postValidationCheck",
+          workAccepted, expired: false, hasFitting: true }));
         if (workRoute !== "retainCandidate") {
           if (workRoute === "retireCandidate") yield* residentRemoveAdvice(advice.id, token);
           else yield* residentReleaseAdviceLease(advice);
@@ -923,16 +934,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         }
         yield* residentLedger.advice.revise(advice, validity.evaluations, validity.findings);
         const handoffNow = residentNow();
-        const expiryRoute = residentCandidateRoute({ kind: "postValidationCheck",
-          workAccepted: true, expired: residentAdviceExpired(advice, handoffNow), hasFitting: true });
+        const expiryRoute = (yield* residentCandidateRoute({ kind: "postValidationCheck",
+          workAccepted: true, expired: (yield* residentAdviceExpired(advice, handoffNow)), hasFitting: true }));
         if (expiryRoute !== "retainCandidate") {
           if (expiryRoute === "retireCandidate") yield* residentRemoveAdvice(advice.id, token);
           else yield* residentReleaseAdviceLease(advice);
           continue;
         }
         const fitting = yield* fittingFindings(selectedFindings, (yield* residentUnsuppressedFindings(advice, (yield* residentLedger.advice.current(advice)).findings, stopCollector)), advice, true);
-        const fittingRoute = residentCandidateRoute({ kind: "postValidationCheck",
-          workAccepted: true, expired: false, hasFitting: fitting.length > 0 });
+        const fittingRoute = (yield* residentCandidateRoute({ kind: "postValidationCheck",
+          workAccepted: true, expired: false, hasFitting: fitting.length > 0 }));
         if (fittingRoute !== "retainCandidate") {
           if (fittingRoute === "retireCandidate") yield* residentRemoveAdvice(advice.id, token);
           else yield* residentReleaseAdviceLease(advice);
@@ -949,9 +960,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           yield* residentAdapter("final collection revalidation barrier", () => Promise.resolve(residentBeforeFinalRevalidate?.(advice.id)));
           const validity = yield* residentRevalidate(advice, dispatch);
           const retained = (yield* residentAdvice()).find((item) => item.id === advice.id);
-          const route = residentCandidateRoute({ kind: "validationRouteCheck",
+          const route = (yield* residentCandidateRoute({ kind: "validationRouteCheck",
             ownerCurrent: retained === advice && (yield* residentLedger.advice.current(advice)).delivery?.token === token,
-            status: validity.status });
+            status: validity.status }));
           if (route === "ignoreCandidate") continue;
           if (route === "releaseCandidate") {
             yield* residentReleaseAdviceLease(advice);
@@ -968,8 +979,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
             (yield* residentLedger.rounds.policyWork(advice.round)).reviseFinding(advice.workUnitId,
               validity.findings.length, logicalBytes(validity.findings));
-          const workRoute = residentCandidateRoute({ kind: "postValidationCheck",
-            workAccepted, expired: false, hasFitting: true });
+          const workRoute = (yield* residentCandidateRoute({ kind: "postValidationCheck",
+            workAccepted, expired: false, hasFitting: true }));
           if (workRoute !== "retainCandidate") {
             if (workRoute === "retireCandidate") yield* residentRemoveAdvice(advice.id, token);
             else yield* residentReleaseAdviceLease(advice);
@@ -977,16 +988,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
           yield* residentLedger.advice.revise(advice, validity.evaluations, validity.findings);
           const handoffNow = residentNow();
-          const expiryRoute = residentCandidateRoute({ kind: "postValidationCheck",
-            workAccepted: true, expired: residentAdviceExpired(advice, handoffNow), hasFitting: true });
+          const expiryRoute = (yield* residentCandidateRoute({ kind: "postValidationCheck",
+            workAccepted: true, expired: (yield* residentAdviceExpired(advice, handoffNow)), hasFitting: true }));
           if (expiryRoute !== "retainCandidate") {
             if (expiryRoute === "retireCandidate") yield* residentRemoveAdvice(advice.id, token);
             else yield* residentReleaseAdviceLease(advice);
             continue;
           }
           const fitting = yield* fittingFindings(finalFindings, (yield* residentUnsuppressedFindings(advice, (yield* residentLedger.advice.current(advice)).findings, stopCollector)), advice, true);
-          const fittingRoute = residentCandidateRoute({ kind: "postValidationCheck",
-            workAccepted: true, expired: false, hasFitting: fitting.length > 0 });
+          const fittingRoute = (yield* residentCandidateRoute({ kind: "postValidationCheck",
+            workAccepted: true, expired: false, hasFitting: fitting.length > 0 }));
           if (fittingRoute !== "retainCandidate") {
             if (fittingRoute === "retireCandidate") yield* residentRemoveAdvice(advice.id, token);
             else yield* residentReleaseAdviceLease(advice);
@@ -1016,13 +1027,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 credentialState.generation === credentialGeneration &&
                 (dispatch.credential.environmentOnly || !credentialState.savedUseSuspended);
             }
-            const route = residentCandidateRoute({ kind: "finalCandidateCheck", ownerCurrent,
+            const route = (yield* residentCandidateRoute({ kind: "finalCandidateCheck", ownerCurrent,
               credentialGeneration: credentialGenerationValid, credentialAuthorized,
               expired: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
-                residentAdviceExpired(advice, handoffNow),
+                (yield* residentAdviceExpired(advice, handoffNow)),
               workCurrent: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
                 (yield* residentIsCurrentWork(advice.revision, advice.prepared)),
-              hasFindings: delivery !== undefined && delivery.findings.length > 0 });
+              hasFindings: delivery !== undefined && delivery.findings.length > 0 }));
             if (route === "ignoreCandidate") continue;
             if (route === "retireCandidate") {
               yield* residentRemoveAdvice(advice.id, token);
@@ -1074,10 +1085,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     })));
   }));
 
-  function residentCandidateRoute(event: Extract<CanonicalEvent, { readonly kind:
-    "validationRouteCheck" | "postValidationCheck" | "finalCandidateCheck" }>):
-    "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" {
-    const result = residentLedger.transition(event);
+  const residentCandidateRoute = Effect.fn("ResidentRuntime.candidateRoute")(function* (event: Extract<CanonicalEvent, { readonly kind:
+    "validationRouteCheck" | "postValidationCheck" | "finalCandidateCheck" }>) {
+    const result = (yield* residentLedger.transition(event));
     const kind = result.commands[0]?.kind;
     if (result.rejection !== undefined || result.commands.length !== 1 ||
         (kind !== "ignoreCandidate" && kind !== "releaseCandidate" && kind !== "retireCandidate" &&
@@ -1085,7 +1095,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       throw new Error("invalid canonical candidate route");
     }
     return kind;
-  }
+  });
 
   const acknowledge = Effect.fn("ResidentRuntime.acknowledge")(function* (token: string): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
@@ -1095,8 +1105,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const notices = (yield* residentNoticesForToken(token));
     const expired = advice.some(({ content }) => content.delivery === undefined || content.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
-    const decision = residentLedger.transition({ kind: "deliveryAcknowledgeCheck",
-      items: advice.length + notices.length, anyExpired: expired });
+    const decision = (yield* residentLedger.transition({ kind: "deliveryAcknowledgeCheck",
+      items: advice.length + notices.length, anyExpired: expired }));
     if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical acknowledgement refused");
     if (decision.commands[0]?.kind === "deliveryAckEmpty") return { status: "empty" };
     if (decision.commands[0]?.kind === "deliveryAckExpired") {
@@ -1126,8 +1136,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       notices.every((item) => item.delivery?.acknowledged === true);
     const expired = advice.some(({ content }) => content.delivery === undefined || content.delivery.leaseUntil <= now) ||
       notices.some((item) => item.delivery === undefined || item.delivery.leaseUntil <= now);
-    const decision = residentLedger.transition({ kind: "deliveryFinalizeCheck",
-      items: advice.length + notices.length, allAcknowledged, anyExpired: expired });
+    const decision = (yield* residentLedger.transition({ kind: "deliveryFinalizeCheck",
+      items: advice.length + notices.length, allAcknowledged, anyExpired: expired }));
     if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical finalization refused");
     if (decision.commands[0]?.kind === "deliveryFinalEmpty") return { status: "empty" };
     if (decision.commands[0]?.kind === "deliveryFinalExpired") {
@@ -1140,8 +1150,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     for (const { capability: item, content } of advice) {
       const delivered = content.delivery?.findings ?? [];
       const remaining = composed ? [] : withoutDeliveredFindings(content.findings, delivered);
-      const disposition = residentLedger.transition({ kind: "deliveryFindingDispositionCheck",
-        composed, remaining: remaining.length });
+      const disposition = (yield* residentLedger.transition({ kind: "deliveryFindingDispositionCheck",
+        composed, remaining: remaining.length }));
       if (disposition.rejection !== undefined || disposition.commands.length !== 1) throw new Error("canonical finding disposition refused");
       if (disposition.commands[0]?.kind === "deliveryKeepForReoffer") {
         yield* residentReleaseAdviceLease(item);
@@ -1163,22 +1173,22 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return { status: "finalized" };
   }, Effect.uninterruptible);
 
-  function residentReleaseUnacknowledged(acknowledged: boolean): boolean {
-    const result = residentLedger.transition({ kind: "deliveryReleaseCheck", acknowledged });
+  const residentReleaseUnacknowledged = Effect.fn("ResidentRuntime.releaseUnacknowledged")(function* (acknowledged: boolean) {
+    const result = (yield* residentLedger.transition({ kind: "deliveryReleaseCheck", acknowledged }));
     if (result.rejection !== undefined || result.commands.length !== 1) throw new Error("canonical delivery release refused");
     if (result.commands[0]?.kind === "deliveryReleaseUnacknowledged") return true;
     if (result.commands[0]?.kind === "deliveryKeepAcknowledged") return false;
     throw new Error("invalid canonical delivery release");
-  }
+  });
 
   const releaseDelivery = Effect.fn("ResidentRuntime.releaseDelivery")(function* (token: string) {
     for (const { capability: advice, content } of (yield* residentLedger.advice.snapshots())) {
       if (content.delivery?.token === token &&
-          residentReleaseUnacknowledged(content.delivery.acknowledged)) yield* residentReleaseAdviceLease(advice);
+          (yield* residentReleaseUnacknowledged(content.delivery.acknowledged))) yield* residentReleaseAdviceLease(advice);
     }
     for (const notice of (yield* residentNoticesForToken(token))) {
       if (notice.delivery?.token === token &&
-          residentReleaseUnacknowledged(notice.delivery.acknowledged)) {
+          (yield* residentReleaseUnacknowledged(notice.delivery.acknowledged))) {
         yield* residentNotices.release(notice.id);
       }
     }
@@ -1202,7 +1212,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const round = item.round;
       const delivery = content.delivery;
       const unit = item.workUnitId;
-      const decision = residentLedger.transition({ kind: "deliverySubmissionCandidateCheck", facts: {
+      const decision = (yield* residentLedger.transition({ kind: "deliverySubmissionCandidateCheck", facts: {
         roundActive: yield* residentRoundActive(round),
         hasRound: round !== undefined,
         hasUnit: unit !== undefined,
@@ -1213,12 +1223,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           adviceePartition(item.observation.root, item.observation.advicee), surface, token)),
         currentWork: (yield* residentIsCurrentWork(item.revision, item.prepared)),
         credentialAuthorized: residentAdviceCredentialAuthority(item),
-      } });
+      } }));
       if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical submission candidate refused");
       allValid = decision.commands[0]?.kind === "deliverySubmissionCandidate";
     }
-    const batch = residentLedger.transition({ kind: "deliverySubmissionBatchCheck",
-      count: advice.length, allValid });
+    const batch = (yield* residentLedger.transition({ kind: "deliverySubmissionBatchCheck",
+      count: advice.length, allValid }));
     if (batch.rejection !== undefined || batch.commands.length !== 1) throw new Error("canonical submission batch refused");
     if (batch.commands[0]?.kind !== "deliveryBatchProceed") {
       yield* runtime.releaseComposedSubmission(token);
@@ -1415,13 +1425,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentRemoveAdvice = Effect.fn("ResidentRuntime.removeAdvice")(function* (id: string, token?: string) {
     const advice = (yield* residentAdvice()).find((item) => item.id === id);
     return advice !== undefined && (yield* residentLedger.advice.remove(advice,
-      residentAdviceExpired(advice, residentNow()) ? "expired" : "stale", token));
+      (yield* residentAdviceExpired(advice, residentNow())) ? "expired" : "stale", token));
   }, Effect.uninterruptible);
 
   const residentExpirePending = Effect.fn("ResidentRuntime.expirePending")(function* (now: number) {
     (yield* residentComposedDelivery.expire(now));
     for (const advice of [...(yield* residentAdvice())]) {
-      if (residentAdviceExpired(advice, now)) yield* residentRemoveAdvice(advice.id);
+      if ((yield* residentAdviceExpired(advice, now))) yield* residentRemoveAdvice(advice.id);
     }
   }, Effect.uninterruptible);
 
@@ -2514,7 +2524,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const ticket = yield* residentTicketFor(request.ticket, request.root, request.advicee,
             true);
           if (ticket === undefined) return residentResponse({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
-          const gate = residentTicketCollectGate(ticket, request.dispatch, residentNow());
+          const gate = yield* residentTicketCollectGate(ticket, request.dispatch, residentNow());
           if (gate !== undefined) return residentResponse(gate);
           const collected = yield* residentCollect(request.root, request.advicee, request.dispatch,
             request.mode ?? "ordinary", ticket, true);
@@ -2613,25 +2623,30 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return authority.valid ? authority.mode : "advisory";
   }
 
-  function residentTicketCollectGate(ticket: TicketRecord, dispatch: ResidentDispatchContext,
-    now: number): ResidentResponse | undefined {
-    const command = residentLedger.transition({ kind: "ticketCollectGateCheck",
+  const residentTicketCollectGate = Effect.fn("ResidentRuntime.ticketCollectGate")(function* (ticket: TicketRecord, dispatch: ResidentDispatchContext,
+    now: number): Effect.fn.Return<ResidentResponse | undefined> {
+    const command = (yield* residentLedger.transition({ kind: "ticketCollectGateCheck",
       expired: now >= ticket.expiresAt,
       credentialValid: ticket.credentialGeneration === (dispatch.credential?.generation ?? null) &&
-        residentCredentialAuthority(ticket) }).commands[0];
+        residentCredentialAuthority(ticket) })).commands[0];
     if (command?.kind === "ticketCollectProceed") return undefined;
     if (command?.kind === "ticketCollectUnavailable") {
       return { requestRoute: "ticketed", status: "unavailable", reason: command.reason };
     }
     throw new Error("canonical ticket collect gate refused");
-  }
+  });
 
   const residentTicketCollectionStatus = Effect.fn("ResidentRuntime.ticketCollectionStatus")(function* (ticket: TicketRecord, root: string, advicee: DirectAdvicee,
     composed: boolean, now: number): Effect.fn.Return<ResidentResponse> {
     const partition = composed ? adviceePartition(root, advicee) : ticket.partition;
-    const hasAdvice = (yield* residentAdvice()).some((item) =>
-      (composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
-        : item.partition === partition) && !residentAdviceExpired(item, now));
+    let hasAdvice = false;
+    for (const item of (yield* residentAdvice())) {
+      if ((composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
+        : item.partition === partition) && !(yield* residentAdviceExpired(item, now))) {
+        hasAdvice = true;
+        break;
+      }
+    }
     return { requestRoute: "ticketed", status: hasAdvice || (yield* residentCollectionWorkCount(root, advicee, composed)) > 0
       ? "pending" : "empty" };
   });
@@ -2706,7 +2721,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const ticket = yield* residentTicketFor(request.ticket, request.root, request.advicee,
         request.composed === true);
       if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
-      return residentTicketCollectGate(ticket, request.dispatch, now) ??
+      return (yield* residentTicketCollectGate(ticket, request.dispatch, now)) ??
         (yield* residentTicketCollectionStatus(ticket, request.root, request.advicee,
           request.composed === true, now));
     }
@@ -2718,14 +2733,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (sharedCollect) for (const advice of (yield* residentAdvice())) {
       if (invalidCredential || (yield* residentLedger.advice.current(advice)).delivery?.token !== response.token) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
-      const observed = residentLedger.transition({ kind: "deliveryCredentialObserveCheck",
+      const observed: Effect.Success<ReturnType<typeof residentLedger.transition>> = (yield* residentLedger.transition({ kind: "deliveryCredentialObserveCheck",
         invalidSeen: invalidCredential, generationValid,
-        authorized: generationValid && residentAdviceCredentialAuthority(advice) });
+        authorized: generationValid && residentAdviceCredentialAuthority(advice) }));
       if (observed.rejection !== undefined || observed.commands.length !== 1) throw new Error("canonical credential observation refused");
       invalidCredential = observed.commands[0]?.kind === "deliveryCredentialInvalid";
     }
-    const credentialGate = residentLedger.transition({ kind: "deliveryFinalCredentialCheck",
-      sharedCollect, invalidSeen: invalidCredential });
+    const credentialGate = (yield* residentLedger.transition({ kind: "deliveryFinalCredentialCheck",
+      sharedCollect, invalidSeen: invalidCredential }));
     if (credentialGate.rejection !== undefined || credentialGate.commands.length !== 1) throw new Error("canonical final credential gate refused");
     if (credentialGate.commands[0]?.kind !== "deliveryBatchProceed") {
       yield* runtime.releaseComposedSubmission(response.token);
@@ -2734,11 +2749,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const handoff: Array<Advice> = [];
     for (const advice of [...(yield* residentAdvice())]) {
       if ((yield* residentLedger.advice.current(advice)).delivery?.token !== response.token) continue;
-      const route = residentCandidateRoute({ kind: "finalCandidateCheck",
+      const route = (yield* residentCandidateRoute({ kind: "finalCandidateCheck",
         ownerCurrent: true, credentialGeneration: true, credentialAuthorized: true,
-        expired: !(yield* residentRoundActive(advice.round)) || residentAdviceExpired(advice, now),
+        expired: !(yield* residentRoundActive(advice.round)) || (yield* residentAdviceExpired(advice, now)),
         workCurrent: (yield* residentIsCurrentWork(advice.revision, advice.prepared)) && sourceCurrent.get(advice.id) === true,
-        hasFindings: ((yield* residentLedger.advice.current(advice)).delivery?.findings.length ?? 0) > 0 });
+        hasFindings: ((yield* residentLedger.advice.current(advice)).delivery?.findings.length ?? 0) > 0 }));
       if (route === "retireCandidate") {
         yield* residentRemoveAdvice(advice.id, response.token);
         continue;
@@ -2797,10 +2812,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (request.operation === "collect" && request.requestRoute === "shared" && request.composed === true &&
         request.advicee.host === "claude-code") {
       const surface = request.mode === "turn-end" ? "stop" : "background";
-      const fit = residentLedger.transition({ kind: "collectionFitCheck",
+      const fit = (yield* residentLedger.transition({ kind: "collectionFitCheck",
         items: findings.length + notices.length,
         bytes: encodedComposedClaudeOutputBytes(findings,
-          notices.map((notice) => notice.value), surface) });
+          notices.map((notice) => notice.value), surface) }));
       if (fit.rejection !== undefined || fit.commands.length !== 1) {
         throw new Error("canonical final response fit refused");
       }
@@ -2816,7 +2831,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentNotices.renew(notice.id, now + DELIVERY_LEASE_MS);
     }
     if (ticket !== undefined && request.operation === "collect") {
-      const gate = residentTicketCollectGate(ticket, request.dispatch, now);
+      const gate = yield* residentTicketCollectGate(ticket, request.dispatch, now);
       if (gate !== undefined) {
         yield* runtime.releaseDelivery(response.token);
         return gate;
@@ -2826,8 +2841,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const currentBlock = admittedBlock && ticket !== undefined &&
       residentCurrentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) === "block-current-findings";
     if (ticket !== undefined && request.operation === "collect" && request.requestRoute === "ticketed" &&
-        residentLedger.transition({ kind: "ticketFinalAuthorityCheck", admittedBlock,
-      currentBlock }).commands[0]?.kind !== "ticketFinalProceed") {
+        (yield* residentLedger.transition({ kind: "ticketFinalAuthorityCheck", admittedBlock,
+      currentBlock })).commands[0]?.kind !== "ticketFinalProceed") {
       // A revoked opt-in cannot turn the old selection into an advisory lease.
       yield* runtime.releaseDelivery(response.token);
       return (yield* residentTicketCollectionStatus(ticket, request.root, request.advicee,

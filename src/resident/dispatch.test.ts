@@ -166,9 +166,9 @@ it.effect("refuses to clear a physical job and permits one executor per owner", 
 it.effect("rolls back canonical publication if native registration cannot commit", () => Effect.gen(function* () {
   const ledger = makeCapacityLedger();
   const before = (yield* ledger.canonicalProjection());
-  expect(() => ledger.transition({ kind: "openRound", partition: 1, lifetime: 1 }, () => {
+  expect(() => Effect.runSync(ledger.transition({ kind: "openRound", partition: 1, lifetime: 1 }, () => {
     throw new Error("registration failed");
-  })).toThrow("registration failed");
+  }))).toThrow("registration failed");
   expect((yield* ledger.canonicalProjection())).toEqual(before);
 }));
 

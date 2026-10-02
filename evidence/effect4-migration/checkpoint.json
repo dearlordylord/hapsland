@@ -2119,6 +2119,17 @@
       "boundaryChecksPassed": 15,
       "scope": "Finding offer callback and all finding selectors return named Effects. Sequential offer loops preserve retained-first ordering and output limits; encoding defects still fall back to empty selection while interruption stays visible. Runtime selection composes them.",
       "limitations": "Root transition and runtime comparator/expiry helpers still synchronous; finding offer currently wraps existing transition until subsequent conversion."
+    },
+    {
+      "stage": "canonical-transition-runtime-effects",
+      "testsPassed": 164,
+      "testFiles": 6,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Public canonical transition is a named atomic Effect. Runtime finding offers, candidate routes, expiry, ordering, acknowledgement/finalization/submission checks and ticket gates compose it. Stable sequential insertion ordering permits effectful Bend comparisons; ticket advice presence preserves first-match short circuit. Private draft transitions remain pure within atomic commits.",
+      "validation": "Updated ticket boundary source marker from removed function declaration to named Effect declaration; all original snapshot checks retained and passed. Intermediate conversion parse errors were corrected before tests.",
+      "limitations": "Root synchronous owner bridges remain through delivery canonical fixture exposure; fixture constructor and runtime facade migration remain."
     }
   ],
   "next": [
