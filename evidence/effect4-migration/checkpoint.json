@@ -4125,5 +4125,19 @@
     "clearFollowUp": true,
     "hookFailures": [],
     "limitations": "One bounded Linux native synthetic Stop-delivery case, controlled offline DecisionModel. No arbitrary-source accuracy, installed Claude package or macOS acceptance inferred."
+  },
+  "backendElapsedClockAudit": {
+    "status": "pass",
+    "scope": "ReviewBackend elapsed duration now uses caller monotonic nanoseconds converted to milliseconds. Epoch clocks remain for persisted timestamps and expiration. No retry policy, budgets or Jev dispatch changed.",
+    "checks": {
+      "typecheck": "pass",
+      "build": "pass",
+      "reviewBoundaryGuard": "pass",
+      "focusedFiles": 3,
+      "focusedTestsPassed": 15,
+      "durationSeconds": 3.04
+    },
+    "regression": "Deterministic provider shifts epoch clock backward and forward by 60000ms while monotonic time advances 37.5ms; both return durationMs=37.5.",
+    "limitations": "Production changed after previously retained full suite and package receipts. Focused tests and build cover the clock change; a final complete source suite is next."
   }
 }

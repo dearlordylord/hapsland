@@ -2,6 +2,7 @@ import { describe, expect, it } from "@effect/vitest";
 import * as AiError from "effect/ai/AiError";
 import * as DecisionModel from "effect/ai/DecisionModel";
 import * as Decision from "effect/ai/Decision";
+import * as Clock from "effect/Clock";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -40,6 +41,40 @@ const transientError = () =>
   });
 
 describe("review backend retry policy", () => {
+  it.effect("measures request duration independently of backward and forward wall-clock corrections", () =>
+    Effect.gen(function* () {
+      const base = yield* Clock.Clock;
+      for (const correction of [-60_000, 60_000]) {
+        const epoch = yield* Ref.make(100_000);
+        const elapsed = yield* Ref.make(0n);
+        const clock: Clock.Clock = {
+          ...base,
+          currentTimeMillis: Ref.get(epoch),
+          monotonicTimeNanos: Ref.get(elapsed),
+        };
+        const modelLayer = Layer.effect(DecisionModel.DecisionModel, DecisionModel.make({
+          decide: (request) => Effect.gen(function* () {
+            yield* Ref.update(epoch, (now) => now + correction);
+            yield* Ref.set(elapsed, 37_500_000n);
+            return {
+              answers: providerAnswers(request.decisions),
+              usage: { inputTokens: 0, outputTokens: 0 },
+            };
+          }),
+        }));
+        const result = yield* Effect.gen(function* () {
+          const backend = yield* ReviewBackend.Service;
+          return yield* backend.evaluate(input);
+        }).pipe(
+          Effect.provide(ReviewBackend.layer.pipe(Layer.provide(modelLayer))),
+          Effect.provideService(Clock.Clock, clock),
+        );
+        expect(result.backend.durationMs).toBe(37.5);
+        expect(result.backend.retries).toBe(0);
+      }
+    }),
+  );
+
   it.effect("rechecks the credential capability at each provider dispatch", () =>
     Effect.gen(function* () {
       const generationCurrent = yield* Ref.make(true);

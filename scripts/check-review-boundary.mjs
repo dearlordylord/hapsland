@@ -16,3 +16,8 @@ for (const call of ["residentLedger.admitObservation(", "residentLedger.complete
   "residentLedger.settleJevRequest("]) {
   if (!source.includes(call)) throw new Error(`resident review transition missing: ${call}`);
 }
+
+const backend = readFileSync(resolve(import.meta.dirname, "../src/ports/review-backend.ts"), "utf8");
+if (backend.includes("Clock.currentTimeMillis") || !backend.includes("Clock.monotonicTimeNanos")) {
+  throw new Error("backend elapsed duration must use the caller monotonic Clock");
+}
