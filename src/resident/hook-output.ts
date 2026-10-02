@@ -1,3 +1,4 @@
+import { hookMonotonicMillis } from "./hook-clock.ts";
 import { Context, Effect, Layer } from "effect";
 import type { Writable } from "node:stream";
 
@@ -20,7 +21,7 @@ export class HookOutput extends Context.Service<HookOutput, {
 
 export const makeHookOutput = (port: HookOutputPort) => {
   const writeEncoded = Effect.fn("HookOutput.writeEncoded")(function* (encoded: string, deadlineAt: number) {
-    const remaining = deadlineAt - performance.now();
+    const remaining = deadlineAt - (yield* hookMonotonicMillis);
     if (remaining <= 0) return "timed-out" as const;
     return yield* Effect.acquireUseRelease(
       Effect.sync(() => ({ settled: false, removeErrorListener: () => {} })),
@@ -48,7 +49,7 @@ export const makeHookOutput = (port: HookOutputPort) => {
     writeEncoded,
     write: Effect.fn("HookOutput.write")(function* (value: unknown, deadlineAt: number) {
       const writeDeadline = deadlineAt - 50;
-      if (writeDeadline <= performance.now() || !port.writable()) return "failed" as const;
+      if (writeDeadline <= (yield* hookMonotonicMillis) || !port.writable()) return "failed" as const;
       let encoded: string;
       try { encoded = `${JSON.stringify(value)}\n`; }
       catch { return "uncertain" as const; }

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { hookMonotonicMillis, monotonicNow } from "./resident/hook-clock.ts";
 import { readMaskedCredential } from "./credentials/masked-input.ts";
 import * as Schedule from "effect/Schedule";
 import { effectiveSessionAnalytics } from "./configuration/resolve.ts";
@@ -350,7 +351,7 @@ const composedKind: ComposedHookKind | undefined = process.argv.includes("--comp
     ? "stop" : process.argv.includes("--composed-prompt-hook") ? "prompt" : undefined;
 const composedHost: ComposedHookHost = process.argv.includes("--composed-host=claude-code")
   ? "claude-code" : "codex-cli";
-const directHookStartedAt = performance.now();
+const directHookStartedAt = monotonicNow();
 const directHookDeadline = directHookStartedAt +
   (isCodexHook && isComposedEditHook ? 9_000 : 3_900);
 const hookVersionArgument = process.argv.find((argument) => argument.startsWith("--codex-version="));
@@ -434,12 +435,11 @@ const runDirectBoundedHook = Effect.fn("ClaudeHook.collectBounded")(function* (
 ): Effect.fn.Return<unknown, never, ResidentStartup> {
   const deadline = directHookDeadline;
   if (observation === undefined) return {};
-  const remaining = () => Math.max(0, deadline - performance.now());
   const bounded = <A, E, R>(task: Effect.Effect<A, E, R>): Effect.Effect<A | undefined, never, R> =>
-    Effect.suspend(() => {
-      const time = remaining();
-      if (time <= 0) return Effect.succeed(undefined);
-      return task.pipe(
+    Effect.gen(function* () {
+      const time = Math.max(0, deadline - (yield* hookMonotonicMillis));
+      if (time <= 0) return undefined;
+      return yield* task.pipe(
         Effect.timeoutOrElse({ duration: time, orElse: () => Effect.succeed(undefined) }),
         Effect.catch(() => Effect.succeed(undefined)),
       );
@@ -1337,7 +1337,7 @@ if (process.argv[2] === "--package-identity") {
 } else {
 const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
   const watchdog = isClaudeHook || isOpenCodeHook
-    ? yield* Effect.sleep(Math.max(0, directHookStartedAt + 4_500 - performance.now())).pipe(
+    ? yield* Effect.sleep(Math.max(0, directHookStartedAt + 4_500 - (yield* hookMonotonicMillis))).pipe(
         Effect.andThen(Effect.sync(() => { process.exit(0); })),
         Effect.forkScoped,
       )

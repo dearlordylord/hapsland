@@ -56,6 +56,11 @@ for (const path of ["src/onboarding/installation-lock.ts", "src/credentials/secr
     throw new Error(`${path} elapsed budgets must use monotonicTimeNanos, not wall-clock nanos`);
   }
 }
+for (const path of ["src/cli.ts", "src/resident/client.ts", "src/resident/composed-hook.ts", "src/resident/hook-output.ts"]) {
+  if (/performance\.now\(/u.test(read(path))) {
+    throw new Error(`${path} hook deadline consumers must share the caller monotonic Clock coordinate`);
+  }
+}
 if (/Effect\.run(?:Sync|Promise|Fork)\(|new Promise|\basync\b|setTimeout\(|Date\.now\(|process\.env/u.test(installationLock) ||
     !installationLock.includes('Schedule.spaced("25 millis")') ||
     !installationLock.includes("Effect.acquireUseRelease(")) {

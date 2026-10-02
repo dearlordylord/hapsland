@@ -33,7 +33,7 @@ import {
 } from "./protocol.ts";
 
 const monotonicMillis = Clock.monotonicTimeNanos.pipe(
-  Effect.map((now) => Number(now / 1_000_000n)),
+  Effect.map((now) => Number(now) / 1_000_000),
 );
 
 export class ResidentIpcError extends Schema.TaggedError<ResidentIpcError>()("ResidentIpcError", { message: Schema.String }) {}
@@ -351,8 +351,8 @@ export const admitAndCollectEffect = Effect.fn("ResidentClient.admitAndCollect")
   if (observation.advicee.host !== "claude-code") return { status: "unavailable", reason: "lost" };
   paths ??= yield* resolveResidentPaths();
   const owner = yield* ensureResidentEffect(paths, Math.min(STARTUP_READINESS_DEADLINE_MS,
-    Math.max(1, deadlineAt - performance.now())));
-  const timeoutMs = Math.min(EDIT_REQUEST_DEADLINE_MS, deadlineAt - performance.now());
+    Math.max(1, deadlineAt - (yield* monotonicMillis))));
+  const timeoutMs = Math.min(EDIT_REQUEST_DEADLINE_MS, deadlineAt - (yield* monotonicMillis));
   if (timeoutMs <= 150) return { status: "unavailable", reason: "expired" };
   const response = yield* residentRequestEffect(paths, {
     requestRoute: "edit", operation: "admit-and-collect", lifetime: owner.lifetime,
@@ -422,7 +422,7 @@ export const collectAdviceeOutcomeEffect = Effect.fn("ResidentClient.collectAdvi
   paths ??= yield* resolveResidentPaths();
   const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return { status: "empty" };
-  const remaining = deadlineAt - performance.now() - 100;
+  const remaining = deadlineAt - (yield* monotonicMillis) - 100;
   if (remaining <= 0) return { status: "empty" };
   const response = yield* residentRequestEffect(paths, {
     requestRoute: "shared",

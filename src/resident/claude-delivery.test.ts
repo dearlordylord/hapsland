@@ -69,7 +69,7 @@ describe("registry-free Claude edit response", () => {
     await Effect.runPromise(server.listen());
     try {
       await permit(server, observation);
-      const outcome = await runClient(admitAndCollect(observation, data.dispatch, performance.now() + 2_500, server.paths));
+      const outcome = await runClient(admitAndCollect(observation, data.dispatch, monotonicNow() + 2_500, server.paths));
       expect(outcome.status).toBe("advice");
       if (outcome.status !== "advice") throw new Error("missing advice");
       expect(outcome.advice.output).toHaveProperty(mode === "advisory" ? "hookSpecificOutput" : "decision");

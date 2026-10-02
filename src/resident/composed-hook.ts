@@ -1,5 +1,5 @@
 import type { RoundCloseReason } from "../activity/status.ts";
-import { hookProcessStartedAt } from "./hook-clock.ts";
+import { hookProcessStartedAt, hookMonotonicMillis } from "./hook-clock.ts";
 import { createHash, randomUUID } from "node:crypto";
 import { stat } from "node:fs/promises";
 import * as Effect from "effect/Effect";
@@ -30,7 +30,8 @@ type BoundClient<F> = F extends (...args: infer Args) => Effect.Effect<infer A, 
   ? (...args: Args) => Effect.Effect<A, E> : never;
 
 export class ComposedHookRuntime extends Context.Service<ComposedHookRuntime, {
-  readonly now: () => number;
+  readonly now: Effect.Effect<number>;
+  readonly startedAt: number;
   readonly identity: typeof adaptComposedHookIdentity;
   readonly client: {
     readonly acknowledgeAdviceEffect: BoundClient<typeof acknowledgeAdviceEffect>;
@@ -49,7 +50,8 @@ export class ComposedHookRuntime extends Context.Service<ComposedHookRuntime, {
 export const composedHookRuntimeLayer = Layer.effect(ComposedHookRuntime, Effect.gen(function* () {
   const startup = yield* ResidentStartup;
   return ComposedHookRuntime.of({
-    now: () => performance.now(),
+    now: hookMonotonicMillis,
+    startedAt: hookProcessStartedAt,
     identity: adaptComposedHookIdentity,
     client: {
       acknowledgeAdviceEffect,
@@ -110,7 +112,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
     makeResidentDispatchContextEffect, markComposedUserPromptEffect,
     releaseComposedSubmissionEffect, releaseComposedBackgroundEffect,
   } = runtime.client;
-  const deadlineAt = input.kind === "background" ? 20_000 : input.kind === "stop" ? 4_200 : 2_500;
+  const deadlineAt = runtime.startedAt + (input.kind === "background" ? 20_000 : input.kind === "stop" ? 4_200 : 2_500);
   const output = yield* HookOutput;
   const writeJson = output.write;
   let beforeQuiet = () => Effect.void;
@@ -131,7 +133,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   const paths = yield* resolveResidentPaths();
 
   if (input.kind === "before-edit") {
-    yield* registerComposedEditEffect(root, advicee, hookProcessStartedAt, paths, input.activityPath,
+    yield* registerComposedEditEffect(root, advicee, runtime.startedAt, paths, input.activityPath,
       input.userConfigPath ?? undefined).pipe(Effect.catch(() => Effect.succeed(false)));
     return yield* quiet();
   }
@@ -180,8 +182,9 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   if (stopToken !== undefined) {
     const acquired = yield* Effect.acquireRelease(
       composedStopBoundaryEffect("begin-stop", root, advicee, stopToken).pipe(Effect.catch(() => Effect.succeed(false))),
-      (acquired) => acquired && (continued || stopFinished || runtime.now() < deadlineAt - 550)
-        ? finishStop() : Effect.void,
+      (acquired) => Effect.gen(function* () {
+        if (acquired && (continued || stopFinished || (yield* runtime.now) < deadlineAt - 550)) yield* finishStop();
+      }),
     );
     if (!acquired) return yield* quiet();
     beforeQuiet = finishStop;
@@ -198,9 +201,9 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
   }
 
   const admissionGraceAt = Math.min(deadlineAt,
-    runtime.now() + (input.host === "claude-code" ? 5_000 : 2_000));
+    (yield* runtime.now) + (input.host === "claude-code" ? 5_000 : 2_000));
   const pass = Effect.gen(function* () {
-    if (runtime.now() >= deadlineAt - 150) {
+    if ((yield* runtime.now) >= deadlineAt - 150) {
       closeReason = "deadline";
       yield* quiet();
       return true;
@@ -211,7 +214,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
       stopToken === undefined ? undefined : {
         token: stopToken,
         // Leave time for final eligibility checks, output authorization and write.
-        deadlineReached: runtime.now() >= deadlineAt - 750,
+        deadlineReached: (yield* runtime.now) >= deadlineAt - 750,
       },
     ).pipe(Effect.catch(() => Effect.succeed(undefined)));
     if (outcome === undefined) { closeReason = "unavailable"; yield* quiet(); return true; }
@@ -248,8 +251,8 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
       else if (written === "failed") yield* releaseComposedSubmissionEffect(advice).pipe(Effect.catch(() => Effect.succeed(false)));
       return true;
     }
-    if (outcome.status === "empty" && (collectorKind === "stop" || runtime.now() >= admissionGraceAt)) {
-      if (runtime.now() >= deadlineAt - 200) closeReason = "deadline";
+    if (outcome.status === "empty" && (collectorKind === "stop" || (yield* runtime.now) >= admissionGraceAt)) {
+      if ((yield* runtime.now) >= deadlineAt - 200) closeReason = "deadline";
       yield* quiet(); return true;
     }
     return false;

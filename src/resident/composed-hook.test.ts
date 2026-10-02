@@ -6,6 +6,8 @@ import { HookOutput } from "./hook-output.ts";
 import type { DirectAdvicee } from "../direct-event/model.ts";
 import type { AdviceeCollectionOutcome } from "./client.ts";
 import { residentPaths } from "./paths.ts";
+import { hookMonotonicMillis } from "./hook-clock.ts";
+import * as TestClock from "effect/testing/TestClock";
 
 const input = (kind: "stop" | "background", host: "claude-code" | "codex-cli" = "claude-code") => ({
   kind, host, event: {}, statePath: "/fixture/state", activityPath: "/fixture/activity",
@@ -15,7 +17,8 @@ const hookAdvicee = {
 } as const;
 const unused = () => Effect.die("unexpected hook port");
 const runtime = (client: Partial<ComposedHookRuntime["Service"]["client"]>, advicee: Extract<DirectAdvicee, { host: "codex-cli" | "claude-code" }> = hookAdvicee) => ComposedHookRuntime.of({
-  now: () => 0,
+  now: Effect.succeed(0),
+  startedAt: 0,
   identity: () => Effect.succeed({ root: "/fixture", advicee }),
   client: {
     acknowledgeAdviceEffect: unused,
@@ -38,6 +41,26 @@ const finding: AdviceeCollectionOutcome = { status: "advice", advice: {
   token: "advice", lifetime: "origin", paths: residentPaths("/fixture/resident"), root: "/fixture",
   advicee: hookAdvicee, activityPath: undefined, findingCount: 1,
 } };
+
+it.effect("counts startup elapsed time against the unchanged absolute Stop budget", () => Effect.gen(function* () {
+  const finished: Array<boolean> = [];
+  const deadlines: Array<number> = [];
+  const service = runtime({
+    composedStopBoundaryEffect: (operation, _root, _advicee, _token, close = false) => Effect.sync(() => {
+      if (operation === "finish-stop") finished.push(close);
+      return true;
+    }),
+  });
+  yield* TestClock.adjust("104050 millis");
+  yield* runComposedHookEffect(input("stop")).pipe(
+    Effect.provideService(ComposedHookRuntime, { ...service, startedAt: 100_000, now: hookMonotonicMillis }),
+    Effect.provideService(HookOutput, HookOutput.of({ writeEncoded: unused,
+      write: (_value, deadlineAt) => Effect.sync(() => { deadlines.push(deadlineAt); return "written" as const; }),
+    })),
+  );
+  expect(deadlines).toEqual([104_200]);
+  expect(finished).toEqual([true]);
+}));
 
 it.effect("finishes the acquired Stop attempt when collection is interrupted", () => Effect.gen(function* () {
   const collecting = yield* Deferred.make<void>();
