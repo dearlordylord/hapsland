@@ -203,6 +203,11 @@ that mutant; no supporting proof adjustment is needed.
 
 ## Decision: what would justify removing PRE?
 
+**Owner outcome:** Delayed POST for an old edit must not open a successor round.
+The existing strict closure requirement is retained; bare A is rejected as an
+implementation direction. Keep PRE unless verified original-attempt provenance
+provides equivalent evidence. This decision does not validate native host ordering.
+
 The accepted contract already requires **only a provably fresh edit may open a
 round after closure** ([target contract, line 96](../../docs/advicing-target-contract.md#advicee-identity-and-admission)).
 Its PRE/start/deadline/host-order requirements are at lines 112–140; its explicit

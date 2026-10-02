@@ -884,3 +884,27 @@ DEPEND ON proposal. Three next-law candidates remain unapproved and unproved;
 392 bounded literal checks passed, with native-conformance and product policy
 adoption still outside the evidence. Existing counterexamples suffice for the
 owner's policy choice; further theorem approval is not required to choose it.
+
+### Owner decision: retain the strict closure boundary
+
+The owner rejected allowing a delayed POST for an old edit to open a successor
+round. This confirms the existing target contract rather than changing it.
+Bare A is rejected for this requirement; retain PRE unless independently verified
+original-attempt provenance supplies equivalent closure evidence. Arrival-only
+admission is not an accepted implementation direction.
+
+Next, inspect the current scheme's external premise: the native edit stays behind
+its synchronous PRE, and original invocation identity/start/deadline survive
+retries and resident startup. The model proof does not establish that runtime
+premise. Lost POST and fail-open PRE coverage remain separate limitations.
+
+Bounded source inspection confirms that `hookProcessStartedAt` is sampled once
+and passed unchanged through resident startup (`src/resident/hook-clock.ts:4`,
+`src/resident/client.ts:518`). Permit expiry derives from that start; a pending
+duplicate does not renew it (`src/resident/composed-delivery.ts:224`, `:247`).
+Installed PRE commands use `exec` and are configured synchronously. These facts
+do not establish native tool ordering or cancellation empirically. The sampled
+clock covers Node startup, not earlier runtime/shell queuing. A delayed PRE is
+not itself an old-edit counterexample if the actual edit remains blocked behind
+it. Next validation must distinguish hook invocation from actual tool execution
+and inspect timeout/cancellation and replay behavior per supported runtime.
