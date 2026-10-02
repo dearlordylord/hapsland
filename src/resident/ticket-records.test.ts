@@ -4,6 +4,12 @@ import { Cause, Effect, Exit } from "effect";
 import { makeResidentState } from "./capacity.ts";
 import { residentTicketInput } from "../test-support/resident-ticket.ts";
 
+const defectMessage = <A>(effect: Effect.Effect<A>) => Effect.gen(function* () {
+  const exit = yield* Effect.exit(effect);
+  if (Exit.isSuccess(exit)) throw new Error("expected a resident invariant defect");
+  return Cause.pretty(exit.cause);
+});
+
 it.effect("publishes one ticket for competing nonce admissions without consuming rejected identities", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const input = residentTicketInput(owner.residentLifetime, "shared");
@@ -47,16 +53,16 @@ it.effect("rolls back canonical opening and identity allocation if native constr
 it.effect("evicts the oldest canonical ticket and its native unit bindings together", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const first = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime, "first")));
-  const firstUnit = owner.ticketUnits.add(first);
+  const firstUnit = (yield* owner.ticketUnits.add(first));
   const second = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime, "second")));
-  const secondUnit = owner.ticketUnits.add(second);
+  const secondUnit = (yield* owner.ticketUnits.add(second));
   (yield* owner.tickets.retain(1));
   expect((yield* owner.tickets.get("first"))).toBeUndefined();
-  expect(firstUnit.stage()).toBeUndefined();
-  expect(owner.ticketUnits.values()).toEqual([secondUnit]);
+  expect((yield* owner.ticketUnits.stage(firstUnit))).toBeUndefined();
+  expect((yield* owner.ticketUnits.values())).toEqual([secondUnit]);
   expect(owner.canonicalProjection().tickets.map((ticket) => ticket.id)).toEqual([second.generation]);
   (yield* owner.tickets.retain(0));
-  expect(owner.ticketUnits.values()).toEqual([]);
+  expect((yield* owner.ticketUnits.values())).toEqual([]);
   expect(owner.canonicalProjection().tickets).toEqual([]);
 }));
 
@@ -64,15 +70,15 @@ it.effect("retires only the selected partition and fences stale ticket capabilit
   const owner = yield* makeResidentState();
   const first = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime, "first", "a")));
   const independent = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime, "independent", "b")));
-  const independentUnit = owner.ticketUnits.add(independent);
+  const independentUnit = (yield* owner.ticketUnits.add(independent));
   (yield* owner.tickets.discardPartition("a"));
   expect((yield* owner.tickets.get("first"))).toBeUndefined();
   expect((yield* owner.tickets.get("independent"))).toBe(independent);
-  expect(independentUnit.stage()?.stage).toBe("pending");
+  expect((yield* owner.ticketUnits.stage(independentUnit))?.stage).toBe("pending");
   owner.clear();
   const replacement = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime, "first", "a")));
   expect(replacement.generation).toBe(first.generation);
   expect((yield* owner.tickets.forget(first))).toBe(false);
   expect((yield* owner.tickets.get("first"))).toBe(replacement);
-  expect(() => owner.ticketUnits.add(first)).toThrow("ticket capability");
+  expect(yield* defectMessage(owner.ticketUnits.add(first))).toContain("ticket capability");
 }));

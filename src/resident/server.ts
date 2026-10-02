@@ -80,7 +80,7 @@ import * as Fiber from "effect/Fiber";
 import * as FiberHandle from "effect/FiberHandle";
 import * as Schedule from "effect/Schedule";
 import type { ComposedDelivery } from "./composed-delivery.ts";
-import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
+import type { CanonicalCommand, CanonicalEvent } from "../canonical/adapter.ts";
 import {
   PENDING_ADVICE_EXPIRY_MS,
   combinedClaudeOutput,
@@ -191,33 +191,6 @@ type IngressJob = {
   readonly ticket?: TicketRecord;
 };
 
-const ticketUnitStageOrUndefined = (unit: TicketUnit) => {
-  return unit.stage();
-};
-const ticketUnitStage = (unit: TicketUnit) => {
-  const stage = ticketUnitStageOrUndefined(unit);
-  if (stage === undefined) throw new Error("canonical ticket unit missing");
-  return stage;
-};
-const ticketUnitTransition = (unit: TicketUnit, event: TicketUnitEvent,
-  reason: TicketReason = "lost"): boolean => {
-  return unit.step(event, reason);
-};
-const unitUnavailable = (unit: TicketUnit, reason: ResidentUnavailableReason): void => {
-  const before = ticketUnitStageOrUndefined(unit);
-  if (before === undefined || before.stage === "unavailable") return;
-  if (!unit.step("failUnit", reason, {}) || ticketUnitStage(unit).stage !== "unavailable") {
-    throw new Error("canonical ticket unit failure refused");
-  }
-};
-const unitRevision = (unit: TicketUnit, revision: WorkRevision): void => {
-  if (!unit.step("revise", "lost", { revision })) return;
-  if (ticketUnitStage(unit).stage !== "pending") throw new Error("invalid canonical ticket revision stage");
-};
-const unitClear = (unit: TicketUnit, revision: WorkRevision): void => {
-  if (!unit.step("clearResult", "lost", { revision })) return;
-  if (ticketUnitStage(unit).stage !== "clear") throw new Error("invalid canonical ticket clear stage");
-};
 const TICKET_RETENTION_MS = 600_000;
 const MAX_TICKETS = 256;
 
@@ -459,7 +432,7 @@ export interface ResidentRuntime {
   collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: undefined, composed: true): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
   collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: TicketRecord, composed?: boolean): Promise<ResidentResponse>;
   acknowledge(token: string): ResidentResponse;
-  finalize(token: string): ResidentResponse;
+  finalize(token: string): Effect.Effect<ResidentResponse>;
   releaseDelivery(token: string): void;
   beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse;
   releaseComposedSubmission(token: string): ResidentResponse;
@@ -1129,7 +1102,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return { status: "acknowledged" };
   }
 
-  function finalize(token: string): ResidentResponse {
+  const finalize = Effect.fn("ResidentRuntime.finalize")(function* (token: string): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
     residentExpirePending(now);
     residentPruneNoticeCooldowns(now);
@@ -1161,11 +1134,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         continue;
       }
       if (disposition.commands[0]?.kind === "deliveryRetireAdvice") {
-        for (const unit of residentLedger.ticketUnits.values()) {
-          if (ticketUnitStage(unit).stage === "finding" && unit.current.adviceId === item.id) {
-            ticketUnitTransition(unit, "markDelivered");
-          }
-        }
+        yield* residentLedger.ticketUnits.markAdviceDelivered(item.id);
         residentRemoveAdvice(item.id, token);
         continue;
       }
@@ -1178,7 +1147,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     for (const item of notices) residentRemovePendingNotice(item.id, token);
     return { status: "finalized" };
-  }
+  }, Effect.uninterruptible);
 
   function residentReleaseUnacknowledged(acknowledged: boolean): boolean {
     const result = residentLedger.transition({ kind: "deliveryReleaseCheck", acknowledged });
@@ -1399,23 +1368,22 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   function residentCurrentRevisionGeneration(subject: string): number { return residentLedger.revision.generation(subject); }
 
-  function residentRegisterRevision(partition: string, prepared: PreparedUnit, addMember: boolean): WorkRevision {
+  const residentRegisterRevision = Effect.fn("ResidentRuntime.registerRevision")(function* (partition: string, prepared: PreparedUnit, addMember: boolean): Effect.fn.Return<WorkRevision> {
     const { revision, replaced } = residentLedger.revision.register(partition, prepared, addMember, randomUUID());
-    if (replaced) residentRetireSuperseded(revision.subject, revision.generation, addMember);
+    if (replaced) yield* residentRetireSuperseded(revision.subject, revision.generation, addMember);
     return revision;
-  }
+  }, Effect.uninterruptible);
 
-  function residentRegisterCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
-    return residentRegisterRevision(partition, prepared, true);
-  }
+  const residentRegisterCurrentWork = Effect.fn("ResidentRuntime.registerCurrentWork")((partition: string, prepared: PreparedUnit) =>
+    residentRegisterRevision(partition, prepared, true));
 
-  function residentRetireSuperseded(subject: string, generation: number, includeTickets: boolean): void {
+  const residentRetireSuperseded = Effect.fn("ResidentRuntime.retireSuperseded")(function* (subject: string, generation: number, includeTickets: boolean) {
     const superseded = (revision: WorkRevision): boolean => residentLedger.revision.superseded(subject, revision);
     if (residentCurrentRevisionGeneration(subject) !== generation) throw new Error("canonical revision changed");
     if (includeTickets) {
-      for (const unit of residentLedger.ticketUnits.values()) {
-        const revision = unit.current.revision;
-        if (revision !== undefined && superseded(revision)) unitUnavailable(unit, "stale");
+      for (const unit of (yield* residentLedger.ticketUnits.values())) {
+        const revision = (yield* residentLedger.ticketUnits.current(unit)).revision;
+        if (revision !== undefined && superseded(revision)) yield* residentLedger.ticketUnits.fail(unit, "stale");
       }
       for (const review of residentJoined.retireSuperseded(subject)) {
         recordActivity({ statePath: review.activityPath, root: review.observation.root,
@@ -1426,11 +1394,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     for (const advice of [...residentAdvice()]) {
       if (superseded(advice.revision)) residentRemoveAdvice(advice.id);
     }
-  }
+  });
 
-  function residentRestoreCurrentWork(partition: string, prepared: PreparedUnit): WorkRevision {
-    return residentRegisterRevision(partition, prepared, false);
-  }
+  const residentRestoreCurrentWork = Effect.fn("ResidentRuntime.restoreCurrentWork")((partition: string, prepared: PreparedUnit) =>
+    residentRegisterRevision(partition, prepared, false));
 
   function residentIsCurrentWork(revision: WorkRevision, prepared: PreparedUnit): boolean {
     return residentLedger.revision.current(revision, prepared);
@@ -1523,17 +1490,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const { matched, previousWork } = replacement;
     previousWork.controller.abort();
     const discarded = (yield* residentDispatcher.discardWhere(({ value }) => value.work === work && (named(value) || !matched)));
-    for (const job of discarded) residentDiscardJob(job);
+    for (const job of discarded) yield* residentDiscardJob(job);
     return matched;
   }, Effect.uninterruptible);
 
-  function residentDiscardJob(job: Job): void {
+  const residentDiscardJob = Effect.fn("ResidentRuntime.discardJob")(function* (job: Job) {
     if (job.completed) return;
     if (job.kind === "ingress") {
       residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound);
     }
     if (job.kind === "unit") {
-      if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
+      if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "lost");
       residentSettleJoined(job.evaluationKey, "unavailable", "lost");
       residentReleaseReuseClaim(job.evaluationKey);
       // An issued Jev permit remains reserved until its native Effect settles.
@@ -1541,7 +1508,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     } else residentLedger.release(job.reservation);
     recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
       advicee: job.observation.advicee, lifetime: runtime.lifetime, stage: "incomplete" });
-  }
+  }, Effect.uninterruptible);
 
   const residentCloseRound = Effect.fn("ResidentRuntime.closeRound")(function* (group: string, generation: number, reason: RoundCloseReason,
     counts: ReturnType<ComposedDelivery["closureCounts"]>): Effect.fn.Return<void> {
@@ -1566,7 +1533,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     round.controller.abort();
     snapshot.work.controller.abort();
     const discarded = (yield* residentDispatcher.discardWhere(({ value }) => value.round === round));
-    for (const job of discarded) residentDiscardJob(job);
+    for (const job of discarded) yield* residentDiscardJob(job);
     for (const advice of [...residentAdvice()]) if (advice.round === round) residentRemoveAdvice(advice.id);
     for (const [key, notice] of residentNotices.entries()) {
       if (notice.partition === round.group) residentReleaseNoticeCooldown(key);
@@ -1711,7 +1678,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
           if (accepted) deliverable.push(outcome);
         }
-        const planned = deliverable.map((outcome) => {
+        const planned = yield* Effect.forEach(deliverable, Effect.fn("ResidentRuntime.planPreparedUnit")(function* (outcome) {
           const generationPartition = `${job.partition}\0work:${job.work?.id ?? "standalone"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
           const evaluationKey = residentReuse.key(generationPartition, outcome.prepared);
           const liveAdvice = residentAdvice().some((advice) => advice.evaluationKey === evaluationKey);
@@ -1723,7 +1690,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             case "joinedPending": {
               const pending = residentReuse.pending(evaluationKey);
               if (pending === undefined) throw new Error("canonical reuse route lacks pending evaluation");
-              pending.revision = residentRestoreCurrentWork(job.partition, outcome.prepared);
+              pending.revision = yield* residentRestoreCurrentWork(job.partition, outcome.prepared);
               return { kind: "joined" as const, join: "pending" as const, outcome, evaluationKey };
             }
             case "cached":
@@ -1733,7 +1700,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               unassignedClaims.add(evaluationKey);
               return { kind: "owner" as const, outcome, evaluationKey };
           }
-        });
+        }));
         if (planned.some((item) => item.kind === "owner")) {
           yield* withinWork(residentPreparationControls.afterReuseBoundary("ownerClaimed").pipe(
             Effect.mapError(() => new ResidentAdapterError({ operation: "owner claim barrier" }))),
@@ -1757,13 +1724,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
-          const ticketUnit = job.ticket === undefined ? undefined : residentLedger.ticketUnits.add(job.ticket);
+          const ticketUnit = job.ticket === undefined ? undefined : yield* residentLedger.ticketUnits.add(job.ticket);
           if (ticketUnit !== undefined) {
             ticketUnitsByPlan.set(item, ticketUnit);
           }
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
-            const revision = residentRegisterCurrentWork(job.partition, item.outcome.prepared);
-            if (ticketUnit !== undefined) unitClear(ticketUnit, revision);
+            const revision = yield* residentRegisterCurrentWork(job.partition, item.outcome.prepared);
+            if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.clear(ticketUnit, revision);
             residentReleaseCurrentWork(revision);
             expectedActivityUnits.push(item.evaluationKey);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "clear", unitIdentity: item.evaluationKey });
@@ -1777,7 +1744,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             } else {
               const pending = residentReuse.pending(item.evaluationKey);
               if (pending === undefined && item.join !== "claimed") {
-                if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
+                if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "lost");
                 recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
                   advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable",
                   unitIdentity: item.evaluationKey });
@@ -1811,7 +1778,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const ticketUnit = ticketUnitsByPlan.get(item);
           const admitted = reservations[index];
           if (admitted === undefined) {
-            if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
+            if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "capacity");
             if (item.kind === "owner") residentReleaseReuseClaim(item.evaluationKey, "capacity");
             yield* residentLedger.runtime.rejectCapacity();
             residentRecordOperationalFailure(job.observation, "capacity");
@@ -1819,15 +1786,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             continue;
           }
           const reservation = admitted.reservation;
-          const revision = residentRegisterCurrentWork(job.partition, item.outcome.prepared);
-          if (ticketUnit !== undefined) unitRevision(ticketUnit, revision);
+          const revision = yield* residentRegisterCurrentWork(job.partition, item.outcome.prepared);
+          if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.revise(ticketUnit, revision);
           const workUnitId = job.round === undefined || job.workObservationId === undefined ? undefined
             : item.kind === "cached"
               ? (yield* residentLedger.rounds.policyWork(job.round)).cachedFinding(job.workObservationId,
                 item.cached.evaluation.findings.length, logicalBytes(item.cached.evaluation.findings), admitted.operation)
               : (yield* residentLedger.rounds.policyWork(job.round)).spawn(job.workObservationId, admitted.operation);
           if (job.round !== undefined && workUnitId === undefined) {
-            if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
+            if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "lost");
             if (item.kind === "owner") residentReleaseReuseClaim(item.evaluationKey);
             residentLedger.release(reservation);
             residentReleaseCurrentWork(revision);
@@ -1883,7 +1850,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
           unassignedClaims.delete(item.evaluationKey);
           if (!(yield* residentDispatcher.enqueue(job.partition, unit))) {
-            if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
+            if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "capacity");
             residentReleaseReuseClaim(item.evaluationKey, "capacity");
             residentReleaseUnit(unit);
             yield* residentLedger.runtime.rejectCapacity();
@@ -2001,7 +1968,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentAwaitBackendGate();
       if (!residentJobActive(job) || !residentIsCurrentWork(job.revision, job.prepared)) {
         denyReady();
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "stale");
+        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "stale");
         residentSettleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
         residentReleaseReuseClaim(job.evaluationKey);
@@ -2166,7 +2133,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }),
         signal);
       if (result?.status === "notAuthorized") {
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit,
+        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit,
           result.reason === "credential" ? "credential" : "lost");
         residentSettleJoined(job.evaluationKey, "unavailable",
           result.reason === "credential" ? "credential" : "lost");
@@ -2236,8 +2203,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
           if (job.ticketUnit !== undefined) {
             if (disposition === "settleClear") {
-              unitClear(job.ticketUnit, job.revision);
-            } else unitUnavailable(job.ticketUnit, "stale");
+              yield* residentLedger.ticketUnits.clear(job.ticketUnit, job.revision);
+            } else yield* residentLedger.ticketUnits.fail(job.ticketUnit, "stale");
           }
           residentSettleJoined(job.evaluationKey,
             disposition === "settleClear" ? "clear" : "unavailable",
@@ -2270,17 +2237,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         observeRequest("settled", issuedRequest, observed ?? "neverSent");
       }
       if (failure === "failureBackend") {
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
+        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "backend");
         residentSettleJoined(job.evaluationKey, "unavailable", "backend");
         residentRecordOperationalFailure(job.observation, "backend");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureCredential") {
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "credential");
+        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "credential");
         residentSettleJoined(job.evaluationKey, "unavailable", "credential");
         residentRecordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureLost") {
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
+        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "lost");
         residentSettleJoined(job.evaluationKey, "unavailable", "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure !== "failureNone") {
@@ -2290,7 +2257,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       // Observe every failed exit, including interruption, before releasing the
       // native job. Typed adapter failures have a truthful unavailable outcome;
       // invariant defects and scope interruption remain visible in the fiber.
-      Effect.onError(() => Effect.sync(() => {
+      Effect.onError(() => Effect.gen(function* () {
         if (!readyReported && residentLedger.canonicalProjection().work.some((entry) =>
           entry.operation === job.canonicalOperationId && entry.kind === "reviewing")) {
           denyReady();
@@ -2304,7 +2271,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           requestSettled = true;
           observeRequest("settled", issuedRequest, observed);
         }
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
+        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "backend");
         residentSettleJoined(job.evaluationKey, "unavailable", "backend");
         if (runtimeConfiguration.debug) console.error("resident evaluation unavailable");
         if (residentLedger.runtime.snapshot().lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
@@ -2616,7 +2583,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if ((request.operation === "acknowledge" || request.operation === "finalize") &&
           !residentComposedDelivery.hasToken(request.token)) return residentResponse({ status: "empty" });
       if (request.operation === "acknowledge") return residentResponse(server.acknowledge(request.token));
-      if (request.operation === "finalize") return residentResponse(server.finalize(request.token));
+      if (request.operation === "finalize") return residentResponse(yield* server.finalize(request.token));
       if (request.operation === "stats") return residentResponse(yield* server.operations.stats());
       if (request.operation === "cleanup") {
         const status = yield* cleanupEffect();

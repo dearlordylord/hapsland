@@ -21,13 +21,13 @@ it.effect("bounds connection leases and fences foreign and duplicate release", (
 it.effect("publishes canonical cleanup, ticket eviction and retirement together", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
-  const unit = owner.ticketUnits.add(ticket);
+  const unit = (yield* owner.ticketUnits.add(ticket));
   const outcome = yield* owner.runtime.cleanup(() => 10);
   expect(outcome).toBe("cleaned");
   expect(owner.runtime.snapshot().lifecycle).toBe("retiring");
   expect(owner.canonicalProjection().dispatch.closed).toBe(true);
   expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBeUndefined();
-  expect(unit.stage()).toBeUndefined();
+  expect((yield* owner.ticketUnits.stage(unit))).toBeUndefined();
   expect((yield* owner.runtime.scheduleRetirement())).toBe(true);
   expect((yield* owner.runtime.scheduleRetirement())).toBe(false);
   expect((yield* owner.runtime.cleanup(() => 10))).toBe("busy");
@@ -82,7 +82,7 @@ it.effect("two connected clients keep cleanup busy until one physically closes",
 it.effect("rolls back staged ticket eviction and retirement if native validation fails", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
-  const unit = owner.ticketUnits.add(ticket);
+  const unit = (yield* owner.ticketUnits.add(ticket));
   // Seed a mismatched canonical admission to exercise failure after the first
   // eviction has staged; normal ticket admission validates this invariant.
   owner.transition({ kind: "ticketOpen", id: ticket.generation + 1 });
@@ -91,7 +91,7 @@ it.effect("rolls back staged ticket eviction and retirement if native validation
   expect(outcome._tag).toBe("Failure");
   expect(owner.canonicalProjection()).toEqual(before);
   expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBe(ticket);
-  expect(unit.stage()?.stage).toBe("pending");
+  expect((yield* owner.ticketUnits.stage(unit))?.stage).toBe("pending");
   expect(owner.runtime.snapshot().lifecycle).toBe("active");
 }));
 

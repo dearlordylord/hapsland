@@ -129,7 +129,10 @@
     "Round mutation fixtures use Effect exits to verify invariant defects and transaction rollback; sixteen concurrent binders/replacers/retirers preserve one capability, all discarded counts and single retirement.",
     "Round get/entries/activity, current immutable snapshot and canonical work view now return named Effects read through Ref.get; no unsafe reads remain in the round service surface.",
     "Removed dynamic work/discarded/policyWork getters from RoundWork capabilities. Cohort, activity and discard records are immutable explicit snapshots; workView remains pure and stale/copied round capabilities yield no live work.",
-    "Admission, source/evaluation progression, cutoff, collection/finish and disposal now compose round reads in their Effect fibers; cached-work cleanup finalizer composes the policy view as an Effect."
+    "Admission, source/evaluation progression, cutoff, collection/finish and disposal now compose round reads in their Effect fibers; cached-work cleanup finalizer composes the policy view as an Effect.",
+    "Ticket-unit identity capabilities expose Effect reads, atomic transitions and lifecycle updates; metadata snapshots remain immutable and copied capabilities cannot access live state",
+    "Delivery finalization and revision supersession compose ticket-unit Effects; batch advice-delivery retirement commits atomically",
+    "Linux contract probe uses scoped runtime acquisition and current accepted contracts; deterministic preparation holds verify queued and running deadline cleanup for both fixture hosts"
   ],
   "verification": [
     {
@@ -1675,12 +1678,34 @@
       "comparableBudgetsMet": true,
       "allNumericFormulasPass": false,
       "allComparativeBudgetsVerified": false
+    },
+    {
+      "stage": "ticket-unit-effects",
+      "testsPassed": 147,
+      "testFiles": 8,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecks": true,
+      "originalBenchmark": "benchmark-ticket-unit-effects-comparison.json",
+      "physicalBenchmark": "physical-retirement-ticket-unit-effects-comparison.json",
+      "physicalIterations": 8,
+      "physicalInvariantsPassed": true,
+      "allNumericFormulasPass": true,
+      "allComparativeBudgetsVerified": false
+    },
+    {
+      "stage": "linux-current-contract-scoped-queue",
+      "evidence": "round-contract-ticket-unit-effects-scoped-queue.json",
+      "exitCode": 0,
+      "casesPassed": 18,
+      "standaloneStrictTypecheck": true,
+      "limitations": "Fixture runtime events and controlled DecisionModel; no native agent or live Jev. Earlier failing probe reports retained. Bun launch failed native GLIBCXX compatibility; Node execution passed."
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Replace remaining synchronous domain commit/read bridges with service operations; round service now composes all mutations and reads as Effects, with immutable explicit native snapshots",
+    "Replace remaining synchronous domain commit/read bridges with Effect service operations; round and ticket-unit surfaces are migrated, revision operations remain next",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",

@@ -5,7 +5,7 @@ import { initialRoundRecords, draftRoundRecords, roundRecordOperations, type Rou
 import { workView } from "./bend-work.ts";
 import { initialJoinedReviews, draftJoinedReviews, joinedReviewOperations, type JoinedReviewsState, type JoinedReviews, type JoinedReviewOutcome } from "./joined-reviews.ts";
 import { initialTicketRecords, draftTicketRecords, ticketRecordOperations, type TicketRecordsState, type TicketRecords } from "./ticket-records.ts";
-import { initialTicketUnits, draftTicketUnits, ticketUnitOperations, ticketUnitView, emptyTicketUnitCurrent, type TicketUnitsState, type TicketUnit, type TicketUnits } from "./ticket-units.ts";
+import { initialTicketUnits, draftTicketUnits, ticketUnitOperations, emptyTicketUnitCurrent, type TicketUnitsState, type TicketUnit, type TicketUnits } from "./ticket-units.ts";
 import { initialRevision, draftRevision, revisionOperations, type RevisionState, type RevisionOperations, type WorkRevision } from "./revision.ts";
 import { initialDispatchRegistry, type DispatchRegistry, type DispatchState } from "./dispatch.ts";
 import { initialDelivery, draftDelivery, deliveryOperations, deliveryView, assertDeliveryState, type DeliveryState, type ComposedDelivery, type RepeatEditDiagnostic } from "./composed-delivery.ts";
@@ -198,35 +198,32 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
   const commit = <A>(operation: (draft: CapacityDraft) => A): A =>
     commitAll((draft, records) => [operation(draft), records]);
   const capacity = capacityOperations(commit, read, residentLifetime);
-  const unitCommit = <A>(operation: (operations: ReturnType<typeof ticketUnitOperations>, tickets: TicketRecordsState) => A): A =>
-    commitAll((draft, records) => {
+  const unitCommit = <A>(operation: (operations: ReturnType<typeof ticketUnitOperations>, tickets: TicketRecordsState) => A): Effect.Effect<A> =>
+    commitAllEffect((draft, records) => {
       const ticketUnits = draftTicketUnits(records.ticketUnits);
       const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
       const value = operation(ticketUnitOperations(ticketUnits, owner), records.tickets);
       return [value, { ...records, ticketUnits }];
     });
   const ticketUnits: TicketUnits = {
-    add: (record) => unitCommit((operations, tickets) => {
+    add: Effect.fn("ResidentState.addTicketUnit")((record) => unitCommit((operations, tickets) => {
       if (tickets.entries.get(record.ticket.nonce) !== record) {
         throw new Error("native ticket unit admission lost its ticket capability");
       }
-      return operations.add(record.generation, (id, ticketId) => {
-        const capability: TicketUnit = Object.freeze<TicketUnit>({
-          id, ticketId,
-          get current() {
-            const entry = Ref.getUnsafe(state).records.ticketUnits.entries.get(id);
-            return entry?.capability === capability ? entry.current : emptyTicketUnitCurrent;
-          },
-          stage: () => commitAll((draft, records) => {
-            const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
-            return [ticketUnitView(records.ticketUnits, owner).stage(capability), records];
-          }),
-          step: (event, reason, current) => unitCommit((operations) => operations.step(capability, event, reason, current)),
-        });
-        return capability;
-      });
-    }),
-    values: () => [...Ref.getUnsafe(state).records.ticketUnits.entries.values()].map((entry) => entry.capability),
+      return operations.add(record.generation, (id, ticketId) => Object.freeze({ id, ticketId }));
+    })),
+    values: Effect.fn("ResidentState.ticketUnitValues")(() => Ref.get(state).pipe(Effect.map((state) =>
+      [...state.records.ticketUnits.entries.values()].map((entry) => entry.capability)))),
+    current: Effect.fn("ResidentState.ticketUnitCurrent")((unit) => Ref.get(state).pipe(Effect.map((state) => {
+      const entry = state.records.ticketUnits.entries.get(unit.id);
+      return entry?.capability === unit ? entry.current : emptyTicketUnitCurrent;
+    }))),
+    stage: Effect.fn("ResidentState.ticketUnitStage")((unit) => unitCommit((operations) => operations.stage(unit))),
+    step: Effect.fn("ResidentState.stepTicketUnit")((...args) => unitCommit((operations) => operations.step(...args))),
+    fail: Effect.fn("ResidentState.failTicketUnit")((...args) => unitCommit((operations) => operations.fail(...args))),
+    revise: Effect.fn("ResidentState.reviseTicketUnit")((...args) => unitCommit((operations) => operations.revise(...args))),
+    clear: Effect.fn("ResidentState.clearTicketUnit")((...args) => unitCommit((operations) => operations.clear(...args))),
+    markAdviceDelivered: Effect.fn("ResidentState.markAdviceDelivered")((...args) => unitCommit((operations) => operations.markAdviceDelivered(...args))),
   };
   const ticketCommit = <A>(operation: (operations: ReturnType<typeof ticketRecordOperations>) => A): Effect.Effect<A> =>
     commitAllEffect((draft, records) => {

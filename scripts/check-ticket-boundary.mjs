@@ -32,6 +32,15 @@ for (const owner of ["#ticketUnits", "#nextTicketUnitId", "unit.current =", "#ti
 }
 
 const state = readFileSync(resolve(root, "src/resident/capacity.ts"), "utf8");
+const unitCommit = state.slice(state.indexOf("const unitCommit ="), state.indexOf("const ticketCommit ="));
+if (!unitCommit.includes("commitAllEffect(") || /\bcommitAll\(/u.test(unitCommit) ||
+    unitCommit.includes("Ref.getUnsafe") || unitCommit.includes("get current()")) {
+  throw new Error("ticket-unit operations must compose atomic Effects without capability state getters");
+}
+if (!server.includes("yield* residentLedger.ticketUnits.markAdviceDelivered") ||
+    !server.includes("yield* server.finalize")) {
+  throw new Error("delivery finalization must compose ticket-unit Effects in the owning fiber");
+}
 const ticketCommit = state.slice(state.indexOf("const ticketCommit ="), state.indexOf("const roundCommit ="));
 if (!ticketCommit.includes("commitAllEffect(") || /\bcommitAll\(/u.test(ticketCommit) ||
     ticketCommit.includes("Ref.getUnsafe")) {

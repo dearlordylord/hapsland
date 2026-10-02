@@ -84,8 +84,8 @@ it.effect("rolls back retention and lease updates when native payload snapshotti
 it.effect("retires advice, ticket bindings and leases while retaining active capture workspace", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
-  const unit = owner.ticketUnits.add(ticket);
-  unit.step("findingResult", "lost", { revision: initial.revision, adviceId: initial.id });
+  const unit = (yield* owner.ticketUnits.add(ticket));
+  (yield* owner.ticketUnits.step(unit, "findingResult", "lost", { revision: initial.revision, adviceId: initial.id }));
   const advice = owner.advice.insert(initial);
   owner.advice.eligible(advice, false);
   owner.advice.reserveLease(advice, "collector");
@@ -95,8 +95,8 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   expect(owner.advice.remove(advice, "stale", "collector")).toBe(true);
   expect(owner.advice.values()).toEqual([]);
   expect(advice.delivery).toBeUndefined();
-  expect(unit.stage()).toMatchObject({ stage: "unavailable", reason: "stale" });
-  expect(unit.current).toEqual({});
+  expect((yield* owner.ticketUnits.stage(unit))).toMatchObject({ stage: "unavailable", reason: "stale" });
+  expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
   expect(owner.snapshot().bytes).toBe(300);
   expect(owner.revision.count()).toBe(1);
@@ -151,22 +151,22 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
 it.effect("publishes the owner result and independent joined subscribers together", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
-  const ownerUnit = owner.ticketUnits.add(ticket);
-  const subscriber = owner.ticketUnits.add(ticket);
+  const ownerUnit = (yield* owner.ticketUnits.add(ticket));
+  const subscriber = (yield* owner.ticketUnits.add(ticket));
   const joined = owner.joinedReviews(() => 1);
   joined.append({ admission: initial.admissionId, evaluationKey: initial.evaluationKey,
     observation, activityPath: undefined, ticketUnit: subscriber, revision: initial.revision });
   const advice = owner.advice.insert(initial);
-  expect(ownerUnit.stage()?.stage).toBe("pending");
-  expect(subscriber.stage()?.stage).toBe("pending");
+  expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("pending");
+  expect((yield* owner.ticketUnits.stage(subscriber))?.stage).toBe("pending");
   const outcomes = owner.advice.publish(advice, ownerUnit);
   expect(outcomes.map(({ stage }) => stage)).toEqual(["findings"]);
-  expect(ownerUnit.stage()?.stage).toBe("finding");
-  expect(subscriber.stage()?.stage).toBe("finding");
-  expect(ownerUnit.current.adviceId).toBe(advice.id);
-  expect(subscriber.current.adviceId).toBe(advice.id);
+  expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("finding");
+  expect((yield* owner.ticketUnits.stage(subscriber))?.stage).toBe("finding");
+  expect((yield* owner.ticketUnits.current(ownerUnit)).adviceId).toBe(advice.id);
+  expect((yield* owner.ticketUnits.current(subscriber)).adviceId).toBe(advice.id);
   expect(joined.hasAdmission(initial.admissionId)).toBe(false);
   owner.advice.remove(advice, "stale");
   expect(owner.advice.publish(advice, ownerUnit)).toEqual([]);
-  expect(ownerUnit.stage()?.stage).toBe("unavailable");
+  expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("unavailable");
 }));
