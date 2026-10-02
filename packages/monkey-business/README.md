@@ -259,3 +259,36 @@ start from original configuration and ordered controls, including endpoint-only
 controls, captured PRE9/10/11 deadline cases, finite draining after suspension,
 wide clocks, equal-time advicees and raw fractional/subnormal outcome weights.
 Native claims remain limited to the fixtures actually exercised.
+
+
+Live `{kind:"jevRequest",target:{partition,lifetime,round,operation,request},outcome}`
+controls intervene on one actual issued request. The shared Bend owner checks the
+full identity and its recorded lifecycle: a started request cannot become never
+sent, and an interrupted request cannot settle as a different outcome. Applied
+interventions replace only that request's pending generated callbacks and keep its
+captured settlement time. Refused interventions leave the original callbacks
+intact. `run.interventions` and `run.observe().interventions` report the ordered
+application or refusal; ordinary version-one controls reproduce the reports in
+replay. `{kind:"credentials",action:"unavailable"|"restore"|"rotate"}` changes
+availability or authority at the same boundary. Bend captures credential generation
+once from actual accepted request issuance; temporary restoration preserves that
+generation, and rotation fences old findings. Explicit raw review fixtures without
+backend issuance retain their stated initial-generation assumption.
+
+`graphLimits` in initial configuration and `{kind:"graphLimits",limits}` expose
+only the seven production-configurable graph settings, using production validation.
+Each generated unit captures its limits alongside its tree facts; later controls
+cannot rewrite that unit's traversal. Bend `TreeFacts` generates source-free trees,
+and `PreparationScenario` responds to actual ImportGraph commands. Root and closure
+rule gates are evidence observations; they do not discard explicitly supplied
+`unitBytes`. The dashboard exposes these settings, omission/deadline/work profiles,
+active request targets, credential interventions and their recorded results.
+
+Opaque advicee registration and callback/command attribution now use the shared
+Bend registry and retained production identities. `Observation.commandScopes`
+aligns with its commands; an unattributed resident-wide command has no advicee
+scope. Display projection preserves global capacity and the fixed eight preparation
+and eight Jev execution slots. Internally duplicated retirement batches coalesce
+while their original effect remains pending; external facts still reach Canonical
+and refusals remain observable. Native/public directed fixtures and finite recovery
+experiments establish their stated synthetic paths, not native runtime support.
