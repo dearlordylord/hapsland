@@ -13,7 +13,6 @@ export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection:
     h.div([h.Class("shared-resident-heading")], [h.strong([], ["ONE RESIDENT"]),
       h.span([], [`${agents.length} agent${agents.length === 1 ? "" : "s"} · ${sequence < 0 ? "initial state" : `event ${sequence}`} · ${now} ms`])]),
     h.div([h.Class("shared-secondary-resources")], [
-      resourceMeter(h, "Edit permits · shared by all agents", projection.admissions.reduce((n,a) => n + a.permits.length, 0), metadata?.permits?.residentLimit),
       resourceMeter(h, "Background collectors · shared by all agents", projection.collection.claims.length, metadata?.collectors?.capacity),
     ]),
   ]);

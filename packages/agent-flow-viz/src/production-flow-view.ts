@@ -340,7 +340,7 @@ export const productionFlowView = <Message>(
             : { fill: "#e9f1ff", stroke: "#547dc0" };
           return h.g([h.Class(`topology-node ${changedStages.includes(node.id) ? "active" : ""}`), ...(inspect ? [h.Role("button"), h.Tabindex(0), h.AriaLabel(`Inspect ${node.title}`), h.OnClick(inspect(node.id)),
               h.OnKeyDownSelfPreventDefault(key => key === "Enter" || key === " " ? Option.some(inspect(node.id)) : Option.none())] : [])], [
-            h.title([], [`${node.title}: ${node.detail}`]),
+            h.title([], [`${node.title}: ${node.detail}${node.id === "admission" ? [storedResultTransition, issuedPermit?.kind === "permitIssued" ? `Permit #${issuedPermit.token} issued` : undefined, editAccepted ? `Permit #${editAccepted.token} used` : undefined].filter(Boolean).map(fact => ` · NOW: ${fact}`).join("") : ""}`]),
             h.rect([h.X(String(point.x)), h.Y(String(point.y)), h.Width(String(NODE_WIDTH)),
               h.Height(String(node.id === "preparation" ? 270 : NODE_HEIGHT)), h.Rx("12"), h.Fill(palette.fill),
               h.Stroke(palette.stroke), h.StrokeWidth(changedStages.includes(node.id) ? "4" : "2")], []),
@@ -370,27 +370,21 @@ export const productionFlowView = <Message>(
               const scoped = scopedPartition !== undefined;
               const rows = [{ label: "Items", used: usage?.items ?? 0, max: scoped ? resident.limits.partitionItems : undefined },
                 { label: "Bytes", used: usage?.bytes ?? 0, max: scoped ? resident.limits.partitionBytes : undefined },
-                { label: "Edit permits", used: projection.admissions.filter(a => a.partition === scopedPartition).reduce((n,a) => n + a.permits.length, 0), max: adviceePermitLimit(metadata, scopedPartition) }];
-              return rows.flatMap((row, index) => [
-                h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 65 + index * 13)), h.FontSize("9"), h.Fill("#435670")], [`${row.label} ${row.max === undefined ? `${row.used} · limit not recorded` : `${row.used}/${row.max}`}`]),
-                ...(row.max === undefined ? [] : [h.rect([h.X(String(point.x + 154)), h.Y(String(point.y + 59 + index * 13)), h.Width("57"), h.Height("5"), h.Fill("#dce5f0")], []), h.rect([h.X(String(point.x + 154)), h.Y(String(point.y + 59 + index * 13)), h.Width(String(Math.min(57, row.used / row.max * 57))), h.Height("5"), h.Fill("#427bc4")], [])]),
-              ]);
+                { label: "Permits · agent", scope: "this agent", kind: "local", used: resident.admissions.filter(a => a.partition === scopedPartition).reduce((n,a) => n + a.permits.length, 0), max: adviceePermitLimit(metadata, scopedPartition) },
+                { label: "Permits · shared", scope: "all agents", kind: "global", used: resident.admissions.reduce((n,a) => n + a.permits.length, 0), max: metadata?.permits?.residentLimit }];
+              return rows.map((row, index) => h.g([
+                ...(row.kind ? [h.Class(`admission-permit-${row.kind}`), h.Role("img"), h.AriaLabel(`Edit permits, ${row.scope}: ${row.max === undefined ? `${row.used} used; limit not recorded` : `${row.used} of ${row.max}`}`)] : []),
+              ], [
+                ...(row.kind ? [h.title([], [`Edit permits, ${row.scope}: ${row.max === undefined ? `${row.used} used; limit not recorded` : `${row.used} of ${row.max}`}`])] : []),
+                h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 65 + index * 13)), h.FontSize("9"), h.Fill("#435670")], [`${row.label} ${row.max === undefined ? `${row.used} · ${row.kind ? "max unknown" : "limit not recorded"}` : `${row.used}/${row.max}`}`]),
+                ...(row.max === undefined ? [] : [h.rect([h.X(String(point.x + 154)), h.Y(String(point.y + 59 + index * 13)), h.Width("57"), h.Height("5"), h.Fill("#dce5f0")], []), h.rect([...(row.kind ? [h.Class("admission-permit-fill")] : []), h.X(String(point.x + 154)), h.Y(String(point.y + 59 + index * 13)), h.Width(String(Math.min(57, row.max > 0 ? row.used / row.max * 57 : 0))), h.Height("5"), h.Fill(row.kind === "global" ? "#168f83" : "#427bc4")], [])]),
+              ]));
             })() : []),
             ...(node.id === "preparation" ? [preparationMini(h, point.x, point.y, preparation, numbers)] : []),
             ...(node.id === "preparation" && sourceLabel !== undefined ? [
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 264)), h.FontSize("10"),
                 h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
                 [`NOW · ${sourceLabel} completed`]),
-            ] : []),
-            ...(node.id === "admission" && storedResultTransition !== undefined ? [
-              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("8"),
-                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
-                [`NOW · ${storedResultTransition}`]),
-            ] : []),
-            ...(node.id === "admission" && issuedPermit?.kind === "permitIssued" ? [
-              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("9"),
-                h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
-                [`NOW · Permit #${issuedPermit.token} issued`]),
             ] : []),
             ...(node.id === "sourcePending" && admittedSource?.kind === "observationAdmitted" && last?.event.kind === "admitObservation" ? [
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 108)), h.FontSize("9"),
@@ -423,11 +417,7 @@ export const productionFlowView = <Message>(
               ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("10"),
                 h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
                 [`NOW · edit #${editAccepted.tool} accepted`])]
-              : node.id === "admission"
-                ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + node.facets.length * 13)), h.FontSize("10"),
-                  h.FontWeight("700"), h.Class("topology-event-fact"), h.Fill("#a24625")],
-                  [`NOW · permit #${editAccepted.token} used`])]
-                : []),
+              : []),
           ]);
         }),
         ...(infrastructure ? [residentCapacityInset(h, resident, agents, inspect)] : []),

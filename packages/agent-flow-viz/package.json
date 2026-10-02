@@ -17,7 +17,8 @@
     "test:execution-pools-browser": "node scripts/check-execution-pools-browser.mjs",
     "test:site": "node --experimental-strip-types scripts/check-site-scenarios.mjs && node scripts/check-site-browser.mjs",
     "test:camera-browser": "node scripts/check-camera-browser.mjs",
-    "test:resident-capacity-browser": "node scripts/check-resident-capacity-browser.mjs"
+    "test:resident-capacity-browser": "node scripts/check-resident-capacity-browser.mjs",
+    "test:edit-permits-browser": "node scripts/check-edit-permits-browser.mjs"
   },
   "dependencies": {
     "@effect/platform-browser": "4.0.0-rc.116",

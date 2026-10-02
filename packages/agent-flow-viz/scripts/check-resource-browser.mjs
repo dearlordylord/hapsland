@@ -15,9 +15,9 @@ try {
   await page.getByLabel('Agent count',{exact:true}).fill('3');
   await click('Start resident');
   const resident=page.locator('.shared-resident');
-  assert.match(await resident.innerText(),/Resident ledger items\s+0 \/ 32/);
+  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), '0 / 32');
   assert.match(await page.locator('.stage-preparation-total').first().textContent(),/0 \/ 8/);
-  assert.match(await resident.innerText(),/Edit permits · shared by all agents\s+0 \/ 64/);
+  assert.equal(await page.locator('.admission-permit-global').first().getAttribute('aria-label'), 'Edit permits, all agents: 0 of 64');
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-initial-1512.png'});
   await click('Focus selected agent');
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-current-flat-1512.png'});
@@ -25,7 +25,7 @@ try {
   await page.locator('#agent-ensemble').getByRole('button',{name:'Inspect Admission & capacity',exact:true}).click();await settle();
   assert.match(await page.locator('.stage-resource-details').innerText(),/Items\s+0 \/ 16/);
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+0 \/ 16/);
-  assert.match(await resident.innerText(),/Edit permits · shared by all agents\s+1 \/ 64/);
+  assert.equal(await page.locator('.admission-permit-global').first().getAttribute('aria-label'), 'Edit permits, all agents: 1 of 64');
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-admission-1512.png'});
   await page.locator('#agent-ensemble').getByRole('button',{name:'Inspect Host output',exact:true}).click();await settle();
   // Initial state has no event; take one checked step to expose event inspector.
@@ -66,7 +66,8 @@ try {
   await load(retained);
   const retainedText = await resident.innerText();
   assert.doesNotMatch(retainedText,/Cached evaluations|Retained tickets|Resident resource details|Demo limits/);
-  assert.equal(await resident.locator('.shared-capacity-total').innerText(), `${retained.projection.global.items} / ${retained.projection.limits.globalItems} items · ${retained.projection.global.bytes} / ${retained.projection.limits.globalBytes} bytes`);
+  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), `${retained.projection.global.items} / ${retained.projection.limits.globalItems}`);
+  assert.equal(await page.locator('.resident-capacity-bytes .resident-capacity-total').first().textContent(), `${retained.projection.global.bytes} / ${retained.projection.limits.globalBytes}`);
   assert.deepEqual(restoreReplay(retained.exportReplay()).projection,retained.projection);
   assert.doesNotMatch(retainedText,/Operational notice keys|Notice key|Notice ledger storage|Inspect notice collection/);
   assert.ok(retained.projection.global.bytes >= 128); // Actual diagnostic storage remains in the shared ledger.
@@ -88,7 +89,7 @@ try {
   ownership.advance({untilTime:25,maxEvents:1000});
   assert.equal(ownership.projection.delivery.slots.length,1);
   await load(ownership);
-  const partitions = ownership.projection.partitions.map(p=>p.partition);
+  const partitions = ownership.projection.partitions.map(p=>p.partition).sort((a,b)=>a-b);
   const selectPartition = async partition => { await click(`Select agent ${partitions.indexOf(partition)+1}`); };
   await selectPartition(1);await focus('delivery');
   await page.getByLabel('Resource delivery group',{exact:true}).selectOption('1');await settle();
@@ -134,7 +135,8 @@ try {
   retained.schedule({at:180021,kind:'canonical',event:{kind:'cacheClear'}});retained.advance({untilTime:180021,maxEvents:1000});
   assert.equal(retained.projection.notices.length,0);assert.equal(retained.projection.reuse.cache.length,0);assert.equal(retained.projection.global.bytes,0);
   await load(retained);
-  assert.equal(await resident.locator(".shared-capacity-total").innerText(), `0 / ${retained.projection.limits.globalItems} items · 0 / ${retained.projection.limits.globalBytes} bytes`);
+  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), `0 / ${retained.projection.limits.globalItems}`);
+  assert.equal(await page.locator('.resident-capacity-bytes .resident-capacity-total').first().textContent(), `0 / ${retained.projection.limits.globalBytes}`);
   assert.doesNotMatch(await resident.innerText(),/Operational notice keys|Notice key|Notice ledger storage/);
   await resident.screenshot({path:'/tmp/hapsland-capacity-retention-released-1512.png'});
 
@@ -142,30 +144,30 @@ try {
   const caps=createRun({inputs:[0,1,2].map(at=>({at,kind:'canonical',event:{kind:'reserveCapacity',partition:1,bytes:5,purpose:'reviewUnit'}})),limits:{globalItems:4,globalBytes:100,partitionItems:2,partitionBytes:50}});caps.advance({untilTime:2,maxEvents:100});
   assert.ok(caps.observations.some(f=>f.commands.some(c=>c.kind==='capacityRefused'&&c.reason==='partitionItems')));
   await load(caps);await focus('admission');
-  assert.match(await resident.innerText(),/Resident ledger items\s+2 \/ 4/);
+  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), '2 / 4');
   assert.match(await page.locator('.stage-resource-details').innerText(),/Items\s+2 \/ 2/);
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-partition-full-1512.png'});
   for(const at of [3,4]) caps.schedule({at,kind:'canonical',event:{kind:'reserveCapacity',partition:2,bytes:5,purpose:'reviewUnit'}});
   caps.schedule({at:5,kind:'canonical',event:{kind:'reserveCapacity',partition:3,bytes:5,purpose:'reviewUnit'}});caps.advance({untilTime:5,maxEvents:100});
   assert.ok(caps.observations.some(f=>f.commands.some(c=>c.kind==='capacityRefused'&&c.reason==='globalItems')));
   await load(caps);
-  assert.match(await resident.innerText(),/Resident ledger items\s+4 \/ 4/);
+  assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), '4 / 4');
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-global-full-1512.png'});
 
   const issue = (partition, at, limit) => ({at,kind:'canonical',event:{kind:'issuePermit',partition,lifetime:1,tool:partition*100,started:at,deadline:at+30,now:at,minimumStarted:0,facts:{clockValid:true,hookWindow:30,startedUpper:at,nowLower:at,adviceePermitLimit:limit,residentPermitLimit:8}}});
   const scopedPermits=createRun({inputs:[{at:0,kind:'canonical',event:{kind:'reserveCapacity',partition:1,bytes:5,purpose:'observationDispatch'}},{at:0,kind:'canonical',event:{kind:'reserveCapacity',partition:2,bytes:5,purpose:'observationDispatch'}},issue(1,1,2),issue(2,2,3)]});scopedPermits.advance({untilTime:2,maxEvents:100});
   await load(scopedPermits);await focus('admission');
-  const permitPartitions=scopedPermits.projection.partitions.map(p=>p.partition);
+  const permitPartitions=scopedPermits.projection.partitions.map(p=>p.partition).sort((a,b)=>a-b);
   await click(`Select agent ${permitPartitions.indexOf(1)+1}`);
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);
-  assert.match(await page.locator('#agent-ensemble .topology-node').filter({hasText:'Admission & capacity'}).textContent(),/Edit permits 1\/2/);
+  assert.match(await page.locator('#agent-ensemble .topology-node').filter({hasText:'Admission & capacity'}).textContent(),/Permits · agent 1\/2/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-permits-partition1-1512.png'});
   await click(`Select agent ${permitPartitions.indexOf(2)+1}`);
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 3/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-permits-partition2-1512.png'});
   await click('Previous event');
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+0 used · limit not recorded/);
-  assert.match(await page.locator('#agent-ensemble .topology-node').filter({hasText:'Admission & capacity'}).textContent(),/Edit permits 0 · limit not recorded/);
+  assert.match(await page.locator('#agent-ensemble .topology-node').filter({hasText:'Admission & capacity'}).textContent(),/Permits · agent 0 · max unknown/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-permits-before-partition2-1512.png'});
   await click(`Select agent ${permitPartitions.indexOf(1)+1}`);
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);

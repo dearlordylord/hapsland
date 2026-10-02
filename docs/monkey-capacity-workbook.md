@@ -19,6 +19,7 @@
 
 - Independent agent generators feed **one simulated resident**: one checked Bend state, capacity ledger, preparation pool, Jev permit pool, clock, history and replay.
 - **Every UX or visual change must receive advice from Astra medium before implementation and review from Astra medium after implementation.** This is the user's instruction, including future work coordinated through this workbook.
+- When the owner says to continue, implement the next scoped visual with Astra advice/review and show its concrete result; do not stop at a proposal when the work is already authorized. Review resources one at a time.
 - Record a concrete before/after case for each visual review: the affected square/panel, observable change, and specific view or screenshot. Separate UX review from empirical validation and design acceptance.
 - The tables below preserve the **2026-10-01 pre-implementation advisory inventory**. Record later decisions and outcomes separately; do not silently rewrite recommendations as accepted requirements or completed evidence.
 - This workbook authorizes no live Jev calls and makes no release/platform support claim.
@@ -1023,3 +1024,51 @@ effective limits. Remove only the external edit-permit duplicate. Keep this
 prospective admission resource separate from Work reservations and Execution
 limits; background collectors remain above for their own next review. This is
 a design proposal with no new visual diff, not an accepted placement.
+
+## Authorized edit-permit placement preview (2026-10-02)
+
+The owner explicitly requested implementing the next edit-permit placement and
+showing the actual visual result for inspection. The prior no-relocation note was
+a declaration before this authorization, not a present blocker. Scope: place
+selected-agent and complete-resident permit counts/recorded maxima together at
+Admission, remove the upper edit-permit duplicate, and preserve background
+collectors and the accepted data/execution cards. A permit remains prospective
+admission authority, distinct from item/byte reservations and execution slots.
+Astra advises before editing and reviews the rendered result afterward.
+Implementation and review are in progress; final owner design acceptance is
+separate. Unknown or historical limits must remain truthful, with no borrowed
+future maximum or hardcoded demo denominator.
+
+Superseded reviewed PNG captures in `/workspace/hapsland-review/shared-resources-3d/`
+and `/workspace/hapsland-review/visual-update/` were deleted under the owner's
+instruction to remove old snapshots after inspection. Their earlier path records
+are historical and no longer available. Current focus/resource captures and
+the new edit-permit before/after review files are preserved until inspection.
+
+### Edit-permit rendered outcome
+
+Admission now has local and shared permit rows with utilization bars alongside
+its existing item/byte rows. The local numerator is the selected partition's
+pending PRE permits; the shared numerator is the complete resident's permits.
+Both limits use recorded metadata. The upper permit duplicate is removed; the
+upper collector meter and accepted Work reservations/Execution limits cards
+remain. Admission dimensions and flow routes are unchanged. Tiny transient NOW
+annotations were removed from this crowded square; event facts remain in its
+SVG title, decision inspector and normal stage activity.
+
+Same-state before/after fixtures use actual checked PRE registration with local
+2/16 and shared3/64. Additional snapshots cover heterogeneous local1/3 with
+shared2/8, and a historical local maximum not yet recorded: no future maximum
+is borrowed and no unknown-limit fill is invented. TypeScript and the targeted
+permit browser passed. Astra's rendered review passed ordinary3D/focus/narrow,
+heterogeneous and historical-unknown views. The existing resource suite also passed after its fixtures were corrected to
+select agents in the UI's stable ascending partition order, rather than raw
+projection order. The previous missing-round failure selected the wrong agent;
+both continuation-budget checks and group/permit assertions remain. No tests
+were skipped or deleted, and no new native-runtime claim is made. Owner design
+inspection of this edit-permit placement remains next.
+
+Exact review captures are
+`/workspace/hapsland-review/edit-permits/before-ordinary-focus.png`,
+`/workspace/hapsland-review/edit-permits/after-ordinary-focus.png`, and
+`/workspace/hapsland-review/edit-permits/after-ordinary-detail.png`.

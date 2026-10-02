@@ -489,9 +489,13 @@ decision. The multi-agent layer layout is a new visual change; positions within 
 
 ## Capacity inspection in the shared resident
 
-The shared rail has separate resident item and byte bars and resident edit-permit and
-background-collector meters. Admission has partition item/byte/permit indicators;
-scheduling and Jev stages reference their shared pools. Cache retention,
+The Work reservations inset shows shared resident item and byte bars; the
+Execution limits inset shows preparation workers and Jev request permits.
+Admission retains partition item/byte bars and shows two edit-permit rows:
+the selected agent's count/recorded ceiling and all agents' count/resident ceiling.
+The external shared rail now retains only the background-collector meter.
+Admission's transient event facts remain in its SVG title and checked event details
+so the two permit rows stay readable. Cache retention,
 and operational-failure diagnostic notice retention are intentionally omitted
 from the main diagram. Their actual storage charges remain in shared ledger
 totals; backend state and selectable exercises remain available.
@@ -532,6 +536,8 @@ admission, rule eligibility, reuse or output authorization.
 
 Run `npm run test:resource-browser` for resource metadata/selection, optional
 fixtures, encoded candidate display, import detail and narrow-layout checks.
+`node scripts/check-edit-permits-browser.mjs` covers occupied 16/64 permit
+placement, different local ceilings, unknown history, replay and narrow layouts.
 `test:execution-pools-browser` covers both pool rows, ownership, saturation,
 keyboard inspection and replay; `test:ensemble-browser` covers shared pools/history and agent selection;
 `test:simulation-browser` covers the single-agent controls and inspector.

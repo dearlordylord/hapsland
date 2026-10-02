@@ -40,7 +40,8 @@ try {
       }
     }
     assert.equal(await ensemble.locator('.shared-ledger').count(), 0);
-    assert.match(await ensemble.locator('.shared-secondary-resources').innerText(), /Edit permits.*Background collectors/s);
+    assert.match(await ensemble.locator('.shared-secondary-resources').innerText(), /Background collectors/);
+    assert.doesNotMatch(await ensemble.locator('.shared-secondary-resources').innerText(), /Edit permits/);
     assert.equal(await ensemble.locator('.resident-execution-pools').count(), await insets.count());
     for (const layer of await ensemble.locator('.ensemble-layer').all()) {
       const classes = await layer.getAttribute('class');
