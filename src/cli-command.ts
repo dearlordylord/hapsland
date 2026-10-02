@@ -4,7 +4,7 @@ import * as Console from "effect/Console";
 import { CliConfig, CliError, CliOutput, GlobalFlag } from "effect/cli";
 import * as Option from "effect/Option";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import type { ClientCommand } from "./onboarding/client-lifecycle.ts";
+import { clientCommands, type ClientCommand } from "./onboarding/client-lifecycle.ts";
 import type { SetupClient } from "./onboarding/client-selection.ts";
 
 /** Transport classification only: used when help/errors short-circuit declarative handlers. */
@@ -85,7 +85,7 @@ export const parseInvocation = async (args: ReadonlyArray<string>): Promise<Invo
     invocation = { kind: "automation", options: values, client: clientArguments(values) };
   })).pipe(Command.withDescription("Hapsland — Claude Code and Codex review integration"));
   const root = parent.pipe(Command.withSubcommands(
-    (["setup", "update", "doctor", "repair", "reinstall", "uninstall"] as const).map(command => Command.make(command, {
+    clientCommands.map(command => Command.make(command, {
       ...profiles, client: Argument.Literals("client", ["claude", "codex"]).pipe(Argument.optional),
       ...(command === "update" || command === "setup" || command === "repair" || command === "reinstall" ? { target: valueFlag("target") } : {}),
       ...(command === "update" ? { tarball: valueFlag("tarball"), channel: Flag.Literals("channel", ["latest", "next"]).pipe(Flag.atMost(1), Flag.map(values => values[0])), version: valueFlag("version") } : {}),
