@@ -3757,5 +3757,15 @@
     "logSha256": "cb78e31ca245bd067cf12c38fa11dbb2dcfe8323f56ad053c0c53a92c6c4ca67",
     "scope": "Full offline suite/guards/Bend proofs/build plus actual native Linux PTY terminal selection, masked success, SIGTERM and fiber interruption. Source frozen throughout run.",
     "remaining": "Full idiomatic migration unproven: Claude/Codex installation Config/preview/inspection and native adapters, selected/active package dispatch, coordinated external hook deadlines, current package/conformance/live/performance evidence and requirement-by-requirement completion audit still required."
+  },
+  "interactiveCliSourceBoundaryGuard": {
+    "status": "pass",
+    "command": "node scripts/check-configuration-boundary.mjs",
+    "scope": "Reject Promise/manual interval/spawnSync/async regression in CLI, require five named interactive workflow functions, require scoped confirmation without private runtime. Existing terminal guards retained.",
+    "sourceSha256": {
+      "scripts/check-configuration-boundary.mjs": "9ed5c8611e561943158f59cdd7829a865f5781541ad87fa7f8764504e4ed74c1"
+    },
+    "nextImplementationBoundary": "Claude inputs resolve runtime/entrypoint configuration synchronously; preview/inspect/doctor call it and setup plus CLI consume synchronous APIs. Port together with native test boundaries; do not add private runtime/shim. Existing apply must reuse one resolved input under lock and preserve plan revalidation.",
+    "limitations": "Guard is structural regression evidence, not complete idiomatic migration proof. No production source changed this turn. Claude/Codex Config and remaining final gates incomplete."
   }
 }

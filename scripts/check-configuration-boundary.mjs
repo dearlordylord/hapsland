@@ -92,3 +92,18 @@ if (/new Promise|\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(clientSelec
     !clientSelection.includes("Effect.acquireUseRelease(")) {
   throw new Error("interactive client selection must use caller Effect runtime and scoped terminal ownership");
 }
+
+const interactiveCli = read("src/cli.ts");
+if (/new Promise|setInterval\(|spawnSync\(|\basync\b/u.test(interactiveCli)) {
+  throw new Error("CLI workflows must compose Effects and use scoped native adapters");
+}
+for (const workflow of ["pilotSetup", "chooseSetupClients", "updateInteractive", "maintenanceInteractive", "diagnoseClientProcess"]) {
+  if (!new RegExp(`const ${workflow} = Effect\\.fn\\(`, "u").test(interactiveCli)) {
+    throw new Error(`${workflow} must be a named Effect workflow`);
+  }
+}
+const confirmation = read("src/onboarding/confirmation.ts");
+if (/new Promise|\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(confirmation) ||
+    !confirmation.includes("Effect.acquireUseRelease(")) {
+  throw new Error("confirmation must own readline acquisition and closure in caller Effect runtime");
+}
