@@ -13,6 +13,7 @@ import { recordAnalytics, type AnalyticsKind } from "../activity/analytics.ts";
 import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import { recordRoundClosure, type RoundCloseReason } from "../activity/status.ts";
 import { monotonicNow } from "./hook-clock.ts";
+import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
 import * as Option from "effect/Option";
 import * as ConfigProvider from "effect/ConfigProvider";
@@ -2126,11 +2127,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             });
         const budgetAuthority = job.dispatch.demoBudgetPath == null
           ? Effect.void
-          : Effect.try(() => claimDemoBudget(
-              job.dispatch.demoBudgetPath ?? "",
-              job.observation.root,
-              encodedPreparedProviderInputBytes(job.prepared),
-            ));
+          : Clock.currentTimeMillis.pipe(
+              Effect.flatMap((now) => Effect.try(() => claimDemoBudget(
+                job.dispatch.demoBudgetPath ?? "",
+                job.observation.root,
+                encodedPreparedProviderInputBytes(job.prepared),
+                now,
+              ))),
+            );
         const beforeDispatch = credentialAuthority.pipe(
           Effect.andThen(budgetAuthority),
           Effect.andThen(Effect.gen(function* () {

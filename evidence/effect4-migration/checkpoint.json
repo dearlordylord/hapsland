@@ -3074,5 +3074,24 @@
       "scripts/check-configuration-boundary.mjs": "964876da159f384ad61be63f9c67b2f689faf648404cb4ead7d8d96410e537fe"
     },
     "limitations": "All executions use synthetic native helpers, fixture git/validator and synthetic budget reservations; no live Jev requests or real Codex-model demo ran. This does not establish actual host/platform support or universally successful cleanup under native filesystem failure. Native filesystem adapters wait for issued operations rather than claiming physical cancellation. Remaining installation preview/inspection Config, native epoch spending-gate audit, interactive/client-readiness work and final full suite/conformance/live/performance/completion gates remain required."
+  },
+  "demoDispatchClockPort": {
+    "status": "production caller now supplies Effect Clock epoch time",
+    "scope": "Resident before-dispatch demo budget reservation; native atomic file claim and v1 budget contract unchanged",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/demo-budget.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 3
+      }
+    ],
+    "sourceSha256": {
+      "src/resident/server.ts": "533d8ec117457d7161e5cb4da0d80b5df098f39d346c9bfb89ff49d20046f663"
+    },
+    "limitations": "Existing tests prove native expiration, reservation limits and contention behavior. No dedicated caller-clock integration test or full resident suite ran for this change; full migration remains incomplete."
   }
 }
