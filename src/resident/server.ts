@@ -2370,16 +2370,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }).pipe(Effect.mapError(() => new ResidentAdapterError({ operation: "configure backend gate" })));
   });
 
-  const residentRevalidate = Effect.fn("ResidentRuntime.revalidate")((advice: Advice, dispatch: ResidentDispatchContext) => Effect.suspend(() => {
+  const residentRevalidate = Effect.fn("ResidentRuntime.revalidate")((advice: Advice, dispatch: ResidentDispatchContext) => Effect.gen(function* () {
     const server = runtime;
     const candidate = advice.observation.candidates[0];
-    if (candidate === undefined) return Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] });
-    const capture = residentLedger.adviceCaptures.start(
+    if (candidate === undefined) return { status: "unavailable" as const, findings: [] };
+    const capture = yield* residentLedger.adviceCaptures.start(
       advice.reservation, advice.revision, captureWorkspaceBytes(candidate.path),
     );
-    if (capture === undefined) return Effect.succeed<RevalidationResult>({ status: "unavailable", findings: [] });
+    if (capture === undefined) return { status: "unavailable" as const, findings: [] };
     let capacityUnavailable = false;
-    return Effect.gen(function* () {
+    return yield* Effect.gen(function* () {
       yield* residentAdapter("revalidation barrier", () => Promise.resolve(residentAfterRevalidationWorkspaceReserved?.(advice.id)));
       const userConfigPath = dispatch.userConfigPath ?? undefined;
       const current = yield* withinWork(Effect.gen(function* () {

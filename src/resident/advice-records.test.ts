@@ -89,7 +89,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
   yield* owner.advice.reserveLease(advice, "collector");
-  const capture = owner.adviceCaptures.start(advice.reservation, advice.revision, 200);
+  const capture = yield* owner.adviceCaptures.start(advice.reservation, advice.revision, 200);
   if (capture === undefined) throw new Error("capture refused");
   expect(owner.advice.remove(advice, "stale", "wrong")).toBe(false);
   expect(owner.advice.remove(advice, "stale", "collector")).toBe(true);

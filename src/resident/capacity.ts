@@ -540,9 +540,9 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       };
     })(),
     adviceCaptures: (() => {
-      const captureCommit = <A>(operation: (
+      const captureChange = <A>(operation: (
         captures: Map<number, AdviceCaptureRecord>, owner: CapacityLedger, revision: RevisionOperations,
-      ) => A): A => commitAll((draft, records) => {
+      ) => A): Parameters<typeof commitAllEffect<A>>[0] => (draft, records) => {
         const captures = new Map(records.adviceCaptures);
         const revision = draftRevision(records.revision);
         const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
@@ -550,17 +550,19 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         const value = operation(captures, owner, revisions);
         revisions.assert();
         return [value, { ...records, adviceCaptures: captures, revision }];
-      });
+      };
+      const captureCommit = <A>(operation: (captures: Map<number, AdviceCaptureRecord>, owner: CapacityLedger, revision: RevisionOperations) => A): A =>
+        commitAll(captureChange(operation));
       return {
-        start: (reservation: CapacityReservation, revision: WorkRevision, workspaceBytes: number): AdviceCapture | undefined =>
-          captureCommit((captures, owner) => {
+        start: Effect.fn("AdviceCaptures.start")((reservation: CapacityReservation, revision: WorkRevision, workspaceBytes: number): Effect.Effect<AdviceCapture | undefined> =>
+          commitAllEffect(captureChange((captures, owner) => {
             if (captures.has(reservation.id)) return undefined;
             const retainedBytes = reservation.bytes;
             if (!owner.resize(reservation, retainedBytes + workspaceBytes, "adviceRecheck")) return undefined;
             const capability = Object.freeze({ reservation, revision, retainedBytes });
             captures.set(reservation.id, Object.freeze({ capability, retired: false }));
             return capability;
-          }),
+          }))),
         resize: (capture: AdviceCapture, workspaceBytes: number): boolean => captureCommit((captures, owner) => {
           if (captures.get(capture.reservation.id)?.capability !== capture) return false;
           return owner.resize(capture.reservation, capture.retainedBytes + workspaceBytes, "adviceRecheck");

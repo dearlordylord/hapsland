@@ -147,7 +147,8 @@
     "Advice lease reservation composes a named atomic Effect; collection yields authorization and reservation through the state owner",
     "Advice delivery updates and runtime acknowledgement compose named Effects, including final handoff renewal and IPC acknowledgement; defect snapshot rollback remains atomic",
     "Advice lease expiry/reoffer checks compose atomic Effects in collection; caller preserves uninterruptible check of current delivery and Bend reoffer authority",
-    "Advice lease release, delivery cleanup and composed-submission cleanup compose Effects; interrupted collection and native IPC finalizers yield cleanup directly, uninterruptible release preserved"
+    "Advice lease release, delivery cleanup and composed-submission cleanup compose Effects; interrupted collection and native IPC finalizers yield cleanup directly, uninterruptible release preserved",
+    "Advice capture acquisition composes a named atomic Effect; revalidation acquires through an Effect generator"
   ],
   "verification": [
     {
@@ -1874,12 +1875,22 @@
       "linuxContractEvidence": "round-contract-advice-release-effects.json",
       "linuxContractCasesPassed": 18,
       "case": "Deferred release changes lease only at execution and cannot release replacement collector token"
+    },
+    {
+      "stage": "advice-capture-start-effect",
+      "affectedTestsPassed": 112,
+      "affectedTestFiles": 4,
+      "supplementaryCaptureTestsPassed": 4,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "case": "Sixteen deferred capture attempts retain one identity and charge workspace once; completion restores retained bytes"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Finish advice reads/retirement and capture Effects, then remaining capacity, reuse, delivery and notice domain bridges",
+    "Finish capture resize/retire/finish/count Effects, advice reads/retirement, then remaining capacity, reuse, delivery and notice domain bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",

@@ -118,3 +118,8 @@ if (!state.includes('releaseLease: Effect.fn("AdviceRecords.releaseLease")') ||
     !server.includes('yield* server.releaseComposedSubmission(')) {
   throw new Error("advice release and composed cleanup must compose Effects");
 }
+
+if (!state.includes('start: Effect.fn("AdviceCaptures.start")') ||
+    !server.includes('yield* residentLedger.adviceCaptures.start(')) {
+  throw new Error("advice capture acquisition must compose as an Effect");
+}
