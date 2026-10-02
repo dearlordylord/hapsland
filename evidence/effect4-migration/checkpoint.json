@@ -3719,5 +3719,43 @@
       "src/onboarding/host-process.test.ts": "7fbc998b40147b75ee174b89f07c445c953ea7581aa991262d44e6bc2b059445"
     },
     "limitations": "Active/selected package dispatch and identity remain synchronous in client-lifecycle. No installed-package/actual human doctor acceptance claim; installation Config, external Clock deadline and final gates remain incomplete."
+  },
+  "fullValidationAfterTerminalLifecyclePorts": {
+    "sourceCommit": "d40c6fb72c848bfdc2de2ed59b7cc8e384b3bf86",
+    "status": "pass",
+    "commands": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npm run build",
+        "status": "pass"
+      },
+      {
+        "command": "npm test",
+        "status": "pass",
+        "exitCode": 0,
+        "testFilesPassed": 125,
+        "testFilesSkipped": 1,
+        "testsPassed": 1266,
+        "testsSkipped": 2,
+        "durationSeconds": 343.97
+      },
+      {
+        "command": "python3 evidence/effect4-migration/client-selection-pty.py",
+        "status": "pass",
+        "cases": 2
+      },
+      {
+        "command": "python3 evidence/effect4-migration/masked-input-pty.py",
+        "status": "pass",
+        "cases": 3
+      }
+    ],
+    "log": "/tmp/hapsland-effect4-full-d40c6fb.log",
+    "logSha256": "cb78e31ca245bd067cf12c38fa11dbb2dcfe8323f56ad053c0c53a92c6c4ca67",
+    "scope": "Full offline suite/guards/Bend proofs/build plus actual native Linux PTY terminal selection, masked success, SIGTERM and fiber interruption. Source frozen throughout run.",
+    "remaining": "Full idiomatic migration unproven: Claude/Codex installation Config/preview/inspection and native adapters, selected/active package dispatch, coordinated external hook deadlines, current package/conformance/live/performance evidence and requirement-by-requirement completion audit still required."
   }
 }
