@@ -94,7 +94,8 @@ try {
           const started = performance.now();
           const admission = runtimeModule.makeResidentRuntime === undefined
             ? server.admit(edit, dispatch, false, true)
-            : yield* server.admit(edit, dispatch, false, true);
+            // Current API removed the ticket flag; composed remains enabled.
+            : yield* server.admit(edit, dispatch, true);
           ensure(admission.status === "accepted", "admission refused");
           if (measured) samples.admission.push(performance.now() - started);
         });
@@ -114,10 +115,12 @@ try {
         yield* Deferred.await(saturated);
         const saturatedDidNotStart = entered === 8 && physical === 8;
         const stopStarted = performance.now();
-        yield* handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        const stop = yield* handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
           root, advicee: edits[0].advicee, token: `held-stop-${pass}` });
-        yield* handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        ensure(stop.status === "advanced", "Stop ownership refused");
+        const finish = yield* handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
           root, advicee: edits[0].advicee, token: `held-stop-${pass}`, close: true });
+        ensure(finish.status === "advanced", "Stop completion refused");
         if (measured) samples.stop.push(performance.now() - stopStarted);
         phase = "await round interruption";
         yield* Deferred.await(firstInterrupted);

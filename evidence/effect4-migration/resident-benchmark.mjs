@@ -51,7 +51,8 @@ try {
         const started = performance.now();
         const admitted = runtimeModule.makeResidentRuntime === undefined
           ? server.admit(observation, dispatch, false, true)
-          : await Effect.runPromise(server.admit(observation, dispatch, false, true));
+          // Current API removed the ticket flag; composed remains enabled.
+          : await Effect.runPromise(server.admit(observation, dispatch, true));
         if (admitted.status !== "accepted") throw new Error("benchmark admission refused");
         if (measured) admissions.push(performance.now() - started);
         peakRssBytes = Math.max(peakRssBytes, process.memoryUsage().rss);

@@ -4054,5 +4054,21 @@
     "automaticRetries": 0,
     "perRequestDeadlineMs": 15000,
     "limitations": "Synthetic source only. Boolean contract observations do not establish host feedback, physical wire cancellation, accuracy across arbitrary source, or platform support."
+  },
+  "currentFinalPerformance": {
+    "sourceCommit": "64c154d",
+    "runnerCorrection": "Historical baseline retains ticketed=false, composed=true. Current API removed ticketed; current admission now passes composed=true. Workloads, baseline, ratios and allowances unchanged. Initial mismatched-call results retained separately and invalid for declared workload.",
+    "originalWorkloadAllBudgetsVerified": true,
+    "physicalOwnershipInvariantsPass": true,
+    "physicalComparableBudgetsVerified": true,
+    "physicalAllComparativeBudgetsVerified": false,
+    "shutdownComparison": "Unproven under original contract: fixed baseline shutdown finishes before physical completion. Current numeric value also exceeds that invalid baseline formula; no comparative speed pass claimed.",
+    "evidence": [
+      "benchmark-current-final.json",
+      "benchmark-current-final-comparison.json",
+      "physical-retirement-current-final.json",
+      "physical-retirement-current-final-comparison.json"
+    ],
+    "limitations": "Synthetic Linux evidence only. Final suite/installed real-host completion and requirement audit pending."
   }
 }

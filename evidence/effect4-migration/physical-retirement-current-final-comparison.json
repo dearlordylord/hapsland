@@ -1,0 +1,96 @@
+{
+  "purpose": "Current migration comparison against unchanged pre-execution budgets",
+  "authority": "Implementation evidence; no product release or platform acceptance",
+  "sourceCommit": "64c154d",
+  "runnerCorrection": "Historical baseline retains ticketed=false, composed=true. Current API removed ticketed; current admission now passes composed=true. Workloads, baseline, ratios and allowances unchanged. Initial mismatched-call results retained separately and invalid for declared workload.",
+  "checks": [
+    {
+      "metric": "admissionP95Ms",
+      "baseline": 4.393535000000156,
+      "measured": 2.6684759999998278,
+      "limit": 8.590302500000234,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "stopP95Ms",
+      "baseline": 12.233847999999853,
+      "measured": 6.996547000000646,
+      "limit": 23.35077199999978,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "saturationP95Ms",
+      "baseline": 625.337638,
+      "measured": 628.5484100000003,
+      "limit": 1038.006457,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "shutdownP95Ms",
+      "baseline": 0.501962000000276,
+      "measured": 24.64591500000006,
+      "limit": 10.752943000000414,
+      "formulaPasses": false,
+      "comparable": false,
+      "verified": false
+    },
+    {
+      "metric": "eventLoopP95Ms",
+      "baseline": 5.619711,
+      "measured": 5.369855,
+      "limit": 13.4295665,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "peakRetainedBytes",
+      "baseline": 2725867,
+      "measured": 2699824,
+      "limit": 2725867,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "peakRssBytes",
+      "baseline": 309260288,
+      "measured": 355618816,
+      "limit": 420129792.0,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "maximumConcurrentDecisionEffects",
+      "baseline": 8,
+      "measured": 8,
+      "limit": 8,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    }
+  ],
+  "comparableBudgetsMet": true,
+  "allComparativeBudgetsVerified": false,
+  "limitations": "Synthetic offline physical callbacks only; no real Jev transport, wire cancellation, live host or cross-platform support evidence.",
+  "baselinePhysicalContractValid": false,
+  "currentPhysicalContractValid": true,
+  "currentInvariants": {
+    "exactSaturation": true,
+    "saturatedDidNotStart": true,
+    "roundRetainsPhysicalPermit": true,
+    "reuseFollowsPhysicalSettlement": true,
+    "shutdownPendingWhileHeld": true,
+    "shutdownWaitsForPhysicalCompletion": true,
+    "canonicalRequestsSettled": true,
+    "finalAccountingCleared": true
+  },
+  "shutdownComparison": "Unproven under original contract: fixed baseline shutdown finishes before physical completion. Current numeric value also exceeds that invalid baseline formula; no comparative speed pass claimed."
+}
