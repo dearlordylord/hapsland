@@ -213,9 +213,19 @@ other edits and advicees can use free preparation slots concurrently. The
 collector may batch eligible findings from several completed admissions in
 the same advicee and virtual round. For example, edit B's synchronous response
 may include a still-current finding from edit A in that round, even when the
-finding was not ready during edit A's hook. An admission identifies each
-derived review unit and carries authorization and lifetime facts; it does not limit the batch
-to one edit or store a second ticket-wide outcome. Operational failure records use the
+finding was not ready during edit A's hook.
+
+The installed edit hook uses one bounded admission-and-collection RPC. Its active
+response context freezes the originating tool, root, advicee, resident lifetime,
+round, credential generation, configuration reference, expiry, and admission-time
+user opt-in. Final
+handoff rechecks credentials, source freshness, round authority, and current
+opt-in; later opt-in cannot elevate an advisory response. Closing or timing out
+the response releases provisional delivery leases and discards its context.
+Admitted preparation and review work continue under the resident lifetime and
+remain available to background or Stop. Common work, revision, reuse, and advice
+state determine readiness; no collectible ticket or per-unit outcome mirror is
+retained. Operational failure records use the
 same advicee scope across those opportunities, but are retained for diagnostics
 instead of being included in agent output. The installed edit path
 automatically starts a bounded background advice wait.

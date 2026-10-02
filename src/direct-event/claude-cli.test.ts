@@ -651,16 +651,13 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
         frame += chunk.toString("utf8");
         const newline = frame.indexOf("\n");
         if (newline < 0) return;
-        const request = JSON.parse(frame.slice(0, newline)) as { operation: string; version: number; ticketed?: boolean };
+        const request = JSON.parse(frame.slice(0, newline)) as { operation: string; version: number };
         operations.push(request.operation);
         versions.push(request.version);
         const response = request.operation === "hello"
           ? JSON.stringify({ version: 1, status: "ready", lifetime: "fake-lifetime", pid: process.pid })
-          : request.operation === "admit" && request.ticketed === true
-            ? JSON.stringify({ version: 1, status: "accepted",
-                ticket: { nonce: "fake-ticket", lifetime: "fake-lifetime" } })
-            : request.operation === "collect"
-              ? reply
+          : request.operation === "admit-and-collect"
+            ? reply
               : JSON.stringify({ version: 1, status: "unsupported" });
         socket.end(`${response}\n`);
       });
@@ -688,7 +685,9 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       expect(await completed, stderr).toBe(0);
       expect(JSON.parse(stdout)).toEqual({});
       expect(stdout).not.toContain("forged advice");
-      expect(operations).toContain("collect");
+      expect(operations).toContain("admit-and-collect");
+      expect(operations).not.toContain("admit");
+      expect(operations).not.toContain("collect");
       expect(versions.every((version) => version === 1)).toBe(true);
       expect(operations).not.toContain("begin-submission");
       expect(operations).not.toContain("acknowledge");

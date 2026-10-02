@@ -11,13 +11,9 @@ for (const name of ["bendCleanupGate", "bendCleanupCommit", "bendTicketRetention
     throw new Error(`resident retention bypass returned: ${name}`);
   }
 }
-for (const event of ["ticketRetentionCheck", "cleanupCheck", "cleanupCommit", "deliveryReleaseCheck",
+for (const event of ["cleanupCheck", "cleanupCommit", "deliveryReleaseCheck",
   "collectionExpiryCheck", "collectionLeaseCheck", "noticePrune", "cacheDiscardPartition", "cacheClear", "dispatchScopeCheck"]) {
   if (![server, reuse, collection, capacity].some((source) => source.includes(`kind: "${event}"`))) {
     throw new Error(`canonical retention event missing: ${event}`);
   }
-}
-if (!server.includes("this.#evictRetainedTickets(this.#maximumTickets)") ||
-    !server.includes("this.#evictRetainedTickets(0)")) {
-  throw new Error("resident ticket eviction bypassed canonical retention");
 }

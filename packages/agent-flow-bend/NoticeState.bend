@@ -207,13 +207,13 @@ def contains(+id: Nat, items: List<&2, Nat>) -> Bool:
     case item <> rest: Bool.or(Nat.is_eq(id, item), contains(id, rest))
 
 def candidate(record: Record, partition: Nat, group: Nat, composed: Bool,
-    ticketed: Bool, allowed: List<&2, Nat>) -> Maybe<&2, Pending>:
+    authority_bound: Bool, allowed: List<&2, Nat>) -> Maybe<&2, Pending>:
   match record:
     case Record{_, owner, delivery_group, _, _, Some{+pending}}:
       Bool.pick(Maybe<&2, Pending>, Bool.and(Bool.pick(Bool, composed,
         Nat.is_eq(delivery_group, group), Nat.is_eq(owner, partition)),
         Bool.and(Bool.not(pending_leased(Some{pending})),
-          Bool.or(Bool.not(ticketed), contains(pending_id(pending), allowed)))),
+          Bool.or(Bool.not(authority_bound), contains(pending_id(pending), allowed)))),
         Some{pending}, None{})
     case _:
       None{}
@@ -231,12 +231,12 @@ def collect_choice(found: Maybe<&2, Pending>, tail: List<&2, Pending>) -> List<&
     case None{}: tail
 
 def collect_candidates(records: List<&2, Record>, +partition: Nat, +group: Nat,
-    +composed: Bool, +ticketed: Bool, +allowed: List<&2, Nat>) -> List<&2, Pending>:
+    +composed: Bool, +authority_bound: Bool, +allowed: List<&2, Nat>) -> List<&2, Pending>:
   match records:
     case Nil{}: Nil{}
     case record <> rest:
-      collect_choice(candidate(record, partition, group, composed, ticketed, allowed),
-        collect_candidates(rest, partition, group, composed, ticketed, allowed))
+      collect_choice(candidate(record, partition, group, composed, authority_bound, allowed),
+        collect_candidates(rest, partition, group, composed, authority_bound, allowed))
 
 def pending_ids(pending: List<&2, Pending>) -> List<&2, Nat>:
   match pending:
@@ -244,8 +244,8 @@ def pending_ids(pending: List<&2, Pending>) -> List<&2, Nat>:
     case item <> rest: pending_id(item) <> pending_ids(rest)
 
 def select(state: State, partition: Nat, group: Nat, composed: Bool,
-    ticketed: Bool, allowed: List<&2, Nat>) -> List<&2, Nat>:
+    authority_bound: Bool, allowed: List<&2, Nat>) -> List<&2, Nat>:
   match state:
     case State{records}:
       pending_ids(collect_candidates(records, partition, group, composed,
-        ticketed, allowed))
+        authority_bound, allowed))

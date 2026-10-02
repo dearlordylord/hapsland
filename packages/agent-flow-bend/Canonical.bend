@@ -14,8 +14,8 @@ import ./Round.bend as RoundPolicy
 import ./DeliveryState.bend as DeliveryState
 import ./SubmissionState.bend as SubmissionState
 import ./RevisionState.bend as RevisionState
-import ./Ticket.bend as Ticket
-import ./TicketState.bend as TicketState
+import ./CollectorAuthority.bend as CollectorAuthority
+import ./Reuse.bend as Reuse
 import ./ReuseState.bend as ReuseState
 import ./NoticeState.bend as NoticeState
 import ./Configuration.bend as Configuration
@@ -120,7 +120,7 @@ type CanonicalEvent is Data:
   DispatchScopeCheck{named_count: Nat, cancelled_count: Nat, has_unnamed: Bool}
   CloseDispatch{}
   PreparedOfferCheck{ready: Bool, within_frame: Bool}
-  EmptyPreparedCheck{ready_count: Nat, has_non_skipped: Bool, ticketed: Bool}
+  EmptyPreparedCheck{ready_count: Nat, has_non_skipped: Bool, authority_bound: Bool}
   ReviewFailureCheck{backend_or_timeout: Bool, credential: Bool, missing: Bool}
   StopPolled{partition: Nat, lifetime: Nat, round: Nat, deadline: Bool}
   StopGroupPolled{group: Nat, lifetime: Nat, round: Nat,
@@ -132,7 +132,7 @@ type CanonicalEvent is Data:
     joined_pending: Bool}
   CollectionCredentialCheck{same_scope: Bool, generation_valid: Bool}
   CollectionCandidateCheck{same_partition: Bool, unleased: Bool,
-    has_unsuppressed: Bool, ticket_owns: Bool}
+    has_unsuppressed: Bool, authority_owns: Bool}
   CollectionOrderCheck{left_sequence: Nat, right_sequence: Nat}
   CollectionExpiryCheck{elapsed: Nat, lifetime: Nat}
   CollectionFitCheck{items: Nat, bytes: Nat}
@@ -178,17 +178,10 @@ type CanonicalEvent is Data:
   RevisionSupersededCheck{subject: Nat, candidate_subject: Nat, generation: Nat}
   RevisionGenerationCheck{subject: Nat}
   RevisionCountCheck{}
-  TicketOpen{id: Nat}
-  TicketForget{id: Nat}
-  TicketAddUnit{id: Nat, unit: Nat}
-  TicketStepUnit{id: Nat, unit: Nat, event: Ticket.UnitEvent,
-    reason: Ticket.Reason}
-  TicketUnitCheck{id: Nat, unit: Nat}
-  TicketCollectGateCheck{expired: Bool, credential_valid: Bool}
-  TicketFinalAuthorityCheck{admitted_block: Bool, current_block: Bool}
-  TicketJoinedCheck{joined_state: Ticket.JoinedState, stale_unavailable: Bool,
+  CollectorGateCheck{expired: Bool, credential_valid: Bool}
+  CollectorFinalAuthorityCheck{admitted_block: Bool, current_block: Bool}
+  ReuseMemberCheck{joined_state: Reuse.JoinedState, stale_unavailable: Bool,
     has_revision: Bool, has_advice_id: Bool}
-  TicketRetentionCheck{limit: Nat}
   CleanupCheck{facts: Retention.CleanupFacts}
   CleanupCommit{}
   DeliveryReleaseCheck{acknowledged: Bool}
@@ -264,7 +257,7 @@ type CanonicalEvent is Data:
   NoticeLease{key: Nat, leased: Bool}
   NoticeClearPending{key: Nat}
   NoticeSelect{partition: Nat, group: Nat, composed: Bool,
-    ticketed: Bool, allowed: List<&2, Nat>}
+    authority_bound: Bool, allowed: List<&2, Nat>}
   OutputStarted{partition: Nat, lifetime: Nat, round: Nat}
   OutputTerminal{partition: Nat, lifetime: Nat, round: Nat,
     operation: Nat, outcome: WriteOutcome}
@@ -402,24 +395,15 @@ type Command is Data:
   RevisionNotSuperseded{}
   RevisionGeneration{generation: Nat}
   RevisionCount{count: Nat}
-  TicketOpened{}
-  TicketForgotten{}
-  TicketUnitAdded{}
-  TicketUnitUpdated{}
-  TicketUnitSnapshot{stage: Ticket.UnitStage, reason: Maybe<&2, Ticket.Reason>}
-  TicketUnitMissing{}
-  TicketRefused{}
-  TicketCollectProceed{}
-  TicketCollectUnavailable{reason: Ticket.Reason}
-  TicketFinalProceed{}
-  TicketFinalRelease{}
-  TicketKeepJoined{}
-  TicketSetJoinedClear{}
-  TicketSetJoinedFinding{}
-  TicketSetJoinedUnavailable{}
-  TicketSetJoinedLost{}
-  TicketKept{}
-  TicketEvicted{id: Nat}
+  CollectorProceed{}
+  CollectorUnavailable{reason: CollectorAuthority.Reason}
+  CollectorFinalProceed{}
+  CollectorFinalRelease{}
+  ReuseKeepMember{}
+  ReuseSetMemberClear{}
+  ReuseSetMemberFinding{}
+  ReuseSetMemberUnavailable{}
+  ReuseSetMemberLost{}
   CleanupReady{}
   CleanupBusy{}
   CleanupCommitted{}
@@ -1716,9 +1700,9 @@ def empty_prepared_result(state: State, decision: WorkPolicy.EmptyPrepared) -> S
       Advanced{state, EmptyAccepted{} <> Nil{}}
 
 def empty_prepared_check(state: State, ready_count: Nat,
-    has_non_skipped: Bool, ticketed: Bool) -> Step:
+    has_non_skipped: Bool, authority_bound: Bool) -> Step:
   empty_prepared_result(state,
-    WorkPolicy.empty_prepared(ready_count, has_non_skipped, ticketed))
+    WorkPolicy.empty_prepared(ready_count, has_non_skipped, authority_bound))
 
 def review_failure_result(state: State, decision: WorkPolicy.FailureDisposition) -> Step:
   match decision:
@@ -2394,9 +2378,9 @@ def collection_credential_result(state: State,
       Advanced{state, CollectionRetainCredential{} <> Nil{}}
 
 def collection_candidate(state: State, same_partition: Bool, unleased: Bool,
-    has_unsuppressed: Bool, ticket_owns: Bool) -> Step:
+    has_unsuppressed: Bool, authority_owns: Bool) -> Step:
   Advanced{state, Bool.pick(Command,
-    Delivery.advice_candidate(same_partition, unleased, has_unsuppressed, ticket_owns),
+    Delivery.advice_candidate(same_partition, unleased, has_unsuppressed, authority_owns),
     CollectionCandidate{}, CollectionSkip{}) <> Nil{}}
 
 def collection_order_result(state: State, order: Collection.Order) -> Step:
@@ -2758,41 +2742,27 @@ def collection_of(state: State) -> CollectionState.State:
   match state:
     case State{_, _, _, _, _, _, _, collection, +history}: collection
 
-def ticket_unit_snapshot(state: State, found: Maybe<&2, TicketState.TicketUnit>) -> Step:
-  match found:
-    case Some{TicketState.TicketUnit{_, _, stage, reason}}:
-      Advanced{state, TicketUnitSnapshot{stage, reason} <> Nil{}}
-    case None{}:
-      Advanced{state, TicketUnitMissing{} <> Nil{}}
-
-def ticket_collect_gate_result(state: State, result: Ticket.CollectGate) -> Step:
+def collector_gate_result(state: State, result: CollectorAuthority.CollectGate) -> Step:
   match result:
-    case Ticket.CollectProceed{}:
-      Advanced{state, TicketCollectProceed{} <> Nil{}}
-    case Ticket.CollectUnavailable{reason}:
-      Advanced{state, TicketCollectUnavailable{reason} <> Nil{}}
+    case CollectorAuthority.CollectProceed{}:
+      Advanced{state, CollectorProceed{} <> Nil{}}
+    case CollectorAuthority.CollectUnavailable{reason}:
+      Advanced{state, CollectorUnavailable{reason} <> Nil{}}
 
-def ticket_final_authority_result(state: State, result: Ticket.FinalAuthority) -> Step:
+def collector_final_authority_result(state: State, result: CollectorAuthority.FinalAuthority) -> Step:
   match result:
-    case Ticket.FinalProceed{}:
-      Advanced{state, TicketFinalProceed{} <> Nil{}}
-    case Ticket.FinalRelease{}:
-      Advanced{state, TicketFinalRelease{} <> Nil{}}
+    case CollectorAuthority.FinalProceed{}:
+      Advanced{state, CollectorFinalProceed{} <> Nil{}}
+    case CollectorAuthority.FinalRelease{}:
+      Advanced{state, CollectorFinalRelease{} <> Nil{}}
 
-def ticket_joined_result(state: State, result: Ticket.JoinedDisposition) -> Step:
+def reuse_member_result(state: State, result: Reuse.JoinedDisposition) -> Step:
   match result:
-    case Ticket.KeepJoined{}: Advanced{state, TicketKeepJoined{} <> Nil{}}
-    case Ticket.SetJoinedClear{}: Advanced{state, TicketSetJoinedClear{} <> Nil{}}
-    case Ticket.SetJoinedFinding{}: Advanced{state, TicketSetJoinedFinding{} <> Nil{}}
-    case Ticket.SetJoinedUnavailable{}: Advanced{state, TicketSetJoinedUnavailable{} <> Nil{}}
-    case Ticket.SetJoinedLost{}: Advanced{state, TicketSetJoinedLost{} <> Nil{}}
-
-def ticket_retention_result(+state: State, result: TicketState.Retention) -> Step:
-  match result:
-    case TicketState.Kept{_}: Advanced{state, TicketKept{} <> Nil{}}
-    case TicketState.Evicted{replacement, id}:
-      Advanced{with_collection(state, CollectionState.with_tickets(
-        collection_of(state), replacement)), TicketEvicted{id} <> Nil{}}
+    case Reuse.KeepJoined{}: Advanced{state, ReuseKeepMember{} <> Nil{}}
+    case Reuse.SetJoinedClear{}: Advanced{state, ReuseSetMemberClear{} <> Nil{}}
+    case Reuse.SetJoinedFinding{}: Advanced{state, ReuseSetMemberFinding{} <> Nil{}}
+    case Reuse.SetJoinedUnavailable{}: Advanced{state, ReuseSetMemberUnavailable{} <> Nil{}}
+    case Reuse.SetJoinedLost{}: Advanced{state, ReuseSetMemberLost{} <> Nil{}}
 
 def cleanup_state_clean(state: State) -> Bool:
   match state:
@@ -2800,7 +2770,7 @@ def cleanup_state_clean(state: State) -> Bool:
         Dispatch.State{Nil{}, Nil{}, _, False{}, Nil{}},
         CollectionState.State{Nil{}, Nil{}, Nil{},
           DeliveryState.State{Nil{}, _, SubmissionState.State{Nil{}, Nil{}}},
-          RevisionState.State{Nil{}, _}, _,
+          RevisionState.State{Nil{}, _},
           ReuseState.State{Nil{}, _}, NoticeState.State{Nil{}}}, +history}:
       Retention.cleanup_live_state(True{},
         Nat.is_eq(pending_resident_permits(admissions), 0n))
@@ -2852,7 +2822,7 @@ def stop_terminal_result(state: State, result: RoundPolicy.StopTerminal) -> Step
 def cleanup_commit_eligible(state: State) -> Bool:
   match state:
     case State{Ledger.Ledger{_, _, Nil{}}, _, _, _, _, _, _,
-        CollectionState.State{_, _, _, _, _, TicketState.State{Nil{}, Nil{}},
+        CollectionState.State{_, _, _, _, _,
           ReuseState.State{_, Nil{}}, _}, +history}: cleanup_state_clean(state)
     case _: False{}
 
@@ -3065,8 +3035,8 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
       close_dispatch(state)
     case PreparedOfferCheck{ready, within_frame}:
       prepared_offer_check(state, ready, within_frame)
-    case EmptyPreparedCheck{ready_count, has_non_skipped, ticketed}:
-      empty_prepared_check(state, ready_count, has_non_skipped, ticketed)
+    case EmptyPreparedCheck{ready_count, has_non_skipped, authority_bound}:
+      empty_prepared_check(state, ready_count, has_non_skipped, authority_bound)
     case ReviewFailureCheck{backend_or_timeout, credential, missing}:
       review_failure_check(state, backend_or_timeout, credential, missing)
     case StopPolled{partition, lifetime, round, deadline}:
@@ -3083,8 +3053,8 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
     case CollectionCredentialCheck{same_scope, generation_valid}:
       collection_credential_result(state,
         Collection.credential_disposition(same_scope, generation_valid))
-    case CollectionCandidateCheck{same_partition, unleased, has_unsuppressed, ticket_owns}:
-      collection_candidate(state, same_partition, unleased, has_unsuppressed, ticket_owns)
+    case CollectionCandidateCheck{same_partition, unleased, has_unsuppressed, authority_owns}:
+      collection_candidate(state, same_partition, unleased, has_unsuppressed, authority_owns)
     case CollectionOrderCheck{left_sequence, right_sequence}:
       collection_order_result(state, Collection.order(left_sequence, right_sequence))
     case CollectionExpiryCheck{elapsed, lifetime}:
@@ -3158,30 +3128,13 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
       revision_generation_check(state, subject)
     case RevisionCountCheck{}:
       revision_count_check(state)
-    case TicketOpen{id}:
-      collection_decision(state, CollectionState.ticket_open(collection_of(state), id),
-        TicketOpened{}, TicketRefused{})
-    case TicketForget{id}:
-      collection_decision(state, CollectionState.ticket_forget(collection_of(state), id),
-        TicketForgotten{}, TicketRefused{})
-    case TicketAddUnit{id, unit}:
-      collection_decision(state, CollectionState.ticket_add_unit(collection_of(state), id, unit),
-        TicketUnitAdded{}, TicketRefused{})
-    case TicketStepUnit{id, unit, event, reason}:
-      collection_decision(state, CollectionState.ticket_step_unit(collection_of(state), id, unit,
-        event, reason), TicketUnitUpdated{}, TicketRefused{})
-    case TicketUnitCheck{id, unit}:
-      ticket_unit_snapshot(state, CollectionState.ticket_unit_snapshot(collection_of(state), id, unit))
-    case TicketCollectGateCheck{expired, credential_valid}:
-      ticket_collect_gate_result(state, Ticket.collect_gate(expired, credential_valid))
-    case TicketFinalAuthorityCheck{admitted_block, current_block}:
-      ticket_final_authority_result(state, Ticket.final_authority(admitted_block, current_block))
-    case TicketJoinedCheck{joined_state, stale_unavailable, has_revision, has_advice_id}:
-      ticket_joined_result(state, Ticket.joined_disposition(joined_state, stale_unavailable,
+    case CollectorGateCheck{expired, credential_valid}:
+      collector_gate_result(state, CollectorAuthority.collect_gate(expired, credential_valid))
+    case CollectorFinalAuthorityCheck{admitted_block, current_block}:
+      collector_final_authority_result(state, CollectorAuthority.final_authority(admitted_block, current_block))
+    case ReuseMemberCheck{joined_state, stale_unavailable, has_revision, has_advice_id}:
+      reuse_member_result(state, Reuse.joined_disposition(joined_state, stale_unavailable,
         has_revision, has_advice_id))
-    case TicketRetentionCheck{limit}:
-      ticket_retention_result(state, TicketState.retention(
-        CollectionState.ticket_state(collection_of(state)), limit))
     case CleanupCheck{facts}:
       cleanup_check_result(state, Retention.cleanup_gate(facts))
     case CleanupCommit{}:
@@ -3335,10 +3288,10 @@ def step_unchecked(+state: State, event: CanonicalEvent) -> Step:
     case NoticeClearPending{key}:
       notice_decision_result(state, NoticeState.clear_pending(
         CollectionState.notice_state(collection_of(state)), key), NoticePendingCleared{})
-    case NoticeSelect{partition, group, composed, ticketed, allowed}:
+    case NoticeSelect{partition, group, composed, authority_bound, allowed}:
       Advanced{state, NoticeSelected{NoticeState.select(
         CollectionState.notice_state(collection_of(state)), partition, group,
-        composed, ticketed, allowed)} <> Nil{}}
+        composed, authority_bound, allowed)} <> Nil{}}
     case OutputStarted{partition, lifetime, round}:
       output_start(state, partition, lifetime, round)
     case OutputTerminal{partition, lifetime, round, operation, outcome}:

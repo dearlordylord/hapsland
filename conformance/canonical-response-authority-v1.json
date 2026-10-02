@@ -1,0 +1,29 @@
+{
+  "traces": [
+    {
+      "name": "independent response authority and stale reuse member gates",
+      "events": [
+        {
+          "kind": "collectorGateCheck",
+          "expired": true,
+          "credentialValid": false,
+          "expect": "collectorUnavailable:expired"
+        },
+        {
+          "kind": "collectorFinalAuthorityCheck",
+          "admittedBlock": true,
+          "currentBlock": false,
+          "expect": "collectorFinalRelease"
+        },
+        {
+          "kind": "reuseMemberCheck",
+          "state": "finding",
+          "staleUnavailable": true,
+          "hasRevision": true,
+          "hasAdviceId": true,
+          "expect": "reuseKeepMember"
+        }
+      ]
+    }
+  ]
+}

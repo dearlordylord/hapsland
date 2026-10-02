@@ -49,14 +49,14 @@ for (const command of bendCommands) {
   assert.ok(generated.includes(`"Canonical.${command}"`), `compiled Bend lacks Command ${command}`);
 }
 
-const consumedTags = matches(adapter, /"((?:Canonical|Ledger|Admission|Work|Dispatch|Collection|Delivery|Revision|Ticket|Reuse|Cache|Notice|Retention|Configuration|RulePolicy)\.[A-Z][A-Za-z0-9_]*)"/g);
+const consumedTags = matches(adapter, /"((?:Canonical|Ledger|Admission|Work|Dispatch|Collection|Delivery|Revision|CollectorAuthority|Reuse|Cache|Notice|Retention|Configuration|RulePolicy)\.[A-Z][A-Za-z0-9_]*)"/g);
 // Bend's JS compiler omits literal tags for constructors used only as input
 // and for the last arm of a closed Data match. Pin those exact exceptions so a
 // changed compiler layout or new consumed constructor forces a review.
 const compilerElidedTags = new Set([
   "RulePolicy.Words", "Canonical.StopScope",
-  "Retention.CleanupFacts", "Canonical.ForgetAdmission", "Ticket.Backend",
-  "Ticket.Capacity", "Ticket.Stale", "Ticket.Lost", "Delivery.SubmissionFacts",
+  "Retention.CleanupFacts", "Canonical.ForgetAdmission", "CollectorAuthority.Backend",
+  "CollectorAuthority.Capacity", "CollectorAuthority.Stale", "CollectorAuthority.Lost", "Delivery.SubmissionFacts",
 ]);
 const missingTags = new Set([...consumedTags].filter((name) => !generated.includes(`"${name}"`)));
 sameSet(missingTags, compilerElidedTags, "compiled Bend tag exceptions");

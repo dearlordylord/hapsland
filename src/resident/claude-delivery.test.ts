@@ -1,293 +1,351 @@
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { join } from "node:path";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { connect } from "node:net";
 import { adaptClaudeDirectEvent } from "../direct-event/adapter.ts";
-import type { DirectAdvicee } from "../direct-event/model.ts";
+import type { DirectObservation } from "../direct-event/model.ts";
 import { makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
 import { ResidentServer } from "./server.ts";
-import { residentRequest } from "./client.ts";
-import { MAX_COMBINED_RESPONSE_BYTES } from "./collection.ts";
+import { admitAndCollect, residentRequest } from "./client.ts";
 import { monotonicNow } from "./hook-clock.ts";
-import type { ResidentDispatchContext } from "./protocol.ts";
+import { encodeCurrentResidentRequest, type ResidentDispatchContext, type ResidentRequest, type ResidentResponse } from "./protocol.ts";
 
-describe("Claude advicee scoped resident delivery", () => {
-  it("keeps an earlier admission's failure out of the next composed edit output", async () => {
-    const root = await makeGitFixture();
-    const statePath = join(root, "consent");
-    const dispatch: ResidentDispatchContext = { statePath, userConfigPath: null, credential: null,
-      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
-        rule.id, { _tag: "Probability", probability: 0 },
-      ])) } };
-    const failed: ResidentDispatchContext = { ...dispatch, controlled: { failure: "controlled backend failure" } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    let latest: { ticket: { nonce: string; lifetime: string }; advicee: DirectAdvicee } | undefined;
-    for (const name of ["first", "second"] as const) {
-      const path = await put(root, `${name}.ts`, `type ${name}Count = number\n`);
-      const observation = await Effect.runPromise(adaptClaudeDirectEvent({
-        hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-        session_id: "shared-notice", tool_use_id: name,
-        tool_input: { file_path: path, content: `type ${name}Count = number\n` },
-        tool_response: { filePath: path, content: `type ${name}Count = number\n`, originalFile: null, userModified: false },
-      }));
-      if (observation === undefined) throw new Error("expected Claude observation");
-      expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-        root, advicee: observation.advicee, startedAt: monotonicNow() - 1 })).status).toBe("advanced");
-      const accepted = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch: name === "first" ? failed : dispatch,
-        composed: true });
-      if (accepted.status !== "accepted" || !("ticket" in accepted)) throw new Error("expected admission");
-      latest = { ticket: accepted.ticket, advicee: observation.advicee };
-    }
-    await server.whenIdle();
-    if (latest === undefined) throw new Error("expected second admission");
-    const result = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-      ticket: latest.ticket, root, advicee: latest.advicee, dispatch, composed: true });
-    expect(result).toMatchObject({ requestRoute: "ticketed", status: "empty" });
-  });
-
-  it("batches eligible findings from two composed admissions in one Claude edit response", async () => {
-    const root = await makeGitFixture();
-    const statePath = join(root, "consent");
-    const dispatch: ResidentDispatchContext = { statePath, userConfigPath: null, credential: null,
-      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
-        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
-      ])) } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    const admitted: Array<{ readonly ticket: { readonly nonce: string; readonly lifetime: string };
-      readonly advicee: DirectAdvicee }> = [];
-    for (const [name, toolUseId] of [["FirstCount", "first"], ["SecondCount", "second"]] as const) {
-      const path = await put(root, `${toolUseId}.ts`, `type ${name} = number\n`);
-      const observation = await Effect.runPromise(adaptClaudeDirectEvent({
-        hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-        session_id: "shared-session", tool_use_id: toolUseId,
-        tool_input: { file_path: path, content: `type ${name} = number\n` },
-        tool_response: { filePath: path, content: `type ${name} = number\n`, originalFile: null, userModified: false },
-      }));
-      if (observation === undefined) throw new Error("expected Claude observation");
-      const permit = await server.handle({ requestRoute: "shared", operation: "register-edit",
-        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() - 1 });
-      expect(permit.status).toBe("advanced");
-      const accepted = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch, composed: true });
-      if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") {
-        throw new Error("expected composed admission");
-      }
-      admitted.push({ ticket: accepted.ticket, advicee: observation.advicee });
-    }
-    await server.whenIdle();
-    const latest = admitted[1]!;
-    const result = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-      ticket: latest.ticket, root, advicee: latest.advicee, dispatch, composed: true });
-    expect(result).toMatchObject({ requestRoute: "ticketed", status: "advice", findingCount: 2 });
-    if (result.status === "advice" && "requestRoute" in result && result.requestRoute === "ticketed" &&
-        "hookSpecificOutput" in result.output) {
-      expect(result.output.hookSpecificOutput.additionalContext).toContain("FirstCount");
-      expect(result.output.hookSpecificOutput.additionalContext).toContain("SecondCount");
-    }
-  });
-
-  it("lets composed Stop collect session advice without crossing child or session identity", async () => {
-    const root = await makeGitFixture();
-    const path = await put(root, "type.ts", "type OrderCount = number\n");
-    const statePath = join(root, "consent");
-    const observation = await Effect.runPromise(adaptClaudeDirectEvent({
-      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-      session_id: "session", tool_use_id: "tool-one",
-      tool_input: { file_path: path, content: "type OrderCount = number\n" },
-      tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
+const deferred = () => {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => { resolve = done; });
+  return { promise, resolve };
+};
+const fixture = async () => {
+  const root = await makeGitFixture();
+  const userConfigPath = join(root, "user.jsonc");
+  const feedback = (mode: string) => writeFileSync(userConfigPath, JSON.stringify({ version: 1, claudeFeedbackMode: mode }));
+  feedback("advisory");
+  const observation = async (toolUseId = "first", sessionId = "session", subagentId: string | null = null): Promise<DirectObservation> => {
+    const content = `type ${toolUseId}Count = number\n`;
+    const path = await put(root, `${toolUseId}.ts`, content);
+    const value = await Effect.runPromise(adaptClaudeDirectEvent({
+      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root, session_id: sessionId,
+      tool_use_id: toolUseId, ...(subagentId === null ? {} : { agent_id: subagentId }),
+      tool_input: { file_path: path, content },
+      tool_response: { filePath: path, content, originalFile: null, userModified: false },
     }));
-    expect(observation).toBeDefined();
-    if (observation === undefined) return;
-    const dispatch: ResidentDispatchContext = { statePath, userConfigPath: null, credential: null,
-      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
-        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
-      ])) } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
-    await server.whenIdle();
-    expect(server.stats().pendingFindingBatches).toBe(1);
-    const stopToken = "stop-collection";
-    expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: stopToken })).status).toBe("advanced");
-    const collect = (advicee: typeof observation.advicee, composed: true) => server.handle({
-      requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee, dispatch, mode: "turn-end", composed,
-      finish: { token: stopToken, deadlineReached: false },
-    });
-    const stopAdvicee = { ...observation.advicee, toolUseId: "stop" };
-    expect((await collect(stopAdvicee, true)).status).toBe("advice");
-    expect((await collect({ ...stopAdvicee, subagentId: "child" }, true)).status).toBe("empty");
-    expect((await collect({ ...stopAdvicee, sessionId: "other" }, true)).status).toBe("empty");
-  });
+    if (value === undefined) throw new Error("expected observation");
+    return value;
+  };
+  const dispatch: ResidentDispatchContext = { statePath: join(root, "consent"), userConfigPath,
+    credential: null, controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
+      rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
+    ])) } };
+  return { root, feedback, observation, dispatch };
+};
+const permit = async (server: ResidentServer, observation: DirectObservation) => {
+  expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+    root: observation.root, advicee: observation.advicee, startedAt: monotonicNow() - 1 })).status).toBe("advanced");
+};
+const request = (server: ResidentServer, observation: DirectObservation, dispatch: ResidentDispatchContext,
+  waitMs = 1_200): Extract<ResidentRequest, { operation: "admit-and-collect" }> => ({
+  requestRoute: "edit", operation: "admit-and-collect", lifetime: server.lifetime,
+  observation, controlledWriter: true, composed: true, dispatch, waitMs,
+});
+const send = (server: ResidentServer, observation: DirectObservation, dispatch: ResidentDispatchContext, waitMs = 1_200) =>
+  residentRequest(server.paths, request(server, observation, dispatch, waitMs), 2_500);
+const ordinary = (server: ResidentServer, observation: DirectObservation, dispatch: ResidentDispatchContext) =>
+  server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+    root: observation.root, advicee: observation.advicee, dispatch, composed: true });
+const text = (response: ResidentResponse) => response.status === "advice"
+  ? "reason" in response.output ? response.output.reason : response.output.hookSpecificOutput.additionalContext : "";
 
-  it("delivers to a later tool call for the same advicee and drops stale content", async () => {
-    const root = await makeGitFixture();
-    const path = await put(root, "type.ts", "type OrderCount = number\n");
-    const statePath = join(root, "consent");
-    const observation = await Effect.runPromise(adaptClaudeDirectEvent({
-      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-      session_id: "session", tool_use_id: "tool-one",
-      tool_input: { file_path: path, content: "type OrderCount = number\n" },
-      tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
-    }));
-    expect(observation).toBeDefined();
-    if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    const dispatch = {
-      statePath, userConfigPath: null, credential: null,
-      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
-        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
-      ])) },
-    };
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    expect(server.stats().pendingAdvice).toBe(1);
-    const delivered = await server.collect(root, { ...observation.advicee, toolUseId: "tool-two" }, dispatch);
-    expect(delivered.status).toBe("advice");
-    if (delivered.status === "advice") expect(delivered.output.hookSpecificOutput.additionalContext).toContain("OrderCount");
-    await put(root, "type.ts", "type OrderCount = string\n");
-    expect(await server.collect(root, observation.advicee, dispatch)).toMatchObject({ status: "empty" });
-  });
-
-  it("returns a bounded production block only for an opted-in ticket and its original advicee", async () => {
-    const root = await makeGitFixture();
-    const path = await put(root, "type.ts", "type OrderCount = number\n");
-    const statePath = join(root, "consent");
-    const observation = await Effect.runPromise(adaptClaudeDirectEvent({
-      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-      session_id: "session", tool_use_id: "tool-one",
-      tool_input: { file_path: path, content: "type OrderCount = number\n" },
-      tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
-    }));
-    if (observation === undefined) throw new Error("expected observation");
-    const userConfigPath = join(root, "user.jsonc");
-    writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
-    const dispatch: ResidentDispatchContext = {
-      statePath, userConfigPath, credential: null,
-      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
-        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
-      ])) },
-    };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-      root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-    const accepted = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation, controlledWriter: true, dispatch, composed: true });
-    expect(accepted.status).toBe("accepted");
-    if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") return;
-    await server.whenIdle();
-    const wrong = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-      ticket: accepted.ticket, root, advicee: { ...observation.advicee, toolUseId: "other" }, dispatch, composed: true });
-    expect(wrong).toMatchObject({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
-    const delivered = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-      ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
-    expect(delivered).toMatchObject({ requestRoute: "ticketed", status: "advice", findingCount: 1,
-      output: { decision: "block" } });
-    if (delivered.status !== "advice" || !("requestRoute" in delivered) || delivered.requestRoute !== "ticketed") return;
-    expect(Buffer.byteLength(`${JSON.stringify(delivered.output)}\n`, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
-    expect(delivered.output).not.toHaveProperty("hookSpecificOutput");
-    expect(JSON.stringify(delivered.output)).not.toContain(accepted.ticket.nonce);
-    server.releaseDelivery(delivered.token);
-    writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
-    const laterObservation = { ...observation, advicee: { ...observation.advicee, toolUseId: "tool-two" } };
-    expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-      root, advicee: laterObservation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-    const later = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: laterObservation, controlledWriter: true, dispatch, composed: true });
-    if (later.status !== "accepted" || !("requestRoute" in later) || later.requestRoute !== "ticketed") throw new Error("expected later ticket");
-    await server.whenIdle();
-    writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
-    const laterOutput = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-      ticket: later.ticket, root, advicee: laterObservation.advicee, dispatch, composed: true });
-    expect(laterOutput).toMatchObject({ requestRoute: "ticketed", status: "advice",
-      output: { hookSpecificOutput: { hookEventName: "PostToolUse" } } });
-    if (laterOutput.status === "advice") expect(laterOutput.output).not.toHaveProperty("decision");
-  });
-
-  it("retires selected Claude advice when its source changes at the final IPC handoff", async () => {
-    const root = await makeGitFixture();
-    const path = await put(root, "type.ts", "type OrderCount = number\n");
-    const statePath = join(root, "consent");
-    const observation = await Effect.runPromise(adaptClaudeDirectEvent({
-      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-      session_id: "source-handoff", tool_use_id: "source-edit",
-      tool_input: { file_path: path, content: "type OrderCount = number\n" },
-      tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
-    }));
-    if (observation === undefined) throw new Error("expected observation");
-    const dispatch: ResidentDispatchContext = {
-      statePath, userConfigPath: null, credential: null,
-      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
-        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
-      ])) },
-    };
-    let changeAtHandoff = false;
-    const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
-      if (changeAtHandoff) writeFileSync(path, "type OrderCount = string\n");
-    } });
+// All synchronous responses here cross the actual socket and final handoff barrier.
+describe("registry-free Claude edit response", () => {
+  it.each(["advisory", "block-current-findings"])("returns current %s feedback through one RPC", async (mode) => {
+    const data = await fixture(); data.feedback(mode);
+    const observation = await data.observation();
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
     await server.listen();
     try {
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-        root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-      const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch, composed: true });
-      if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
-      await server.whenIdle();
-      changeAtHandoff = true;
-      const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
-      expect(response.status).not.toBe("advice");
-      expect(server.stats().pendingAdvice).toBe(0);
-    } finally {
-      await server.close();
-    }
+      await permit(server, observation);
+      const outcome = await admitAndCollect(observation, data.dispatch, performance.now() + 2_500, server.paths);
+      expect(outcome.status).toBe("advice");
+      if (outcome.status !== "advice") throw new Error("missing advice");
+      expect(outcome.advice.output).toHaveProperty(mode === "advisory" ? "hookSpecificOutput" : "decision");
+      expect(outcome).not.toHaveProperty("ticket");
+      const wire = JSON.stringify(outcome.advice.output);
+      expect(Buffer.byteLength(wire + "\n")).toBeLessThanOrEqual(10_240);
+      expect(wire).toContain("firstCount");
+      expect(server.accountingMetrics()).not.toHaveProperty("tickets");
+    } finally { await server.close(); }
   });
 
-  it("suppresses a leased block when the user revokes opt-in at the final handoff barrier", async () => {
-    const root = await makeGitFixture();
-    const path = await put(root, "type.ts", "type OrderCount = number\n");
-    const statePath = join(root, "consent");
-    const observation = await Effect.runPromise(adaptClaudeDirectEvent({
-      hook_event_name: "PostToolUse", tool_name: "Write", cwd: root,
-      session_id: "session", tool_use_id: "tool-one",
-      tool_input: { file_path: path, content: "type OrderCount = number\n" },
-      tool_response: { filePath: path, content: "type OrderCount = number\n", originalFile: null, userModified: false },
-    }));
-    if (observation === undefined) throw new Error("expected observation");
-    const userConfigPath = join(root, "user.jsonc");
-    writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
-    const dispatch: ResidentDispatchContext = {
-      statePath, userConfigPath, credential: null,
-      controlled: { answers: Object.fromEntries(configuredRules.map((rule) => [
-        rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
-      ])) },
+  it.each(["clear", "no-work", "failure"])("returns quietly after %s without an aggregate outcome", async (kind) => {
+    const data = await fixture();
+    const base = await data.observation();
+    const observation = kind === "no-work" ? { ...base, candidates: [{ operation: "delete" as const, path: "first.ts", addedLines: [] as const }] } : base;
+    const dispatch = { ...data.dispatch, controlled: kind === "failure" ? { failure: "controlled failure" }
+      : { answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])) } };
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    await server.listen();
+    try {
+      await permit(server, observation);
+      expect(await send(server, observation, dispatch)).toEqual({ requestRoute: "edit", status: "empty" });
+      await server.whenIdle();
+      expect(server.stats().pendingFindingBatches).toBe(0);
+    } finally { await server.close(); }
+  });
+
+  it("B's response includes A's still-current advice and keeps one exclusive delivery lease", async () => {
+    const data = await fixture(); const first = await data.observation(); const second = await data.observation("second");
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    await server.listen();
+    try {
+      await permit(server, first);
+      expect((await server.handle({ requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
+        observation: first, controlledWriter: true, composed: true, dispatch: data.dispatch })).status).toBe("accepted");
+      await server.whenIdle();
+      expect(server.stats().pendingFindingBatches).toBe(1);
+      await permit(server, second);
+      expect(server.stats().pendingFindingBatches).toBe(1);
+      const response = await send(server, second, data.dispatch);
+      expect(response.status).toBe("advice");
+      expect(text(response)).toContain("firstCount");
+      expect(server.pendingAdviceMetadata().find((item) => item.path === "first.ts")?.delivery).toBe("leased-unacknowledged");
+      if (response.status !== "advice") throw new Error("missing advice");
+      expect(server.beginComposedSubmission(response.token, "edit").status).toBe("submitting");
+      expect(server.acknowledge(response.token).status).toBe("acknowledged");
+      expect(server.finalize(response.token).status).toBe("finalized");
+      expect(server.finalize(response.token).status).toBe("empty");
+      await server.whenIdle();
+      const later = await ordinary(server, second, data.dispatch);
+      expect(text(later)).not.toContain("firstCount");
+      if (response.findingCount === 1) expect(text(later)).toContain("secondCount");
+    } finally { await server.close(); }
+  });
+
+  it.each(["session", "child", "root"])("never collects another %s's advice", async (scope) => {
+    const data = await fixture(); const first = await data.observation();
+    const other = scope === "root" ? await fixture() : data;
+    const second = await other.observation("second", scope === "session" ? "other-session" : "session", scope === "child" ? "child" : null);
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    await server.listen();
+    try {
+      await permit(server, first); expect(server.admit(first, data.dispatch, true, true).status).toBe("accepted");
+      await server.whenIdle(); expect(server.pendingAdviceMetadata()).toHaveLength(1); await permit(server, second);
+      const response = await send(server, second, other.dispatch);
+      expect(text(response)).toContain("secondCount"); expect(text(response)).not.toContain("firstCount");
+      await server.whenIdle();
+      expect((await ordinary(server, first, data.dispatch)).status).toBe("advice");
+    } finally { await server.close(); }
+  });
+
+  it("concurrent response attempts freeze opt-in independently and compete for a common lease", async () => {
+    const data = await fixture(); const first = await data.observation(); const second = await data.observation("second");
+    const entered = deferred(); const release = deferred(); let evaluated = false;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+      beforeEvaluate: async () => { if (!evaluated) { evaluated = true; entered.resolve(); } await release.promise; },
+    });
+    await server.listen();
+    try {
+      await permit(server, first);
+      const a = send(server, first, data.dispatch);
+      await entered.promise; data.feedback("block-current-findings"); await permit(server, second);
+      const b = send(server, second, data.dispatch);
+      release.resolve();
+      const responses = await Promise.all([a, b]);
+      if (responses[0]?.status === "advice") expect(responses[0].output).toHaveProperty("hookSpecificOutput");
+      if (responses[1]?.status === "advice") expect(responses[1].output).toHaveProperty("decision", "block");
+      expect(responses.filter((response) => response.status === "advice").reduce((n, response) =>
+        n + (response.status === "advice" ? response.findingCount : 0), 0)).toBe(2);
+    } finally { release.resolve(); await server.close(); }
+  });
+
+  it.each(["opt-in", "revoke", "project-narrowing", "source", "rotate", "suspend", "expiry", "round-closed"])(
+    "rechecks %s after provisional selection at the final handoff", async (change) => {
+      const data = await fixture(); const observation = await data.observation();
+      if (change === "revoke" || change === "project-narrowing") data.feedback("block-current-findings");
+      const statePath = join(data.root, "credential-state.json");
+      writeFileSync(statePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }));
+      const dispatch: ResidentDispatchContext = change === "rotate" || change === "suspend" ? {
+        ...data.dispatch, credential: { name: "TYPESAFE_API_KEY", environmentValue: "synthetic-test-value",
+          environmentOnly: false, generation: 1, statePath }, controlled: { ...data.dispatch.controlled, requireCredential: true },
+      } : data.dispatch;
+      let enabled = false; let now = 1_000;
+      const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now, {
+        beforeResponseHandoff: async () => {
+          if (!enabled) return;
+          if (change === "opt-in") data.feedback("block-current-findings");
+          if (change === "revoke") data.feedback("advisory");
+          if (change === "project-narrowing") writeFileSync(join(data.root, ".realtime-review.jsonc"),
+            JSON.stringify({ version: 1, claudeFeedbackMode: "advisory" }));
+          if (change === "source") writeFileSync(join(data.root, "first.ts"), "type firstCount = string\n");
+          if (change === "rotate" || change === "suspend") writeFileSync(statePath, JSON.stringify({
+            version: 1, generation: change === "rotate" ? 2 : 1, savedUseSuspended: change === "suspend",
+          }));
+          if (change === "expiry") now += 600_000;
+          if (change === "round-closed") {
+            await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+              root: data.root, advicee: observation.advicee, token: "close" });
+            await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+              root: data.root, advicee: observation.advicee, token: "close", close: true });
+          }
+        },
+      });
+      await server.listen();
+      try {
+        await permit(server, observation); enabled = true;
+        const response = await send(server, observation, dispatch);
+        if (change === "opt-in") {
+          expect(response.status).toBe("advice");
+          if (response.status === "advice") expect(response.output).toHaveProperty("hookSpecificOutput");
+        } else {
+          expect(response.status).not.toBe("advice");
+          if (change === "rotate" || change === "suspend") expect(response).toMatchObject({ status: "unavailable", reason: "credential" });
+          if (change === "expiry") expect(response).toMatchObject({ status: "unavailable", reason: "expired" });
+          if (change === "round-closed") expect(response).toMatchObject({ status: "unavailable", reason: "lost" });
+        }
+      } finally { await server.close(); }
+    },
+  );
+
+  it("checks B's collector credentials even when selected advice belongs to still-authorized A", async () => {
+    const data = await fixture(); const first = await data.observation(); const second = await data.observation("second");
+    const credential = (name: string): ResidentDispatchContext => {
+      const statePath = join(data.root, `${name}-credentials.json`);
+      writeFileSync(statePath, JSON.stringify({ version: 1, generation: 1, savedUseSuspended: false }));
+      return { ...data.dispatch, credential: { name: "TYPESAFE_API_KEY", environmentValue: "synthetic-test-value",
+        environmentOnly: false, generation: 1, statePath }, controlled: { ...data.dispatch.controlled, requireCredential: true } };
     };
-    let revoke = false;
-    const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, () => performance.now(), {
+    const a = credential("a"); const b = credential("b"); let gated = false;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
       beforeResponseHandoff: async () => {
-        if (revoke) writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
+        if (gated && b.credential !== null) writeFileSync(b.credential.statePath,
+          JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
       },
     });
     await server.listen();
     try {
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-        root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-      const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch, composed: true });
-      if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
+      await permit(server, first); expect(server.admit(first, a, true, true).status).toBe("accepted");
+      await server.whenIdle(); await permit(server, second); gated = true;
+      expect(await send(server, second, b)).toMatchObject({ status: "unavailable", reason: "credential" });
+      expect(server.pendingAdviceMetadata().find((item) => item.path === "first.ts")?.delivery).toBe("available");
+      expect(a.credential === null ? undefined : JSON.parse(readFileSync(a.credential.statePath, "utf8")).generation).toBe(1);
+    } finally { await server.close(); }
+  });
+
+  it("a request timeout leaves resident work running for later collection", async () => {
+    const data = await fixture(); const observation = await data.observation();
+    const entered = deferred(); const release = deferred();
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+      beforeEvaluate: async () => { entered.resolve(); await release.promise; },
+    });
+    await server.listen();
+    try {
+      await permit(server, observation);
+      const response = send(server, observation, data.dispatch, 20);
+      await entered.promise; expect(await response).toMatchObject({ status: "pending" });
+      expect(server.stats().running).toBeGreaterThan(0);
+      release.resolve(); await server.whenIdle();
+      expect((await ordinary(server, observation, data.dispatch)).status).toBe("advice");
+    } finally { release.resolve(); await server.close(); }
+  });
+
+  it("disconnect during revalidation releases the provisional lease without cancelling review", async () => {
+    const data = await fixture(); const first = await data.observation(); const second = await data.observation("second");
+    const entered = deferred(); const release = deferred(); let pause = true;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+      beforeRevalidate: async () => { if (pause) { entered.resolve(); await release.promise; } },
+    });
+    await server.listen();
+    try {
+      await permit(server, first);
+      const socket = connect(server.paths.socket);
+      socket.on("error", () => undefined);
+      socket.once("connect", () => socket.write(encodeCurrentResidentRequest(request(server, first, data.dispatch)) + "\n"));
+      await entered.promise;
+      const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()));
+      socket.destroy(); await closed;
+      pause = false; release.resolve(); await server.whenIdle();
+      await permit(server, second);
+      const response = await send(server, second, data.dispatch);
+      expect(response.status).toBe("advice");
+      expect(text(response)).toContain("firstCount");
+    } finally { release.resolve(); await server.close(); }
+  });
+
+  it("disconnect at final handoff releases a selected lease for another collector", async () => {
+    const data = await fixture(); const observation = await data.observation();
+    const entered = deferred(); const release = deferred(); let gated = false;
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
+      beforeResponseHandoff: async () => { if (gated) { entered.resolve(); await release.promise; } },
+    });
+    await server.listen();
+    try {
+      await permit(server, observation); gated = true;
+      const socket = connect(server.paths.socket);
+      socket.on("error", () => undefined);
+      socket.once("connect", () => socket.write(encodeCurrentResidentRequest(request(server, observation, data.dispatch)) + "\n"));
+      await entered.promise;
+      expect(server.pendingAdviceMetadata()[0]?.delivery).toBe("leased-unacknowledged");
+      const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()));
+      socket.destroy(); await closed;
+      // A subsequent socket response also fences processing of the close event.
+      gated = false;
+      await residentRequest(server.paths, { requestRoute: "shared", operation: "hello" });
+      expect(server.pendingAdviceMetadata()[0]?.delivery).toBe("available");
+      expect((await ordinary(server, observation, data.dispatch)).status).toBe("advice");
+    } finally { release.resolve(); await server.close(); }
+  });
+
+  it("a replacement resident cannot continue a previous response attempt", async () => {
+    const data = await fixture(); const observation = await data.observation();
+    const paths = residentPaths(join(data.root, "runtime"));
+    const previous = new ResidentServer(paths); await previous.listen();
+    const oldRequest = request(previous, observation, data.dispatch);
+    await previous.close();
+    const replacement = new ResidentServer(paths); await replacement.listen();
+    try {
+      expect(await residentRequest(paths, oldRequest)).toMatchObject({ status: "unavailable", reason: "lost" });
+      expect(replacement.stats().queued).toBe(0); expect(replacement.stats().running).toBe(0);
+    } finally { await replacement.close(); }
+  });
+
+  it("settled quiet RPCs retain no authority that prevents lifetime cleanup", async () => {
+    const data = await fixture(); const observation = await data.observation();
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime"))); await server.listen();
+    const dispatch = { ...data.dispatch, controlled: { answers: Object.fromEntries(configuredRules.map((rule) =>
+      [rule.id, { _tag: "Probability", probability: 0 }])) } };
+    try {
+      await permit(server, observation); expect(await send(server, observation, dispatch)).toMatchObject({ status: "empty" });
       await server.whenIdle();
-      revoke = true;
-      const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
-      expect(response).toMatchObject({ requestRoute: "ticketed", status: "pending" });
-      expect(server.stats().pendingAdvice).toBe(1);
-    } finally {
-      await server.close();
-    }
+      await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root: data.root, advicee: observation.advicee, token: "settled" });
+      await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root: data.root, advicee: observation.advicee, token: "settled", close: true });
+      expect(server.cleanup()).toBe("cleaned");
+      expect(server.stats()).toMatchObject({ retainedBytes: 0, currentWork: 0, pendingEvaluations: 0, pendingAdvice: 0 });
+    } finally { await server.close(); }
+  });
+
+  it("binds admission to the native tool permit and original resident lifetime", async () => {
+    const data = await fixture(); const observation = await data.observation();
+    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
+    await server.listen();
+    try {
+      await permit(server, observation);
+      if (observation.advicee.host !== "claude-code") throw new Error("expected Claude observation");
+      for (const mismatched of [
+        { ...observation, advicee: { ...observation.advicee, toolUseId: "wrong" } },
+        { ...observation, advicee: { ...observation.advicee, sessionId: "wrong" } },
+        { ...observation, advicee: { ...observation.advicee, subagentId: "wrong" } },
+        { ...observation, root: join(data.root, "other-root") },
+      ]) expect((await send(server, mismatched, data.dispatch)).status).toBe("rejected-stale");
+      expect(await residentRequest(server.paths, { ...request(server, observation, data.dispatch), lifetime: "previous-lifetime" }))
+        .toMatchObject({ status: "unavailable", reason: "lost" });
+      expect(server.stats().running).toBe(0);
+      expect((await send(server, observation, data.dispatch)).status).toBe("advice");
+      expect((await send(server, observation, data.dispatch)).status).toBe("rejected-stale");
+      expect(readFileSync(join(data.root, "first.ts"), "utf8")).toContain("firstCount");
+    } finally { await server.close(); }
   });
 });

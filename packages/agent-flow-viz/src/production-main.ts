@@ -157,7 +157,7 @@ const coverageFamilies = [
   { name: "Background and Stop collection, leases and expiry", match: /^collection/, source: "packages/agent-flow-bend/Collection.bend" },
   { name: "Advice submission, uncertain output and reoffer", match: /^submission/, source: "packages/agent-flow-bend/Delivery.bend" },
   { name: "Revision and revalidation", match: /^(revision|validationRouteCheck|postValidationCheck|finalCandidateCheck)/, source: "packages/agent-flow-bend/Revision.bend" },
-  { name: "Ticket and retained unit outcome", match: /^ticket/, source: "packages/agent-flow-bend/Ticket.bend" },
+  { name: "Response authority and reuse members", match: /^(?:collector|reuseMember)/, source: "packages/agent-flow-bend/CollectorAuthority.bend" },
   { name: "Delivery finalization, round barrier and cleanup", match: /^(delivery|round|cleanup)/, source: "packages/agent-flow-bend/Delivery.bend" },
   { name: "Reuse, cache and operational notice", match: /^(reuse|cache|notice)/, source: "packages/agent-flow-bend/Reuse.bend" },
   { name: "File and rule policy gates", match: /^(includeLayer|fileSelection|fileProtection|candidateFile|reviewAdmission|rule)/, source: "packages/agent-flow-bend/RulePolicy.bend" },

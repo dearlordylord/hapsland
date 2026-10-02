@@ -59,10 +59,8 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "submissionReofferCheck" | "submissionExpiryCheck" |
   "revisionRegister" | "revisionRelease" | "revisionCurrentCheck" |
   "revisionSupersededCheck" | "revisionGenerationCheck" | "revisionCountCheck" |
-  "ticketOpen" | "ticketForget" |
-  "ticketAddUnit" | "ticketStepUnit" | "ticketUnitCheck" |
-  "ticketCollectGateCheck" | "ticketFinalAuthorityCheck" | "ticketJoinedCheck" |
-  "ticketRetentionCheck" | "cleanupCheck" | "cleanupCommit" | "deliveryReleaseCheck" |
+  "collectorGateCheck" | "collectorFinalAuthorityCheck" | "reuseMemberCheck" |
+  "cleanupCheck" | "cleanupCommit" | "deliveryReleaseCheck" |
   "deliveryAcknowledgeCheck" | "deliveryFinalizeCheck" | "deliveryFindingDispositionCheck" |
   "deliverySubmissionCandidateCheck" | "deliverySubmissionBatchCheck" |
   "deliveryCredentialObserveCheck" | "deliveryFinalCredentialCheck" |
@@ -442,8 +440,8 @@ export class CapacityLedger {
     return command;
   }
 
-  emptyPrepared(readyCount: number, hasNonSkipped: boolean, ticketed: boolean): boolean {
-    const command = this.transition({ kind: "emptyPreparedCheck", readyCount, hasNonSkipped, ticketed }).commands[0]?.kind;
+  emptyPrepared(readyCount: number, hasNonSkipped: boolean, authorityBound: boolean): boolean {
+    const command = this.transition({ kind: "emptyPreparedCheck", readyCount, hasNonSkipped, authorityBound }).commands[0]?.kind;
     if (command !== "emptyLost" && command !== "emptyAccepted") throw new Error("canonical empty preparation refused");
     return command === "emptyLost";
   }

@@ -10,7 +10,7 @@ import ./Collection.bend as Collection
 import ./Delivery.bend as Delivery
 import ./Cache.bend as Cache
 import ./Lifecycle.bend as Lifecycle
-import ./Ticket.bend as Ticket
+import ./CollectorAuthority.bend as CollectorAuthority
 import ./Revision.bend as Revision
 import ./Reuse.bend as Reuse
 import ./Retention.bend as Retention
@@ -113,16 +113,12 @@ type Smoke is Data:
     selection_reserved: Lifecycle.OutputSelectionReservation
     selection_authorized: Lifecycle.OutputSelectionStep
     selection_consumed: Lifecycle.OutputSelectionStep
-    ticket_collect_gate: Ticket.CollectGate
-    ticket_final_authority: Ticket.FinalAuthority
-    ticket_joined_disposition: Ticket.JoinedDisposition
-    ticket_unit: Ticket.UnitStep
-    ticket_unit_initial: Ticket.UnitStage
+    collector_gate: CollectorAuthority.CollectGate
+    collector_final_authority: CollectorAuthority.FinalAuthority
     revision_register: Revision.Registration
     revision_superseded: Bool
     cleanup_gate: Retention.CleanupGate
     cleanup_commit: Retention.CleanupGate
-    ticket_retention: Retention.TicketRetention
     discard_scope: Retention.DiscardScope
   }
 
@@ -255,16 +251,12 @@ def main() -> Smoke:
     Lifecycle.selection_authorize(Lifecycle.OutputSelection{1n <> Nil{}, False{}, False{}}),
     Lifecycle.selection_consume(Lifecycle.OutputSelection{1n <> Nil{}, True{}, False{}},
       1n <> Nil{}),
-    Ticket.collect_gate(False{}, True{}),
-    Ticket.final_authority(True{}, True{}),
-    Ticket.joined_disposition(Ticket.JoinedFinding{}, False{}, True{}, True{}),
-    Ticket.unit.step(Ticket.UnitFinding{False{}}, Ticket.MarkDelivered{}),
-    Ticket.unit.initial(),
+    CollectorAuthority.collect_gate(False{}, True{}),
+    CollectorAuthority.final_authority(True{}, True{}),
     Revision.register(True{}, False{}),
     Revision.superseded(1n, 1n, 1n, 2n),
     Retention.cleanup_gate(Retention.CleanupFacts{True{}, True{}, True{}, True{},
       True{}, True{}, True{}, True{}, True{}}),
     Retention.cleanup_commit(True{}),
-    Retention.ticket_retention(2n, 1n, True{}),
     Retention.discard_scope(2n, 2n, False{})
   }

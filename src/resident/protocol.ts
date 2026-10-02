@@ -10,6 +10,8 @@ export const MAX_IPC_CONNECTIONS = 32;
 export const CLIENT_REQUEST_DEADLINE_MS = 1_500;
 export const STARTUP_READINESS_DEADLINE_MS = 10_000;
 export const DELIVERY_LEASE_MS = 5_000;
+/** Bounded synchronous edit response; the hook retains its existing 3.9 s ceiling. */
+export const EDIT_REQUEST_DEADLINE_MS = 3_900;
 
 export type ResidentControlledOptions = {
   readonly answers?: Readonly<Record<string, unknown>>;
@@ -40,23 +42,16 @@ export type ResidentDispatchContext = {
   readonly controlled: ResidentControlledOptions | null;
 };
 
-export type ResidentCollectionTicket = { readonly nonce: string; readonly lifetime: string };
 /** The sole on-socket CLI/resident message version. Internal response shapes remain operation-specific. */
 export const CURRENT_IPC_VERSION = 1 as const;
-export type ResidentRequestRoute = "shared" | "ticketed";
+export type ResidentRequestRoute = "shared" | "edit";
 export type ResidentUnavailableReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired";
 
 export type ResidentRequest =
   | {
-      readonly requestRoute: "ticketed"; readonly operation: "admit"; readonly lifetime: string;
+      readonly requestRoute: "edit"; readonly operation: "admit-and-collect"; readonly lifetime: string;
       readonly observation: DirectObservation; readonly controlledWriter: true; readonly composed: true;
-      readonly dispatch: ResidentDispatchContext;
-    }
-  | {
-      readonly requestRoute: "ticketed"; readonly operation: "collect"; readonly lifetime: string;
-      readonly ticket: ResidentCollectionTicket; readonly root: string;
-      readonly advicee: DirectAdvicee; readonly dispatch: ResidentDispatchContext;
-      readonly mode?: CollectionMode; readonly composed: true;
+      readonly dispatch: ResidentDispatchContext; readonly waitMs: number;
     }
   | { readonly requestRoute: "shared"; readonly operation: "hello" }
   | { readonly requestRoute: "shared"; readonly operation: "prompt-marker"; readonly lifetime: string;
@@ -112,11 +107,10 @@ export type ResidentRequest =
   | { readonly requestRoute: "shared"; readonly operation: "cleanup"; readonly lifetime: string };
 
 export type ResidentResponse =
-  | { readonly requestRoute: "ticketed"; readonly status: "accepted"; readonly ticket: ResidentCollectionTicket }
-  | { readonly requestRoute: "ticketed"; readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported" }
-  | { readonly requestRoute: "ticketed"; readonly status: "pending" | "empty" }
-  | { readonly requestRoute: "ticketed"; readonly status: "unavailable"; readonly reason: ResidentUnavailableReason }
-  | { readonly requestRoute: "ticketed"; readonly status: "advice"; readonly token: string;
+  | { readonly requestRoute: "edit"; readonly status: "rejected-capacity" | "rejected-stale" | "obsolete-lifetime" | "unsupported" }
+  | { readonly requestRoute: "edit"; readonly status: "pending" | "empty" }
+  | { readonly requestRoute: "edit"; readonly status: "unavailable"; readonly reason: ResidentUnavailableReason }
+  | { readonly requestRoute: "edit"; readonly status: "advice"; readonly token: string;
       readonly findingCount: number; readonly output: ClaudeHostOutput }
   | { readonly status: "ready"; readonly lifetime: string; readonly pid: number }
   | {
@@ -258,26 +252,17 @@ export const decodeResidentRequest = (encoded: string): ResidentRequest | undefi
     return undefined;
   }
   const value = record(unknown);
-  if ((value?.requestRoute !== "shared" && value?.requestRoute !== "ticketed") ||
+  if ((value?.requestRoute !== "shared" && value?.requestRoute !== "edit") ||
       value.version !== undefined || typeof value.operation !== "string") return undefined;
-  if (value.requestRoute === "ticketed") {
-    if (!string(value.lifetime)) return undefined;
-    if (value.operation === "admit" && value.composed === true && value.controlledWriter === true && observation(value.observation) &&
-        value.observation.advicee.host === "claude-code" && dispatch(value.dispatch)) {
-      return { requestRoute: "ticketed", operation: "admit", lifetime: value.lifetime,
-        observation: value.observation, controlledWriter: true, dispatch: value.dispatch, composed: true };
-    }
-    const ticket = record(value.ticket);
-    if (value.operation === "collect" && value.composed === true && string(ticket?.nonce) && string(ticket.lifetime) &&
-        string(value.root) && advicee(value.advicee) && value.advicee.host === "claude-code" &&
-        dispatch(value.dispatch) && (value.mode === undefined || value.mode === "ordinary")) {
-      return { requestRoute: "ticketed", operation: "collect", lifetime: value.lifetime,
-        ticket: { nonce: ticket.nonce, lifetime: ticket.lifetime }, root: value.root,
-        advicee: value.advicee, dispatch: value.dispatch,
-        ...(value.mode === undefined ? {} : { mode: value.mode }),
-        composed: true };
-    }
-    return undefined;
+  if (value.requestRoute === "edit") {
+    if (value.operation !== "admit-and-collect" || !string(value.lifetime) ||
+        value.composed !== true || value.controlledWriter !== true || !observation(value.observation) ||
+        value.observation.advicee.host !== "claude-code" || !dispatch(value.dispatch) ||
+        !Number.isSafeInteger(value.waitMs) || typeof value.waitMs !== "number" ||
+        value.waitMs < 0 || value.waitMs > EDIT_REQUEST_DEADLINE_MS) return undefined;
+    return { requestRoute: "edit", operation: "admit-and-collect", lifetime: value.lifetime,
+      observation: value.observation, controlledWriter: true, composed: true,
+      dispatch: value.dispatch, waitMs: value.waitMs };
   }
   if (value.operation === "hello") return { requestRoute: "shared", operation: "hello" };
   if (!string(value.lifetime)) return undefined;
@@ -371,16 +356,14 @@ const ClaudeBlockHostOutput = Schema.Struct({
 });
 
 const ResidentResponseSchema = Schema.Union([
-  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literal("accepted"),
-    ticket: Schema.Struct({ nonce: Schema.NonEmptyString, lifetime: Schema.NonEmptyString }) }),
-  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literals(["rejected-capacity", "rejected-stale", "obsolete-lifetime", "unsupported"])}),
-  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literals(["pending", "empty"]) }),
-  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literal("unavailable"),
+  Schema.Struct({ requestRoute: Schema.Literal("edit"), status: Schema.Literals(["rejected-capacity", "rejected-stale", "obsolete-lifetime", "unsupported"])}),
+  Schema.Struct({ requestRoute: Schema.Literal("edit"), status: Schema.Literals(["pending", "empty"]) }),
+  Schema.Struct({ requestRoute: Schema.Literal("edit"), status: Schema.Literal("unavailable"),
     reason: Schema.Literals(["backend", "credential", "capacity", "stale", "lost", "expired"]) }),
-  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literal("advice"),
+  Schema.Struct({ requestRoute: Schema.Literal("edit"), status: Schema.Literal("advice"),
     token: Schema.NonEmptyString, findingCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
     output: HostOutput }),
-  Schema.Struct({ requestRoute: Schema.Literal("ticketed"), status: Schema.Literal("advice"),
+  Schema.Struct({ requestRoute: Schema.Literal("edit"), status: Schema.Literal("advice"),
     token: Schema.NonEmptyString, findingCount: Schema.Int.check(Schema.isGreaterThan(0)),
     output: ClaudeBlockHostOutput }),
   Schema.Struct({ status: Schema.Literal("ready"), lifetime: Schema.NonEmptyString, pid: Schema.Int }),
@@ -422,7 +405,6 @@ export const encodeCurrentResidentRequest = (request: ResidentRequest): string =
   const { requestRoute, ...fields } = request;
   return JSON.stringify({
     ...fields, version: CURRENT_IPC_VERSION,
-    ...(request.operation === "admit" && requestRoute === "ticketed" ? { ticketed: true } : {}),
   });
 };
 
@@ -431,14 +413,9 @@ export const decodeCurrentResidentRequest = (encoded: string): ResidentRequest |
   try { parsed = JSON.parse(encoded); } catch { return undefined; }
   const value = record(parsed);
   if (value?.version !== CURRENT_IPC_VERSION || typeof value.operation !== "string") return undefined;
-  if (value.ticketed !== undefined && !(value.operation === "admit" && value.ticketed === true)) return undefined;
-  if (value.operation === "admit" && value.ticketed === true && value.ticket !== undefined) return undefined;
-  if (value.operation !== "collect" && value.ticket !== undefined) return undefined;
-  if (value.requestRoute !== undefined) return undefined;
-  const requestRoute: ResidentRequestRoute = value.operation === "admit"
-    ? value.ticketed === true ? "ticketed" : "shared"
-    : value.operation === "collect" && value.ticket !== undefined ? "ticketed" : "shared";
-  const { ticketed: _ticketed, version: _version, ...fields } = value;
+  if (value.ticketed !== undefined || value.ticket !== undefined || value.requestRoute !== undefined) return undefined;
+  const requestRoute: ResidentRequestRoute = value.operation === "admit-and-collect" ? "edit" : "shared";
+  const { version: _version, ...fields } = value;
   return decodeResidentRequest(JSON.stringify({ ...fields, requestRoute }));
 };
 
@@ -452,5 +429,5 @@ export const decodeCurrentResidentResponse = (value: unknown, request: ResidentR
   const fields = record(value);
   if (fields?.version !== CURRENT_IPC_VERSION || fields.requestRoute !== undefined) return undefined;
   const { version: _version, ...body } = fields;
-  return decodeResidentResponse(request.requestRoute === "ticketed" ? { ...body, requestRoute: "ticketed" } : body);
+  return decodeResidentResponse(request.requestRoute === "edit" ? { ...body, requestRoute: "edit" } : body);
 };
