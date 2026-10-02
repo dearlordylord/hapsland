@@ -67,14 +67,15 @@ it.effect("reports a configuration source failure without exposing its payload",
   expect(JSON.stringify(failure)).not.toContain("private-path");
 }));
 
-it.effect("preserves explicitly empty native path values", () => Effect.gen(function* () {
-  for (const [environment, expected] of [
-    [{ REVIEW_RESIDENT_DIR: "", XDG_RUNTIME_DIR: "/runtime" }, ""],
-    [{ XDG_RUNTIME_DIR: "" }, "realtime-review-tool"],
-  ] as const) {
-    const paths = yield* resolveResidentPaths().pipe(Effect.provide(ConfigProvider.layer(
+it.effect("rejects empty endpoint configuration rather than falling back", () => Effect.gen(function* () {
+  for (const environment of [
+    { REVIEW_RESIDENT_DIR: "", XDG_RUNTIME_DIR: "/runtime" },
+    { XDG_RUNTIME_DIR: "" },
+    { REVIEW_RESIDENT_DIR: "/explicit", XDG_RUNTIME_DIR: "" },
+  ]) {
+    const failure = yield* resolveResidentPaths().pipe(Effect.provide(ConfigProvider.layer(
       ConfigProvider.fromEnv({ env: environment, preserveEmptyStrings: true }),
-    )));
-    expect(paths).toEqual(residentPaths(expected));
+    )), Effect.flip);
+    expect(failure).toMatchObject({ _tag: "ResidentEndpointError", operation: "resolveConfiguration" });
   }
 }));

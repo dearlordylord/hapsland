@@ -8,7 +8,7 @@ import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } 
 import { fileURLToPath } from "node:url";
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
-import { loadReviewSettings } from "../runtime/review-config.ts";
+import { loadReviewSettings, type ReviewConfigError } from "../runtime/review-config.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
 import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/secret-service.ts";
 import type { ClaudeHostOutput, CollectionMode } from "./collection.ts";
@@ -17,6 +17,7 @@ import {
   resolveResidentPaths,
   verifyResidentSocket,
   type ResidentPaths,
+  type ResidentEndpointError,
 } from "./paths.ts";
 import {
   CLIENT_REQUEST_DEADLINE_MS,
@@ -95,11 +96,11 @@ export const residentRequestEffect = Effect.fn("ResidentClient.request")(functio
 
 export interface ResidentStartupOperations {
   readonly now: () => number;
-  readonly prepare: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, Error>;
-  readonly probe: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<ResidentResponse, Error>;
-  readonly launch: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, Error>;
-  readonly wait: (milliseconds: number) => Effect.Effect<void, Error>;
-  readonly clearDiagnostic: (paths: ResidentPaths) => Effect.Effect<void, Error>;
+  readonly prepare: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, ResidentEndpointError>;
+  readonly probe: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<ResidentResponse, ResidentIpcError | ResidentEndpointError>;
+  readonly launch: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, ResidentIpcError>;
+  readonly wait: (milliseconds: number) => Effect.Effect<void>;
+  readonly clearDiagnostic: (paths: ResidentPaths) => Effect.Effect<void, ResidentIpcError>;
   readonly diagnostic: (paths: ResidentPaths) => Effect.Effect<string>;
 }
 export class ResidentStartup extends Context.Service<ResidentStartup, ResidentStartupOperations>()("hapsland/ResidentStartup") {}
@@ -160,9 +161,9 @@ export const makeResidentStartup = Effect.gen(function* () {
   return ResidentStartup.of({
     now: launcher.now,
     prepare: Effect.fn("ResidentStartup.prepare")((paths: ResidentPaths) => prepareResidentDirectory(paths)),
-    probe: (paths, timeoutMs) => residentRequestEffect(paths, { requestRoute: "shared", operation: "hello" }, timeoutMs),
+    probe: Effect.fn("ResidentStartup.probe")((paths: ResidentPaths, timeoutMs: number) => residentRequestEffect(paths, { requestRoute: "shared", operation: "hello" }, timeoutMs)),
     launch,
-    wait: (milliseconds) => Effect.sleep(milliseconds),
+    wait: Effect.fn("ResidentStartup.wait")((milliseconds: number) => Effect.sleep(milliseconds)),
     clearDiagnostic: Effect.fn("ResidentStartup.clearDiagnostic")((paths: ResidentPaths) => Effect.try({
       try: () => rmSync(`${paths.lock}.startup-error`, { force: true }), catch: () => new ResidentIpcError({ message: "resident startup diagnostic cleanup failed" }),
     })),
@@ -214,7 +215,7 @@ export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(f
 /** Read-only bounded probe. Unlike ensureResident, this never launches or repairs a resident. */
 export const inspectResidentEffect = Effect.fn("ResidentClient.inspectResident")(function* (
   paths: ResidentPaths | undefined = undefined,
-): Effect.fn.Return<{ readonly available: boolean; readonly lifetime?: string; readonly pid?: number }, Error> {
+): Effect.fn.Return<{ readonly available: boolean; readonly lifetime?: string; readonly pid?: number }, ResidentIpcError | ResidentEndpointError> {
   paths ??= yield* resolveResidentPaths();
   const response = yield* residentRequestEffect(
     paths,
@@ -232,7 +233,7 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
   activityPath: string,
   userConfigPath: string | undefined,
   controlledOptions: ControlledDecisionModelOptions | undefined,
-): Effect.fn.Return<ResidentDispatchContext, Error> {
+): Effect.fn.Return<ResidentDispatchContext, ResidentIpcError | ReviewConfigError> {
   const settings = yield* loadReviewSettings(
     root,
     userConfigPath === undefined ? {} : { userConfigPath },
@@ -337,7 +338,7 @@ export const admitTicketedObservationEffect = Effect.fn("ResidentClient.admitTic
   dispatch: ResidentDispatchContext,
   paths: ResidentPaths | undefined = undefined,
   composed = true,
-): Effect.fn.Return<TicketedAdmissionResult, Error, ResidentStartup> {
+): Effect.fn.Return<TicketedAdmissionResult, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
   paths ??= yield* resolveResidentPaths();
   if (!composed || observation.advicee.host !== "claude-code") return { status: "unsupported" };
   const owner = yield* ensureResidentEffect(paths);
@@ -378,7 +379,7 @@ export type CollectionOutcome =
 export const collectOutcomeEffect = Effect.fn("ResidentClient.collectOutcome")(function* (
   admission: TicketedAdmission,
   mode: CollectionMode = "ordinary",
-): Effect.fn.Return<CollectionOutcome, Error> {
+): Effect.fn.Return<CollectionOutcome, ResidentIpcError | ResidentEndpointError> {
   const response = yield* residentRequestEffect(admission.paths, {
     requestRoute: "ticketed",
     operation: "collect",
@@ -415,7 +416,7 @@ export const collectReadyEffect = Effect.fn("ResidentClient.collectReady")(funct
   dispatch: ResidentDispatchContext,
   paths: ResidentPaths | undefined = undefined,
   mode: CollectionMode = "ordinary",
-): Effect.fn.Return<(CollectedAdvice & { readonly output: CodexDirectEventOutput }) | undefined, Error, ResidentStartup> {
+): Effect.fn.Return<(CollectedAdvice & { readonly output: CodexDirectEventOutput }) | undefined, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
   paths ??= yield* resolveResidentPaths();
   const owner = yield* ensureResidentEffect(paths);
   const response = yield* residentRequestEffect(paths, {
@@ -455,7 +456,7 @@ export const collectAdviceeOutcomeEffect = Effect.fn("ResidentClient.collectAdvi
   mode: CollectionMode = "ordinary",
   deadlineAt = Number.POSITIVE_INFINITY,
   finish?: { readonly token: string; readonly deadlineReached: boolean },
-): Effect.fn.Return<AdviceeCollectionOutcome, Error> {
+): Effect.fn.Return<AdviceeCollectionOutcome, ResidentIpcError | ResidentEndpointError> {
   paths ??= yield* resolveResidentPaths();
   const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return { status: "empty" };
@@ -495,7 +496,7 @@ export const markComposedUserPromptEffect = Effect.fn("ResidentClient.markCompos
   paths: ResidentPaths | undefined = undefined,
   promptDigest?: string,
   onlyIfMissing?: true,
-): Effect.fn.Return<boolean, Error, ResidentStartup> {
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
   paths ??= yield* resolveResidentPaths();
   const owner = yield* ensureResidentEffect(paths, 1_500);
   const response = yield* residentRequestEffect(paths, {
@@ -510,7 +511,7 @@ export const markComposedUserPromptEffect = Effect.fn("ResidentClient.markCompos
 export const claimComposedBackgroundEffect = Effect.fn("ResidentClient.claimComposedBackground")(function* (
   root: string, advicee: DirectAdvicee, token: string,
   paths: ResidentPaths | undefined = undefined,
-): Effect.fn.Return<boolean, Error, ResidentStartup> {
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
   paths ??= yield* resolveResidentPaths();
   const owner = yield* ensureResidentEffect(paths, 1_500);
   const response = yield* residentRequestEffect(paths, {
@@ -523,7 +524,7 @@ export const claimComposedBackgroundEffect = Effect.fn("ResidentClient.claimComp
 export const releaseComposedBackgroundEffect = Effect.fn("ResidentClient.releaseComposedBackground")(function* (
   root: string, advicee: DirectAdvicee, token: string,
   paths: ResidentPaths | undefined = undefined,
-): Effect.fn.Return<boolean, Error> {
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError> {
   paths ??= yield* resolveResidentPaths();
   const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
@@ -537,7 +538,7 @@ export const releaseComposedBackgroundEffect = Effect.fn("ResidentClient.release
 export const beginComposedSubmissionEffect = Effect.fn("ResidentClient.beginComposedSubmission")(function* (
   advice: CollectedAdvice,
   surface: "edit" | "background" | "stop",
-): Effect.fn.Return<boolean, Error> {
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError> {
   const response = yield* residentRequestEffect(advice.paths, {
     requestRoute: "shared", operation: "begin-submission", lifetime: advice.lifetime,
     token: advice.token, surface,
@@ -545,7 +546,7 @@ export const beginComposedSubmissionEffect = Effect.fn("ResidentClient.beginComp
   return response.status === "submitting";
 });
 
-export const releaseComposedSubmissionEffect = Effect.fn("ResidentClient.releaseComposedSubmission")(function* (advice: CollectedAdvice): Effect.fn.Return<boolean, Error> {
+export const releaseComposedSubmissionEffect = Effect.fn("ResidentClient.releaseComposedSubmission")(function* (advice: CollectedAdvice): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError> {
   const response = yield* residentRequestEffect(advice.paths, {
     requestRoute: "shared", operation: "release", lifetime: advice.lifetime,
     token: advice.token,
@@ -570,7 +571,7 @@ export const acknowledgeAdviceEffect = Effect.fn("ResidentClient.acknowledgeAdvi
 export const composedStopBoundaryEffect = Effect.fn("ResidentClient.composedStopBoundary")(function* (
   operation: "begin-stop" | "finish-stop", root: string, advicee: DirectAdvicee,
   token: string, close = false, paths: ResidentPaths | undefined = undefined, reason: RoundCloseReason = "no-advice",
-): Effect.fn.Return<boolean, Error> {
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError> {
   paths ??= yield* resolveResidentPaths();
   const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
@@ -582,7 +583,7 @@ export const composedStopBoundaryEffect = Effect.fn("ResidentClient.composedStop
 export const registerComposedEditEffect = Effect.fn("ResidentClient.registerComposedEdit")(function* (
   root: string, advicee: DirectAdvicee, startedAt: number, paths: ResidentPaths | undefined = undefined, activityPath?: string,
   userConfigPath?: string,
-): Effect.fn.Return<boolean, Error, ResidentStartup> {
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
   paths ??= yield* resolveResidentPaths();
   const owner = yield* ensureResidentEffect(paths, 1_500);
   const response = yield* residentRequestEffect(paths, { requestRoute: "shared", operation: "register-edit",

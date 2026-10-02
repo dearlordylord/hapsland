@@ -21,14 +21,14 @@ export const residentPaths = (directory: string): ResidentPaths => ({
 });
 
 export const resolveResidentPaths = Effect.fn("ResidentEndpoint.resolvePaths")(function* () {
-  // Preserve native empty-string semantics without overriding an explicitly
-  // supplied provider. The environment source is selected only at execution.
+  // Keep empty environment values visible so NonEmptyString rejects them.
+  // An explicitly supplied provider retains authority over configuration.
   const context = yield* Effect.context();
   const provider = Context.getOrUndefined(context, ConfigProvider.ConfigProvider)
     ?? ConfigProvider.fromEnv({ preserveEmptyStrings: true });
   const configuration = yield* Config.all({
-    override: Config.option(Config.String("REVIEW_RESIDENT_DIR")),
-    runtime: Config.option(Config.String("XDG_RUNTIME_DIR")),
+    override: Config.option(Config.NonEmptyString("REVIEW_RESIDENT_DIR")),
+    runtime: Config.option(Config.NonEmptyString("XDG_RUNTIME_DIR")),
   }).parse(provider).pipe(Effect.mapError(() => new ResidentEndpointError({
     operation: "resolveConfiguration", message: "resident endpoint configuration unavailable",
   })));
