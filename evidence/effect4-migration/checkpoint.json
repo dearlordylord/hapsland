@@ -3613,5 +3613,29 @@
       "src/onboarding/host-process.test.ts": "4b9a5d1a91ff6367b960a90e212026306b9171d0ceee72614da3ef930bb8c4c2"
     },
     "remaining": "invokeLifecycle and its update/maintenance callers still use synchronous native invocation; next port must preserve per-host failure handling, 30000ms deadline and partial-result semantics. Full migration incomplete."
+  },
+  "lifecycleInvocationEffectPort": {
+    "status": "human preview/apply lifecycle transport is named Effect with scoped native process",
+    "contract": "JSON stdin transport, 30000ms deadline, default 1MiB output bound, checked response schema, nonzero partial acceptance retained. Timeout reports uncertain outcome; unreadable payload error omits raw stdout. update/maintenance directly yield transport and map typed failures per host without private runtime.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/lifecycle-invocation.test.ts src/onboarding/host-process.test.ts src/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 3,
+        "tests": 16,
+        "durationSeconds": 8.43
+      }
+    ],
+    "nativeEvidence": "Child JSON input until EOF, nonzero partial output and malformed private synthetic payload cases pass, with shared process closure tests.",
+    "sourceSha256": {
+      "src/onboarding/client-lifecycle.ts": "ce05c7e05816efc21fa50a4ef1aa317de8c3419aaf1c23fa972d2a3aa86f569c",
+      "src/onboarding/lifecycle-invocation.test.ts": "74226bbb65ac5096537e26999b6d32675cf4d3e273fe5187504fdb4c5eb41d06",
+      "src/cli.ts": "87a134d759010f22ae70dd883d9c0c4f63dee6f92de71ab3a45289a3debf0d0c"
+    },
+    "limitations": "Package identity/active dispatcher and doctor native calls remain synchronous; no actual interactive approved mutation or installed-package conformance run. Codex/Claude installation Config, external Clock deadline and final full gates remain incomplete."
   }
 }

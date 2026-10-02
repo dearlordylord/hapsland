@@ -1188,16 +1188,18 @@ const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
   const childEnvironment = { ...process.env };
   delete childEnvironment.REVIEW_INSTALL_RUNTIME;
   delete childEnvironment.REVIEW_INSTALL_ENTRYPOINT;
-  const invoke = (host: SetupClient, operation: "update-preview" | "update", proposalDigest?: string) => {
-    const output = invokeLifecycle(executable, [`--${operation}`], host, { version: 1, operation, ...hostFields(host), ...(proposalDigest === undefined ? {} : { proposalDigest }) }, childEnvironment);
+  const invoke = Effect.fn("InteractiveUpdate.invoke")(function* (host: SetupClient, operation: "update-preview" | "update", proposalDigest?: string) {
+    const output = yield* invokeLifecycle(executable, [`--${operation}`], host, { version: 1, operation, ...hostFields(host), ...(proposalDigest === undefined ? {} : { proposalDigest }) }, childEnvironment);
     for (const line of formatProposal(output.proposal)) process.stderr.write(`${line}\n`);
     return output;
-  };
+  });
   const proposals: Array<{ host: SetupClient; digest: string }> = [];
   for (const host of hosts) {
     try {
       process.stderr.write(`Preview ${host}:\n`);
-      const preview = invoke(host, "update-preview");
+      const previewResult = yield* invoke(host, "update-preview").pipe(Effect.result);
+      if (previewResult._tag === "Failure") { failed(host, previewResult.failure); continue; }
+      const preview = previewResult.success;
       if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined) throw new Error("target did not return an applicable update preview");
       if (preview.alreadyCurrent === true || preview.proposal.changes?.length === 0) { outcomes.set(host, "already current"); activatePackage(executable); }
       else proposals.push({ host, digest: preview.proposal.digest });
@@ -1208,7 +1210,9 @@ const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
     for (const proposal of proposals) {
       if (!apply) { outcomes.set(proposal.host, "skipped"); continue; }
       try {
-        const result = invoke(proposal.host, "update", proposal.digest);
+        const invocation = yield* invoke(proposal.host, "update", proposal.digest).pipe(Effect.result);
+        if (invocation._tag === "Failure") { failed(proposal.host, invocation.failure); continue; }
+        const result = invocation.success;
         if (result.status === "partial") {
           activatePackage(executable);
           throw new Error(`${formatFailure(result, proposal.host)} Next: hapsland repair ${proposal.host}. The selected package is retained for recovery.`);
@@ -1248,7 +1252,9 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
         const output = invokeLifecycle(process.execPath, [fileURLToPath(import.meta.url), `--${request.operation}`], host, request);
         return output;
       };
-      const preview = invoke();
+      const previewResult = yield* invoke().pipe(Effect.result);
+      if (previewResult._tag === "Failure") { reportClientFailure(host, previewResult.failure); continue; }
+      const preview = previewResult.success;
       if (preview.status === "already-uninstalled") { process.stderr.write(`${host}: already removed.\n`); continue; }
       if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined) throw new Error(formatFailure(preview, host));
       if (preview.proposal.changes?.length === 0) { process.stderr.write(`${host}: ${command === "uninstall" ? "already removed" : "integration intact"}.\n`); continue; }
@@ -1264,7 +1270,9 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
         continue;
       }
       if (!confirmation.success) { process.stderr.write(`${host}: skipped.\n`); continue; }
-      const result = invoke(preview.proposal.digest);
+      const invocation = yield* invoke(preview.proposal.digest).pipe(Effect.result);
+      if (invocation._tag === "Failure") { reportClientFailure(host, invocation.failure); continue; }
+      const result = invocation.success;
       if (result.status === "partial" && operation !== "uninstall") activateCurrentPackage(fileURLToPath(import.meta.url));
       if (!["complete", "installed", "already-installed", "updated", "already-current", "uninstalled", "already-uninstalled", "removed", "already-removed"].includes(result.status)) throw new Error(formatFailure(result, host));
       if (operation !== "uninstall") activateCurrentPackage(fileURLToPath(import.meta.url));

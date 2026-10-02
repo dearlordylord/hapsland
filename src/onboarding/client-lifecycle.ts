@@ -1,3 +1,5 @@
+import * as Effect from "effect/Effect";
+import { execFileClosedStdin } from "./host-process.ts";
 import * as Schema from "effect/Schema";
 import { spawnSync } from "node:child_process";
 import { homedir } from "node:os";
@@ -186,16 +188,32 @@ const LifecycleResult = Schema.Struct({
     journalReplacement: Schema.optionalKey(Schema.Unknown),
   })),
 });
+export class LifecycleInvocationError extends Schema.TaggedError<LifecycleInvocationError>()("LifecycleInvocationError", {
+  message: Schema.String,
+}) {}
 /** Every human mutation uses the same checked preview/apply transport. */
-export const invokeLifecycle = (command: string, args: ReadonlyArray<string>, host: SetupClient, request: unknown, environment: NodeJS.ProcessEnv = process.env) => {
-  const result = spawnSync(command, [...args], { input: JSON.stringify(request), encoding: "utf8", timeout: 30_000, env: environment });
-  if (result.error !== undefined) throw result.error;
-  let output: typeof LifecycleResult.Type;
-  try { output = Schema.decodeUnknownSync(LifecycleResult)(JSON.parse(result.stdout)); }
-  catch { throw new Error(`${host}: package returned an unreadable lifecycle result. Run hapsland doctor ${host}.`); }
-  if (result.status !== 0 && output.status !== "partial") {
+export const invokeLifecycle = Effect.fn("ClientLifecycle.invoke")(function* (
+  command: string, args: ReadonlyArray<string>, host: SetupClient, request: unknown,
+  environment: NodeJS.ProcessEnv = process.env,
+) {
+  const input = yield* Effect.try({ try: () => {
+    const encoded = JSON.stringify(request);
+    if (encoded === undefined) throw new Error("missing lifecycle request");
+    return encoded;
+  }, catch: () => new LifecycleInvocationError({ message: `${host}: lifecycle request could not be encoded` }) });
+  const result = yield* execFileClosedStdin(command, args, { input, env: environment,
+    timeout: 30_000, maxBuffer: 1024 * 1024 });
+  if (result.timedOut) return yield* Effect.fail(new LifecycleInvocationError({
+    message: `${host}: lifecycle request deadline exceeded; outcome is uncertain`,
+  }));
+  const unreadable = () => new LifecycleInvocationError({
+    message: `${host}: package returned an unreadable lifecycle result. Run hapsland doctor ${host}.`,
+  });
+  const parsed = yield* Effect.try({ try: () => JSON.parse(result.stdout), catch: unreadable });
+  const output = yield* Schema.decodeUnknownEffect(LifecycleResult)(parsed).pipe(Effect.mapError(unreadable));
+  if (!result.succeeded && output.status !== "partial") {
     const compatibility = formatCompatibility(record(output.host).compatibility);
-    throw new Error([formatFailure(output, host), ...compatibility].join("\n"));
+    return yield* Effect.fail(new LifecycleInvocationError({ message: [formatFailure(output, host), ...compatibility].join("\n") }));
   }
   return output;
-};
+});
