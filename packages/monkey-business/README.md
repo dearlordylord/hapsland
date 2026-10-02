@@ -2,7 +2,7 @@
 
 **Purpose:** Explain the supported source-free deterministic simulator API.
 **Status:** Maintained package guidance.
-**Authority:** Implementation guidance and validation scope; issues #152–#157 own requirements, and accepted Hapsland contracts own product behavior.
+**Authority:** Implementation guidance and validation scope; issues #176–#200 and #152–#157 own requirements, and accepted Hapsland contracts own product behavior.
 **Expected use:** Run headless experiments or consume checked frames in a dashboard.
 **Lifecycle:** Keep current with public API and tests; review whenever supported simulation boundaries or replay identity change.
 
@@ -185,3 +185,56 @@ late POST cannot revive an expired permit. Replay remains format 1 and records
 session duration and targeted controls. The dashboard starts at 1 ms and places
 this setting beside Edit interval; Start seeds all agents, Apply targets the
 selected agent.
+
+## Shared public scenario boundary and migration coverage
+
+`createRun(config)` creates one resident. Its `step`, bounded `advance`,
+`applyControl`, `schedule`, `observe`, `subscribe` and `exportReplay` operations
+are the shared headless boundary used by dashboard consumers. `observe()`
+returns one synchronous immutable snapshot of virtual time, event count,
+resident projection, retained frames, capacity metadata and advicee scopes.
+Earlier snapshots cannot change when the run advances; retention still limits
+only observations. `replayRun` reconstructs inputs; `restoreReplay` restores
+the recorded endpoint. These are the same version-one API and replay format,
+not a parallel migration facade. Advance options use the existing exact
+synchronous Effect Schema decoding convention and reject excess fields before
+any advancement. UI cameras, layout, playback speed and unapplied form drafts
+remain presentation-owned. The dashboard's retained history reads this boundary;
+there is no visual layout change in this prefactor.
+
+The numeric migration contract preserves actual Run support: nonnegative
+integer scripted absolute times, preparation/Jev delays, replay endpoint time,
+seed and advance bounds reach **2^48−1**. Canonical identities use the same
+immediate Nat domain; byte facts are bounded by **2^47−1**. JS numbers represent
+these integers exactly; the Bend lane uses **Nat**, never U32 for absolute
+clocks. Native probes construct values above U32 with Nat arithmetic because
+Bend's literal syntax accepts at most 2^32−1. Existing live/session profile
+ranges remain unchanged: timing profiles reach 1,000,000,000, session seeds
+reach 2^32−1, and standalone SessionGenerator host clocks accept safe JS
+integers; resident enqueue still requires u48. This does not grant support for
+an effect due beyond u48. Migration must check derived clock arithmetic before
+publishing an effect; it must not truncate clocks to fit a smaller machine
+word. Fractional, negative, nonfinite and adjacent out-of-domain values remain
+invalid. Outcome weights retain finite fractional values in [0,100].
+
+Initial coverage map for #178 (extend this table as complete slices land):
+
+| Boundary | Actual production decision core | Modeled host orchestration | Unexercised native boundary |
+| --- | --- | --- | --- |
+| Admission and ownership | Canonical admission/round/ledger/dispatch | Scripted edits, shared advicee partition bindings, execution slot facts | Runtime hook attribution, real resident IPC and edit execution |
+| Preparation | ImportGraph permission, visited targets, budgets and completion; Canonical preparation reservations | Seeded source-free tree, capture/resolve facts, synthetic byte inputs | Filesystem parsing, actual bytes, source/rule capability capture |
+| Jev | Canonical request permits, phase/identity fences, settlement and retention | Captured request due time/outcome; NeverSent omits start; interruption follows start | HTTP, real credentials, transport and paid reviewer |
+| Advice and output | Canonical collection, freshness, suppression, lease/submission and Stop decisions | Synthetic current-source/credential facts, certain/uncertain/failed callbacks, finite timers | Native writer/encoding, model-visible receipt and repair quality |
+| Reuse and lifetime | Canonical revision/reuse/cache, permits, collectors, notices, quiet and retirement | Source-free identity fixtures and selected lifecycle/resource scenario routes | Native identity verification, full resident shutdown; generated live-advice joining |
+| Workload and scheduling | Existing compiled Session core supplies task/edit/finish transitions | Run still owns deterministic queue, clock, effect driver and replay orchestration | No complete native Bend simulator yet; #179 and later slices replace these owners |
+
+`public-seam.test.ts` independently expects intermediate request completion,
+NeverSent start absence, finding retention, exact viewing boundaries and numeric
+refusal. Existing directed/recovery/shared-resident/environment tests remain
+representative contract regressions. `native-boundary.test.ts` compares the
+actual compiled Canonical through the public Run with native Bend for ordinary
+and duplicate round opening and wide-Nat identities, reproducing public cases
+through ordinary replay. It establishes that selected boundary only; full
+native/JS simulator trace agreement is extended with each later Bend slice.
+All checks are offline, finite and source-free. No native-runtime support,
+complete simulation proof or empirical Jev claim follows from these fixtures.

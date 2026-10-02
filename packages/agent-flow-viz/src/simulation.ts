@@ -663,7 +663,7 @@ export const simulationView = <Message>(
   const weightTotal = JEV_OUTCOME_ORDER.reduce((total, outcome) => total + weights[outcome], 0);
   let draftMix = "Choose at least one nonzero weight.";
   try { draftMix = mixSummary(weights); } catch { /* Invalid drafts are previewed without touching the engine. */ }
-  const observations = run?.observations ?? [];
+  const observations = run?.observe().observations ?? [];
   const activeReplay = run?.exportReplay();
   const latestControl = <Kind extends Control["kind"]>(kind: Kind) => activeReplay?.controls.map((entry) => entry.control).findLast((control): control is Extract<Control, { kind: Kind }> => control.kind === kind && (!control.agent || control.agent === model.agentId));
   const activeTrees = activeReplay ? latestControl("fileTrees")?.profile ?? activeReplay.config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE : undefined;

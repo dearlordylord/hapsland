@@ -1,4 +1,7 @@
 import { ResourceScenarios, demoResourceLimits, type ResourceScenarioConfig } from "./resource-scenarios.ts";
+import { freezeCanonicalData } from "../../../src/canonical/immutable.ts";
+import { Schema } from "effect";
+import { Nat, decoder } from "../../../src/canonical/boundary-schema.ts";
 export * from "./resource-scenarios.ts";
 export { projectAgent } from "./agent-projection.ts";
 import { generateFileTree, validateFileTreeProfile, DEFAULT_FILE_TREE_PROFILE, type FileTreeProfile } from "./file-trees.ts";
@@ -126,6 +129,21 @@ export type Observation = {
   readonly effects: readonly EffectObservation[];
   readonly capacityMetadata: CapacityMetadata;
 };
+/** One synchronous viewing boundary; presentation never owns simulator state. */
+export type RunObservation = {
+  readonly now: number;
+  readonly eventCount: number;
+  readonly projection: CanonicalProjection;
+  readonly observations: readonly Observation[];
+  readonly capacityMetadata: CapacityMetadata;
+  readonly agentScopes: readonly { readonly agent: string; readonly partition: number; readonly seed: number }[];
+};
+export const AdvanceOptionsSchema = Schema.Struct({
+  untilTime: Schema.optional(Nat),
+  maxEvents: Schema.optional(Nat),
+});
+export type AdvanceOptions = typeof AdvanceOptionsSchema.Type;
+const decodeAdvanceOptions = decoder(AdvanceOptionsSchema);
 export type RunConfig = {
   readonly seed?: number;
   readonly lifecycles?: LifecycleProfile;
@@ -393,6 +411,11 @@ export class Run {
   }
   get eventCount() {
     return this.count;
+  }
+  observe(): RunObservation {
+    return freezeCanonicalData({ now: this.clock, eventCount: this.count,
+      projection: this.projection, observations: [...this.history],
+      capacityMetadata: this.capacityMetadata, agentScopes: this.agentScopes });
   }
   subscribe(listener: (o: Observation) => void) {
     this.listeners.add(listener);
@@ -1303,6 +1326,7 @@ export class Run {
     return item.partition ?? 1;
   }
   private record(observation: Observation): Observation {
+    freezeCanonicalData(observation);
     this.history.push(observation);
     const retention = this.config.retention ?? 1000;
     if (this.history.length > retention)
@@ -1408,10 +1432,8 @@ export class Run {
       for (const input of this.session.onFinish(this.clock, continuation))
         this.enqueue(input);
   }
-  advance({
-    untilTime,
-    maxEvents = 1000,
-  }: { untilTime?: number; maxEvents?: number } = {}) {
+  advance(options: AdvanceOptions = {}) {
+    const { untilTime, maxEvents = 1000 } = decodeAdvanceOptions(options);
     integer(maxEvents, "event limit");
     if (untilTime !== undefined) {
       integer(untilTime, "time limit");
