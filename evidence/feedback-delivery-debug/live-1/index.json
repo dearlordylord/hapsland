@@ -1,0 +1,14 @@
+{
+  "mode": "live",
+  "completedAt": "2026-10-02T20:03:47.271Z",
+  "records": [
+    {
+      "stage": "B",
+      "id": "repair-2-context-rendering",
+      "candidate": "hapsland",
+      "blindId": "1ce091630617"
+    }
+  ],
+  "attempts": 2,
+  "hostUncachedPlusOutputTokens": 43792
+}

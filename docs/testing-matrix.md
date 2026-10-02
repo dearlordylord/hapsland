@@ -25,6 +25,17 @@
 
 The selected adoption observations include six controlled offline passes and six live Jev passes. One earlier controlled Claude Bend session received a finding but did not repair; its separately declared follow-up session passed. The live and offline records stay distinct in the language index.
 
+The [feedback delivery investigation](../evidence/feedback-delivery-debug/investigation.json)
+retains five separate rendering diagnostics and per-run harness snapshots.
+The archived runner sources record their opt-in `--delivery-debug` mode. The two corrected-path validations declare
+`--debug-edit-delay-ms=1500 --debug-stop-delay-ms=6000`: these are injected faults,
+not ordinary runtime observations. One controlled and one live Jev session delivered
+through a Codex Bash background hook, confirmed receipt and passed finite-domain
+repair probes despite a lost first background opportunity and a native Stop timeout.
+These source-checkout diagnostics do not amend the original comparison cell or
+establish a general delivery guarantee. The investigation made four physical Jev
+requests across its two live runs.
+
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to

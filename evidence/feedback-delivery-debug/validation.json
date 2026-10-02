@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "authority": "Checks actually executed during delivery investigation. No CI or package-platform claim.",
+  "checks": [
+    {
+      "command": "npx vitest run --maxWorkers=1 src/direct-event/adapter.test.ts (before correction)",
+      "result": "Expected failure: new Bash background identity regression failed; 19 other tests passed."
+    },
+    {
+      "command": "npx vitest run --maxWorkers=1 src/direct-event/adapter.test.ts src/resident/composed-hook.test.ts src/resident/collection.test.ts src/resident/terminal-collection.test.ts",
+      "result": "49 passed"
+    },
+    {
+      "command": "npx vitest run --maxWorkers=1 src/resident/server.test.ts src/direct-event/adapter.test.ts src/resident/composed-hook.test.ts",
+      "result": "112 passed"
+    },
+    {
+      "command": "npm run typecheck",
+      "result": "passed"
+    },
+    {
+      "command": "npm run conformance:direct-event",
+      "result": "317 tests passed; 12 groups, 39 obligations, 94 mapped checks, 4 sanitized conformance evidence records valid"
+    },
+    {
+      "command": "npm run docs:check",
+      "result": "87 documents, zero errors"
+    },
+    {
+      "command": "git diff --check in product and sibling research repositories",
+      "result": "passed"
+    },
+    {
+      "command": "node --check scripts/run-abide-quality.mjs; node --check scripts/abide-quality-observer.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "Per-run script snapshot hash, native outcomes, nonce receipt, artifact-score and source-free trace/credential-retention assertions",
+      "result": "five declared sessions passed; two corrected fault runs delivered through Bash and repaired; four live Jev requests total"
+    }
+  ],
+  "nativeSource": {
+    "commit": "be2951ea34f0d295ed0becf97079f92fa5f6950e",
+    "version": "0.155.1",
+    "timeoutOwner": "codex-rs/hooks/src/engine/command_runner.rs",
+    "behavior": "Configured handler timeout produces timeout outcome and process-tree guard kills the hook process group."
+  },
+  "remainingUncertainty": "The historical Stop invocation failure cannot be reconstructed from completion-only logs; no claim that its exact cause was timeout."
+}

@@ -227,7 +227,8 @@ export const adaptComposedHookIdentity = Effect.fn("DirectEvent.adaptComposedHoo
   if (eventName === "SubagentStop" && !nonEmpty(event.agent_id)) return undefined;
   if (eventName === "PostToolUse" || eventName === "PreToolUse") {
     if (!nonEmpty(event.tool_use_id)) return undefined;
-    if (host === "codex-cli" && event.tool_name !== "apply_patch") return undefined;
+    if (host === "codex-cli" && event.tool_name !== "apply_patch" &&
+        !(eventName === "PostToolUse" && event.tool_name === "Bash")) return undefined;
     if (host === "claude-code" && event.tool_name !== "Edit" && event.tool_name !== "Write") return undefined;
   }
   const root = yield* canonicalGitRoot(event.cwd);

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-02T20:05:16.255Z",
+  "mode": "live",
+  "fixturesSha256": "728e5a2ea080ec991e8ac5b08ce7d010a71f62685ddf75bf4cd8fdd61d0eb1fe",
+  "scripts": {
+    "run-abide-quality.mjs": "167f023a49d5415b6e5ad266f778bfb0253d264107ff5dd391acbce69b8910d2",
+    "abide-quality-capture.mjs": "78b286f3c64db2a32b1894f0606e8daf51d929cd2b5d86c49abc24457a86d850",
+    "abide-quality-observer.mjs": "1a4dbf7acc4ebec90009eb63570624a1fcbe052aef9a78fc67a390e915e4ee7f",
+    "abide-quality-fixtures.mjs": "16a000cd371a564802e0d9a214abbaa1e4699873605e8517d7bd27dd569dd888"
+  },
+  "hapslandCommit": "6c59cbf5edd143e4674a726ee3c085ebec5a39aa",
+  "codexVersion": "codex-cli 0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "abideVersion": "0.0.7",
+  "abideHookSha256": "77626436f4e84a18b1907181c6b970a345b86b03381a9325947dcdb00accc0b1",
+  "requestCap": 4,
+  "sharedAttemptLog": "/workspace/typescript/jev/evidence/feedback-delivery-debug/patched-live-faults/attempts.jsonl",
+  "stageACells": 0,
+  "stageBSessions": 1,
+  "deliveryDebug": true,
+  "debugEditDelayMs": 1500,
+  "debugStopDelayMs": 6000,
+  "productionAdapterSha256": "f4a0dd7e4e79bd2cecce05725797a5a0a9584f0f30dc4d007cac2907b943c9dc",
+  "feedbackReceiptProbe": true,
+  "onlyCandidate": "hapsland",
+  "selectedTaskIds": [
+    "context-rendering"
+  ],
+  "taskProfile": "apply-feedback",
+  "sourceCheckoutHapsland": true,
+  "manuallyActiveAbideNoulRubric": true,
+  "nativeTrustBypassed": true,
+  "hostSandboxBypassed": true,
+  "automaticRetries": 0,
+  "maximumHostMs": 300000,
+  "tokenCaps": {
+    "perSession": 100000,
+    "cumulative": 1000000,
+    "observedAtCompletionOnly": true
+  },
+  "amendment": "Separate delivery investigation on the unrestricted rendering fixture, not a comparison. Source-free hook start/completion and IPC traces; declared wrapper delays are fault injection, not natural runtime observations. Four provider attempts maximum, no retries. Receipt echo and independent artifact scoring remain separate. Historical cells are not overwritten."
+}
