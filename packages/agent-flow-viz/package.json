@@ -12,7 +12,8 @@
     "test:usability": "node scripts/check-usability.mjs",
     "test:ensemble-browser": "node scripts/check-ensemble-browser.mjs",
     "test:resource-browser": "node scripts/check-resource-browser.mjs",
-    "test:execution-pools-browser": "node scripts/check-execution-pools-browser.mjs"
+    "test:execution-pools-browser": "node scripts/check-execution-pools-browser.mjs",
+    "test:timing-browser": "node scripts/check-timing-browser.mjs"
   },
   "dependencies": {
     "@hapsland/agent-flow-projection": "file:../agent-flow-projection",

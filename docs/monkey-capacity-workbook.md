@@ -756,3 +756,36 @@ restart behavior before specifying or implementing that candidate. If not,
 choose explicitly between review-only late feedback and retaining the stronger
 freshness fence. Do not design a new opportunity lifecycle to postpone this
 policy choice.
+
+
+## Advisory post-edit intake timing panel (2026-10-02)
+
+The owner requested a timing diagram for the no-pre intake proposals. The
+expandable dashboard panel at `#post-edit-timing` is open initially and compares
+five lanes (Agent edit, Post receipt, Resident, Jev, Stop) across three traces.
+A shows bounded synchronous registration followed by background preparation and
+review, with Stop waiting only for known work within its configured deadline.
+B shows asynchronous receipt and a bounded registration grace window consuming
+the same Stop deadline; only the remaining budget is available for known work,
+and later posts can still be missed. C is a counterexample race in a fully async
+no-pre variant, explicitly not the installed baseline. The installed pre-edit
+permit and synchronous post flow is unchanged. No native behavior is implemented
+or timing telemetry invented. Lengths express event order, not measured duration.
+
+Astra's advice before implementation separates registration from review and
+requires registration completion before B's known-work wait. Agent activity ends
+at the Stop invocation in each trace. B's illustrative deadline return can occur
+while background review remains unfinished, without claiming cancellation or
+reuse of that Stop call. Narrow layouts scroll within each trace while headings
+and caveats wrap outside.
+
+
+Visualization typecheck/build and the bounded timing browser passed direct-anchor
+visibility, keyboard disclosure, proposal/baseline labels, and contained narrow
+scrolling. Astra's rendered desktop/narrow after-review found no blocking issue;
+the owner-facing production captures are
+`/workspace/hapsland-review/post-edit-timing/current-1512.png` and
+`/workspace/hapsland-review/post-edit-timing/current-390.png`. Evidence logs are
+`/tmp/hapsland-post-edit-timing-build.log` and
+`/tmp/hapsland-post-edit-timing-browser.log`. This is advisory visualization
+validation only; the timing policies remain proposals.

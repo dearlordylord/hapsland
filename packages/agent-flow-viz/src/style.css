@@ -304,3 +304,14 @@ p { line-height: 1.5; }
 @media(max-width:600px) { .shared-secondary-resources { grid-template-columns:1fr; gap:0; } .resource-meter { grid-template-columns:1fr; } .resource-meter-track { grid-column:1; } }
 
 .simulation-stage-inspector.capacity-selected { height:auto; max-height:none; }
+
+
+.post-edit-timing { margin-top:24px; padding:24px 28px; }
+.post-edit-timing summary { cursor:pointer; font-size:1.25rem; font-weight:700; color:#263c53; }
+.post-edit-timing p { color:#536b86; font-size:.88rem; line-height:1.5; }
+.post-edit-timing-scope { font-weight:600; }
+.post-edit-trace { border-top:1px solid #dce5ef; margin-top:20px; padding-top:12px; }
+.post-edit-trace h3 { margin:4px 0; font-size:1rem; }
+.post-edit-trace-scroll { overflow-x:auto; border:1px solid #dce5ef; border-radius:8px; background:#fafcfe; }
+.post-edit-trace-scroll svg { display:block; width:100%; min-width:900px; }
+@media(max-width:600px) { .post-edit-timing { padding:20px 16px; } }

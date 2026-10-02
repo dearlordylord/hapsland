@@ -1,3 +1,4 @@
+import { postEditTimingView } from "./post-edit-timing";
 import { Schema } from "effect";
 import type { HtmlBuilder } from "foldkit/html";
 import { numberRecords } from "@hapsland/agent-flow-projection";
@@ -162,6 +163,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
       h.div([h.Class("ensemble-resource-key")], [h.span([h.Class("capacity-key")], ["● Resident capacity → Admission & capacity"]), h.span([h.Class("jev-key")], ["● Jev backend → Jev request attempt"]),
         h.p([], ["Green contacts share the resident’s global capacity ledger. Gold contacts share its Jev request pool. Agent layers show their own checked state at the same resident event; contention is decided by Bend. Jev responses are simulated."])]),
     ]),
+    postEditTimingView(h),
     h.div([h.Class("ensemble-inspector-heading")], [h.h2([], [`Resident controls · ${active.agent.agent} selected`]),
       h.p([], [run && !run.agentScopes.length ? "Scripted replay: no event generator is attached. Backend/native profiles, playback, history and replay files apply to the whole resident." : `Edit pace, bursts, size and suspension target ${active.agent.agent}. Backend/native profiles, playback, history and replay files apply to the whole resident.`])]),
     residentView(model.resident, h, action, changed, false, active.local ? { projection: active.local, observations: active.history, partition: active.agent.partition, agents: scopes } : undefined),

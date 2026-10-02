@@ -472,3 +472,12 @@ are omitted from the diagram.
 The Monkey dashboard starts new demos with edit-permit ceilings of 16 per agent
 and 64 for the shared resident. Explicit replay/fixture ceilings remain unchanged;
 native permit defaults remain 32 per advicee and 4096 per resident.
+
+
+The expandable [Post-edit intake timing panel](#post-edit-timing) compares
+receipt-first registration, asynchronous post with bounded Stop grace, and a
+late-registration race in a fully asynchronous no-pre variant. These are
+illustrative ordering proposals, not measured timings or installed behavior.
+The installed flow still uses pre-edit permits and a synchronous post hook.
+`test:timing-browser` checks the direct anchor, keyboard disclosure, proposal
+labels, and contained narrow-screen timeline scrolling.
