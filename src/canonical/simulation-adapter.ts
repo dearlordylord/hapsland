@@ -27,7 +27,7 @@ const sharedCheck = (state: EngineState): void => {
 const sharedProjections = new WeakMap<object, CanonicalProjection>();
 const sharedCommands = new WeakMap<object, readonly unknown[]>();
 const sharedProjection = (state: EngineState): CanonicalProjection => {
-  const raw = decodeSharedValue(SharedEngine.canonical(state));
+  const raw = SharedEngine.canonical(state);
   return projectTrustedCanonical(raw);
 };
 export const initialSharedCanonical = (input: typeof CanonicalLimitsSchema.Type): EngineState => {
@@ -44,11 +44,11 @@ export const projectSharedCanonical = (state: EngineState): CanonicalProjection 
 export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) => {
   sharedCheck(state);
   const transition = SharedEngine.step(state, encodeSharedValue(encodeCanonicalEvent(event)));
-  const result = decodeTrustedCanonicalStep(decodeSharedValue(transition.result));
+  const result = decodeTrustedCanonicalStep(transition.result);
   const projection = projectCanonical(result.state);
   const afterActions = decodeSharedValue(SharedEngine.after(state, transition.state, encodeSharedValue(encodeCanonicalEvent(event))));
   const raw = readRecord(transition.result);
-  const commands = raw.$ === "../agent-flow-bend/Canonical.Advanced" ? readList(raw.commands, x => x) : [];
+  const commands = raw.$ === "Canonical.Advanced" ? readList(raw.commands, x => x) : [];
   sharedRegister(transition.state);
   sharedProjections.set(transition.state, projection);
   sharedCommands.set(transition.state, commands);
@@ -57,8 +57,9 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
 export const stepSharedGraph = (state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown) => {
   sharedCheck(state);
   const transition = SharedEngine.graph_step(state, encodeSharedValue(graphKey(decodeSharedValue(key))), BigInt(readNat(decodeSharedValue(position))), encodeSharedValue(limits), encodeSharedValue(event));
-  const before = decodeSharedValue(transition.before);
-  const result = decodeSharedValue(transition.result);
+  if (transition.$ === "Types.GraphRejected") throw new Error("preparation graph step is out of order");
+  const before = transition.before;
+  const result = transition.result;
   projectImportGraph(before);
   decodeImportGraphStep(result);
   return { state: retain(state, transition.state), before, result };
@@ -128,4 +129,9 @@ export const preparationFactTime = (delay: number, index: number, count: number)
 export const preparationCompletedAction = (binding: { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number }, units: readonly number[], delay: number): unknown => {
   const list = units.reduceRight<unknown>((tail, head) => ({ $: "Con", head: readNat(head), tail }), { $: "Nil" });
   return decodeSharedValue(SharedEngine.preparation_completed(BigInt(readNat(binding.partition)), BigInt(readNat(binding.lifetime)), BigInt(readNat(binding.round)), BigInt(readNat(binding.operation)), encodeSharedValue(list), BigInt(readNat(delay))));
+};
+
+export const revalidateSharedCanonical = (state: EngineState, context: unknown): unknown => {
+  sharedCheck(state);
+  return decodeSharedValue(SharedEngine.revalidate(state, encodeSharedValue(context)));
 };
