@@ -80,3 +80,9 @@ for (const operation of ["eligible", "revise"]) {
     throw new Error(`advice ${operation} must compose as an atomic Effect`);
   }
 }
+
+const advicePublication = state.slice(state.indexOf('publish: Effect.fn("AdviceRecords.publish")'), state.indexOf('eligible: Effect.fn("AdviceRecords.eligible")'));
+if (!advicePublication.includes("commitAllEffect(") || /\bcommitAll\(/.test(advicePublication) ||
+    !server.includes("yield* residentLedger.advice.publish(")) {
+  throw new Error("advice publication must atomically compose ticket and joined updates as an Effect");
+}

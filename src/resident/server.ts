@@ -1733,7 +1733,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           } else if (item.kind === "joined") {
             const existing = residentAdvice().find((advice) => advice.evaluationKey === item.evaluationKey);
             if (existing !== undefined) {
-              residentRecordJoinedOutcomes(residentLedger.advice.publish(existing, ticketUnit), existing.id);
+              residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing, ticketUnit), existing.id);
               recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
                 advicee: job.observation.advicee, lifetime: server.lifetime, stage: "findings",
                 findings: existing.findings.length, unitIdentity: item.evaluationKey });
@@ -2322,7 +2322,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (residentAdvice().some((item) => item.evaluationKey === job.evaluationKey)) {
         const existing = residentAdvice().find((item) => item.evaluationKey === job.evaluationKey);
         if (existing !== undefined) residentRecordJoinedOutcomes(
-          residentLedger.advice.publish(existing, job.ticketUnit, job.revision), existing.id);
+          yield* residentLedger.advice.publish(existing, job.ticketUnit, job.revision), existing.id);
         if (job.round !== undefined && job.workUnitId !== undefined) (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
         yield* residentReleaseUnit(job);
         return;
@@ -2355,7 +2355,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentAdapter("pending advice barrier", () => Promise.resolve(residentAfterAdvicePending?.(advice.id)));
         if (!residentJobActive(job)) return;
       }
-      residentRecordJoinedOutcomes(residentLedger.advice.publish(advice, job.ticketUnit, job.revision), advice.id);
+      residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(advice, job.ticketUnit, job.revision), advice.id);
     });
   });
 

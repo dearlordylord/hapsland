@@ -141,7 +141,8 @@
     "Joined-review admission lookup reads an Effect snapshot instead of Ref.getUnsafe; supersession retirement composes an atomic Effect across joined, ticket-unit, revision and reuse drafts",
     "Joined-review append and owner attachment compose named atomic Effects; runtime callers yield directly and defect rollback fixtures preserve no-partial-state checks",
     "Joined-review service now composes Effects throughout; release and settlement are named atomic operations, runtime cleanup and preparation finalizers yield them, synchronous joinedCommit removed",
-    "Advice eligibility and content revision compose named atomic Effects; collection revalidation and finalization callers yield directly"
+    "Advice eligibility and content revision compose named atomic Effects; collection revalidation and finalization callers yield directly",
+    "Advice publication composes a named atomic Effect over ticket-unit and joined-review state; preparation and retention callers yield it directly"
   ],
   "verification": [
     {
@@ -1804,6 +1805,16 @@
       "build": true,
       "ticketBoundaryCheck": true,
       "case": "Deferred eligibility and revision change retained metadata only at execution and refuse removed identity"
+    },
+    {
+      "stage": "advice-publication-effect",
+      "affectedTestsPassed": 102,
+      "affectedTestFiles": 3,
+      "supplementaryAdviceTestsPassed": 8,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "case": "Deferred publication leaves pending units unchanged until execution; sixteen competing publications emit joined result once and update owner/subscriber ticket metadata together"
     }
   ],
   "next": [

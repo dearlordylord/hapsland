@@ -480,8 +480,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           });
           return capability;
         })),
-        publish: (capability: Advice, unit?: TicketUnit, revision: WorkRevision = capability.revision): ReadonlyArray<JoinedReviewOutcome> =>
-          commitAll((draft, records) => {
+        publish: Effect.fn("AdviceRecords.publish")((capability: Advice, unit?: TicketUnit, revision: WorkRevision = capability.revision): Effect.Effect<ReadonlyArray<JoinedReviewOutcome>> =>
+          commitAllEffect((draft, records) => {
             if (records.advice.entries.get(capability.id)?.capability !== capability) return [[], records];
             const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
             const ticketUnits = draftTicketUnits(records.ticketUnits);
@@ -493,7 +493,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
             const outcomes = joinedReviewOperations(joined, owner, units, revisions)
               .settle(capability.evaluationKey, "finding", "lost", capability.id);
             return [outcomes, { ...records, ticketUnits, joined }];
-          }),
+          })),
         eligible: Effect.fn("AdviceRecords.eligible")((...args: Parameters<AdviceRecordOperations["eligible"]>) =>
           commitAllEffect(adviceChange((operations) => operations.eligible(...args)))),
         revise: Effect.fn("AdviceRecords.revise")((...args: Parameters<AdviceRecordOperations["revise"]>) =>

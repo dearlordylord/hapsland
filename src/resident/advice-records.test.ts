@@ -157,9 +157,12 @@ it.effect("publishes the owner result and independent joined subscribers togethe
   yield* joined.append({ admission: initial.admissionId, evaluationKey: initial.evaluationKey,
     observation, activityPath: undefined, ticketUnit: subscriber, revision: initial.revision });
   const advice = owner.advice.insert(initial);
+  const publish = owner.advice.publish(advice, ownerUnit);
   expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("pending");
   expect((yield* owner.ticketUnits.stage(subscriber))?.stage).toBe("pending");
-  const outcomes = owner.advice.publish(advice, ownerUnit);
+  const batches = yield* Effect.all(Array.from({ length: 16 }, () => publish), { concurrency: 16 });
+  expect(batches.filter((batch) => batch.length > 0)).toHaveLength(1);
+  const outcomes = batches.flat();
   expect(outcomes.map(({ stage }) => stage)).toEqual(["findings"]);
   expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("finding");
   expect((yield* owner.ticketUnits.stage(subscriber))?.stage).toBe("finding");
@@ -167,7 +170,7 @@ it.effect("publishes the owner result and independent joined subscribers togethe
   expect((yield* owner.ticketUnits.current(subscriber)).adviceId).toBe(advice.id);
   expect(yield* joined.hasAdmission(initial.admissionId)).toBe(false);
   owner.advice.remove(advice, "stale");
-  expect(owner.advice.publish(advice, ownerUnit)).toEqual([]);
+  expect(yield* owner.advice.publish(advice, ownerUnit)).toEqual([]);
   expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("unavailable");
 }));
 
