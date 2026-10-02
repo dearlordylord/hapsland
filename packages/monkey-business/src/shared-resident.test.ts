@@ -67,7 +67,7 @@ const residentEventCodes: Record<string, number> = { openRound: 1, admitObservat
   dispatchSettled: 8, startReview: 9, jevRequestReady: 10, jevRequestStarted: 11, jevRequestSettled: 12,
   collectionReady: 13, finalCandidateCheck: 14, submissionSuppressCheck: 15, collectionReserveLease: 16,
   submissionBegin: 17, submissionTerminal: 18, collectionLeaseCheck: 19, collectionReleaseLease: 20,
-  collectionRetireAdvice: 22, submissionForget: 23, retireReview: 24, jevRequestInterrupted: 25 };
+  collectionRetireAdvice: 22, submissionForget: 23, retireReview: 24, jevRequestInterrupted: 25, stopPolled: 26 };
 const residentCommandCodes: Record<string, number> = { roundStarted: 1, observationAdmitted: 2,
   dispatchStarted: 3, prepare: 4, unitAdmitted: 5, jevRequestIssued: 6, retainFinding: 7,
   collectionEligible: 8, retainCandidate: 9, submissionUnsuppressed: 10, collectionLeaseReserved: 11,
@@ -75,7 +75,7 @@ const residentCommandCodes: Record<string, number> = { roundStarted: 1, observat
   observationCompleted: 16, reviewStarted: 17, jevRequestStartRecorded: 18, jevRequestOutcomeRecorded: 19,
   reservationReleased: 20, collectionLeaseKept: 21, collectionLeaseReleased: 22, settleClear: 23,
   reviewRecorded: 24, retireCandidate: 25, releaseCandidate: 26, collectionAdviceRetired: 27,
-  submissionForgotten: 28, jevRequestUnavailable: 29, jevInterruptionRecorded: 30 };
+  submissionForgotten: 28, jevRequestUnavailable: 29, jevInterruptionRecorded: 30, jevObservationIgnored: 31, finishReady: 32, cancelWork: 33 };
 const residentGraphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 };
 function residentRow(frame: Observation): number[] {
   const p = frame.after;
@@ -90,7 +90,12 @@ function residentRow(frame: Observation): number[] {
   const event = frame.event as unknown as Record<string, unknown>;
   const identity = ["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(key =>
     Number(event[key] ?? (key === "operation" ? event.observation : key === "partition" ? event.group : key === "token" ? event.fingerprint : undefined) ?? 0));
-  const facts = event.kind === "jevRequestReady"
+  const facts = event.kind === "stopPolled" ? [Number(event.deadline), 0, 0, 0, 0, 0]
+    : event.kind === "finalCandidateCheck" ? [event.ownerCurrent, event.credentialGeneration, event.credentialAuthorized, event.expired, event.workCurrent, event.hasFindings].map(Number)
+    : event.kind === "submissionTerminal" ? [Number(event.certain), 0, 0, 0, 0, 0]
+    : event.kind === "submissionBegin" ? [Number(event.authorizeNow), (event.fingerprints as number[]).length, (event.fingerprints as number[])[0] ?? 0, (event.units as number[]).length, (event.units as number[])[0] ?? 0, 0]
+    : event.kind === "collectionLeaseCheck" ? [Number(event.expired), Number(event.stopCollector), Number(event.sameGroup), Number(event.reofferable), 0, 0]
+    : event.kind === "jevRequestReady"
     ? [event.rootValid, event.configurationValid, event.credentialReady, event.selected, event.currentWork, event.physicalAvailable].map(Number)
     : event.kind === "jevRequestSettled" ? [Number(event.currentWork), { neverSent: 1, finding: 2, clear: 3, backendFailure: 4, timeout: 5, interrupted: 6 }[event.outcome as "clear"], 0, 0, 0, 0]
       : event.kind === "beginObservedPreparation" ? [Number(event.bytes), 0, 0, 0, 0, 0]
@@ -98,7 +103,7 @@ function residentRow(frame: Observation): number[] {
   const commands = frame.commands.flatMap((command, index) => {
     const value = command as unknown as Record<string, unknown>;
     const id = ["roundStarted", "observationAdmitted", "preparationReleased", "reservationReleased"].includes(command.kind) ? value.id
-      : ["dispatchStarted", "prepare", "unitAdmitted"].includes(command.kind) ? value.operation
+      : ["dispatchStarted", "prepare", "unitAdmitted", "cancelWork"].includes(command.kind) ? value.operation
         : command.kind === "jevRequestIssued" ? value.request : 0;
     if (residentCommandCodes[command.kind] === undefined) throw new Error(`Unmapped resident command ${command.kind}`);
     return [residentCommandCodes[command.kind]!, frame.commandScopes?.[index] ?? 0, Number(id ?? 0)];
@@ -108,7 +113,7 @@ function residentRow(frame: Observation): number[] {
 }
 
 it("compares original shared contention and recovery inputs with the compiled native resident", () => {
-  const rows = runWorkloadNative(new URL("../../monkey-business-bend/conformance/shared-resident.bend", import.meta.url)) as number[][];
+  const [rows, canceled] = runWorkloadNative(new URL("../../monkey-business-bend/conformance/shared-resident.bend", import.meta.url)) as [number[][], number[][]];
   expect(rows.slice(0, 3)).toEqual([[90, 4294967313, 1, 11], [90, 99, 2, 12], [91, 0, 4294967313, 1, 11]]);
   const native = rows.slice(3);
   const run = createRun(contentionConfig);
@@ -134,6 +139,42 @@ it("compares original shared contention and recovery inputs with the compiled na
   const graph = native.filter(row => row[0] === 21);
   expect(graph).toHaveLength(22);
   for (const row of graph) expect(row.slice(7, 10)).toEqual([1, 100, 20]);
+
+  const cancellation = createRun({ ...contentionConfig, inputs: [
+    { at: 0, kind: "edit", agent: opaqueAdvicees[0], revision: 1, generation: 0, recurring: false, bytes: 10, unitBytes: [5], outcome: "clear" },
+    { at: 0, kind: "edit", agent: opaqueAdvicees[1], revision: 2, generation: 0, recurring: false, bytes: 20, unitBytes: [7], outcome: "finding" },
+    { at: 5, kind: "canonical", event: { kind: "stopPolled", partition: 1, lifetime: 1, round: 1, deadline: true } },
+  ] });
+  cancellation.advance({ untilTime: 5, maxEvents: 200 });
+  const deadline = cancellation.observations.find(frame => frame.event.kind === "stopPolled")!;
+  expect(deadline.event).toEqual({ kind: "stopPolled", partition: 1, lifetime: 1, round: 1, deadline: true });
+  expect(deadline.partition).toBe(1);
+  expect(deadline.agent).toBe(opaqueAdvicees[0]);
+  const firstRequest = deadline.before.dispatch.requests.find(request => request.partition === 1)!;
+  expect(deadline.commands.filter(command => command.kind === "cancelWork")).toEqual([{ kind: "cancelWork", operation: firstRequest.operation }]);
+  expect(deadline.after.global).toEqual({ items: 1, bytes: 7 });
+  expect(deadline.after.partitions.find(owner => owner.partition === 1)?.items ?? 0).toBe(0);
+  expect(deadline.after.partitions.find(owner => owner.partition === 2)).toMatchObject({ items: 1, bytes: 7 });
+  for (let index = 0; index < deadline.commands.length; index++) expect(deadline.commandScopes?.[index]).toBe(1);
+  const cancellationReplay = restoreReplay(JSON.parse(JSON.stringify(cancellation.exportReplay())));
+  expect(cancellationReplay.observe()).toEqual(cancellation.observe());
+  for (const candidate of [cancellation, cancellationReplay]) candidate.advance({ untilTime: 40, maxEvents: 1000 });
+  expect(cancellationReplay.observe()).toEqual(cancellation.observe());
+  expect(canceled).toEqual(cancellation.observations.map(residentRow));
+  const ignored = cancellation.observations.filter(frame => frame.commands.some(command => command.kind === "jevObservationIgnored"));
+  expect(ignored).toHaveLength(1);
+  expect(ignored[0]!.event).toMatchObject({ kind: "jevRequestSettled", partition: 1, lifetime: 1, round: 1,
+    operation: firstRequest.operation, request: firstRequest.request });
+  const ready = cancellation.observations.filter(frame => frame.event.kind === "collectionReady");
+  expect(ready).toHaveLength(1);
+  expect(ready[0]).toMatchObject({ partition: 2, agent: opaqueAdvicees[1], time: 22 });
+  const output = cancellation.observations.filter(frame => frame.event.kind === "submissionTerminal");
+  expect(output).toHaveLength(1);
+  expect(output[0]).toMatchObject({ partition: 2, agent: opaqueAdvicees[1], time: 22 });
+  expect(cancellation.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(cancellation.projection.dispatch.running).toEqual([]);
+  expect(cancellation.projection.dispatch.requests).toEqual([]);
+
 }, 30000);
 
 const config = {
