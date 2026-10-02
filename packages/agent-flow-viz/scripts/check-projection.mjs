@@ -129,7 +129,7 @@ try {
       assert.equal(step.after.rounds.length, 0, "pre-edit permit alone must not open a round");
       assert.match(labels(main.view(showcase, inertHtml).body), /1 edit permit: Permit #1/);
       assert.match(labels(main.view(showcase, inertHtml).body), /Before the edit.*Bend issued a permit.*No virtual round is open yet/);
-      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity"))), /NOW · Permit #1 issued/);
+      assert.match(labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity"))), /NOW: Permit #1 issued/);
     }
     if (index === 1) {
       assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
@@ -142,7 +142,7 @@ try {
     if (index === 5) {
       const nodes = elements(showcase, "topology-node");
       assert.match(labels(nodes.find((node) => labels(node).includes("Agent edit"))), /NOW · edit #2 accepted/);
-      assert.match(labels(nodes.find((node) => labels(node).includes("Admission & capacity"))), /NOW · permit #2 used/);
+      assert.match(labels(nodes.find((node) => labels(node).includes("Admission & capacity"))), /NOW: Permit #2 used/);
       assert.match(labels(nodes.find((node) => labels(node).includes("Round state"))), /NOW · edit #2 joined Round #1/);
       assert.deepEqual(step.after.rounds.map((round) => round.id), [1]);
       assert.equal(step.after.work.length, 1, "the accepted edit has no second source work until admission");
@@ -211,7 +211,7 @@ try {
         /CMD · retain finding for Review item #1/);
       const admission = labels(elements(showcase, "topology-node").find((node) => labels(node).includes("Admission & capacity")));
       assert.match(admission, /1 stored result charge: Stored result charge #1/);
-      assert.match(admission, /NOW · Unit charge #1 → stored/);
+      assert.match(admission, /NOW: Unit charge #1 → stored/);
     }
     if (index === 27) {
       assert.deepEqual(step.after.collection.ready, [4], "Bend links ready advice to its finding work and edit");
