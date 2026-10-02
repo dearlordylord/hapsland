@@ -2,7 +2,7 @@ import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
-import { Clock, Config, Context, Layer, Option, Redacted, Ref, Schema } from "effect";
+import { Cause, Clock, Config, Context, Duration, Layer, Option, Redacted, Ref, Schedule, Schema } from "effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
 import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -200,18 +200,30 @@ export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(f
   // contending servers and stale recovery checks process liveness.
   const existing = yield* probe(Math.min(250, (yield* remaining)));
   if (existing?.status === "ready") return yield* ready(existing);
+  type Ready = Extract<ResidentResponse, { status: "ready" }>;
   let lastLaunch = Number.NEGATIVE_INFINITY;
-  while ((yield* remaining) > 0) {
+  const readinessPass = Effect.fn("ResidentClient.readinessPass")(function* () {
+    if ((yield* remaining) <= 0) return undefined;
     if ((yield* dependencies.now) - lastLaunch >= 500) {
       yield* dependencies.launch(paths, (yield* remaining));
-      lastLaunch = (yield* dependencies.now);
+      lastLaunch = yield* dependencies.now;
     }
-    if ((yield* remaining) <= 0) break;
+    if ((yield* remaining) <= 0) return undefined;
     const response = yield* probe(Math.min(250, (yield* remaining)));
-    if (response?.status === "ready") return yield* ready(response);
-    const backoff = Math.min(50, (yield* remaining));
-    if (backoff > 0) yield* dependencies.wait(backoff);
-  }
+    return response?.status === "ready" ? response : undefined;
+  });
+  const readinessSchedule = Schedule.fromStep(Effect.succeed(
+    (_now: number, response: Ready | undefined) => Effect.gen(function* () {
+      if (response !== undefined) return yield* Cause.done(response);
+      const backoff = Math.min(50, yield* remaining);
+      if (backoff <= 0) return yield* Cause.done(undefined);
+      yield* dependencies.wait(backoff);
+      if ((yield* remaining) <= 0) return yield* Cause.done(undefined);
+      return [undefined, Duration.zero] as [Ready | undefined, Duration.Duration];
+    }),
+  ));
+  const response = yield* readinessPass().pipe(Effect.repeat(readinessSchedule));
+  if (response !== undefined) return yield* ready(response);
   const diagnostic = yield* dependencies.diagnostic(paths);
   const detail = diagnostic.length > 0 ? `; resident launch failed: ${diagnostic}` : "";
   return yield* Effect.fail(new ResidentIpcError({ message: `resident did not become ready within 10 seconds${detail}` }));

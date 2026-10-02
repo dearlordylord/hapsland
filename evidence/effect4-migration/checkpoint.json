@@ -3164,5 +3164,35 @@
       "src/resident/client.test.ts": "746e1474fe54e082a066f37bff3825d9b7b966bdf2738d035370eb96b35bc8fb"
     },
     "remaining": "Readiness repetition still uses a manual loop and injected wait; migrate it to Schedule without changing caps or absolute budget. Externally supplied hook performance deadlines, installation Config, interactive workflows and final complete gates remain."
+  },
+  "residentReadinessSchedulePort": {
+    "status": "manual readiness loop replaced with named pass and Schedule.fromStep",
+    "contract": "Same absolute readiness budget; initial probe unchanged; launch cadence 500ms, probe cap 250ms, capped 50ms wait, no probe or launch after expiry. Launch failure remains typed and terminal; only failed probes are recoverable. Ready result ends repetition before diagnostic cleanup.",
+    "implementation": "Schedule owns repeat/termination/backoff policy; injected wait capability remains for deterministic native-adapter tests, production wait is Effect.sleep. Schedule emits zero additional delay after that capped wait.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "node scripts/check-configuration-boundary.mjs",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/resident/client.test.ts src/resident/client-startup.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 19
+      },
+      {
+        "command": "npx vitest run src/resident/subprocess.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 10,
+        "durationSeconds": 48.1
+      }
+    ],
+    "sourceSha256": {
+      "src/resident/client.ts": "c09fd298501a75942324e32a7a4e1d4823287671133f30bf6cfbb5bdd5f5aee5"
+    },
+    "remaining": "Externally supplied hook performance deadlines, installation Config, interactive/native terminal flows, final suite/conformance/live/performance and requirement audit remain incomplete."
   }
 }
