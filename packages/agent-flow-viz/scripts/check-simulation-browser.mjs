@@ -609,6 +609,36 @@ try {
   assert.equal(metrics.contexts, 2, "static and live diagrams use the shared magnitude presentation");
   assert.ok(metrics.measured >= 300);
   assert.ok(metrics.widest <= 198, `Facet text exceeds square inner width: ${metrics.widest}`);
+  await panel.getByLabel("Seed", { exact: true }).fill("4294967313");
+  const workloadFields = {
+    "Edit interval variation (virtual ms)": "0",
+    "Edits per task": "2",
+    "Pause between tasks (virtual ms)": "70",
+    "Repair response delay (virtual ms)": "23",
+  };
+  for (const [label, value] of Object.entries(workloadFields))
+    await panel.getByLabel(label, { exact: true }).fill(value);
+  await panel.getByLabel("Advice response", { exact: true }).selectOption("delayedRepair");
+  await panel.getByRole("button", { name: "Start / reset", exact: true }).click();
+  await status("Seeded session started");
+  await panel.getByRole("button", { name: "Export replay", exact: true }).click();
+  await status("Replay inputs exported");
+  const workloadReplay = JSON.parse(await panel.getByLabel("Replay JSON", { exact: true }).inputValue());
+  assert.equal(workloadReplay.config.seed, 4294967313);
+  for (const session of workloadReplay.config.sessions) {
+    assert.equal(session.variationMs, 0);
+    assert.equal(session.editsPerTask, 2);
+    assert.equal(session.taskPauseMs, 70);
+    assert.equal(session.adviceResponse, "delayedRepair");
+    assert.equal(session.repairDelayMs, 23);
+  }
+  await panel.getByLabel("Edits per task", { exact: true }).fill("9");
+  await panel.getByLabel("Advice response", { exact: true }).selectOption("ignore");
+  await panel.getByRole("button", { name: "Load replay", exact: true }).click();
+  await status("Replay reconstructed");
+  for (const [label, value] of Object.entries(workloadFields))
+    assert.equal(await panel.getByLabel(label, { exact: true }).inputValue(), value);
+  assert.equal(await panel.getByLabel("Advice response", { exact: true }).inputValue(), "delayedRepair");
   await panel.screenshot({ path: "/tmp/astra-ux-square-magnitudes.png" });
   assert.deepEqual(errors, []);
   console.log(

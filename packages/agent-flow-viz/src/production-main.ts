@@ -81,7 +81,7 @@ const advanceGuided = (model: Model, fromFrontier = false): Model => {
   const prior = guidedIndex(current.history as readonly ReplayEvent[], current.position);
   const target = nextGuidedActionEnd(prior, model.scenario);
   // Preparation frames remain individually inspectable in the guided controls.
-  if (nextGuidedEvent(current.history as readonly ReplayEvent[], current.position, model.scenario)?.kind === "preparationGraph")
+  if (!fromFrontier && nextGuidedEvent(current.history as readonly ReplayEvent[], current.position, model.scenario)?.kind === "preparationGraph")
     return advance(current);
   while (guidedIndex(current.history as readonly ReplayEvent[], current.position) < target) {
     const next = advance(current);

@@ -38,7 +38,9 @@ try {
     }
   }
   await position(7, 7);
-  assert.equal(await slider.getAttribute('max'), '108');
+  // Four inserted manual facts extend the 100-event guided horizon by four.
+  assert.equal(await slider.getAttribute('max'), '104');
+  const manualHorizon = Number(await slider.getAttribute('max'));
   await slider.focus();
   await slider.press('Shift+ArrowLeft'); await position(4, 7);
   await slider.press('Shift+ArrowRight'); await position(7, 7);
@@ -58,11 +60,11 @@ try {
   await page.keyboard.up('ArrowLeft');
   await slider.scrollIntoViewIfNeeded();
   const box = await slider.boundingBox();
-  await page.mouse.click(box.x + 8 + (box.width - 16) * 6 / 108, box.y + box.height / 2);
+  await page.mouse.click(box.x + 8 + (box.width - 16) * 6 / manualHorizon, box.y + box.height / 2);
   await position(6, 7);
-  await page.mouse.move(box.x + 8 + (box.width - 16) * 6 / 108, box.y + box.height / 2);
+  await page.mouse.move(box.x + 8 + (box.width - 16) * 6 / manualHorizon, box.y + box.height / 2);
   await page.mouse.down();
-  await page.mouse.move(box.x + 8 + (box.width - 16) * 2 / 108, box.y + box.height / 2, { steps: 5 });
+  await page.mouse.move(box.x + 8 + (box.width - 16) * 2 / manualHorizon, box.y + box.height / 2, { steps: 5 });
   await page.mouse.up();
   await position(2, 7);
   await replay.getByLabel('Event JSON').focus();

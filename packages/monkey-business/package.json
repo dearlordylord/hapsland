@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "vitest run src/*.test.ts --config ../../vitest.config.ts",
+    "test": "vitest run src/*.test.ts --config ../../vitest.config.ts --maxWorkers=1",
     "typecheck": "tsc -p tsconfig.json"
   }
 }
