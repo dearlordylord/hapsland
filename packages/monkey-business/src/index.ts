@@ -618,7 +618,7 @@ export class Run {
       }
       const preparation = this.core.graphStep(event);
       return this.record({ sequence: this.count++, time: this.clock, event,
-        preparation, before, after: before, commands: [], effects: [], capacityMetadata: this.capacityMetadata, partition: partition, agent: this.agentName(partition) });
+        preparation, before, after: before, commands: [], effects: [], capacityMetadata: this.capacityMetadata, ...(partition === 0 ? {} : { partition, agent: this.agentName(partition) }) });
     }
     if (session && !session.valid(item.input))
       return this.step(untilTime);
@@ -1352,8 +1352,7 @@ export class Run {
         window: this.config.lifecycles.quietWindowMs, facts: { nativeWorkIdle: !this.jobs.size, adviceEmpty: !this.projection.work.some(f => f.partition === round.partition && f.kind === "pendingFinding"), handoffIdle: !this.projection.collection.claims.some(c => c.group === round.partition), stopAbsent: !this.finishes.has(round.partition) } });
     }
     const observation: Observation = {
-      partition: partition,
-      agent: this.agentName(partition),
+      ...(partition === 0 ? {} : { partition, agent: this.agentName(partition) }),
       sequence: this.count++,
       time: this.clock,
       event: copy(event),
@@ -1385,15 +1384,8 @@ export class Run {
       if (!scope) throw new RangeError("unknown input agent");
       return scope.partition;
     }
-    if (input.kind === "canonical" || input.kind === "preparationGraph") {
-      const event = input.event;
-      if ("partition" in event) return event.partition;
-      if ("group" in event) return event.group;
-      if (item.partition !== undefined) return item.partition;
-      const operation = "operation" in event ? event.operation : "advice" in event ? event.advice : undefined;
-      const owner = operation === undefined ? undefined : this.projection.work.find(work => work.operation === operation);
-      if (owner) return owner.partition;
-    }
+    if (input.kind === "preparationGraph") return input.event.partition;
+    if (input.kind === "canonical") return this.core.eventScope(input.event, item.partition ?? 1) ?? 0;
     return item.partition ?? 1;
   }
   private record(observation: Observation): Observation {
