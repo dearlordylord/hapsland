@@ -215,95 +215,10 @@ def credential_control(+state: Types.State, queue: Minimal.Queue, +now: Nat, +ac
   +context = Minimal.context(Driver.immediate(Canonical.FinalCandidateCheck{True{}, True{}, True{}, False{}, True{}, True{}}, False{}), config(Canonical.RequestFinding{}, now), now)
   (state, Minimal.enqueue(Engine.revalidate(state, context), queue, now))
 
-def credential_resumed(pair: Types.State & Minimal.Queue, now: Nat, action: Nat,
-    ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match pair action:
-    case (+state, queue) 3n: credential_snapshot(state, 34n, now) <> ih((state, queue))
-    case (state, queue) _: ih((state, queue))
-
-def credential_after(pair: Types.State & Minimal.Queue, +now: Nat, +action: Nat,
-    ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match pair:
-    case (+state, queue): credential_report(state, now, action) <> credential_resumed(credential_control(state, queue, now, action), now, action, ih)
-
 def credential_live(pair: Types.State & Minimal.Queue, +operation: Nat, now: Nat,
     ih: (Types.State & Minimal.Queue) -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
   match pair:
     case (+state,queue): [35n,now,operation,captured(Credentials.captured(Engine.credentials(state),operation))] <> ih((state,queue))
-
-def credential_input(+input: Minimal.Input, state: Types.State, queue: Minimal.Queue, +now: Nat, +mode: Nat, +stage: Nat,
-    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match input mode stage:
-    case Minimal.Event{Driver.Action{Canonical.DispatchSettled{_, _, _, 3n}, _, _, _, _}} 0n 0n:
-      Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => credential_after(pair, now, 2n, pair => ih((pair, 1n))))
-    case Minimal.Event{Driver.Action{Canonical.JevRequestSettled{_, _, _, 3n, _, _, _}, _, _, _, _}} 1n 0n:
-      Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => credential_after(pair, now, 1n, pair => ih((pair, 1n))))
-    case Minimal.Event{Driver.Action{Canonical.JevRequestStarted{_, _, _, 3n, _}, _, _, _, _}} 2n 0n:
-      Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => credential_after(pair, now, 3n, pair => ih((pair, 1n))))
-    case Minimal.Event{Driver.Action{Canonical.JevRequestStarted{_,_,_,+operation,_},_,_,_,_}} 0n _:
-      Minimal.input(input,state,queue,now,config(Canonical.RequestFinding{},now),pair => credential_live(pair,operation,now,pair => ih((pair,stage))))
-    case _ _ _:
-      Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => ih((pair, stage)))
-
-def credential_endpoint(pair: Types.State & Minimal.Queue, +mode: Nat, stage: Nat,
-    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match pair mode stage:
-    case (+state, queue) 1n 1n:
-      credential_after((state, queue), Engine.clock(state), 2n, pair => ih((pair, 2n)))
-    case (+state, queue) 2n 1n:
-      credential_snapshot(state, 32n, Engine.clock(state)) <> ih(((state, queue), 2n))
-    case (+state, _) _ _:
-      [credential_snapshot(state, 33n, Engine.clock(state))]
-
-def credential_limit(mode: Nat, stage: Nat) -> Nat:
-  match mode stage:
-    case 1n 1n: 8n
-    case 2n 1n: 10n
-    case 1n _: 10n
-    case _ _: 20n
-
-def credential_taken(taken: Engine.Taken, +items: List<&2, Minimal.Item>, +sequence: Nat, mode: Nat, stage: Nat,
-    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match taken:
-    case Engine.Taken{state, Some{Scheduler.Entry{at, +order}}}:
-      credential_input(Minimal.lookup(items, order), state, Minimal.Queue{Minimal.remove(items, order), sequence, sequence}, at, mode, stage, ih)
-    case Engine.Taken{+state, None{}}: [credential_snapshot(state, 33n, Engine.clock(state))]
-
-def credential_bounded(in_budget: Bool, state: Types.State, queue: Minimal.Queue, mode: Nat, stage: Nat,
-    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match in_budget queue:
-    case True{} Minimal.Queue{items, sequence, _}: credential_taken(Engine.take(state), items, sequence, mode, stage, ih)
-    case False{} _: credential_endpoint((state, queue), mode, stage, ih)
-
-def credential_selected(entries: List<&2, Scheduler.Entry>, state: Types.State, queue: Minimal.Queue, +mode: Nat, +stage: Nat,
-    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match entries:
-    case Nil{}: credential_endpoint((state, queue), mode, stage, ih)
-    case Scheduler.Entry{at, _} <> _: credential_bounded(Nat.is_le(at, credential_limit(mode, stage)), state, queue, mode, stage, ih)
-
-def credential_next(pair: (Types.State & Minimal.Queue) & Nat, mode: Nat,
-    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match pair:
-    case ((state, Minimal.Queue{+items, +sequence, synced}), stage):
-      +state = Minimal.sync(items, state, synced)
-      credential_selected(Engine.queued(state), state, Minimal.Queue{items, sequence, sequence}, mode, stage, ih)
-
-def credential_loop(fuel: Nat, pair: (Types.State & Minimal.Queue) & Nat, +mode: Nat) -> List<&2, List<&2, Nat>>:
-  match fuel:
-    case 0n: [[99n]]
-    case 1n+rest: credential_next(pair, mode, pair => credential_loop(rest, pair, mode))
-
-def credential_queue(mode: Nat) -> Minimal.Queue:
-  match mode:
-    case 1n: Minimal.initial_queue(1n)
-    case _: Minimal.append(Minimal.initial_queue(1n), 11n, Minimal.Edit{})
-
-def credential_scenario(+mode: Nat) -> List<&2, List<&2, Nat>>:
-  match mode:
-    case 0n:
-      credential_after((Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), credential_queue(0n)), 0n, 1n, pair => credential_loop(200n, (pair, 0n), 0n))
-    case _:
-      credential_loop(200n, ((Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), credential_queue(mode)), 0n), mode)
 
 # Compact original 2050-cycle campaign. Each step returns only state, pending
 # payloads and seven counters; no transition history survives the next step.
