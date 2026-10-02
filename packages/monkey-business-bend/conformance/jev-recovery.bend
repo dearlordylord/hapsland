@@ -65,7 +65,7 @@ type Control is Data:
   Control{trigger: Trigger, target: Targets.Target, outcome: Canonical.RequestOutcome}
 
 type AppliedControl is Data:
-  AppliedControl{pair: Types.State & Minimal.Queue, code: Nat, applied: Bool}
+  AppliedControl{state: Types.State, queue: Minimal.Queue, code: Nat, applied: Bool}
 
 def matching(input: Minimal.Input, target: Targets.Target) -> Bool:
   match input:
@@ -103,16 +103,20 @@ def facts(items: List<&2, JevEffects.ScheduledFact>, queue: Minimal.Queue, +now:
 
 def applied(pair: Types.State & Minimal.Queue, items: List<&2, JevEffects.ScheduledFact>, now: Nat) -> AppliedControl:
   match pair:
-    case (state, queue): AppliedControl{(state, facts(items, queue, now)), 1n, True{}}
+    case (state, queue): AppliedControl{state, facts(items, queue, now), 1n, True{}}
 
-def controlled(result: JevEffects.Intervention, +pair: Types.State & Minimal.Queue, target: Targets.Target, now: Nat) -> AppliedControl:
+def refused(pair: Types.State & Minimal.Queue, code: Nat) -> AppliedControl:
+  match pair:
+    case (state, queue): AppliedControl{state, queue, code, False{}}
+
+def controlled(result: JevEffects.Intervention, pair: Types.State & Minimal.Queue, target: Targets.Target, now: Nat) -> AppliedControl:
   match result:
     case JevEffects.Applied{facts}: applied(cancel(pair, target), facts, now)
-    case JevEffects.RefusedMissing{}: AppliedControl{pair, 2n, False{}}
-    case JevEffects.RefusedStarted{}: AppliedControl{pair, 3n, False{}}
-    case JevEffects.RefusedInterrupted{}: AppliedControl{pair, 4n, False{}}
+    case JevEffects.RefusedMissing{}: refused(pair, 2n)
+    case JevEffects.RefusedStarted{}: refused(pair, 3n)
+    case JevEffects.RefusedInterrupted{}: refused(pair, 4n)
 
-def control(pair: Types.State & Minimal.Queue, target: Targets.Target, outcome: Canonical.RequestOutcome, now: Nat) -> AppliedControl:
+def control(pair: Types.State & Minimal.Queue, +target: Targets.Target, outcome: Canonical.RequestOutcome, +now: Nat) -> AppliedControl:
   match pair:
     case (+state, queue): controlled(Engine.intervene_request(state, target, outcome, Nat.sub(7n, now)), (state, queue), target, now)
 
@@ -123,13 +127,13 @@ def report(now: Nat, code: Nat, target: Targets.Target) -> List<&2, Nat>:
 def execute_after(result: AppliedControl, +now: Nat, +target: Targets.Target,
     ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match result:
-    case AppliedControl{pair, code, _}: report(now, code, target) <> ih(pair)
+    case AppliedControl{state, queue, code, _}: report(now, code, target) <> ih((state, queue))
 
 def execute_before(result: AppliedControl, +input: Minimal.Input, +now: Nat, +target: Targets.Target,
     ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match result:
-    case AppliedControl{pair, code, True{}}: report(now, code, target) <> ih(pair)
-    case AppliedControl{(state, queue), code, False{}}:
+    case AppliedControl{state, queue, code, True{}}: report(now, code, target) <> ih((state, queue))
+    case AppliedControl{state, queue, code, False{}}:
       report(now, code, target) <> Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), ih)
 
 def scripted_input(+input: Minimal.Input, +state: Types.State, +queue: Minimal.Queue, +now: Nat, script: Maybe<&2, Control>,
