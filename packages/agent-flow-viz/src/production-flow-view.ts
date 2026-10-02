@@ -199,6 +199,7 @@ export const productionFlowView = <Message>(
   partition?: number,
   selected?: { readonly group?: number; readonly round?: number },
   agents?: readonly AgentScope[],
+  activitySteps?: readonly ReplayStep[],
 ) => {
   if (selected?.group !== undefined && ![...resident.delivery.slots.map(s => s.group), ...resident.delivery.counters.map(c => c.group), ...resident.collection.claims.map(c => c.group), ...(metadata?.deliveryGroups ?? []).map(binding => binding.group)].includes(selected.group)) selected = { ...selected, group: undefined };
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
@@ -282,13 +283,18 @@ export const productionFlowView = <Message>(
       return `Stop result recorded as ${last.event.outcome}; agent use of advice is not observed.`;
     return undefined;
   })();
-  const changedStages = last?.preparation ? ["preparation", ...flow.changedStages] : flow.changedStages;
+  // A playback batch can contain transient records absent from its endpoint.
+  const activity = activitySteps ? activitySteps.map(step => ({
+    step, flow: projectFlowStep(step.event.kind !== "preparationGraph" ? { ...step, event: step.event } : undefined, numbers),
+  })) : last ? [{ step: last, flow }] : [];
+  const changedStages = activity.flatMap(({ step, flow }) => step.preparation ? ["preparation" as const, ...flow.changedStages] : flow.changedStages);
+  const activityEvidence = activity.flatMap(({ flow }) => flow.evidence);
   const declaredRoutes = new Set(CONNECTIONS.map(({ from, to }) => `${from}:${to}`));
   if (declaredRoutes.size !== CONNECTIONS.length) throw new Error("duplicate dashboard arrow route");
   const unmapped = flow.evidence.filter(item => !declaredRoutes.has(`${item.from}:${item.to}`));
   const nodes = PLACE_ORDER.map((id) => ({ id, ...SQUARES[id], detail: SQUARES[id].detail(projection, numbers), facets: SQUARES[id].facets(projection, numbers) }));
   const routes: readonly Route[] = CONNECTIONS.map((connection): Route => {
-    const evidence = flow.evidence.filter((item) => item.from === connection.from && item.to === connection.to);
+    const evidence = activityEvidence.filter((item) => item.from === connection.from && item.to === connection.to);
     return { ...connection, active: evidence.length > 0, kind: arrowKind(evidence),
       linked: "relation" in connection && connection.relation === "linked record",
       evidence: evidence.map((item) => `${item.relation ?? item.source}: ${item.description}`).join("; ") };

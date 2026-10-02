@@ -102,7 +102,11 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
     const last = current?.partition === agent.partition ? {
       ...current, before: projectAgent(current.before, agent.partition), after: projectAgent(current.after, agent.partition), origin: "manual" as const,
     } : undefined;
-    return { agent, index, local, current: ownedHistory.at(-1), history: ownedHistory, numbers, last };
+    const activity = model.resident.selected < 0 && model.resident.activityFrom >= 0
+      ? ownedHistory.filter(frame => frame.sequence >= model.resident.activityFrom).map(frame => ({
+        ...frame, before: projectAgent(frame.before, agent.partition), after: projectAgent(frame.after, agent.partition), origin: "manual" as const,
+      })) : undefined;
+    return { agent, index, local, activity, current: ownedHistory.at(-1), history: ownedHistory, numbers, last };
   });
   const spacing = bounded(model.spacing, 70, 190, 130);
   const sceneHeight = model.flat ? 660 : 630 + Math.max(0, layers.length - 3) * 75;
@@ -141,7 +145,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
           h.div([h.Class("ensemble-scene"), h.Style({
             transform: model.flat ? "none" : `translateY(${-35 + Math.max(0, layers.length - 3) * 30}px) scale(${bounded(model.zoom, 20, 200, 72) / 100}) rotateX(${bounded(model.tilt, 0, 65, 48)}deg) rotateZ(${bounded(model.turn, -180, 180, -16)}deg) translateZ(${-(layers.length - 1) * spacing / 2}px)`,
           })], [
-            ...layers.filter(layer => !model.flat || layer.index === model.active).map(({ agent, index, local, last, history, numbers }) => h.div([
+            ...layers.filter(layer => !model.flat || layer.index === model.active).map(({ agent, index, local, last, history, numbers, activity }) => h.div([
               h.Class(`ensemble-layer agent-index-${index} ${index === model.active ? "is-selected" : ""}`),
               h.Style({ transform: model.flat ? "none" : `translateZ(${(layers.length - 1 - index) * spacing}px)`, borderColor: colors[index] }),
             ], [
@@ -149,7 +153,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
                 h.strong([], [`AGENT ${String(index + 1).padStart(2, "0")}`]), h.span([], [`${current?.time ?? run?.now ?? 0} ms · seed ${agent.seed}`]),
               ]),
               ...(local ? [productionFlowView(h, local, last,
-                false, place => action(`fleet:inspect:${index}:${place}`), preparationSnapshot(history.map(frame => ({ ...frame, origin: "manual" as const }))), numbers, true, projection, current ? current.capacityMetadata : model.resident.selected < 0 ? run?.capacityMetadata : undefined, agent.partition, index === model.active ? { group: model.resident.resourceGroup === "" ? undefined : Number(model.resident.resourceGroup), round: model.resident.resourceRound === "" ? undefined : Number(model.resident.resourceRound) } : undefined, scopes)]
+                false, place => action(`fleet:inspect:${index}:${place}`), preparationSnapshot(history.map(frame => ({ ...frame, origin: "manual" as const }))), numbers, true, projection, current ? current.capacityMetadata : model.resident.selected < 0 ? run?.capacityMetadata : undefined, agent.partition, index === model.active ? { group: model.resident.resourceGroup === "" ? undefined : Number(model.resident.resourceGroup), round: model.resident.resourceRound === "" ? undefined : Number(model.resident.resourceRound) } : undefined, scopes, activity)]
                 : [h.div([h.Class("ensemble-empty")], [h.strong([], ["Your agent diagram starts here"]), h.p([], ["Start one resident to connect independent Monkey Business generators."])])]),
             ])),
             ...(!model.flat ? layers.slice(0, -1).filter(layer => layer.local).flatMap(({ index }) => INFRASTRUCTURE_CONTACTS.map(contact => h.div([
