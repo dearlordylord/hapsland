@@ -13,14 +13,14 @@ try {
     await page.getByRole('button', { name, exact: true }).click();
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
   };
-  await page.getByLabel('Agent count', { exact: true }).fill('6');
+  await page.getByLabel('Advicee count', { exact: true }).fill('6');
   await click('Start resident');
   await click('Select agent 2');
   await page.getByLabel('Playback speed (virtual ms / wall ms)', { exact: true }).fill('100');
   await click('Apply playback speed');
   await click('Play resident');
   const input = page.getByLabel('Simulated edit duration (virtual ms)', { exact: true });
-  const countDraft = page.getByLabel('Agent count', { exact: true });
+  const countDraft = page.getByLabel('Advicee count', { exact: true });
   await countDraft.focus();
   await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.press('Backspace');

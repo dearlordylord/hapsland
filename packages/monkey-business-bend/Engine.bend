@@ -35,9 +35,30 @@ def captured_commands(commands: List<&2, Canonical.Command>, credentials: Creden
       captured_commands(tail, CredentialFacts.capture(credentials, operation))
     case _ <> tail: captured_commands(tail, credentials)
 
+# Captures belong to retained Canonical work, including findings awaiting handoff.
+# Historical settled operations no longer carry authorization authority.
+def captured_work_present(+operation: Nat, work: List<&2, Canonical.Work>) -> Bool:
+  match work:
+    case Nil{}: False{}
+    case Canonical.Work{_, _, _, candidate, _, _, _} <> tail:
+      Nat.is_eq(operation, candidate) || captured_work_present(operation, tail)
+
+def retained_captures(items: List<&2, CredentialFacts.Capture>, +work: List<&2, Canonical.Work>) -> List<&2, CredentialFacts.Capture>:
+  match items:
+    case Nil{}: Nil{}
+    case +item <> +tail:
+      match item:
+        case CredentialFacts.Capture{operation, _}:
+          Bool.pick(List<&2, CredentialFacts.Capture>, captured_work_present(operation, work), item <> retained_captures(tail, work), retained_captures(tail, work))
+
+def retained_credentials(credentials: CredentialFacts.State, canonical: Canonical.State) -> CredentialFacts.State:
+  match credentials canonical:
+    case CredentialFacts.State{available, generation, issued} Canonical.State{_, _, work, _, _, _, _, _, _}:
+      CredentialFacts.State{available, generation, retained_captures(issued, work)}
+
 def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, +event: Canonical.CanonicalEvent) -> Transition:
   match result:
-    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, captured_commands(commands, credentials), AdmissionAttempts.consumed(opening, event), PendingEffects.consumed(retiring, event)}, Canonical.Advanced{state, commands}}
+    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), PendingEffects.consumed(retiring, event)}, Canonical.Advanced{state, commands}}
     case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}, Canonical.Rejected{state, reason}}
 
 def step(state: Types.State, +event: Canonical.CanonicalEvent) -> Transition:

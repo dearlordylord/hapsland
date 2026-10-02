@@ -53,7 +53,9 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   sharedRegister(transition.state);
   sharedProjections.set(transition.state, projection);
   sharedCommands.set(transition.state, commands);
-  sharedPredecessors.set(transition.state, state);
+  // A detached root carries immediate transition facts without retaining the
+  // bridge key and its predecessor metadata from earlier transitions.
+  sharedPredecessors.set(transition.state, Object.freeze({ ...state }));
   return { state: transition.state, result, afterActions };
 };
 export const stepSharedGraph = (state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown) => {
