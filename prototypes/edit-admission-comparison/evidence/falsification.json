@@ -1,0 +1,718 @@
+{
+  "compiler": "bend 2.0.34",
+  "method": "literal substitution into draft law statements; no universal proofs",
+  "laws_sha256": "fcb63ddac623bb151f248e23fb4a30a65e0f90700309ae64fe480363fe04be5e",
+  "instances": 6960,
+  "laws": {
+    "exact_post": 696,
+    "post_round": 696,
+    "post_active": 696,
+    "pre_boundary": 696,
+    "post_idempotent": 696,
+    "retention_bound": 696,
+    "native_erasure": 696,
+    "authority_accounting": 696,
+    "retained_sequence": 696,
+    "current_fence_witness": 696
+  },
+  "batches": [
+    {
+      "batch": 0,
+      "exit": 0
+    },
+    {
+      "batch": 1,
+      "exit": 0
+    },
+    {
+      "batch": 2,
+      "exit": 0
+    },
+    {
+      "batch": 3,
+      "exit": 0
+    },
+    {
+      "batch": 4,
+      "exit": 0
+    },
+    {
+      "batch": 5,
+      "exit": 0
+    },
+    {
+      "batch": 6,
+      "exit": 0
+    },
+    {
+      "batch": 7,
+      "exit": 0
+    },
+    {
+      "batch": 8,
+      "exit": 0
+    },
+    {
+      "batch": 9,
+      "exit": 0
+    },
+    {
+      "batch": 10,
+      "exit": 0
+    },
+    {
+      "batch": 11,
+      "exit": 0
+    },
+    {
+      "batch": 12,
+      "exit": 0
+    },
+    {
+      "batch": 13,
+      "exit": 0
+    },
+    {
+      "batch": 14,
+      "exit": 0
+    },
+    {
+      "batch": 15,
+      "exit": 0
+    },
+    {
+      "batch": 16,
+      "exit": 0
+    },
+    {
+      "batch": 17,
+      "exit": 0
+    },
+    {
+      "batch": 18,
+      "exit": 0
+    },
+    {
+      "batch": 19,
+      "exit": 0
+    },
+    {
+      "batch": 20,
+      "exit": 0
+    },
+    {
+      "batch": 21,
+      "exit": 0
+    },
+    {
+      "batch": 22,
+      "exit": 0
+    },
+    {
+      "batch": 23,
+      "exit": 0
+    },
+    {
+      "batch": 24,
+      "exit": 0
+    },
+    {
+      "batch": 25,
+      "exit": 0
+    },
+    {
+      "batch": 26,
+      "exit": 0
+    },
+    {
+      "batch": 27,
+      "exit": 0
+    },
+    {
+      "batch": 28,
+      "exit": 0
+    },
+    {
+      "batch": 29,
+      "exit": 0
+    },
+    {
+      "batch": 30,
+      "exit": 0
+    },
+    {
+      "batch": 31,
+      "exit": 0
+    },
+    {
+      "batch": 32,
+      "exit": 0
+    },
+    {
+      "batch": 33,
+      "exit": 0
+    },
+    {
+      "batch": 34,
+      "exit": 0
+    },
+    {
+      "batch": 35,
+      "exit": 0
+    },
+    {
+      "batch": 36,
+      "exit": 0
+    },
+    {
+      "batch": 37,
+      "exit": 0
+    },
+    {
+      "batch": 38,
+      "exit": 0
+    },
+    {
+      "batch": 39,
+      "exit": 0
+    },
+    {
+      "batch": 40,
+      "exit": 0
+    },
+    {
+      "batch": 41,
+      "exit": 0
+    },
+    {
+      "batch": 42,
+      "exit": 0
+    },
+    {
+      "batch": 43,
+      "exit": 0
+    },
+    {
+      "batch": 44,
+      "exit": 0
+    },
+    {
+      "batch": 45,
+      "exit": 0
+    },
+    {
+      "batch": 46,
+      "exit": 0
+    },
+    {
+      "batch": 47,
+      "exit": 0
+    },
+    {
+      "batch": 48,
+      "exit": 0
+    },
+    {
+      "batch": 49,
+      "exit": 0
+    },
+    {
+      "batch": 50,
+      "exit": 0
+    },
+    {
+      "batch": 51,
+      "exit": 0
+    },
+    {
+      "batch": 52,
+      "exit": 0
+    },
+    {
+      "batch": 53,
+      "exit": 0
+    },
+    {
+      "batch": 54,
+      "exit": 0
+    },
+    {
+      "batch": 55,
+      "exit": 0
+    },
+    {
+      "batch": 56,
+      "exit": 0
+    },
+    {
+      "batch": 57,
+      "exit": 0
+    },
+    {
+      "batch": 58,
+      "exit": 0
+    },
+    {
+      "batch": 59,
+      "exit": 0
+    },
+    {
+      "batch": 60,
+      "exit": 0
+    },
+    {
+      "batch": 61,
+      "exit": 0
+    },
+    {
+      "batch": 62,
+      "exit": 0
+    },
+    {
+      "batch": 63,
+      "exit": 0
+    },
+    {
+      "batch": 64,
+      "exit": 0
+    },
+    {
+      "batch": 65,
+      "exit": 0
+    },
+    {
+      "batch": 66,
+      "exit": 0
+    },
+    {
+      "batch": 67,
+      "exit": 0
+    },
+    {
+      "batch": 68,
+      "exit": 0
+    },
+    {
+      "batch": 69,
+      "exit": 0
+    },
+    {
+      "batch": 70,
+      "exit": 0
+    },
+    {
+      "batch": 71,
+      "exit": 0
+    },
+    {
+      "batch": 72,
+      "exit": 0
+    },
+    {
+      "batch": 73,
+      "exit": 0
+    },
+    {
+      "batch": 74,
+      "exit": 0
+    },
+    {
+      "batch": 75,
+      "exit": 0
+    },
+    {
+      "batch": 76,
+      "exit": 0
+    },
+    {
+      "batch": 77,
+      "exit": 0
+    },
+    {
+      "batch": 78,
+      "exit": 0
+    },
+    {
+      "batch": 79,
+      "exit": 0
+    },
+    {
+      "batch": 80,
+      "exit": 0
+    },
+    {
+      "batch": 81,
+      "exit": 0
+    },
+    {
+      "batch": 82,
+      "exit": 0
+    },
+    {
+      "batch": 83,
+      "exit": 0
+    },
+    {
+      "batch": 84,
+      "exit": 0
+    },
+    {
+      "batch": 85,
+      "exit": 0
+    },
+    {
+      "batch": 86,
+      "exit": 0
+    },
+    {
+      "batch": 87,
+      "exit": 0
+    },
+    {
+      "batch": 88,
+      "exit": 0
+    },
+    {
+      "batch": 89,
+      "exit": 0
+    },
+    {
+      "batch": 90,
+      "exit": 0
+    },
+    {
+      "batch": 91,
+      "exit": 0
+    },
+    {
+      "batch": 92,
+      "exit": 0
+    },
+    {
+      "batch": 93,
+      "exit": 0
+    },
+    {
+      "batch": 94,
+      "exit": 0
+    },
+    {
+      "batch": 95,
+      "exit": 0
+    },
+    {
+      "batch": 96,
+      "exit": 0
+    },
+    {
+      "batch": 97,
+      "exit": 0
+    },
+    {
+      "batch": 98,
+      "exit": 0
+    },
+    {
+      "batch": 99,
+      "exit": 0
+    },
+    {
+      "batch": 100,
+      "exit": 0
+    },
+    {
+      "batch": 101,
+      "exit": 0
+    },
+    {
+      "batch": 102,
+      "exit": 0
+    },
+    {
+      "batch": 103,
+      "exit": 0
+    },
+    {
+      "batch": 104,
+      "exit": 0
+    },
+    {
+      "batch": 105,
+      "exit": 0
+    },
+    {
+      "batch": 106,
+      "exit": 0
+    },
+    {
+      "batch": 107,
+      "exit": 0
+    },
+    {
+      "batch": 108,
+      "exit": 0
+    },
+    {
+      "batch": 109,
+      "exit": 0
+    },
+    {
+      "batch": 110,
+      "exit": 0
+    },
+    {
+      "batch": 111,
+      "exit": 0
+    },
+    {
+      "batch": 112,
+      "exit": 0
+    },
+    {
+      "batch": 113,
+      "exit": 0
+    },
+    {
+      "batch": 114,
+      "exit": 0
+    },
+    {
+      "batch": 115,
+      "exit": 0
+    },
+    {
+      "batch": 116,
+      "exit": 0
+    },
+    {
+      "batch": 117,
+      "exit": 0
+    },
+    {
+      "batch": 118,
+      "exit": 0
+    },
+    {
+      "batch": 119,
+      "exit": 0
+    },
+    {
+      "batch": 120,
+      "exit": 0
+    },
+    {
+      "batch": 121,
+      "exit": 0
+    },
+    {
+      "batch": 122,
+      "exit": 0
+    },
+    {
+      "batch": 123,
+      "exit": 0
+    },
+    {
+      "batch": 124,
+      "exit": 0
+    },
+    {
+      "batch": 125,
+      "exit": 0
+    },
+    {
+      "batch": 126,
+      "exit": 0
+    },
+    {
+      "batch": 127,
+      "exit": 0
+    },
+    {
+      "batch": 128,
+      "exit": 0
+    },
+    {
+      "batch": 129,
+      "exit": 0
+    },
+    {
+      "batch": 130,
+      "exit": 0
+    },
+    {
+      "batch": 131,
+      "exit": 0
+    },
+    {
+      "batch": 132,
+      "exit": 0
+    },
+    {
+      "batch": 133,
+      "exit": 0
+    },
+    {
+      "batch": 134,
+      "exit": 0
+    },
+    {
+      "batch": 135,
+      "exit": 0
+    },
+    {
+      "batch": 136,
+      "exit": 0
+    },
+    {
+      "batch": 137,
+      "exit": 0
+    },
+    {
+      "batch": 138,
+      "exit": 0
+    },
+    {
+      "batch": 139,
+      "exit": 0
+    },
+    {
+      "batch": 140,
+      "exit": 0
+    },
+    {
+      "batch": 141,
+      "exit": 0
+    },
+    {
+      "batch": 142,
+      "exit": 0
+    },
+    {
+      "batch": 143,
+      "exit": 0
+    },
+    {
+      "batch": 144,
+      "exit": 0
+    },
+    {
+      "batch": 145,
+      "exit": 0
+    },
+    {
+      "batch": 146,
+      "exit": 0
+    },
+    {
+      "batch": 147,
+      "exit": 0
+    },
+    {
+      "batch": 148,
+      "exit": 0
+    },
+    {
+      "batch": 149,
+      "exit": 0
+    },
+    {
+      "batch": 150,
+      "exit": 0
+    },
+    {
+      "batch": 151,
+      "exit": 0
+    },
+    {
+      "batch": 152,
+      "exit": 0
+    },
+    {
+      "batch": 153,
+      "exit": 0
+    },
+    {
+      "batch": 154,
+      "exit": 0
+    },
+    {
+      "batch": 155,
+      "exit": 0
+    },
+    {
+      "batch": 156,
+      "exit": 0
+    },
+    {
+      "batch": 157,
+      "exit": 0
+    },
+    {
+      "batch": 158,
+      "exit": 0
+    },
+    {
+      "batch": 159,
+      "exit": 0
+    },
+    {
+      "batch": 160,
+      "exit": 0
+    },
+    {
+      "batch": 161,
+      "exit": 0
+    },
+    {
+      "batch": 162,
+      "exit": 0
+    },
+    {
+      "batch": 163,
+      "exit": 0
+    },
+    {
+      "batch": 164,
+      "exit": 0
+    },
+    {
+      "batch": 165,
+      "exit": 0
+    },
+    {
+      "batch": 166,
+      "exit": 0
+    },
+    {
+      "batch": 167,
+      "exit": 0
+    },
+    {
+      "batch": 168,
+      "exit": 0
+    },
+    {
+      "batch": 169,
+      "exit": 0
+    },
+    {
+      "batch": 170,
+      "exit": 0
+    },
+    {
+      "batch": 171,
+      "exit": 0
+    },
+    {
+      "batch": 172,
+      "exit": 0
+    },
+    {
+      "batch": 173,
+      "exit": 0
+    }
+  ],
+  "mutant_compile_exit": 0,
+  "planted_control_exit": 1
+}

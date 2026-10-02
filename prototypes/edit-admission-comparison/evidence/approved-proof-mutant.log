@@ -1,0 +1,15 @@
+SOME PROOFS FAIL
+Error:
+- expected : {Bool.or(Cmp.is_eq(Nat.cmp(C.count(C.accepted(C.expire_all(C.get_pending(C.get_permit(C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}))), C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}), now), tool)), C.count(C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n})))), S.fresh_found(S.find_tool(tool, S.permits(C.get_permit(C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n})))), C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}), partition, live)) == True{} : Bool}
+- observed : {Bool.or(Cmp.is_eq(Nat.cmp(C.count(C.current_post(C.expire_all(C.get_pending(C.get_permit(C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}))), C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}), now), partition, live, tool, now, C.seen(tool, C.completed(C.expire_all(C.get_pending(C.get_permit(C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}))), C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}), now))))), C.count(C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n})))), S.fresh_found(S.find_tool(tool, S.permits(C.get_permit(C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n})))), C.run(history, C.Current{}, C.State{P.AdmissionState{1n, 1n, 0n, False{}, 0n, 1n, []}, [], 0n, 0n, False{}, 0n}), partition, live)) == True{} : Bool}
+Context:
+- history   : List<&2, C.TraceEvent>
+- partition : Nat
+- live      : Nat
+- tool      : Nat
+- now       : Nat
+Location: Laws.current_fence_witness
+87 | def Laws.current_fence_witness(history,partition,live,tool,now):
+88>|   current_body_fence(C.run(history,C.Current{},C.initial()),partition,live,tool,now,I.reachable_fresh(history))
+   |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+89 |

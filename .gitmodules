@@ -1,0 +1,3 @@
+[submodule "vendor/bendlib"]
+	path = vendor/bendlib
+	url = https://github.com/bendlib/bendlib.git

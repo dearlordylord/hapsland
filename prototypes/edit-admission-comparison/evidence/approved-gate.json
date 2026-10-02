@@ -1,0 +1,101 @@
+{
+  "slice": "current_fence_witness only; necessary valid-PRE helpers",
+  "sources": {
+    "recorded_at_utc": "2026-10-02 12:46:11 UTC",
+    "approval_time_utc": "not separately captured",
+    "authority": "User approved first plain-language law only; parent delegated proof of this slice.",
+    "approved_meaning": "Current accepts an edit only with a correlated valid PRE record started after the closure boundary; A does not claim that guarantee.",
+    "draft_source_sha256": "fcb63ddac623bb151f248e23fb4a30a65e0f90700309ae64fe480363fe04be5e",
+    "core_sha256": "2996a23cfc25f8a002a0b35464ee29e32e0e04f9dec9d5951abbbea2462316fa",
+    "copied_subset": [
+      "current_fence_witness"
+    ],
+    "necessary_strengthening": "Proof-owned current_valid_pre proves necessary actual production permit validity after expiry: scope, lifetime, native tool, production candidate round, fence/start time and strict deadline. It does not prove S.eligible(Current) equivalence or completeness; no other family approval.",
+    "exclusions": [
+      "remaining draft laws",
+      "product policy adoption",
+      "runtime ordering conformance",
+      "production changes"
+    ],
+    "proof_entrypoints": [
+      "Laws.current_fence_witness",
+      "current_valid_pre"
+    ],
+    "copied_subset_sha256": "cbd04392f8aa3f04ff4693c8a0b3338f621ad4716cffc797fd3eb5d3138add4d",
+    "clarification": "The preserved subset file header says first family; approval covers only current_fence_witness and its necessary valid-PRE soundness, not exact_post or the entire family."
+  },
+  "proof_sources_sha256": {
+    "fence-facts.bend": "cc45097ff05b35747374781cff1a9ed6b670db49e74ff49d9ab6c4c9ea5beea4",
+    "scope-facts.bend": "a18491304a457aca78c561835304511e8d583b7eeafd79ff58701c2667f35581",
+    "PROOF.bend": "093e3c0d836444d4d8b375a00af5a9492c63728c52db60e8084bd190f1f564c0",
+    "strict-expiry-facts.bend": "63f0a5ece002e5a90854d5904f1a93d369b087eb1b2197ac996546bde77368b3",
+    "LAWS.bend": "cbd04392f8aa3f04ff4693c8a0b3338f621ad4716cffc797fd3eb5d3138add4d",
+    "validity.bend": "fad17b2ef2680b1c553b9b8ecc25af04f1cd5d5d694cb4a9e8fc2438a64959df",
+    "consume-facts.bend": "9d8eb25d30e4a8500fd85f57a328b1c3fdc79030ae9d7345c2cb853f60a38cb5",
+    "presence-facts.bend": "14cd8d102c782c902b20e792b71ac6efea65a672580c8017a3a7373dc37ce54a",
+    "wrapper-facts.bend": "a642da7656192c8933ef85bc3a511ba604d2993b5c062859c6ec98fbb45f529e",
+    "lookup-facts.bend": "298769f96e07d96d5bb7426028292895af6773d505fd8621753df07cfe92685d",
+    "expiry-facts.bend": "aeb4bbefd0d1f823d5fa6d4a53b43922e38b2f95f3f0e756194b37d333ba7145",
+    "removal-facts.bend": "f08be7d1d002b4b26278f7c5b44cafe4b904cacd1a78300682cbb2a551db0491",
+    "invariants.bend": "a62096882a38ff968905fd0af8548c35dda4c00d9a514942a6fe480d60b7c389",
+    "math/PROOF.bend": "12c439601abfdbfc04382cb839613139e3f34a4440ecb937d347d1f96e84fc84"
+  },
+  "checks": [
+    {
+      "name": "approved-proof",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "approved-kernel-disabled",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "unapproved-laws-still-open",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "approved-mirror-baseline",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "approved-at-baseline",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "missing-pre-mutant-compiles",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "mutant-true-support-invariant",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "approved-at-mutant",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "approved-proof-mutant",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    }
+  ],
+  "support_proof_adjustment": "Mutant-only post_fresh proves bypass leaves Pstate fresh; approved PROOF and law unchanged.",
+  "all_pass": true
+}

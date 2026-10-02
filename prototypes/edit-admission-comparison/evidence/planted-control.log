@@ -1,0 +1,9 @@
+SOME PROOFS FAIL
+Error:
+- expected : 0n
+- observed : 1n
+Location: planted_control
+4 | def planted_control() -> {C.count(C.post(C.Receipt{},C.initial(),1n,1n,9n,1n)) == 1n : Nat}:
+5>|   {==}
+  |   ^^^^
+6 |
