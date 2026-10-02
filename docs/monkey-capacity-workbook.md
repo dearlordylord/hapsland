@@ -1110,3 +1110,24 @@ The next empirical audit is not a prerequisite for drawing or reviewing that
 existing behavior; it is a prerequisite for claiming the untested timeout/retry
 freshness guarantee. No new proof, runtime execution or product change was made
 for this filter.
+
+
+## Shared-resource 3D design return: mirrored-pool clarification (2026-10-02)
+
+Astra advised and reviewed one screen-facing explanation beside the Agent layers
+controls: “The same resident pools are shown on every layer.” Before, the sidebar
+explained only hover and selection; after, it also explicitly identifies the
+repeated Preparation/Jev blocks as mirrors of one resident. Pool placement,
+checked data, limits, owner colors, rotation and hover behavior are unchanged.
+
+Rendered after-review passed at desktop and 390px: the sentence wraps without
+clipping; the controlled mixed fixture still shows preparation 2/8 and Jev 3/8
+on every layer. Agent 2 hover retains layer opacity `[0.1, 1, 0.1]` with unchanged
+resident totals and owner slots. These are scoped presentation checks, not new
+capacity or runtime support claims. Visualization typecheck and diff check passed.
+
+Before captures: `/workspace/hapsland-review/shared-resources-3d/mixed-3d-1512.png`
+and `mixed-hover-agent2-1512.png`. After captures:
+`/workspace/hapsland-review/shared-resources-3d/after/mixed-3d-1512.png`,
+`mixed-hover-agent2-1512.png`, and `mixed-390.png`. No broader tests were rerun
+for this copy-only change.

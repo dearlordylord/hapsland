@@ -119,6 +119,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
         h.aside([h.Class("ensemble-agents"), h.AriaLabel("Agent layers")], [
           h.p([h.Class("ensemble-sidebar-label")], ["AGENT LAYERS"]),
           h.p([h.Class("ensemble-hover-hint")], ["Hover to reveal a layer. Click to select."]),
+          h.p([h.Class("ensemble-hover-hint")], ["The same resident pools are shown on every layer."]),
           ...layers.map(({ agent, index, current, history }) => h.button([
             h.Type("button"), h.Class(`ensemble-agent agent-index-${index} ${index === model.active ? "selected" : ""}`),
             h.Style({ borderLeftColor: colors[index] }), h.OnClick(action(`fleet:select:${index}`)),
