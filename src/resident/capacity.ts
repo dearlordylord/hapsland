@@ -654,8 +654,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       };
     },
     reuse: (logicalBytes: (value: unknown) => number) => {
-      const reuseCommit = <A>(operation: (operations: EvaluationReuse<Pending>) => A): A =>
-        commitAll((draft, records) => {
+      const reuseCommit = <A>(operation: (operations: EvaluationReuse<Pending>) => A): Effect.Effect<A> =>
+        commitAllEffect((draft, records) => {
           const current = records.reuse;
           const reuse = draftEvaluationReuse(current);
           const operations = evaluationReuseOperations(reuse,
@@ -672,18 +672,18 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         }));
       return {
         key: residentEvaluationIdentity,
-        route: (...args: Parameters<EvaluationReuse<Pending>["route"]>) => reuseCommit((operations) => operations.route(...args)),
-        claim: (...args: Parameters<EvaluationReuse<Pending>["claim"]>) => reuseCommit((operations) => operations.claim(...args)),
-        attachPending: (...args: Parameters<EvaluationReuse<Pending>["attachPending"]>) => reuseCommit((operations) => operations.attachPending(...args)),
+        route: Effect.fn("EvaluationReuse.route")((...args: Parameters<EvaluationReuse<Pending>["route"]>) => reuseCommit((operations) => operations.route(...args))),
+        claim: Effect.fn("EvaluationReuse.claim")((...args: Parameters<EvaluationReuse<Pending>["claim"]>) => reuseCommit((operations) => operations.claim(...args))),
+        attachPending: Effect.fn("EvaluationReuse.attachPending")((...args: Parameters<EvaluationReuse<Pending>["attachPending"]>) => reuseCommit((operations) => operations.attachPending(...args))),
         pending: Effect.fn("EvaluationReuse.pending")((...args: Parameters<EvaluationReuse<Pending>["pending"]>) => reuseRead((view) => view.pending(...args))),
-        releaseClaim: (...args: Parameters<EvaluationReuse<Pending>["releaseClaim"]>) => reuseCommit((operations) => operations.releaseClaim(...args)),
+        releaseClaim: Effect.fn("EvaluationReuse.releaseClaim")((...args: Parameters<EvaluationReuse<Pending>["releaseClaim"]>) => reuseCommit((operations) => operations.releaseClaim(...args))),
         hasPending: Effect.fn("EvaluationReuse.hasPending")((...args: Parameters<EvaluationReuse<Pending>["hasPending"]>) => reuseRead((view) => view.hasPending(...args))),
-        get: (...args: Parameters<EvaluationReuse<Pending>["get"]>) => reuseCommit((operations) => operations.get(...args)),
+        get: Effect.fn("EvaluationReuse.get")((...args: Parameters<EvaluationReuse<Pending>["get"]>) => reuseCommit((operations) => operations.get(...args))),
         cached: Effect.fn("EvaluationReuse.cached")((...args: Parameters<EvaluationReuse<Pending>["cached"]>) => reuseRead((view) => view.cached(...args))),
-        put: (...args: Parameters<EvaluationReuse<Pending>["put"]>) => reuseCommit((operations) => operations.put(...args)),
+        put: Effect.fn("EvaluationReuse.put")((...args: Parameters<EvaluationReuse<Pending>["put"]>) => reuseCommit((operations) => operations.put(...args))),
         snapshot: Effect.fn("EvaluationReuse.snapshot")((...args: Parameters<EvaluationReuse<Pending>["snapshot"]>) => reuseRead((view) => view.snapshot(...args))),
-        discardPartition: (...args: Parameters<EvaluationReuse<Pending>["discardPartition"]>) => reuseCommit((operations) => operations.discardPartition(...args)),
-        clear: (...args: Parameters<EvaluationReuse<Pending>["clear"]>) => reuseCommit((operations) => operations.clear(...args)),
+        discardPartition: Effect.fn("EvaluationReuse.discardPartition")((...args: Parameters<EvaluationReuse<Pending>["discardPartition"]>) => reuseCommit((operations) => operations.discardPartition(...args))),
+        clear: Effect.fn("EvaluationReuse.clear")((...args: Parameters<EvaluationReuse<Pending>["clear"]>) => reuseCommit((operations) => operations.clear(...args))),
       };
     },
   };

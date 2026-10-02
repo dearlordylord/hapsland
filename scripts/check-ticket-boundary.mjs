@@ -212,3 +212,10 @@ for (const operation of ["pending", "hasPending", "cached", "snapshot"]) {
     throw new Error(`reuse ${operation} must compose as an Effect read`);
   }
 }
+
+if (/\bcommitAll\(/.test(reuseSurface)) throw new Error("reuse mutations must compose atomic Effects");
+for (const operation of ["route", "claim", "attachPending", "releaseClaim", "get", "put", "discardPartition", "clear"]) {
+  if (!reuseSurface.includes(`${operation}: Effect.fn("EvaluationReuse.${operation}")`)) {
+    throw new Error(`reuse ${operation} must compose as an Effect mutation`);
+  }
+}

@@ -1522,7 +1522,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     for (const [key, notice] of (yield* residentNotices.entries())) {
       if (notice.partition === round.group) yield* residentReleaseNoticeCooldown(key);
     }
-    residentReuse.discardPartition(round.group);
+    (yield* residentReuse.discardPartition(round.group));
     yield* residentLedger.tickets.discardPartition(round.group);
     yield* residentLedger.rounds.retire(round);
   }, Effect.uninterruptible);
@@ -1666,7 +1666,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const generationPartition = `${job.partition}\0work:${job.work?.id ?? "standalone"}\0credential-generation:${job.dispatch.credential?.generation ?? "controlled"}`;
           const evaluationKey = residentReuse.key(generationPartition, outcome.prepared);
           const liveAdvice = (yield* residentAdvice()).some((advice) => advice.evaluationKey === evaluationKey);
-          switch (residentReuse.route(evaluationKey, liveAdvice)) {
+          switch ((yield* residentReuse.route(evaluationKey, liveAdvice))) {
             case "joinedAdvice":
               return { kind: "joined" as const, join: "advice" as const, outcome, evaluationKey };
             case "joinedClaimed":
@@ -2161,7 +2161,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           state: result.findings.length === 0 ? "clear" : "findings",
         });
         const evaluation = { prepared: job.prepared, findings: result.findings };
-        residentReuse.put(job.partition, job.evaluationKey, evaluation);
+        (yield* residentReuse.put(job.partition, job.evaluationKey, evaluation));
         yield* residentReleaseReuseClaim(job.evaluationKey);
         recordActivity({
           statePath: job.dispatch.activityPath,
@@ -3035,7 +3035,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       // Running work may be interrupted by process exit or finish later. Clear
       // its logical ownership after native effects settle. Issued Jev permits
       // remain reserved through an interruption attempt.
-      residentReuse.clear();
+      (yield* residentReuse.clear());
       yield* residentDispatcher.whenIdle();
       yield* Scope.close(residentDispatchScope, Exit.void);
       yield* Scope.close(residentControlScope, Exit.void);

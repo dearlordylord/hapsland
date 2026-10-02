@@ -18,7 +18,7 @@ it.effect("attaches one owner and independently settles all joining ticket units
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const first = (yield* owner.ticketUnits.add(ticket));
   const second = (yield* owner.ticketUnits.add(ticket));
-  expect(reuse.claim("key")).toBe(true);
+  expect((yield* reuse.claim("key"))).toBe(true);
   yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: first });
   yield* joined.append({ admission: 2, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: second });
   const pending = Object.freeze({ id: 1 });
@@ -45,7 +45,7 @@ it.effect("releases unbound subscribers with the claim while retaining attached 
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unbound = (yield* owner.ticketUnits.add(ticket));
   const attached = (yield* owner.ticketUnits.add(ticket));
-  reuse.claim("key");
+  (yield* reuse.claim("key"));
   yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unbound });
   yield* joined.append({ admission: 2, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: attached, revision });
   expect((yield* joined.releaseOwner("key", "backend")).map((review) => review.admission)).toEqual([1]);
@@ -95,7 +95,7 @@ it.effect("rolls back owner and subscriber attachment together when the native c
   const joined = owner.joinedReviews(measure);
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = (yield* owner.ticketUnits.add(ticket));
-  reuse.claim("key");
+  (yield* reuse.claim("key"));
   yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unit });
   const before = owner.canonicalProjection();
   expect(yield* defectMessage(joined.attachOwner("key", undefined, revision))).toContain("native evaluation handles");
@@ -122,8 +122,8 @@ it.effect("retires superseded subscribers without changing another subject's mem
   const item = prepare("type Count = number");
   const old = (yield* owner.revision.register("a", item, true, "old")).revision;
   const independent = (yield* owner.revision.register("b", item, true, "independent")).revision;
-  reuse.claim("first");
-  reuse.claim("independent");
+  (yield* reuse.claim("first"));
+  (yield* reuse.claim("independent"));
   yield* joined.append({ admission: 1, evaluationKey: "first", observation, activityPath: undefined, ticketUnit: oldUnit });
   yield* joined.append({ admission: 2, evaluationKey: "independent", observation, activityPath: undefined, ticketUnit: independentUnit });
   yield* joined.attachOwner("first", { token: "first" }, old);
