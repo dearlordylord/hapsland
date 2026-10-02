@@ -3,19 +3,20 @@ import { expect } from "vitest";
 import { Deferred, Effect, Fiber } from "effect";
 import { ComposedHookRuntime, runComposedHookEffect } from "./composed-hook.ts";
 import { HookOutput } from "./hook-output.ts";
+import type { DirectAdvicee } from "../direct-event/model.ts";
 import type { AdviceeCollectionOutcome } from "./client.ts";
 import { residentPaths } from "./paths.ts";
 
-const input = (kind: "stop" | "background") => ({
-  kind, host: "claude-code" as const, event: {}, statePath: "/fixture/state", activityPath: "/fixture/activity",
+const input = (kind: "stop" | "background", host: "claude-code" | "codex-cli" = "claude-code") => ({
+  kind, host, event: {}, statePath: "/fixture/state", activityPath: "/fixture/activity",
 });
 const hookAdvicee = {
   host: "claude-code", hostVersion: "2.1.218", sessionId: "session", turnId: null, toolUseId: "tool", subagentId: null,
 } as const;
 const unused = () => Effect.die("unexpected hook port");
-const runtime = (client: Partial<ComposedHookRuntime["Service"]["client"]>) => ComposedHookRuntime.of({
+const runtime = (client: Partial<ComposedHookRuntime["Service"]["client"]>, advicee: Extract<DirectAdvicee, { host: "codex-cli" | "claude-code" }> = hookAdvicee) => ComposedHookRuntime.of({
   now: () => 0,
-  identity: () => Effect.succeed({ root: "/fixture", advicee: hookAdvicee }),
+  identity: () => Effect.succeed({ root: "/fixture", advicee }),
   client: {
     acknowledgeAdviceEffect: unused,
     registerComposedEditEffect: unused,
@@ -70,8 +71,8 @@ it.effect("releases a background claim even when interrupted during its acquisit
     }),
     releaseComposedBackgroundEffect: () => Effect.sync(() => { releases += 1; return true; }),
     collectAdviceeOutcomeEffect: () => Effect.never,
-  });
-  const hook = yield* runComposedHookEffect(input("background")).pipe(
+  }, { host: "codex-cli", hostVersion: "0.155.1", sessionId: "session", turnId: "turn", toolUseId: "tool", subagentId: null });
+  const hook = yield* runComposedHookEffect(input("background", "codex-cli")).pipe(
     Effect.provideService(ComposedHookRuntime, service),
     Effect.provideService(HookOutput, HookOutput.of({ writeEncoded: unused, write: unused })),
     Effect.forkChild,
@@ -126,3 +127,10 @@ it.effect("releases a refused submission and closes its Stop attempt", () => Eff
   expect(releases).toBe(1);
   expect(finished).toEqual([true]);
 }));
+
+it.effect("disables Claude background collection before acquiring any ports", () =>
+  runComposedHookEffect(input("background")).pipe(
+    Effect.provideService(ComposedHookRuntime, { ...runtime({}), identity: unused }),
+    Effect.provideService(HookOutput, HookOutput.of({ writeEncoded: unused, write: unused })),
+  ),
+);

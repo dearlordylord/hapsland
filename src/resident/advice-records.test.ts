@@ -5,7 +5,6 @@ import { makeResidentState } from "./capacity.ts";
 import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit, type DirectObservation } from "../direct-event/model.ts";
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { advicee } from "../direct-event/test-fixtures.ts";
-import { residentTicketInput } from "../test-support/resident-ticket.ts";
 import type { AdviceInitial } from "./advice-records.ts";
 
 const observation: DirectObservation = {
@@ -37,7 +36,7 @@ const fixture = (existing?: Owner) => Effect.gen(function* () {
     id: "advice", canonicalRound: round.canonicalRound, round, workUnitId: unit.operation, admissionId,
     canonicalOperationId: unit.operation, observation, partition: "agent", reservation: unit.reservation,
     prepared, revision, evaluationKey: "key", evaluations: [{ prepared, findings: [finding] }], findings: [finding], sequence: 1,
-    credentialGeneration: null, credentialStatePath: null, credentialRequired: false, credentialEnvironmentOnly: false, pendingAt: 0,
+    analyticsPath: undefined, analyticsEnabled: false, analyticsControlled: false, credentialGeneration: null, credentialStatePath: null, credentialRequired: false, credentialEnvironmentOnly: false, pendingAt: 0,
   };
   return { owner, initial };
 });
@@ -81,11 +80,8 @@ it.effect("rolls back retention and lease updates when native payload snapshotti
   expect((yield* owner.advice.current(advice)).delivery).toBe(delivery);
 }));
 
-it.effect("retires advice, ticket bindings and leases while retaining active capture workspace", () => Effect.gen(function* () {
+it.effect("retires advice and leases while retaining active capture workspace", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
-  const unit = (yield* owner.ticketUnits.add(ticket));
-  (yield* owner.ticketUnits.step(unit, "findingResult", "lost", { revision: initial.revision, adviceId: initial.id }));
   const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
   yield* owner.advice.reserveLease(advice, "collector");
@@ -95,8 +91,6 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   expect(yield* owner.advice.remove(advice, "stale", "collector")).toBe(true);
   expect((yield* owner.advice.values())).toEqual([]);
   expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
-  expect((yield* owner.ticketUnits.stage(unit))).toMatchObject({ stage: "unavailable", reason: "stale" });
-  expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect((yield* owner.canonicalProjection()).collection.leases).toEqual([]);
   expect((yield* owner.snapshot()).bytes).toBe(300);
   expect(yield* owner.revision.count()).toBe(1);
@@ -150,28 +144,19 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
 
 it.effect("publishes the owner result and independent joined subscribers together", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
-  const ownerUnit = (yield* owner.ticketUnits.add(ticket));
-  const subscriber = (yield* owner.ticketUnits.add(ticket));
   const joined = owner.joinedReviews(() => 1);
   yield* joined.append({ admission: initial.admissionId, evaluationKey: initial.evaluationKey,
-    observation, activityPath: undefined, ticketUnit: subscriber, revision: initial.revision });
+    observation, activityPath: undefined, revision: initial.revision });
   const advice = yield* owner.advice.insert(initial);
-  const publish = owner.advice.publish(advice, ownerUnit);
-  expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("pending");
-  expect((yield* owner.ticketUnits.stage(subscriber))?.stage).toBe("pending");
+  const publish = owner.advice.publish(advice);
+  expect(yield* joined.hasAdmission(initial.admissionId)).toBe(true);
   const batches = yield* Effect.all(Array.from({ length: 16 }, () => publish), { concurrency: 16 });
   expect(batches.filter((batch) => batch.length > 0)).toHaveLength(1);
   const outcomes = batches.flat();
   expect(outcomes.map(({ stage }) => stage)).toEqual(["findings"]);
-  expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("finding");
-  expect((yield* owner.ticketUnits.stage(subscriber))?.stage).toBe("finding");
-  expect((yield* owner.ticketUnits.current(ownerUnit)).adviceId).toBe(advice.id);
-  expect((yield* owner.ticketUnits.current(subscriber)).adviceId).toBe(advice.id);
   expect(yield* joined.hasAdmission(initial.admissionId)).toBe(false);
   yield* owner.advice.remove(advice, "stale");
-  expect(yield* owner.advice.publish(advice, ownerUnit)).toEqual([]);
-  expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("unavailable");
+  expect(yield* owner.advice.publish(advice)).toEqual([]);
 }));
 
 it.effect("executes advice eligibility and revision against current retained identity", () => Effect.gen(function* () {

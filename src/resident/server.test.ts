@@ -79,7 +79,7 @@ describe("virtual round quiescence", () => {
       controlled: { answers: Object.fromEntries(configuredRules.map((rule) =>
         [rule.id, { _tag: "Probability" as const, probability: 0 }])) } };
     try {
-      expect(Effect.runSync(server.admit(observation, dispatch, false, true)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
       await Effect.runPromise(server.whenIdle());
       expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
       expect(Effect.runSync(server.sweepQuietRounds(1_000))).toBe(0);
@@ -148,7 +148,7 @@ describe("canonical resident capacity", () => {
       reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* release.wait; }) }),
     });
     try {
-      expect(Effect.runSync(server.admit(observation, dispatch, false, true)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
       await started.promise;
       expect(captured).toEqual(["type.ts"]);
       clock = 200;
@@ -334,7 +334,7 @@ describe("resident delivery lease", () => {
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
     try {
-      expect(Effect.runSync(server.admit(observation, dispatch, false, true)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
       await entered.promise;
       expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "held" }))).status).toBe("advanced");
@@ -371,7 +371,7 @@ describe("resident delivery lease", () => {
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
     try {
-      expect(Effect.runSync(server.admit(observation, dispatch, false, true)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
       await started.promise;
       expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "fanout" }))).status).toBe("advanced");
@@ -409,7 +409,7 @@ describe("resident delivery lease", () => {
     });
     const dispatch = findingDispatch(statePath);
     try {
-      Effect.runSync(server.admit(observation, dispatch, false, true));
+      Effect.runSync(server.admit(observation, dispatch, true));
       await started.promise;
       await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" }));
@@ -422,7 +422,7 @@ describe("resident delivery lease", () => {
       // A second admitted observation must keep already completed advice waiting.
       const next = { ...observation, advicee: { ...observation.advicee, toolUseId: "second" },
         candidates: [{ ...observation.candidates[0]!, path: "second.ts" }] };
-      Effect.runSync(server.admit(next, dispatch, false, true));
+      Effect.runSync(server.admit(next, dispatch, true));
       expect((await Effect.runPromise(server.handle(request))).status).toBe("pending");
       await Effect.runPromise(server.whenIdle());
       const decision = await Effect.runPromise(server.handle(request));
@@ -449,12 +449,12 @@ describe("resident delivery lease", () => {
     });
     const dispatch = findingDispatch(statePath);
     try {
-      Effect.runSync(server.admit(observation, dispatch, false, true));
+      Effect.runSync(server.admit(observation, dispatch, true));
       await Effect.runPromise(server.whenIdle());
       hold = true;
       const next = { ...observation, advicee: { ...observation.advicee, toolUseId: "second" },
         candidates: [{ ...observation.candidates[0]!, path: "second.ts" }] };
-      Effect.runSync(server.admit(next, dispatch, false, true));
+      Effect.runSync(server.admit(next, dispatch, true));
       await started.promise;
       await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" }));
@@ -473,7 +473,7 @@ describe("resident delivery lease", () => {
       gate.resolve(); hold = false;
       await Effect.runPromise(server.whenIdle());
       expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
-      expect(Effect.runSync(server.admit({ ...next, advicee: { ...next.advicee, toolUseId: "repair" } }, dispatch, false, true)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit({ ...next, advicee: { ...next.advicee, toolUseId: "repair" } }, dispatch, true)).status).toBe("accepted");
       await Effect.runPromise(server.whenIdle());
       expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(2);
     } finally {
@@ -491,7 +491,7 @@ describe("resident delivery lease", () => {
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     try {
-      Effect.runSync(server.admit(observation, dispatch, false, true));
+      Effect.runSync(server.admit(observation, dispatch, true));
       await Effect.runPromise(server.whenIdle());
       const background = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
@@ -531,14 +531,14 @@ beforeResponseHandoff: () => Effect.gen(function* () {
         if (!armed) return;
         armed = false;
         yield* gate.complete();
-        (yield* server.whenIdle());
+        yield* server.whenIdle();
       }) }),
 
     });
     const dispatch = findingDispatch(statePath);
     try {
       await Effect.runPromise(server.listen());
-      Effect.runSync(server.admit(observation, dispatch, false, true));
+      Effect.runSync(server.admit(observation, dispatch, true));
       await started.promise;
       await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" }));
@@ -560,7 +560,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     const dispatch = { ...findingDispatch(statePath), controlled: { failure: "fixture unavailable" } };
     try {
-      Effect.runSync(server.admit(observation, dispatch, false, true));
+      Effect.runSync(server.admit(observation, dispatch, true));
       await Effect.runPromise(server.whenIdle());
       const collect = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary" as const, composed: true as const };
@@ -573,7 +573,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     } finally { await Effect.runPromise(server.close); }
   });
 
-  it.each(["shared", "ticketed"] as const)("rejects noncomposed %s socket admission before any review", async (requestRoute) => {
+  it.each(["shared"] as const)("rejects noncomposed %s socket admission before any review", async (requestRoute) => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const base = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
@@ -621,9 +621,9 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     try {
       expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
         lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
-      const admission = await runClient(residentRequest(paths, { requestRoute: "ticketed", operation: "admit",
+      const admission = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "admit",
         lifetime: server.lifetime, observation, dispatch, controlledWriter: true, composed: true }));
-      if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("missing ticket");
+      if (admission.status !== "accepted") throw new Error("missing admission");
       await Effect.runPromise(server.whenIdle());
       const collect = { requestRoute: "shared" as const, operation: "collect" as const,
         lifetime: server.lifetime, root, advicee: observation.advicee, dispatch, composed: true as const };
@@ -634,9 +634,9 @@ beforeResponseHandoff: () => Effect.gen(function* () {
           lifetime: server.lifetime, token: ordinary.token }))).status).toBe("empty");
       }
       (await Effect.runPromise(server.releaseDelivery(ordinary.token)));
-      for (const requestRoute of ["shared", "ticketed"] as const) {
+      for (const requestRoute of ["shared"] as const) {
         for (const composed of [undefined, false, true]) {
-          const unsupported = { ...collect, requestRoute, ticket: admission.ticket, composed,
+          const unsupported = { ...collect, requestRoute, composed,
             mode: "turn-end" } as unknown as ResidentRequest;
           expect((await runClient(residentRequest(paths, unsupported))).status).toBe("unsupported");
           expect((await Effect.runPromise(server.handle(unsupported))).status).toBe("unsupported");
@@ -757,7 +757,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     });
     const activityPath = join(root, "activity");
     const dispatch = { ...findingDispatch(statePath), activityPath };
-    expect(Effect.runSync(server.admit(observation, dispatch, false, true)).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
     await started.promise;
     expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "stop" }))).toEqual({ status: "advanced" });
@@ -767,7 +767,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     await Effect.runPromise(server.whenIdle());
     expect(Effect.runSync(server.stats()).pendingAdvice).toBe(0);
     expect(Effect.runSync(server.stats()).pendingEvaluations).toBe(0);
-    expect(Effect.runSync(server.admit({ ...observation, advicee: { ...observation.advicee, toolUseId: "late" } }, dispatch, false, true)).status)
+    expect(Effect.runSync(server.admit({ ...observation, advicee: { ...observation.advicee, toolUseId: "late" } }, dispatch, true)).status)
       .toBe("rejected-stale");
     expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }))).status).toBe("empty");
@@ -795,7 +795,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     });
     const dispatch = findingDispatch(join(root, "state"));
     try {
-      expect(Effect.runSync(server.admit(observation, dispatch, false, true)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
       await Effect.runPromise(controls.ownerEntered);
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "old-stop" }))).toEqual({ status: "advanced" });
@@ -808,7 +808,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       const successor = { ...observation, advicee: { ...observation.advicee, toolUseId: "successor-edit" } };
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: successor.advicee, startedAt: monotonicNow() }))).toEqual({ status: "advanced" });
-      expect(Effect.runSync(server.admit(successor, dispatch, false, true, true)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(successor, dispatch, true, true)).status).toBe("accepted");
       await Effect.runPromise(controls.releaseOwner);
       await Effect.runPromise(server.whenIdle());
       expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
@@ -830,7 +830,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const activityPath = join(root, "activity");
     const dispatch = { ...findingDispatch(statePath), activityPath };
-    Effect.runSync(server.admit(observation, dispatch, false, true));
+    Effect.runSync(server.admit(observation, dispatch, true));
     await Effect.runPromise(server.whenIdle());
     const collect = () => Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
@@ -881,7 +881,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     try {
       const dispatch = findingDispatch(statePath);
-      Effect.runSync(server.admit(observation, dispatch, false, true));
+      Effect.runSync(server.admit(observation, dispatch, true));
       await Effect.runPromise(server.whenIdle());
       const background = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
@@ -908,7 +908,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     if (observation === undefined) return;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
     await Effect.runPromise(server.whenIdle());
     const request = { requestRoute: "shared" as const, operation: "collect" as const,
       lifetime: server.lifetime, root, advicee: observation.advicee,
@@ -954,8 +954,8 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     let clock = 100;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     const dispatch = findingDispatch(statePath);
-    expect(Effect.runSync(server.admit(codex, dispatch, false, true))).toEqual({ status: "accepted" });
-    expect(Effect.runSync(server.admit(claude, dispatch, false, true))).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(codex, dispatch, true))).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(claude, dispatch, true))).toEqual({ status: "accepted" });
     await Effect.runPromise(server.whenIdle());
     const collect = (adviceeValue: typeof codex.advicee | typeof claude.advicee,
       mode: "ordinary" | "turn-end") => Effect.runPromise(server.handle({
@@ -1029,7 +1029,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     } };
     const paths = residentPaths(join(root, "runtime"));
     const server = await acquireResidentFixture(paths);
-    expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
     await Effect.runPromise(server.whenIdle());
     const collected = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
@@ -1046,7 +1046,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       writeFileSync(credentialStatePath, credentialState(2));
     }) }) });
     try {
-      expect(Effect.runSync(gated.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
+      expect(Effect.runSync(gated.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
       await Effect.runPromise(gated.whenIdle());
       await Effect.runPromise(gated.listen());
       const result = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: gated.lifetime,
@@ -1077,7 +1077,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       writeFileSync(credentialStatePath, credentialState(2));
     }) }) });
     try {
-      expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
+      expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
       await Effect.runPromise(server.whenIdle());
       await Effect.runPromise(server.listen());
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
@@ -1110,7 +1110,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
           Effect.mapError(() => new ReviewControlError({ phase: "beforeResponseHandoff" }))))).toEqual({ status: "advanced" });
     }) }) });
     try {
-      expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
+      expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
       await Effect.runPromise(server.whenIdle());
       await Effect.runPromise(server.listen());
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
@@ -1149,7 +1149,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       if (invalidate) now = PENDING_ADVICE_EXPIRY_MS + 1;
     }) }) });
     try {
-      expect(Effect.runSync(server.admit(finding, dispatch, false, true))).toEqual({ status: "accepted" });
+      expect(Effect.runSync(server.admit(finding, dispatch, true))).toEqual({ status: "accepted" });
       await Effect.runPromise(server.whenIdle());
       now = Math.floor(PENDING_ADVICE_EXPIRY_MS / 2);
       expect(Effect.runSync(server.admit(failure, failedDispatch, false, true))).toEqual({ status: "accepted" });
@@ -1200,7 +1200,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     }
   });
 
-  it("shares Claude capacity and canonical round across edits while keeping ticket authority", async () => {
+  it("shares Claude capacity and canonical round across edits and a common advice batch", async () => {
     const root = await makeGitFixture();
     await put(root, "first.ts", "type FirstCount = number\n");
     await put(root, "second.ts", "type SecondCount = number\n");
@@ -1218,10 +1218,10 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     });
     const dispatch = findingDispatch(join(root, "state"));
     try {
-      const admittedFirst = Effect.runSync(server.admit(first, dispatch, true, true));
+      const admittedFirst = Effect.runSync(server.admit(first, dispatch, true));
       expect(admittedFirst.status).toBe("accepted");
       await Effect.runPromise(server.whenIdle());
-      const admittedSecond = Effect.runSync(server.admit(second, dispatch, true, true));
+      const admittedSecond = Effect.runSync(server.admit(second, dispatch, true));
       expect(admittedSecond.status).toBe("accepted");
       await Effect.runPromise(server.whenIdle());
       expect(issued).toHaveLength(2);
@@ -1229,18 +1229,9 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       expect(new Set(issued.map(({ round }) => round)).size).toBe(1);
       expect(issued[0]?.partition).not.toContain("toolUseId");
       expect(issued[0]?.partition).not.toContain("round:");
-      if (!("ticket" in admittedFirst) || !("ticket" in admittedSecond)) throw new Error("missing ticket");
-      const request = { requestRoute: "ticketed" as const, operation: "collect" as const,
-        lifetime: server.lifetime, root, advicee: second.advicee, dispatch,
-        mode: "ordinary" as const, composed: true as const };
-      expect(await Effect.runPromise(server.handle({ ...request, ticket: admittedFirst.ticket })))
-        .toEqual({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
-      const collected = await Effect.runPromise(server.handle({ ...request, ticket: admittedSecond.ticket }));
-      expect(collected.status).toBe("advice");
-      if (collected.status !== "advice") throw new Error("missing advice");
-      const text = claudeHostOutputText(collected.output);
-      expect(text).toContain("first.ts");
-      expect(text).toContain("second.ts");
+      const collected = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect",
+        lifetime: server.lifetime, root, advicee: second.advicee, dispatch, composed: true }));
+      expect(collected).toMatchObject({ status: "advice", findingCount: 2 });
     } finally {
       await Effect.runPromise(server.close);
     }
@@ -1262,10 +1253,10 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     const dispatch = findingDispatch(statePath);
     try {
-      expect(Effect.runSync(server.admit(first, dispatch, false, true)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(first, dispatch, true)).status).toBe("accepted");
       await Effect.runPromise(server.whenIdle());
       now = Math.floor(PENDING_ADVICE_EXPIRY_MS / 2);
-      expect(Effect.runSync(server.admit(second, dispatch, false, true)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(second, dispatch, true)).status).toBe("accepted");
       await Effect.runPromise(server.whenIdle());
       expect(Effect.runSync(server.stats()).pendingAdvice).toBe(2);
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
@@ -1300,7 +1291,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     const mark = (marker: string) => Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker",
       lifetime: server.lifetime, root, advicee: observation.advicee, marker }));
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
-    expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
     await Effect.runPromise(server.whenIdle());
     const first = await collect();
     expect(first.status).toBe("advice");
@@ -1336,7 +1327,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     if (observation === undefined) return;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
     await Effect.runPromise(server.whenIdle());
     const request = { requestRoute: "shared" as const, operation: "collect" as const,
       lifetime: server.lifetime, root, advicee: observation.advicee, dispatch,
@@ -1426,7 +1417,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     const mark = (marker: string) => Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker",
       lifetime: server.lifetime, root, advicee: observation.advicee, marker }));
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
-    expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
     await Effect.runPromise(server.whenIdle());
     const first = await collect();
     expect(first.status).toBe("advice");
@@ -1465,7 +1456,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
         root, advicee: selected, token: firstToken }))).toEqual({ status: "busy" });
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: selected, startedAt: monotonicNow() - 1 }))).toEqual({ status: "advanced" });
-      expect(Effect.runSync(server.admit({ ...observation, advicee: selected }, dispatch, false, true, true))).toEqual({ status: "accepted" });
+      expect(Effect.runSync(server.admit({ ...observation, advicee: selected }, dispatch, true, true))).toEqual({ status: "accepted" });
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
         root, advicee: selected, token: firstToken }))).toEqual({ status: "background-claimed" });
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
@@ -1537,7 +1528,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       preparationControls: controls.layer,
     });
     const dispatch = findingDispatch(statePath);
-    expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
     const collect = (adviceeValue: typeof observation.advicee, reportWorkState?: true) => Effect.runPromise(server.handle({
       requestRoute: "shared", operation: "collect", lifetime: server.lifetime, root,
       advicee: adviceeValue, dispatch, composed: true,
@@ -3057,7 +3048,7 @@ describe("resident bounded advice batches", () => {
 
     });
     const dispatch = findingDispatch(statePath);
-    expect(Effect.runSync(server.admit(observation, dispatch, false, true)).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
     await bothEntered.promise;
     Effect.runSync(releases.get("a.ts") ?? Effect.void);
     await ready.promise;

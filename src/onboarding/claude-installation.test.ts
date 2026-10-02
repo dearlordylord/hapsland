@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import { canonicalJson } from "./hook-reconciliation.ts";
 import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -66,7 +68,8 @@ describe("Claude installation lifecycle", () => {
     expect(post[0]).toEqual(original.hooks.PostToolUse[0]);
     expect(post).toHaveLength(2);
     expect(JSON.stringify(post[1])).toContain("--claude-hook");
-    expect(JSON.stringify(post[1])).toContain("--composed-background-hook");
+    expect(JSON.stringify(post[1])).not.toContain("--composed-background-hook");
+    expect(JSON.stringify(post[1])).not.toContain('"async":true');
     expect(JSON.stringify(post[1])).toContain("--review-tool-owned=claude-v1");
     expect((inspectClaudeInstallation(request) as { installed?: boolean }).installed).toBe(true);
     const removal = await uninstallClaudeIntegration(request);
@@ -91,6 +94,31 @@ describe("Claude installation lifecycle", () => {
     expect(proposal.status).toBe("preview");
     expect((await updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) })).status).toBe("complete");
     expect((settings(home).hooks as Record<string, unknown>).SubagentStop).toBeDefined();
+  });
+
+  it("updates an owned asynchronous PostToolUse group to synchronous delivery while preserving Stop", async () => {
+    const { home, claudeExecutable } = fixture();
+    const request = { claudeHome: home, claudeExecutable };
+    await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+    const previous = settings(home);
+    const hooks = previous.hooks as Record<string, Array<{ hooks: unknown[] }>>;
+    const group = hooks.PostToolUse![0]!;
+    group.hooks.push({ type: "command", command: "old-cli --composed-background-hook --composed-host=claude-code --review-tool-composed-owned=claude-v1", timeout: 25, async: true });
+    writeFileSync(join(home, "settings.json"), JSON.stringify(previous));
+    const recordPath = join(home, ".realtime-review-tool", "claude-installation-v1.json");
+    const record = JSON.parse(readFileSync(recordPath, "utf8"));
+    record.hookGroups.PostToolUse = group;
+    record.hookDigest = createHash("sha256").update(canonicalJson(group)).digest("hex");
+    writeFileSync(recordPath, JSON.stringify(record));
+    const proposal = previewClaudeUpdate(request);
+    expect(proposal.status).toBe("preview");
+    expect((await updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+    const updated = settings(home).hooks as typeof hooks;
+    expect(updated.PostToolUse![0]!.hooks).toHaveLength(1);
+    expect(JSON.stringify(updated.PostToolUse)).not.toContain("--composed-background-hook");
+    expect(updated.Stop).toEqual(hooks.Stop);
+    expect(updated.SubagentStop).toEqual(hooks.SubagentStop);
+    expect(inspectClaudeInstallation(request)).toMatchObject({ installed: true });
   });
 
   it("requires the exact tested host profile and an approval digest", async () => {
@@ -149,4 +177,40 @@ describe("Claude installation lifecycle", () => {
     expect(doctor.checks.find((check) => check.stage === "native-trust")?.status).toBe("unknown");
     expect(doctor.checks.find((check) => check.stage === "file-selection")?.status).toBe("unknown");
   });
+});
+
+it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit", "foreground"])("repairs deleted Claude %s without losing user settings", async (missing) => {
+  const { home, claudeExecutable } = fixture();
+  const request = { claudeHome: home, claudeExecutable };
+  writeFileSync(join(home, "settings.json"), JSON.stringify({ permissions: { allow: ["Read"] }, custom: 42 }));
+  await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+  const changed = settings(home) as { hooks: Record<string, Array<{ hooks: unknown[] }>>; permissions: unknown; custom: number };
+  if (missing === "foreground") changed.hooks.PostToolUse![0]!.hooks.splice(0, 1);
+  else delete changed.hooks[missing];
+  writeFileSync(join(home, "settings.json"), JSON.stringify(changed));
+  expect(inspectClaudeInstallation(request).status).toBe("conflict");
+  const proposal = previewClaudeUpdate(request);
+  expect(proposal.status).toBe("preview");
+  expect((await updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+  expect(inspectClaudeInstallation(request)).toMatchObject({ installed: true });
+  expect(settings(home)).toMatchObject({ permissions: { allow: ["Read"] }, custom: 42 });
+  expect(previewClaudeUpdate(request)).toMatchObject({ alreadyCurrent: true, proposal: { changes: [] } });
+});
+
+it("explicit Claude reinstall replaces changed and duplicate marked handlers while preserving independent handlers", async () => {
+  const { home, claudeExecutable } = fixture();
+  const request = { claudeHome: home, claudeExecutable };
+  await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+  const changed = settings(home) as { hooks: Record<string, Array<{ hooks: Array<{ command: string; timeout?: number }> }>> };
+  changed.hooks.PostToolUse![0]!.hooks[0]!.timeout = 99;
+  changed.hooks.PostToolUse![0]!.hooks.push({ command: "independent-handler" });
+  changed.hooks.Stop!.push(structuredClone(changed.hooks.Stop![0]!));
+  writeFileSync(join(home, "settings.json"), JSON.stringify(changed));
+  expect(previewClaudeUpdate(request).status).toBe("conflict");
+  const reinstall = { ...request, reinstall: true };
+  const proposal = previewClaudeInstallation(reinstall);
+  expect((await installClaudeIntegration({ ...reinstall, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+  expect(inspectClaudeInstallation(request)).toMatchObject({ installed: true });
+  expect(JSON.stringify(settings(home))).toContain("independent-handler");
+  expect(JSON.stringify(settings(home))).not.toContain('"timeout":99');
 });

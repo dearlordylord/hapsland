@@ -14,6 +14,7 @@ export interface SocketFramePort {
   readonly closed: Effect.Effect<void>;
   readonly close: Effect.Effect<void>;
   readonly canWrite: () => boolean;
+  readonly setIdleTimeout: (milliseconds: number) => Effect.Effect<void>;
   readonly write: (encoded: string) => Effect.Effect<boolean>;
   readonly errored: () => boolean;
 }
@@ -38,6 +39,9 @@ export const makeSocketFramePort = Effect.fn("ResidentSocket.make")((socket: Soc
         socket.removeListener("error", ignoreError);
       })), Effect.asVoid),
     canWrite: () => !socket.destroyed,
+    setIdleTimeout: Effect.fn("ResidentSocket.setIdleTimeout")((milliseconds: number) => Effect.sync(() => {
+      socket.setTimeout(milliseconds);
+    })),
     errored: () => socket.errored !== null,
     write: Effect.fn("ResidentSocket.write")((encoded: string) => Effect.sync(() => {
       if (socket.destroyed) return false;

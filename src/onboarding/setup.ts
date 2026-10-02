@@ -7,7 +7,7 @@ import {
   previewCodexInstallation,
   type InstallationRequest,
 } from "./codex-installation.ts";
-import { installClaudeIntegration, inspectClaudeInstallation, previewClaudeInstallation, previewClaudeUpdate, updateClaudeIntegration } from "./claude-installation.ts";
+import { installClaudeIntegration, hasClaudeRegistration, previewClaudeInstallation, previewClaudeUpdate, updateClaudeIntegration } from "./claude-installation.ts";
 
 type SetupFields = {
   readonly version: 1;
@@ -74,7 +74,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (
     ...(request.claudeExecutable === undefined ? {} : { claudeExecutable: request.claudeExecutable }),
   } : {};
   const codexRequest = request.host === "codex" ? installationRequest(request) : {};
-  const claudeInstalled = request.host === "claude" && record(inspectClaudeInstallation(claudeRequest))?.installed === true;
+  const claudeInstalled = request.host === "claude" && hasClaudeRegistration(claudeRequest);
   const preview = () => {
     if (request.host !== "claude") return previewCodexInstallation(codexRequest);
     if (!claudeInstalled) return previewClaudeInstallation(claudeRequest);
@@ -118,7 +118,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (
   }
 
   const currentInstallationStatus = text(installationRecord.status) ?? installationStatus;
-  const installed = installedAtPreview || currentInstallationStatus === "installed" || currentInstallationStatus === "already-installed" || currentInstallationStatus === "complete";
+  const installed = installedAtPreview || currentInstallationStatus === "installed" || currentInstallationStatus === "already-installed" || currentInstallationStatus === "complete" || currentInstallationStatus === "updated" || currentInstallationStatus === "already-current";
   if (installed) {
     stages.push({
       stage: "installation",
@@ -130,7 +130,12 @@ export const runSetup = Effect.fn("Setup.run")(function* (
     });
     completed.push(`owned ${hostName} integration installed`);
   } else if (currentInstallationStatus === "partial") {
-    stages.push({ stage: "installation", status: "partial", summary: "installation stopped after partial completion", observed: installationRecord.recovery });
+    stages.push({
+      stage: "installation",
+      status: "partial",
+      summary: "installation stopped after partial completion",
+      observed: { recovery: installationRecord.recovery, proposal: installationRecord.proposal ?? proposal },
+    });
     const recovery = record(installationRecord.recovery);
     const recoveryDigest = text(recovery?.proposalDigest) ?? installDigest;
     actions.push({

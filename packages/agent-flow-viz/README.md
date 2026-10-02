@@ -6,6 +6,83 @@
 **Expected use:** Run the dashboard and understand the scope of guided/manual replay and its evidence.
 **Lifecycle:** Maintained alongside visualization source, fixtures, and build commands. Review whenever the shared adapter, page sections, replay behavior, or capacity projection changes, and at #137 final authority review.
 
+## Public site and shared import replay
+
+Run `npm run dev` in this package and open `/site.html` for the FoldKit public
+site, or `/index.html` for the full dashboard. `npm run build` emits both entries
+with relative asset paths. Building is separate from deploying either page.
+
+`npm run build:pages` prepares the Cloudflare Pages bundle: the public site at
+`/`, the dashboard at `/dashboard.html`, and favicons at the root. The existing
+`/site.html` address redirects to `/`. `npm run deploy:pages` builds and publishes
+to the `hapsland` Pages project on its production branch, `master`, using the
+authenticated Wrangler account. The custom domain is `hapsland.dearlordylord.com`.
+Gandi DNS must point the `hapsland` CNAME to the project's `pages.dev` hostname;
+register the domain with the Pages project before setting that record.
+
+The primary illustration adapts the research video's circular review flow in
+`src/review-loop-renderer.ts`, with FoldKit phase controls and a shared HTML code
+stage. Desktop uses the full actor loop; mobile uses a compact actor overview.
+Its six stages are edit, expanded code and question, Jev rule result, configured
+feedback to the agent, possible edit, and recheck. The public page keeps the review loop, file settings, rules, and setup; source-control replay and verification panels remain on the architecture dashboard.
+The illustration reuses the existing video example: a three-line local diff
+(`title`, added `coverWidth`, `public`) expands to Gallery → ImageFile → Dimensions.
+The opening shows the edited lines; expansion reveals why related code matters.
+The diff stays local and is not sent to Jev.
+Here, `coverWidth` means the current cover image width, also represented by
+`cover.dimensions.width`; a snapshot or layout width would be a different design.
+The example shows the built-in duplicate-encoding question, the configured
+feedback message, and an edit that removes the second copy of the width. It
+explains the design consequence directly rather than asking readers to interpret
+classifier scores. Historical measurements and their provenance remain in the
+study linked in `src/site-example.ts`; the site is not a live review or a
+current-integration benchmark. Function review is
+explained separately through the built-in `noul/r9_body_reaches_undeclared`.
+The README retains its repair GIF; the interactive site does not repeat it.
+The animation initially shows only an Example edit card with a Click me sign.
+Clicking expands the panel and starts the six-stage loop; completing the final
+stage collapses it back to a replayable card with a muted sign. Reduced-motion
+users open immediately and use manual steps, ending with Finish example.
+Reduced-motion users get manual illustration steps;
+changing that preference stops playback. No page calls Jev or reads repository source.
+
+`src/import-graph-replay.ts` owns shared scenario replay through the compiled
+ImportGraph adapter. `src/import-graph-diagram.ts` owns the shared graph display
+projection. The dashboard uses these modules for graph replay. The public page uses `src/site.ts` for its illustration and controls.
+
+Run `npm run test:site` for headless scenario checks and Chromium interactions.
+The scenario checks distinguish exclusion before a read command from a size
+omission after synthetic capture. Browser checks cover playback controls,
+automatic expansion and collapse, replay, mobile overflow and reduced motion.
+Chromium requires the same system libraries as the dashboard browser checks.
+
+The adapted drawing primitives preserve their research-source provenance.
+The animation and example code explain the flow; production rules and checked
+replay remain the behavior authorities. It shows no numeric classifier scores,
+pass seal, or commit gate. A possible agent edit is illustrative, not guaranteed.
+The shared HTML stage keeps expanded source readable in both layouts. TypeScript,
+the production build, and browser checks cover the adapted renderer, six-stage
+controls, paused Canvas output, mobile resizing, manual reduced-motion steps, and
+clipboard contents on secure and HTTP/IP origins. The linked captures below show
+the current circular composition.
+
+The setup section offers a copyable agent instruction first, with short manual
+installation and setup commands in a disclosure. Text is owned by `src/setup-copy.ts`;
+FoldKit commands call `src/site-clipboard.ts`. Secure origins use Clipboard API,
+with a temporary selection fallback for the HTTP/IP preview. Browser checks
+read the clipboard to verify the copied text, including the fallback. Commands
+follow the [installation guide](../../docs/installation-workflows.md).
+
+For design review, inspect the [opening diff](docs/assets/site-hero-edit.png),
+[recheck frame](docs/assets/site-hero-recheck.png), and new [related-definitions frame](docs/assets/site-hero-related.png),
+[review-question frame](docs/assets/site-hero-context.png), and
+[agent-feedback frame](docs/assets/site-hero-feedback.png).
+This is a new site view; the existing dashboard layout has no visual diff from
+the shared-module extraction. [Mobile](docs/assets/site-mobile.png) and
+[desktop](docs/assets/site-desktop.png) captures cover page composition. These
+are implementation observations and Astra design review inputs, not owner
+acceptance, native capture evidence, or release claims.
+
 This page replays source-free example events through the same checked
 `src/canonical/adapter.ts` and compiled `Canonical.step` used by the resident.
 The main flow has 14 distinct places from agent-runtime observation through

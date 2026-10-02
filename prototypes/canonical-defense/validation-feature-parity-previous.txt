@@ -1,0 +1,134 @@
+PASS two stored packets share one worker; only first has a service permit
+PASS natural service never decrements queued work without a permit
+PASS completed work releases permit immediately while both storage resources remain occupied
+PASS Refiner cannot alter already-resolved fixture outcomes or queued work
+PASS fixed three-member group waits for siblings not yet offered
+PASS offering all members does not bypass a live source/review sibling
+PASS unrelated complete edit group obtains permit despite older blocked group
+PASS synthetic group fixture has truthful complete outcome accounting
+PASS byte prefix fits exactly cap52 including12header and8per-item, retains third overflow
+PASS exclusive byte prefix contains no duplicate member IDs
+PASS single53byte record cannot fit52cap and is explicitly oversized, next record remains selectable
+PASS unrelated complete group actually departs earlier while older group waits
+PASS writer acknowledges only its exclusive byte-selected members
+PASS completed writer cannot acknowledge members twice
+PASS partial batch flushes automatically at fixed age without manual activation
+PASS selected member still outside writer prevents acknowledgement
+PASS oversized finding is limited and never reclassified clear
+PASS Stop waits for unfinished upstream before absolute deadline
+PASS cutoff cancels upstream truthfully and releases partial authored advice
+PASS cutoff retains original absolute deadline
+PASS Stop also waits for an active writer
+PASS pause freezes complete state including deadlines writer and outcomes
+PASS tick batching is deterministic
+PASS REGRESSION byte-reserved writer lane admits selected member despite eight pending output slots
+PASS REGRESSION selected completed review traverses full pending advice road
+PASS REGRESSION writer reservation spans full intermediate advice storage and roads without ghost ownership
+PASS REGRESSION full reserved review-advice-output route acknowledges selected finding before240tick expiry
+PASS REGRESSION completed review finding survives cutoff despite blocked physical handoff
+PASS REGRESSION exhausted response budget becomes frozen incomplete and N cannot replenish
+PASS same demand identities and100percentinitialrisk across12/28 pacing with different offer counts
+PASS final authored arrival automatically starts Stop without manual activation
+PASS cutoff and terminal freeze admit no late work or late acknowledgement
+PASS all four declared packages spend exactly120 through real construction clicks
+PASS Parallelizer raises one ordinary permit to two while four storage reservations stay fixed
+PASS four10work packets leave source at20ticks with two workers versus40ticks with one
+PASS Parallelizer aggregate grant caps at two and never expands exclusive writer permits
+PASS out-of-range Parallelizer has no effect on source
+PASS Coordinator selects unfinished active sibling blocking two authored findings ahead of one
+PASS same nine extra work units release edit1 frontier only when assigned to its actual unfinished sibling
+PASS native Coordinator reduces first-group readiness from ten ticks to one without inventing completion
+PASS Coordinator cannot serve queued sibling outside worker permits or unrelated active work
+PASS equal waiting counts break ties by remaining effort before packet ID
+PASS native automatic flush commits three2500byte payloads normally versus four with16byte encoding overhead at same10240cap
+PASS Packager changes encoding overhead and target only; payload and byte cap stay fixed
+PASS Packager built/upgraded during active writer leaves committed bytes and exclusive membership unchanged
+PASS four near-cap members really finish work and acknowledge exactly once in native writer
+PASS higher Packager target can defer a four-item batch until unchanged timed flush, a real latency cost
+PASS six inside packets generate600 raw jobticks; finite Shield absorbs240 leaving360 net
+PASS Shield mitigation never changes backlog work outcomes or deadlines
+PASS exhausted Shield cannot absorb later pressure
+PASS upgrade and N during active wave cannot refill exhausted charge
+PASS pause freezes Shield charge and cumulative mitigation
+PASS only legitimate settled-wave start restores240 charge while preserving past mitigation
+PASS safe road traffic consumes no Shield charge and receives no pressure mitigation
+PASS overlapping Shields share local half of two HOT packets and cannot spend uncovered six-packet pressure
+PASS Parallelizer net3+1 equals real legal click
+PASS existing bonus included:4+1 reaches cap5
+PASS saturated5+0 still costs70; no fictitious extra permit
+PASS hover moves target to nearest eligible REVIEW without borrowing Capture bonus
+PASS Packager32-16 and target3+1 exactly equal actual click policy
+PASS encoding floor0-0 does not hide independent target5+1
+PASS three-level Packager cap shows zero deltas but full60gold price
+PASS per-item reduction clips8 to0 rather than displaying negative encoding
+PASS legal out-of-range build shows no eligible writer but retains cost
+PASS road or fixed site prevents optimistic preview
+PASS unaffordable hover has explicit reason and no actionable buff/cost delta
+PASS after build normal4workers replace ghost delta; occupied hover no longer previews
+PASS inspection suppresses preview; number4 explicitly reenters build mode
+PASS mouse motion preserves inspection and U keeps selected tower for real upgrade
+PASS paused legal hover computes same delta without spending gold or ticking
+PASS terminal phase denies build preview
+PASS Shield shows conditional protection/cost without invented worker or throughput delta
+PASS hover/build changes future policy but preserves committed writer bytes/membership and work contents
+PREVIEW:18 directed checks complete
+PASS Rapid empty eligible site temporaryzero
+PASS Refiner empty temporaryzero
+PASS Relay empty temporaryzero
+PASS Coordinator empty temporaryzero
+PASS Shield no hot pressure temporaryzero
+PASS Packager policy useful despite empty candidates
+PASS Parallelizer extra permit
+PASS Rapid no building in range persistentzero
+PASS Coordinator only postreview sites persistentzero
+PASS Parallelizer no eligible site persistentzero
+PASS Shield no site structuralzero
+PASS Supported worker cap persistentzero
+PASS Unfunded blockedred
+PASS Invalid site blockedred
+PASS Actual nextshot benefit cyan
+PASS Hot pressure alreadycapped remains transientzero, not nohotclaim
+PASS Hot pressure alreadycapped remains transientzero, not nohotclaim
+PASS Inspection hides buildghost
+PASS Rapid exact active shot clips5to0, preserves second unit
+PASS Refiner single active risk snapshot100to80 percentagepoints, no fictional multiworkhit
+PASS Relay sixwork long range reaches live unit beyond Rapid range
+PASS illegal road gates snapshot; pure hover never buys/spends/mutates jobs
+PASS writer reservation restricts hit to member1; exact cooldown emits no work
+PASS held sameedit Advice work is not active and cannot be shot
+PASS Coordinator finishes active lastreview7work: two same-edit findings gate becomesready
+PASS Coordinator highlights dependents but otherreview/unoffered sibling prevents promised release
+PASS Shield snapshot absorbs two pressureunits not HP; exact halfpressure/charges
+PASS newshield spends one while replacing oldspend: zero marginal prevention under global cap
+PASS finishingCapture still requires downstreamReview: zero OTHER LIVE BLOCKERS is not release readiness
+PASS Packager eligiblebyteprefix3to4; encodedbytes7724to10192 under10240 cap
+PASS Packager raises target3to4; same three eligibleunits now waitforflush instead of promise fasterdispatch
+PASS busywriter commitment260bytes/member1 staysfixed; uncommittedeligible excludes1; no concurrentdispatch
+PASS empty prefix reports0not phantomheaderbytes; roads never contribute pressure/charge spend
+PASS flush age39 dispatches short batch; eligible oversize unit remains excluded by exactbyteprefix
+DYNAMIC PREVIEW:16 directed checks complete
+
+PASS 100percent boundary always Finding at Review, including draw99
+PASS zerochance boundary always Clear, including draw0
+PASS draw threshold is strict:19below20finding,20at20clear
+PASS Capture completion and unfinished Review never resolve the risk prematurely
+PASS one Refiner shot permanently removes20percentagepoints, changes no work bytes identity or hidden draw
+PASS successive shots accumulate100to80to60 rather than temporary aura
+PASS level2 removes30pp and level3 removes40pp
+PASS risk saturates at zero and never underflows after repeated shots
+PASS later natural service preserves permanent risk and original draw
+PASS single target skips zerochance firstunit and never hits a second unit
+PASS resolved Finding and Clear are both immune; prevention is not retroactive repair
+PASS cooldown4 emits no risk reduction
+PASS road unit has no service permit; postreview Advice is never eligible
+PASS positive-risk fourth queued unit cannot bypass three active worker permits
+PASS Refiner respects its120pixel service range
+PASS Refiner before Rapid lowers100to80; completed Review draw90 exits Clear in same actual tick
+PASS Rapid before Refiner finishes work first; prevention window closes and draw90 remains Finding
+PASS Review resolution is idempotent for both Finding and Clear; never rerolls
+PASS finding observation counted at first review completion only
+PASS unreviewed terminal cannot masquerade as Clear despite zerochance
+PASS every fresh offer starts100percent risk with one bounded stable wave/id draw
+PASS same wave/id draw independent of clock construction or session scheduling; new wave changes draw
+PASS full Advice road keeps reviewed Finding at Review with immutable outcome across retry
+PREVENTION:23 directed checks complete

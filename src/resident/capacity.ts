@@ -4,8 +4,6 @@ import { initialNoticeRecords, draftNoticeRecords, noticeRecordOperations, type 
 import { initialRoundRecords, draftRoundRecords, roundRecordOperations, type RoundRecordsState, type RoundRecords, type RoundWork, type WorkCohort } from "./round-records.ts";
 import { workView } from "./bend-work.ts";
 import { initialJoinedReviews, draftJoinedReviews, joinedReviewOperations, type JoinedReviewsState, type JoinedReviews, type JoinedReviewOutcome } from "./joined-reviews.ts";
-import { initialTicketRecords, draftTicketRecords, ticketRecordOperations, type TicketRecordsState, type TicketRecords } from "./ticket-records.ts";
-import { initialTicketUnits, draftTicketUnits, ticketUnitOperations, emptyTicketUnitCurrent, type TicketUnitsState, type TicketUnit, type TicketUnits } from "./ticket-units.ts";
 import { initialRevision, draftRevision, revisionOperations, type RevisionState, type RevisionOperations, type WorkRevision } from "./revision.ts";
 import { initialDispatchRegistry, type DispatchRegistry, type DispatchState } from "./dispatch.ts";
 import { initialDelivery, draftDelivery, deliveryOperations, deliveryView, assertDeliveryState, type DeliveryState, type ComposedDelivery, type RepeatEditDiagnostic } from "./composed-delivery.ts";
@@ -70,10 +68,8 @@ type ResidentTransition = Extract<CanonicalEvent, { readonly kind:
   "submissionReofferCheck" | "submissionExpiryCheck" |
   "revisionRegister" | "revisionRelease" | "revisionCurrentCheck" |
   "revisionSupersededCheck" | "revisionGenerationCheck" | "revisionCountCheck" |
-  "ticketOpen" | "ticketForget" |
-  "ticketAddUnit" | "ticketStepUnit" | "ticketUnitCheck" |
-  "ticketCollectGateCheck" | "ticketFinalAuthorityCheck" | "ticketJoinedCheck" |
-  "ticketRetentionCheck" | "cleanupCheck" | "cleanupCommit" | "deliveryReleaseCheck" |
+  "collectorGateCheck" | "collectorFinalAuthorityCheck" | "reuseMemberCheck" |
+  "cleanupCheck" | "cleanupCommit" | "deliveryReleaseCheck" |
   "deliveryAcknowledgeCheck" | "deliveryFinalizeCheck" | "deliveryFindingDispositionCheck" |
   "deliverySubmissionCandidateCheck" | "deliverySubmissionBatchCheck" |
   "deliveryCredentialObserveCheck" | "deliveryFinalCredentialCheck" |
@@ -125,8 +121,6 @@ type ResidentRecords<Pending, Key, Value> = {
   readonly delivery: DeliveryState;
   readonly dispatch: DispatchRegistry<Key, Value>;
   readonly revision: RevisionState;
-  readonly ticketUnits: TicketUnitsState;
-  readonly tickets: TicketRecordsState;
   readonly joined: JoinedReviewsState;
   readonly rounds: RoundRecordsState;
   readonly notices: NoticeRecordsState;
@@ -169,7 +163,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     partitionIds: new Map(), partitionIdentityBytes: 0, roundIds: new Map(), requestRounds: new Map(),
     collectionTokens: new Map(), nextCollectionToken: 1, nextPartitionId: 1, minimumFreshStart: 0,
     records: { runtime: initialRuntimeRecords(), adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
-      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords() },
+      dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords() },
   });
   let committing = false;
   const commitAllEffect = <A>(operation: (draft: CapacityDraft, records: ResidentRecords<Pending, DispatchKey, DispatchValue>) =>
@@ -189,51 +183,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         return [value, { ...next, records: observedRecords }] as const;
       } finally { committing = false; }
     }).pipe(Effect.withSpan("ResidentState.commit"));
-  const unitCommit = <A>(operation: (operations: ReturnType<typeof ticketUnitOperations>, tickets: TicketRecordsState) => A): Effect.Effect<A> =>
-    commitAllEffect((draft, records) => {
-      const ticketUnits = draftTicketUnits(records.ticketUnits);
-      const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
-      const value = operation(ticketUnitOperations(ticketUnits, owner), records.tickets);
-      return [value, { ...records, ticketUnits }];
-    });
-  const ticketUnits: TicketUnits = {
-    add: Effect.fn("ResidentState.addTicketUnit")((record) => unitCommit((operations, tickets) => {
-      if (tickets.entries.get(record.ticket.nonce) !== record) {
-        throw new Error("native ticket unit admission lost its ticket capability");
-      }
-      return operations.add(record.generation, (id, ticketId) => Object.freeze({ id, ticketId }));
-    })),
-    values: Effect.fn("ResidentState.ticketUnitValues")(() => Ref.get(state).pipe(Effect.map((state) =>
-      [...state.records.ticketUnits.entries.values()].map((entry) => entry.capability)))),
-    current: Effect.fn("ResidentState.ticketUnitCurrent")((unit) => Ref.get(state).pipe(Effect.map((state) => {
-      const entry = state.records.ticketUnits.entries.get(unit.id);
-      return entry?.capability === unit ? entry.current : emptyTicketUnitCurrent;
-    }))),
-    stage: Effect.fn("ResidentState.ticketUnitStage")((unit) => unitCommit((operations) => operations.stage(unit))),
-    step: Effect.fn("ResidentState.stepTicketUnit")((...args) => unitCommit((operations) => operations.step(...args))),
-    fail: Effect.fn("ResidentState.failTicketUnit")((...args) => unitCommit((operations) => operations.fail(...args))),
-    revise: Effect.fn("ResidentState.reviseTicketUnit")((...args) => unitCommit((operations) => operations.revise(...args))),
-    clear: Effect.fn("ResidentState.clearTicketUnit")((...args) => unitCommit((operations) => operations.clear(...args))),
-    markAdviceDelivered: Effect.fn("ResidentState.markAdviceDelivered")((...args) => unitCommit((operations) => operations.markAdviceDelivered(...args))),
-  };
-  const ticketCommit = <A>(operation: (operations: ReturnType<typeof ticketRecordOperations>) => A): Effect.Effect<A> =>
-    commitAllEffect((draft, records) => {
-      const tickets = draftTicketRecords(records.tickets);
-      const ticketUnits = draftTicketUnits(records.ticketUnits);
-      const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
-      const units = ticketUnitOperations(ticketUnits, owner);
-      const operations = ticketRecordOperations(tickets, owner, units.forget);
-      const value = operation(operations);
-      operations.assert();
-      return [value, { ...records, tickets, ticketUnits }];
-    });
-  const tickets: TicketRecords = {
-    open: Effect.fn("ResidentState.openTicket")((input) => ticketCommit((operations) => operations.open(input))),
-    get: Effect.fn("ResidentState.getTicket")((nonce) => Ref.get(state).pipe(Effect.map((current) => current.records.tickets.entries.get(nonce)))),
-    forget: Effect.fn("ResidentState.forgetTicket")((record) => ticketCommit((operations) => operations.forget(record))),
-    discardPartition: Effect.fn("ResidentState.discardPartitionTickets")((partition) => ticketCommit((operations) => operations.discardPartition(partition))),
-    retain: Effect.fn("ResidentState.retainTickets")((limit) => ticketCommit((operations) => operations.retain(limit))),
-  };
   const roundCommit = <A>(operation: (operations: ReturnType<typeof roundRecordOperations>) => A): Effect.Effect<A> =>
     commitAllEffect((draft, records) => {
       const rounds = draftRoundRecords(records.rounds);
@@ -331,8 +280,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       observePreparedUnits: Effect.fn("ResidentState.observePreparedUnits")((units: number) => runtimeCommitEffect((operations) => operations.observePreparedUnits(units))),
       nextAuthoritySequence: Effect.fn("ResidentState.nextAuthoritySequence")(() => runtimeCommitEffect((operations) => operations.nextAuthoritySequence())),
       scheduleRetirement: Effect.fn("ResidentState.scheduleRetirement")(() => runtimeCommitEffect((operations) => operations.scheduleRetirement())),
-      close: () => runtimeCommitEffect((operations) => operations.close()),
-      cleanup: (logicalBytes: (value: unknown) => number): Effect.Effect<"busy" | "cleaned"> => commitAllEffect((draft, records) => {
+      close: Effect.fn("RuntimeRecords.close")(() => runtimeCommitEffect((operations) => operations.close())),
+      cleanup: Effect.fn("RuntimeRecords.cleanup")((logicalBytes: (value: unknown) => number): Effect.Effect<"busy" | "cleaned"> => commitAllEffect((draft, records) => {
         if (records.runtime.lifecycle !== "active") return ["busy", records];
         const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
         const reuse = evaluationReuseView(records.reuse, owner).snapshot();
@@ -354,30 +303,23 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         if (check.commands[0]?.kind !== "cleanupReady") throw new Error("invalid canonical cleanup check");
         const clearedReuse = draftEvaluationReuse(records.reuse);
         evaluationReuseOperations(clearedReuse, owner, logicalBytes).clear();
-        const tickets = draftTicketRecords(records.tickets);
-        const ticketUnits = draftTicketUnits(records.ticketUnits);
-        const ticketOperations = ticketRecordOperations(tickets, owner, ticketUnitOperations(ticketUnits, owner).forget);
-        ticketOperations.retain(0);
-        ticketOperations.assert();
         const commit = owner.transition({ kind: "cleanupCommit" });
         if (commit.rejection !== undefined || commit.commands.length !== 1) throw new Error("canonical cleanup commit refused");
         if (commit.commands[0]?.kind === "cleanupBusy") {
-          return ["busy", { ...records, revision, reuse: clearedReuse, tickets, ticketUnits }];
+          return ["busy", { ...records, revision, reuse: clearedReuse }];
         }
         if (commit.commands[0]?.kind !== "cleanupCommitted") throw new Error("invalid canonical cleanup commit");
         const runtime = draftRuntimeRecords(records.runtime);
         runtimeRecordOperations(runtime, residentLifetime).retire();
-        return ["cleaned", { ...records, runtime, revision, reuse: clearedReuse, tickets, ticketUnits }];
-      }),
+        return ["cleaned", { ...records, runtime, revision, reuse: clearedReuse }];
+      })),
     },
     rounds,
-    ticketUnits,
-    tickets,
     clear: Effect.fn("ResidentState.clear")(() => commitAllEffect((draft, records) => {
       const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
       if (records.adviceCaptures.size !== 0) throw new Error("resident state cannot clear outstanding advice captures");
-      return [clear(draft), { runtime: records.runtime, adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
+      return [clear(draft), { runtime: records.runtime, adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
     })),
     revision: (() => {
@@ -518,19 +460,15 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         insert: Effect.fn("AdviceRecords.insert")((initial: AdviceInitial): Effect.Effect<Advice> => commitAllEffect(adviceChange((operations) => operations.insert(initial, (metadata) => {
           return Object.freeze({ ...metadata });
         })))),
-        publish: Effect.fn("AdviceRecords.publish")((capability: Advice, unit?: TicketUnit, revision: WorkRevision = capability.revision): Effect.Effect<ReadonlyArray<JoinedReviewOutcome>> =>
+        publish: Effect.fn("AdviceRecords.publish")((capability: Advice): Effect.Effect<ReadonlyArray<JoinedReviewOutcome>> =>
           commitAllEffect((draft, records) => {
             if (records.advice.entries.get(capability.id)?.capability !== capability) return [[], records];
             const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
-            const ticketUnits = draftTicketUnits(records.ticketUnits);
-            const units = ticketUnitOperations(ticketUnits, owner);
-            if (unit !== undefined && units.step(unit, "findingResult", "lost", { revision, adviceId: capability.id }) &&
-                units.stage(unit)?.stage !== "finding") throw new Error("invalid canonical ticket finding stage");
             const joined = draftJoinedReviews(records.joined);
             const revisions = revisionOperations(draftRevision(records.revision), owner);
-            const outcomes = joinedReviewOperations(joined, owner, units, revisions)
-              .settle(capability.evaluationKey, "finding", "lost", capability.id);
-            return [outcomes, { ...records, ticketUnits, joined }];
+            const outcomes = joinedReviewOperations(joined, owner, revisions, (id) => records.advice.entries.has(id))
+              .settle(capability.evaluationKey, "finding", capability.id);
+            return [outcomes, { ...records, joined }];
           })),
         eligible: Effect.fn("AdviceRecords.eligible")((...args: Parameters<AdviceRecordOperations["eligible"]>) =>
           commitAllEffect(adviceChange((operations) => operations.eligible(...args)))),
@@ -552,14 +490,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           const delivery = draftDelivery(records.delivery);
           const deliveryOps = deliveryOperations(delivery, owner, () => {});
           deliveryOps.forget(capability.id);
-          const ticketUnits = draftTicketUnits(records.ticketUnits);
-          const units = ticketUnitOperations(ticketUnits, owner);
-          for (const { capability: unit, current } of ticketUnits.entries.values()) {
-            const stage = units.stage(unit);
-            if (stage?.stage === "finding" && current.adviceId === capability.id && !stage.delivered) {
-              if (!units.step(unit, "failUnit", reason, {})) throw new Error("canonical advice ticket retirement refused");
-            }
-          }
           const adviceCaptures = new Map(records.adviceCaptures);
           const capture = adviceCaptures.get(capability.reservation.id);
           const revision = draftRevision(records.revision);
@@ -573,7 +503,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           operations.assert();
           revisions.assert();
           assertDeliveryState(delivery, owner);
-          return [true, { ...records, advice, delivery, ticketUnits, adviceCaptures, revision }];
+          return [true, { ...records, advice, delivery, adviceCaptures, revision }];
         })),
       };
     })(),
@@ -660,18 +590,16 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       const joinedChange = <A>(operation: (joined: ReturnType<typeof joinedReviewOperations>, reuse: EvaluationReuse<Pending>) => A): Parameters<typeof commitAllEffect<A>>[0] =>
         (draft, records) => {
           const joined = draftJoinedReviews(records.joined);
-          const ticketUnits = draftTicketUnits(records.ticketUnits);
           const revision = draftRevision(records.revision);
           const reuse = draftEvaluationReuse(records.reuse);
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
-          const unitOperations = ticketUnitOperations(ticketUnits, owner);
           const revisionOps = revisionOperations(revision, owner);
           const reuseOps = evaluationReuseOperations(reuse, owner, logicalBytes);
-          const operations = joinedReviewOperations(joined, owner, unitOperations, revisionOps);
+          const operations = joinedReviewOperations(joined, owner, revisionOps, (id) => records.advice.entries.has(id));
           const value = operation(operations, reuseOps);
           revisionOps.assert();
           reuseOps.snapshot();
-          return [value, { ...records, joined, ticketUnits, revision, reuse }];
+          return [value, { ...records, joined, revision, reuse }];
         };
       return {
         append: Effect.fn("JoinedReviews.append")((review: Parameters<JoinedReviews<Pending>["append"]>[0]) =>
@@ -1126,8 +1054,8 @@ function preparedOffer(draft: CapacityDraft, ready: boolean, withinFrame: boolea
   return command;
 }
 
-function emptyPrepared(draft: CapacityDraft, readyCount: number, hasNonSkipped: boolean, ticketed: boolean): boolean {
-  const command = transition(draft, { kind: "emptyPreparedCheck", readyCount, hasNonSkipped, ticketed }).commands[0]?.kind;
+function emptyPrepared(draft: CapacityDraft, readyCount: number, hasNonSkipped: boolean, authorityBound: boolean): boolean {
+  const command = transition(draft, { kind: "emptyPreparedCheck", readyCount, hasNonSkipped, authorityBound }).commands[0]?.kind;
   if (command !== "emptyLost" && command !== "emptyAccepted") throw new Error("canonical empty preparation refused");
   return command === "emptyLost";
 }

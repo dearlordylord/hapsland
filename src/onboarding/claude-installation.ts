@@ -1,9 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
+import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { atomicInstallationFile } from "./atomic-installation-file.ts";
+
+import { withInstallationLock } from "./installation-lock.ts";
+import { canonicalJson as canonical, reconcileOwnedEvent, removeMarkedHandlers, retainedHookSubset } from "./hook-reconciliation.ts";
 
 const MARKER = "--review-tool-owned=claude-v1";
 const COMPOSED_MARKER = "--review-tool-composed-owned=claude-v1";
@@ -15,6 +18,7 @@ export interface ClaudeInstallationRequest {
   readonly claudeHome?: string;
   readonly claudeExecutable?: string;
   readonly proposalDigest?: string;
+  readonly reinstall?: boolean;
 }
 
 interface OwnedRecord {
@@ -23,16 +27,12 @@ interface OwnedRecord {
   readonly home: string;
   readonly hookDigest: string;
   readonly command: string;
+  readonly hookGroups?: Record<string, unknown>;
   readonly composed?: { readonly stopDigest: string; readonly promptDigest: string; readonly subagentStopDigest?: string; readonly preToolUseDigest?: string };
 }
 
 const object = (value: unknown): value is JsonObject => typeof value === "object" && value !== null && !Array.isArray(value);
 const digest = (value: string) => createHash("sha256").update(value).digest("hex");
-const canonical = (value: unknown): string => Array.isArray(value)
-  ? `[${value.map(canonical).join(",")}]`
-  : object(value)
-    ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`
-    : JSON.stringify(value);
 const encode = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
 const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 const error = (cause: unknown) => cause instanceof Error ? cause.message : "installation failed";
@@ -94,7 +94,9 @@ const groups = (settings: JsonObject): ReadonlyArray<unknown> => {
 
 const owned = (settings: JsonObject): { index: number; group: unknown } | undefined => {
   if (countMarker(settings) > 1) throw new Error("duplicate owned Claude hook markers require reconciliation");
-  const found = groups(settings).map((group, index) => ({ group, index })).find(({ group }) => countMarker(group) === 1);
+  const foundGroups = groups(settings).map((group, index) => ({ group, index })).filter(({ group }) => countMarker(group) === 1 || JSON.stringify(group).includes(COMPOSED_MARKER));
+  if (foundGroups.length > 1) throw new Error("duplicate owned Claude PostToolUse groups require reconciliation");
+  const found = foundGroups[0];
   if (countMarker(settings) === 1 && found === undefined) throw new Error("owned Claude marker is outside PostToolUse");
   return found;
 };
@@ -109,37 +111,19 @@ const withGroups = (settings: JsonObject, next: ReadonlyArray<unknown>): JsonObj
   return result;
 };
 
-const eventGroups = (settings: JsonObject, event: "PreToolUse" | "Stop" | "SubagentStop" | "UserPromptSubmit"): ReadonlyArray<unknown> => {
-  if (settings.hooks === undefined) return [];
-  if (!object(settings.hooks)) throw new Error("Claude settings hooks must be an object");
-  const value = settings.hooks[event];
-  if (value === undefined) return [];
-  if (!Array.isArray(value)) throw new Error(`Claude settings ${event} must be an array`);
-  return value;
-};
-
 const withComposedGroup = (
   settings: JsonObject, event: "PreToolUse" | "Stop" | "SubagentStop" | "UserPromptSubmit", next: unknown | undefined,
   expectedDigest: string | undefined,
-): JsonObject => {
-  const current = [...eventGroups(settings, event)];
-  const indexes = current.flatMap((group, index) =>
-    JSON.stringify(group).includes(COMPOSED_MARKER) ? [index] : []);
-  if (indexes.length > 1 || (expectedDigest === undefined && indexes.length !== 0) ||
-      (expectedDigest !== undefined && (indexes.length !== 1 ||
-        digest(canonical(current[indexes[0]!])) !== expectedDigest))) {
-    throw new Error(`owned Claude ${event} hook is missing, duplicated, or locally modified`);
-  }
-  if (indexes.length === 1) current.splice(indexes[0]!, 1);
-  if (next !== undefined) current.push(next);
-  const hooks = { ...(settings.hooks as JsonObject | undefined) };
-  if (current.length === 0) delete hooks[event];
-  else hooks[event] = current;
-  const result = { ...settings };
-  if (Object.keys(hooks).length === 0) delete result.hooks;
-  else result.hooks = hooks;
-  return result;
-};
+  restoreMissing = false,
+  expectedGroup?: unknown,
+): JsonObject => reconcileOwnedEvent(settings, event, next, {
+  marker: COMPOSED_MARKER,
+  fingerprint: (group) => digest(canonical(group)),
+  expectedFingerprint: expectedDigest,
+  expectedGroup,
+  restoreMissing,
+  label: "Claude",
+});
 
 const host = (request: ClaudeInstallationRequest) => {
   const executable = request.claudeExecutable ?? "claude";
@@ -154,11 +138,10 @@ const inputs = (request: ClaudeInstallationRequest) => {
   let entrypoint = resolve(process.env.REVIEW_INSTALL_ENTRYPOINT ?? process.argv[1] ?? "dist/cli.js");
   try { entrypoint = realpathSync(entrypoint); } catch { /* readiness reports missing path */ }
   const command = `${quote(runtime)} ${quote(entrypoint)} --claude-hook --controlled-writer --composed-edit-hook ${MARKER}`;
-  const composed = (kind: "background" | "stop" | "prompt" | "before-edit") =>
+  const composed = (kind: "stop" | "prompt" | "before-edit") =>
     `${kind === "before-edit" ? "exec " : ""}${quote(runtime)} ${quote(entrypoint)} --composed-${kind}-hook --composed-host=claude-code ${COMPOSED_MARKER}`;
   const group = { matcher: "Edit|Write", hooks: [
     { type: "command", command, timeout: 5 },
-    { type: "command", command: composed("background"), timeout: 25, async: true },
   ] };
   const stopGroup = { hooks: [{ type: "command", command: composed("stop"), timeout: 5 }] };
   const preGroup = { matcher: "Edit|Write", hooks: [{ type: "command", command: composed("before-edit"), timeout: 5 }] };
@@ -185,8 +168,12 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest) => {
   const input = inputs(request);
   const beforeSettings = file(input.paths.settings);
   const beforeRecord = file(input.paths.ownership);
-  const settings = parseObject(beforeSettings, "Claude settings.json");
-  const record = readRecord(input.paths.ownership);
+  const originalSettings = parseObject(beforeSettings, "Claude settings.json");
+  const settings = request.reinstall ? removeMarkedHandlers(originalSettings, [MARKER, COMPOSED_MARKER]) : originalSettings;
+  let previousRecord: OwnedRecord | undefined;
+  try { previousRecord = readRecord(input.paths.ownership); } catch (cause) { if (!request.reinstall) throw cause; }
+  if (previousRecord !== undefined && previousRecord.home !== input.home) throw new Error("Claude ownership record belongs to another home");
+  const record = request.reinstall ? undefined : previousRecord;
   const current = owned(settings);
   if (record === undefined) {
     withComposedGroup(settings, "PreToolUse", undefined, undefined);
@@ -196,12 +183,13 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest) => {
   }
   if (record?.home !== undefined && record.home !== input.home) throw new Error("Claude ownership record belongs to another home");
   if (current !== undefined && record === undefined) throw new Error("owned Claude hook has no ownership record");
-  if (record !== undefined && (current === undefined || digest(canonical(current.group)) !== record.hookDigest)) {
+  if (record !== undefined && current !== undefined && digest(canonical(current.group)) !== record.hookDigest &&
+      !retainedHookSubset(current.group, record.hookGroups?.PostToolUse)) {
     throw new Error("owned Claude hook is missing or locally modified");
   }
   const composed = record?.composed;
   if (kind === "install" && record !== undefined) throw new Error("Claude integration already installed; use update");
-  if (kind === "update" && record === undefined) throw new Error("Claude integration is not installed");
+  if (kind === "update" && previousRecord === undefined && !request.reinstall) throw new Error("Claude integration is not installed");
   const nextGroups = [...groups(settings)];
   if (kind === "uninstall") {
     if (current !== undefined) nextGroups.splice(current.index, 1);
@@ -212,15 +200,16 @@ const plan = (kind: Kind, request: ClaudeInstallationRequest) => {
       withComposedGroup(
         withComposedGroup(
           withComposedGroup(withGroups(settings, nextGroups), "PreToolUse",
-            kind === "uninstall" ? undefined : input.preGroup, composed?.preToolUseDigest),
-          "Stop", kind === "uninstall" ? undefined : input.stopGroup, composed?.stopDigest),
-        "SubagentStop", kind === "uninstall" ? undefined : input.stopGroup, composed?.subagentStopDigest),
-      "UserPromptSubmit", kind === "uninstall" ? undefined : input.promptGroup, composed?.promptDigest,
+            kind === "uninstall" ? undefined : input.preGroup, composed?.preToolUseDigest, true, record?.hookGroups?.PreToolUse),
+          "Stop", kind === "uninstall" ? undefined : input.stopGroup, composed?.stopDigest, true, record?.hookGroups?.Stop),
+        "SubagentStop", kind === "uninstall" ? undefined : input.stopGroup, composed?.subagentStopDigest, true, record?.hookGroups?.SubagentStop),
+      "UserPromptSubmit", kind === "uninstall" ? undefined : input.promptGroup, composed?.promptDigest, true, record?.hookGroups?.UserPromptSubmit,
     );
   const afterSettings = kind === "uninstall" && record === undefined ? beforeSettings : encode(nextSettings);
   const afterRecord = kind === "uninstall" ? undefined : encode({
     version: OWNERSHIP_VERSION, adapter: "claude", home: input.home,
     hookDigest: digest(canonical(input.group)), command: input.command,
+    hookGroups: { PostToolUse: input.group, PreToolUse: input.preGroup, Stop: input.stopGroup, SubagentStop: input.stopGroup, UserPromptSubmit: input.promptGroup },
     composed: { preToolUseDigest: digest(canonical(input.preGroup)), stopDigest: digest(canonical(input.stopGroup)), promptDigest: digest(canonical(input.promptGroup)),
       subagentStopDigest: digest(canonical(input.stopGroup)) },
   } satisfies OwnedRecord);
@@ -247,24 +236,22 @@ const preview = (kind: Kind, request: ClaudeInstallationRequest) => {
     return { version: 1 as const, operation, status: "preview" as const,
       host: { adapter: "claude", home: input.home, compatibility },
       proposal: { digest: next.proposalDigest, changes: [
-        ...(next.beforeSettings === next.afterSettings ? [] : [{ path: input.paths.settings, description: "owned PostToolUse hook" }]),
+        ...(next.beforeSettings === next.afterSettings ? [] : [{ path: input.paths.settings, description: "owned PostToolUse, PreToolUse, Stop, SubagentStop and UserPromptSubmit hooks" }]),
         ...(next.beforeRecord === next.afterRecord ? [] : [{ path: input.paths.ownership, description: "Claude ownership record" }]),
-      ], ownedChanges: { event: "PostToolUse", matcher: "Edit|Write", command: input.command, timeoutSeconds: 5,
-        ownershipRecord: input.paths.ownership } },
-      installed: next.beforeRecord !== undefined && kind !== "uninstall",
+      ], ownedChanges: { hooks: { file: input.paths.settings, groups: kind === "uninstall" ? next.beforeRecord === undefined ? {} : readRecord(input.paths.ownership)?.hookGroups ?? {} : { PostToolUse: input.group, PreToolUse: input.preGroup, Stop: input.stopGroup, SubagentStop: input.stopGroup, UserPromptSubmit: input.promptGroup } }, ownershipRecord: input.paths.ownership } },
+      installed: next.noChange && kind !== "uninstall",
+      alreadyCurrent: next.noChange,
       trust: { status: "native-confirmation-required", guidance: "Claude Code owns workspace trust and hook approval; open the repository normally and review native prompts." },
       pending: ["apply this proposal digest", "review effective file settings and credential access"] };
   } catch (cause) { return resultError(operation, cause, request.claudeHome); }
 };
 
-const apply = (kind: Kind, request: ClaudeInstallationRequest) => {
+const apply = async (kind: Kind, request: ClaudeInstallationRequest) => {
   const operation = kind;
   try {
     const input = inputs(request);
     if (kind !== "uninstall" && !ready(input).supported) return { version: 1 as const, operation, status: "unsupported" as const, host: input.host };
-    mkdirSync(dirname(input.paths.lock), { recursive: true, mode: 0o700 });
-    try { mkdirSync(input.paths.lock); } catch { throw new Error("Claude installation is locked; retry after the other operation completes"); }
-    try {
+    return await withInstallationLock(input.paths.lock, async () => {
       const next = plan(kind, request);
       if (request.proposalDigest === undefined) return preview(kind, request);
       if (request.proposalDigest !== next.proposalDigest) return {
@@ -274,17 +261,19 @@ const apply = (kind: Kind, request: ClaudeInstallationRequest) => {
       if (next.noChange) return { version: 1 as const, operation, status: "already-current" as const };
       // Settings is applied last so a failed record write cannot enable a new hook.
       try {
+        if (file(input.paths.ownership) !== next.beforeRecord || file(input.paths.settings) !== next.beforeSettings) throw new Error("Claude configuration changed during apply; obtain a fresh preview");
         atomicInstallationFile(input.paths.ownership, next.afterRecord);
+        if (file(input.paths.settings) !== next.beforeSettings || file(input.paths.ownership) !== next.afterRecord) throw new Error("Claude configuration changed during apply; current settings were preserved");
         atomicInstallationFile(input.paths.settings, next.afterSettings);
       } catch (cause) {
         try {
-          if (file(input.paths.settings) === next.beforeSettings) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
+          if (file(input.paths.settings) === next.beforeSettings && file(input.paths.ownership) === next.afterRecord) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
         } catch { /* preserve the original error and expose the partial state to inspection */ }
         throw cause;
       }
       return { version: 1 as const, operation, status: "complete" as const,
         trust: { status: "native-confirmation-required" } };
-    } finally { rmSync(input.paths.lock, { recursive: true, force: true }); }
+    });
   } catch (cause) { return resultError(operation, cause, request.claudeHome); }
 };
 
@@ -294,6 +283,14 @@ export const previewClaudeUpdate = (request: ClaudeInstallationRequest) => previ
 export const updateClaudeIntegration = async (request: ClaudeInstallationRequest) => apply("update", request);
 export const uninstallClaudeIntegration = async (request: ClaudeInstallationRequest) =>
   request.proposalDigest === undefined ? preview("uninstall", request) : apply("uninstall", request);
+
+/** Include damaged owned state so an update reports it instead of silently skipping the client. */
+export const hasClaudeRegistration = (request: ClaudeInstallationRequest): boolean => {
+  const selected = paths(resolve(request.claudeHome ?? join(homedir(), ".claude")));
+  if (file(selected.ownership) !== undefined) return true;
+  const settings = file(selected.settings) ?? "";
+  return settings.includes(MARKER) || settings.includes(COMPOSED_MARKER);
+};
 
 export const inspectClaudeInstallation = (request: ClaudeInstallationRequest) => {
   try {

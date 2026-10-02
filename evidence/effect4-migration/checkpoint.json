@@ -194,7 +194,8 @@
     "Native process ownership acquisition/release and recovery publication compose as named Effects with typed errors, scoped candidate cleanup, explicit Effect recovery controls and live epoch Clock; production root acquireRelease owns the lock through runtime teardown.",
     "Deleted all seventeen resident client Promise facades and its hidden process ManagedRuntime; native fixtures and runners explicitly execute the sole Effect workflows at their process boundary",
     "Resident path construction is pure and explicit; default endpoint paths resolve through Config at Effect execution time with injected provider isolation, exact precedence and preserved empty-string native semantics",
-    "Client startup/service and public workflow error channels now name ResidentIpcError, ResidentEndpointError and ReviewConfigError instead of generic Error; user correction rejects empty endpoint environment values while preserving absent-value fallback"
+    "Client startup/service and public workflow error channels now name ResidentIpcError, ResidentEndpointError and ReviewConfigError instead of generic Error; user correction rejects empty endpoint environment values while preserving absent-value fallback",
+    "Integrated master #171 response authority into scoped resident Effects; removed superseded ticket tests/helpers and preserved common advice/lease/joined/identity rollback invariants; full typecheck and 81 shared-state, 95 server/terminal, 35 Claude/analytics selected cases passed."
   ],
   "verification": [
     {
@@ -2497,7 +2498,8 @@
     }
   ],
   "next": [
-    "Audit remaining client typed service errors, trust/credential adapters and onboarding composition; keep Effect execution at process and host boundaries",
+    "Master integration full typecheck/build/test passed; continue broader named Effect credential/onboarding/configuration workflow conversion, then run final direct-event/package/installed/host/live/performance gates on the final source state.",
+    "Convert remaining product credential and onboarding Promise workflows to named Effect composition; remove onboarding runPromise bridges and handwritten lock scheduling while preserving credential/installation ownership and physical settlement.",
     "Finish any remaining fixture and service error/resource ownership gaps found by the full requirement audit",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Run final typecheck/test/direct-event/build/package/installed-release/applicable host validation and bounded authorized live Jev validation when credentials are available",
@@ -2521,5 +2523,255 @@
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",
     "action": "Consolidate cases into resident conformance and delete disposable prototype; retain sanitized executable evidence in relevant conformance artifacts"
+  },
+  "integrationInProgress": {
+    "targetMaster": "6a84a6c",
+    "migrationHeadBeforeMerge": "f3ed43b",
+    "state": "Master #171 integration verified: all conflicts resolved, full typecheck/build/test and authority/proof guards pass. Checkpoint merge commit prepared; broader full Effect migration remains incomplete.",
+    "contract": "Current master #171 replaces retained Claude tickets with one bounded admission-and-collection RPC and ephemeral response authority; Claude background collection is disabled",
+    "resolvedSources": [
+      "src/canonical/adapter.ts",
+      "src/resident/capacity.ts",
+      "src/resident/client.ts",
+      "src/resident/collection.ts",
+      "src/cli.ts",
+      "src/resident/composed-hook.ts",
+      "scripts/check-retention-boundary.mjs",
+      "src/resident/server.ts"
+    ],
+    "additionalWork": "Removed ticket registry/unit production modules and state from the shared Ref; joined review settlement uses canonical reuseMemberCheck. Advice publication retains exact capability fencing and commits joined outcomes in the shared owner. New client admitAndCollectEffect owns a single bounded IPC attempt. Latest master protocol/codec/schema and generated Bend artifacts integrated. Remaining handlers must use bounded response contexts without restoring any ticket mirrors or unmanaged mutable authoritative owners.",
+    "leafTypecheck": {
+      "command": "npx tsc --ignoreConfig --noEmit --skipLibCheck --allowImportingTsExtensions --module preserve --moduleResolution bundler --target esnext --types bun --strict --exactOptionalPropertyTypes --noUncheckedIndexedAccess src/canonical/adapter.ts src/resident/client.ts src/resident/collection.ts src/resident/capacity.ts",
+      "status": "pass"
+    },
+    "leafTests": {
+      "command": "npx vitest run src/resident/paths.test.ts src/resident/protocol.test.ts src/resident/capacity.test.ts --maxWorkers=1",
+      "testsPassed": 46,
+      "filesPassed": 3,
+      "durationSeconds": 3.72
+    },
+    "unresolvedFiles": [],
+    "limitations": "Current master integration and ordinary offline full suite verified. Direct-event/package/installed/host/live/performance conformance and listed remaining credential/onboarding/configuration workflow audit still required. Historical ticket-stage evidence describes the removed pre-#171 implementation.",
+    "resolvedTestFiles": [
+      "src/resident/client.test.ts",
+      "src/resident/collection.test.ts",
+      "src/resident/jev-request.test.ts",
+      "src/resident/claude-delivery.test.ts",
+      "src/resident/analytics.test.ts",
+      "src/resident/server.test.ts",
+      "src/resident/terminal-collection.test.ts"
+    ],
+    "serverPort": {
+      "scope": "Named admit-and-collect Effect with Schedule repeat and waitMs timeout. Frozen originating response authority lives in one per-response Ref. Socket responder passes original authority to final source/credential/opt-in checks, releases untransferred delivery lease and clears context on exit. Collector-to-context lease handoff uses uninterruptibleMask with interruptible collection to prevent interruption between acquisition and publication. Work remains scoped to resident lifetime after response exits. Collector/reuse Bend events replace removed ticket policy. Claude background collection returns empty; Stop retains current host output size checks.",
+      "typecheckCommand": "npx tsc --ignoreConfig --noEmit --skipLibCheck --allowImportingTsExtensions --module preserve --moduleResolution bundler --target esnext --types bun --strict --exactOptionalPropertyTypes --noUncheckedIndexedAccess src/resident/server.ts src/resident/client.ts src/resident/capacity.ts src/resident/collection.ts",
+      "typecheck": "pass",
+      "sourceSha256": {
+        "src/resident/server.ts": "eb17281c85da6d78e71df4c993ddf81fd262b345da5234ea700e4a30044f20e3",
+        "src/resident/client.test.ts": "6338b0dde799ad61988974dc0148226987f234ed9875a2a19bd212b8f97e5122",
+        "src/resident/collection.test.ts": "d448fbb12aebb3defabf829901977e4de16199cdff9dc63e67b51c04f13ca55c",
+        "src/resident/jev-request.test.ts": "e1a68d9fe05957efc3c21d1864c1d8da7c428d4fd9ea5dafdb99b127737e82df"
+      },
+      "runtimeLeafTests": {
+        "command": "npx vitest run src/resident/runtime.test.ts src/resident/paths.test.ts src/resident/protocol.test.ts src/resident/capacity.test.ts --maxWorkers=1",
+        "filesPassed": 4,
+        "testsPassed": 49,
+        "durationSeconds": 4.66
+      },
+      "clientCollectionPhysicalTests": {
+        "command": "npx vitest run src/resident/client.test.ts src/resident/collection.test.ts src/resident/jev-request.test.ts --maxWorkers=1",
+        "filesPassed": 3,
+        "testsPassed": 36,
+        "durationSeconds": 3.95
+      },
+      "limitations": "Native Claude response authority and analytics are now covered by 35 passing tests with unchanged limits. Full migration conformance, broader workflow boundary audit and performance remain pending.",
+      "analytics": "Restored immutable analytics metadata and named observation/submission Effects. Physical cancellation fixture waits for held native callback settlement before close; completed work is not counted as discarded."
+    },
+    "projectTypecheck": {
+      "command": "npm run typecheck",
+      "status": "pass"
+    },
+    "verification": [
+      {
+        "command": "npx vitest run src/resident/claude-delivery.test.ts src/resident/analytics.test.ts --maxWorkers=1",
+        "testsPassed": 35,
+        "filesPassed": 2,
+        "durationSeconds": 7.7
+      },
+      {
+        "command": "npx vitest run src/resident/server.test.ts src/resident/terminal-collection.test.ts --maxWorkers=1",
+        "testsPassed": 95,
+        "filesPassed": 2,
+        "durationSeconds": 19.34
+      },
+      {
+        "command": "npx vitest run src/resident/advice-records.test.ts src/resident/joined-reviews.test.ts src/resident/runtime-records.test.ts src/resident/capacity.test.ts src/resident/round-records.test.ts src/resident/notice-records.test.ts src/resident/evaluation-reuse.test.ts --maxWorkers=1",
+        "testsPassed": 81,
+        "filesPassed": 7,
+        "durationSeconds": 4.78
+      },
+      {
+        "command": "npx vitest run src/resident/runtime-records.test.ts src/resident/composed-hook.test.ts --maxWorkers=1",
+        "testsPassed": 13,
+        "filesPassed": 2,
+        "durationSeconds": 1.29
+      }
+    ],
+    "supersededArtifactsRemoved": [
+      "src/resident/ticket-records.ts",
+      "src/resident/ticket-units.ts",
+      "src/resident/ticket-records.test.ts",
+      "src/resident/ticket-units.test.ts",
+      "src/test-support/resident-ticket.ts"
+    ],
+    "invariantCoverage": "Preserved advice retention/lease rollback, stale and copied capability fences, shared publication arbitration, joined subscriber construction and claim attachment rollback, original/current revision membership, isolation, runtime connection identity and busy retirement. Removed cases asserting the deleted ticket policy; existing common round, cache, capacity, advice and notice tests own matching native/canonical identity and eviction invariants.",
+    "initialNativeFailures": {
+      "testsFailed": 12,
+      "testsTotal": 35,
+      "scope": "11 Claude delivery cases and one analytics shutdown case",
+      "durationSeconds": 11.11,
+      "resolvedBy": [
+        "Keep generic Claude common collection available; disable only installed background hook",
+        "Check response originating lifetime and round before final gate",
+        "Return credential unavailability for edit authority",
+        "Preserve rejected-stale non-advice status",
+        "Native mock releases physical callback after cancellation before awaiting close"
+      ],
+      "verification": "Subsequent full 35-case scope passed without changed limits"
+    },
+    "fullSuite": {
+      "command": "npm test",
+      "status": "failed",
+      "filesPassed": 118,
+      "filesFailed": 2,
+      "filesSkipped": 1,
+      "testsPassed": 1221,
+      "testsFailed": 2,
+      "testsSkipped": 2,
+      "durationSeconds": 327.12,
+      "failures": [
+        {
+          "case": "Claude CLI waits for unfinished admitted work and offers its finding at Stop",
+          "reason": "Native SocketFramePort retained 1500ms timeout for edit admit-and-collect. Master switches this operation to declared EDIT_REQUEST_DEADLINE_MS=3900. Added named Effect timeout setter and restored decoded request switch."
+        },
+        {
+          "case": "releases a background claim even when interrupted during its acquisition acknowledgement",
+          "reason": "Fixture still requested disabled Claude background route; updated to supported Codex route and added Claude no-port-acquisition case."
+        }
+      ],
+      "log": "/tmp/hapsland-merged-full-tests.log"
+    },
+    "socketDeadlineRegression": {
+      "baselineMasterTest": "pass, 1 case, 7.03s",
+      "preFixIsolatedTest": "failed with unchanged limits",
+      "sanitizedNativeTiming": {
+        "master": {
+          "beforeStatus": 0,
+          "editStatus": 0,
+          "stopStatus": 0,
+          "editMs": 3943,
+          "stopMs": 1569,
+          "requestStartedAfterMs": 398.450927734375,
+          "stopDecision": "block",
+          "counts": {
+            "no-observation": 0,
+            "skipped": 0,
+            "pending": 0,
+            "clear": 0,
+            "findings": 1,
+            "submitted": 1,
+            "unavailable": 0,
+            "incomplete": 0,
+            "restarted/lost": 0
+          }
+        },
+        "migrationBeforeFix": {
+          "beforeStatus": 0,
+          "editStatus": 0,
+          "stopStatus": 0,
+          "editMs": 1869,
+          "stopMs": 3548,
+          "requestStartedAfterMs": 433.705078125,
+          "stopDecision": "quiet",
+          "counts": {
+            "no-observation": 0,
+            "skipped": 0,
+            "pending": 0,
+            "clear": 0,
+            "findings": 0,
+            "submitted": 0,
+            "unavailable": 1,
+            "incomplete": 0,
+            "restarted/lost": 0
+          }
+        }
+      },
+      "scope": "Synthetic offline controlled native CLI. Single observations diagnose the truncated edit response wait; they are not a performance/support claim. Contract and existing test limits unchanged.",
+      "fixVerification": {
+        "command": "npx vitest run src/direct-event/claude-cli.test.ts src/resident/socket-frame.test.ts src/resident/composed-hook.test.ts src/resident/runtime-records.test.ts --maxWorkers=1",
+        "filesPassed": 3,
+        "filesFailed": 1,
+        "testsPassed": 36,
+        "testsFailed": 1,
+        "durationSeconds": 53.63,
+        "limitation": "All 19 CLI, 5 hook and 8 runtime cases passed. Added socket case incorrectly expected Node to reset timeout metadata after destroy; corrected assertion to native closure and removed listener. Production timeout fix unchanged."
+      },
+      "socketVerification": {
+        "command": "npx vitest run src/resident/socket-frame.test.ts --maxWorkers=1",
+        "testsPassed": 5,
+        "filesPassed": 1,
+        "durationSeconds": 0.393
+      }
+    },
+    "build": {
+      "command": "npm run build",
+      "status": "pass"
+    },
+    "runtimeCleanupTests": "Common cache cleanup now covers successful canonical/native payload and reservation retirement plus refusal with all current ownership retained when native/canonical cache state disagrees. Named Effect runtime close and cleanup methods replace anonymous operation boundaries.",
+    "fullSuiteRerun": {
+      "command": "npm test",
+      "status": "pass",
+      "filesPassed": 120,
+      "filesSkipped": 1,
+      "testsPassed": 1227,
+      "testsSkipped": 2,
+      "durationSeconds": 337.39,
+      "log": "/tmp/hapsland-merged-full-tests-rerun.log"
+    },
+    "remainingWorkflowAudit": [
+      {
+        "owner": "src/credentials/secret-service.ts",
+        "remaining": "Credential resolution/save/logout and state-lock polling still compose Promise workflows; native helper spawn/timeout needs scoped cancellation and physical completion ownership."
+      },
+      {
+        "owner": "src/onboarding/installation-lock.ts, codex-installation.ts, claude-installation.ts, opencode-installation.ts",
+        "remaining": "Installation workflows and lock polling expose Promise APIs. Replace in place with named Effects and preserve lock generation fences, journal/revalidation/rollback and accepted unsupported-runtime behavior."
+      },
+      {
+        "owner": "src/onboarding/doctor.ts, first-review-demo.ts",
+        "remaining": "Remove internal runPromise calls; compose read-only resident inspection and bounded demo stages with the parent Effect, retaining native process and demo-budget contracts."
+      },
+      {
+        "owner": "src/cli.ts, src/onboarding/client-selection.ts, src/onboarding/codex-host-process.ts",
+        "remaining": "Audit interactive credential/maintenance/setup and terminal/process bridge ownership; keep runtime entry at process/host boundaries."
+      },
+      {
+        "owner": "src/evaluation/command.ts",
+        "remaining": "credentialPresent starts an internal runSync runtime and ignores parent ConfigProvider; compose configuration with live planning and preserve pure suite/report validation."
+      },
+      {
+        "owner": "src/resident/client.ts",
+        "remaining": "Audit readiness loop Schedule and shared monotonic deadline dependency without changing retry/no-retry or original-owner behavior."
+      }
+    ],
+    "verifiedSourceSha256": {
+      "src/resident/server.ts": "b25d5c6a1daac7241a5b8b3131fc69ec3ffe060bd954cbecace4a31ab1e443df",
+      "src/resident/socket-frame.ts": "0afb9c10ac8a28ebe07bc9d83bb51e229221700f75c92af4d62869224d32da80",
+      "src/resident/client.ts": "55a4fd52319428eced79d7041e3cdd239185e3c40e711143abceca4deb0bcf38",
+      "src/resident/capacity.ts": "8e47ce0a836dd33fcf234586b4bc00a8c472da41a9c180340f4bc127e953a33a",
+      "src/resident/joined-reviews.ts": "7dad7a4edc79a6b338cda58e427913c8b12e304f4c6293ead1ab0d5335d194a4",
+      "src/resident/advice-records.ts": "2515b5a9d0a9c0a1a65a969975e0a419d441c2a0b5071f32ca14f625b819d1ef",
+      "src/resident/claude-delivery.test.ts": "0f14a86510fe8ca0d7fb615a3783f3536cd6e0e72d53f99fae6b6d483c07e4f2",
+      "src/direct-event/claude-cli.test.ts": "6e26dd6da0ba5304f27a8c37c872c11e6ccaa66995c46106763a286ecf432498"
+    }
   }
 }

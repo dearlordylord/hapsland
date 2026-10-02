@@ -2,7 +2,7 @@ import { expect, it } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
 import { createConnection, createServer, type Server, type Socket } from "node:net";
 import { makeSocketFramePort } from "./socket-frame.ts";
-import { MAX_IPC_FRAME_BYTES } from "./protocol.ts";
+import { EDIT_REQUEST_DEADLINE_MS, MAX_IPC_FRAME_BYTES } from "./protocol.ts";
 
 type Pair = { readonly listener: Server; readonly client: Socket; readonly accepted: Socket };
 const pair = Effect.acquireRelease(
@@ -85,4 +85,17 @@ it.effect("writes one newline-terminated UTF-8 frame through the native socket",
   expect(yield* Fiber.join(received)).toBe(`${encoded}\n`);
   yield* port.closed;
   expect(yield* port.write("late")).toBe(false);
+}));
+
+it.effect("changes the native idle deadline on execution and removes its timeout listener on close", () => Effect.gen(function* () {
+  const { accepted, port } = yield* fixture;
+  expect(accepted.timeout).toBe(1_500);
+  const editDeadline = port.setIdleTimeout(EDIT_REQUEST_DEADLINE_MS);
+  expect(accepted.timeout).toBe(1_500);
+  yield* editDeadline;
+  expect(accepted.timeout).toBe(3_900);
+  expect(accepted.listenerCount("timeout")).toBe(1);
+  yield* port.close;
+  expect(accepted.closed).toBe(true);
+  expect(accepted.listenerCount("timeout")).toBe(0);
 }));

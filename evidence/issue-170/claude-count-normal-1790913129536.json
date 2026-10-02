@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "runtime": "Claude Code",
+  "version": "2.1.218 (Claude Code)",
+  "recordedAt": "2026-10-02T03:52:35.566Z",
+  "declaration": {
+    "maximumProviderRequests": 8,
+    "automaticRetries": 0,
+    "sessionCeilingMs": 240000,
+    "claudeFeedbackMode": "block-current-findings",
+    "mode": "real-jev",
+    "fixture": "order-count"
+  },
+  "hostExitCode": 0,
+  "hostSignal": null,
+  "elapsedMs": 26031,
+  "providerRequests": 2,
+  "responseDelayMs": 0,
+  "timeline": [
+    {
+      "kind": "composed-prompt",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 427,
+      "hookDurationMs": 775
+    },
+    {
+      "kind": "composed-before-edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 4803,
+      "hookDurationMs": 366
+    },
+    {
+      "kind": "composed-background",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 5200,
+      "hookDurationMs": 376
+    },
+    {
+      "kind": "provider-response",
+      "durationMs": 196,
+      "status": 200,
+      "atMs": 5873
+    },
+    {
+      "kind": "hook",
+      "tool": "Write",
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "notice": false,
+      "ruleIds": [
+        "r7_name_wider_than_type",
+        "r6_bare_domain_value"
+      ],
+      "sourceHash": "cae206a9c36f719eaea8c03197c45a7f43317facf631994e0f4cf58b21f3a877",
+      "sourceBytes": 25,
+      "draft": true,
+      "atMs": 5203,
+      "hookDurationMs": 779
+    },
+    {
+      "kind": "composed-before-edit",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 9439,
+      "hookDurationMs": 360
+    },
+    {
+      "kind": "provider-response",
+      "durationMs": 159,
+      "status": 200,
+      "atMs": 10594
+    },
+    {
+      "kind": "hook",
+      "tool": "Edit",
+      "exitCode": 0,
+      "decision": "block",
+      "finding": true,
+      "notice": false,
+      "ruleIds": [
+        "r7_name_wider_than_type"
+      ],
+      "sourceHash": "ecd56d6017c57c2e141b27185e07b708ce741d255d1d8927f8575865d2ffff87",
+      "sourceBytes": 62,
+      "draft": false,
+      "atMs": 9843,
+      "hookDurationMs": 877
+    },
+    {
+      "kind": "composed-background",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 9845,
+      "hookDurationMs": 5529
+    },
+    {
+      "kind": "composed-stop",
+      "exitCode": 0,
+      "decision": null,
+      "finding": false,
+      "notice": false,
+      "ruleIds": [],
+      "atMs": 24974,
+      "hookDurationMs": 384
+    }
+  ],
+  "activityStages": [
+    {
+      "stage": "pending",
+      "atMs": 5581
+    },
+    {
+      "stage": "pending",
+      "atMs": 5637
+    },
+    {
+      "stage": "findings",
+      "atMs": 5880
+    },
+    {
+      "stage": "pending",
+      "atMs": 10367
+    },
+    {
+      "stage": "pending",
+      "atMs": 10399
+    },
+    {
+      "stage": "findings",
+      "atMs": 10598
+    }
+  ],
+  "checks": {
+    "initialDraftObserved": true,
+    "findingSubmitted": true,
+    "stopFindingDelivered": false,
+    "editAfterFinding": true,
+    "finalSourceChanged": true,
+    "validSourceCompiles": true,
+    "invalidStatesRejected": true,
+    "agentAcknowledgesAdvice": true,
+    "agentNamesDeliveredRule": true,
+    "followupClearObserved": false,
+    "followupFindingObserved": true
+  },
+  "resident": {
+    "queued": 0,
+    "running": 0,
+    "pendingFindingBatches": 0,
+    "pendingOperationalNotices": 0
+  },
+  "visibilityBasis": "agent-acknowledgement",
+  "acknowledgement": {
+    "agentAffirmsAdvice": true,
+    "agentDeniesAdvice": false,
+    "deliveredRuleIds": [
+      "r7_name_wider_than_type",
+      "r6_bare_domain_value"
+    ],
+    "agentNamesDeliveredRule": true
+  },
+  "rawHostOutputRetained": false,
+  "rawBackendMaterialRetained": false,
+  "credentialRetained": false,
+  "hostOutputBytesDiscarded": 20922,
+  "verdict": "demonstrated",
+  "postExecutionValidationAmendment": {
+    "recordedAt": "2026-10-02T03:58:02.309343+00:00",
+    "invalidStatesRejected": "unverified",
+    "reason": "The recorded invalidStatesRejected flag was inferred from compiler exit zero with @ts-expect-error. Offline calibration of the same raw-number fixture also exited zero without reporting the unused directive; this proxy does not establish rejection of invalid states.",
+    "nativeFindingReceptionAndRepair": "demonstrated",
+    "hostSubmissionDoesNotProveReception": true
+  }
+}

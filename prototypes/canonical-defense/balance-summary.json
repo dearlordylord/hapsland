@@ -1,0 +1,5988 @@
+{
+  "authority": "Implementation and measured simulation evidence; not an accepted product contract or human study.",
+  "before_cohorts": [
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1212,
+          "mean": 1212,
+          "min": 1212
+        },
+        "hp": {
+          "max": 76,
+          "mean": 76,
+          "min": 76
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4073,
+          "mean": 4073,
+          "min": 4073
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 0,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hp": {
+          "max": 100,
+          "mean": 100,
+          "min": 100
+        },
+        "peakBytes": {
+          "max": 220,
+          "mean": 220,
+          "min": 220
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 80,
+          "mean": 80,
+          "min": 80
+        },
+        "ticks": {
+          "max": 3230,
+          "mean": 3230,
+          "min": 3230
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 1,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hp": {
+          "max": 100,
+          "mean": 100,
+          "min": 100
+        },
+        "peakBytes": {
+          "max": 220,
+          "mean": 220,
+          "min": 220
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 80,
+          "mean": 80,
+          "min": 80
+        },
+        "ticks": {
+          "max": 3230,
+          "mean": 3230,
+          "min": 3230
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 2,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1188,
+          "mean": 1188,
+          "min": 1188
+        },
+        "hp": {
+          "max": 77,
+          "mean": 77,
+          "min": 77
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4048,
+          "mean": 4048,
+          "min": 4048
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 3,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1315,
+          "mean": 1315,
+          "min": 1315
+        },
+        "hp": {
+          "max": 74,
+          "mean": 74,
+          "min": 74
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3896,
+          "mean": 3896,
+          "min": 3896
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 4,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hp": {
+          "max": 100,
+          "mean": 100,
+          "min": 100
+        },
+        "peakBytes": {
+          "max": 220,
+          "mean": 220,
+          "min": 220
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 80,
+          "mean": 80,
+          "min": 80
+        },
+        "ticks": {
+          "max": 3230,
+          "mean": 3230,
+          "min": 3230
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 5,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1119,
+          "mean": 1119,
+          "min": 1119
+        },
+        "hp": {
+          "max": 78,
+          "mean": 78,
+          "min": 78
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3982,
+          "mean": 3982,
+          "min": 3982
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 0,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hp": {
+          "max": 100,
+          "mean": 100,
+          "min": 100
+        },
+        "peakBytes": {
+          "max": 230,
+          "mean": 230,
+          "min": 230
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 80,
+          "mean": 80,
+          "min": 80
+        },
+        "ticks": {
+          "max": 2955,
+          "mean": 2955,
+          "min": 2955
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 1,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hp": {
+          "max": 100,
+          "mean": 100,
+          "min": 100
+        },
+        "peakBytes": {
+          "max": 230,
+          "mean": 230,
+          "min": 230
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 80,
+          "mean": 80,
+          "min": 80
+        },
+        "ticks": {
+          "max": 2955,
+          "mean": 2955,
+          "min": 2955
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 2,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1095,
+          "mean": 1095,
+          "min": 1095
+        },
+        "hp": {
+          "max": 79,
+          "mean": 79,
+          "min": 79
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3957,
+          "mean": 3957,
+          "min": 3957
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 3,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1119,
+          "mean": 1119,
+          "min": 1119
+        },
+        "hp": {
+          "max": 78,
+          "mean": 78,
+          "min": 78
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 250,
+          "min": 250
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3788,
+          "mean": 3788,
+          "min": 3788
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 4,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hp": {
+          "max": 100,
+          "mean": 100,
+          "min": 100
+        },
+        "peakBytes": {
+          "max": 230,
+          "mean": 230,
+          "min": 230
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 80,
+          "mean": 80,
+          "min": 80
+        },
+        "ticks": {
+          "max": 2955,
+          "mean": 2955,
+          "min": 2955
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 5,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1313,
+          "mean": 1313,
+          "min": 1313
+        },
+        "hp": {
+          "max": 74,
+          "mean": 74,
+          "min": 74
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4781,
+          "mean": 4781,
+          "min": 4781
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 0,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hp": {
+          "max": 100,
+          "mean": 100,
+          "min": 100
+        },
+        "peakBytes": {
+          "max": 200,
+          "mean": 200,
+          "min": 200
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 80,
+          "mean": 80,
+          "min": 80
+        },
+        "ticks": {
+          "max": 3752,
+          "mean": 3752,
+          "min": 3752
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 1,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hp": {
+          "max": 100,
+          "mean": 100,
+          "min": 100
+        },
+        "peakBytes": {
+          "max": 200,
+          "mean": 200,
+          "min": 200
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 80,
+          "mean": 80,
+          "min": 80
+        },
+        "ticks": {
+          "max": 3752,
+          "mean": 3752,
+          "min": 3752
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 2,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1289,
+          "mean": 1289,
+          "min": 1289
+        },
+        "hp": {
+          "max": 75,
+          "mean": 75,
+          "min": 75
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4756,
+          "mean": 4756,
+          "min": 4756
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 3,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1152,
+          "mean": 1152,
+          "min": 1152
+        },
+        "hp": {
+          "max": 77,
+          "mean": 77,
+          "min": 77
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4196,
+          "mean": 4196,
+          "min": 4196
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 4,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hp": {
+          "max": 100,
+          "mean": 100,
+          "min": 100
+        },
+        "peakBytes": {
+          "max": 200,
+          "mean": 200,
+          "min": 200
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 80,
+          "mean": 80,
+          "min": 80
+        },
+        "ticks": {
+          "max": 3752,
+          "mean": 3752,
+          "min": 3752
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 5,
+      "profile": 0,
+      "samples": 4
+    }
+  ],
+  "campaign_evidence": {
+    "distinct_viable_fixture": {
+      "final_hp_numeric_trace": null,
+      "initial_cost": 150,
+      "manual_plan": "map 0: Refiner at (424,232), upgraded to level two; Refiner at (328,232), level one",
+      "native_assertions_passed": {
+        "gold_after_rewards": 130,
+        "maximum_per_round_reservations": 4,
+        "maximum_total_reservations": 24,
+        "outcomes": 96,
+        "sum_tower_levels": 3,
+        "survived_waves": 6,
+        "tower_count": 2
+      },
+      "scope": "Passed aggregate assertions for one authored strategy; no numerical HP sample or universal winning-strategy claim.",
+      "source": "DefenseAutoTests.bend",
+      "source_sha256": "445bb60cb65347f7cf86057cc24b44051bde49c55cf2e6342452aca17f9b9c4e",
+      "validation": "validation-balance-features.txt",
+      "validation_sha256": "84320e9f4ee59645775e63ba20b495ce35e5e9da76096d8e0ae07263e29b34f9"
+    },
+    "recorded_comparison_campaigns": [
+      {
+        "clear": 20,
+        "delivered": 44,
+        "hp": 0,
+        "owned": 0,
+        "plan": 1,
+        "status": 3,
+        "wave": 4
+      },
+      {
+        "clear": 32,
+        "delivered": 48,
+        "hp": 0,
+        "owned": 0,
+        "plan": 2,
+        "status": 3,
+        "wave": 5
+      },
+      {
+        "clear": 26,
+        "delivered": 54,
+        "hp": 0,
+        "owned": 0,
+        "plan": 12,
+        "status": 3,
+        "wave": 5
+      }
+    ]
+  },
+  "final_cohorts": [
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2060,
+          "mean": 2060,
+          "min": 2060
+        },
+        "hp": {
+          "max": 52,
+          "mean": 52,
+          "min": 52
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4073,
+          "mean": 4073,
+          "min": 4073
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 0,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 6,
+          "mean": 5,
+          "min": 4
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "hotTicks": {
+          "max": 1928,
+          "mean": 1779.25,
+          "min": 1656
+        },
+        "hp": {
+          "max": 78,
+          "mean": 76.5,
+          "min": 73
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 247.5,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "peakPressure": {
+          "max": 180,
+          "mean": 170,
+          "min": 160
+        },
+        "ticks": {
+          "max": 4031,
+          "mean": 4011.25,
+          "min": 3991
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 1,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 8,
+          "mean": 6.25,
+          "min": 5
+        },
+        "delivered": {
+          "max": 11,
+          "mean": 9.75,
+          "min": 8
+        },
+        "hotTicks": {
+          "max": 1928,
+          "mean": 1666.5,
+          "min": 1205
+        },
+        "hp": {
+          "max": 92,
+          "mean": 81.75,
+          "min": 77
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 242.5,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 11,
+          "mean": 9.75,
+          "min": 8
+        },
+        "peakPressure": {
+          "max": 170,
+          "mean": 152.5,
+          "min": 130
+        },
+        "ticks": {
+          "max": 4031,
+          "mean": 3991,
+          "min": 3887
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 2,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2024,
+          "mean": 2024,
+          "min": 2024
+        },
+        "hp": {
+          "max": 54,
+          "mean": 54,
+          "min": 54
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4048,
+          "mean": 4048,
+          "min": 4048
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 3,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1938,
+          "mean": 1938,
+          "min": 1938
+        },
+        "hp": {
+          "max": 52,
+          "mean": 52,
+          "min": 52
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3896,
+          "mean": 3896,
+          "min": 3896
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 4,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 6,
+          "mean": 5,
+          "min": 4
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "hotTicks": {
+          "max": 1843,
+          "mean": 1724.75,
+          "min": 1571
+        },
+        "hp": {
+          "max": 79,
+          "mean": 77.25,
+          "min": 74
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 247.5,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "peakPressure": {
+          "max": 180,
+          "mean": 170,
+          "min": 160
+        },
+        "ticks": {
+          "max": 3991,
+          "mean": 3957,
+          "min": 3903
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 5,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1959,
+          "mean": 1959,
+          "min": 1959
+        },
+        "hp": {
+          "max": 54,
+          "mean": 54,
+          "min": 54
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3991,
+          "mean": 3991,
+          "min": 3991
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 6,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 6,
+          "mean": 5,
+          "min": 4
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "hotTicks": {
+          "max": 1836,
+          "mean": 1744.5,
+          "min": 1653
+        },
+        "hp": {
+          "max": 78,
+          "mean": 73.5,
+          "min": 69
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 245,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "peakPressure": {
+          "max": 190,
+          "mean": 175,
+          "min": 160
+        },
+        "ticks": {
+          "max": 3846,
+          "mean": 3834.5,
+          "min": 3823
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 7,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2099,
+          "mean": 2099,
+          "min": 2099
+        },
+        "hp": {
+          "max": 52,
+          "mean": 52,
+          "min": 52
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4073,
+          "mean": 4073,
+          "min": 4073
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 8,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2018,
+          "mean": 2018,
+          "min": 2018
+        },
+        "hp": {
+          "max": 53,
+          "mean": 53,
+          "min": 53
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4028,
+          "mean": 4028,
+          "min": 4028
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 9,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2060,
+          "mean": 2060,
+          "min": 2060
+        },
+        "hp": {
+          "max": 52,
+          "mean": 52,
+          "min": 52
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4073,
+          "mean": 4073,
+          "min": 4073
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 10,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2023,
+          "mean": 2023,
+          "min": 2023
+        },
+        "hp": {
+          "max": 53,
+          "mean": 53,
+          "min": 53
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4036,
+          "mean": 4036,
+          "min": 4036
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 11,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2540,
+          "mean": 2540,
+          "min": 2540
+        },
+        "hp": {
+          "max": 40,
+          "mean": 40,
+          "min": 40
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4713,
+          "mean": 4713,
+          "min": 4713
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 0,
+      "profile": 3,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 6,
+          "mean": 5,
+          "min": 4
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "hotTicks": {
+          "max": 2248,
+          "mean": 2099.25,
+          "min": 1976
+        },
+        "hp": {
+          "max": 74,
+          "mean": 72.25,
+          "min": 68
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 247.5,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "peakPressure": {
+          "max": 180,
+          "mean": 170,
+          "min": 160
+        },
+        "ticks": {
+          "max": 4511,
+          "mean": 4491.25,
+          "min": 4471
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 1,
+      "profile": 3,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 8,
+          "mean": 6.25,
+          "min": 5
+        },
+        "delivered": {
+          "max": 11,
+          "mean": 9.75,
+          "min": 8
+        },
+        "hotTicks": {
+          "max": 2248,
+          "mean": 1946.5,
+          "min": 1365
+        },
+        "hp": {
+          "max": 91,
+          "mean": 78.75,
+          "min": 73
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 242.5,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 11,
+          "mean": 9.75,
+          "min": 8
+        },
+        "peakPressure": {
+          "max": 170,
+          "mean": 152.5,
+          "min": 130
+        },
+        "ticks": {
+          "max": 4511,
+          "mean": 4431,
+          "min": 4207
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 2,
+      "profile": 3,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2504,
+          "mean": 2504,
+          "min": 2504
+        },
+        "hp": {
+          "max": 44,
+          "mean": 44,
+          "min": 44
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4688,
+          "mean": 4688,
+          "min": 4688
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 3,
+      "profile": 3,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2418,
+          "mean": 2418,
+          "min": 2418
+        },
+        "hp": {
+          "max": 41,
+          "mean": 41,
+          "min": 41
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4536,
+          "mean": 4536,
+          "min": 4536
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 4,
+      "profile": 3,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 6,
+          "mean": 5,
+          "min": 4
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "hotTicks": {
+          "max": 2151,
+          "mean": 1964.75,
+          "min": 1731
+        },
+        "hp": {
+          "max": 76,
+          "mean": 73.5,
+          "min": 69
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 247.5,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 11,
+          "min": 10
+        },
+        "peakPressure": {
+          "max": 180,
+          "mean": 170,
+          "min": 160
+        },
+        "ticks": {
+          "max": 4471,
+          "mean": 4397,
+          "min": 4223
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 5,
+      "profile": 3,
+      "samples": 4
+    },
+    {
+      "map": 0,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2279,
+          "mean": 2279,
+          "min": 2279
+        },
+        "hp": {
+          "max": 45,
+          "mean": 45,
+          "min": 45
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4471,
+          "mean": 4471,
+          "min": 4471
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 6,
+      "profile": 3,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1803,
+          "mean": 1803,
+          "min": 1803
+        },
+        "hp": {
+          "max": 58,
+          "mean": 58,
+          "min": 58
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3982,
+          "mean": 3982,
+          "min": 3982
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 0,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 7,
+          "mean": 4.75,
+          "min": 4
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 11.25,
+          "min": 9
+        },
+        "hotTicks": {
+          "max": 1569,
+          "mean": 1499.5,
+          "min": 1402
+        },
+        "hp": {
+          "max": 84,
+          "mean": 78.75,
+          "min": 74
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 250,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 11.25,
+          "min": 9
+        },
+        "peakPressure": {
+          "max": 190,
+          "mean": 175,
+          "min": 150
+        },
+        "ticks": {
+          "max": 3924,
+          "mean": 3912.75,
+          "min": 3909
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 1,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 7,
+          "mean": 6,
+          "min": 5
+        },
+        "delivered": {
+          "max": 11,
+          "mean": 10,
+          "min": 9
+        },
+        "hotTicks": {
+          "max": 1568,
+          "mean": 1387,
+          "min": 1026
+        },
+        "hp": {
+          "max": 92,
+          "mean": 85,
+          "min": 81
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 245,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 11,
+          "mean": 10,
+          "min": 9
+        },
+        "peakPressure": {
+          "max": 170,
+          "mean": 152.5,
+          "min": 130
+        },
+        "ticks": {
+          "max": 3940,
+          "mean": 3922,
+          "min": 3884
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 2,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1767,
+          "mean": 1767,
+          "min": 1767
+        },
+        "hp": {
+          "max": 60,
+          "mean": 60,
+          "min": 60
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3957,
+          "mean": 3957,
+          "min": 3957
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 3,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1849,
+          "mean": 1849,
+          "min": 1849
+        },
+        "hp": {
+          "max": 58,
+          "mean": 58,
+          "min": 58
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 250,
+          "min": 250
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3788,
+          "mean": 3788,
+          "min": 3788
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 4,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 7,
+          "mean": 4.75,
+          "min": 4
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 11.25,
+          "min": 9
+        },
+        "hotTicks": {
+          "max": 1545,
+          "mean": 1460.25,
+          "min": 1378
+        },
+        "hp": {
+          "max": 84,
+          "mean": 79.25,
+          "min": 75
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 250,
+          "min": 240
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 11.25,
+          "min": 9
+        },
+        "peakPressure": {
+          "max": 190,
+          "mean": 175,
+          "min": 150
+        },
+        "ticks": {
+          "max": 3900,
+          "mean": 3886.75,
+          "min": 3847
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 5,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1702,
+          "mean": 1702,
+          "min": 1702
+        },
+        "hp": {
+          "max": 60,
+          "mean": 60,
+          "min": 60
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3900,
+          "mean": 3900,
+          "min": 3900
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 6,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 5,
+          "mean": 4.5,
+          "min": 4
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 11.5,
+          "min": 11
+        },
+        "hotTicks": {
+          "max": 1616,
+          "mean": 1580.5,
+          "min": 1545
+        },
+        "hp": {
+          "max": 77,
+          "mean": 75.5,
+          "min": 74
+        },
+        "peakBytes": {
+          "max": 240,
+          "mean": 235,
+          "min": 230
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 11.5,
+          "min": 11
+        },
+        "peakPressure": {
+          "max": 190,
+          "mean": 185,
+          "min": 180
+        },
+        "ticks": {
+          "max": 3746,
+          "mean": 3730.5,
+          "min": 3715
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 7,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1874,
+          "mean": 1874,
+          "min": 1874
+        },
+        "hp": {
+          "max": 59,
+          "mean": 59,
+          "min": 59
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3942,
+          "mean": 3942,
+          "min": 3942
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 8,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1780,
+          "mean": 1780,
+          "min": 1780
+        },
+        "hp": {
+          "max": 59,
+          "mean": 59,
+          "min": 59
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3959,
+          "mean": 3959,
+          "min": 3959
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 9,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1803,
+          "mean": 1803,
+          "min": 1803
+        },
+        "hp": {
+          "max": 59,
+          "mean": 59,
+          "min": 59
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3982,
+          "mean": 3982,
+          "min": 3982
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 10,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 1,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1878,
+          "mean": 1878,
+          "min": 1878
+        },
+        "hp": {
+          "max": 60,
+          "mean": 60,
+          "min": 60
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 3923,
+          "mean": 3923,
+          "min": 3923
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 11,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2279,
+          "mean": 2279,
+          "min": 2279
+        },
+        "hp": {
+          "max": 49,
+          "mean": 49,
+          "min": 49
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4781,
+          "mean": 4781,
+          "min": 4781
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 0,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 7,
+          "mean": 5.75,
+          "min": 5
+        },
+        "delivered": {
+          "max": 11,
+          "mean": 10.25,
+          "min": 9
+        },
+        "hotTicks": {
+          "max": 2017,
+          "mean": 1787.5,
+          "min": 1326
+        },
+        "hp": {
+          "max": 89,
+          "mean": 80.75,
+          "min": 76
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 237.5,
+          "min": 220
+        },
+        "peakPending": {
+          "max": 11,
+          "mean": 10.25,
+          "min": 9
+        },
+        "peakPressure": {
+          "max": 170,
+          "mean": 155,
+          "min": 130
+        },
+        "ticks": {
+          "max": 4739,
+          "mean": 4723,
+          "min": 4691
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 1,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 8,
+          "mean": 6.25,
+          "min": 5
+        },
+        "delivered": {
+          "max": 11,
+          "mean": 9.75,
+          "min": 8
+        },
+        "hotTicks": {
+          "max": 2017,
+          "mean": 1745.25,
+          "min": 1326
+        },
+        "hp": {
+          "max": 89,
+          "mean": 83.25,
+          "min": 78
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 237.5,
+          "min": 220
+        },
+        "peakPending": {
+          "max": 11,
+          "mean": 9.75,
+          "min": 8
+        },
+        "peakPressure": {
+          "max": 170,
+          "mean": 147.5,
+          "min": 130
+        },
+        "ticks": {
+          "max": 4739,
+          "mean": 4699,
+          "min": 4595
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 2,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2243,
+          "mean": 2243,
+          "min": 2243
+        },
+        "hp": {
+          "max": 51,
+          "mean": 51,
+          "min": 51
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4756,
+          "mean": 4756,
+          "min": 4756
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 3,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 1770,
+          "mean": 1770,
+          "min": 1770
+        },
+        "hp": {
+          "max": 58,
+          "mean": 58,
+          "min": 58
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4196,
+          "mean": 4196,
+          "min": 4196
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 4,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 7,
+          "mean": 5.75,
+          "min": 5
+        },
+        "delivered": {
+          "max": 11,
+          "mean": 10.25,
+          "min": 9
+        },
+        "hotTicks": {
+          "max": 1993,
+          "mean": 1766.5,
+          "min": 1314
+        },
+        "hp": {
+          "max": 89,
+          "mean": 81.25,
+          "min": 77
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 237.5,
+          "min": 220
+        },
+        "peakPending": {
+          "max": 11,
+          "mean": 10.25,
+          "min": 9
+        },
+        "peakPressure": {
+          "max": 170,
+          "mean": 155,
+          "min": 130
+        },
+        "ticks": {
+          "max": 4695,
+          "mean": 4651.75,
+          "min": 4571
+        }
+      },
+      "offsets": [
+        0,
+        25,
+        50,
+        75
+      ],
+      "plan": 5,
+      "profile": 0,
+      "samples": 4
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2178,
+          "mean": 2178,
+          "min": 2178
+        },
+        "hp": {
+          "max": 51,
+          "mean": 51,
+          "min": 51
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4699,
+          "mean": 4699,
+          "min": 4699
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 6,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 7,
+          "mean": 6,
+          "min": 5
+        },
+        "delivered": {
+          "max": 11,
+          "mean": 10,
+          "min": 9
+        },
+        "hotTicks": {
+          "max": 1848,
+          "mean": 1832,
+          "min": 1816
+        },
+        "hp": {
+          "max": 81,
+          "mean": 79.5,
+          "min": 78
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 250,
+          "min": 250
+        },
+        "peakPending": {
+          "max": 11,
+          "mean": 10,
+          "min": 9
+        },
+        "peakPressure": {
+          "max": 170,
+          "mean": 160,
+          "min": 150
+        },
+        "ticks": {
+          "max": 4487,
+          "mean": 4479,
+          "min": 4471
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 7,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2318,
+          "mean": 2318,
+          "min": 2318
+        },
+        "hp": {
+          "max": 49,
+          "mean": 49,
+          "min": 49
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4781,
+          "mean": 4781,
+          "min": 4781
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 8,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2256,
+          "mean": 2256,
+          "min": 2256
+        },
+        "hp": {
+          "max": 50,
+          "mean": 50,
+          "min": 50
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4736,
+          "mean": 4736,
+          "min": 4736
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 9,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2279,
+          "mean": 2279,
+          "min": 2279
+        },
+        "hp": {
+          "max": 49,
+          "mean": 49,
+          "min": 49
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4781,
+          "mean": 4781,
+          "min": 4781
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 10,
+      "profile": 0,
+      "samples": 2
+    },
+    {
+      "map": 2,
+      "metrics": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "hotTicks": {
+          "max": 2247,
+          "mean": 2247,
+          "min": 2247
+        },
+        "hp": {
+          "max": 50,
+          "mean": 50,
+          "min": 50
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 260,
+          "min": 260
+        },
+        "peakPending": {
+          "max": 16,
+          "mean": 16,
+          "min": 16
+        },
+        "peakPressure": {
+          "max": 240,
+          "mean": 240,
+          "min": 240
+        },
+        "ticks": {
+          "max": 4749,
+          "mean": 4749,
+          "min": 4749
+        }
+      },
+      "offsets": [
+        0,
+        25
+      ],
+      "plan": 11,
+      "profile": 0,
+      "samples": 2
+    }
+  ],
+  "heavy_acknowledgement": {
+    "baseline_ack_ticks": 40,
+    "comparisons": {
+      "packager_one_vs_none": {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": -36,
+            "mean": -36,
+            "min": -36
+          },
+          "hp": {
+            "max": 4,
+            "mean": 4,
+            "min": 4
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": -25,
+            "mean": -25,
+            "min": -25
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2540,
+              "mean": 2540,
+              "min": 2540
+            },
+            "hp": {
+              "max": 40,
+              "mean": 40,
+              "min": 40
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4713,
+              "mean": 4713,
+              "min": 4713
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "profile",
+          "offset"
+        ],
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2504,
+              "mean": 2504,
+              "min": 2504
+            },
+            "hp": {
+              "max": 44,
+              "mean": 44,
+              "min": 44
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4688,
+              "mean": 4688,
+              "min": 4688
+            }
+          },
+          "samples": 4
+        }
+      },
+      "packager_two_vs_none": {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": -261,
+            "mean": -261,
+            "min": -261
+          },
+          "hp": {
+            "max": 5,
+            "mean": 5,
+            "min": 5
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": -242,
+            "mean": -242,
+            "min": -242
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2540,
+              "mean": 2540,
+              "min": 2540
+            },
+            "hp": {
+              "max": 40,
+              "mean": 40,
+              "min": 40
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4713,
+              "mean": 4713,
+              "min": 4713
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "profile",
+          "offset"
+        ],
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2279,
+              "mean": 2279,
+              "min": 2279
+            },
+            "hp": {
+              "max": 45,
+              "mean": 45,
+              "min": 45
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4471,
+              "mean": 4471,
+              "min": 4471
+            }
+          },
+          "samples": 4
+        }
+      },
+      "packager_two_vs_one": {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": -225,
+            "mean": -225,
+            "min": -225
+          },
+          "hp": {
+            "max": 1,
+            "mean": 1,
+            "min": 1
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": -217,
+            "mean": -217,
+            "min": -217
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2504,
+              "mean": 2504,
+              "min": 2504
+            },
+            "hp": {
+              "max": 44,
+              "mean": 44,
+              "min": 44
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4688,
+              "mean": 4688,
+              "min": 4688
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "profile",
+          "offset"
+        ],
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2279,
+              "mean": 2279,
+              "min": 2279
+            },
+            "hp": {
+              "max": 45,
+              "mean": 45,
+              "min": 45
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4471,
+              "mean": 4471,
+              "min": 4471
+            }
+          },
+          "samples": 4
+        }
+      },
+      "refiner_packager_vs_refiner": {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": -24,
+            "mean": -134.5,
+            "min": -245
+          },
+          "hp": {
+            "max": 2,
+            "mean": 1.25,
+            "min": 1
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": -9,
+            "mean": -94.25,
+            "min": -280
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 6,
+              "mean": 5,
+              "min": 4
+            },
+            "delivered": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "hotTicks": {
+              "max": 2248,
+              "mean": 2099.25,
+              "min": 1976
+            },
+            "hp": {
+              "max": 74,
+              "mean": 72.25,
+              "min": 68
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 247.5,
+              "min": 240
+            },
+            "peakPending": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "peakPressure": {
+              "max": 180,
+              "mean": 170,
+              "min": 160
+            },
+            "ticks": {
+              "max": 4511,
+              "mean": 4491.25,
+              "min": 4471
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "profile",
+          "offset"
+        ],
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 6,
+              "mean": 5,
+              "min": 4
+            },
+            "delivered": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "hotTicks": {
+              "max": 2151,
+              "mean": 1964.75,
+              "min": 1731
+            },
+            "hp": {
+              "max": 76,
+              "mean": 73.5,
+              "min": 69
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 247.5,
+              "min": 240
+            },
+            "peakPending": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "peakPressure": {
+              "max": 180,
+              "mean": 170,
+              "min": 160
+            },
+            "ticks": {
+              "max": 4471,
+              "mean": 4397,
+              "min": 4223
+            }
+          },
+          "samples": 4
+        }
+      }
+    },
+    "heavy_ack_ticks": 200,
+    "heavy_minus_normal_matched_offsets": [
+      {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 480,
+            "mean": 480,
+            "min": 480
+          },
+          "hp": {
+            "max": -12,
+            "mean": -12,
+            "min": -12
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": 640,
+            "mean": 640,
+            "min": 640
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2060,
+              "mean": 2060,
+              "min": 2060
+            },
+            "hp": {
+              "max": 52,
+              "mean": 52,
+              "min": 52
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4073,
+              "mean": 4073,
+              "min": 4073
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "plan",
+          "offset"
+        ],
+        "plan": 0,
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2540,
+              "mean": 2540,
+              "min": 2540
+            },
+            "hp": {
+              "max": 40,
+              "mean": 40,
+              "min": 40
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4713,
+              "mean": 4713,
+              "min": 4713
+            }
+          },
+          "samples": 4
+        }
+      },
+      {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 320,
+            "mean": 320,
+            "min": 320
+          },
+          "hp": {
+            "max": -4,
+            "mean": -4.25,
+            "min": -5
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": 480,
+            "mean": 480,
+            "min": 480
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 6,
+              "mean": 5,
+              "min": 4
+            },
+            "delivered": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "hotTicks": {
+              "max": 1928,
+              "mean": 1779.25,
+              "min": 1656
+            },
+            "hp": {
+              "max": 78,
+              "mean": 76.5,
+              "min": 73
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 247.5,
+              "min": 240
+            },
+            "peakPending": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "peakPressure": {
+              "max": 180,
+              "mean": 170,
+              "min": 160
+            },
+            "ticks": {
+              "max": 4031,
+              "mean": 4011.25,
+              "min": 3991
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "plan",
+          "offset"
+        ],
+        "plan": 1,
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 6,
+              "mean": 5,
+              "min": 4
+            },
+            "delivered": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "hotTicks": {
+              "max": 2248,
+              "mean": 2099.25,
+              "min": 1976
+            },
+            "hp": {
+              "max": 74,
+              "mean": 72.25,
+              "min": 68
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 247.5,
+              "min": 240
+            },
+            "peakPending": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "peakPressure": {
+              "max": 180,
+              "mean": 170,
+              "min": 160
+            },
+            "ticks": {
+              "max": 4511,
+              "mean": 4491.25,
+              "min": 4471
+            }
+          },
+          "samples": 4
+        }
+      },
+      {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 320,
+            "mean": 280,
+            "min": 160
+          },
+          "hp": {
+            "max": -1,
+            "mean": -3,
+            "min": -4
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": 480,
+            "mean": 440,
+            "min": 320
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 8,
+              "mean": 6.25,
+              "min": 5
+            },
+            "delivered": {
+              "max": 11,
+              "mean": 9.75,
+              "min": 8
+            },
+            "hotTicks": {
+              "max": 1928,
+              "mean": 1666.5,
+              "min": 1205
+            },
+            "hp": {
+              "max": 92,
+              "mean": 81.75,
+              "min": 77
+            },
+            "peakBytes": {
+              "max": 250,
+              "mean": 242.5,
+              "min": 240
+            },
+            "peakPending": {
+              "max": 11,
+              "mean": 9.75,
+              "min": 8
+            },
+            "peakPressure": {
+              "max": 170,
+              "mean": 152.5,
+              "min": 130
+            },
+            "ticks": {
+              "max": 4031,
+              "mean": 3991,
+              "min": 3887
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "plan",
+          "offset"
+        ],
+        "plan": 2,
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 8,
+              "mean": 6.25,
+              "min": 5
+            },
+            "delivered": {
+              "max": 11,
+              "mean": 9.75,
+              "min": 8
+            },
+            "hotTicks": {
+              "max": 2248,
+              "mean": 1946.5,
+              "min": 1365
+            },
+            "hp": {
+              "max": 91,
+              "mean": 78.75,
+              "min": 73
+            },
+            "peakBytes": {
+              "max": 250,
+              "mean": 242.5,
+              "min": 240
+            },
+            "peakPending": {
+              "max": 11,
+              "mean": 9.75,
+              "min": 8
+            },
+            "peakPressure": {
+              "max": 170,
+              "mean": 152.5,
+              "min": 130
+            },
+            "ticks": {
+              "max": 4511,
+              "mean": 4431,
+              "min": 4207
+            }
+          },
+          "samples": 4
+        }
+      },
+      {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 480,
+            "mean": 480,
+            "min": 480
+          },
+          "hp": {
+            "max": -10,
+            "mean": -10,
+            "min": -10
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": 640,
+            "mean": 640,
+            "min": 640
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2024,
+              "mean": 2024,
+              "min": 2024
+            },
+            "hp": {
+              "max": 54,
+              "mean": 54,
+              "min": 54
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4048,
+              "mean": 4048,
+              "min": 4048
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "plan",
+          "offset"
+        ],
+        "plan": 3,
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2504,
+              "mean": 2504,
+              "min": 2504
+            },
+            "hp": {
+              "max": 44,
+              "mean": 44,
+              "min": 44
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4688,
+              "mean": 4688,
+              "min": 4688
+            }
+          },
+          "samples": 4
+        }
+      },
+      {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 480,
+            "mean": 480,
+            "min": 480
+          },
+          "hp": {
+            "max": -11,
+            "mean": -11,
+            "min": -11
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": 640,
+            "mean": 640,
+            "min": 640
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 1938,
+              "mean": 1938,
+              "min": 1938
+            },
+            "hp": {
+              "max": 52,
+              "mean": 52,
+              "min": 52
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 3896,
+              "mean": 3896,
+              "min": 3896
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "plan",
+          "offset"
+        ],
+        "plan": 4,
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2418,
+              "mean": 2418,
+              "min": 2418
+            },
+            "hp": {
+              "max": 41,
+              "mean": 41,
+              "min": 41
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4536,
+              "mean": 4536,
+              "min": 4536
+            }
+          },
+          "samples": 4
+        }
+      },
+      {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 320,
+            "mean": 240,
+            "min": 160
+          },
+          "hp": {
+            "max": -3,
+            "mean": -3.75,
+            "min": -5
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": 480,
+            "mean": 440,
+            "min": 320
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 6,
+              "mean": 5,
+              "min": 4
+            },
+            "delivered": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "hotTicks": {
+              "max": 1843,
+              "mean": 1724.75,
+              "min": 1571
+            },
+            "hp": {
+              "max": 79,
+              "mean": 77.25,
+              "min": 74
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 247.5,
+              "min": 240
+            },
+            "peakPending": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "peakPressure": {
+              "max": 180,
+              "mean": 170,
+              "min": 160
+            },
+            "ticks": {
+              "max": 3991,
+              "mean": 3957,
+              "min": 3903
+            }
+          },
+          "samples": 4
+        },
+        "paired_samples": 4,
+        "pairing_fields": [
+          "map",
+          "plan",
+          "offset"
+        ],
+        "plan": 5,
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 6,
+              "mean": 5,
+              "min": 4
+            },
+            "delivered": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "hotTicks": {
+              "max": 2151,
+              "mean": 1964.75,
+              "min": 1731
+            },
+            "hp": {
+              "max": 76,
+              "mean": 73.5,
+              "min": 69
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 247.5,
+              "min": 240
+            },
+            "peakPending": {
+              "max": 12,
+              "mean": 11,
+              "min": 10
+            },
+            "peakPressure": {
+              "max": 180,
+              "mean": 170,
+              "min": 160
+            },
+            "ticks": {
+              "max": 4471,
+              "mean": 4397,
+              "min": 4223
+            }
+          },
+          "samples": 4
+        }
+      },
+      {
+        "delta_right_minus_left": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 320,
+            "mean": 320,
+            "min": 320
+          },
+          "hp": {
+            "max": -9,
+            "mean": -9,
+            "min": -9
+          },
+          "peakBytes": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "ticks": {
+            "max": 480,
+            "mean": 480,
+            "min": 480
+          }
+        },
+        "left": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 1959,
+              "mean": 1959,
+              "min": 1959
+            },
+            "hp": {
+              "max": 54,
+              "mean": 54,
+              "min": 54
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 3991,
+              "mean": 3991,
+              "min": 3991
+            }
+          },
+          "samples": 2
+        },
+        "paired_samples": 2,
+        "pairing_fields": [
+          "map",
+          "plan",
+          "offset"
+        ],
+        "plan": 6,
+        "right": {
+          "metrics": {
+            "clear": {
+              "max": 0,
+              "mean": 0,
+              "min": 0
+            },
+            "delivered": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "hotTicks": {
+              "max": 2279,
+              "mean": 2279,
+              "min": 2279
+            },
+            "hp": {
+              "max": 45,
+              "mean": 45,
+              "min": 45
+            },
+            "peakBytes": {
+              "max": 260,
+              "mean": 260,
+              "min": 260
+            },
+            "peakPending": {
+              "max": 16,
+              "mean": 16,
+              "min": 16
+            },
+            "peakPressure": {
+              "max": 240,
+              "mean": 240,
+              "min": 240
+            },
+            "ticks": {
+              "max": 4471,
+              "mean": 4471,
+              "min": 4471
+            }
+          },
+          "samples": 2
+        }
+      }
+    ],
+    "map": 0,
+    "profile": 3,
+    "scope": "Heavy-ACK comparisons cover map 0 only. Normal Packager level two has two recorded offsets; its normal/heavy pairing uses only those offsets."
+  },
+  "inputs": [
+    {
+      "campaigns": 0,
+      "file": "balance-before.txt",
+      "records": 72,
+      "sha256": "f94c3c429cca75156b6be0b9809a3f176a348b6d2df3765a2410bf9d4c6fdbad",
+      "single_waves": 72
+    },
+    {
+      "campaigns": 0,
+      "file": "balance-final.txt",
+      "records": 72,
+      "sha256": "a1efbdbb2f6424083834816364ca4f67c77aaa69d079fd5c1bf9bd40dfda0a83",
+      "single_waves": 72
+    },
+    {
+      "campaigns": 3,
+      "file": "balance-extra.txt",
+      "records": 67,
+      "sha256": "33c11587c4e81ae3fd94e15bb812dcb456f7e3669d748f1c8aa5a8f81873a92d",
+      "single_waves": 64
+    }
+  ],
+  "lifecycle": "Regenerate when any input trace, probe fixture, or aggregate validation evidence changes.",
+  "limitations": [
+    "Offsets 0,25,50,75 deterministically rotate the authored review draw. They are not independent random trials; no confidence interval or universal probability is established.",
+    "The recorded grid samples three authored maps, fixed placements, one finite sixteen-outcome wave, and selected campaign strategies. It does not rank every strategy or establish general optimality.",
+    "Extra ordinary-profile plans have two offsets, paired plans have four, and heavy ACK is sampled on map 0 only. Cohort sample sizes are explicit.",
+    "The owned trace field reports ledger bytes, not separate dispatch, request, lease, or writer counts. The aggregate campaign assertions independently require the host ownership drain predicate.",
+    "The analyzer checks recorded outputs and source/evidence hashes; it does not rerun Bend or certify that traces were produced by the latest unrecorded source snapshot.",
+    "There was no human playtest or engagement measurement, and these descriptive results establish no release or platform-support claim."
+  ],
+  "paired_final_minus_before": [
+    {
+      "delta_right_minus_left": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 966,
+          "mean": 832.666667,
+          "min": 684
+        },
+        "hp": {
+          "max": -20,
+          "mean": -23,
+          "min": -25
+        },
+        "peakBytes": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "ticks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        }
+      },
+      "left": {
+        "metrics": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "hotTicks": {
+            "max": 1313,
+            "mean": 1214.666667,
+            "min": 1119
+          },
+          "hp": {
+            "max": 78,
+            "mean": 76,
+            "min": 74
+          },
+          "peakBytes": {
+            "max": 260,
+            "mean": 260,
+            "min": 260
+          },
+          "peakPending": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "peakPressure": {
+            "max": 240,
+            "mean": 240,
+            "min": 240
+          },
+          "ticks": {
+            "max": 4781,
+            "mean": 4278.666667,
+            "min": 3982
+          }
+        },
+        "samples": 12
+      },
+      "paired_samples": 12,
+      "pairing_fields": [
+        "map",
+        "profile",
+        "plan",
+        "offset"
+      ],
+      "plan": 0,
+      "right": {
+        "metrics": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "hotTicks": {
+            "max": 2279,
+            "mean": 2047.333333,
+            "min": 1803
+          },
+          "hp": {
+            "max": 58,
+            "mean": 53,
+            "min": 49
+          },
+          "peakBytes": {
+            "max": 260,
+            "mean": 260,
+            "min": 260
+          },
+          "peakPending": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "peakPressure": {
+            "max": 240,
+            "mean": 240,
+            "min": 240
+          },
+          "ticks": {
+            "max": 4781,
+            "mean": 4278.666667,
+            "min": 3982
+          }
+        },
+        "samples": 12
+      }
+    },
+    {
+      "delta_right_minus_left": {
+        "clear": {
+          "max": -9,
+          "mean": -10.833333,
+          "min": -12
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 10.833333,
+          "min": 9
+        },
+        "hotTicks": {
+          "max": 2017,
+          "mean": 1688.75,
+          "min": 1326
+        },
+        "hp": {
+          "max": -11,
+          "mean": -21.333333,
+          "min": -27
+        },
+        "peakBytes": {
+          "max": 50,
+          "mean": 28.333333,
+          "min": 10
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 10.833333,
+          "min": 9
+        },
+        "peakPressure": {
+          "max": 110,
+          "mean": 86.666667,
+          "min": 50
+        },
+        "ticks": {
+          "max": 987,
+          "mean": 903.333333,
+          "min": 761
+        }
+      },
+      "left": {
+        "metrics": {
+          "clear": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hp": {
+            "max": 100,
+            "mean": 100,
+            "min": 100
+          },
+          "peakBytes": {
+            "max": 230,
+            "mean": 216.666667,
+            "min": 200
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 80,
+            "mean": 80,
+            "min": 80
+          },
+          "ticks": {
+            "max": 3752,
+            "mean": 3312.333333,
+            "min": 2955
+          }
+        },
+        "samples": 12
+      },
+      "paired_samples": 12,
+      "pairing_fields": [
+        "map",
+        "profile",
+        "plan",
+        "offset"
+      ],
+      "plan": 1,
+      "right": {
+        "metrics": {
+          "clear": {
+            "max": 7,
+            "mean": 5.166667,
+            "min": 4
+          },
+          "delivered": {
+            "max": 12,
+            "mean": 10.833333,
+            "min": 9
+          },
+          "hotTicks": {
+            "max": 2017,
+            "mean": 1688.75,
+            "min": 1326
+          },
+          "hp": {
+            "max": 89,
+            "mean": 78.666667,
+            "min": 73
+          },
+          "peakBytes": {
+            "max": 260,
+            "mean": 245,
+            "min": 220
+          },
+          "peakPending": {
+            "max": 12,
+            "mean": 10.833333,
+            "min": 9
+          },
+          "peakPressure": {
+            "max": 190,
+            "mean": 166.666667,
+            "min": 130
+          },
+          "ticks": {
+            "max": 4739,
+            "mean": 4215.666667,
+            "min": 3909
+          }
+        },
+        "samples": 12
+      }
+    },
+    {
+      "delta_right_minus_left": {
+        "clear": {
+          "max": -8,
+          "mean": -9.833333,
+          "min": -11
+        },
+        "delivered": {
+          "max": 11,
+          "mean": 9.833333,
+          "min": 8
+        },
+        "hotTicks": {
+          "max": 2017,
+          "mean": 1599.583333,
+          "min": 1026
+        },
+        "hp": {
+          "max": -8,
+          "mean": -16.666667,
+          "min": -23
+        },
+        "peakBytes": {
+          "max": 50,
+          "mean": 25,
+          "min": 10
+        },
+        "peakPending": {
+          "max": 11,
+          "mean": 9.833333,
+          "min": 8
+        },
+        "peakPressure": {
+          "max": 90,
+          "mean": 70.833333,
+          "min": 50
+        },
+        "ticks": {
+          "max": 987,
+          "mean": 891.666667,
+          "min": 657
+        }
+      },
+      "left": {
+        "metrics": {
+          "clear": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hp": {
+            "max": 100,
+            "mean": 100,
+            "min": 100
+          },
+          "peakBytes": {
+            "max": 230,
+            "mean": 216.666667,
+            "min": 200
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 80,
+            "mean": 80,
+            "min": 80
+          },
+          "ticks": {
+            "max": 3752,
+            "mean": 3312.333333,
+            "min": 2955
+          }
+        },
+        "samples": 12
+      },
+      "paired_samples": 12,
+      "pairing_fields": [
+        "map",
+        "profile",
+        "plan",
+        "offset"
+      ],
+      "plan": 2,
+      "right": {
+        "metrics": {
+          "clear": {
+            "max": 8,
+            "mean": 6.166667,
+            "min": 5
+          },
+          "delivered": {
+            "max": 11,
+            "mean": 9.833333,
+            "min": 8
+          },
+          "hotTicks": {
+            "max": 2017,
+            "mean": 1599.583333,
+            "min": 1026
+          },
+          "hp": {
+            "max": 92,
+            "mean": 83.333333,
+            "min": 77
+          },
+          "peakBytes": {
+            "max": 250,
+            "mean": 241.666667,
+            "min": 220
+          },
+          "peakPending": {
+            "max": 11,
+            "mean": 9.833333,
+            "min": 8
+          },
+          "peakPressure": {
+            "max": 170,
+            "mean": 150.833333,
+            "min": 130
+          },
+          "ticks": {
+            "max": 4739,
+            "mean": 4204,
+            "min": 3884
+          }
+        },
+        "samples": 12
+      }
+    },
+    {
+      "delta_right_minus_left": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 954,
+          "mean": 820.666667,
+          "min": 672
+        },
+        "hp": {
+          "max": -19,
+          "mean": -22,
+          "min": -24
+        },
+        "peakBytes": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "ticks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        }
+      },
+      "left": {
+        "metrics": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "hotTicks": {
+            "max": 1289,
+            "mean": 1190.666667,
+            "min": 1095
+          },
+          "hp": {
+            "max": 79,
+            "mean": 77,
+            "min": 75
+          },
+          "peakBytes": {
+            "max": 260,
+            "mean": 260,
+            "min": 260
+          },
+          "peakPending": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "peakPressure": {
+            "max": 240,
+            "mean": 240,
+            "min": 240
+          },
+          "ticks": {
+            "max": 4756,
+            "mean": 4253.666667,
+            "min": 3957
+          }
+        },
+        "samples": 12
+      },
+      "paired_samples": 12,
+      "pairing_fields": [
+        "map",
+        "profile",
+        "plan",
+        "offset"
+      ],
+      "plan": 3,
+      "right": {
+        "metrics": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "hotTicks": {
+            "max": 2243,
+            "mean": 2011.333333,
+            "min": 1767
+          },
+          "hp": {
+            "max": 60,
+            "mean": 55,
+            "min": 51
+          },
+          "peakBytes": {
+            "max": 260,
+            "mean": 260,
+            "min": 260
+          },
+          "peakPending": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "peakPressure": {
+            "max": 240,
+            "mean": 240,
+            "min": 240
+          },
+          "ticks": {
+            "max": 4756,
+            "mean": 4253.666667,
+            "min": 3957
+          }
+        },
+        "samples": 12
+      }
+    },
+    {
+      "delta_right_minus_left": {
+        "clear": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "delivered": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "hotTicks": {
+          "max": 730,
+          "mean": 657,
+          "min": 618
+        },
+        "hp": {
+          "max": -19,
+          "mean": -20.333333,
+          "min": -22
+        },
+        "peakBytes": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPending": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "peakPressure": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        },
+        "ticks": {
+          "max": 0,
+          "mean": 0,
+          "min": 0
+        }
+      },
+      "left": {
+        "metrics": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "hotTicks": {
+            "max": 1315,
+            "mean": 1195.333333,
+            "min": 1119
+          },
+          "hp": {
+            "max": 78,
+            "mean": 76.333333,
+            "min": 74
+          },
+          "peakBytes": {
+            "max": 260,
+            "mean": 256.666667,
+            "min": 250
+          },
+          "peakPending": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "peakPressure": {
+            "max": 240,
+            "mean": 240,
+            "min": 240
+          },
+          "ticks": {
+            "max": 4196,
+            "mean": 3960,
+            "min": 3788
+          }
+        },
+        "samples": 12
+      },
+      "paired_samples": 12,
+      "pairing_fields": [
+        "map",
+        "profile",
+        "plan",
+        "offset"
+      ],
+      "plan": 4,
+      "right": {
+        "metrics": {
+          "clear": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "delivered": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "hotTicks": {
+            "max": 1938,
+            "mean": 1852.333333,
+            "min": 1770
+          },
+          "hp": {
+            "max": 58,
+            "mean": 56,
+            "min": 52
+          },
+          "peakBytes": {
+            "max": 260,
+            "mean": 256.666667,
+            "min": 250
+          },
+          "peakPending": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "peakPressure": {
+            "max": 240,
+            "mean": 240,
+            "min": 240
+          },
+          "ticks": {
+            "max": 4196,
+            "mean": 3960,
+            "min": 3788
+          }
+        },
+        "samples": 12
+      }
+    },
+    {
+      "delta_right_minus_left": {
+        "clear": {
+          "max": -9,
+          "mean": -10.833333,
+          "min": -12
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 10.833333,
+          "min": 9
+        },
+        "hotTicks": {
+          "max": 1993,
+          "mean": 1650.5,
+          "min": 1314
+        },
+        "hp": {
+          "max": -11,
+          "mean": -20.75,
+          "min": -26
+        },
+        "peakBytes": {
+          "max": 50,
+          "mean": 28.333333,
+          "min": 10
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 10.833333,
+          "min": 9
+        },
+        "peakPressure": {
+          "max": 110,
+          "mean": 86.666667,
+          "min": 50
+        },
+        "ticks": {
+          "max": 945,
+          "mean": 852.833333,
+          "min": 673
+        }
+      },
+      "left": {
+        "metrics": {
+          "clear": {
+            "max": 16,
+            "mean": 16,
+            "min": 16
+          },
+          "delivered": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hotTicks": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "hp": {
+            "max": 100,
+            "mean": 100,
+            "min": 100
+          },
+          "peakBytes": {
+            "max": 230,
+            "mean": 216.666667,
+            "min": 200
+          },
+          "peakPending": {
+            "max": 0,
+            "mean": 0,
+            "min": 0
+          },
+          "peakPressure": {
+            "max": 80,
+            "mean": 80,
+            "min": 80
+          },
+          "ticks": {
+            "max": 3752,
+            "mean": 3312.333333,
+            "min": 2955
+          }
+        },
+        "samples": 12
+      },
+      "paired_samples": 12,
+      "pairing_fields": [
+        "map",
+        "profile",
+        "plan",
+        "offset"
+      ],
+      "plan": 5,
+      "right": {
+        "metrics": {
+          "clear": {
+            "max": 7,
+            "mean": 5.166667,
+            "min": 4
+          },
+          "delivered": {
+            "max": 12,
+            "mean": 10.833333,
+            "min": 9
+          },
+          "hotTicks": {
+            "max": 1993,
+            "mean": 1650.5,
+            "min": 1314
+          },
+          "hp": {
+            "max": 89,
+            "mean": 79.25,
+            "min": 74
+          },
+          "peakBytes": {
+            "max": 260,
+            "mean": 245,
+            "min": 220
+          },
+          "peakPending": {
+            "max": 12,
+            "mean": 10.833333,
+            "min": 9
+          },
+          "peakPressure": {
+            "max": 190,
+            "mean": 166.666667,
+            "min": 130
+          },
+          "ticks": {
+            "max": 4695,
+            "mean": 4165.166667,
+            "min": 3847
+          }
+        },
+        "samples": 12
+      }
+    }
+  ],
+  "plans": [
+    {
+      "cost": 0,
+      "name": "No towers",
+      "plan": 0,
+      "towers": 0
+    },
+    {
+      "cost": 55,
+      "name": "Refiner level one",
+      "plan": 1,
+      "towers": 1
+    },
+    {
+      "cost": 95,
+      "name": "Refiner level two",
+      "plan": 2,
+      "towers": 1
+    },
+    {
+      "cost": 60,
+      "name": "Packager level one",
+      "plan": 3,
+      "towers": 1
+    },
+    {
+      "cost": 35,
+      "name": "Rapid",
+      "plan": 4,
+      "towers": 1
+    },
+    {
+      "cost": 115,
+      "name": "Refiner level one + Packager level one",
+      "plan": 5,
+      "towers": 2
+    },
+    {
+      "cost": 100,
+      "name": "Packager level two",
+      "plan": 6,
+      "towers": 1
+    },
+    {
+      "cost": 90,
+      "name": "Refiner level one + Rapid",
+      "plan": 7,
+      "towers": 2
+    },
+    {
+      "cost": 70,
+      "name": "Parallelizer",
+      "plan": 8,
+      "towers": 1
+    },
+    {
+      "cost": 35,
+      "name": "Coordinator",
+      "plan": 9,
+      "towers": 1
+    },
+    {
+      "cost": 50,
+      "name": "Shield",
+      "plan": 10,
+      "towers": 1
+    },
+    {
+      "cost": 45,
+      "name": "Relay",
+      "plan": 11,
+      "towers": 1
+    }
+  ],
+  "purpose": "Reproducible validation and descriptive analysis of recorded canonical-defense balance traces.",
+  "refiner_level_two_minus_one_baseline": {
+    "delta_right_minus_left": {
+      "clear": {
+        "max": 3,
+        "mean": 1,
+        "min": 0
+      },
+      "delivered": {
+        "max": 0,
+        "mean": -1,
+        "min": -3
+      },
+      "hotTicks": {
+        "max": 0,
+        "mean": -89.166667,
+        "min": -451
+      },
+      "hp": {
+        "max": 14,
+        "mean": 4.666667,
+        "min": 0
+      },
+      "peakBytes": {
+        "max": 0,
+        "mean": -3.333333,
+        "min": -20
+      },
+      "peakPending": {
+        "max": 0,
+        "mean": -1,
+        "min": -3
+      },
+      "peakPressure": {
+        "max": 0,
+        "mean": -15.833333,
+        "min": -50
+      },
+      "ticks": {
+        "max": 31,
+        "mean": -11.666667,
+        "min": -104
+      }
+    },
+    "left": {
+      "metrics": {
+        "clear": {
+          "max": 7,
+          "mean": 5.166667,
+          "min": 4
+        },
+        "delivered": {
+          "max": 12,
+          "mean": 10.833333,
+          "min": 9
+        },
+        "hotTicks": {
+          "max": 2017,
+          "mean": 1688.75,
+          "min": 1326
+        },
+        "hp": {
+          "max": 89,
+          "mean": 78.666667,
+          "min": 73
+        },
+        "peakBytes": {
+          "max": 260,
+          "mean": 245,
+          "min": 220
+        },
+        "peakPending": {
+          "max": 12,
+          "mean": 10.833333,
+          "min": 9
+        },
+        "peakPressure": {
+          "max": 190,
+          "mean": 166.666667,
+          "min": 130
+        },
+        "ticks": {
+          "max": 4739,
+          "mean": 4215.666667,
+          "min": 3909
+        }
+      },
+      "samples": 12
+    },
+    "paired_samples": 12,
+    "pairing_fields": [
+      "map",
+      "profile",
+      "offset"
+    ],
+    "right": {
+      "metrics": {
+        "clear": {
+          "max": 8,
+          "mean": 6.166667,
+          "min": 5
+        },
+        "delivered": {
+          "max": 11,
+          "mean": 9.833333,
+          "min": 8
+        },
+        "hotTicks": {
+          "max": 2017,
+          "mean": 1599.583333,
+          "min": 1026
+        },
+        "hp": {
+          "max": 92,
+          "mean": 83.333333,
+          "min": 77
+        },
+        "peakBytes": {
+          "max": 250,
+          "mean": 241.666667,
+          "min": 220
+        },
+        "peakPending": {
+          "max": 11,
+          "mean": 9.833333,
+          "min": 8
+        },
+        "peakPressure": {
+          "max": 170,
+          "mean": 150.833333,
+          "min": 130
+        },
+        "ticks": {
+          "max": 4739,
+          "mean": 4204,
+          "min": 3884
+        }
+      },
+      "samples": 12
+    }
+  },
+  "regenerate": "python3 prototypes/canonical-defense/check_balance.py",
+  "status": "Generated validation evidence.",
+  "validation": {
+    "all_reported_owned_ledger_bytes_zero": true,
+    "all_single_wave_outcomes": 16,
+    "all_single_waves_inactive": true,
+    "construction_exceptions_allowed": false,
+    "intended_plan_tower_counts_and_costs_valid": true,
+    "paired_keys_identical": true,
+    "paired_samples": 72,
+    "single_waves_validated": 208,
+    "tick_duration_ms": 20
+  },
+  "verify": "python3 prototypes/canonical-defense/check_balance.py --check"
+}

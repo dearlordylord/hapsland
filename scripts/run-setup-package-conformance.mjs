@@ -116,7 +116,7 @@ const runMaskedSetup = (cli, cwd, env, requestPath, marker) => new Promise((reso
 });
 
 const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, commandOverride, expectedExit = 0) => new Promise((resolveRun, rejectRun) => {
-  const command = commandOverride ?? `${quote(cli)} --pilot --codex-home=${quote(codexHome)} --codex-executable=${quote(codexExecutable)}`;
+  const command = commandOverride ?? `${quote(cli)} setup codex --codex-home=${quote(codexHome)} --codex-executable=${quote(codexExecutable)}`;
   const terminal = process.platform === "darwin"
     ? ["python3", [join(projectRoot, "scripts/pty-bridge.py"), "/bin/sh", "-c", command]]
     : ["script", ["-qefc", command, "/dev/null"]];

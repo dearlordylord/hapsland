@@ -1,3 +1,4 @@
+import productIcon from "./brand/product-icon.svg?url";
 import { preparationDetails } from "./preparation-details";
 import { preparationSnapshot } from "./preparation-mini";
 import { reviewCapacityView } from "./review-capacity-view";
@@ -156,7 +157,7 @@ const coverageFamilies = [
   { name: "Background and Stop collection, leases and expiry", match: /^collection/, source: "packages/agent-flow-bend/Collection.bend" },
   { name: "Advice submission, uncertain output and reoffer", match: /^submission/, source: "packages/agent-flow-bend/Delivery.bend" },
   { name: "Revision and revalidation", match: /^(revision|validationRouteCheck|postValidationCheck|finalCandidateCheck)/, source: "packages/agent-flow-bend/Revision.bend" },
-  { name: "Ticket and retained unit outcome", match: /^ticket/, source: "packages/agent-flow-bend/Ticket.bend" },
+  { name: "Response authority and reuse members", match: /^(?:collector|reuseMember)/, source: "packages/agent-flow-bend/CollectorAuthority.bend" },
   { name: "Delivery finalization, round barrier and cleanup", match: /^(delivery|round|cleanup)/, source: "packages/agent-flow-bend/Delivery.bend" },
   { name: "Reuse, cache and operational notice", match: /^(reuse|cache|notice)/, source: "packages/agent-flow-bend/Reuse.bend" },
   { name: "File and rule policy gates", match: /^(includeLayer|fileSelection|fileProtection|candidateFile|reviewAdmission|rule)/, source: "packages/agent-flow-bend/RulePolicy.bend" },
@@ -209,7 +210,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     title: "Hapsland · guided replay",
     body: h.main([h.Class("page")], [
       h.header([h.Class("page-header")], [
-        h.p([h.Class("eyebrow")], ["HAPSLAND"]),
+        h.p([h.Class("eyebrow product-brand")], [h.img([h.Src(productIcon), h.Alt(""), h.Width("40"), h.Height("40")]), "HAPSLAND"]),
         h.h1([], ["From agent edit to Jev and back"]),
         h.p([h.Class("intro")], ["Run the simulator or step through a guided replay."]),
       ]),

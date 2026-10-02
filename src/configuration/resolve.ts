@@ -141,6 +141,9 @@ export const effectiveEditPermitLimits = (policy: ResolvedPolicy): {
   };
 };
 
+export const effectiveSessionAnalytics = (policy: ResolvedPolicy): boolean =>
+  policy.layers.find((layer) => layer.name === "user")?.document.sessionAnalytics ?? false;
+
 export const effectiveVirtualRoundQuietMs = (policy: ResolvedPolicy): number =>
   policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ??
     DEFAULT_VIRTUAL_ROUND_QUIET_MS;
@@ -161,6 +164,10 @@ export const resolveConfiguration = (
   for (const layer of layers) if (layer.name === "project" && layer.document.virtualRoundQuietMs !== undefined) {
     throw new ConfigurationError({ source: layer.source, field: "virtualRoundQuietMs",
       reason: "only user configuration may set the shared resident virtual round timeout" });
+  }
+  for (const layer of layers) if (layer.name === "project" && layer.document.sessionAnalytics !== undefined) {
+    throw new ConfigurationError({ source: layer.source, field: "sessionAnalytics",
+      reason: "only user configuration may set session analytics" });
   }
   const userPermitLimits = layers.find((layer) => layer.name === "user")?.document.editPermitLimits;
   if ((userPermitLimits?.perAdvicee ?? DEFAULT_EDIT_PERMIT_LIMITS.perAdvicee) >

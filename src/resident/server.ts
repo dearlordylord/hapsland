@@ -8,15 +8,16 @@ import type { Advice } from "./advice-records.ts";
 import type { PendingNoticeSnapshot as PendingNotice } from "./notice-records.ts";
 import type { RoundWork, WorkCohort } from "./round-records.ts";
 import type { JoinedReview, JoinedReviewOutcome } from "./joined-reviews.ts";
-import type { TicketRecord } from "./ticket-records.ts";
-import type { TicketUnit } from "./ticket-units.ts";
 import { workSubject, type WorkRevision } from "./revision.ts";
+import { recordAnalytics, type AnalyticsKind } from "../activity/analytics.ts";
+import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import { recordRoundClosure, type RoundCloseReason } from "../activity/status.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import * as Config from "effect/Config";
 import * as Option from "effect/Option";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
+
 import * as Schema from "effect/Schema";
 import type * as HttpClient from "effect/http/HttpClient";
 import { createHash, randomUUID } from "node:crypto";
@@ -60,6 +61,7 @@ import {
 } from "./paths.ts";
 import {
   DELIVERY_LEASE_MS,
+  EDIT_REQUEST_DEADLINE_MS,
   MAX_IPC_CONNECTIONS,
   MAX_IPC_FRAME_BYTES,
   decodeCurrentResidentRequest,
@@ -67,7 +69,6 @@ import {
   type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse,
-  type ResidentCollectionTicket,
   type ResidentUnavailableReason,
 } from "./protocol.ts";
 import {
@@ -76,7 +77,7 @@ import {
   type CapacityReservation,
 } from "./capacity.ts";
 import { makeDispatcher, type Dispatcher } from "./dispatch.ts";
-import { Context, Exit, Layer, Scope } from "effect";
+import { Context, Exit, Layer, Ref, Scope } from "effect";
 import * as Fiber from "effect/Fiber";
 import * as FiberHandle from "effect/FiberHandle";
 import * as Schedule from "effect/Schedule";
@@ -86,13 +87,12 @@ import {
   PENDING_ADVICE_EXPIRY_MS,
   combinedClaudeOutput,
   combinedReviewOutput,
-  encodedComposedClaudeOutputBytes,
-  selectFittingComposedClaudeFindings,
+  encodedClaudeStopOutputBytes,
+  selectFittingClaudeStopFindings,
   selectFittingFindings,
   selectFittingCurrentFindingIndices,
   selectFittingClaudeFindings,
   type ClaudeOutputMode,
-  type ComposedClaudeSurface,
   type CollectionMode,
   type FindingSelectionFacts,
   type CanonicalFindingOffer,
@@ -189,11 +189,25 @@ type IngressJob = {
   readonly partition: string;
   readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
-  readonly ticket?: TicketRecord;
+  analyticsEnabled?: boolean;
+  analyticsDiscardReported?: boolean;
 };
 
-const TICKET_RETENTION_MS = 600_000;
-const MAX_TICKETS = 256;
+type ResponseAuthority = {
+  readonly lifetime: string; readonly partition: string;
+  readonly root: string; readonly advicee: DirectAdvicee; readonly userConfigPath: string | null; readonly claudeFeedbackMode: ClaudeOutputMode;
+  readonly credentialGeneration: number | null; readonly credentialStatePath: string | null;
+  readonly credentialRequired: boolean; readonly credentialEnvironmentOnly: boolean;
+  readonly expiresAt: number; readonly round: RoundWork | undefined;
+};
+type EditRequest = Extract<ResidentRequest, { operation: "admit-and-collect" }>;
+type EditCollectionRequest = {
+  readonly requestRoute: "edit"; readonly operation: "collect"; readonly lifetime: string;
+  readonly root: string; readonly advicee: DirectAdvicee; readonly dispatch: ResidentDispatchContext;
+  readonly composed: true; readonly mode: "ordinary";
+};
+type HandoffRequest = ResidentRequest | EditCollectionRequest;
+type ResponseContext = { readonly authority?: ResponseAuthority; readonly token?: string };
 
 type UnitJob = {
   readonly canonicalRound: number;
@@ -212,12 +226,12 @@ type UnitJob = {
   readonly partition: string;
   readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
+  analyticsEnabled?: boolean;
+  analyticsDiscardReported?: boolean;
   readonly prepared: PreparedUnit;
   readonly sourceHash?: string;
   revision: WorkRevision;
   readonly evaluationKey: string;
-  readonly ticketUnit?: TicketUnit;
-  readonly ticket?: TicketRecord;
 };
 
 type Job = IngressJob | UnitJob;
@@ -271,12 +285,6 @@ const adviceePartition = (root: string, advicee: DirectAdvicee) => canonicalValu
   hostVersion: advicee.hostVersion,
   sessionId: advicee.sessionId,
   subagentId: advicee.subagentId,
-});
-
-/** Individual edit authority for a tool-bound response or ticket. */
-const editAuthority = (root: string, advicee: DirectAdvicee) => canonicalValue({
-  partition: adviceePartition(root, advicee),
-  toolUseId: advicee.toolUseId,
 });
 
 const reservedRevision = (partition: string, prepared: PreparedUnit): WorkRevision => ({
@@ -402,7 +410,6 @@ export type ResidentRuntimeOptions = {
   readonly offlineHttpClient?: HttpClient.HttpClient;
   /** Fixture-only gate entered by the controlled DecisionModel call. */
   readonly controlledRequestEffect?: (signal: AbortSignal) => Promise<void>;
-  readonly maximumTickets?: number;
 };
 
 /** Effect operations consumed by the process and protocol services. */
@@ -422,10 +429,10 @@ export interface ResidentRuntime {
   readonly paths: ResidentPaths;
   stats(): Effect.Effect<Extract<ResidentResponse, { status: "stats" }>>;
   cleanup(): Effect.Effect<"busy" | "cleaned">;
-  admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed?: boolean, composed?: boolean, requirePermit?: boolean): Effect.Effect<ResidentResponse>;
-  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode?: CollectionMode): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>, ResidentAdapterError>;
-  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: undefined, composed: true): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>, ResidentAdapterError>;
-  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: TicketRecord, composed?: boolean): Effect.Effect<ResidentResponse, ResidentAdapterError>;
+  admit(observation: DirectObservation, dispatch: ResidentDispatchContext, composed?: boolean, requirePermit?: boolean): Effect.Effect<ResidentResponse>;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode?: CollectionMode): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "edit" }>, ResidentAdapterError>;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, authority: undefined, composed: true): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "edit" }>, ResidentAdapterError>;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, authority: ResponseAuthority, composed?: boolean): Effect.Effect<ResidentResponse, ResidentAdapterError>;
   acknowledge(token: string): Effect.Effect<ResidentResponse>;
   finalize(token: string): Effect.Effect<ResidentResponse>;
   releaseDelivery(token: string): Effect.Effect<void>;
@@ -530,11 +537,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ) {
     throw new RangeError(`maximumOperationalNoticeKeys must be an integer from 1 to ${MAX_OPERATIONAL_NOTICE_KEYS}`);
   }
-  const maximumTickets = options.maximumTickets ?? MAX_TICKETS;
-  if (!Number.isSafeInteger(maximumTickets) || maximumTickets < 1 || maximumTickets > MAX_TICKETS) {
-    throw new RangeError(`maximumTickets must be an integer from 1 to ${MAX_TICKETS}`);
-  }
-  const residentMaximumTickets = maximumTickets;
+
   const residentNow = now;
   const residentNotices = residentLedger.notices(maximumOperationalNoticeKeys, OPERATIONAL_NOTICE_COOLDOWN_MS, PENDING_ADVICE_EXPIRY_MS, logicalBytes);
   const residentCaptureSource = options.captureSource;
@@ -577,8 +580,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     };
   });
 
-  const residentEvictRetainedTickets = Effect.fn("ResidentRuntime.evictRetainedTickets")((limit: number) =>
-    residentLedger.tickets.retain(limit));
 
   const cleanup = Effect.fn("ResidentRuntime.cleanup")(function* (): Effect.fn.Return<"busy" | "cleaned"> {
     if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return "busy";
@@ -605,20 +606,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return snapshot;
   });
 
-  const admit = Effect.fn("ResidentRuntime.admit")(function* (observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): Effect.fn.Return<ResidentResponse> {
+  const admit = Effect.fn("ResidentRuntime.admit")(function* (observation: DirectObservation, dispatch: ResidentDispatchContext, composed = false, requirePermit = false): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
     yield* residentExpirePending(now);
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
     yield* residentPruneNoticeCooldowns(now);
-    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
+    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return { status: "rejected-capacity" };
     const group = adviceePartition(observation.root, observation.advicee);
     const generation = composed ? (yield* residentComposedDelivery.admitEdit(group,
       observation.advicee.toolUseId, monotonicNow(), requirePermit)) : undefined;
     if (composed && generation === undefined) {
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee,
         lifetime: runtime.lifetime, stage: "incomplete" });
-      return ticketed ? { requestRoute: "ticketed", status: "rejected-stale" } : { status: "rejected-stale" };
+      return { status: "rejected-stale" };
     }
     const round = generation === undefined ? undefined : yield* residentLedger.rounds.bind(group, generation,
       { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath }, randomUUID());
@@ -627,27 +628,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const reservation = (yield* residentLedger.reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch"));
     if (reservation === undefined) {
       yield* residentLedger.runtime.rejectCapacity();
+      yield* residentRecordAnalytics({ observation, dispatch }, "capacity-rejected");
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
-      return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
+      return { status: "rejected-capacity" };
     }
     const admission = yield* Effect.exit(residentLedger.admitObservation(partition, canonicalRound));
     if (Exit.isFailure(admission)) {
       (yield* residentLedger.release(reservation));
-      return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
+      return { status: "rejected-capacity" };
     }
     const canonicalObservationId = admission.value;
-    const ticket: TicketRecord | undefined = ticketed ? yield* residentLedger.tickets.open({
-      ticket: { nonce: randomUUID(), lifetime: runtime.lifetime },
-      partition,
-      editAuthority: editAuthority(observation.root, observation.advicee),
-      root: observation.root, userConfigPath: dispatch.userConfigPath,
-      claudeFeedbackMode: residentCurrentClaudeFeedbackMode(observation.root, dispatch.userConfigPath),
-      credentialGeneration: dispatch.credential?.generation ?? null,
-      credentialStatePath: dispatch.credential?.statePath ?? null,
-      credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
-      credentialEnvironmentOnly: dispatch.credential?.environmentOnly ?? false,
-      expiresAt: now + TICKET_RETENTION_MS,
-    }) : undefined;
     const job = {
       kind: "ingress" as const,
       canonicalRound,
@@ -658,18 +648,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       partition,
       reservation,
       dispatch,
-      ...(ticket === undefined ? {} : { ticket }),
     };
     if (!(yield* residentDispatcher.enqueue(partition, job))) {
-      if (ticket !== undefined) yield* residentLedger.tickets.forget(ticket);
       (yield* residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound));
       (yield* residentLedger.release(reservation));
       yield* residentLedger.runtime.rejectCapacity();
+      yield* residentRecordAnalytics({ observation, dispatch }, "capacity-rejected");
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
-      return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
-    }
-    if (ticket !== undefined) {
-      yield* residentEvictRetainedTickets(residentMaximumTickets);
+      return { status: "rejected-capacity" };
     }
     const acceptedPath = runtimeConfiguration.admissionAcceptedPath;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
@@ -685,7 +671,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     }
     recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "pending" });
-    return ticket === undefined ? { status: "accepted" } : { requestRoute: "ticketed", status: "accepted", ticket: ticket.ticket };
+    return { status: "accepted" };
   }, Effect.uninterruptible);
 
   function residentCollectionElapsed(now: number, started: number, limit: number): number {
@@ -751,23 +737,23 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode?: CollectionMode,
-  ): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>, ResidentAdapterError>;
+  ): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "edit" }>, ResidentAdapterError>;
 
   function collect(
     root: string,
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode: CollectionMode,
-    ticket: undefined,
+    authority: undefined,
     composed: true,
-  ): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>, ResidentAdapterError>;
+  ): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "edit" }>, ResidentAdapterError>;
 
   function collect(
     root: string,
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode: CollectionMode,
-    ticket: TicketRecord,
+    authority: ResponseAuthority,
     composed?: boolean,
   ): Effect.Effect<ResidentResponse, ResidentAdapterError>;
 
@@ -776,10 +762,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode: CollectionMode = "ordinary",
-    ticket?: TicketRecord,
+    authority?: ResponseAuthority,
     composed = false,
   ): Effect.Effect<ResidentResponse, ResidentAdapterError> {
-    return residentCollect(root, advicee, dispatch, mode, ticket, composed);
+    return residentCollect(root, advicee, dispatch, mode, authority, composed);
   }
 
   const residentCollect = Effect.fn("ResidentRuntime.collect")((
@@ -787,15 +773,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode: CollectionMode = "ordinary",
-    ticket?: TicketRecord,
+    authority?: ResponseAuthority,
     composed = false,
   ) => Effect.suspend(() => {
     const server = runtime;
     let collectionToken: string | undefined;
     return Effect.gen(function* () {
       const partition = adviceePartition(root, advicee);
-      const claudeSurface: ComposedClaudeSurface | undefined = composed && ticket === undefined &&
-        advicee.host === "claude-code" ? mode === "turn-end" ? "stop" : "background" : undefined;
+      const claudeSurface = composed && authority === undefined &&
+        advicee.host === "claude-code" && mode === "turn-end" ? "stop" : undefined;
       const now = residentNow();
       if (composed && mode !== "turn-end" && (yield* residentComposedDelivery.isDeciding(partition))) return residentResponse({ status: "empty" });
       const stopCollector = composed && mode === "turn-end" && (yield* residentComposedDelivery.isDeciding(partition));
@@ -829,9 +815,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const unleased = content.delivery === undefined;
         const hasUnsuppressed = samePartition && unleased &&
           (yield* residentUnsuppressedFindings(item, content.findings, stopCollector, true)).length > 0;
-        const ticketOwns = ticket === undefined || ticket.partition === item.partition;
+        const authorityOwns = authority === undefined || authority.partition === item.partition;
         const result = (yield* residentLedger.transition({ kind: "collectionCandidateCheck",
-          samePartition, unleased, hasUnsuppressed, ticketOwns }));
+          samePartition, unleased, hasUnsuppressed, authorityOwns }));
         if (result.rejection !== undefined) throw new Error("canonical advice candidate refused");
         if (result.commands[0]?.kind !== "collectionCandidate" && result.commands[0]?.kind !== "collectionSkip") {
           throw new Error("invalid canonical advice candidate");
@@ -865,12 +851,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const facts = yield* residentFindingSelectionFacts(advice, partition, credentialGeneration, residentNow(), composed);
         let limited = 0;
         const onLimited = reportLimit ? () => { limited++; } : undefined;
-        const fitting = yield* (ticket === undefined
+        const fitting = yield* (authority === undefined
           ? claudeSurface === undefined
             ? selectFittingFindings(retained, candidates, facts, onLimited, residentCollectionFindingOffer)
-            : selectFittingComposedClaudeFindings(retained, candidates, claudeSurface,
+            : selectFittingClaudeStopFindings(retained, candidates,
                 facts, onLimited, residentCollectionFindingOffer)
-          : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode,
+          : selectFittingClaudeFindings(retained, candidates, authority.claudeFeedbackMode,
             facts, onLimited, residentCollectionFindingOffer));
         for (let index = 0; index < limited; index++) yield* residentRecordOperationalFailure(advice.observation, "output-limit");
         return fitting;
@@ -1036,8 +1022,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }))).flat();
           const limitedIndices: Array<number> = [];
           const accepted = new Set((yield* selectFittingCurrentFindingIndices(offers,
-            ticket === undefined ? claudeSurface === undefined ? "codex" :
-              claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
+            authority === undefined ? claudeSurface === undefined ? "codex" :
+              "claude-stop" : authority.claudeFeedbackMode,
             (index) => { limitedIndices.push(index); },
             residentCollectionFindingOffer)));
           for (const index of limitedIndices) yield* residentRecordOperationalFailure(offers[index]!.advice.observation, "output-limit", handoffNow);
@@ -1055,11 +1041,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       // Operational failures stay in resident diagnostics; agent output carries
       // only actionable findings.
       if (handoffFindings.length === 0) return residentResponse({ status: "empty" });
-      return residentResponse(ticket === undefined
+      return residentResponse(authority === undefined
         ? { status: "advice", token, findingCount: handoffFindings.length,
             output: combinedReviewOutput(handoffFindings, []) }
-        : { requestRoute: "ticketed", status: "advice", token, findingCount: handoffFindings.length,
-            output: combinedClaudeOutput(handoffFindings, [], ticket.claudeFeedbackMode) });
+        : { requestRoute: "edit", status: "advice", token, findingCount: handoffFindings.length,
+            output: combinedClaudeOutput(handoffFindings, [], authority.claudeFeedbackMode) });
     }).pipe(Effect.onError(() => Effect.gen(function* () {
       // A failed or interrupted collector cannot retain a lease indefinitely.
       // Revalidation's own finalizer has settled before runtime handoff is released.
@@ -1101,6 +1087,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       advice.flatMap(({ capability, content }) => (content.delivery?.findings ?? []).map(() => capability.canonicalOperationId))))) {
       return { status: "empty" };
     }
+    const analyticsGroups = new Map<string, typeof advice>();
+    for (const item of advice) {
+      if (!item.capability.analyticsEnabled || item.content.delivery === undefined || item.content.delivery.acknowledged) continue;
+      const key = JSON.stringify([item.capability.analyticsPath, item.capability.analyticsControlled]);
+      analyticsGroups.set(key, [...(analyticsGroups.get(key) ?? []), item]);
+    }
+    for (const group of analyticsGroups.values()) {
+      const first = group[0]?.capability;
+      if (first === undefined) continue;
+      const findings = group.flatMap(({ content }) => content.delivery?.findings ?? []);
+      recordAnalytics({ enabled: true, statePath: first.analyticsPath, root: first.observation.root,
+        advicee: first.observation.advicee, lifetime: runtime.lifetime, kind: "submitted",
+        controlled: first.analyticsControlled, findings: findings.length, ruleIds: findings.map((finding) => finding.ruleId) });
+    }
     for (const { capability: item, content } of advice) {
       yield* residentLedger.advice.updateDelivery(item, token, { acknowledged: true });
     }
@@ -1140,7 +1140,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         continue;
       }
       if (disposition.commands[0]?.kind === "deliveryRetireAdvice") {
-        yield* residentLedger.ticketUnits.markAdviceDelivered(item.id);
         yield* residentRemoveAdvice(item.id, token);
         continue;
       }
@@ -1368,14 +1367,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentRegisterCurrentWork = Effect.fn("ResidentRuntime.registerCurrentWork")((partition: string, prepared: PreparedUnit) =>
     residentRegisterRevision(partition, prepared, true));
 
-  const residentRetireSuperseded = Effect.fn("ResidentRuntime.retireSuperseded")(function* (subject: string, generation: number, includeTickets: boolean) {
+  const residentRetireSuperseded = Effect.fn("ResidentRuntime.retireSuperseded")(function* (subject: string, generation: number, includeJoined: boolean) {
     const superseded = (revision: WorkRevision) => residentLedger.revision.superseded(subject, revision);
     if ((yield* residentLedger.revision.generation(subject)) !== generation) throw new Error("canonical revision changed");
-    if (includeTickets) {
-      for (const unit of (yield* residentLedger.ticketUnits.values())) {
-        const revision = (yield* residentLedger.ticketUnits.current(unit)).revision;
-        if (revision !== undefined && (yield* superseded(revision))) yield* residentLedger.ticketUnits.fail(unit, "stale");
-      }
+    if (includeJoined) {
       for (const review of (yield* residentJoined.retireSuperseded(subject))) {
         recordActivity({ statePath: review.activityPath, root: review.observation.root,
           advicee: review.observation.advicee, lifetime: runtime.lifetime,
@@ -1483,11 +1478,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentDiscardJob = Effect.fn("ResidentRuntime.discardJob")(function* (job: Job) {
     if (job.completed) return;
+    if (!job.analyticsDiscardReported) {
+      job.analyticsDiscardReported = true;
+      yield* residentRecordAnalytics(job, "work-discarded");
+    }
     if (job.kind === "ingress") {
       (yield* residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound));
     }
     if (job.kind === "unit") {
-      if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "lost");
+
       yield* residentSettleJoined(job.evaluationKey, "unavailable", "lost");
       yield* residentReleaseReuseClaim(job.evaluationKey);
       // An issued Jev permit remains reserved until its native Effect settles.
@@ -1526,7 +1525,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (notice.partition === round.group) yield* residentReleaseNoticeCooldown(key);
     }
     (yield* residentReuse.discardPartition(round.group));
-    yield* residentLedger.tickets.discardPartition(round.group);
     yield* residentLedger.rounds.retire(round);
   }, Effect.uninterruptible);
 
@@ -1556,6 +1554,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       // Fixture observation must not change resident dispatch behavior.
     }
   });
+
+  const residentRecordAnalytics = Effect.fn("ResidentRuntime.recordAnalytics")((
+    job: Pick<Job, "observation" | "dispatch"> & { readonly analyticsEnabled?: boolean },
+    kind: AnalyticsKind, findings: ReadonlyArray<Finding> = [],
+  ) => Effect.sync(() => {
+    const enabled = job.analyticsEnabled ?? job.dispatch.sessionAnalytics === true;
+    if (!enabled || job.dispatch.activityPath === undefined) return;
+    recordAnalytics({ enabled, statePath: job.dispatch.activityPath, root: job.observation.root,
+      advicee: job.observation.advicee, lifetime: runtime.lifetime, kind,
+      controlled: job.dispatch.controlled !== null, findings: findings.length,
+      ruleIds: findings.map((finding) => finding.ruleId) });
+  }));
 
   function residentObserveJevRequest(observation: JevRequestObservation): void {
     try { residentJevRequestObserver?.(observation); } catch {
@@ -1604,9 +1614,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         job.work?.controller.signal ?? residentLifetimeController.signal);
       (yield* residentLedger.release(job.reservation));
       if (settings === undefined || (yield* residentLedger.runtime.snapshot()).lifecycle !== "active" || !(yield* residentJobActive(job))) {
+        yield* residentRecordAnalytics(job, "preparation-failed");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         return;
       }
+
+      job.analyticsEnabled = effectiveSessionAnalytics(settings.configuration.policy);
 
       // A candidate path is captured and analyzed only while its maximum
       // supported logical workspace is charged. Processing candidates one at
@@ -1618,6 +1631,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           job.partition, job.canonicalObservationId, captureWorkspaceBytes(candidate.path), job.canonicalRound));
         if (preparation === undefined) {
           yield* residentLedger.runtime.rejectCapacity();
+          yield* residentRecordAnalytics(job, "capacity-rejected");
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
           continue;
         }
@@ -1633,7 +1647,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               beforeAnalyze: (path, sourceBytes, preflight) => Effect.gen(function* () {
                 const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
                 const resized = (yield* residentLedger.resize(workspace, required));
-                if (!resized) yield* residentLedger.runtime.rejectCapacity();
+                if (!resized) {
+                  yield* residentLedger.runtime.rejectCapacity();
+                  yield* residentRecordAnalytics(job, "capacity-rejected");
+                }
                 return resized;
               }),
             });
@@ -1646,6 +1663,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (offer === "preparedAdmitted" && outcome.status === "ready") ready.push(outcome);
         }
         if (ready.length === 0) {
+          yield* residentRecordAnalytics(job, prepared.observation.status === "incomplete"
+            ? "incomplete-candidate" : "skipped-candidate");
           recordActivity({
             statePath: job.dispatch.activityPath,
             root: job.observation.root,
@@ -1662,6 +1681,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024)) === "preparedAdmitted";
           if (!accepted) {
             yield* residentLedger.runtime.rejectCapacity();
+          yield* residentRecordAnalytics(job, "capacity-rejected");
             rejectedDeliverable = true;
           }
           if (accepted) deliverable.push(outcome);
@@ -1689,13 +1709,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               return { kind: "owner" as const, outcome, evaluationKey };
           }
         }));
+        for (const item of planned) {
+          if (item.kind === "cached") yield* residentRecordAnalytics(job, "cache-hit", item.cached.evaluation.findings);
+          else if (item.kind === "joined") yield* residentRecordAnalytics(job, "joined-review");
+        }
         if (planned.some((item) => item.kind === "owner")) {
           yield* withinWork(residentPreparationControls.afterReuseBoundary("ownerClaimed").pipe(
             Effect.mapError(() => new ResidentAdapterError({ operation: "owner claim barrier" }))),
           job.work?.controller.signal ?? residentLifetimeController.signal);
         }
         if (!(yield* residentJobActive(job))) { (yield* residentLedger.release(workspace)); return; }
-        const ticketUnitsByPlan = new Map<(typeof planned)[number], TicketUnit>();
         const retained = planned.filter((item) =>
           item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
         const reservations = (yield* residentLedger.completePreparation(
@@ -1712,27 +1735,23 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
-          const ticketUnit = job.ticket === undefined ? undefined : yield* residentLedger.ticketUnits.add(job.ticket);
-          if (ticketUnit !== undefined) {
-            ticketUnitsByPlan.set(item, ticketUnit);
-          }
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = yield* residentRegisterCurrentWork(job.partition, item.outcome.prepared);
-            if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.clear(ticketUnit, revision);
+
             yield* residentReleaseCurrentWork(revision);
             expectedActivityUnits.push(item.evaluationKey);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "clear", unitIdentity: item.evaluationKey });
           } else if (item.kind === "joined") {
             const existing = (yield* residentAdvice()).find((advice) => advice.evaluationKey === item.evaluationKey);
             if (existing !== undefined) {
-              yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing, ticketUnit), existing.id);
+              yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing), existing.id);
               recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
                 advicee: job.observation.advicee, lifetime: server.lifetime, stage: "findings",
                 findings: (yield* residentLedger.advice.current(existing)).findings.length, unitIdentity: item.evaluationKey });
             } else {
               const pending = (yield* residentReuse.pending(item.evaluationKey));
               if (pending === undefined && item.join !== "claimed") {
-                if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "lost");
+
                 recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
                   advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable",
                   unitIdentity: item.evaluationKey });
@@ -1740,7 +1759,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 const joined: JoinedReview = { admission: job.canonicalObservationId,
                   evaluationKey: item.evaluationKey, observation: pathObservation,
                   activityPath: job.dispatch.activityPath,
-                  ...(ticketUnit === undefined ? {} : { ticketUnit }),
                   ...(pending === undefined ? {} : { revision: pending.revision }) };
                 yield* residentJoined.append(joined);
                 expectedActivityUnits.push(item.evaluationKey);
@@ -1763,26 +1781,26 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }
             return;
           }
-          const ticketUnit = ticketUnitsByPlan.get(item);
           const admitted = reservations[index];
           if (admitted === undefined) {
-            if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "capacity");
+
             if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey, "capacity");
             yield* residentLedger.runtime.rejectCapacity();
+          yield* residentRecordAnalytics(job, "capacity-rejected");
             yield* residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
             continue;
           }
           const reservation = admitted.reservation;
           const revision = yield* residentRegisterCurrentWork(job.partition, item.outcome.prepared);
-          if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.revise(ticketUnit, revision);
+
           const workUnitId = job.round === undefined || job.workObservationId === undefined ? undefined
             : item.kind === "cached"
               ? (yield* residentLedger.rounds.policyWork(job.round)).cachedFinding(job.workObservationId,
                 item.cached.evaluation.findings.length, logicalBytes(item.cached.evaluation.findings), admitted.operation)
               : (yield* residentLedger.rounds.policyWork(job.round)).spawn(job.workObservationId, admitted.operation);
           if (job.round !== undefined && workUnitId === undefined) {
-            if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "lost");
+
             if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey);
             (yield* residentLedger.release(reservation));
             yield* residentReleaseCurrentWork(revision);
@@ -1802,12 +1820,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             partition: job.partition,
             reservation,
             dispatch: job.dispatch,
+            analyticsEnabled: job.analyticsEnabled,
             prepared: item.outcome.prepared,
             ...(sourceHash === undefined ? {} : { sourceHash }),
             revision,
             evaluationKey: item.evaluationKey,
-            ...(ticketUnit === undefined ? {} : { ticketUnit }),
-            ...(job.ticket === undefined ? {} : { ticket: job.ticket }),
           };
           if (item.kind === "cached") {
             if (!(yield* residentLedger.startReview(job.partition, admitted.operation, job.canonicalRound)) ||
@@ -1838,10 +1855,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
           unassignedClaims.delete(item.evaluationKey);
           if (!(yield* residentDispatcher.enqueue(job.partition, unit))) {
-            if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "capacity");
+
             yield* residentReleaseReuseClaim(item.evaluationKey, "capacity");
             yield* residentReleaseUnit(unit);
             yield* residentLedger.runtime.rejectCapacity();
+          yield* residentRecordAnalytics(job, "capacity-rejected");
             yield* residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: item.evaluationKey });
           }
@@ -1871,6 +1889,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return;
     }).pipe(
       Effect.catch(() => Effect.gen(function* () {
+        yield* residentRecordAnalytics(job, "preparation-failed");
         if (runtimeConfiguration.debug) console.error("resident preparation unavailable");
         (yield* residentLedger.release(job.reservation));
         if ((yield* residentLedger.runtime.snapshot()).lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
@@ -1895,13 +1914,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     let readyReported = false;
     let requestIdentity: Pick<JevRequestObservation, "partition" | "canonicalPartition" |
       "lifetime" | "canonicalLifetime" | "round" | "hapslandRound" | "operation"> | undefined;
-    const observeRequest = (stage: JevRequestObservation["stage"], request?: number,
-      outcome?: JevRequestObservation["outcome"]) => {
+    const observeRequest = Effect.fn("ResidentRuntime.observeRequest")(function* (
+      stage: JevRequestObservation["stage"], request?: number,
+      outcome?: JevRequestObservation["outcome"], findings: ReadonlyArray<Finding> = [],
+    ) {
       if (requestIdentity === undefined) throw new Error("Jev request observation lacks canonical identity");
+      if (stage === "started") yield* residentRecordAnalytics(job, "request-started");
+      if (stage === "settled" && outcome !== undefined) {
+        const kinds = { clear: "request-clear", finding: "request-findings", backendFailure: "request-failed",
+          timeout: "request-timeout", interrupted: "request-interrupted", neverSent: "request-never-sent" } as const;
+        yield* residentRecordAnalytics(job, kinds[outcome], findings);
+      }
       residentObserveJevRequest({ ...requestIdentity, stage,
-        ...(request === undefined ? {} : { request }),
-        ...(outcome === undefined ? {} : { outcome }) });
-    };
+        ...(request === undefined ? {} : { request }), ...(outcome === undefined ? {} : { outcome }) });
+    });
     const signal = job.work?.controller.signal ?? residentLifetimeController.signal;
     const requestReady = Effect.fn("ResidentRuntime.requestReady")(function* (facts: { readonly rootValid: boolean; readonly configurationValid: boolean;
       readonly credentialReady: boolean; readonly selected: boolean; readonly currentWork: boolean;
@@ -1925,10 +1951,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (decision.status === "issued") {
         issuedRequest = decision.request;
         job.requestId = decision.request;
-        observeRequest("issued", decision.request);
+        yield* observeRequest("issued", decision.request);
         yield* workInvalidated(signal).pipe(Effect.catch(() => reportInterruption()), Effect.forkScoped);
       } else if (decision.status === "unavailable") {
-        observeRequest("unavailable");
+        yield* observeRequest("unavailable");
       }
       return decision;
     });
@@ -1943,7 +1969,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (issuedRequest === undefined || !requestStarted || interruptionReported) return;
       interruptionReported = yield* residentLedger.interruptJevRequest(job.partition,
         job.canonicalOperationId, issuedRequest);
-      if (interruptionReported) observeRequest("interrupted", issuedRequest);
+      if (interruptionReported) yield* observeRequest("interrupted", issuedRequest);
     }, Effect.uninterruptible);
     return Effect.gen(function* () {
       if (job.round !== undefined && job.workUnitId !== undefined &&
@@ -1960,7 +1986,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentAwaitBackendGate();
       if (!(yield* residentJobActive(job)) || !(yield* residentIsCurrentWork(job.revision, job.prepared))) {
         (yield* denyReady());
-        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "stale");
+        yield* residentRecordAnalytics(job, "review-unavailable");
         yield* residentSettleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
         yield* residentReleaseReuseClaim(job.evaluationKey);
@@ -1982,6 +2008,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
+        job.analyticsEnabled = effectiveSessionAnalytics(settings.configuration.policy);
         if (job.dispatch.controlled !== null && controlled === undefined) return (yield* denyReady());
         const credentialRequired = controlled === undefined || controlled.requireCredential === true;
         if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return (yield* denyReady("credential"));
@@ -2113,7 +2140,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             }
             requestStarted = true;
             job.requestStarted = true;
-            observeRequest("started", ready.request);
+            yield* observeRequest("started", ready.request);
             if (signal?.aborted) yield* reportInterruption();
           })),
         );
@@ -2126,8 +2153,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }),
         signal);
       if (result?.status === "notAuthorized") {
-        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit,
-          result.reason === "credential" ? "credential" : "lost");
+        yield* residentRecordAnalytics(job, "review-unavailable");
+
         yield* residentSettleJoined(job.evaluationKey, "unavailable",
           result.reason === "credential" ? "credential" : "lost");
         if (result.reason === "credential") yield* residentRecordOperationalFailure(job.observation, "credential");
@@ -2158,8 +2185,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           issuedRequest, job.reservation,
           result.findings.length === 0 ? "clear" : "finding", currentWork));
         requestSettled = true;
-        observeRequest("settled", issuedRequest,
-          result.findings.length === 0 ? "clear" : "finding");
+        yield* observeRequest("settled", issuedRequest,
+          result.findings.length === 0 ? "clear" : "finding", result.findings);
         if (disposition === "ignored" || disposition === "stale") {
           yield* residentReleaseReuseClaim(job.evaluationKey);
           yield* residentReleaseUnit(job);
@@ -2194,11 +2221,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               job.round !== undefined && job.workUnitId !== undefined) {
             (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
           }
-          if (job.ticketUnit !== undefined) {
-            if (disposition === "settleClear") {
-              yield* residentLedger.ticketUnits.clear(job.ticketUnit, job.revision);
-            } else yield* residentLedger.ticketUnits.fail(job.ticketUnit, "stale");
-          }
           yield* residentSettleJoined(job.evaluationKey,
             disposition === "settleClear" ? "clear" : "unavailable",
             "stale");
@@ -2227,20 +2249,20 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         (yield* residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
           issuedRequest, job.reservation, observed ?? "neverSent", false));
         requestSettled = true;
-        observeRequest("settled", issuedRequest, observed ?? "neverSent");
+        yield* observeRequest("settled", issuedRequest, observed ?? "neverSent");
       }
       if (failure === "failureBackend") {
-        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "backend");
+
         yield* residentSettleJoined(job.evaluationKey, "unavailable", "backend");
         yield* residentRecordOperationalFailure(job.observation, "backend");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureCredential") {
-        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "credential");
+
         yield* residentSettleJoined(job.evaluationKey, "unavailable", "credential");
         yield* residentRecordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureLost") {
-        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "lost");
+
         yield* residentSettleJoined(job.evaluationKey, "unavailable", "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure !== "failureNone") {
@@ -2262,9 +2284,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           (yield* residentLedger.settleJevRequest(job.partition, job.canonicalOperationId,
             issuedRequest, job.reservation, observed, false));
           requestSettled = true;
-          observeRequest("settled", issuedRequest, observed);
+          yield* observeRequest("settled", issuedRequest, observed);
         }
-        if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "backend");
+
         yield* residentSettleJoined(job.evaluationKey, "unavailable", "backend");
         if (runtimeConfiguration.debug) console.error("resident evaluation unavailable");
         if ((yield* residentLedger.runtime.snapshot()).lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
@@ -2292,7 +2314,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentSettleJoined = Effect.fn("ResidentRuntime.settleJoined")(function* (key: string, state: "pending" | "clear" | "unavailable", reason?: ResidentUnavailableReason,
     adviceId?: string) {
-    yield* residentRecordJoinedOutcomes(yield* residentJoined.settle(key, state, reason, adviceId), adviceId);
+    yield* residentRecordJoinedOutcomes(yield* residentJoined.settle(key, state, adviceId), adviceId);
   }, Effect.uninterruptible);
 
   const residentRecordJoinedOutcomes = Effect.fn("ResidentRuntime.recordJoinedOutcomes")(function* (outcomes: ReadonlyArray<JoinedReviewOutcome>, adviceId?: string) {
@@ -2319,12 +2341,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if ((yield* residentAdvice()).some((item) => item.evaluationKey === job.evaluationKey)) {
         const existing = (yield* residentAdvice()).find((item) => item.evaluationKey === job.evaluationKey);
         if (existing !== undefined) yield* residentRecordJoinedOutcomes(
-          yield* residentLedger.advice.publish(existing, job.ticketUnit, job.revision), existing.id);
+          yield* residentLedger.advice.publish(existing), existing.id);
         if (job.round !== undefined && job.workUnitId !== undefined) (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
         yield* residentReleaseUnit(job);
         return;
       }
       const advice = yield* residentLedger.advice.insert({
+        analyticsPath: job.dispatch.activityPath,
+        analyticsEnabled: job.analyticsEnabled ?? job.dispatch.sessionAnalytics === true,
+        analyticsControlled: job.dispatch.controlled !== null,
         id: randomUUID(),
         ...(job.round === undefined ? {} : { round: job.round }),
         ...(job.workUnitId === undefined ? {} : { workUnitId: job.workUnitId }),
@@ -2355,7 +2380,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         // A finding already retained is excluded from unfinished-work cutoff.
         // Replacing that work cohort must not discard the completed finding.
         if (!(yield* residentJobActive(job))) return;
-        yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(advice, job.ticketUnit, job.revision), advice.id);
+        yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(advice), advice.id);
       }).pipe(Effect.onError(() => residentRemoveAdvice(advice.id).pipe(Effect.asVoid)));
     });
   });
@@ -2398,8 +2423,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           beforeAnalyze: (path, sourceBytes, preflight) => Effect.gen(function* () {
             const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
             const resized = yield* residentLedger.adviceCaptures.resize(capture, required);
-            if (resized) {
-            } else capacityUnavailable = true;
+            if (!resized) capacityUnavailable = true;
             return resized;
           }),
         }, {
@@ -2414,24 +2438,68 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     );
   }));
 
-  const residentHandle = Effect.fn("ResidentRuntime.handle")((request: ResidentRequest) => {
+  const residentEditCollectionRequest = (request: EditRequest): EditCollectionRequest => ({
+    requestRoute: "edit", operation: "collect", lifetime: request.lifetime,
+    root: request.observation.root, advicee: request.observation.advicee,
+    dispatch: request.dispatch, composed: true, mode: "ordinary",
+  });
+
+  const residentAdmitAndCollect = Effect.fn("ResidentRuntime.admitAndCollect")(function* (
+    request: EditRequest, context: Ref.Ref<ResponseContext>,
+  ): Effect.fn.Return<ResidentResponse, ResidentAdapterError> {
+    const { observation, dispatch } = request;
+    const startedAt = residentNow();
+    const group = adviceePartition(observation.root, observation.advicee);
+    const mode = residentCurrentClaudeFeedbackMode(observation.root, dispatch.userConfigPath);
+    const admitted = yield* admit(observation, dispatch, true, true);
+    if (admitted.status !== "accepted") return { requestRoute: "edit", status:
+      admitted.status === "rejected-stale" ? "rejected-stale" : "rejected-capacity" };
+    const authority: ResponseAuthority = Object.freeze({
+      lifetime: runtime.lifetime, partition: group,
+      root: observation.root, advicee: Object.freeze({ ...observation.advicee }),
+      userConfigPath: dispatch.userConfigPath, claudeFeedbackMode: mode,
+      credentialGeneration: dispatch.credential?.generation ?? null,
+      credentialStatePath: dispatch.credential?.statePath ?? null,
+      credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
+      credentialEnvironmentOnly: dispatch.credential?.environmentOnly ?? false,
+      expiresAt: startedAt + 600_000, round: yield* residentLedger.rounds.get(group),
+    });
+    yield* Ref.set(context, { authority });
+    const pass = Effect.fn("ResidentRuntime.collectEditResponse")(function* () {
+      const gate = yield* residentCollectorGate(authority, dispatch, residentNow());
+      if (gate !== undefined) return gate;
+      const response = yield* Effect.uninterruptibleMask((restore) => restore(
+        residentCollect(observation.root, observation.advicee, dispatch, "ordinary", authority, true),
+      ).pipe(Effect.flatMap((response): Effect.Effect<ResidentResponse> => response.status === "advice"
+        ? Ref.update(context, (state) => ({ ...state, token: response.token })).pipe(Effect.as(response))
+        : Effect.succeed(response))));
+      return response.status === "advice" ? response : yield* residentEditCollectionStatus(authority, observation.root, observation.advicee, true, residentNow());
+    });
+    return yield* pass().pipe(
+      Effect.repeat({ schedule: Schedule.spaced("50 millis"), while: (response) => response.status === "pending" }),
+      Effect.timeoutOrElse({ duration: request.waitMs, orElse: () => Effect.succeed<ResidentResponse>({ requestRoute: "edit", status: "pending" }) }),
+      Effect.catch(() => Effect.succeed<ResidentResponse>({ requestRoute: "edit", status: "unavailable", reason: "lost" })),
+    );
+  });
+
+  const residentHandle = Effect.fn("ResidentRuntime.handle")((request: ResidentRequest, responseContext?: Ref.Ref<ResponseContext>) => {
     const server = runtime;
     return Effect.gen(function* () {
+      const context = responseContext ?? (yield* Ref.make<ResponseContext>({}));
       if (request.operation === "hello") {
         return residentResponse((yield* residentLedger.runtime.snapshot()).lifecycle === "active"
           ? { status: "ready", lifetime: server.lifetime, pid: process.pid }
           : { status: "obsolete-lifetime" });
       }
       if (request.lifetime !== server.lifetime || (yield* residentLedger.runtime.snapshot()).lifecycle !== "active") {
-        return residentResponse(request.requestRoute === "ticketed"
-          ? request.operation === "collect" ? { requestRoute: "ticketed", status: "unavailable", reason: "lost" }
-            : { requestRoute: "ticketed", status: "obsolete-lifetime" }
+        return residentResponse(request.requestRoute === "edit"
+          ? { requestRoute: "edit", status: "unavailable", reason: "lost" }
           : { status: "obsolete-lifetime" });
       }
-      if (request.operation === "register-edit" || request.operation === "admit" ||
+      if (request.operation === "register-edit" || request.operation === "admit" || request.operation === "admit-and-collect" ||
           request.operation === "begin-stop") yield* sweepQuietRounds(residentNow());
       if (("advicee" in request && request.advicee.host === "opencode") ||
-          (request.operation === "admit" && request.observation.advicee.host === "opencode")) return residentResponse({ status: "unsupported" });
+          ((request.operation === "admit" || request.operation === "admit-and-collect") && request.observation.advicee.host === "opencode")) return residentResponse({ status: "unsupported" });
       if (request.operation === "prompt-marker") {
         const group = adviceePartition(request.root, request.advicee);
         return residentResponse((request.onlyIfMissing === true
@@ -2492,25 +2560,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         if (!decision.accepted) return residentResponse({ status: "rejected-stale", reason: decision.reason });
         return residentResponse({ status: "advanced" });
       }
+      if (request.operation === "admit-and-collect") return yield* residentAdmitAndCollect(request, context);
       if (request.operation === "admit") {
         if (request.composed !== true) return residentResponse({ status: "unsupported" });
-        return residentResponse(yield* admit(request.observation, request.dispatch, request.requestRoute === "ticketed", true, true));
+        return residentResponse(yield* admit(request.observation, request.dispatch, true, true));
       }
       if (request.operation === "collect") {
         if (request.composed !== true || (request.mode === "turn-end" &&
-            (request.requestRoute === "ticketed" || request.finish === undefined))) return residentResponse({ status: "unsupported" });
-        if (request.requestRoute === "ticketed") {
-          const ticket = yield* residentTicketFor(request.ticket, request.root, request.advicee,
-            true);
-          if (ticket === undefined) return residentResponse({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
-          const gate = yield* residentTicketCollectGate(ticket, request.dispatch, residentNow());
-          if (gate !== undefined) return residentResponse(gate);
-          const collected = yield* residentCollect(request.root, request.advicee, request.dispatch,
-            request.mode ?? "ordinary", ticket, true);
-          return residentResponse(collected.status === "advice" ? { ...collected, requestRoute: "ticketed" }
-            : (yield* residentTicketCollectionStatus(ticket, request.root, request.advicee,
-                true, residentNow())));
-        }
+            (request.finish === undefined))) return residentResponse({ status: "unsupported" });
         if (request.finish !== undefined) {
           const group = adviceePartition(request.root, request.advicee);
           if (!(yield* residentComposedDelivery.ownsStop(group, request.finish.token))) return residentResponse({ status: "empty" });
@@ -2586,38 +2643,29 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     });
   });
 
-  const residentTicketFor = Effect.fn("ResidentRuntime.ticketFor")(function* (ticket: ResidentCollectionTicket, root: string, advicee: DirectAdvicee,
-    composed = false): Effect.fn.Return<TicketRecord | undefined> {
-    const retained = yield* residentLedger.tickets.get(ticket.nonce);
-    const basePartition = adviceePartition(root, advicee);
-    return retained?.ticket.lifetime === runtime.lifetime && ticket.lifetime === runtime.lifetime &&
-      retained.ticket.nonce === ticket.nonce && retained.generation > 0 &&
-      retained.partition === basePartition &&
-      retained.editAuthority === editAuthority(root, advicee)
-      ? retained : undefined;
-  });
-
   function residentCurrentClaudeFeedbackMode(root: string, userConfigPath: string | null): ClaudeOutputMode {
     const authority = readCurrentClaudeFeedbackAuthority(root, userConfigPath ?? undefined);
     return authority.valid ? authority.mode : "advisory";
   }
 
-  const residentTicketCollectGate = Effect.fn("ResidentRuntime.ticketCollectGate")(function* (ticket: TicketRecord, dispatch: ResidentDispatchContext,
+  const residentCollectorGate = Effect.fn("ResidentRuntime.collectorGate")(function* (authority: ResponseAuthority, dispatch: ResidentDispatchContext,
     now: number): Effect.fn.Return<ResidentResponse | undefined> {
-    const command = (yield* residentLedger.transition({ kind: "ticketCollectGateCheck",
-      expired: now >= ticket.expiresAt,
-      credentialValid: ticket.credentialGeneration === (dispatch.credential?.generation ?? null) &&
-        residentCredentialAuthority(ticket) })).commands[0];
-    if (command?.kind === "ticketCollectProceed") return undefined;
-    if (command?.kind === "ticketCollectUnavailable") {
-      return { requestRoute: "ticketed", status: "unavailable", reason: command.reason };
+    if (authority.lifetime !== runtime.lifetime || (yield* residentLedger.runtime.snapshot()).lifecycle !== "active" ||
+        !(yield* residentRoundActive(authority.round))) return { requestRoute: "edit", status: "unavailable", reason: "lost" };
+    const command = (yield* residentLedger.transition({ kind: "collectorGateCheck",
+      expired: now >= authority.expiresAt,
+      credentialValid: authority.credentialGeneration === (dispatch.credential?.generation ?? null) &&
+        residentCredentialAuthority(authority) })).commands[0];
+    if (command?.kind === "collectorProceed") return undefined;
+    if (command?.kind === "collectorUnavailable") {
+      return { requestRoute: "edit", status: "unavailable", reason: command.reason };
     }
-    throw new Error("canonical ticket collect gate refused");
+    throw new Error("canonical authority collect gate refused");
   });
 
-  const residentTicketCollectionStatus = Effect.fn("ResidentRuntime.ticketCollectionStatus")(function* (ticket: TicketRecord, root: string, advicee: DirectAdvicee,
+  const residentEditCollectionStatus = Effect.fn("ResidentRuntime.editCollectionStatus")(function* (authority: ResponseAuthority, root: string, advicee: DirectAdvicee,
     composed: boolean, now: number): Effect.fn.Return<ResidentResponse> {
-    const partition = composed ? adviceePartition(root, advicee) : ticket.partition;
+    const partition = composed ? adviceePartition(root, advicee) : authority.partition;
     let hasAdvice = false;
     for (const item of (yield* residentAdvice())) {
       if ((composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
@@ -2626,16 +2674,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         break;
       }
     }
-    return { requestRoute: "ticketed", status: hasAdvice || (yield* residentCollectionWorkCount(root, advicee, composed)) > 0
+    return { requestRoute: "edit", status: hasAdvice || (yield* residentCollectionWorkCount(root, advicee, composed)) > 0
       ? "pending" : "empty" };
   });
 
-  function residentCredentialAuthority(ticket: TicketRecord): boolean {
-    if (!ticket.credentialRequired) return true;
-    const credentialState = ticket.credentialStatePath === null ? undefined : readCredentialState(ticket.credentialStatePath);
+  function residentCredentialAuthority(authority: ResponseAuthority): boolean {
+    if (!authority.credentialRequired) return true;
+    const credentialState = authority.credentialStatePath === null ? undefined : readCredentialState(authority.credentialStatePath);
     return credentialState !== undefined &&
-      credentialState.generation === ticket.credentialGeneration &&
-      (ticket.credentialEnvironmentOnly || !credentialState.savedUseSuspended);
+      credentialState.generation === authority.credentialGeneration &&
+      (authority.credentialEnvironmentOnly || !credentialState.savedUseSuspended);
   }
 
   function residentAdviceCredentialAuthority(advice: Advice): boolean {
@@ -2648,11 +2696,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentResponseGate = Effect.fn("ResidentIpc.responseGate")((operation: ResidentRequest["operation"], response: ResidentResponse) =>
     Effect.gen(function* () {
       const adviceGate = yield* Config.option(Config.String("REVIEW_RESIDENT_COLLECT_ADVICE_RESPONSE_GATE_PATH"));
-      const variable = operation === "collect" && response.status === "advice" && Option.isSome(adviceGate)
+      const variable = (operation === "collect" || operation === "admit-and-collect") && response.status === "advice" && Option.isSome(adviceGate)
         ? "REVIEW_RESIDENT_COLLECT_ADVICE_RESPONSE_GATE_PATH"
         : operation === "admit" ? "REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH"
         : operation === "cleanup" ? "REVIEW_RESIDENT_CLEANUP_RESPONSE_GATE_PATH"
-        : operation === "collect" ? "REVIEW_RESIDENT_COLLECT_RESPONSE_GATE_PATH"
+        : operation === "collect" || operation === "admit-and-collect" ? "REVIEW_RESIDENT_COLLECT_RESPONSE_GATE_PATH"
         : operation === "acknowledge" ? "REVIEW_RESIDENT_ACK_RESPONSE_GATE_PATH" : undefined;
       if (variable === undefined) return;
       const configured = yield* Config.option(Config.String(variable));
@@ -2686,30 +2734,29 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     });
   });
 
-  const residentResponseForHandoff = Effect.fn("ResidentRuntime.responseForHandoff")(function* (request: ResidentRequest, response: ResidentResponse,
-    sourceCurrent: ReadonlyMap<string, boolean>): Effect.fn.Return<ResidentResponse> {
+  const residentResponseForHandoff = Effect.fn("ResidentRuntime.responseForHandoff")(function* (request: HandoffRequest, response: ResidentResponse,
+    sourceCurrent: ReadonlyMap<string, boolean>, authority?: ResponseAuthority): Effect.fn.Return<ResidentResponse> {
     if (response.status !== "advice") {
-      if (request.requestRoute === "shared" && request.operation === "collect" && request.finish === undefined && request.reportWorkState === true &&
+      if (request.requestRoute === "shared" && request.operation === "collect" && request.requestRoute === "shared" && request.finish === undefined && request.reportWorkState === true &&
           (response.status === "empty" || response.status === "pending")) {
         return (yield* residentCollectionWorkState(request.root, request.advicee, request.composed === true));
       }
-      if (request.requestRoute !== "ticketed" || request.operation !== "collect") return response;
+      if (request.requestRoute !== "edit" || request.operation !== "collect" ||
+          (response.status !== "pending" && response.status !== "empty")) return response;
       const now = residentNow();
       yield* residentExpirePending(now);
       yield* residentPruneNoticeCooldowns(now);
-      const ticket = yield* residentTicketFor(request.ticket, request.root, request.advicee,
-        request.composed === true);
-      if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
-      return (yield* residentTicketCollectGate(ticket, request.dispatch, now)) ??
-        (yield* residentTicketCollectionStatus(ticket, request.root, request.advicee,
+      if (authority === undefined) return { requestRoute: "edit", status: "unavailable", reason: "lost" };
+      return (yield* residentCollectorGate(authority, request.dispatch, now)) ??
+        (yield* residentEditCollectionStatus(authority, request.root, request.advicee,
           request.composed === true, now));
     }
     const now = residentNow();
     yield* residentExpirePending(now);
     yield* residentPruneNoticeCooldowns(now);
-    const sharedCollect = request.operation === "collect" && request.requestRoute !== "ticketed";
+    const sharedCollect = request.operation === "collect";
     let invalidCredential = false;
-    if (sharedCollect) for (const advice of (yield* residentAdvice())) {
+    if (request.operation === "collect") for (const advice of (yield* residentAdvice())) {
       if (invalidCredential || (yield* residentLedger.advice.current(advice)).delivery?.token !== response.token) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
       const observed: Effect.Success<ReturnType<typeof residentLedger.transition>> = (yield* residentLedger.transition({ kind: "deliveryCredentialObserveCheck",
@@ -2723,7 +2770,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (credentialGate.rejection !== undefined || credentialGate.commands.length !== 1) throw new Error("canonical final credential gate refused");
     if (credentialGate.commands[0]?.kind !== "deliveryBatchProceed") {
       yield* runtime.releaseComposedSubmission(response.token);
-      return { status: "empty" };
+      return request.requestRoute === "edit"
+        ? { requestRoute: "edit", status: "unavailable", reason: "credential" } : { status: "empty" };
     }
     const handoff: Array<Advice> = [];
     for (const advice of [...(yield* residentAdvice())]) {
@@ -2745,13 +2793,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentLedger.advice.updateDelivery(advice, response.token, { leaseUntil: now + DELIVERY_LEASE_MS });
       handoff.push(advice);
     }
-    const ticket = request.requestRoute === "ticketed" && request.operation === "collect"
-      ? yield* residentTicketFor(request.ticket, request.root, request.advicee,
-          request.composed === true)
-      : undefined;
-    if (request.requestRoute === "ticketed" && request.operation === "collect" && ticket === undefined) {
+    if (request.requestRoute === "edit" && request.operation === "collect" && authority === undefined) {
       yield* runtime.releaseDelivery(response.token);
-      return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
+      return { requestRoute: "edit", status: "unavailable", reason: "lost" };
     }
     if (request.operation === "collect") {
       const composed = request.composed === true;
@@ -2770,11 +2814,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const { delivery } = yield* residentLedger.advice.current(advice);
         return (delivery?.findings ?? []).map((finding) => ({ finding, facts }));
       }))).flat();
-      const claudeSurface = composed && ticket === undefined && request.advicee.host === "claude-code"
-        ? request.mode === "turn-end" ? "stop" : "background" : undefined;
+      const claudeSurface = composed && authority === undefined && request.advicee.host === "claude-code" && request.mode === "turn-end" ? "stop" : undefined;
       const accepted = new Set((yield* selectFittingCurrentFindingIndices(offers,
-        ticket === undefined ? claudeSurface === undefined ? "codex" :
-          claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
+        authority === undefined ? claudeSurface === undefined ? "codex" :
+          "claude-stop" : authority.claudeFeedbackMode,
         undefined, residentCollectionFindingOffer)));
       let index = 0;
       for (const advice of handoff) {
@@ -2789,12 +2832,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       .flatMap((content) => content.delivery?.findings ?? []);
     const notices = (yield* residentNoticesForToken(response.token));
     if (request.operation === "collect" && request.requestRoute === "shared" && request.composed === true &&
-        request.advicee.host === "claude-code") {
-      const surface = request.mode === "turn-end" ? "stop" : "background";
+        request.advicee.host === "claude-code" && request.mode === "turn-end") {
       const fit = (yield* residentLedger.transition({ kind: "collectionFitCheck",
         items: findings.length + notices.length,
-        bytes: encodedComposedClaudeOutputBytes(findings,
-          notices.map((notice) => notice.value), surface) }));
+        bytes: encodedClaudeStopOutputBytes(findings, notices.map((notice) => notice.value)) }));
       if (fit.rejection !== undefined || fit.commands.length !== 1) {
         throw new Error("canonical final response fit refused");
       }
@@ -2809,41 +2850,41 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     for (const notice of notices) {
       yield* residentNotices.renew(notice.id, now + DELIVERY_LEASE_MS);
     }
-    if (ticket !== undefined && request.operation === "collect") {
-      const gate = yield* residentTicketCollectGate(ticket, request.dispatch, now);
+    if (authority !== undefined && request.operation === "collect") {
+      const gate = yield* residentCollectorGate(authority, request.dispatch, now);
       if (gate !== undefined) {
         yield* runtime.releaseDelivery(response.token);
         return gate;
       }
     }
-    const admittedBlock = ticket?.claudeFeedbackMode === "block-current-findings";
-    const currentBlock = admittedBlock && ticket !== undefined &&
-      residentCurrentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) === "block-current-findings";
-    if (ticket !== undefined && request.operation === "collect" && request.requestRoute === "ticketed" &&
-        (yield* residentLedger.transition({ kind: "ticketFinalAuthorityCheck", admittedBlock,
-      currentBlock })).commands[0]?.kind !== "ticketFinalProceed") {
+    const admittedBlock = authority?.claudeFeedbackMode === "block-current-findings";
+    const currentBlock = admittedBlock && authority !== undefined &&
+      residentCurrentClaudeFeedbackMode(authority.root, authority.userConfigPath) === "block-current-findings";
+    if (authority !== undefined && request.operation === "collect" && request.requestRoute === "edit" &&
+        (yield* residentLedger.transition({ kind: "collectorFinalAuthorityCheck", admittedBlock,
+      currentBlock })).commands[0]?.kind !== "collectorFinalProceed") {
       // A revoked opt-in cannot turn the old selection into an advisory lease.
       yield* runtime.releaseDelivery(response.token);
-      return (yield* residentTicketCollectionStatus(ticket, request.root, request.advicee,
+      return (yield* residentEditCollectionStatus(authority, request.root, request.advicee,
         request.composed === true, now));
     }
     const selected: ResidentResponse = findings.length === 0 && notices.length === 0
       ? { status: "empty" }
-      : ticket === undefined
+      : authority === undefined
         ? { status: "advice", token: response.token, findingCount: findings.length,
             output: combinedReviewOutput(findings, notices.map((notice) => notice.value)) }
-        : { requestRoute: "ticketed", status: "advice", token: response.token, findingCount: findings.length,
-            output: combinedClaudeOutput(findings, notices.map((notice) => notice.value), ticket.claudeFeedbackMode) };
-    if (request.requestRoute !== "ticketed" || request.operation !== "collect") return selected;
-    if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
-    return selected.status === "advice" ? { ...selected, requestRoute: "ticketed" }
-      : (yield* residentTicketCollectionStatus(ticket, request.root, request.advicee,
+        : { requestRoute: "edit", status: "advice", token: response.token, findingCount: findings.length,
+            output: combinedClaudeOutput(findings, notices.map((notice) => notice.value), authority.claudeFeedbackMode) };
+    if (request.requestRoute !== "edit" || request.operation !== "collect") return selected;
+    if (authority === undefined) return { requestRoute: "edit", status: "unavailable", reason: "lost" };
+    return selected.status === "advice" ? { ...selected, requestRoute: "edit" }
+      : (yield* residentEditCollectionStatus(authority, request.root, request.advicee,
           request.composed === true, now));
   }, Effect.uninterruptible);
 
   const residentReconcileFinishHandoff = Effect.fn("ResidentRuntime.reconcileFinishHandoff")(function* (request: ResidentRequest, provisional: ResidentResponse,
     final: ResidentResponse, canWrite: boolean): Effect.fn.Return<ResidentResponse> {
-    if (request.operation !== "collect" || request.requestRoute === "ticketed" || request.finish === undefined ||
+    if (request.operation !== "collect" || request.finish === undefined ||
         provisional.status !== "advice" || provisional.findingCount === 0) return final;
     const group = adviceePartition(request.root, request.advicee);
     if (!(yield* residentComposedDelivery.revokeProvisionalFinishOutput(group, request.finish.token, provisional.token))) {
@@ -2884,12 +2925,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* port.closed;
       return;
     }
+    if (decoded.operation === "admit-and-collect") yield* port.setIdleTimeout(EDIT_REQUEST_DEADLINE_MS);
     yield* residentPruneCollectionTokenIds();
     const server = runtime;
+    const context = yield* Ref.make<ResponseContext>({});
     let responseToken: string | undefined;
     let handedToTransport = false;
     const respond = Effect.gen(function* () {
-      const response = yield* residentHandle(decoded);
+      const response = yield* residentHandle(decoded, context);
       if (response.status === "advice") responseToken = response.token;
       yield* residentResponseGate(decoded.operation, response);
       yield* residentReviewControls.beforeResponseHandoff().pipe(
@@ -2898,7 +2941,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       // Keep final authorization and socket handoff within one ownership
       // boundary; the response finalizer owns any untransferred lease.
       yield* Effect.uninterruptible(Effect.gen(function* () {
-        const selected = yield* residentResponseForHandoff(decoded, response, sourceCurrent);
+        const authority = (yield* Ref.get(context)).authority;
+        const request = decoded.operation === "admit-and-collect" ? residentEditCollectionRequest(decoded) : decoded;
+        const selected = yield* residentResponseForHandoff(request, response, sourceCurrent, authority);
         const handoff = yield* residentReconcileFinishHandoff(decoded, response, selected, port.canWrite());
         yield* residentPruneCollectionTokenIds();
         if (!port.canWrite()) {
@@ -2913,7 +2958,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }).pipe(
       Effect.catch(() => port.write(encodeCurrentResidentResponse({ status: "unsupported" })).pipe(Effect.andThen(port.closed))),
       Effect.ensuring(Effect.gen(function* () {
-        if ((!handedToTransport || port.errored()) && responseToken !== undefined) yield* server.releaseDelivery(responseToken);
+        const token = (yield* Ref.get(context)).token ?? responseToken;
+        if ((!handedToTransport || port.errored()) && token !== undefined) yield* server.releaseDelivery(token);
+        yield* Ref.set(context, {});
       })),
     );
     yield* respond.pipe(Effect.raceFirst(port.closed), Effect.ensuring(Effect.gen(function* () {

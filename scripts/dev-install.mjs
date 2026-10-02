@@ -12,7 +12,7 @@ const forwarded = args.filter(arg => /^--(?:claude|codex)-(?:home|executable)=/.
 if ((host !== "claude" && host !== "codex") || args.some(arg => arg !== `--host=${host}` && arg !== "--update" && !forwarded.includes(arg))) {
   throw new Error("usage: npm run dev-install -- --host=claude|codex [--update] [--claude-home=PATH|--codex-home=PATH] [--claude-executable=PATH|--codex-executable=PATH]");
 }
-const environment = { ...process.env };
+const environment = { ...process.env, HAPSLAND_ACTIVE_DISPATCH: "1" };
 delete environment.REVIEW_INSTALL_RUNTIME;
 delete environment.REVIEW_INSTALL_ENTRYPOINT;
 const run = (command, commandArgs, stdio = "inherit") => {

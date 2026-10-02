@@ -142,14 +142,14 @@ export type CanonicalEvent =
   | { readonly kind: "dispatchScopeCheck"; readonly namedCount: number; readonly cancelledCount: number; readonly hasUnnamed: boolean }
   | { readonly kind: "closeDispatch" }
   | { readonly kind: "preparedOfferCheck"; readonly ready: boolean; readonly withinFrame: boolean }
-  | { readonly kind: "emptyPreparedCheck"; readonly readyCount: number; readonly hasNonSkipped: boolean; readonly ticketed: boolean }
+  | { readonly kind: "emptyPreparedCheck"; readonly readyCount: number; readonly hasNonSkipped: boolean; readonly authorityBound: boolean }
   | { readonly kind: "reviewFailureCheck"; readonly backendOrTimeout: boolean; readonly credential: boolean; readonly missing: boolean }
   | { readonly kind: "stopPolled"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly deadline: boolean }
   | { readonly kind: "stopGroupPolled"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[]; readonly deadline: boolean; readonly extraPending: boolean; readonly continuations: number }
   | { readonly kind: "stopGroupEnded"; readonly group: number; readonly lifetime: number; readonly round: number; readonly scopes: readonly { readonly partition: number; readonly round: number }[] }
   | { readonly kind: "collectionReady"; readonly advice: number; readonly partition: number; readonly lifetime: number; readonly round: number; readonly observation: number; readonly joinedPending: boolean }
   | { readonly kind: "collectionCredentialCheck"; readonly sameScope: boolean; readonly generationValid: boolean }
-  | { readonly kind: "collectionCandidateCheck"; readonly samePartition: boolean; readonly unleased: boolean; readonly hasUnsuppressed: boolean; readonly ticketOwns: boolean }
+  | { readonly kind: "collectionCandidateCheck"; readonly samePartition: boolean; readonly unleased: boolean; readonly hasUnsuppressed: boolean; readonly authorityOwns: boolean }
   | { readonly kind: "collectionOrderCheck"; readonly leftSequence: number; readonly rightSequence: number }
   | { readonly kind: "collectionExpiryCheck"; readonly elapsed: number; readonly lifetime: number }
   | { readonly kind: "collectionFitCheck"; readonly items: number; readonly bytes: number }
@@ -179,14 +179,9 @@ export type CanonicalEvent =
   | { readonly kind: "revisionCurrentCheck"; readonly subject: number; readonly input: number; readonly generation: number }
   | { readonly kind: "revisionGenerationCheck"; readonly subject: number }
   | { readonly kind: "revisionCountCheck" }
-  | { readonly kind: "ticketOpen" | "ticketForget"; readonly id: number }
-  | { readonly kind: "ticketAddUnit"; readonly id: number; readonly unit: number }
-  | { readonly kind: "ticketStepUnit"; readonly id: number; readonly unit: number; readonly event: TicketUnitEvent; readonly reason: TicketReason }
-  | { readonly kind: "ticketUnitCheck"; readonly id: number; readonly unit: number }
-  | { readonly kind: "ticketCollectGateCheck"; readonly expired: boolean; readonly credentialValid: boolean }
-  | { readonly kind: "ticketFinalAuthorityCheck"; readonly admittedBlock: boolean; readonly currentBlock: boolean }
-  | { readonly kind: "ticketJoinedCheck"; readonly state: TicketJoinedState; readonly staleUnavailable: boolean; readonly hasRevision: boolean; readonly hasAdviceId: boolean }
-  | { readonly kind: "ticketRetentionCheck"; readonly limit: number }
+  | { readonly kind: "collectorGateCheck"; readonly expired: boolean; readonly credentialValid: boolean }
+  | { readonly kind: "collectorFinalAuthorityCheck"; readonly admittedBlock: boolean; readonly currentBlock: boolean }
+  | { readonly kind: "reuseMemberCheck"; readonly state: ReuseMemberState; readonly staleUnavailable: boolean; readonly hasRevision: boolean; readonly hasAdviceId: boolean }
   | { readonly kind: "cleanupCheck"; readonly facts: CleanupFacts }
   | { readonly kind: "cleanupCommit" }
   | { readonly kind: "deliveryReleaseCheck"; readonly acknowledged: boolean }
@@ -233,7 +228,7 @@ export type CanonicalEvent =
   | { readonly kind: "noticePrune"; readonly key: number; readonly leaseExpired: boolean; readonly pendingExpired: boolean; readonly excepted: boolean; readonly cooldownExpired: boolean }
   | { readonly kind: "noticeDrop" | "noticeClearPending"; readonly key: number }
   | { readonly kind: "noticeLease"; readonly key: number; readonly leased: boolean }
-  | { readonly kind: "noticeSelect"; readonly partition: number; readonly group: number; readonly composed: boolean; readonly ticketed: boolean; readonly allowed: readonly number[] }
+  | { readonly kind: "noticeSelect"; readonly partition: number; readonly group: number; readonly composed: boolean; readonly authorityBound: boolean; readonly allowed: readonly number[] }
   | { readonly kind: "outputStarted"; readonly partition: number; readonly lifetime: number; readonly round: number }
   | { readonly kind: "outputTerminal"; readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly outcome: "acknowledged" | "failed" | "unknown" }
   | { readonly kind: "retirePartition"; readonly partition: number; readonly lifetime: number; readonly round: number };
@@ -245,9 +240,8 @@ export type CleanupFacts = {
   readonly connectionCountOk: boolean; readonly cacheMatchesLedger: boolean;
 };
 
-export type TicketReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired";
-export type TicketUnitEvent = "revise" | "clearResult" | "findingResult" | "failUnit" | "markDelivered";
-export type TicketJoinedState = "pending" | "clear" | "finding" | "unavailable";
+export type CollectorReason = "backend" | "credential" | "capacity" | "stale" | "lost" | "expired";
+export type ReuseMemberState = "pending" | "clear" | "finding" | "unavailable";
 
 export type CanonicalCommand =
   | { readonly kind: "capacityGranted"; readonly id: number; readonly after: CapacityView }
@@ -294,12 +288,9 @@ export type CanonicalCommand =
   | { readonly kind: "revisionReused" | "revisionReplaced" | "revisionGeneration"; readonly generation: number }
   | { readonly kind: "revisionCount"; readonly count: number }
   | { readonly kind: "revisionReleased" | "revisionCurrent" | "revisionStale" | "revisionSuperseded" | "revisionNotSuperseded" }
-  | { readonly kind: "ticketOpened" | "ticketForgotten" | "ticketUnitAdded" | "ticketUnitUpdated" | "ticketRefused" | "ticketCollectProceed" | "ticketFinalProceed" | "ticketFinalRelease" | "ticketKeepJoined" | "ticketSetJoinedClear" | "ticketSetJoinedFinding" | "ticketSetJoinedUnavailable" | "ticketSetJoinedLost" }
-  | { readonly kind: "ticketCollectUnavailable"; readonly reason: TicketReason }
-  | { readonly kind: "ticketUnitSnapshot"; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }
-  | { readonly kind: "ticketUnitMissing" }
-  | { readonly kind: "ticketEvicted"; readonly id: number }
-  | { readonly kind: "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" }
+  | { readonly kind: "collectorProceed" | "collectorFinalProceed" | "collectorFinalRelease" | "reuseKeepMember" | "reuseSetMemberClear" | "reuseSetMemberFinding" | "reuseSetMemberUnavailable" | "reuseSetMemberLost" }
+  | { readonly kind: "collectorUnavailable"; readonly reason: CollectorReason }
+  | { readonly kind: "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" }
   | { readonly kind: "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" }
   | { readonly kind: "deliverySubmissionCandidate" | "deliverySubmissionRefused" | "deliveryBatchProceed" | "deliveryBatchRelease" | "deliveryCredentialInvalid" | "deliveryCredentialValid" }
   | { readonly kind: "ignoreCandidate" | "releaseCandidate" | "retireCandidate" | "continueCandidate" | "retainCandidate" }
@@ -360,23 +351,17 @@ const deliverySurface = (surface: "edit" | "background" | "stop"): unknown => {
   if (name === undefined) throw new TypeError("invalid delivery surface");
   return { $: name };
 };
-const ticketReason = (reason: TicketReason): unknown => {
+const collectorReason = (reason: CollectorReason): unknown => {
   const name = { backend: "Backend", credential: "Credential", capacity: "Capacity",
     stale: "Stale", lost: "Lost", expired: "Expired" }[reason];
-  if (name === undefined) throw new TypeError("invalid ticket reason");
-  return { $: `Ticket.${name}` };
+  if (name === undefined) throw new TypeError("invalid collector reason");
+  return { $: `CollectorAuthority.${name}` };
 };
-const ticketUnitEvent = (event: TicketUnitEvent): unknown => {
-  const name = { revise: "Revise", clearResult: "ClearResult", findingResult: "FindingResult",
-    failUnit: "FailUnit", markDelivered: "MarkDelivered" }[event];
-  if (name === undefined) throw new TypeError("invalid ticket unit event");
-  return { $: `Ticket.${name}` };
-};
-const ticketJoinedState = (state: TicketJoinedState): unknown => {
+const reuseMemberState = (state: ReuseMemberState): unknown => {
   const name = { pending: "JoinedPending", clear: "JoinedClear", finding: "JoinedFinding",
     unavailable: "JoinedUnavailable" }[state];
   if (name === undefined) throw new TypeError("invalid joined state");
-  return { $: `Ticket.${name}` };
+  return { $: `Reuse.${name}` };
 };
 const jevOutcomeTags: Record<JevRequestOutcome, string> = {
   neverSent: "NeverSent", finding: "RequestFinding", clear: "RequestClear",
@@ -457,7 +442,7 @@ const encode = (event: CanonicalEvent): unknown => {
     case "dispatchScopeCheck": inputFields(event, ["kind", "namedCount", "cancelledCount", "hasUnnamed"]); return { $: "Canonical.DispatchScopeCheck", named_count: nat(event.namedCount), cancelled_count: nat(event.cancelledCount), has_unnamed: bool(event.hasUnnamed) };
     case "closeDispatch": inputFields(event, ["kind"]); return { $: "Canonical.CloseDispatch" };
     case "preparedOfferCheck": inputFields(event, ["kind", "ready", "withinFrame"]); return { $: "Canonical.PreparedOfferCheck", ready: bool(event.ready), within_frame: bool(event.withinFrame) };
-    case "emptyPreparedCheck": inputFields(event, ["kind", "readyCount", "hasNonSkipped", "ticketed"]); return { $: "Canonical.EmptyPreparedCheck", ready_count: nat(event.readyCount), has_non_skipped: bool(event.hasNonSkipped), ticketed: bool(event.ticketed) };
+    case "emptyPreparedCheck": inputFields(event, ["kind", "readyCount", "hasNonSkipped", "authorityBound"]); return { $: "Canonical.EmptyPreparedCheck", ready_count: nat(event.readyCount), has_non_skipped: bool(event.hasNonSkipped), authority_bound: bool(event.authorityBound) };
     case "reviewFailureCheck": inputFields(event, ["kind", "backendOrTimeout", "credential", "missing"]); return { $: "Canonical.ReviewFailureCheck", backend_or_timeout: bool(event.backendOrTimeout), credential: bool(event.credential), missing: bool(event.missing) };
     case "stopPolled": inputFields(event, ["kind", "partition", "lifetime", "round", "deadline"]); return { $: "Canonical.StopPolled", ...identity(event), round: nat(event.round, true), deadline: bool(event.deadline) };
     case "stopGroupPolled": case "stopGroupEnded": {
@@ -474,7 +459,7 @@ const encode = (event: CanonicalEvent): unknown => {
     }
     case "collectionReady": inputFields(event, ["kind", "advice", "partition", "lifetime", "round", "observation", "joinedPending"]); return { $: "Canonical.CollectionReady", advice: nat(event.advice, true), partition: nat(event.partition, true), lifetime: nat(event.lifetime, true), round: nat(event.round, true), observation: nat(event.observation, true), joined_pending: bool(event.joinedPending) };
     case "collectionCredentialCheck": inputFields(event, ["kind", "sameScope", "generationValid"]); return { $: "Canonical.CollectionCredentialCheck", same_scope: bool(event.sameScope), generation_valid: bool(event.generationValid) };
-    case "collectionCandidateCheck": inputFields(event, ["kind", "samePartition", "unleased", "hasUnsuppressed", "ticketOwns"]); return { $: "Canonical.CollectionCandidateCheck", same_partition: bool(event.samePartition), unleased: bool(event.unleased), has_unsuppressed: bool(event.hasUnsuppressed), ticket_owns: bool(event.ticketOwns) };
+    case "collectionCandidateCheck": inputFields(event, ["kind", "samePartition", "unleased", "hasUnsuppressed", "authorityOwns"]); return { $: "Canonical.CollectionCandidateCheck", same_partition: bool(event.samePartition), unleased: bool(event.unleased), has_unsuppressed: bool(event.hasUnsuppressed), authority_owns: bool(event.authorityOwns) };
     case "collectionOrderCheck": inputFields(event, ["kind", "leftSequence", "rightSequence"]); return { $: "Canonical.CollectionOrderCheck", left_sequence: nat(event.leftSequence), right_sequence: nat(event.rightSequence) };
     case "collectionExpiryCheck": inputFields(event, ["kind", "elapsed", "lifetime"]); return { $: "Canonical.CollectionExpiryCheck", elapsed: nat(event.elapsed), lifetime: nat(event.lifetime, true) };
     case "collectionFitCheck": inputFields(event, ["kind", "items", "bytes"]); return { $: "Canonical.CollectionFitCheck", items: nat(event.items), bytes: nat(event.bytes) };
@@ -509,14 +494,9 @@ const encode = (event: CanonicalEvent): unknown => {
     case "revisionCurrentCheck": inputFields(event, ["kind", "subject", "input", "generation"]); return { $: "Canonical.RevisionCurrentCheck", subject: nat(event.subject, true), input: nat(event.input, true), generation: nat(event.generation, true) };
     case "revisionGenerationCheck": inputFields(event, ["kind", "subject"]); return { $: "Canonical.RevisionGenerationCheck", subject: nat(event.subject, true) };
     case "revisionCountCheck": inputFields(event, ["kind"]); return { $: "Canonical.RevisionCountCheck" };
-    case "ticketOpen": case "ticketForget": inputFields(event, ["kind", "id"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, id: nat(event.id, true) };
-    case "ticketAddUnit": inputFields(event, ["kind", "id", "unit"]); return { $: "Canonical.TicketAddUnit", id: nat(event.id, true), unit: nat(event.unit, true) };
-    case "ticketStepUnit": inputFields(event, ["kind", "id", "unit", "event", "reason"]); return { $: "Canonical.TicketStepUnit", id: nat(event.id, true), unit: nat(event.unit, true), event: ticketUnitEvent(event.event), reason: ticketReason(event.reason) };
-    case "ticketUnitCheck": inputFields(event, ["kind", "id", "unit"]); return { $: "Canonical.TicketUnitCheck", id: nat(event.id, true), unit: nat(event.unit, true) };
-    case "ticketCollectGateCheck": inputFields(event, ["kind", "expired", "credentialValid"]); return { $: "Canonical.TicketCollectGateCheck", expired: bool(event.expired), credential_valid: bool(event.credentialValid) };
-    case "ticketFinalAuthorityCheck": inputFields(event, ["kind", "admittedBlock", "currentBlock"]); return { $: "Canonical.TicketFinalAuthorityCheck", admitted_block: bool(event.admittedBlock), current_block: bool(event.currentBlock) };
-    case "ticketJoinedCheck": inputFields(event, ["kind", "state", "staleUnavailable", "hasRevision", "hasAdviceId"]); return { $: "Canonical.TicketJoinedCheck", joined_state: ticketJoinedState(event.state), stale_unavailable: bool(event.staleUnavailable), has_revision: bool(event.hasRevision), has_advice_id: bool(event.hasAdviceId) };
-    case "ticketRetentionCheck": inputFields(event, ["kind", "limit"]); return { $: "Canonical.TicketRetentionCheck", limit: nat(event.limit) };
+    case "collectorGateCheck": inputFields(event, ["kind", "expired", "credentialValid"]); return { $: "Canonical.CollectorGateCheck", expired: bool(event.expired), credential_valid: bool(event.credentialValid) };
+    case "collectorFinalAuthorityCheck": inputFields(event, ["kind", "admittedBlock", "currentBlock"]); return { $: "Canonical.CollectorFinalAuthorityCheck", admitted_block: bool(event.admittedBlock), current_block: bool(event.currentBlock) };
+    case "reuseMemberCheck": inputFields(event, ["kind", "state", "staleUnavailable", "hasRevision", "hasAdviceId"]); return { $: "Canonical.ReuseMemberCheck", joined_state: reuseMemberState(event.state), stale_unavailable: bool(event.staleUnavailable), has_revision: bool(event.hasRevision), has_advice_id: bool(event.hasAdviceId) };
     case "cleanupCheck": {
       inputFields(event, ["kind", "facts"]);
       const facts = event.facts;
@@ -589,7 +569,7 @@ const encode = (event: CanonicalEvent): unknown => {
     case "noticePrune": inputFields(event, ["kind", "key", "leaseExpired", "pendingExpired", "excepted", "cooldownExpired"]); return { $: "Canonical.NoticePrune", key: nat(event.key, true), lease_expired: bool(event.leaseExpired), pending_expired: bool(event.pendingExpired), excepted: bool(event.excepted), cooldown_expired: bool(event.cooldownExpired) };
     case "noticeDrop": case "noticeClearPending": inputFields(event, ["kind", "key"]); return { $: `Canonical.${event.kind.slice(0, 1).toUpperCase()}${event.kind.slice(1)}`, key: nat(event.key, true) };
     case "noticeLease": inputFields(event, ["kind", "key", "leased"]); return { $: "Canonical.NoticeLease", key: nat(event.key, true), leased: bool(event.leased) };
-    case "noticeSelect": inputFields(event, ["kind", "partition", "group", "composed", "ticketed", "allowed"]); return { $: "Canonical.NoticeSelect", partition: nat(event.partition, true), group: nat(event.group, true), composed: bool(event.composed), ticketed: bool(event.ticketed), allowed: list(event.allowed) };
+    case "noticeSelect": inputFields(event, ["kind", "partition", "group", "composed", "authorityBound", "allowed"]); return { $: "Canonical.NoticeSelect", partition: nat(event.partition, true), group: nat(event.group, true), composed: bool(event.composed), authority_bound: bool(event.authorityBound), allowed: list(event.allowed) };
     case "outputStarted": inputFields(event, ["kind", "partition", "lifetime", "round"]); return { $: "Canonical.OutputStarted", ...identity(event), round: nat(event.round, true) };
     case "outputTerminal": {
       inputFields(event, ["kind", "partition", "lifetime", "round", "operation", "outcome"]);
@@ -617,35 +597,15 @@ const writeOutcome = (value: unknown): "acknowledged" | "failed" | "unknown" => 
   if (name === "Canonical.Unknown") return "unknown";
   throw new TypeError("unknown write outcome");
 };
-const decodeTicketReason = (value: unknown): TicketReason => {
+const decodeCollectorReason = (value: unknown): CollectorReason => {
   const name = tag(value);
-  const reasons: Record<string, TicketReason> = { "Ticket.Backend": "backend",
-    "Ticket.Credential": "credential", "Ticket.Capacity": "capacity",
-    "Ticket.Stale": "stale", "Ticket.Lost": "lost", "Ticket.Expired": "expired" };
+  const reasons: Record<string, CollectorReason> = { "CollectorAuthority.Backend": "backend",
+    "CollectorAuthority.Credential": "credential", "CollectorAuthority.Capacity": "capacity",
+    "CollectorAuthority.Stale": "stale", "CollectorAuthority.Lost": "lost", "CollectorAuthority.Expired": "expired" };
   const reason = reasons[name];
-  if (reason === undefined) throw new TypeError("unknown ticket reason");
+  if (reason === undefined) throw new TypeError("unknown collector reason");
   fields(value, name, []);
   return reason;
-};
-const maybeTicketReason = (value: unknown): TicketReason | undefined => {
-  const name = tag(value);
-  if (name === "None") { fields(value, "None", []); return undefined; }
-  if (name === "Some") return decodeTicketReason(fields(value, "Some", ["value"]).value);
-  throw new TypeError("unknown optional ticket reason");
-};
-const decodeTicketUnitState = (stageValue: unknown, reasonValue: unknown) => {
-  const stageTag = tag(stageValue);
-  const stage = { "Ticket.UnitPending": "pending", "Ticket.UnitClear": "clear",
-    "Ticket.UnitFinding": "finding", "Ticket.UnitUnavailable": "unavailable" }[stageTag] as "pending" | "clear" | "finding" | "unavailable" | undefined;
-  if (stage === undefined) throw new TypeError("unknown ticket unit stage");
-  const delivered = stage === "finding" ? bool(fields(stageValue, stageTag, ["delivered"]).delivered) : undefined;
-  if (delivered === undefined) fields(stageValue, stageTag, []);
-  const reason = maybeTicketReason(reasonValue);
-  if ((stage === "unavailable") !== (reason !== undefined)) {
-    throw new TypeError("inconsistent canonical ticket unit failure");
-  }
-  return { stage, ...(delivered === undefined ? {} : { delivered }),
-    ...(reason === undefined ? {} : { reason }) };
 };
 export type CapacityRefusal = "globalItems" | "globalBytes" | "partitionItems" | "partitionBytes";
 export type CapacityView = {
@@ -806,21 +766,15 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       const name = tag(value); fields(value, name, []);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "revisionReleased" | "revisionCurrent" | "revisionStale" | "revisionSuperseded" | "revisionNotSuperseded" };
     }
-    case "Canonical.TicketCollectUnavailable":
-      return { kind: "ticketCollectUnavailable", reason: decodeTicketReason(fields(value, "Canonical.TicketCollectUnavailable", ["reason"]).reason) };
-    case "Canonical.TicketUnitSnapshot": {
-      const item = fields(value, "Canonical.TicketUnitSnapshot", ["stage", "reason"]);
-      return { kind: "ticketUnitSnapshot", ...decodeTicketUnitState(item.stage, item.reason) };
-    }
-    case "Canonical.TicketUnitMissing": fields(value, "Canonical.TicketUnitMissing", []); return { kind: "ticketUnitMissing" };
-    case "Canonical.TicketEvicted": return { kind: "ticketEvicted", id: nat(fields(value, "Canonical.TicketEvicted", ["id"]).id, true) };
-    case "Canonical.TicketKept": case "Canonical.CleanupReady": case "Canonical.CleanupBusy": case "Canonical.CleanupCommitted":
+    case "Canonical.CollectorUnavailable":
+      return { kind: "collectorUnavailable", reason: decodeCollectorReason(fields(value, "Canonical.CollectorUnavailable", ["reason"]).reason) };
+    case "Canonical.CleanupReady": case "Canonical.CleanupBusy": case "Canonical.CleanupCommitted":
     case "Canonical.DeliveryReleaseUnacknowledged": case "Canonical.DeliveryKeepAcknowledged":
     case "Canonical.DeliveryAckReady": case "Canonical.DeliveryAckExpired": case "Canonical.DeliveryAckEmpty":
     case "Canonical.DeliveryFinalReady": case "Canonical.DeliveryFinalExpired": case "Canonical.DeliveryFinalEmpty":
     case "Canonical.DeliveryRetireAdvice": case "Canonical.DeliveryKeepRemaining": case "Canonical.DeliveryKeepForReoffer": {
       const name = tag(value); fields(value, name, []);
-      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "ticketKept" | "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" | "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" };
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as "cleanupReady" | "cleanupBusy" | "cleanupCommitted" | "deliveryReleaseUnacknowledged" | "deliveryKeepAcknowledged" | "deliveryAckReady" | "deliveryAckExpired" | "deliveryAckEmpty" | "deliveryFinalReady" | "deliveryFinalExpired" | "deliveryFinalEmpty" | "deliveryRetireAdvice" | "deliveryKeepRemaining" | "deliveryKeepForReoffer" };
     }
     case "Canonical.DeliverySubmissionCandidate": case "Canonical.DeliverySubmissionRefused":
     case "Canonical.DeliveryBatchProceed": case "Canonical.DeliveryBatchRelease":
@@ -927,15 +881,13 @@ const decodeCommand = (value: unknown): CanonicalCommand => {
       const name = tag(value); fields(value, name, []);
       return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `reuse${string}` | `cache${string}` }>["kind"], "cachePrepared" | "cacheDiscarded"> };
     }
-    case "Canonical.TicketOpened": case "Canonical.TicketForgotten":
-    case "Canonical.TicketUnitAdded": case "Canonical.TicketUnitUpdated":
-    case "Canonical.TicketRefused": case "Canonical.TicketCollectProceed":
-    case "Canonical.TicketFinalProceed": case "Canonical.TicketFinalRelease":
-    case "Canonical.TicketKeepJoined": case "Canonical.TicketSetJoinedClear":
-    case "Canonical.TicketSetJoinedFinding": case "Canonical.TicketSetJoinedUnavailable":
-    case "Canonical.TicketSetJoinedLost": {
+    case "Canonical.CollectorProceed":
+    case "Canonical.CollectorFinalProceed": case "Canonical.CollectorFinalRelease":
+    case "Canonical.ReuseKeepMember": case "Canonical.ReuseSetMemberClear":
+    case "Canonical.ReuseSetMemberFinding": case "Canonical.ReuseSetMemberUnavailable":
+    case "Canonical.ReuseSetMemberLost": {
       const name = tag(value); fields(value, name, []);
-      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `ticket${string}` }>["kind"], "ticketCollectUnavailable" | "ticketUnitSnapshot" | "ticketUnitMissing" | "ticketEvicted"> };
+      return { kind: name.slice("Canonical.".length).replace(/^./, (first) => first.toLowerCase()) as Exclude<Extract<CanonicalCommand, { kind: `collector${string}` | `reuse${string}` }>["kind"], "collectorUnavailable"> };
     }
     case "Canonical.WriteAuthorized": return { kind: "writeAuthorized", operation: nat(fields(value, "Canonical.WriteAuthorized", ["operation"]).operation, true) };
     case "Canonical.WriteRecorded": return { kind: "writeRecorded", outcome: writeOutcome(fields(value, "Canonical.WriteRecorded", ["outcome"]).outcome) };
@@ -961,7 +913,6 @@ export type CanonicalProjection = {
   readonly pendingFindings: readonly { readonly operation: number; readonly count: number }[];
   readonly dispatch: { readonly queued: readonly DispatchEntry[]; readonly running: readonly DispatchEntry[]; readonly nextSequence: number; readonly closed: boolean; readonly requests: readonly { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number; readonly started: boolean; readonly interrupted: boolean }[] };
   readonly collection: { readonly ready: readonly number[]; readonly leases: readonly { readonly advice: number; readonly owner: number }[]; readonly claims: readonly { readonly group: number; readonly owner: number }[] };
-  readonly tickets: readonly { readonly id: number; readonly units: readonly { readonly id: number; readonly stage: "pending" | "clear" | "finding" | "unavailable"; readonly delivered?: boolean; readonly reason?: TicketReason }[] }[];
   readonly notices: readonly { readonly id: number; readonly partition: number; readonly group: number; readonly reservation: number; readonly suppressed: number; readonly pending?: { readonly id: number; readonly count: number; readonly sequence: number; readonly leased: boolean } }[];
   readonly reuse: { readonly claims: readonly { readonly id: number; readonly attached: boolean }[]; readonly cache: readonly { readonly id: number; readonly partition: number; readonly bytes: number; readonly reservation: number }[] };
   readonly revision: { readonly entries: readonly { readonly subject: number; readonly input: number; readonly generation: number; readonly members: number }[]; readonly nextGeneration: number };
@@ -1004,7 +955,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     running: readList(rawDispatch.running, dispatchEntry), nextSequence: nat(rawDispatch.next_sequence),
     closed: bool(rawDispatch.closed), requests };
   const dispatchEntries = [...dispatch.queued, ...dispatch.running];
-  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery", "revision", "tickets", "reuse", "notices"]);
+  const collectionState = fields(s.collection, "CollectionState.State", ["ready", "leases", "claims", "delivery", "revision", "reuse", "notices"]);
   const noticeState = fields(collectionState.notices, "NoticeState.State", ["records"]);
   const notices: CanonicalProjection["notices"] = readList(noticeState.records, (value) => {
     const item = fields(value, "NoticeState.Record", ["id", "partition", "group", "reservation", "suppressed", "pending"]);
@@ -1039,24 +990,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     return { subject: nat(entry.subject, true), input: nat(entry.input, true), generation: nat(entry.generation, true), members: nat(entry.members, true) };
   }), nextGeneration: nat(rawRevision.next_generation, true) };
   if (new Set(revision.entries.map((entry) => entry.subject)).size !== revision.entries.length) throw new TypeError("duplicate canonical revision subject");
-  const ticketState = fields(collectionState.tickets, "TicketState.State", ["records", "units"]);
-  const ticketAdmissions = readList(ticketState.records, (value) => {
-    const record = fields(value, "TicketState.Record", ["id"]);
-    return nat(record.id, true);
-  });
-  const units = readList(ticketState.units, (value) => {
-    const item = fields(value, "TicketState.TicketUnit", ["id", "admission", "stage", "reason"]);
-    return { id: nat(item.id, true), admission: nat(item.admission, true),
-      ...decodeTicketUnitState(item.stage, item.reason) };
-  });
-  if (new Set(ticketAdmissions).size !== ticketAdmissions.length ||
-      new Set(units.map((unit) => unit.id)).size !== units.length ||
-      units.some((unit) => !ticketAdmissions.includes(unit.admission))) {
-    throw new TypeError("duplicate canonical ticket identity");
-  }
-  const tickets: CanonicalProjection["tickets"] = ticketAdmissions.map((id) => ({
-    id, units: units.filter((unit) => unit.admission === id).map(({ admission: _, ...unit }) => unit),
-  }));
+
   const collection = {
     ready: readList(collectionState.ready, (id) => nat(id, true)),
     leases: readList(collectionState.leases, (value) => {
@@ -1241,7 +1175,7 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
     partitions, charges, inventory, rounds, admissions, completedEdits, work, pendingFindings,
-    dispatch, collection, revision, tickets, reuse, notices, delivery });
+    dispatch, collection, revision, reuse, notices, delivery });
   projections.set(identity, projection);
   return projection;
 };

@@ -1,7 +1,9 @@
 import { expect, it } from "@effect/vitest";
-import { Effect } from "effect";
+import { Cause, Effect } from "effect";
+import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit } from "../direct-event/model.ts";
+import { advicee } from "../direct-event/test-fixtures.ts";
+import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 import { makeResidentState } from "./capacity.ts";
-import { residentTicketInput } from "../test-support/resident-ticket.ts";
 
 it.effect("bounds connection leases and fences foreign and duplicate release", () => Effect.gen(function* () {
   const owner = yield* makeResidentState(undefined, "same-lifetime");
@@ -22,31 +24,26 @@ it.effect("bounds connection leases and fences foreign and duplicate release", (
   expect((yield* foreign.runtime.snapshot()).connections).toBe(1);
 }));
 
-it.effect("publishes canonical cleanup, ticket eviction and retirement together", () => Effect.gen(function* () {
+it.effect("publishes canonical cleanup and retirement together", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
-  const unit = (yield* owner.ticketUnits.add(ticket));
   const outcome = yield* owner.runtime.cleanup(() => 10);
   expect(outcome).toBe("cleaned");
   expect((yield* owner.runtime.snapshot()).lifecycle).toBe("retiring");
   expect((yield* owner.canonicalProjection()).dispatch.closed).toBe(true);
-  expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBeUndefined();
-  expect((yield* owner.ticketUnits.stage(unit))).toBeUndefined();
   expect((yield* owner.runtime.scheduleRetirement())).toBe(true);
   expect((yield* owner.runtime.scheduleRetirement())).toBe(false);
   expect((yield* owner.runtime.cleanup(() => 10))).toBe("busy");
 }));
 
-it.effect("busy ownership does not retire the runtime or evict tickets", () => Effect.gen(function* () {
+it.effect("busy ownership does not retire the runtime or release reservations", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const reservation = (yield* owner.reserve("fixture", 10, "preparation"))!;
   const before = (yield* owner.canonicalProjection());
   const outcome = yield* owner.runtime.cleanup(() => 10);
   expect(outcome).toBe("busy");
   expect((yield* owner.canonicalProjection())).toEqual(before);
-  expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBe(ticket);
   expect((yield* owner.runtime.snapshot()).lifecycle).toBe("active");
+  expect((yield* owner.snapshot()).bytes).toBe(10);
   expect((yield* owner.runtime.scheduleRetirement())).toBe(false);
   expect((yield* owner.release(reservation))).toBe(true);
   expect((yield* owner.runtime.cleanup(() => 10))).toBe("cleaned");
@@ -83,22 +80,6 @@ it.effect("two connected clients keep cleanup busy until one physically closes",
   expect((yield* owner.runtime.cleanup(() => 10))).toBe("cleaned");
 }));
 
-it.effect("rolls back staged ticket eviction and retirement if native validation fails", () => Effect.gen(function* () {
-  const owner = yield* makeResidentState();
-  const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
-  const unit = (yield* owner.ticketUnits.add(ticket));
-  // Seed a mismatched canonical admission to exercise failure after the first
-  // eviction has staged; normal ticket admission validates this invariant.
-  yield* owner.transition({ kind: "ticketOpen", id: ticket.generation + 1 });
-  const before = (yield* owner.canonicalProjection());
-  const outcome = yield* Effect.exit(owner.runtime.cleanup(() => 10));
-  expect(outcome._tag).toBe("Failure");
-  expect((yield* owner.canonicalProjection())).toEqual(before);
-  expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBe(ticket);
-  expect((yield* owner.ticketUnits.stage(unit))?.stage).toBe("pending");
-  expect((yield* owner.runtime.snapshot()).lifecycle).toBe("active");
-}));
-
 it.effect("records transient reservation peaks without a server sampling checkpoint", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const capture = (yield* owner.reserve("capture", 128, "preparation"))!;
@@ -113,4 +94,46 @@ it.effect("records transient reservation peaks without a server sampling checkpo
   expect((yield* owner.resize(concurrent, 1_000))).toBe(false);
   yield* owner.clear();
   expect((yield* owner.runtime.snapshot()).peakLedgerBytes).toBe(205);
+}));
+
+const cacheFixture = Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const declaration = { id: "count.ts::Count", kind: "type-alias" as const, name: "Count",
+    source: "type Count = number", sourceHash: "source" };
+  const input = freezeInput({ contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "count.ts", declaration,
+    unit: { root: { artifact: declaration, references: [] } }, rules: freezeRules([]),
+    interpretation: "probability-strictly-greater-than-threshold" });
+  const prepared: PreparedUnit = { root: "/fixture", advicee: advicee(), input, identity: semanticIdentity(input) };
+  const reuse = owner.reuse(() => 10);
+  const key = reuse.key("agent", prepared);
+  const evaluation = { prepared, findings: [] };
+  expect(yield* reuse.put("agent", key, evaluation)).toBe(true);
+  return { owner, reuse, key, evaluation };
+});
+
+it.effect("retires the cached payload and its reservation with canonical cleanup", () => Effect.gen(function* () {
+  const { owner, reuse, key } = yield* cacheFixture;
+  expect((yield* owner.snapshot()).bytes).toBe(10);
+  expect(yield* owner.runtime.cleanup(() => 10)).toBe("cleaned");
+  expect(yield* reuse.get(key)).toBeUndefined();
+  expect(yield* reuse.snapshot()).toEqual({ entries: 0, bytes: 0, pending: 0 });
+  expect((yield* owner.snapshot()).bytes).toBe(0);
+  expect((yield* owner.canonicalProjection()).dispatch.closed).toBe(true);
+  expect((yield* owner.runtime.snapshot()).lifecycle).toBe("retiring");
+}));
+
+it.effect("refuses retirement when canonical cache ownership disagrees with the native payload", () => Effect.gen(function* () {
+  const { owner, reuse, key, evaluation } = yield* cacheFixture;
+  // Fault injection: remove only the canonical cache record. The native payload
+  // and reservation still belong to this resident and must not be released.
+  yield* owner.transition({ kind: "cacheClear" });
+  const before = yield* owner.canonicalProjection();
+  const capacity = yield* owner.snapshot();
+  const outcome = yield* Effect.exit(owner.runtime.cleanup(() => 10));
+  expect(outcome._tag).toBe("Failure");
+  if (outcome._tag === "Failure") expect(Cause.pretty(outcome.cause)).toContain("native evaluation handles");
+  expect(yield* owner.canonicalProjection()).toEqual(before);
+  expect(yield* owner.snapshot()).toEqual(capacity);
+  expect((yield* reuse.cached(key))?.evaluation).toBe(evaluation);
+  expect((yield* owner.runtime.snapshot()).lifecycle).toBe("active");
 }));

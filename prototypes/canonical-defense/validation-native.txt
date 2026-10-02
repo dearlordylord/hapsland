@@ -1,0 +1,45 @@
+Actual Linux ARM64 Bend native1024x768 input/captures, final direct Canonical reducer from mergedmaster9f38e7e. Host/model/Output/Preview mechanics have78 directednativechecks separately; this receipt validates actualUI inputs and visible states, not formalproof orMacsupport or humanengagement. Seven manualmaptowers, range previews, automaticshots, upgrades, safe roads and finiteinternalpaths. Three populatedmaps are separatelyreset deterministicmissions (maplockedafterbuild/activework), notsamepausedruntime. No fakefixtures and no automaticbuilds.
+preview-retained-wait.png: Hapsland canonical defense | LAYOUT=2 PAUSED=YES TICK=4121 GOLD=160 HP=84 OFFERED=8 CLEAR=0 DELIVERED=0 WRITESLOTS=1 LEASES=4 READY=16 WAIT=0 DECIDE=1 PENDING_UNITS=16 ATJEV=0 LEDGER_ITEMS=16 LEDGER_BYTES=240 TOWERS=0 SELECTED=0 LEVEL=0 PREVIEW=2 BEFORE=0 DELTA=0 TARGET=0 SITE=255 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=16 DAMAGE_FLASH=0 COMMITTED=4 WRITERLEFT=67 ROADID=0 SERVICEID=0 FANOUTID=0
+preview-packager-before.png: Hapsland canonical defense | LAYOUT=2 PAUSED=YES TICK=4121 GOLD=160 HP=84 OFFERED=8 CLEAR=0 DELIVERED=0 WRITESLOTS=1 LEASES=4 READY=16 WAIT=0 DECIDE=1 PENDING_UNITS=16 ATJEV=0 LEDGER_ITEMS=16 LEDGER_BYTES=240 TOWERS=0 SELECTED=0 LEVEL=0 PREVIEW=1 BEFORE=4 DELTA=1 TARGET=0 SITE=5 SECONDARY=8 SECONDARY_DELTA=4 WAIT_SLOTS=16 DAMAGE_FLASH=0 COMMITTED=4 WRITERLEFT=67 ROADID=0 SERVICEID=0 FANOUTID=0
+preview-packager-after.png: Hapsland canonical defense | LAYOUT=2 PAUSED=YES TICK=4121 GOLD=100 HP=84 OFFERED=8 CLEAR=0 DELIVERED=0 WRITESLOTS=1 LEASES=4 READY=16 WAIT=0 DECIDE=1 PENDING_UNITS=16 ATJEV=0 LEDGER_ITEMS=16 LEDGER_BYTES=240 TOWERS=1 SELECTED=0 LEVEL=0 PREVIEW=2 BEFORE=5 DELTA=1 TARGET=0 SITE=5 SECONDARY=4 SECONDARY_DELTA=1 WAIT_SLOTS=16 DAMAGE_FLASH=0 COMMITTED=4 WRITERLEFT=67 ROADID=0 SERVICEID=0 FANOUTID=0
+preview-shield-before.png: Hapsland canonical defense | LAYOUT=2 PAUSED=YES TICK=4121 GOLD=100 HP=84 OFFERED=8 CLEAR=0 DELIVERED=0 WRITESLOTS=1 LEASES=4 READY=16 WAIT=0 DECIDE=1 PENDING_UNITS=16 ATJEV=0 LEDGER_ITEMS=16 LEDGER_BYTES=240 TOWERS=1 SELECTED=0 LEVEL=0 PREVIEW=1 BEFORE=200 DELTA=33 TARGET=0 SITE=5 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=16 DAMAGE_FLASH=0 COMMITTED=4 WRITERLEFT=67 ROADID=0 SERVICEID=0 FANOUTID=0
+preview-shield-built.png: Hapsland canonical defense | LAYOUT=2 PAUSED=YES TICK=4121 GOLD=50 HP=84 OFFERED=8 CLEAR=0 DELIVERED=0 WRITESLOTS=1 LEASES=4 READY=16 WAIT=0 DECIDE=1 PENDING_UNITS=16 ATJEV=0 LEDGER_ITEMS=16 LEDGER_BYTES=240 TOWERS=2 SELECTED=1 LEVEL=1 PREVIEW=0 BEFORE=167 DELTA=33 TARGET=0 SITE=5 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=16 DAMAGE_FLASH=0 COMMITTED=4 WRITERLEFT=67 ROADID=0 SERVICEID=0 FANOUTID=0
+preview-building-damage.png: Hapsland canonical defense | LAYOUT=2 PAUSED=YES TICK=4127 GOLD=50 HP=83 OFFERED=8 CLEAR=0 DELIVERED=0 WRITESLOTS=1 LEASES=4 READY=16 WAIT=0 DECIDE=1 PENDING_UNITS=16 ATJEV=0 LEDGER_ITEMS=16 LEDGER_BYTES=240 TOWERS=2 SELECTED=1 LEVEL=1 PREVIEW=0 BEFORE=167 DELTA=33 TARGET=0 SITE=5 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=16 DAMAGE_FLASH=7 COMMITTED=4 WRITERLEFT=61 ROADID=0 SERVICEID=0 FANOUTID=0
+preview-complete.png: Hapsland canonical defense | LAYOUT=2 PAUSED=YES TICK=4398 GOLD=50 HP=81 OFFERED=8 CLEAR=0 DELIVERED=16 WRITESLOTS=0 LEASES=0 READY=0 WAIT=0 DECIDE=1 PENDING_UNITS=0 ATJEV=0 LEDGER_ITEMS=0 LEDGER_BYTES=0 TOWERS=2 SELECTED=1 LEVEL=1 PREVIEW=0 BEFORE=0 DELTA=0 TARGET=0 SITE=5 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=0 DAMAGE_FLASH=0 COMMITTED=0 WRITERLEFT=0 ROADID=0 SERVICEID=0 FANOUTID=0
+preview-no-effect.png: Hapsland canonical defense | LAYOUT=0 PAUSED=YES TICK=15 GOLD=160 HP=100 OFFERED=0 CLEAR=0 DELIVERED=0 WRITESLOTS=0 LEASES=0 READY=0 WAIT=0 DECIDE=0 PENDING_UNITS=0 ATJEV=0 LEDGER_ITEMS=0 LEDGER_BYTES=0 TOWERS=0 SELECTED=0 LEVEL=0 PREVIEW=5 BEFORE=0 DELTA=0 TARGET=0 SITE=1 SECONDARY=0 SECONDARY_DELTA=0 WAIT_SLOTS=0 DAMAGE_FLASH=0 COMMITTED=0 WRITERLEFT=0 ROADID=0 SERVICEID=0 FANOUTID=0
+Native exit0. Refiner actual100→80 simulatedrisk atsamehosttarget; no findingerasure/forgedclear; laterrealCanonicalclear exit observed. Upgradedlevel2 actualcost40. Baselineall16findings reach distinctread-onlyWAITslots afterfiniteauthoredpath; committedOutputmembership/span unchanged byPackagerpurchase; remainingcurrentwriter time isnot anACKETA, sibling/travel/readinessgates remain. Shieldcharge finite; rawownership/backlognotremoved, actualdamageflash/sharedHP shown. Actualfinal16acknowledged findings andzeroledger/reservations.
+
+Earlier final-binary capture run produced the three idle and populated maps, Refiner before/after, upgrade, and real clear exit before external SIGTERM143 terminated capture/native processes. This is an interrupted capture, not game-crash evidence. The baseline retention/output run was restarted independently and completed with native exit0.
+Final-binary first-run observations: district populated tick350 Rapid remaining22 minus12; Refiner campus before tick202 risk100, source road unit2 (25,166), serviceunit1 (246,157) remaining58; after tick211 same target risk80, roadunit2 (34,166), serviceunit1 (259,157) remaining49, gold105. These positions demonstrate displacement per simulation tick and finite service-route motion, not measured wall-clock speed/FPS. Upgrade at same pausedtick211 cost40, level2, gold65, unchanged risk80/work49. Clear-exit tick1507 shows actual canonical clear1. Populated junction tick431 is separately reset baseline. No source changes occurred between these captures and the final continuation.
+Wall-clock end of final continuation receipt: 2026-10-01T05:25:40.286777+00:00. Start/end elapsed was not instrumented, so nominal20ms ticks and ~80sec simulated schedule are not reported as observed real-time duration.
+
+Source/capture SHA256:
+4602a617eb2284e41c339e68e7106d6de3883ec88c6772212871b24f7bc6a38b  DefenseMap.bend
+843d9496db3739320f76cb6360b0269f3c5fc3326052ee88892e29b0ebe14b88  DefenseRoads.bend
+d8187232fce2d822787213ff1669cc226c5134345acef1d4b4b2572469195b28  DefenseRender.bend
+13d9a1bb0cc6cae106b6ca7fdc734ef3e84440c2d7d4e2ebac9c4f78b5104b40  DefenseMain.bend
+9de7da6f27b200afd790e9f7f04a2e86fa736f04664e82df88ff117a72712169  Font.bend
+005e0ecef27fee6c15270ab5f29573f094bd80ed73f74c1464541daebc94129d  DefenseModel.bend
+14163070f2c5e7fed3675975e1641ab4a9571f2baf2bd3a2708416d44a67cb9d  DefenseHost.bend
+5092ca024249f1634787bfecbe6b325edba6434c5202877e0f169bfb69c918e1  DefenseEffects.bend
+88bdf74045b2cdeb8e56e915104f87e3805e36cbe1b0726fc6a8b041b7150247  DefenseProjection.bend
+963f12b4d1ca8fafd9c91da54a27107ab2d9a11505daa15bbe669c365bcce0b7  DefenseOutput.bend
+894219e50a627aa0c92fe37141acde91e89cb17aa73a4bc02cadd81bad703742  DefensePreview.bend
+c097f0f11ec8b67b0a51c5acb30dfdc17f44b8e63bafd13956838fbe19dedad0  preview-building-damage.png
+cb965d28771ecc8dc8aea39b3aba16fb79ac778cc79c3724894cb33836813058  preview-clear-exit.png
+af80780ee4883795f34480a4bd0ac8dbbf8c3dc55cb03ba737fb436bcacb9b95  preview-complete.png
+586b099848adf959e24b908118a39bafe457fb19f789068edf7111bf6f2508d8  preview-courtyard-populated.png
+ea957e2399c55ed79fd743fca491df5d853e8e44b97be7e969e714eba6d3efee  preview-courtyard.png
+67574fa07b7c2aff389082a1f2d41d26d360c69ed671c19a88e9e6bb19d5413f  preview-district-populated.png
+11602857168bcaf596b8f3ad917080ac4759916ff66c93e039735c19abc533dc  preview-district.png
+591906abcfd6cfe6c7f33ed4f3c9d998ae34668d788d923ce4bce6be3b971ae6  preview-frontier-populated.png
+2915e5afd540cbab40e4c142c9b103bd4afa107bd060396b52c2eb129abc0790  preview-frontier.png
+918011089ebe01453059b08538eba92af8d848fe17d4c08d65f86f5a2484ff0f  preview-no-effect.png
+d8979ddd3818c38915a4ae948905ffa4e508b04661917b67425c042a252ce3a8  preview-packager-after.png
+51a347daf8e91180d92f58a5d27190fff789f18eed7f82f672b9a4e9ca636b37  preview-packager-before.png
+7a64a4c837f61cf814f8b3cb60d3d6dad1f2320b9e0a0887f28bfee16f709998  preview-refiner-after.png
+f951bc79e761c13f038a0bd9ba2dcf4f2c0bb761096a0bf2e7f9874db0979598  preview-refiner-before.png
+3a9a65eff212f17029e6155a7ee16cfc4170e820bb4d4791deae6801c828df9e  preview-retained-wait.png
+47c852bf5769098d5a6b67e1457109e96807f82ad700390f544660f3990c0682  preview-shield-before.png
+180d04500490a93820943c5a65729744cabe27ffc6d58769c82ade2d5b06a6b9  preview-shield-built.png
+586b099848adf959e24b908118a39bafe457fb19f789068edf7111bf6f2508d8  preview-upgrade.png

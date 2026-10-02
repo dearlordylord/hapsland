@@ -12,10 +12,8 @@ import {
   ResidentIpcError,
   makeResidentDispatchContextEffect,
   ensureResidentEffect as ensureResident,
-  admitTicketedObservationEffect as admitTicketedObservation,
   admitObservationEffect as admitObservation,
   admitObservationEffect,
-  collectOutcomeEffect as collectOutcome,
   residentRequestEffect as residentRequest,
   residentRequestEffect,
   ResidentStartup,
@@ -42,71 +40,6 @@ afterEach(async () => {
 });
 
 describe("resident client trust boundary", () => {
-  it("pins Claude collection to its admitting owner without a ticket-wide terminal outcome", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "resident-ticket-client-"));
-    directories.push(directory);
-    await chmod(directory, 0o700);
-    const paths = residentPaths(directory);
-    const observation: DirectObservation = {
-      root: "/tmp/root",
-      rootIdentity: { rootDevice: "1", rootInode: "2", gitDirectory: "/tmp/root/.git", gitDevice: "1", gitInode: "3" },
-      advicee: { host: "claude-code", hostVersion: "2.1.218", sessionId: "session", turnId: null, toolUseId: "tool", subagentId: null },
-      candidates: [{ operation: "add", path: "/tmp/root/type.ts", addedLines: ["type A = number"] }],
-    };
-    const dispatch = { statePath: "/tmp/state", userConfigPath: null, credential: null, controlled: {} };
-    const requests: Array<Record<string, unknown>> = [];
-    const outcomes: Array<Record<string, unknown>> = [
-      { version: 1, status: "pending" },
-      { version: 1, status: "advice", token: "lease", findingCount: 1, output: {
-        hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "review advice" },
-      } },
-      { version: 1, status: "empty" },
-      { version: 1, status: "unavailable", reason: "stale" },
-      { status: "empty" }, // old resident response cannot prove clear
-    ];
-    const server = createServer((socket) => {
-      sockets.push(socket);
-      socket.once("data", (chunk) => {
-        const request = JSON.parse(chunk.toString("utf8")) as Record<string, unknown>;
-        requests.push(request);
-        const response = request.operation === "hello"
-          ? { version: 1, status: "ready", lifetime: "original-owner", pid: 12 }
-          : request.operation === "admit"
-            ? { version: 1, status: "accepted", ticket: { nonce: "ticket", lifetime: "original-owner" } }
-            : outcomes.shift();
-        socket.end(`${JSON.stringify(response)}\n`);
-      });
-    });
-    servers.push(server);
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(paths.socket, resolve);
-    });
-    await chmod(paths.socket, 0o600);
-    expect(await runClient(admitObservation(observation, true, dispatch, paths, false))).toEqual({ status: "unsupported" });
-    expect(await runClient(admitTicketedObservation(observation, dispatch, paths, false))).toEqual({ status: "unsupported" });
-    expect(requests).toEqual([]);
-    const accepted = await runClient(admitTicketedObservation(observation, dispatch, paths));
-    expect(accepted.status).toBe("accepted");
-    expect(requests.find((request) => request.operation === "admit")).toMatchObject({ composed: true });
-    if (accepted.status !== "accepted") return;
-    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "pending" });
-    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "advice", advice: {
-      output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "review advice" } },
-      token: "lease", lifetime: "original-owner", paths, root: observation.root,
-      advicee: observation.advicee, activityPath: undefined, findingCount: 1,
-    } });
-    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "empty" });
-    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "unavailable", reason: "stale" });
-    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "unavailable", reason: "lost" });
-    expect(requests.map((request) => request.operation)).toEqual([
-      "hello", "admit", "collect", "collect", "collect", "collect", "collect",
-    ]);
-    expect(requests.slice(2).every((request) =>
-      request.version === 1 && request.lifetime === "original-owner" &&
-      JSON.stringify(request.ticket) === JSON.stringify({ nonce: "ticket", lifetime: "original-owner" })
-    )).toBe(true);
-  });
   effectIt.effect("uses one absolute readiness deadline and caps every operation to remaining time", () => Effect.gen(function* () {
     const paths = residentPaths("/not-used");
     let clock = 0;

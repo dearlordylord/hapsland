@@ -1,0 +1,82 @@
+PASS structural absence differs from temporary inactivity
+PASS eligible site without current marginal effect is amber
+PASS positive current marginal effect is effective
+PASS invalid placement takes priority over effect
+PASS unfunded placement takes priority over effect
+PASS selected tower inspection suppresses build preview
+PASS risk preview is permanent reduction in percentage points
+PASS parallelizer preview adds host service slots
+PASS pressure protection preview saturates at zero
+PASS hover uses actual host cost and level-one radius
+PASS paused hover does not spend gold or advance host clock
+PASS hover risk delta matches exact next actual Refiner shot
+PASS preview classification and read-only snapshot checks complete
+PASS all-clear workload never reserves an empty writer
+PASS acknowledged partial batches drain findings=0
+PASS acknowledged partial batches drain findings=1
+PASS acknowledged partial batches drain findings=2
+PASS acknowledged partial batches drain findings=3
+PASS acknowledged partial batches drain findings=4
+PASS acknowledged partial batches drain findings=5
+PASS acknowledged partial batches drain findings=6
+PASS acknowledged partial batches drain findings=7
+PASS acknowledged partial batches drain findings=8
+PASS acknowledged partial batches drain findings=9
+PASS acknowledged partial batches drain findings=10
+PASS acknowledged partial batches drain findings=11
+PASS acknowledged partial batches drain findings=12
+PASS acknowledged partial batches drain findings=13
+PASS acknowledged partial batches drain findings=14
+PASS acknowledged partial batches drain findings=15
+PASS acknowledged partial batches drain findings=16
+PASS all 17 retained-count cases drain within four actual reservations
+PASS sixteen retained findings use four real baseline batches
+PASS Packager level two drains same findings with three real batches
+PASS terminal before authorization retains work, bytes, leases and delivery credit
+PASS wrong authorization owner cannot retire the committed selection
+PASS upgrade changes next target while committed membership, bytes and timing stay fixed
+PASS actual fifth reservation refusal retains remaining findings without delivery credit
+CANONICAL OUTPUT:24 directed checks complete
+PASS first wave drains before retiring its canonical round
+PASS Enter starts a distinct actual second round
+PASS next wave retains towers gold and HP
+PASS two rounds drain thirty-two real findings using eight actual reservations
+PASS manual completion awards exactly twenty gold once per survived wave
+PASS A grants three seconds prep
+PASS countdown advances by the fixed twenty millisecond tick
+PASS pause freezes the shared Task countdown
+PASS resumed countdown starts exactly one wave
+PASS shared Session automatic defended campaign drains six actual rounds
+PASS automatic waves retain manual tower levels and award exactly twenty gold per completed survived wave
+PASS campaign settles ninety-six actual review outcomes with at most twenty-four real reservations
+PASS finite campaign ends recurring Tasks after six waves
+PASS every observed actual delivery counter remains within the real four-reservation budget
+PASS undefended defeat settles all real ownership and disables automatic starts
+PASS defeat prevents further manual and automatic waves
+PASS defeat gives no completion reward for the lost wave
+PASS defeated campaign also obeys each actual round finish budget
+PASS restart resets campaign and disables automatic waves
+PASS restart resets resources and delivered count
+PASS manual start cannot overlap real ownership
+PASS wave completion requests the next recurring Task from shared Session.on_finish
+CANONICAL CAMPAIGN:7 directed checks complete
+PASS District: every road enters/exits wall normally; finite simple room paths
+PASS Campus: both review branches enter normally and merge into shared serpent
+PASS Junction: corrected preparation and review entrances are perpendicular
+PASS tangent road along a wall is rejected
+PASS corner attachment is rejected
+PASS diagonal wall approach is rejected
+PASS diagonal interior segment is rejected
+PASS crossing interior path is rejected
+PASS returning to an earlier vertex is rejected
+PASS five horizontal passes and four turns are authored
+PASS long horizontal road advances exactly one pixel without percentage rounding
+PASS elbow continues exact distance without a teleport
+CANONICAL GEOMETRY:12 directed checks complete
+PASS empty scene background
+PASS opaque front tile hides all later layers
+PASS overlap priority and quadrant boundaries
+PASS half-open rectangle edges
+PASS clipping outside canvas
+PASS zero-width foreground has no pixels
+RASTER: 6144 pixels match independent oracle

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import * as Schedule from "effect/Schedule";
+import { effectiveSessionAnalytics } from "./configuration/resolve.ts";
+import { readAnalytics, formatAnalyticsHuman } from "./activity/analytics.ts";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
@@ -35,8 +37,7 @@ import {
 import { directHookSubmissionLayer, submitDirectHookOutput } from "./resident/direct-hook-output.ts";
 import {
   admitObservationEffect,
-  admitTicketedObservationEffect,
-  collectOutcomeEffect,
+  admitAndCollectEffect,
   ensureResidentEffect,
   ResidentStartup,
   residentStartupLayer,
@@ -48,13 +49,15 @@ import { hookOutputLayer } from "./resident/hook-output.ts";
 import { composedHookRuntimeLayer, runComposedHookEffect, type ComposedHookKind, type ComposedHookHost } from "./resident/composed-hook.ts";
 import {
   installCodexIntegration,
+  inspectCodexInstallation,
+  hasCodexRegistration,
   previewCodexInstallation,
   previewCodexUpdate,
   uninstallCodexIntegration,
   updateCodexIntegration,
 } from "./onboarding/codex-installation.ts";
 import {
-  previewClaudeInstallation, installClaudeIntegration, previewClaudeUpdate,
+  previewClaudeInstallation, inspectClaudeInstallation, hasClaudeRegistration, installClaudeIntegration, previewClaudeUpdate,
   updateClaudeIntegration, uninstallClaudeIntegration, diagnoseClaudeIntegration,
 } from "./onboarding/claude-installation.ts";
 import {
@@ -71,7 +74,9 @@ import {
 import { terminalModeArguments } from "./credentials/terminal.ts";
 import { readActivity, formatActivityHuman, recordActivity } from "./activity/status.ts";
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
+import { selectSetupClients, type ClientChoice, type SetupClient } from "./onboarding/client-selection.ts";
 import { stageRelease, type ReleaseSelection } from "./onboarding/distribution.ts";
+import { activateCurrentPackage, activatePackage, clientCommands, dispatchActivePackage, dispatchSelectedPackage, formatCompatibility, formatDoctor, formatFailure, formatProposal, invokeLifecycle, parseClientArguments, profileFields, registeredClients, type ClientCommand } from "./onboarding/client-lifecycle.ts";
 import { runSetup } from "./onboarding/setup.ts";
 import { runFirstReviewDemo } from "./onboarding/first-review-demo.ts";
 import { recordDemoTrace } from "./onboarding/demo-trace.ts";
@@ -159,9 +164,9 @@ type ReviewOperation = typeof ReviewOperation.Type;
 
 const installationOperationsFor = <const Fields extends Schema.Struct.Fields>(fields: Fields) => Schema.Union([
   Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("doctor"), cwd: Schema.String, ...fields }),
-  Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("install-preview"), ...fields }),
+  Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("install-preview"), reinstall: Schema.optionalKey(Schema.Boolean), ...fields }),
   Schema.Struct({
-    version: Schema.Literal(1), operation: Schema.Literal("install"), ...fields,
+    version: Schema.Literal(1), operation: Schema.Literal("install"), reinstall: Schema.optionalKey(Schema.Boolean), ...fields,
     proposalDigest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)),
   }),
   Schema.Struct({ version: Schema.Literal(1), operation: Schema.Literal("update-preview"), ...fields }),
@@ -441,21 +446,10 @@ const runDirectBoundedHook = Effect.fn("ClaudeHook.collectBounded")(function* (
     observation.root, statePath, activityPath, userConfigPath, controlled,
   ));
   if (dispatch === undefined) return {};
-  const accepted = yield* bounded(admitTicketedObservationEffect(observation, dispatch, undefined, isComposedEditHook));
-  if (accepted?.status !== "accepted") return {};
-  const pass = Effect.gen(function* () {
-    if (remaining() <= 150) return { done: true, output: {} };
-    const outcome = yield* bounded(collectOutcomeEffect(accepted.admission));
-    if (outcome?.status === "advice") {
-      return { done: true, output: { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice } };
-    }
-    return { done: outcome?.status !== "pending", output: {} };
-  });
-  const result = yield* pass.pipe(Effect.repeat({
-    schedule: Schedule.spaced("50 millis"),
-    until: (result) => result.done || remaining() <= 150,
-  }));
-  return result.output;
+  const outcome = yield* bounded(admitAndCollectEffect(observation, dispatch, deadline - 150));
+  return outcome?.status === "advice"
+    ? { _tag: "DirectEventReady", value: outcome.advice.output, collected: outcome.advice }
+    : {};
 });
 
 const isDirectEventReady = (
@@ -514,6 +508,10 @@ const runOperation = (
         sessionId: operation.sessionId ?? "",
         resident,
       });
+      const analytics = readAnalytics({
+        enabled: settings !== undefined && effectiveSessionAnalytics(settings.configuration.policy),
+        statePath: activityPath, root, sessionId: operation.sessionId ?? "",
+      });
       const output = {
         version: 1,
         operation: "status",
@@ -532,10 +530,11 @@ const runOperation = (
           },
         },
         activity: residentActivity,
+        analytics,
         activitySource: "resident-v1",
       };
       return operation.format === "human"
-        ? `readiness: ${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}`
+        ? `readiness: ${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}\n${formatAnalyticsHuman(analytics)}`
         : output;
     }
     const settings = yield* loadReviewSettings(
@@ -654,6 +653,7 @@ const program = Effect.gen(function* () {
     const operation = yield* decodeInstallationOperation(input, requestedInstallationOperation);
     if (operation.host === "claude") {
       const claudeRequest = {
+        ...("reinstall" in operation && operation.reinstall === true ? { reinstall: true } : {}),
         ...(operation.claudeHome === undefined ? {} : { claudeHome: operation.claudeHome }),
         ...(!("claudeExecutable" in operation) || operation.claudeExecutable === undefined
           ? {} : { claudeExecutable: operation.claudeExecutable }),
@@ -687,6 +687,7 @@ const program = Effect.gen(function* () {
       }
     }
     const request = {
+      ...("reinstall" in operation && operation.reinstall === true ? { reinstall: true } : {}),
       ...(operation.codexHome === undefined ? {} : { codexHome: operation.codexHome }),
       ...(!("codexExecutable" in operation) || operation.codexExecutable === undefined
         ? {}
@@ -1043,16 +1044,21 @@ const isCredentialCommand = process.argv.includes("--login") || process.argv.inc
 const printHelp = () => {
   process.stdout.write(`Hapsland — Claude Code and Codex review integration
 
+  hapsland setup              Select one or both clients (installed clients checked)
   hapsland setup claude       Guided Claude Code setup
   hapsland setup codex        Guided Codex CLI setup
+  hapsland update             Update all installed client integrations
   hapsland update claude      Stage stable release and update Claude hooks
   hapsland update codex       Stage stable release and update Codex hooks
   hapsland update codex --channel=next   Opt into a published candidate
   hapsland update claude --tarball=/absolute/candidate.tgz
   hapsland --pilot --host=codex          Guided setup in a terminal
   hapsland --login            Save a Jev key with masked entry
-  hapsland doctor claude      Offline readiness in the current repository
-  hapsland doctor codex       Offline readiness in the current repository
+  hapsland doctor             Check every installed client (read-only)
+  hapsland doctor claude      Check one client
+  hapsland repair             Restore missing Hapsland hooks
+  hapsland reinstall          Replace marked Hapsland hooks; keep user settings
+  hapsland uninstall          Remove Hapsland from installed clients
   hapsland --doctor           Offline readiness check (JSON request on stdin)
   hapsland --logout           Remove the saved Jev key
 
@@ -1063,29 +1069,19 @@ For automation, use the versioned --setup operation documented in docs/claude-in
 `);
 };
 
-const flagValue = (name: string): string | undefined =>
-  process.argv.find((argument) => argument.startsWith(`${name}=`))?.slice(name.length + 1);
+let clientArguments: ReturnType<typeof parseClientArguments> | undefined;
+const flagValue = (name: string): string | undefined => clientArguments?.flags.get(name);
+const positionalHost = () => clientArguments?.host;
+const selectedHost = (): SetupClient => clientArguments?.host ?? "codex";
+const hostFields = (host: SetupClient) => profileFields(host, clientArguments?.flags ?? new Map());
 
-const selectedHost = (): "claude" | "codex" => {
-  const host = flagValue("--host") ?? ((process.argv[2] === "setup" || process.argv[2] === "update" || process.argv[2] === "doctor") ? process.argv[3] : undefined) ?? "codex";
-  if (host !== "claude" && host !== "codex") throw new Error("select claude or codex (for example: hapsland setup claude)");
-  return host;
-};
-const hostFields = (host: "claude" | "codex") => {
-  const home = flagValue(`--${host}-home`);
-  const executable = flagValue(`--${host}-executable`);
-  return host === "claude"
-    ? { host, ...(home === undefined ? {} : { claudeHome: home }), ...(executable === undefined ? {} : { claudeExecutable: executable }) }
-    : { host, ...(home === undefined ? {} : { codexHome: home }), ...(executable === undefined ? {} : { codexExecutable: executable }) };
-};
 const askConfirmation = async (question: string) => {
   const prompt = createInterface({ input: process.stdin, output: process.stderr });
   try { return (await prompt.question(`${question} [y/N] `)).trim().toLowerCase() === "y"; }
   finally { prompt.close(); }
 };
 
-const pilotSetup = async () => {
-  const host = selectedHost();
+const pilotSetup = async (host: SetupClient) => {
   const hostName = host === "claude" ? "Claude Code" : "Codex";
   if (!process.stdin.isTTY || !process.stderr.isTTY) {
     process.stderr.write("Guided setup needs a terminal. Run hapsland --pilot there, or use hapsland --setup with a versioned JSON request.\n");
@@ -1119,21 +1115,22 @@ const pilotSetup = async () => {
     process.stderr.write(`${hostName} review integration setup. Selected profile hooks apply across repositories according to file settings. No Jev call is made during setup.\n`);
     let result = await run(request);
     process.stderr.write(`Compatibility: ${stage(result, "compatibility")?.summary ?? "unavailable"}.\n`);
+    for (const line of formatCompatibility(stage(result, "compatibility")?.observed)) process.stderr.write(`${line}\n`);
     if (stage(result, "compatibility")?.status !== "complete") {
       process.stderr.write(`${result.actions[0]?.action ?? `Use a declared ${hostName} profile.`}\n`);
       process.exitCode = 3;
       return;
     }
-    if (!["complete", "pending"].includes(stage(result, "installation")?.status ?? "")) {
+    if (!["complete", "pending", "partial"].includes(stage(result, "installation")?.status ?? "")) {
       process.stderr.write(`Installation: ${stage(result, "installation")?.summary ?? "unavailable"}.\n`);
       for (const item of result.actions) process.stderr.write(`Next: ${item.action}.\n`);
       process.exitCode = result.status === "partial" ? 5 : 4;
       return;
     }
-    const install = action(result, "approve-installation");
+    const install = action(result, "approve-installation") ?? action(result, "resume-installation");
     if (install !== undefined) {
-      const observed = stage(result, "installation")?.observed as { proposal?: { ownedChanges?: unknown } } | undefined;
-      process.stderr.write(`Installation preview (owned changes):\n${JSON.stringify(observed?.proposal?.ownedChanges, null, 2)}\n`);
+      const observed = stage(result, "installation")?.observed as { proposal?: unknown } | undefined;
+      process.stderr.write(`Installation preview:\n${formatProposal(observed?.proposal).join("\n")}\n`);
       if (!await askConfirmation(`Install these entries in the selected ${hostName} profile?`)) {
         process.stderr.write(`Installation was not changed. Run hapsland setup ${host} to resume.\n`);
         return;
@@ -1144,6 +1141,7 @@ const pilotSetup = async () => {
     }
     result = await run({ ...request, interactive: true });
     process.stderr.write(`Installation: ${stage(result, "installation")?.summary ?? "unavailable"}.\n`);
+    if (["complete", "partial"].includes(stage(result, "installation")?.status ?? "")) activateCurrentPackage(fileURLToPath(import.meta.url));
     if (credentialEntered && stage(result, "credential")?.status === "complete") {
       process.stderr.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`);
     }
@@ -1183,9 +1181,50 @@ const pilotSetup = async () => {
     process.stderr.write(`After native ${hostName} repository and hook trust, make an ordinary supported edit and inspect review activity.\n`);
 };
 
+const chooseSetupClients = async () => {
+  if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.");
+  const choices: ClientChoice[] = (["claude", "codex"] as const).map(host => {
+    const fields = hostFields(host);
+    const inspection = fields.host === "claude" ? inspectClaudeInstallation(fields) : inspectCodexInstallation(fields);
+    const decoded = Schema.decodeUnknownSync(Schema.Struct({ status: Schema.String, installed: Schema.optionalKey(Schema.Boolean) }))(inspection);
+    let status: ClientChoice["status"] = decoded.installed === true ? "installed"
+      : ["conflict", "partial"].includes(decoded.status) ? "needs attention" : "not installed";
+    if (fields.host === "codex" && status === "not installed") {
+      const target = previewCodexUpdate(fields);
+      // An owned registration may point to a different retained package.
+      if (target.status === "preview") status = "installed";
+      else if (target.status === "unsupported") status = "unavailable";
+    }
+    if (fields.host === "claude" && status === "not installed" && previewClaudeInstallation(fields).status === "unsupported") status = "unavailable";
+    return { host, name: host === "claude" ? "Claude Code" : "Codex CLI", status };
+  });
+  const hosts = await selectSetupClients(choices);
+  if (hosts.length === 0) { process.stderr.write("No clients selected. No changes made.\n"); return; }
+  for (const host of hosts) {
+    try { await pilotSetup(host); }
+    catch (cause) {
+      process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "Setup failed"}\n`);
+      process.exitCode = 6;
+    }
+  }
+};
+
 const updateInteractive = async () => {
-  const host = selectedHost();
   if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Interactive update needs a terminal. Use --update-preview / --update JSON operations for automation.");
+  const explicitHost = flagValue("--host") !== undefined || positionalHost() !== undefined;
+  const hosts: SetupClient[] = [];
+  const outcomes = new Map<SetupClient, "updated" | "already current" | "skipped" | "failed">();
+  const failed = (host: SetupClient, cause: unknown) => {
+    process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "Update failed"}\n`);
+    outcomes.set(host, "failed"); process.exitCode = 6;
+  };
+  if (explicitHost) hosts.push(selectedHost());
+  else hosts.push(...registeredClients(clientArguments?.flags ?? new Map(), failed));
+  if (hosts.length === 0) {
+    process.stderr.write(outcomes.size === 0 ? "No Hapsland integrations found. Run hapsland setup first.\n" : "No client registrations could be selected for update. Resolve the reported discovery errors.\n");
+    return;
+  }
+  process.stderr.write(`Update clients: ${hosts.join(", ")}.\n`);
   const target = flagValue("--target");
   if (target !== undefined && ["--tarball", "--version", "--channel"].some(flag => flagValue(flag) !== undefined)) {
     throw new Error("--target cannot be combined with --tarball, --version, or --channel");
@@ -1201,8 +1240,7 @@ const updateInteractive = async () => {
     const selection: ReleaseSelection = archive === undefined
       ? { kind: "registry", channel, ...(version === undefined ? {} : { version }) }
       : { kind: "archive", path: archive };
-    process.stderr.write(`Acquire ${archive ?? `@hapsland/hapsland@${version ?? channel}`} into a fresh prefix; the active package is retained.\n`);
-    if (!await askConfirmation("Download/install this target?")) return;
+    process.stderr.write(`Select ${archive ?? `@hapsland/hapsland@${version ?? channel}`}; reuse a verified package when available. The previous package is retained.\n`);
     const staged = await Effect.runPromise(stageRelease(selection));
     executable = staged.executable;
     process.stderr.write(`Target ${staged.packageVersion}: ${executable}\n`);
@@ -1210,45 +1248,122 @@ const updateInteractive = async () => {
   const childEnvironment = { ...process.env };
   delete childEnvironment.REVIEW_INSTALL_RUNTIME;
   delete childEnvironment.REVIEW_INSTALL_ENTRYPOINT;
-  const invoke = (operation: "update-preview" | "update", proposalDigest?: string) => {
-    const result = spawnSync(executable, [`--${operation}`], {
-      input: JSON.stringify({ version: 1, operation, ...hostFields(host), ...(proposalDigest === undefined ? {} : { proposalDigest }) }),
-      encoding: "utf8", timeout: 30_000, env: childEnvironment,
-    });
-    if (result.error !== undefined) throw result.error;
-    const output = Schema.decodeUnknownSync(Schema.Struct({
-      status: Schema.String,
-      proposal: Schema.optionalKey(Schema.Struct({ digest: Schema.String.check(Schema.isPattern(/^[a-f0-9]{64}$/)) })),
-    }))(JSON.parse(result.stdout));
-    process.stderr.write(result.stdout + "\n");
-    if (result.status !== 0) throw new Error(`Target updater returned ${output.status}. Follow its recovery/conflict instructions; keep the target installed.`);
+  const invoke = (host: SetupClient, operation: "update-preview" | "update", proposalDigest?: string) => {
+    const output = invokeLifecycle(executable, [`--${operation}`], host, { version: 1, operation, ...hostFields(host), ...(proposalDigest === undefined ? {} : { proposalDigest }) }, childEnvironment);
+    for (const line of formatProposal(output.proposal)) process.stderr.write(`${line}\n`);
     return output;
   };
-  const preview = invoke("update-preview");
-  if (preview.status !== "preview" || preview.proposal === undefined) throw new Error("target did not return an applicable update preview");
-  if (!await askConfirmation(`Apply these changes to the selected ${host} profile?`)) return;
-  const result = invoke("update", preview.proposal.digest);
-  if (!["updated", "complete", "already-current"].includes(result.status)) throw new Error(`Update did not complete: ${result.status}`);
-  process.stderr.write(`Finish current work, restart ${host}, and review native trust prompts. Retain the previous package until its hooks and active sessions no longer depend on it.\n`);
+  const proposals: Array<{ host: SetupClient; digest: string }> = [];
+  for (const host of hosts) {
+    try {
+      process.stderr.write(`Preview ${host}:\n`);
+      const preview = invoke(host, "update-preview");
+      if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined) throw new Error("target did not return an applicable update preview");
+      if (preview.alreadyCurrent === true || preview.proposal.changes?.length === 0) { outcomes.set(host, "already current"); activatePackage(executable); }
+      else proposals.push({ host, digest: preview.proposal.digest });
+    } catch (cause) { failed(host, cause); }
+  }
+  if (proposals.length > 0) {
+    const apply = await askConfirmation(`Apply these changes to ${proposals.map(proposal => proposal.host).join(", ")} profiles?`);
+    for (const proposal of proposals) {
+      if (!apply) { outcomes.set(proposal.host, "skipped"); continue; }
+      try {
+        const result = invoke(proposal.host, "update", proposal.digest);
+        if (result.status === "partial") {
+          activatePackage(executable);
+          throw new Error(`${formatFailure(result, proposal.host)} Next: hapsland repair ${proposal.host}. The selected package is retained for recovery.`);
+        }
+        if (!["updated", "complete", "already-current"].includes(result.status)) throw new Error(formatFailure(result, proposal.host));
+        outcomes.set(proposal.host, result.status === "already-current" ? "already current" : "updated");
+        activatePackage(executable);
+      } catch (cause) { failed(proposal.host, cause); }
+    }
+  }
+  for (const [host, status] of outcomes) {
+    process.stderr.write(`${host}: ${status}.\n`);
+    if (status === "updated") process.stderr.write(`Finish current work, restart ${host}, and review native trust prompts.\n`);
+  }
+  process.stderr.write("Retain previous packages until their hooks and active sessions no longer depend on them.\n");
 };
 
-if (process.argv.includes("--help") || process.argv.includes("-h")) {
+const reportClientFailure = (host: SetupClient, cause: unknown) => { process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`); process.exitCode = 6; };
+
+const maintenanceInteractive = async (command: "repair" | "reinstall" | "uninstall") => {
+  if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error(`${command} needs a terminal. Use the version-one installation JSON interface for automation.`);
+  const hosts = clientArguments?.host === undefined ? registeredClients(clientArguments?.flags ?? new Map(), reportClientFailure) : [selectedHost()];
+  if (hosts.length === 0) {
+    if (command === "reinstall") activateCurrentPackage(fileURLToPath(import.meta.url));
+    process.stderr.write("No Hapsland integrations found. Run hapsland setup first.\n"); return;
+  }
+  for (const host of hosts) {
+    try {
+      const fields = hostFields(host);
+      const reinstall = command === "reinstall";
+      const installed = fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields);
+      const inspection = fields.host === "claude" ? inspectClaudeInstallation(fields) : inspectCodexInstallation(fields);
+      const recovered = Schema.decodeUnknownSync(Schema.Struct({ recovery: Schema.optionalKey(Schema.Struct({ operation: Schema.String })) }))(inspection).recovery?.operation;
+      const operation = command === "repair" && (recovered === "install" || recovered === "update" || recovered === "uninstall") ? recovered : command === "uninstall" ? "uninstall" : fields.host === "claude" && installed && !reinstall ? "update" : "install";
+      const invoke = (digest?: string) => {
+        const request = { version: 1, ...fields, operation: digest === undefined && operation !== "uninstall" ? `${operation}-preview` : operation, ...(reinstall && operation === "install" ? { reinstall: true } : {}), ...(digest === undefined ? {} : { proposalDigest: digest }) };
+        const output = invokeLifecycle(process.execPath, [fileURLToPath(import.meta.url), `--${request.operation}`], host, request);
+        return output;
+      };
+      const preview = invoke();
+      if (preview.status === "already-uninstalled") { process.stderr.write(`${host}: already removed.\n`); continue; }
+      if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined) throw new Error(formatFailure(preview, host));
+      if (preview.proposal.changes?.length === 0) { process.stderr.write(`${host}: ${command === "uninstall" ? "already removed" : "integration intact"}.\n`); continue; }
+      if (recovered !== undefined && command === "repair") process.stderr.write(`Resume interrupted ${operation}; after completion rerun hapsland repair ${host} if needed.\n`);
+      process.stderr.write(`${host} ${command} preview:\n${formatProposal(preview.proposal).join("\n")}\n`);
+      if (reinstall) process.stderr.write("Replace marked Hapsland handlers; preserve independent hooks, review settings and saved credentials.\n");
+      if (!await askConfirmation(`Apply ${command} to ${host}?`)) { process.stderr.write(`${host}: skipped.\n`); continue; }
+      const result = invoke(preview.proposal.digest);
+      if (result.status === "partial" && operation !== "uninstall") activateCurrentPackage(fileURLToPath(import.meta.url));
+      if (!["complete", "installed", "already-installed", "updated", "already-current", "uninstalled", "already-uninstalled", "removed", "already-removed"].includes(result.status)) throw new Error(formatFailure(result, host));
+      if (operation !== "uninstall") activateCurrentPackage(fileURLToPath(import.meta.url));
+      process.stderr.write(`${host}: ${operation === "uninstall" ? "removed" : "restored"}. User settings and credentials preserved.\n`);
+      process.stderr.write(`Finish current work and restart ${host}${operation === "uninstall" ? "." : "; review native trust prompts."}\n`);
+    } catch (cause) { process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`); process.exitCode = 6; }
+  }
+};
+
+if (process.argv[2] === "--package-identity") {
+  process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", runtime: process.execPath, entrypoint: fileURLToPath(import.meta.url) }) + "\n");
+} else if (process.argv.includes("--help") || process.argv.includes("-h")) {
   printHelp();
-} else if (process.argv.includes("--pilot") || process.argv[2] === "setup" || process.argv[2] === "update" || process.argv[2] === "doctor") {
+} else if (process.argv.includes("--pilot") || clientCommands.some(command => command === process.argv[2])) {
   try {
-    if (process.argv[2] === "doctor") {
-      const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
-        input: JSON.stringify({ version: 1, operation: "doctor", cwd: process.cwd(), ...hostFields(selectedHost()) }), encoding: "utf8", timeout: 10_000,
-      });
-      if (result.error !== undefined) throw result.error;
-      process.stdout.write(result.stdout); process.stderr.write(result.stderr);
-      process.exitCode = result.status ?? 6;
-    } else if (process.argv[2] === "update") await updateInteractive();
-    else await pilotSetup();
+    const command = (process.argv.includes("--pilot") ? "setup" : process.argv[2]) as ClientCommand;
+    clientArguments = parseClientArguments(command, process.argv.slice(3));
+    const selectedPackage = clientArguments.flags.get("--target");
+    const dispatched = selectedPackage !== undefined && command !== "update"
+      ? dispatchSelectedPackage(selectedPackage, command, clientArguments.host, clientArguments.flags)
+      : dispatchActivePackage([command, ...process.argv.slice(3)]);
+    if (dispatched !== undefined) process.exitCode = dispatched;
+    else if (command === "doctor") {
+      const hosts = clientArguments.host === undefined ? registeredClients(clientArguments.flags, reportClientFailure) : [selectedHost()];
+      if (hosts.length === 0) process.stderr.write("No Hapsland integrations found. Run hapsland setup first.\n");
+      for (const host of hosts) {
+        try {
+          const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
+            input: JSON.stringify({ version: 1, operation: "doctor", cwd: process.cwd(), ...hostFields(host) }), encoding: "utf8", timeout: 10_000,
+          });
+          if (result.error !== undefined) throw result.error;
+          const diagnosis = JSON.parse(result.stdout);
+          process.stdout.write(formatDoctor(diagnosis, host).join("\n") + "\n");
+          if (result.status !== 0 || diagnosis.status === "not-ready") process.exitCode = result.status || 6;
+        } catch (cause) { reportClientFailure(host, cause); }
+      }
+    } else if (command === "update") await updateInteractive();
+    else if (command === "repair" || command === "reinstall" || command === "uninstall") await maintenanceInteractive(command);
+    else if (clientArguments.host === undefined) await chooseSetupClients();
+    else await pilotSetup(selectedHost());
   } catch (cause) {
     process.stderr.write(`${cause instanceof Error ? cause.message : "Interactive operation failed"}\n`);
     process.exitCode = 6;
   }
+} else if (process.argv[2] !== undefined && !process.argv[2].startsWith("--")) {
+  process.stderr.write(`Unknown command: ${process.argv[2]}. Run hapsland --help.\n`);
+  process.exitCode = 6;
 } else {
 const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
   const watchdog = isClaudeHook || isOpenCodeHook

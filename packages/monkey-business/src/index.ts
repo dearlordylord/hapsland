@@ -33,7 +33,7 @@ export type {
 export const REPLAY_FORMAT = "monkey-business/1";
 export const RANDOM_ALGORITHM = "xorshift32/1";
 export const LOGIC_IDENTITY =
-  "canonical-source-sha256:3bf1c60bb920608412b200e91a652b8fdd8f7de6b4b42481de756d34c31b6395";
+  "canonical-source-sha256:c75c63f1c243f7df350237464e217d89518a9b0366e468b2a18ba782a9d4c061";
 export const PREPARATION_IDENTITY = "import-preparation-sha256:812ca7a89d0f7b39ea4b4aa68e220b744bc0f6c2a7e1c1dcf2e5374919ca11ae";
 export type RunInput =
   | SessionInput

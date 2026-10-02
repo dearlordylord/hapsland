@@ -1,0 +1,52 @@
+PASS direct reducer admits observed preparation
+PASS direct reducer splits and replaces byte reservations
+PASS real sibling dependency blocks collection and Stop
+PASS completed sibling permits actual collection
+PASS cannot construct on sidebar
+PASS manual spatial construction spends original Rapid35
+PASS cannot construct in building footprint
+PASS cannot construct on road
+PASS overlapping tower construction rejected
+PASS selected upgrade spends40
+PASS Rapid actual active work shot12
+PASS out-of-range processor cannot affect active work
+PASS Refiner shot permanently removes20 percentage points
+PASS preparation prevention carries to future child source metadata
+PASS Refiner never accelerates service work
+PASS Relay has original lower power6
+PASS Coordinator targets actual unfinished sibling holding findings
+PASS Coordinator has no effect without held sibling findings
+PASS Parallelizer changes covered host source permits only
+PASS canonical limits remain original eight
+PASS Packager changes actual next batch target and host item work
+PASS Packager preview exact serialization reduction
+PASS Rapid preview matches exact remaining-work marginal shot
+PASS empty range explicitly has zero effect
+PASS inside hot pressure generates actual damage cadence
+PASS local finite Shield reduces damage work
+PASS shield charging happens only protection not work firing
+PASS Shield never changes real ledger occupancy
+PASS pause freezes pressure damage
+PASS map cannot relocate constructed towers
+PASS map cannot relocate an active wave
+PASS automatic wave mode never constructs towers
+PASS source road distance gates actual source-start fact
+PASS review road distance gates actual backend request fact
+PASS every real backend request retains actual dispatch ownership
+PASS baseline future findings chance100 never authored clear
+PASS finite baseline drains sixteen real acknowledged findings
+PASS completed wave releases request and delivery ownership
+PASS zero future risk resolves clear only at actual backend completion
+PASS Refiner never targets already observed PendingFinding
+PASS Shield spends one finite charge per useful hot tick
+PASS zero-marginal new Shield remains idle behind existing capped protection
+PASS Rapid acquires road mob even when source building is outside radius
+PASS Rapid road shot changes the rendered authoritative travel position
+PASS Refiner reduces future findings risk on road without movement acceleration
+PASS Relay accelerates roads; Coordinator still requires active Jev blocker
+PASS preparation and review approach roads are targetable
+PASS road-only placement preview advertises real shot effect
+PASS road targeting respects spatial range and does not grant worker permits
+PASS road shot advances actual core source-start fact before unboosted arrival
+PASS empty but covered road is suitable scope with no current effect
+CANONICAL SPATIAL DEFENSE:51 directed checks complete

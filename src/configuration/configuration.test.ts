@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { ConfigurationError } from "./errors.ts";
 import { decodeConfigurationText, serializeConfigurationDocument } from "./decode.ts";
-import { effectiveEditPermitLimits, effectiveGraphLimits, effectiveVirtualRoundQuietMs, resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
+import { effectiveSessionAnalytics, effectiveEditPermitLimits, effectiveGraphLimits, effectiveVirtualRoundQuietMs, resolveConfiguration, stableConfigurationValue } from "./resolve.ts";
 import type { ConfigurationLayer } from "./resolve.ts";
 import { selectGlobalPath } from "../policy/file-policy.ts";
 import { explainPath } from "../explanation/index.ts";
@@ -24,6 +24,20 @@ const builtIn = (): ConfigurationLayer => ({
 });
 
 describe("configuration v1 decoding", () => {
+  it("requires user opt-in for session analytics", () => {
+    expect(effectiveSessionAnalytics(resolveConfiguration([], "/repo"))).toBe(false);
+    expect(effectiveSessionAnalytics(resolveConfiguration([
+      source("user", '{"version":1,"sessionAnalytics":true}'),
+    ], "/repo"))).toBe(true);
+    expect(effectiveSessionAnalytics(resolveConfiguration([
+      source("user", '{"version":1,"sessionAnalytics":false}'),
+    ], "/repo"))).toBe(false);
+    expect(() => resolveConfiguration([
+      source("project", '{"version":1,"sessionAnalytics":true}'),
+    ], "/repo")).toThrowError(expect.objectContaining({ field: "sessionAnalytics" }));
+    expect(() => source("user", '{"version":1,"sessionAnalytics":"true"}'))
+      .toThrowError(expect.objectContaining({ field: "sessionAnalytics" }));
+  });
   it("captures the user-owned virtual round quiet duration", () => {
     expect(effectiveVirtualRoundQuietMs(resolveConfiguration([], "/repo"))).toBe(300_000);
     expect(effectiveVirtualRoundQuietMs(resolveConfiguration([

@@ -51,6 +51,7 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 | `privacyExcludes` | array of non-empty string (may be empty) | Optional | — | Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers. |
 | `privacyExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
+| `sessionAnalytics` | boolean | Optional | false | User-owned opt-in session analytics. Disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store. |
 | `claudeFeedbackMode` | string | Optional | "advisory" | Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory. |
 | `editPermitLimits` | object | Optional | — | User-owned shared resident admission limits. Omitted values use built-in defaults. |
 | `editPermitLimits.perAdvicee` | integer (1–65536) | Optional | 32 | Maximum simultaneously pending edit permits for one advicee in the shared resident. |
@@ -114,6 +115,11 @@ Credential selection has a user-owned exception to this precedence: a
 `credentialEnvVar` set in user configuration takes priority over a project value.
 A project value takes effect when user configuration omits the field. If both omit
 it, the built-in `TYPESAFE_API_KEY` reference applies.
+
+Session analytics are disabled by default. Set `"sessionAnalytics": true` in the user
+configuration to record source-free Jev outcome totals and a bounded rule-ID history.
+Projects cannot set this field. See [session analytics](status.md#optional-session-analytics)
+for count semantics and the shared 30-day / 20 MiB retention limits.
 
 Claude Code feedback defaults to `advisory`. In the candidate installed flow,
 the synchronous `PostToolUse` hook may return a current finding within its

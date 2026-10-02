@@ -8,8 +8,8 @@ import {
   combinedFindingOutput,
   combinedClaudeOutput,
   combinedReviewOutput,
-  composedClaudeHostOutput,
-  encodedComposedClaudeOutputBytes,
+  claudeStopHostOutput,
+  encodedClaudeStopOutputBytes,
   encodedHostOutputBytes,
   encodedClaudeHostOutputBytes,
   fitsClaudeReviewResponse,
@@ -19,8 +19,8 @@ import {
   selectFittingClaudeFindings,
   selectFittingCurrentFindingIndices,
   selectFittingClaudeNotices,
-  selectFittingComposedClaudeFindings,
-  selectFittingComposedClaudeNotices,
+  selectFittingClaudeStopFindings,
+  selectFittingClaudeStopNotices,
   selectFittingNotices,
   type FindingSelectionFacts,
 } from "./collection.ts";
@@ -146,14 +146,14 @@ describe("resident advice collection policy", () => {
     expect(Effect.runSync(selectFittingClaudeFindings([], [oversized, finding(1)], "block-current-findings"))).toEqual([finding(1)]);
   });
 
-  it.each(["background", "stop"] as const)("bounds the final composed Claude %s response", (surface) => {
-    const baseline = encodedComposedClaudeOutputBytes([finding(0, "")], [], surface);
+  it("bounds the final Claude Stop response", () => {
+    const baseline = encodedClaudeStopOutputBytes([finding(0, "")], []);
     const exact = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES - baseline));
-    expect(encodedComposedClaudeOutputBytes([exact], [], surface)).toBe(MAX_COMBINED_RESPONSE_BYTES);
-    expect(Effect.runSync(selectFittingComposedClaudeFindings([], [exact], surface))).toEqual([exact]);
-    expect(Effect.runSync(selectFittingComposedClaudeFindings([], [{ ...exact, message: `${exact.message}x` }], surface))).toEqual([]);
-    expect(selectFittingComposedClaudeNotices([exact], [{ kind: "backend", suppressedCount: 0 }], surface)).toEqual([]);
-    const output = composedClaudeHostOutput(combinedReviewOutput([exact], []), 1, surface);
+    expect(encodedClaudeStopOutputBytes([exact], [])).toBe(MAX_COMBINED_RESPONSE_BYTES);
+    expect(Effect.runSync(selectFittingClaudeStopFindings([], [exact]))).toEqual([exact]);
+    expect(Effect.runSync(selectFittingClaudeStopFindings([], [{ ...exact, message: `${exact.message}x` }]))).toEqual([]);
+    expect(selectFittingClaudeStopNotices([exact], [{ kind: "backend", suppressedCount: 0 }])).toEqual([]);
+    const output = claudeStopHostOutput(combinedReviewOutput([exact], []), 1);
     expect(Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8")).toBe(MAX_COMBINED_RESPONSE_BYTES);
   });
 

@@ -1,0 +1,102 @@
+Purpose: reproduce dense Pending Finding render costs and validate unchanged images.
+Authority: bounded Linux ARM64 implementation/timing evidence, not macOS FPS or learning validation.
+Cleanup: at game-layout selection consolidate retained performance decisions into README/specification and delete superseded evidence.
+
+Bend2.0.34; clang14.0.6; optimized -O3; four CPU workers.
+Three sequential repetitions per version, each ten fixed-state scene/image samples and one hundred independent single-tick samples. Medians of per-run means. Final repetitions ran after our game window and capture X server were closed, with no concurrent compiler or game process from this task. Other machine activity remains uncontrolled. Fixtures use real canonical admission, preparation and findings; synthetic ages place units at WAIT. Image time includes scene generation, quadtree construction and Image.free; excludes native presentation. Thus these are frame preparation costs, not measured display FPS.
+
+PENDING SCENE_BEFORE_MS SCENE_AFTER_MS IMAGE_BEFORE_MS IMAGE_AFTER_MS
+0 1.0 1.0 27.4 12.2
+8 5.4 2.2 36.1 15.6
+16 31.4 4.7 67.2 20.9
+
+PASS full scene exact image-tree equality at pending=0
+PASS full scene exact image-tree equality at pending=8
+PASS full scene exact image-tree equality at pending=16
+
+PASS empty scene background
+PASS opaque front tile hides all later layers
+PASS overlap priority and quadrant boundaries
+PASS half-open rectangle edges
+PASS clipping outside canvas
+PASS zero-width foreground has no pixels
+RASTER: 6144 pixels match independent oracle
+
+PASS direct reducer admits observed preparation
+PASS direct reducer splits and replaces byte reservations
+PASS real sibling dependency blocks collection and Stop
+PASS completed sibling permits actual collection
+PASS cannot construct on sidebar
+PASS manual spatial construction spends original Rapid35
+PASS cannot construct in building footprint
+PASS cannot construct on road
+PASS overlapping tower construction rejected
+PASS selected upgrade spends40
+PASS Rapid actual active work shot12
+PASS out-of-range processor cannot affect active work
+PASS Refiner shot permanently removes20 percentage points
+PASS preparation prevention carries to future child source metadata
+PASS Refiner never accelerates service work
+PASS Relay has original lower power6
+PASS Coordinator targets actual unfinished sibling holding findings
+PASS Coordinator has no effect without held sibling findings
+PASS Parallelizer changes covered host source permits only
+PASS canonical limits remain original eight
+PASS Packager changes actual next batch target and host item work
+PASS Packager preview exact serialization reduction
+PASS Rapid preview matches exact remaining-work marginal shot
+PASS empty range explicitly has zero effect
+PASS inside hot pressure generates actual damage cadence
+PASS local finite Shield reduces damage work
+PASS shield charging happens only protection not work firing
+PASS Shield never changes real ledger occupancy
+PASS pause freezes pressure damage
+PASS map cannot relocate constructed towers
+PASS map cannot relocate an active wave
+PASS automatic wave mode never constructs towers
+PASS source road distance gates actual source-start fact
+PASS review road distance gates actual backend request fact
+PASS every real backend request retains actual dispatch ownership
+PASS baseline future findings chance100 never authored clear
+PASS finite baseline drains sixteen real acknowledged findings
+PASS completed wave releases request and delivery ownership
+PASS zero future risk resolves clear only at actual backend completion
+PASS Refiner never targets already observed PendingFinding
+PASS Shield spends one finite charge per useful hot tick
+PASS zero-marginal new Shield remains idle behind existing capped protection
+CANONICAL SPATIAL DEFENSE:42 directed checks complete
+
+Before/after full-scene image-tree equality was checked with temporary source copies from3431816 of Host and Render. Those copies and their comparison harness are deleted; generated executable snapshots retain provenance. This checks three District queue densities, not every layout/tower scenario.
+
+Generated executable source snapshots:
+761f5472d10763a50d78c0ef611fd24b885038c3c9efb7399e6f81fb739f6450  canonical-performance-before.c
+1ad3360c28c7fb58819c3ad1cd36e19993569cd733096c09b3447754668585d7  canonical-performance-final.c
+ea9c4d1c66d8ae25c7459a6e43adf9f2d4fa222e4b5a503089faa5ccb9397f87  canonical-visual-final.c
+91df612b62caa86438fc160ebc499fff9d9a5126ddc5419a874d8b151db7e2c8  canonical-raster-final.c
+e51646aaa1a36436fb00ac17ffa5f18945f748de41def3677887af75e7ff3aaa  canonical-host-fps.c
+
+Temporary comparison source snapshots:
+85e355ba062949ad4e54414fb57786955dd128d1641a1b23d9db64e2847f3efe  DefenseHostBefore.bend
+7d31d57461045169b6e5739a98313a761df707186b040a4710c82ee14aabeb03  DefenseRenderBefore.bend
+a282e22dd12dfca34f3ee61f26901e39256720a3c7832aaff5748fa611630979  DefenseVisualCompare.bend
+
+Current authored source:
+b3d1782719769c1345e9f9bb54c83efea3bfdd3f58cbdb48be7a7f54413db387  DefenseAuto.bend
+445bb60cb65347f7cf86057cc24b44051bde49c55cf2e6342452aca17f9b9c4e  DefenseAutoTests.bend
+5092ca024249f1634787bfecbe6b325edba6434c5202877e0f169bfb69c918e1  DefenseEffects.bend
+deaf562e09d07453dbdf5659341662cd1de18dddb9fcb7d92ac1cb11b7ed5dc3  DefenseHost.bend
+8571564233739318d092edbce6d9f6b09a1a5a896cd1434afea44e05ca12d55c  DefenseMain.bend
+9d946542bdf84a3918917408eb875b0329374c9f88acabed640904bb4482e1b9  DefenseMap.bend
+8511b96a87b39997ba62ccca85d70dfebe6b23790ca0d29ab5bd31c9bfb778e8  DefenseMapTests.bend
+53229f061f1b3f07c10489d2cc3c118726df0cb5670a88d71f3baba8e2214189  DefenseModel.bend
+53b01dd6414f543fa21c29214f0747ee2761811ae1de47f77c5e2f16baaed05e  DefenseOutput.bend
+eb792c9a9ae76b365606b1857b0e746102a710d9e9a26958d732f135805fe74c  DefenseOutputTests.bend
+6df9c55e40d8edfc06e27c26240e8ca7508644b4d5bf4f8059798686a6ddef2f  DefensePerformance.bend
+894219e50a627aa0c92fe37141acde91e89cb17aa73a4bc02cadd81bad703742  DefensePreview.bend
+920bf4a3592e6d6fbf969bd144aef15096a417e72d34d34f0ff32706ddd7c96b  DefensePreviewTests.bend
+b9600a8996cf8c44d8668c39edb58ab426de748ced39ed39041dc2a2e0bb4af5  DefenseProjection.bend
+9d38901dd32d004ca6a28ab9a1e9ded298e8ed1e958950ff9ff9945f62cd50c5  DefenseRasterTests.bend
+3b1be45b34d0cc24d4d73df0566839fead7b39b42139d002df6437de747c84a1  DefenseRender.bend
+843d9496db3739320f76cb6360b0269f3c5fc3326052ee88892e29b0ebe14b88  DefenseRoads.bend
+8831acc7be3ee7bbb9b900235e7bdf6ac4ebf0fddd9117f62c6602009b3c9968  DefenseTests.bend
+9de7da6f27b200afd790e9f7f04a2e86fa736f04664e82df88ff117a72712169  Font.bend

@@ -1,0 +1,6 @@
+Purpose: native compiler failure reproduction. Authority: bounded implementation evidence, no product-core defect claim.
+Bend 2.0.34; Debian clang14.0.6; Linux ARM64.
+Reduced IR -O0 exit0; -O1/-O3 exit70. Removing musttail does not eliminate O3 failure. Synthetic114-field constructor alone does not reproduce.
+Apple clang21 owner report: O0 and O3 crash; exact O0 invocation supplied. Apple crash not reproduced locally; root-cause equivalence not claimed.
+Cleanup: when the upstream compiler issue is resolved, consolidate its fix and successful native build evidence into README and delete this reproduction directory.
+Upstream report: https://github.com/bendlang/bend/issues/1233

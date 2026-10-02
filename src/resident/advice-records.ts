@@ -6,6 +6,9 @@ import type { RoundWork } from "./round-records.ts";
 
 export type AdviceMetadata = {
   readonly id: string;
+  readonly analyticsPath: string | undefined;
+  readonly analyticsEnabled: boolean;
+  readonly analyticsControlled: boolean;
   readonly canonicalRound: number;
   readonly round?: RoundWork;
   readonly workUnitId?: number;

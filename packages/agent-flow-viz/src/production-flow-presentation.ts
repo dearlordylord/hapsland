@@ -63,7 +63,7 @@ export const SQUARES: Record<Place, Square> = {
       return [facet("finding work", work(s, "pendingFinding", n)),
         facet("findings waiting for work", waiting
           .map((item) => `${recordLabel("review", item.operation, n)} from edit observation #${item.observation} waits for ${item.unfinished.map((other) => workLabel(other, n)).join(", ")}`), sample),
-        facet("ticket units", s.tickets.flatMap((x) => x.units).map((x) => `Ticket unit #${x.id}:${x.stage}`))];
+        facet("pending findings", s.pendingFindings.map((x) => `Review #${x.operation}:${x.count}`))];
     } }),
   advice: square({ title: "Ready advice", owner: "BEND STATE", x: 32, y: 350,
     facets: (s, n) => {

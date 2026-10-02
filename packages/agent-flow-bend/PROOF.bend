@@ -160,7 +160,7 @@ def Laws.final_credential_mismatch_is_retained_in_fold():
 def Laws.final_shared_credential_mismatch_releases_batch():
   {==}
 
-def Laws.ticket_credential_mismatch_does_not_use_shared_gate():
+def Laws.collector_credential_mismatch_does_not_use_shared_gate():
   {==}
 
 def Laws.provisional_stop_output_revokes_and_closes():
@@ -211,7 +211,7 @@ def Laws.credential_failure_reports_credential():
 def Laws.missing_result_reports_lost():
   {==}
 
-def Laws.stale_joined_ticket_preserves_stale_status():
+def Laws.stale_joined_member_preserves_stale_status():
   {==}
 
 def Laws.joined_finding_without_identity_is_lost():
@@ -229,10 +229,10 @@ def Laws.oversized_ready_unit_is_rejected():
 def Laws.skipped_unit_is_not_admitted():
   {==}
 
-def Laws.empty_non_skipped_ticket_fails_lost():
+def Laws.empty_non_skipped_collector_fails_lost():
   {==}
 
-def Laws.skipped_only_ticket_has_no_failure():
+def Laws.skipped_only_collector_has_no_failure():
   {==}
 
 def Laws.idle_cleanup_is_ready():
@@ -256,12 +256,6 @@ def Laws.inactive_lifetime_blocks_cleanup():
 def Laws.ledger_residue_blocks_cleanup_commit():
   {==}
 
-def Laws.excess_ticket_evicts_oldest():
-  {==}
-
-def Laws.ticket_limit_keeps_existing():
-  {==}
-
 def Laws.exact_cancellation_uses_named_jobs():
   {==}
 
@@ -271,13 +265,13 @@ def Laws.unmatched_cancellation_discards_all_unfinished():
 def Laws.unnamed_work_discards_all_unfinished():
   {==}
 
-def Laws.revoked_block_ticket_releases_final_selection():
+def Laws.revoked_block_collector_releases_final_selection():
   {==}
 
-def Laws.current_block_ticket_proceeds():
+def Laws.current_block_collector_proceeds():
   {==}
 
-def Laws.advisory_ticket_proceeds_without_block_opt_in():
+def Laws.advisory_collector_proceeds_without_block_opt_in():
   {==}
 
 def Laws.replaced_candidate_is_ignored_before_revalidation_status():
@@ -328,7 +322,7 @@ def Laws.terminal_background_lease_reoffers_only_to_own_stop():
 def Laws.other_group_stop_cannot_drop_lease():
   {==}
 
-def Laws.available_advice_requires_ticket_and_unsuppressed_finding():
+def Laws.available_advice_requires_collector_and_unsuppressed_finding():
   {==}
 
 def Laws.leased_advice_cannot_be_candidate():
@@ -493,16 +487,16 @@ def Laws.unwritable_selection_closes_at_deadline():
 def Laws.selection_cannot_exceed_pending_unit_count():
   {==}
 
-def Laws.ticket_collect_gate_proceeds_with_valid_authority():
+def Laws.collector_collect_gate_proceeds_with_valid_authority():
   {==}
 
-def Laws.ticket_collect_gate_blocks_credential_change():
+def Laws.collector_collect_gate_blocks_credential_change():
   {==}
 
-def Laws.ticket_collect_gate_blocks_expiry():
+def Laws.collector_collect_gate_blocks_expiry():
   {==}
 
-def Laws.ticket_collect_gate_expiry_precedes_credential():
+def Laws.collector_collect_gate_expiry_precedes_credential():
   {==}
 
 def Laws.stop_cannot_reoffer_submitted_background_lease():
@@ -593,30 +587,6 @@ def Laws.prospective_gate_uses_supplied_hook_window():
   {==}
 
 def Laws.prospective_gate_rejects_reversed_clock():
-  {==}
-
-def Laws.ticket_admission_stores_only_identity_and_units():
-  {==}
-
-def Laws.ticket_unit_requires_its_originating_admission():
-  {==}
-
-def Laws.ticket_revision_only_updates_pending_unit():
-  {==}
-
-def Laws.ticket_failure_overrides_previous_unit_result():
-  {==}
-
-def Laws.unavailable_ticket_unit_cannot_become_clear():
-  {==}
-
-def Laws.unavailable_ticket_unit_cannot_become_finding():
-  {==}
-
-def Laws.ticket_finding_delivery_is_terminal_marker():
-  {==}
-
-def Laws.ticket_clear_unit_cannot_mark_delivery():
   {==}
 
 def Laws.existing_cache_entry_reuses_without_byte_check():

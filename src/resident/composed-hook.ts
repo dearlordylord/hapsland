@@ -24,7 +24,7 @@ import {
   releaseComposedBackgroundEffect,
 } from "./client.ts";
 import { resolveResidentPaths } from "./paths.ts";
-import { composedClaudeHostOutput } from "./collection.ts";
+import { claudeStopHostOutput } from "./collection.ts";
 
 type BoundClient<F> = F extends (...args: infer Args) => Effect.Effect<infer A, infer E, unknown>
   ? (...args: Args) => Effect.Effect<A, E> : never;
@@ -118,6 +118,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
     yield* beforeQuiet();
     if (input.kind !== "background") yield* writeJson({}, deadlineAt);
   });
+  if (input.host === "claude-code" && input.kind === "background") return;
   const event = record(input.event);
   if (event === undefined) return yield* quiet();
   const eventName = input.kind === "before-edit" ? "PreToolUse" : input.kind === "background" ? "PostToolUse"
@@ -222,8 +223,7 @@ export const runComposedHookEffect = Effect.fn("ComposedHook.run")(function* (in
         if (!begun) { closeReason = "unavailable"; yield* quiet(); return true; }
       }
       const output = input.host === "claude-code"
-        ? composedClaudeHostOutput(advice.output, advice.findingCount,
-            collectorKind === "background" ? "background" : "stop")
+        ? claudeStopHostOutput(advice.output, advice.findingCount)
         : collectorKind === "background" ? advice.output
           : advice.findingCount > 0 ? { decision: "block", reason: message }
             : { systemMessage: message };

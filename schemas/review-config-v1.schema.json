@@ -46,6 +46,11 @@
       "description": "Name of the environment variable that supplies the review credential. Store the secret value outside configuration.",
       "default": "TYPESAFE_API_KEY"
     },
+    "sessionAnalytics": {
+      "type": "boolean",
+      "description": "User-owned opt-in session analytics. Disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store.",
+      "default": false
+    },
     "claudeFeedbackMode": {
       "type": "string",
       "enum": [
