@@ -57,7 +57,7 @@ export type SetupOptions = {
   readonly statePath: string;
   readonly userConfigPath?: string;
   /** Supplied only by the installed CLI's masked /dev/tty handoff. */
-  readonly readCredential?: () => Promise<string>;
+  readonly readCredential?: (signal?: AbortSignal) => Promise<string>;
 };
 
 export const runSetup = Effect.fn("Setup.run")(function* (

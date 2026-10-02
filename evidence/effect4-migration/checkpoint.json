@@ -3471,5 +3471,27 @@
       "src/onboarding/client-selection.ts": "1eedded929ccd9b772e45bd72ff43e0ba3985987b75789a82f78867f436526e4"
     },
     "limitations": "No actual macOS/Windows or terminal emulator/platform support claim, no native terminal failure/restoration fault injection. Fiber interruption is covered by synthetic terminal test, not this PTY run. Full migration remains incomplete."
+  },
+  "maskedCredentialAbortBridge": {
+    "status": "native masked input receives Effect cancellation AbortSignal",
+    "scope": "Login and guided setup propagate the signal. Pre-aborted signal refuses acquisition; active abort invokes existing native cleanup, unregisters abort/signal handlers, clears polling timer, closes descriptor and attempts terminal restore before Promise settlement; input buffer cleared at finish. Setup injected reader accepts optional AbortSignal without changing v1 request contract.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/cli.test.ts src/onboarding/setup.test.ts src/credentials/terminal.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 3,
+        "tests": 20,
+        "durationSeconds": 20.68
+      }
+    ],
+    "sourceSha256": {
+      "src/cli.ts": "dc35a33d9d675fd976d78b05dca821166c2e9f8545ab1e68b164de556336a848",
+      "src/onboarding/setup.ts": "338ef7eb054f0f030172dee9a8b6f2cafe9e1597a76063669f0e9fbe1128c8e0"
+    },
+    "limitations": "Tests do not directly prove native masked-entry AbortSignal cancellation/restoration. Native Promise, setInterval and synchronous stty retry remain and require scoped Effect/Schedule port and fault-path ownership audit. No actual credentials entered or mutated in this run; full migration remains incomplete."
   }
 }

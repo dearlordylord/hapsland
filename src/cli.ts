@@ -883,7 +883,8 @@ const program = Effect.gen(function* () {
   ),
 );
 
-const readMaskedCredential = (): Promise<string> => {
+const readMaskedCredential = (signal?: AbortSignal): Promise<string> => {
+  if (signal?.aborted) throw new Error("credential input cancelled");
   const descriptor = openSync("/dev/tty", constants.O_RDONLY | constants.O_NONBLOCK);
   const original = spawnSync("stty", terminalModeArguments(process.platform, "-g"), {
     encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
@@ -923,14 +924,18 @@ const readMaskedCredential = (): Promise<string> => {
     const finish = (result: { readonly value: string } | { readonly error: Error }) => {
       if (settled) return;
       settled = true;
+      signal?.removeEventListener("abort", onAbort);
       for (const [signal, handler] of handlers) process.off(signal, handler);
       if (poll !== undefined) clearInterval(poll);
-      closeSync(descriptor);
-      restore();
+      try { closeSync(descriptor); } finally { restore(); }
+      value.fill(0);
       process.stderr.write("\n");
       if ("value" in result) resolveValue(result.value);
       else rejectValue(result.error);
     };
+    const onAbort = () => finish({ error: new Error("credential input cancelled") });
+    signal?.addEventListener("abort", onAbort, { once: true });
+    if (signal?.aborted) { onAbort(); return; }
     for (const signal of signals) {
       const handler = () => finish({ error: new Error("credential input cancelled") });
       handlers.set(signal, handler);
@@ -970,7 +975,7 @@ const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
     }
     const input = yield* (process.argv.includes("--credential-stdin")
       ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, ""))
-      : Effect.tryPromise(() => readMaskedCredential())).pipe(Effect.result);
+      : Effect.tryPromise((signal) => readMaskedCredential(signal))).pipe(Effect.result);
     if (input._tag === "Failure") {
       return {
         version: 1,
@@ -1113,8 +1118,8 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
   const run = (step: SetupOperation) => runSetup(step, {
     statePath,
     ...(userConfigPath === undefined ? {} : { userConfigPath }),
-    readCredential: async () => {
-      const value = await readMaskedCredential();
+    readCredential: async (signal) => {
+      const value = await readMaskedCredential(signal);
       credentialEntered = true;
       return value;
     },
