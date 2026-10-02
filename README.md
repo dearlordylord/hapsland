@@ -26,7 +26,8 @@ The animation starts with a small edit, expands to the declaration and related
 code, then illustrates a feedback and repair loop. Feedback follows the edit; it does not
 undo it or guarantee a repair. Delivery and optional blocking feedback depend on
 the agent runtime and configuration. See the [architecture guide](./docs/architecture.md)
-for the flow and its boundaries.
+for the flow and its boundaries. Run `hapsland --feedback-preview` to see the
+shared agent instructions with a synthetic finding; no review request is made.
 
 ## Choose what leaves your repository
 
@@ -95,6 +96,22 @@ questions about the supplied type or function and its related code. See [custom 
 and the [type-design rules](./TYPE-DESIGN-RULES.md).
 
 See [supported languages and limits](#supported-languages) before setup.
+
+## A contextual comparison with Abide
+
+In a constructed study of four cross-file duplicate-fact defects, repeated three
+times, Codex completed independently checked repairs in **12/12 sessions with
+Hapsland and 1/12 with Abide configured with the same Noul concern**. Both
+groups performed the same maintenance task with experimental tracking of
+feedback receipt; each product supplied its own response instructions.
+
+**Hapsland also issued false warnings on all six clean-control observations.**
+Final checks found independent facts preserved in 6/6 Hapsland clean artifacts
+and 6/6 Abide clean artifacts. These previously tested cases cover one rule
+and do not establish general review superiority.
+
+See the [study and methodology](./docs/abide-contextual-review-study.md)
+for tasks, feedback messages, scoring, and reproducible evidence.
 
 ## Installation
 

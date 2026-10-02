@@ -32,5 +32,5 @@ The underlying advisory research separates product approaches, technical details
 
 - [Approaches and requirements](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-APPROACHES.md).
 - [Technical comparison](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-TECHNICAL.md).
-- [Coexistence investigation](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-COEXISTENCE.md) and [retained native evidence](../evidence/native-coexistence/index.json).
-- [Quality pilot](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-QUALITY-RESULTS.md), [detection results](../evidence/abide-quality/summary.json), and [blindly scored native repairs](../evidence/abide-quality-native/repair-comparison.json). This selected synthetic pilot found different detection strengths, but no repair advantage for Hapsland over Abide in the tested Codex sessions.
+- [Coexistence investigation](https://github.com/dearlordylord/hapsland-research/blob/master/PRODUCT-RESEARCH-ADVISORY-2026-10-02-ABIDE-COEXISTENCE.md).
+- [Contextual review and repair study](./abide-contextual-review-study.md): current selected-workflow results, comparison methodology, false warnings, and reproducible evidence.

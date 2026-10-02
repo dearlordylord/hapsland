@@ -1,0 +1,64 @@
+{
+  "stage": "A",
+  "caseId": "clean-audio-resampling",
+  "candidate": "abide",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "handler-completed",
+    "startExit": 0,
+    "hookExit": 0,
+    "finding": false
+  },
+  "requests": [
+    {
+      "id": "21980638-fb64-4334-a7a0-2300d876e6ee",
+      "at": 1790977819996,
+      "candidate": "abide",
+      "caseId": "clean-audio-resampling",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 1632,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "21980638-fb64-4334-a7a0-2300d876e6ee",
+      "at": 1790977819996,
+      "candidate": "abide",
+      "caseId": "clean-audio-resampling",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 179,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 658,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

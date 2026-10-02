@@ -1,0 +1,427 @@
+{
+  "stage": "B",
+  "taskId": "contextual-4-session-grant",
+  "candidate": "abide",
+  "ordinal": 3,
+  "blindId": "7f98ff7a522a",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "durationMs": 137186,
+  "usage": {
+    "input_tokens": 191438,
+    "cached_input_tokens": 164608,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 5477,
+    "reasoning_output_tokens": 4354
+  },
+  "uncachedPlusOutputTokens": 32307,
+  "tokenCapExceeded": false,
+  "stderrBytes": 231,
+  "rawHostStreamRetained": false,
+  "providerBodyRetained": false,
+  "nativeEvents": [
+    {
+      "type": "thread.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "error"
+    },
+    {
+      "type": "turn.started",
+      "itemType": null
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "file_change"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.started",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "command_execution"
+    },
+    {
+      "type": "item.completed",
+      "itemType": "agent_message"
+    },
+    {
+      "type": "turn.completed",
+      "itemType": null
+    }
+  ],
+  "nativeErrorCategories": [
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    },
+    {
+      "categories": [
+        "hook",
+        "trust"
+      ]
+    }
+  ],
+  "deliveryDebug": true,
+  "transportTrace": [
+    {
+      "at": 1790979782353,
+      "pid": 3807055,
+      "invocation": "de1fbbf0704f2aef",
+      "trace": "process-start",
+      "elapsedMs": 23.969271
+    },
+    {
+      "at": 1790979782469,
+      "pid": 3807055,
+      "invocation": "de1fbbf0704f2aef",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 139.907591
+    },
+    {
+      "at": 1790979782562,
+      "pid": 3807131,
+      "invocation": "6595446e275faacf",
+      "trace": "process-start",
+      "elapsedMs": 29.06431
+    },
+    {
+      "at": 1790979782709,
+      "pid": 3807131,
+      "invocation": "6595446e275faacf",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 175.444076
+    },
+    {
+      "at": 1790979835547,
+      "pid": 3809815,
+      "invocation": "397d0e168f33736a",
+      "trace": "process-start",
+      "elapsedMs": 68.703483
+    },
+    {
+      "at": 1790979836223,
+      "pid": 3809815,
+      "invocation": "397d0e168f33736a",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 744.495318
+    },
+    {
+      "at": 1790979915394,
+      "pid": 3819611,
+      "invocation": "8d9d0d50d42ce06c",
+      "trace": "process-start",
+      "elapsedMs": 29.186389
+    },
+    {
+      "at": 1790979915807,
+      "pid": 3819611,
+      "invocation": "8d9d0d50d42ce06c",
+      "trace": "process-exit",
+      "code": 0,
+      "elapsedMs": 441.371958
+    }
+  ],
+  "hookEvents": [
+    {
+      "trace": "start",
+      "invocation": "de1fbbf0704f2aef",
+      "kind": "session-start",
+      "at": 1790979782325,
+      "event": "SessionStart",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "de1fbbf0704f2aef",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "session-start",
+      "at": 1790979782325,
+      "doneAt": 1790979782482,
+      "event": "SessionStart",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "a073acd922cb90e3513b3536f07d96d9fd274980f24330368dfcab34c07bf692"
+    },
+    {
+      "trace": "start",
+      "invocation": "6595446e275faacf",
+      "kind": "turn-start",
+      "at": 1790979782529,
+      "event": "UserPromptSubmit",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "6595446e275faacf",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "turn-start",
+      "at": 1790979782529,
+      "doneAt": 1790979782712,
+      "event": "UserPromptSubmit",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "a073acd922cb90e3513b3536f07d96d9fd274980f24330368dfcab34c07bf692"
+    },
+    {
+      "trace": "start",
+      "invocation": "397d0e168f33736a",
+      "kind": "post-tool-use",
+      "at": 1790979835473,
+      "event": "PostToolUse",
+      "tool": "apply_patch"
+    },
+    {
+      "trace": "complete",
+      "invocation": "397d0e168f33736a",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "post-tool-use",
+      "at": 1790979835473,
+      "doneAt": 1790979836268,
+      "event": "PostToolUse",
+      "tool": "apply_patch",
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8df944c6dd51d2f81243e4ad3a27d119d3fe328ce7937bc6f5b50797a9d3fe13"
+    },
+    {
+      "trace": "start",
+      "invocation": "8d9d0d50d42ce06c",
+      "kind": "stop",
+      "at": 1790979915357,
+      "event": "Stop",
+      "tool": null
+    },
+    {
+      "trace": "complete",
+      "invocation": "8d9d0d50d42ce06c",
+      "signal": null,
+      "errorCode": null,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "kind": "stop",
+      "at": 1790979915357,
+      "doneAt": 1790979915876,
+      "event": "Stop",
+      "tool": null,
+      "exit": 0,
+      "findingIds": [],
+      "findingIdSource": "rendered-rule-id",
+      "decision": null,
+      "receiptInserted": false,
+      "sourceHash": "8df944c6dd51d2f81243e4ad3a27d119d3fe328ce7937bc6f5b50797a9d3fe13"
+    }
+  ],
+  "requests": [
+    {
+      "id": "b282ecaa-6706-4877-b589-6f57de6915be",
+      "at": 1790979835922,
+      "candidate": "abide",
+      "caseId": "contextual-4-session-grant",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 3,
+      "kind": "request",
+      "bytes": 2067,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "b282ecaa-6706-4877-b589-6f57de6915be",
+      "at": 1790979835922,
+      "candidate": "abide",
+      "caseId": "contextual-4-session-grant",
+      "phase": "post-tool-use",
+      "stage": "B",
+      "pass": 3,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 297,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 738,
+        "output_tokens": 27
+      }
+    },
+    {
+      "id": "a9e8bd7e-4356-48c1-a341-d7675e526958",
+      "at": 1790979915612,
+      "candidate": "abide",
+      "caseId": "contextual-4-session-grant",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 3,
+      "kind": "request",
+      "bytes": 2126,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r4-duplicate-encoding"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "a9e8bd7e-4356-48c1-a341-d7675e526958",
+      "at": 1790979915612,
+      "candidate": "abide",
+      "caseId": "contextual-4-session-grant",
+      "phase": "stop",
+      "stage": "B",
+      "pass": 3,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 190,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 756,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "agentMentionsRule": [],
+  "feedbackReceipt": {
+    "nonceSha256": "c4ea94cd0f9c4a2a65370bbff17c65627f053accb9bcf415d3c1e3dae2735141",
+    "requestedByHook": false,
+    "echoedInFinalAgentMessage": false,
+    "reportedOutcome": "NO_FEEDBACK",
+    "markerChangesFeedbackContent": true,
+    "reasonCategories": [],
+    "reasonClassifierIsNotSemanticProof": true
+  },
+  "hostErrors": [],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "finalSourceSha256": "8df944c6dd51d2f81243e4ad3a27d119d3fe328ce7937bc6f5b50797a9d3fe13",
+  "changed": true
+}

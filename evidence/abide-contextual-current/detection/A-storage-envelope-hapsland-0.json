@@ -1,0 +1,79 @@
+{
+  "stage": "A",
+  "caseId": "storage-envelope",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r4_duplicate_encoding"
+        ],
+        "findingIds": [
+          "r4_duplicate_encoding"
+        ]
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "a8f0881f-b8eb-4d05-868f-93746459cd30",
+      "at": 1790977809727,
+      "candidate": "hapsland",
+      "caseId": "storage-envelope",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 2445,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r4_duplicate_encoding"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "a8f0881f-b8eb-4d05-868f-93746459cd30",
+      "at": 1790977809727,
+      "candidate": "hapsland",
+      "caseId": "storage-envelope",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 191,
+      "answers": {
+        "r4_duplicate_encoding": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 1101,
+        "output_tokens": 23
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}
