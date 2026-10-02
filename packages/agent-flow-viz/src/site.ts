@@ -7,6 +7,7 @@ import { drawReviewLoop } from "./review-loop-renderer";
 
 import { SETUP_COPY, type SetupCopyTarget } from "./setup-copy";
 import { copyText } from "./site-clipboard";
+import productIcon from "./brand/product-icon.svg?url";
 import githubIcon from "./github.svg?url";
 
 const REPOSITORY = "https://github.com/dearlordylord/hapsland";
@@ -644,10 +645,14 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
           h.a(
             [h.Href("#"), h.Class("wordmark")],
             [
-              h.span([h.Class("brand-mark"), h.AriaHidden(true)], ["H"]),
+              h.img([h.Class("brand-mark"), h.Src(productIcon), h.Alt(""), h.Width("48"), h.Height("48")]),
               "Hapsland",
               h.span([h.Class("brand-period")], ["."]),
             ],
+          ),
+          h.a(
+            [h.Href(REPOSITORY), h.Class("github-link"), h.AriaLabel("Hapsland repository on GitHub")],
+            [h.img([h.Src(githubIcon), h.Alt(""), h.Width("24"), h.Height("24")])],
           ),
         ],
       ),
@@ -851,7 +856,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => ({
       h.footer(
         [h.Class("site-footer")],
         [
-          h.a([h.Href("#"), h.Class("wordmark")], ["Hapsland. ", h.span([h.Class("footer-tagline")], ["Slap that hand."])]),
+          h.a([h.Href("#"), h.Class("wordmark")], [h.img([h.Class("brand-mark"), h.Src(productIcon), h.Alt(""), h.Width("48"), h.Height("48")]), "Hapsland. ", h.span([h.Class("footer-tagline")], ["Slap that hand."])]),
           h.a([h.Href(REPOSITORY), h.Class("github-link"), h.AriaLabel("Source on GitHub")], [h.img([h.Src(githubIcon), h.Alt(""), h.Width("28"), h.Height("28")])]),
         ],
       ),

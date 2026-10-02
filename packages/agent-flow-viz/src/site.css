@@ -114,15 +114,10 @@ h3 {
   gap: 9px;
 }
 .brand-mark {
-  width: 29px;
-  height: 29px;
-  background: var(--red);
-  color: var(--paper);
-  font-size: 22px;
-  line-height: 29px;
-  text-align: center;
-  transform: rotate(-8deg);
-  letter-spacing: 0;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .brand-period {
   color: var(--red);
@@ -1546,5 +1541,5 @@ h3 {
   font-weight: 400;
 }
 
-.github-link { display: inline-flex; align-items: center; padding: 8px; }
+.github-link { display: inline-flex; align-items: center; gap: 8px; padding: 8px; }
 .github-link img { display: block; }

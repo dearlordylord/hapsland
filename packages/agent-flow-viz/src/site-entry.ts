@@ -1,3 +1,4 @@
+import { brandReady } from "./review-loop-renderer";
 import { Runtime, Subscription } from "foldkit";
 import { Message, Model, init, update, view } from "./site";
 import "./site.css";
@@ -39,6 +40,7 @@ const subscriptions = Subscription.make<Model, Message>()((entry) => ({
     },
   ),
 }));
+await brandReady;
 Runtime.run(
   Runtime.makeApplication({
     Model,

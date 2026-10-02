@@ -1,3 +1,4 @@
+import productIcon from "./brand/product-icon.svg?url";
 import { preparationDetails } from "./preparation-details";
 import { preparationSnapshot } from "./preparation-mini";
 import { reviewCapacityView } from "./review-capacity-view";
@@ -209,7 +210,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     title: "Hapsland · guided replay",
     body: h.main([h.Class("page")], [
       h.header([h.Class("page-header")], [
-        h.p([h.Class("eyebrow")], ["HAPSLAND"]),
+        h.p([h.Class("eyebrow product-brand")], [h.img([h.Src(productIcon), h.Alt(""), h.Width("40"), h.Height("40")]), "HAPSLAND"]),
         h.h1([], ["From agent edit to Jev and back"]),
         h.p([h.Class("intro")], ["Run the simulator or step through a guided replay."]),
       ]),

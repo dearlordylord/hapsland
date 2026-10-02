@@ -12,6 +12,14 @@ Run `npm run dev` in this package and open `/site.html` for the FoldKit public
 site, or `/index.html` for the full dashboard. `npm run build` emits both entries
 with relative asset paths. Building is separate from deploying either page.
 
+`npm run build:pages` prepares the Cloudflare Pages bundle: the public site at
+`/`, the dashboard at `/dashboard.html`, and favicons at the root. The existing
+`/site.html` address redirects to `/`. `npm run deploy:pages` builds and publishes
+to the `hapsland` Pages project on its production branch, `master`, using the
+authenticated Wrangler account. The custom domain is `hapsland.dearlordylord.com`.
+Gandi DNS must point the `hapsland` CNAME to the project's `pages.dev` hostname;
+register the domain with the Pages project before setting that record.
+
 The primary illustration adapts the research video's circular review flow in
 `src/review-loop-renderer.ts`, with FoldKit phase controls and a shared HTML code
 stage. Desktop uses the full actor loop; mobile uses a compact actor overview.

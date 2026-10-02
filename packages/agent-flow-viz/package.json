@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "build:pages": "npm run build && node scripts/prepare-pages.mjs",
+    "deploy:pages": "npm run build:pages && npx --yes wrangler@4.146.0 pages deploy dist --project-name hapsland --branch master",
     "build": "node --experimental-strip-types scripts/build-capacity-inventory.mjs && npm --prefix ../agent-flow-projection run typecheck && tsc --noEmit && node scripts/check-flow-inference.mjs && node scripts/check-projection.mjs && vite build",
     "test:browser": "node scripts/check-browser.mjs",
     "test:simulation-browser": "node scripts/check-simulation-browser.mjs",

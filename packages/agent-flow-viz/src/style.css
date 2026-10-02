@@ -189,3 +189,6 @@ p { line-height: 1.5; }
 .simulation-tree-range legend { font-size: 12px; font-weight: 600; padding: 0 4px; }
 .simulation-tree-range input { width: 100px; }
 .simulation-file-trees { margin: 14px 0; }
+
+.product-brand { display: flex; align-items: center; gap: 10px; }
+.product-brand img { object-fit: contain; }

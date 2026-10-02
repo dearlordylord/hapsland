@@ -1,3 +1,12 @@
+import productIcon from "./brand/product-icon.svg?url";
+const brandImage = typeof Image === "undefined" ? undefined : new Image();
+export const brandReady: Promise<void> = brandImage
+  ? new Promise((resolve, reject) => {
+      brandImage.onload = () => resolve();
+      brandImage.onerror = () => reject(new Error("Hapsland brand icon failed to load"));
+      brandImage.src = productIcon;
+    })
+  : Promise.resolve();
 import { SITE_EXAMPLE } from "./site-example";
 /** Adapted actual circular full-code video renderer.
  * Source ../hapsland-research/marketing/video/src/full-code.mjs
@@ -402,7 +411,7 @@ function actor(
   }
   c.save();
   shadow(c);
-  dot(c, x, y, 50, backend ? C.accent : C.ink);
+  dot(c, x, y, 50, label === "Hapsland" ? C.paper : backend ? C.accent : C.ink);
   c.restore();
   if (backend)
     for (let i = 0; i < 3; i++)
@@ -415,7 +424,9 @@ function actor(
         4,
         C.paper,
       );
-  else icon(c, "code", x, y, 33, C.paper);
+  else if (label === "Hapsland" && brandImage?.complete && brandImage.naturalWidth)
+    c.drawImage(brandImage, x - 48, y - 48, 96, 96);
+  else if (label !== "Hapsland") icon(c, "code", x, y, 33, C.paper);
   text(c, label, x, y + 82, 21, C.ink, 650, "center");
   text(
     c,

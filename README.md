@@ -1,5 +1,7 @@
 # Hapsland
 
+<p align="center"><img src="./assets/brand/readme-splash.svg" alt="Hapsland: a human hand correcting a skeletal robot hand" width="900"></p>
+
 Review changed types and functions with their related code.
 
 Hapsland gives your coding agent early feedback on changed types and functions,
