@@ -158,7 +158,8 @@
     "Collection and final transport output fitting read advice delivery through explicit snapshots; handoff offers, renewal and retained findings no longer use live delivery getters in those blocks",
     "Collection candidate lease/findings checks and post-update eligibility inspect explicit advice snapshots; both fitting passes read current findings through Effects",
     "Collection ownership/current-token checks, collection work count, reused finding activity count and final transport token checks inspect explicit advice snapshots",
-    "Both Stop finish selection and binding checks consume explicit advice batch snapshot content rather than capability delivery getters"
+    "Both Stop finish selection and binding checks consume explicit advice batch snapshot content rather than capability delivery getters",
+    "Collection token pruning composes a named Effect and reads delivery tokens from advice snapshots; Stop expired-lease cleanup reads batch snapshot content"
   ],
   "verification": [
     {
@@ -1986,6 +1987,15 @@
       "build": true,
       "boundaryChecksPassed": 15,
       "scope": "Stop collection and final transport finish selected findings/binding; diagnostics and capability-list migration remain"
+    },
+    {
+      "stage": "advice-token-pruning-snapshots",
+      "testsPassed": 108,
+      "testFiles": 2,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "scope": "Collection token pruning and expired Stop leases; advice diagnostics/getter removal/list conversion remain"
     }
   ],
   "next": [

@@ -604,14 +604,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return Effect.runSync(cleanupEffect());
   }
 
-  function residentPruneCollectionTokenIds(): void {
+  const residentPruneCollectionTokenIds = Effect.fn("ResidentRuntime.pruneCollectionTokenIds")(function* () {
     const live = residentComposedDelivery.liveCollectionTokenKeys();
-    for (const advice of residentAdvice()) if (advice.delivery !== undefined) live.add(advice.delivery.token);
+    for (const { content } of (yield* residentLedger.advice.snapshots())) {
+      if (content.delivery !== undefined) live.add(content.delivery.token);
+    }
     for (const notice of residentNotices.entries().map(([, value]) => value)) {
       if (notice.pending?.delivery !== undefined) live.add(notice.pending.delivery.token);
     }
     residentLedger.pruneCollectionTokenIds(live);
-  }
+  }, Effect.uninterruptible);
 
   const residentRoundSnapshot = Effect.fn("ResidentRuntime.roundSnapshot")(function* (round: RoundWork) {
     const snapshot = yield* residentLedger.rounds.snapshot(round);
@@ -2523,9 +2525,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (!residentComposedDelivery.ownsStop(group, request.finish.token)) return residentResponse({ status: "empty" });
           // Expired leases represent uncertain external output, not live writers.
           residentPruneNoticeCooldowns(residentNow());
-          for (const advice of residentAdvice()) {
+          for (const { capability: advice, content } of (yield* residentLedger.advice.snapshots())) {
             if (adviceePartition(advice.observation.root, advice.observation.advicee) === group &&
-                advice.delivery !== undefined && advice.delivery.leaseUntil <= residentNow()) yield* residentReleaseAdviceLease(advice);
+                content.delivery !== undefined && content.delivery.leaseUntil <= residentNow()) yield* residentReleaseAdviceLease(advice);
           }
           const round = (yield* residentLedger.rounds.get(group));
           const totalUnfinished = (yield* residentCollectionWorkCount(request.root, request.advicee, true));
@@ -2884,7 +2886,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* port.closed;
       return;
     }
-    residentPruneCollectionTokenIds();
+    yield* residentPruneCollectionTokenIds();
     const server = runtime;
     let responseToken: string | undefined;
     let handedToTransport = false;
@@ -2899,7 +2901,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* Effect.uninterruptible(Effect.gen(function* () {
         const selected = yield* residentResponseForHandoff(decoded, response, sourceCurrent);
         const handoff = yield* residentReconcileFinishHandoff(decoded, response, selected, port.canWrite());
-        residentPruneCollectionTokenIds();
+        yield* residentPruneCollectionTokenIds();
         if (!port.canWrite()) {
           if (handoff.status === "advice") yield* server.releaseDelivery(handoff.token);
           if (handoff.status === "cleaned") yield* residentScheduleRetirementClose();

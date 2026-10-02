@@ -165,3 +165,8 @@ if (!submissionSnapshots.includes("yield* residentLedger.advice.snapshots()") ||
     /residentAdvice\(\)|(?:advice|item)\.delivery/.test(submissionSnapshots)) {
   throw new Error("delivery release and submission must inspect explicit advice snapshots");
 }
+
+const tokenPruning = server.slice(server.indexOf("  const residentPruneCollectionTokenIds ="), server.indexOf("  const residentRoundSnapshot ="));
+if (!tokenPruning.includes("yield* residentLedger.advice.snapshots()") || tokenPruning.includes("advice.delivery")) {
+  throw new Error("collection token pruning must inspect advice snapshots");
+}
