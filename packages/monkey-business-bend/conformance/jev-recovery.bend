@@ -215,11 +215,6 @@ def credential_control(+state: Types.State, queue: Minimal.Queue, +now: Nat, +ac
   +context = Minimal.context(Driver.immediate(Canonical.FinalCandidateCheck{True{}, True{}, True{}, False{}, True{}, True{}}, False{}), config(Canonical.RequestFinding{}, now), now)
   (state, Minimal.enqueue(Engine.revalidate(state, context), queue, now))
 
-def credential_live(pair: Types.State & Minimal.Queue, +operation: Nat, now: Nat,
-    ih: (Types.State & Minimal.Queue) -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
-  match pair:
-    case (+state,queue): [35n,now,operation,captured(Credentials.captured(Engine.credentials(state),operation))] <> ih((state,queue))
-
 # Compact original 2050-cycle campaign. Each step returns only state, pending
 # payloads and seven counters; no transition history survives the next step.
 # The adapter delegates every edit, graph fact and command to the same Engine.
