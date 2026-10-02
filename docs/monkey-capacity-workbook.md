@@ -1,7 +1,7 @@
 # Shared-resident Monkey Business and capacity UX workbook
 
 **Purpose:** Coordinate generated Monkey Business coverage and Bend-governed capacity indicators in the system diagram.
-**Status:** Temporary implementation tracking workbook. The delivered diagram/Monkey scope has scoped validation and Astra review. Three approved admission-model laws are checked; six bounded PRE-only native probes are recorded separately. Current priorities are listed below; the initial 2026-10-01 advisory inventory and dated test results are preserved.
+**Status:** Temporary implementation tracking workbook. The delivered diagram/Monkey scope has scoped validation and Astra review. Four approved admission-model laws are checked; six bounded PRE-only native probes are recorded separately. Current priorities are listed below; the initial 2026-10-01 advisory inventory and dated test results are preserved.
 **Authority:** Advisory inventory plus subsequent implementation and validation evidence, including Astra medium's capacity/UX review. This is not an accepted product contract. Existing specification owners and [dashboard rules](../packages/agent-flow-viz/DASHBOARD-RULES.md) retain decision authority.
 **Expected use:** Track authorized work, decisions and evidence, and coordinate implementation and UX reviews in the `feat/multi-agent-3d` worktree.
 **Lifecycle:** Retain this requested workbook beyond the final handoff. At the **Next planning-cycle workbook replacement milestone**, after the user has finished using this workbook and a named replacement artifact or accepted backlog contains its still-useful deferred proposals, **consolidate** current simulator behavior and evidence boundaries into [Monkey Business README](../packages/monkey-business/README.md), diagram behavior into [visualization README](../packages/agent-flow-viz/README.md), and projection rules into [DASHBOARD-RULES.md](../packages/agent-flow-viz/DASHBOARD-RULES.md). Move any accepted product-policy decisions to their named specification owners, update inbound links to the replacement/backlog or maintained owners, and **delete** this workbook. Receipt of the final answer alone does not trigger retirement. Git history retains its chronology.
@@ -11,6 +11,7 @@
 - **Delivered diagram/Monkey scope:** See [scope tracking](#scope-tracking-against-the-initial-inventory). Later owner decisions removed notice/cache/ticket indicators; master also removed the ticket subsystem. Earlier tables are dated inventories, not outstanding tasks.
 - **Admission decision:** Retain PRE and strict post-closure freshness. Bare arrival-only A is rejected. Four model laws are checked: necessary valid PRE for Current, positive receipt admission for A, rejection/no reopening for a pending PRE's POST after successful closure, and positive Current reopening after fresh successful PRE registration.
 - **Positive reopening, approved and checked:** A completed round's fresh successfully registered PRE and timely matching POST add one acceptance and open the successor round. The law is conditional on actual registration success; it excludes reject-all reopening POST, not reject-all PRE. Original deadline, scope, lifetime, retained-unseen identity and clock predicates are explicit. Duplicate POST remains separate and unapproved.
+- **Next work:** Return to the 3D shared-resource visual review; [no further comparison proofs are required](#proof-value-filter-before-returning-to-shared-resource-design-2026-10-02). Preserve the four gates. Registration-enabled timeout/late-IPC/retry evidence remains deferred before stronger runtime support claims.
 - **Native evidence still bounded:** Six PRE-only probes characterize delayed/failed hooks; actual tool-start provenance, registration followed by cancellation, late IPC/retry and closure/restart remain separate validation work.
 - **Deferred simulator boundary:** Preparation result linkage still lacks source-free per-rule capability facts; do not infer that every incomplete graph makes every rule unusable.
 
@@ -1082,3 +1083,30 @@ round-slot and ledger capacity, so successful PRE does not promise downstream
 production review or reserve a round slot. No production code, native ordering
 claim, new dependency, or prior frozen law/proof/helper changed. This is the
 fourth approved model slice; the broader native audit proposals remain pending.
+
+
+## Proof-value filter before returning to shared-resource design (2026-10-02)
+
+Advisory prioritization, reviewed with Astra; this does not approve another law,
+change the accepted closure contract, or replace production validation. Keep the
+four checked slices and their gates. No additional comparison-projection proof
+is required before resuming the 3D shared-resource design.
+
+| Candidate or gap | Value and existing evidence | Priority |
+| --- | --- | --- |
+| Current full `exact_post`; `post_round` / `post_active` | The four slices do not prove every refusal or joining an already active round. Actual composed-delivery tests already cover same-active-round admission, duplicate handling, no-PRE round creation and the Canonical 64-round capacity boundary (`src/resident/composed-delivery.test.ts:214`, `:250`, `:307`, `:335`, `:364`, `:378`, `:559`). A broader toy proof would not establish those omitted resident capacities. | Defer; preserve production-aligned coverage rather than complete the projection by habit. |
+| `pre_boundary` | Useful requirement: PRE alone creates no round. Already covered by actual adapter tests and generated release/expiry scenarios; the positive reopening proof explicitly conditions on later POST. | No new toy proof prerequisite. |
+| Current `post_idempotent` and retained identity behavior | Not implied by the four checked slices. The draft tests immediate replay with identical time; that is weaker than delayed retries with intervening closure, expiry, eviction or restart. Exact retained sequence would imply its separate length bound through `List.take`; proving both independently adds little. | Keep real replay, identity and charge-release tests; defer a production law until a concrete uncovered failure warrants it. |
+| Receipt negative admission and round topology | Bare arrival-only A remains incompatible with the accepted strict after-closure freshness requirement. Its positive slice and old/fresh counterpair already support that decision. | No further A proofs for the current design. |
+| Native erasure / observable-history erasure | The concrete counterpair already demonstrates the relevant indistinguishability. A trace-erasure theorem follows by induction from per-step erasure, but supplies no new runtime provenance. | Defer as decision-redundant. |
+| Conditional native-freshness chain | Necessary valid PRE already pins start after the fence. Native-start-after-PRE would imply native-start-after-fence arithmetically, under an external host-ordering premise. Another model proof cannot validate that premise. | Defer; not a required pending proof. |
+| `authority_accounting` | Conserves only a cumulative monitor. It proves neither the real four-continuation bound nor grant/reset behavior. | Remove from proof priority, retain its explicit model limitation. |
+| Registration-enabled PRE timeout, late IPC and retry | All six executed PRE fault probes bypassed resident registration. They therefore do not establish what happens when an authority is registered and a hook later times out, a late child sends IPC, or a retry attempts to refresh original timing/lifetime. | Highest remaining empirical freshness audit; separate bounded declaration and runtime evidence needed before making a stronger support claim. |
+
+The minimum for the design return is already available: retain the accepted PRE
+boundary, preserve the checked necessary-validity / closure / positive-reopening
+model facts, and show actual shared ownership, limits and replay state truthfully.
+The next empirical audit is not a prerequisite for drawing or reviewing that
+existing behavior; it is a prerequisite for claiming the untested timeout/retry
+freshness guarantee. No new proof, runtime execution or product change was made
+for this filter.
