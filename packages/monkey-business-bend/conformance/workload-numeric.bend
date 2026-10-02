@@ -10,9 +10,11 @@ def profile(finding: Numeric.Words, clear: Numeric.Words) -> List<&2, Numeric.Wo
 def draws(fuel: Nat, random: U32, +weights: List<&2, Numeric.Words>) -> List<&2, Nat>:
   match fuel:
     case 0n: []
-    case 1n+rest:
-      match Random.sample(random, weights):
-        case Random.Sampled{next, outcome}: outcome <> draws(rest, next, weights)
+    case 1n+rest: draw_sample(Random.sample(random, weights), rest, weights)
+
+def draw_sample(sample: Random.Sampled, fuel: Nat, weights: List<&2, Numeric.Words>) -> List<&2, Nat>:
+  match sample:
+    case Random.Sampled{next, outcome}: outcome <> draws(fuel, next, weights)
 
 def json(values: List<&2, Nat>) -> String:
   match values:

@@ -145,7 +145,10 @@ def permit_count(admissions: List<&2, Admission.AdmissionState>) -> Nat:
       Nat.add(List.length(&2, Admission.Permit, permits), permit_count(tail))
 
 def permit_state(state: Types.State) -> List<&2, Nat>:
-  match Engine.canonical(state):
+  permit_canonical(Engine.canonical(state))
+
+def permit_canonical(state: Canonical.State) -> List<&2, Nat>:
+  match state:
     case Canonical.State{_, rounds, _, _, _, admissions, _, _, _}:
       [permit_count(admissions), List.length(&2, Canonical.Round, rounds)]
 
@@ -210,12 +213,16 @@ def permit_taken(taken: Engine.Taken, +items: List<&2, Minimal.Item>, +sequence:
     duration: Nat, fuel: Nat) -> List<&2, List<&2, Nat>>:
   match taken:
     case Engine.Taken{+state, Some{Scheduler.Entry{+now, +order}}}:
-      match Minimal.lookup(items, order):
-        case Minimal.Event{Driver.Action{+event, _, _, _, _}}:
-          permit_transition(Engine.step(state, event), event,
-            Minimal.Queue{Minimal.remove(items, order), sequence, sequence}, duration, now, fuel)
-        case _: [[97n]]
+      permit_input(Minimal.lookup(items, order), state,
+        Minimal.Queue{Minimal.remove(items, order), sequence, sequence}, duration, now, fuel)
     case Engine.Taken{_, None{}}: []
+
+def permit_input(input: Minimal.Input, +state: Types.State, queue: Minimal.Queue,
+    duration: Nat, now: Nat, fuel: Nat) -> List<&2, List<&2, Nat>>:
+  match input:
+    case Minimal.Event{Driver.Action{+event, _, _, _, _}}:
+      permit_transition(Engine.step(state, event), event, queue, duration, now, fuel)
+    case _: [[97n]]
 
 def permit_loop(fuel: Nat, state: Types.State, queue: Minimal.Queue, duration: Nat) -> List<&2, List<&2, Nat>>:
   match fuel queue:
