@@ -1,5 +1,5 @@
 import { Config, Effect, Schema } from "effect";
-import { spawnSync } from "node:child_process";
+import { execFileClosedStdin } from "./host-process.ts";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -60,12 +60,9 @@ const configuration = Effect.fn("OpenCodeInstallation.configuration")(function* 
     Config.withDefault(process.argv[1] ?? "dist/cli.js"));
   return { home: resolve(home), runtime: resolve(runtime), entrypoint: resolve(entrypoint) };
 }, Effect.mapError(() => new OpenCodeConfigurationError({ message: "OpenCode installation configuration is invalid" })));
-const inputs = (request: OpenCodeInstallationRequest, configured: { home: string; runtime: string; entrypoint: string }) => {
-  const { home, runtime, entrypoint } = configured;
-  const hostRun = spawnSync(request.opencodeExecutable ?? "opencode", ["--version"], { encoding: "utf8", timeout: 2_000 });
-  const observed = hostRun.status === 0 ? hostRun.stdout.trim() : "unavailable";
-  const runtimeRun = spawnSync(runtime, ["-e", "process.stdout.write(process.version)"], { encoding: "utf8", timeout: 2_000 });
-  const runtimeObserved = runtimeRun.status === 0 ? runtimeRun.stdout.trim() : "unavailable";
+const inputs = (configured: { home: string; runtime: string; entrypoint: string },
+  observed: string, runtimeObserved: string) => {
+  const { home, entrypoint } = configured;
   const compatibility = { supported: observed === PROFILE && runtimeObserved === "v24.20.0" && existsSync(entrypoint),
     host: { observed, required: PROFILE }, runtime: { observed: runtimeObserved, required: "v24.20.0" },
     entrypoint: { path: entrypoint, ready: existsSync(entrypoint) } };
@@ -148,7 +145,12 @@ export const previewOpenCodeUpdate = (_request: OpenCodeInstallationRequest) => 
 export const updateOpenCodeIntegration = Effect.fn("OpenCodeInstallation.update")((_request: OpenCodeInstallationRequest) => Effect.succeed(unsupported("update")));
 const resolveInputs = Effect.fn("OpenCodeInstallation.inputs")(function* (request: OpenCodeInstallationRequest) {
   const configured = yield* configuration(request);
-  return yield* Effect.sync(() => inputs(request, configured));
+  const options = { env: process.env, timeout: 2_000, maxBuffer: 1024 * 1024 };
+  const hostRun = yield* execFileClosedStdin(request.opencodeExecutable ?? "opencode", ["--version"], options);
+  const runtimeRun = yield* execFileClosedStdin(configured.runtime, ["-e", "process.stdout.write(process.version)"], options);
+  return yield* Effect.sync(() => inputs(configured,
+    hostRun.succeeded ? hostRun.stdout.trim() : "unavailable",
+    runtimeRun.succeeded ? runtimeRun.stdout.trim() : "unavailable"));
 });
 export const uninstallOpenCodeIntegration = Effect.fn("OpenCodeInstallation.uninstall")(function* (request: OpenCodeInstallationRequest) {
   const input = yield* resolveInputs(request);

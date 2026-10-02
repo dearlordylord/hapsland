@@ -16,7 +16,7 @@ export type HostProcessResult = {
 class HostProcessStartError extends Schema.TaggedError<HostProcessStartError>()("HostProcessStartError", {}) {}
 const failedStart: HostProcessResult = { stdout: "", stderr: "", succeeded: false, timedOut: false };
 
-const acquireProcess = Effect.fn("CodexHost.acquireProcess")((executable: string, args: ReadonlyArray<string>,
+const acquireProcess = Effect.fn("HostProcess.acquireProcess")((executable: string, args: ReadonlyArray<string>,
   options: HostProcessOptions) => Effect.try({
   try: () => {
     let output: { readonly stdout: string; readonly stderr: string; readonly succeeded: boolean } | undefined;
@@ -42,7 +42,7 @@ const acquireProcess = Effect.fn("CodexHost.acquireProcess")((executable: string
       waiters.add(finish);
       return Effect.sync(() => { waiters.delete(finish); });
     });
-    const terminate = Effect.fn("CodexHost.terminate")((timeout: boolean) => Effect.sync(() => {
+    const terminate = Effect.fn("HostProcess.terminate")((timeout: boolean) => Effect.sync(() => {
       if (closed) return;
       timedOut ||= timeout;
       child.kill("SIGKILL");
@@ -54,7 +54,7 @@ const acquireProcess = Effect.fn("CodexHost.acquireProcess")((executable: string
 }));
 
 /** Codex needs closed stdin; every exit retains ownership until callback and physical close. */
-export const execFileClosedStdin = Effect.fn("CodexHost.run")((executable: string, args: ReadonlyArray<string>,
+export const execFileClosedStdin = Effect.fn("HostProcess.run")((executable: string, args: ReadonlyArray<string>,
   options: HostProcessOptions) => Effect.acquireUseRelease(
   acquireProcess(executable, args, options),
   (process) => process.closeInput.pipe(Effect.andThen(process.wait), Effect.timeoutOrElse({

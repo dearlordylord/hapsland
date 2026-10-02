@@ -76,7 +76,7 @@ if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|Effect\.promise\(|new Promise|
 for (const key of ["REVIEW_ACTIVITY_PATH", "REVIEW_DEMO_TEST_SANDBOX_BYPASS", "REVIEW_DEMO_TEST_CODEX_MODEL"]) {
   if (demo.includes(`process.env.${key}`)) throw new Error(`demo configuration bypass returned: ${key}`);
 }
-const host = read("src/onboarding/codex-host-process.ts");
+const host = read("src/onboarding/host-process.ts");
 if (/new Promise|Effect\.run(?:Sync|Promise|Fork)\(/u.test(host) || !host.includes("Effect.acquireUseRelease(")) {
   throw new Error("native Codex host process must use scoped Effect ownership");
 }

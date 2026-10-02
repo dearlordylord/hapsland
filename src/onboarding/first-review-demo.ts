@@ -7,7 +7,7 @@ import { basename, dirname, join } from "node:path";
 import { readActivity } from "../activity/status.ts";
 import { inspectResidentEffect as inspectResident } from "../resident/client.ts";
 import { inspectCodexInstallation } from "./codex-installation.ts";
-import { execFileClosedStdin } from "./codex-host-process.ts";
+import { execFileClosedStdin } from "./host-process.ts";
 import { initializeDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
 import { demoSourceHash, readDemoTrace } from "./demo-trace.ts";
 

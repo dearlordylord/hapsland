@@ -3264,5 +3264,35 @@
       "src/onboarding/opencode-installation.test.ts": "08cb9d950dee22144efdabd5bfb42370645ef07f5aaeb8fe45536400cd514613"
     },
     "limitations": "Mutation remains synchronous native filesystem boundary; no asynchronous filesystem cancellation claim or injected native release-failure evidence. Native host compatibility port, Codex/Claude Config, interactive flows and final gates remain incomplete."
+  },
+  "openCodeNativeCompatibilityPort": {
+    "status": "host/runtime compatibility probes use scoped host-process Effect",
+    "contract": "Sequential 2000ms bounded version probes retain compatibility classifications. stdin closes; timeout/interruption waits for native child close through shared adapter; output bounded at 1MiB. process.env is only native child environment passthrough.",
+    "adapterRename": "codex-host-process.ts and its test renamed in place to host-process.ts/host-process.test.ts; spans are HostProcess; imports and source guard updated; no old adapter or alias retained. Historical evidence sections retain paths as recorded at their commits.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "node scripts/check-configuration-boundary.mjs",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/opencode-installation.test.ts src/onboarding/host-process.test.ts src/onboarding/first-review-demo.test.ts src/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 4,
+        "tests": 30,
+        "durationSeconds": 9.48
+      }
+    ],
+    "sourceSha256": {
+      "src/onboarding/host-process.ts": "5e0c9bd248284f3f767dafd5c131a99d2bf5e30926a884a6a343e4fb45413788",
+      "src/onboarding/host-process.test.ts": "4d2e89209229f762a47cf6dcf7732ac0a815c59cd5e8d6386adb155b31fcd02a",
+      "src/onboarding/opencode-installation.ts": "61df3f804c8b1086f060ccccb42a2c507014626d95c6ae928eaf9484bba4abab",
+      "src/onboarding/first-review-demo.ts": "19a955256eea46564fb0aaff7ad92975682a150c24417208e453c1d28f2674b9",
+      "scripts/check-configuration-boundary.mjs": "9892b9f1f3b49efb09ec8df88a4d96dc0fd156d59d44a8c9313e7db3ee633ed3"
+    },
+    "limitations": "Synthetic host/adapter tests only, no actual OpenCode/Codex host support or universal descendant process closure claim. Codex/Claude installation Config, interactive/native terminal, coordinated hook deadlines and final full migration gates remain."
   }
 }

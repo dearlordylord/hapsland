@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, watch } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { execFileClosedStdin } from "./codex-host-process.ts";
+import { execFileClosedStdin } from "./host-process.ts";
 
 describe("Codex host process", () => {
   it("closes stdin so a prompt argument can start without waiting for the deadline", async () => {
