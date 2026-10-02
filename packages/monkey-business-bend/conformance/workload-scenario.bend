@@ -256,7 +256,7 @@ def endpoint_task(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Na
 
 def arrival(events: List<&2, Workload.Emission>, state: Types.State) -> List<&2, List<&2, Nat>>:
   match events:
-    case Workload.Emission{time, _, _, 1, _, _, _, _, _, _} <> Nil{}:
+    case Workload.Emission{+time, _, _, 1, _, _, _, _, _, _} <> Nil{}:
       suspend(Engine.workload_action(at(state, time, 1001n), 1n,
         Workload.Controlled{Workload.Suspend{True{}}}), time)
     case _: [[97n]]
