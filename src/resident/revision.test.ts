@@ -65,7 +65,7 @@ it.effect("isolates acquisitions and fences stale native tokens when generation 
   const old = (yield* first.revision.register("agent", item, true, "old")).revision;
   expect(yield* second.revision.count()).toBe(0);
   expect(yield* second.revision.current(old, item)).toBe(false);
-  first.clear();
+  yield* first.clear();
   expect(yield* first.revision.count()).toBe(0);
   const replacement = (yield* first.revision.register("agent", item, true, "replacement")).revision;
   expect(replacement.generation).toBe(old.generation);
@@ -159,7 +159,7 @@ it.effect("checks revision currentness at execution and fences reused generation
   const before = owner.canonicalProjection();
   expect(yield* current).toBe(true);
   expect(owner.canonicalProjection()).toEqual(before);
-  owner.clear();
+  yield* owner.clear();
   const next = (yield* owner.revision.register("agent", item, true, "new")).revision;
   expect(next.generation).toBe(first.generation);
   expect(yield* current).toBe(false);

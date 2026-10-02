@@ -54,7 +54,7 @@ it.effect("owns frozen advice content and leases together with canonical state",
   expect(yield* owner.advice.reserveLease(advice, "collector")).toBe(true);
   const first = (yield* owner.advice.current(advice)).delivery;
   expect(Object.isFrozen(first)).toBe(true);
-  expect(owner.canonicalProjection().collection.leases).toEqual([{ advice: initial.canonicalOperationId, owner: owner.collectionTokenId("collector") }]);
+  expect(owner.canonicalProjection().collection.leases).toEqual([{ advice: initial.canonicalOperationId, owner: yield* owner.collectionTokenId("collector") }]);
   expect(yield* owner.advice.updateDelivery(advice, "wrong", { acknowledged: true })).toBe(false);
   expect(yield* owner.advice.updateDelivery(advice, "collector", { findings: [finding], leaseUntil: 10, acknowledged: true })).toBe(true);
   expect((yield* owner.advice.current(advice)).delivery?.acknowledged).toBe(true);

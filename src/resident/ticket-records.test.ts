@@ -75,7 +75,7 @@ it.effect("retires only the selected partition and fences stale ticket capabilit
   expect((yield* owner.tickets.get("first"))).toBeUndefined();
   expect((yield* owner.tickets.get("independent"))).toBe(independent);
   expect((yield* owner.ticketUnits.stage(independentUnit))?.stage).toBe("pending");
-  owner.clear();
+  yield* owner.clear();
   const replacement = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime, "first", "a")));
   expect(replacement.generation).toBe(first.generation);
   expect((yield* owner.tickets.forget(first))).toBe(false);

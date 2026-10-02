@@ -93,7 +93,7 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(second.admitEdit("agent", "edit", now + 10, true))).toBe(1);
     expect(Effect.runSync(first.beginStop("agent", "attempt"))).toBe(true);
     expect(Effect.runSync(second.ownsStop("agent", "attempt"))).toBe(true);
-    ledger.clear();
+    Effect.runSync(ledger.clear());
     expect(Effect.runSync(first.hasPendingEdits("agent"))).toBe(false);
     expect(Effect.runSync(second.ownsStop("agent", "attempt"))).toBe(false);
     expect(Effect.runSync(first.liveCollectionTokenKeys()).size).toBe(0);

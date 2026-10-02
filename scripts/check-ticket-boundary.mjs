@@ -294,3 +294,9 @@ if (!state.includes('dispatchIdentity: Effect.fn("Capacity.dispatchIdentity")'))
 if (!state.includes('partitionId: Effect.fn("Capacity.partitionId")') || server.includes('residentLedger.partitionId(')) {
   throw new Error("root partition allocation must execute as an Effect; observers use owned identities");
 }
+
+for (const operation of ["collectionTokenId", "discardUnusedPartition", "dispatchScope"]) {
+  if (!state.includes(`${operation}: Effect.fn("Capacity.${operation}")`)) {
+    throw new Error(`root capacity ${operation} must compose as an atomic Effect`);
+  }
+}

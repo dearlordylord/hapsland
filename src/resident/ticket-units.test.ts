@@ -95,7 +95,7 @@ it.effect("fences forgotten and cleared capabilities when numeric unit identitie
   expect((yield* owner.ticketUnits.current(old))).toEqual({});
   expect((yield* owner.ticketUnits.stage(old))).toBeUndefined();
   expect((yield* owner.ticketUnits.step(old, "failUnit", "lost", {}))).toBe(false);
-  owner.clear();
+  yield* owner.clear();
   const replacementTicket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const replacement = (yield* owner.ticketUnits.add(replacementTicket));
   expect(replacement.id).toBe(old.id);
