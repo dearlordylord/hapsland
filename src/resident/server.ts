@@ -2549,15 +2549,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const group = adviceePartition(request.root, request.advicee);
           const round = (yield* residentLedger.rounds.get(group));
           const selectedAdvice = collected.status === "advice"
-            ? residentAdvice().filter((advice) => advice.delivery?.token === collected.token) : [];
-          const selected = selectedAdvice.map((advice) => ({ id: advice.id,
-            unit: advice.canonicalOperationId, findings: advice.delivery?.findings ?? [] }));
+            ? (yield* residentLedger.advice.snapshots()).filter(({ content }) => content.delivery?.token === collected.token) : [];
+          const selected = selectedAdvice.map(({ capability: advice, content }) => ({ id: advice.id,
+            unit: advice.canonicalOperationId, findings: content.delivery?.findings ?? [] }));
           const selectedCount = selected.reduce((count, item) => count + item.findings.length, 0);
           const bindingValid = collected.status !== "advice" || collected.findingCount === 0 ||
             (round !== undefined && selectedCount === collected.findingCount &&
-              selectedAdvice.every((advice) => advice.round === round &&
-                advice.workUnitId !== undefined && advice.delivery !== undefined &&
-                advice.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
+              selectedAdvice.every(({ capability: advice, content }) => advice.round === round &&
+                advice.workUnitId !== undefined && content.delivery !== undefined &&
+                content.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
           const output = residentComposedDelivery.decideFinishOutput(group, request.finish.token,
             collected.status === "advice" ? collected.token : "", selected, residentNow(),
             collected.status === "advice" && collected.findingCount === 0,
@@ -2854,15 +2854,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     const round = (yield* residentLedger.rounds.get(group));
     const selectedAdvice = final.status === "advice"
-      ? residentAdvice().filter((advice) => advice.delivery?.token === final.token) : [];
-    const selectedCount = selectedAdvice.reduce((count, advice) =>
-      count + (advice.delivery?.findings.length ?? 0), 0);
-    const selected = selectedAdvice.map((advice) => ({ id: advice.id, unit: advice.canonicalOperationId,
-      findings: advice.delivery?.findings ?? [] }));
+      ? (yield* residentLedger.advice.snapshots()).filter(({ content }) => content.delivery?.token === final.token) : [];
+    const selectedCount = selectedAdvice.reduce((count, { content }) =>
+      count + (content.delivery?.findings.length ?? 0), 0);
+    const selected = selectedAdvice.map(({ capability: advice, content }) => ({ id: advice.id, unit: advice.canonicalOperationId,
+      findings: content.delivery?.findings ?? [] }));
     const bindingValid = final.status !== "advice" || final.findingCount === 0 ||
-      (round !== undefined && selectedCount === final.findingCount && selectedAdvice.every((advice) =>
-        advice.round === round && advice.workUnitId !== undefined && advice.delivery !== undefined &&
-        advice.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
+      (round !== undefined && selectedCount === final.findingCount && selectedAdvice.every(({ capability: advice, content }) =>
+        advice.round === round && advice.workUnitId !== undefined && content.delivery !== undefined &&
+        content.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
     const output = residentComposedDelivery.decideFinishOutput(group, request.finish.token,
       final.status === "advice" ? final.token : "", selected, residentNow(),
       final.status === "advice" && final.findingCount === 0,

@@ -157,7 +157,8 @@
     "Delivery release and composed submission authorization consume immutable advice batch snapshots, removing live delivery getters from these workflows",
     "Collection and final transport output fitting read advice delivery through explicit snapshots; handoff offers, renewal and retained findings no longer use live delivery getters in those blocks",
     "Collection candidate lease/findings checks and post-update eligibility inspect explicit advice snapshots; both fitting passes read current findings through Effects",
-    "Collection ownership/current-token checks, collection work count, reused finding activity count and final transport token checks inspect explicit advice snapshots"
+    "Collection ownership/current-token checks, collection work count, reused finding activity count and final transport token checks inspect explicit advice snapshots",
+    "Both Stop finish selection and binding checks consume explicit advice batch snapshot content rather than capability delivery getters"
   ],
   "verification": [
     {
@@ -1976,6 +1977,15 @@
       "build": true,
       "boundaryChecksPassed": 15,
       "scope": "Collection ownership/count and final transport current-token consumers; getter removal remains incomplete"
+    },
+    {
+      "stage": "advice-finish-snapshot-consumers",
+      "testsPassed": 115,
+      "testFiles": 3,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Stop collection and final transport finish selected findings/binding; diagnostics and capability-list migration remain"
     }
   ],
   "next": [
