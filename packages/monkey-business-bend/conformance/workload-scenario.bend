@@ -61,12 +61,16 @@ def control_state(transition: Engine.WorkloadTransition) -> Types.State:
   match transition:
     case Engine.WorkloadTransition{state, _, _}: state
 
+def equal_entry(taken: Engine.Taken,
+    ih: Types.State -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match taken:
+    case Engine.Taken{state, Some{Scheduler.Entry{at, order}}}: [at, order] <> ih(state)
+    case _: [[97n]]
+
 def equal_taken(fuel: Nat, taken: Engine.Taken) -> List<&2, List<&2, Nat>>:
-  match fuel taken:
-    case 0n _: []
-    case 1n+rest Engine.Taken{+state, Some{Scheduler.Entry{at, order}}}:
-      [at, order] <> equal_taken(rest, Engine.take(state))
-    case _ _: [[97n]]
+  match fuel:
+    case 0n: []
+    case 1n+rest: equal_entry(taken, state => equal_taken(rest, Engine.take(state)))
 
 def at(state: Types.State, time: Nat, order: Nat) -> Types.State:
   clocked(Engine.take(Engine.enqueue(state, time, order)))
