@@ -171,8 +171,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     records: { runtime: initialRuntimeRecords(), adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(),
       dispatch: initialDispatchRegistry<DispatchKey, DispatchValue>(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords() },
   });
-  const read = <A>(operation: (current: CapacityState) => A): A =>
-    Effect.runSync(Ref.get(state).pipe(Effect.map(operation)));
   let committing = false;
   const commitAllEffect = <A>(operation: (draft: CapacityDraft, records: ResidentRecords<Pending, DispatchKey, DispatchValue>) =>
     readonly [A, ResidentRecords<Pending, DispatchKey, DispatchValue>]): Effect.Effect<A> =>
@@ -191,11 +189,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         return [value, { ...next, records: observedRecords }] as const;
       } finally { committing = false; }
     }).pipe(Effect.withSpan("ResidentState.commit"));
-  const commitAll = <A>(operation: Parameters<typeof commitAllEffect<A>>[0]): A =>
-    Effect.runSync(commitAllEffect(operation));
-  const commit = <A>(operation: (draft: CapacityDraft) => A): A =>
-    commitAll((draft, records) => [operation(draft), records]);
-  const capacity = capacityOperations(commit, read, residentLifetime);
   const unitCommit = <A>(operation: (operations: ReturnType<typeof ticketUnitOperations>, tickets: TicketRecordsState) => A): Effect.Effect<A> =>
     commitAllEffect((draft, records) => {
       const ticketUnits = draftTicketUnits(records.ticketUnits);
@@ -284,7 +277,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       return [value, { ...records, runtime }];
     });
   return {
-    ...capacity,
+    residentLifetime, canonicalLifetime: 1,
     transition: Effect.fn("Capacity.transition")((...args: Arguments<typeof transition>) => commitAllEffect((draft, records) => [transition(draft, ...args), records])),
     canonicalProjection: Effect.fn("Capacity.canonicalProjection")((...args: Arguments<typeof canonicalProjection>) => Ref.get(state).pipe(Effect.map((current) => canonicalProjection(current, ...args)))),
     replace: Effect.fn("Capacity.replace")((...args: Arguments<typeof replace>) =>
@@ -456,7 +449,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           return operation(deliveryView(snapshot.records.delivery, owner));
         }));
       return {
-        canonical: capacity,
         claimBackground: Effect.fn("ComposedDelivery.claimBackground")((...args: Parameters<ComposedDelivery["claimBackground"]>) => deliveryCommitEffect((operations) => operations.claimBackground(...args))),
         releaseBackground: Effect.fn("ComposedDelivery.releaseBackground")((...args: Parameters<ComposedDelivery["releaseBackground"]>) => deliveryCommitEffect((operations) => operations.releaseBackground(...args))),
         advance: Effect.fn("ComposedDelivery.advance")((...args: Parameters<ComposedDelivery["advance"]>) => deliveryCommitEffect((operations) => operations.advance(...args))),
@@ -738,11 +730,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     },
   };
 }).pipe(Effect.withSpan("ResidentState.make"));
-
-/** Synchronous host bridge during runtime service consolidation. */
-export const makeCapacityLedger = <Pending = never, DispatchKey = string, DispatchValue = never>(
-  ...args: Parameters<typeof makeResidentState<Pending, DispatchKey, DispatchValue>>
-) => Effect.runSync(makeResidentState<Pending, DispatchKey, DispatchValue>(...args));
 
 const capacityOperations = (
   commit: <A>(operation: (draft: CapacityDraft) => A) => A,

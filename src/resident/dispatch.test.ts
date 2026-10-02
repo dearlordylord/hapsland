@@ -3,7 +3,7 @@ import { expect } from "vitest";
 import { Deferred, Effect, Exit, Fiber, Queue } from "effect";
 import { makeDispatcher } from "./dispatch.ts";
 import { initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent } from "../canonical/adapter.ts";
-import { makeCapacityLedger, makeResidentState } from "./capacity.ts";
+import { makeResidentState } from "./capacity.ts";
 
 const makeFixture = (run: (entry: { readonly key: string; readonly value: number; readonly sequence: number }) => Effect.Effect<void>) =>
   Effect.gen(function* () {
@@ -164,7 +164,7 @@ it.effect("refuses to clear a physical job and permits one executor per owner", 
 }));
 
 it.effect("rolls back canonical publication if native registration cannot commit", () => Effect.gen(function* () {
-  const ledger = makeCapacityLedger();
+  const ledger = Effect.runSync(makeResidentState());
   const before = (yield* ledger.canonicalProjection());
   expect(() => Effect.runSync(ledger.transition({ kind: "openRound", partition: 1, lifetime: 1 }, () => {
     throw new Error("registration failed");

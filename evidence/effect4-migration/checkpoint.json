@@ -2130,6 +2130,16 @@
       "scope": "Public canonical transition is a named atomic Effect. Runtime finding offers, candidate routes, expiry, ordering, acknowledgement/finalization/submission checks and ticket gates compose it. Stable sequential insertion ordering permits effectful Bend comparisons; ticket advice presence preserves first-match short circuit. Private draft transitions remain pure within atomic commits.",
       "validation": "Updated ticket boundary source marker from removed function declaration to named Effect declaration; all original snapshot checks retained and passed. Intermediate conversion parse errors were corrected before tests.",
       "limitations": "Root synchronous owner bridges remain through delivery canonical fixture exposure; fixture constructor and runtime facade migration remain."
+    },
+    {
+      "stage": "synchronous-owner-bridge-deletion",
+      "testsPassed": 201,
+      "testFiles": 7,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Deleted root synchronous read/commit/commitAll facades, root pure capacity spread, makeCapacityLedger production constructor and delivery canonical draft-owner exposure. Public state retains named Effect methods and immutable lifetime metadata. Native fixtures construct makeResidentState Effects at their test boundary; composed fixture attaches test-owned Effect state rather than production draft capability. Added capacity boundary rejection of runSync, unsafe reads and removed owner bridges.",
+      "limitations": "Native fixtures still use runSync at test boundaries; broader fixture conversion, synchronous runtime facades, adapter audit, docs and final validation remain."
     }
   ],
   "next": [

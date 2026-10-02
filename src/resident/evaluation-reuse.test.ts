@@ -12,7 +12,7 @@ import {
 import { advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
-import { makeCapacityLedger, makeResidentState, MAX_PARTITION_KEY_BYTES } from "./capacity.ts";
+import { makeResidentState, MAX_PARTITION_KEY_BYTES } from "./capacity.ts";
 import {
   SUCCESS_CACHE_BYTE_LIMIT,
   SUCCESS_CACHE_ENTRY_LIMIT,
@@ -96,7 +96,7 @@ describe("resident evaluation identity", () => {
   });
 
   it("rolls back cache eviction, reservation release and identity allocation together", () => {
-    const ledger = makeCapacityLedger();
+    const ledger = Effect.runSync(makeResidentState());
     const reuse = ledger.reuse(() => 10);
     const successes = Array.from({ length: SUCCESS_CACHE_ENTRY_LIMIT }, (_, index) => {
       const item = prepared(input({ path: `retained-${index}.ts`, rules: [] }));
@@ -127,7 +127,7 @@ describe("resident evaluation identity", () => {
   });
 
   it("shares native claims across views and clears them with the canonical owner", () => {
-    const ledger = makeCapacityLedger<string>();
+    const ledger = Effect.runSync(makeResidentState<string>());
     const first = ledger.reuse(() => 10);
     const second = ledger.reuse(() => 10);
     const item = prepared(input({ rules: [] }));
@@ -155,7 +155,7 @@ describe("resident evaluation identity", () => {
   });
 
   it("evicts successful LRU entries without disturbing pending joins", () => {
-    const ledger = makeCapacityLedger();
+    const ledger = Effect.runSync(makeResidentState());
     const reuse = ledger.reuse((value) => Buffer.byteLength(JSON.stringify(value), "utf8"));
     const partition = "partition";
     const pending = reuse.key(partition, prepared(input({ rules: [] })));
@@ -182,7 +182,7 @@ describe("resident evaluation identity", () => {
   });
 
   it("evicts the oldest success for byte pressure and rejects an oversized success", () => {
-    const ledger = makeCapacityLedger();
+    const ledger = Effect.runSync(makeResidentState());
     let size = 70_000;
     const reuse = ledger.reuse(() => size);
     const first = prepared(input({ path: "first.ts", rules: [] }));
@@ -201,7 +201,7 @@ describe("resident evaluation identity", () => {
   });
 
   it("keeps canonical claim and LRU order aligned with native handles through expiry", () => {
-    const ledger = makeCapacityLedger<string>();
+    const ledger = Effect.runSync(makeResidentState<string>());
     const reuse = ledger.reuse(() => 10);
     const first = prepared(input({ path: "first.ts", rules: [] }));
     const second = prepared(input({ path: "second.ts", rules: [] }));
