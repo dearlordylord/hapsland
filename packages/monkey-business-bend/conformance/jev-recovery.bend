@@ -403,8 +403,12 @@ def terminal_values(credentials: Credentials.State, +state: Types.State, totals:
     case Credentials.State{_,generation,issued} Totals{s,c,f,o,r,g,n}:
       List.append(&2,Nat,[s,c,f,o,r,g,n,Engine.clock(state)],List.append(&2,Nat,Minimal.state_counts(state),[generation,List.length(&2,Credentials.Capture,issued)]))
 
+# Original advance horizon: final clear edit20490 + PRE2 + Jev1;
+# fresh edit20494 + PRE2 + Jev1 completes20497. Final advance starts20493 and uses +20, so drain only through20513,
+# preserving the captured600000 expiry in both scheduler and payload queue.
 def terminal_done(entries: List<&2,Scheduler.Entry>, compact: Compact) -> Bool:
   match entries compact:
+    case Scheduler.Entry{at,_} <> _ Compact{_,_,_,0n,True{}}: Bool.not(Nat.is_le(at,20513n))
     case Nil{} Compact{_,Minimal.Queue{Nil{},_,_},_,0n,True{}}: True{}
     case _ _: False{}
 
