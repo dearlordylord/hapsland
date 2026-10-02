@@ -83,7 +83,8 @@ export const adviceRecordOperations = (
       const work = owner.canonicalProjection().work.find((work) => work.operation === initial.canonicalOperationId);
       if (work?.kind !== "pendingFinding" || work.partition !== owner.knownPartitionId(initial.partition) ||
           work.round !== initial.canonicalRound || work.reservation !== initial.reservation.id) throw new Error("retained advice lacks its canonical finding owner");
-      if (!owner.resize(initial.reservation, initial.reservation.bytes, "storedResult")) throw new Error("Bend denied review result retention reservation");
+      const reservation = owner.reservationSnapshot(initial.reservation);
+      if (reservation === undefined || !owner.resize(initial.reservation, reservation.bytes, "storedResult")) throw new Error("Bend denied review result retention reservation");
       recordFindingCount(initial, initial.findings.length);
       const { evaluations, findings, ...metadata } = initial;
       const advice = capability(Object.freeze(metadata));

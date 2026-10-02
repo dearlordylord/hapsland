@@ -272,3 +272,7 @@ if (!state.includes('reservationSnapshot: Effect.fn("Capacity.reservationSnapsho
     /advice\.reservation\.bytes|cooldown\.reservation\.bytes/.test(server)) {
   throw new Error("resident accounting must inspect reservation snapshots through Effect");
 }
+
+if (state.includes("purpose: CapacityPurpose = reservation.purpose") || state.includes("const retainedBytes = reservation.bytes")) {
+  throw new Error("capacity drafts must use retained registry metadata");
+}

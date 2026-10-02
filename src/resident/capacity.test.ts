@@ -445,6 +445,13 @@ effectIt.effect("reads reservation metadata on execution and fences foreign or r
   expect(yield* read).toEqual({ bytes: 20, purpose: "preparation" });
   expect(initial?.bytes).toBe(10);
   expect(yield* owner.reservationSnapshot({ ...reservation })).toBeUndefined();
+  const forged = { id: reservation.id, partition: reservation.partition,
+    get bytes(): number { throw new Error("foreign metadata getter"); },
+    get purpose(): typeof reservation.purpose { throw new Error("foreign metadata getter"); } };
+  expect(owner.resize(forged, 21)).toBe(false);
+  expect(owner.resize(reservation, 20, "storedResult")).toBe(true);
+  expect(owner.resize(reservation, 21)).toBe(true);
+  expect(yield* read).toEqual({ bytes: 21, purpose: "storedResult" });
   owner.clear();
   const replacement = owner.reserve("fixture", 30, "preparation")!;
   expect(replacement.id).toBe(reservation.id);

@@ -44,7 +44,7 @@ export interface DispatchState<K, A> {
 
 /** Scoped execution of Bend commands, with native handles registered at commit. */
 export const makeDispatcher = <K, A>(
-  ledger: CapacityLedger & { readonly dispatch: DispatchState<K, A> },
+  ledger: Pick<CapacityLedger, "canonicalProjection" | "dispatchIdentity"> & { readonly dispatch: DispatchState<K, A> },
   operation: (value: A) => { readonly operation: number; readonly round: number },
   run: (entry: DispatchEntry<K, A>) => Effect.Effect<void, unknown>,
 ): Effect.Effect<Dispatcher<K, A>, never, Scope.Scope> => Effect.gen(function* () {

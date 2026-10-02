@@ -562,7 +562,9 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         start: Effect.fn("AdviceCaptures.start")((reservation: CapacityReservation, revision: WorkRevision, workspaceBytes: number): Effect.Effect<AdviceCapture | undefined> =>
           commitAllEffect(captureChange((captures, owner) => {
             if (captures.has(reservation.id)) return undefined;
-            const retainedBytes = reservation.bytes;
+            const retained = owner.reservationSnapshot(reservation);
+            if (retained === undefined) return undefined;
+            const retainedBytes = retained.bytes;
             if (!owner.resize(reservation, retainedBytes + workspaceBytes, "adviceRecheck")) return undefined;
             const capability = Object.freeze({ reservation, revision, retainedBytes });
             captures.set(reservation.id, Object.freeze({ capability, retired: false }));
@@ -710,6 +712,10 @@ const capacityOperations = (
 ) => {
   return {
     residentLifetime, canonicalLifetime: 1,
+    reservationSnapshot: (capability: CapacityReservation) => read((snapshot) => {
+      const record = snapshot.reservations.get(capability.id);
+      return record?.capability === capability ? Object.freeze({ bytes: record.bytes, purpose: record.purpose }) : undefined;
+    }),
     partitionId: (...args: Arguments<typeof partitionId>) => commit((draft) => partitionId(draft, ...args)),
     knownPartitionId: (...args: Arguments<typeof knownPartitionId>) => read((draft) => knownPartitionId(draft, ...args)),
     minimumFreshStart: (...args: Arguments<typeof minimumFreshStart>) => read((draft) => minimumFreshStart(draft, ...args)),
@@ -1148,17 +1154,18 @@ function reserve(draft: CapacityDraft, partition: string, bytes: number, purpose
 }
 
 function resize(draft: CapacityDraft, reservation: CapacityReservation, bytes: number,
-  purpose: CapacityPurpose = reservation.purpose): boolean {
+  purpose?: CapacityPurpose): boolean {
   const retained = draft.reservations.get(reservation.id);
   if (retained?.capability !== reservation || !Number.isSafeInteger(bytes) || bytes < 0 ||
       bytes > CANONICAL_MAX_BYTES) return false;
-  const result = stepCanonical(draft.canonical, { kind: "resizeCapacity", reservation: reservation.id, bytes, purpose });
+  const nextPurpose = purpose ?? retained.purpose;
+  const result = stepCanonical(draft.canonical, { kind: "resizeCapacity", reservation: reservation.id, bytes, purpose: nextPurpose });
   const command = result.commands[0];
   if (result.rejection !== undefined || result.commands.length !== 1 || command === undefined) throw new Error("invalid Bend capacity resize result");
   if (command.kind === "capacityRefused") return false;
   if (command.kind !== "capacityResized" || command.id !== reservation.id) throw new Error("unexpected Bend capacity resize command");
   draft.canonical = result.state;
-  setReservationMetadata(draft, reservation, bytes, purpose);
+  setReservationMetadata(draft, reservation, bytes, nextPurpose);
   return true;
 }
 

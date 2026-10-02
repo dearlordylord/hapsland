@@ -9,7 +9,7 @@ import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts"
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
 import { type JevRequestObservation } from "./server.ts";
-import { makeCapacityLedger, type CapacityLedger } from "./capacity.ts";
+import { makeCapacityLedger } from "./capacity.ts";
 import { captureStable } from "../direct-event/capture.ts";
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 
@@ -506,7 +506,7 @@ describe("canonical Jev request boundary", () => {
     const second = makeCapacityLedger(undefined, "resident-b");
     const facts = { rootValid: true, configurationValid: true,
       credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
-    const issue = (ledger: CapacityLedger) => {
+    const issue = (ledger: typeof first) => {
       const partition = "review-partition";
       const observation = ledger.admitObservation(partition);
       expect(ledger.observation(partition, observation, "startObservation", ledger.roundId(partition))).toBe(true);
