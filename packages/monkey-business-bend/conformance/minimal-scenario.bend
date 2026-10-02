@@ -117,6 +117,7 @@ def event_code(event: Canonical.CanonicalEvent) -> Nat:
     case Canonical.DispatchSettled{_, _, _, _}: 8n
     case Canonical.StartReview{_, _, _, _}: 9n
     case Canonical.JevRequestReady{_, _, _, _, _, _, _, _, _, _}: 10n
+    case Canonical.JevRequestInterrupted{_, _, _, _, _}: 25n
     case Canonical.JevRequestStarted{_, _, _, _, _}: 11n
     case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: 12n
     case Canonical.CollectionReady{_, _, _, _, _, _}: 13n
@@ -144,6 +145,7 @@ def event_identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
     case Canonical.DispatchSettled{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
     case Canonical.StartReview{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
     case Canonical.JevRequestReady{p, l, r, o, _, _, _, _, _, _}: [p, l, r, o, 0n, 0n, 0n]
+    case Canonical.JevRequestInterrupted{p, l, r, o, req}: [p, l, r, o, req, 0n, 0n]
     case Canonical.JevRequestStarted{p, l, r, o, req}: [p, l, r, o, req, 0n, 0n]
     case Canonical.JevRequestSettled{p, l, r, o, req, _, _}: [p, l, r, o, req, 0n, 0n]
     case Canonical.CollectionReady{a, p, l, r, parent, _}: [p, l, r, parent, 0n, a, 0n]
@@ -212,6 +214,7 @@ def command_code(command: Canonical.Command) -> Nat:
     case Canonical.PreparationReleased{_, _}: 15n
     case Canonical.ObservationCompleted{}: 16n
     case Canonical.ReviewStarted{}: 17n
+    case Canonical.JevInterruptionRecorded{}: 29n
     case Canonical.JevRequestStartRecorded{}: 18n
     case Canonical.JevRequestOutcomeRecorded{_}: 19n
     case Canonical.ReservationReleased{_}: 20n
