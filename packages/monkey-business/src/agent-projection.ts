@@ -1,41 +1,62 @@
 import type { CanonicalProjection } from "../../../src/canonical/adapter.ts";
+import Shared from "../../monkey-business-bend/engine.mjs";
+
+type Binding = { readonly owner: number; readonly id: number };
+const selected = (bindings: readonly Binding[], partition: number): Set<number> => {
+  if (!Number.isSafeInteger(partition) || partition < 1 || partition >= 2 ** 48) return new Set();
+  const encoded = bindings.reduceRight<unknown>((tail, item) => ({ $: "Con",
+    head: { $: "AdviceeScope.Binding", owner: BigInt(item.owner), id: BigInt(item.id) }, tail }), { $: "Nil" });
+  const result = Shared.scope_select(encoded, BigInt(partition)) as
+    { $: "Nil" } | { $: "Con"; head: bigint; tail: unknown };
+  const ids = new Set<number>();
+  let cursor = result;
+  while (cursor.$ === "Con") {
+    ids.add(Number(cursor.head));
+    cursor = cursor.tail as typeof result;
+  }
+  return ids;
+};
+const scoped = <T>(records: readonly T[], partition: number, owner: (item: T) => number): T[] => {
+  const indexes = selected(records.map((item, id) => ({ owner: owner(item), id })), partition);
+  return records.filter((_item, index) => indexes.has(index));
+};
 
 /** A partition lens over a checked resident snapshot. Shared totals/limits stay shared.
  * Unknown ownership is omitted rather than attributed to every agent. No decisions
  * or transitions are calculated here; IDs are joined only through checked records.
  */
 export const projectAgent = (state: CanonicalProjection, partition: number): CanonicalProjection => {
-  const work = state.work.filter(item => item.partition === partition);
-  const batches = state.delivery.submissions.batches.filter(item => item.group === partition);
-  const operations = new Set([...work.map(item => item.operation), ...batches.map(item => item.advice)]);
+  const work = scoped(state.work, partition, item => item.partition);
+  const batches = scoped(state.delivery.submissions.batches, partition, item => item.group);
+  const operations = selected([...state.work.map(item => ({ owner: item.partition, id: item.operation })),
+    ...state.delivery.submissions.batches.map(item => ({ owner: item.group, id: item.advice }))], partition);
   const claims = state.reuse.claims.filter(item => operations.has(item.id));
   return {
     ...state,
-    partitions: state.partitions.filter(item => item.partition === partition),
-    charges: state.charges.filter(item => item.partition === partition),
-    rounds: state.rounds.filter(item => item.partition === partition),
-    admissions: state.admissions.filter(item => item.partition === partition),
+    partitions: scoped(state.partitions, partition, item => item.partition),
+    charges: scoped(state.charges, partition, item => item.partition),
+    rounds: scoped(state.rounds, partition, item => item.partition),
+    admissions: scoped(state.admissions, partition, item => item.partition),
     completedEdits: [],
     work,
     pendingFindings: state.pendingFindings.filter(item => operations.has(item.operation)),
     dispatch: { ...state.dispatch,
-      queued: state.dispatch.queued.filter(item => item.partition === partition),
-      running: state.dispatch.running.filter(item => item.partition === partition),
-      requests: state.dispatch.requests.filter(item => item.partition === partition),
+      queued: scoped(state.dispatch.queued, partition, item => item.partition),
+      running: scoped(state.dispatch.running, partition, item => item.partition),
+      requests: scoped(state.dispatch.requests, partition, item => item.partition),
     },
     collection: {
       ready: state.collection.ready.filter(id => operations.has(id)),
       leases: state.collection.leases.filter(item => operations.has(item.advice)),
-      claims: state.collection.claims.filter(item => item.group === partition),
+      claims: scoped(state.collection.claims, partition, item => item.group),
     },
-    // Monkey Business does not issue native revision inputs. They
-    // have no ownership binding in this projection and are not shown locally.
+    // Revision subjects carry no advicee ownership binding in this snapshot.
     revision: { ...state.revision, entries: [] },
-    notices: state.notices.filter(item => item.partition === partition),
-    reuse: { claims, cache: state.reuse.cache.filter(item => item.partition === partition) },
+    notices: scoped(state.notices, partition, item => item.partition),
+    reuse: { claims, cache: scoped(state.reuse.cache, partition, item => item.partition) },
     delivery: {
-      slots: state.delivery.slots.filter(item => item.group === partition),
-      counters: state.delivery.counters.filter(item => item.group === partition),
+      slots: scoped(state.delivery.slots, partition, item => item.group),
+      counters: scoped(state.delivery.counters, partition, item => item.group),
       submissions: { batches, leases: state.delivery.submissions.leases.filter(item => operations.has(item.advice)) },
     },
   };
