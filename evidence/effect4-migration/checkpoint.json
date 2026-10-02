@@ -198,7 +198,8 @@
     "Integrated master #171 response authority into scoped resident Effects; removed superseded ticket tests/helpers and preserved common advice/lease/joined/identity rollback invariants; full typecheck and 81 shared-state, 95 server/terminal, 35 Claude/analytics selected cases passed.",
     "Evaluation command planning composes parent ConfigProvider directly; removed internal runSync, redacted credential presence checks, introduced named plan/run/config Effects and bounded typed command failures. Offline injected-config/error and native CLI coverage passed 24 tests in three files.",
     "Credential resolution/save/logout compose directly as named Effects with redacted caller configuration, Schema-decoded v1 state, Schedule lock polling and helper physical closure before token-fenced lock release; CLI, onboarding and resident callers migrated in place.",
-    "Installation generation lock uses scoped candidate ownership, Clock/Config and Schedule. Named Codex/Claude/OpenCode mutation entrypoints compose directly from CLI/setup; typed lock/use failures map directly to existing conflict results. Deterministic tests cover interrupted candidates, retained generation fences and unchanged deadline; native stale-owner/journal/rollback cases pass."
+    "Installation generation lock uses scoped candidate ownership, Clock/Config and Schedule. Named Codex/Claude/OpenCode mutation entrypoints compose directly from CLI/setup; typed lock/use failures map directly to existing conflict results. Deterministic tests cover interrupted candidates, retained generation fences and unchanged deadline; native stale-owner/journal/rollback cases pass.",
+    "Offline installed doctor composes the resident probe directly in the parent Effect runtime; typed native observation failures and Schema result model replace the Promise API/internal runtime. Caller ConfigProvider authority and sanitized source errors verified; CLI credential presence stays redacted."
   ],
   "verification": [
     {
@@ -2746,8 +2747,8 @@
         "remaining": "Scoped installation lock and named install/update/uninstall entrypoints are implemented and verified. Preview/inspection/diagnosis entrypoints and installation input/hook/journal configuration still use synchronous APIs/direct env reads; move them to caller Config composition in place. Audit and decompose synchronous native journal/mutation execution where needed for full idiomatic ownership, preserving revalidation, recovery, rollback and unsupported-runtime contracts."
       },
       {
-        "owner": "src/onboarding/doctor.ts, first-review-demo.ts",
-        "remaining": "Remove internal runPromise calls; compose read-only resident inspection and bounded demo stages with the parent Effect, retaining native process and demo-budget contracts."
+        "owner": "src/onboarding/first-review-demo.ts",
+        "remaining": "Installed doctor Promise/private-runtime port is implemented and verified (installation preview/inspection Config work remains in the installation entry). Convert demo native executor, filesystem fixture lifecycle and observation polling to named Effects, preserving explicit live opt-in, paid/source/time budgets and physical process settlement."
       },
       {
         "owner": "src/cli.ts, src/onboarding/client-selection.ts, src/onboarding/codex-host-process.ts",
@@ -2964,5 +2965,41 @@
       "scripts/check-configuration-boundary.mjs": "9b77305df82654aa383f2d54d9aaa028f34366459b132e1efc42030a29ffbfe7"
     },
     "limitations": "This is installation lock/mutation-entrypoint progress, not full onboarding migration. Preview/inspection/configuration and synchronous native journal execution still require caller-provider/Effect audit and conversion where applicable. Doctor/demo/private CLI runtime bridges and native terminal/process adapters remain. No live Jev or actual agent host validation was performed in this block. Final full suite, direct-event/package/installed/host/live/performance/completion gates remain required."
+  },
+  "doctorWorkflowPort": {
+    "scope": "Replaced diagnoseInstalledIntegration Promise API in place with Doctor.diagnose. Read-only resident inspection yields directly in the caller runtime instead of private runPromise. Package declaration and installation observation adapters have typed bounded DoctorError operation labels; trusted v1 result construction conforms to Schema-backed DoctorResult. CLI doctor composes the same Effect and reads credential-presence through Config.Redacted. Installation preview/inspection helpers remain synchronous pending their separate configuration conversion; parser native measurements retain their existing ready/unsupported/missing classifications.",
+    "initialTests": {
+      "command": "npx vitest run src/onboarding/doctor.test.ts src/cli.test.ts --maxWorkers=1",
+      "filesPassed": 2,
+      "testsPassed": 9,
+      "durationSeconds": 8.93
+    },
+    "finalTests": {
+      "command": "npx vitest run src/onboarding/doctor.test.ts src/cli.test.ts --maxWorkers=1",
+      "filesPassed": 2,
+      "testsPassed": 10,
+      "durationSeconds": 8.97
+    },
+    "providerAuthorityEvidence": "New Effect test supplies preserved empty REVIEW_RESIDENT_DIR and separately a failing provider containing a synthetic private detail. Both propagate bounded ResidentEndpointError from the parent configuration context; serialized failure contains no private source detail. The old private runtime would have bypassed this provider. Existing native CLI test covers environment and saved interaction-required credential readiness, ownership drift, unchanged installation files and no credential disclosure.",
+    "typecheck": {
+      "command": "npm run typecheck",
+      "status": "pass"
+    },
+    "build": {
+      "command": "npm run build",
+      "status": "pass"
+    },
+    "configurationGuard": {
+      "command": "node scripts/check-configuration-boundary.mjs",
+      "status": "pass",
+      "invariant": "Doctor cannot restore async/private runtime/direct env reads and must compose resident inspection directly."
+    },
+    "sourceSha256": {
+      "src/onboarding/doctor.ts": "b97f196799cadb89b4634277b09fc85cff737ac6d5b8b9c738f9db7dece3fe97",
+      "src/onboarding/doctor.test.ts": "8fdb648bfee619ebdcfdeb9a25266053376d58ec557026cd68da408985d2c590",
+      "src/cli.ts": "93d06d873de6e5c9ceac7c8dc6f1bc4f4c9d3ae4d471680eaca2fff8aad7f0bd",
+      "scripts/check-configuration-boundary.mjs": "ebd0f7c7b46d70aef11464b8e61a0156a3e65ac1c1859684096969786be7d428"
+    },
+    "limitations": "Doctor resident-probe composition is complete, not all onboarding/configuration migration. Installation preview/inspection helpers still need caller Config conversion and native journal audit; first-review-demo, interactive/process/readiness adapters and final comprehensive/conformance/live/performance/completion gates remain. No live Jev or actual agent-host support validation performed."
   }
 }

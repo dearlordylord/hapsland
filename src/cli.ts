@@ -753,8 +753,8 @@ const program = Effect.gen(function* () {
             };
           }
           const settings = settingsResult.success;
-          const doctorEnvironmentCredential = yield* Config.option(Config.String(settings.credentialEnvVar)).pipe(
-            Effect.map((value) => Option.isSome(value) && value.value.length > 0),
+          const doctorEnvironmentCredential = yield* Config.option(Config.Redacted(settings.credentialEnvVar)).pipe(
+            Effect.map((value) => Option.isSome(value) && Redacted.value(value.value).length > 0),
           );
           const credential = yield* resolveCredential({
             envVar: settings.credentialEnvVar,
@@ -809,11 +809,11 @@ const program = Effect.gen(function* () {
             } satisfies DoctorCheck,
           };
         });
-        return yield* Effect.promise(() => diagnoseInstalledIntegration({
+        return yield* diagnoseInstalledIntegration({
           installation: request,
           repository: repositoryResult.repository,
           credential: repositoryResult.credential,
-        }));
+        });
       }
       case "install-preview":
         return previewCodexInstallation(request);

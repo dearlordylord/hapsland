@@ -61,3 +61,9 @@ for (const runtime of ["codex", "claude", "opencode"]) {
     throw new Error(`${runtime} installation mutation APIs must compose in the caller Effect runtime`);
   }
 }
+
+const doctor = read("src/onboarding/doctor.ts");
+if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||
+    !doctor.includes("yield* inspectResident()")) {
+  throw new Error("installed doctor must inspect the resident in the caller Effect runtime and configuration");
+}

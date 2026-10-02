@@ -1,4 +1,5 @@
 import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { accessSync, constants, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +10,6 @@ import {
   previewCodexInstallation,
   inspectCodexInstallation,
   type InstallationRequest,
-  type InstallationResult,
 } from "./codex-installation.ts";
 
 export type DoctorCheckStatus = "ready" | "missing" | "conflict" | "unsupported" | "unknown";
@@ -36,25 +36,32 @@ const readable = (path: string): boolean => {
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-export const diagnoseInstalledIntegration = async (options: {
+export const DoctorResult = Schema.Struct({
+  version: Schema.Literal(1), operation: Schema.Literal("doctor"),
+  status: Schema.Literals(["ready", "not-ready", "unknown"]),
+  offline: Schema.Literal(true), readOnly: Schema.Literal(true), providerCalls: Schema.Literal(0),
+  checks: Schema.Array(Schema.Struct({ stage: Schema.String,
+    status: Schema.Literals(["ready", "missing", "conflict", "unsupported", "unknown"]),
+    observed: Schema.Unknown, action: Schema.optionalKey(Schema.String),
+  })),
+  nextSteps: Schema.Array(Schema.Struct({ stage: Schema.String, action: Schema.String })),
+});
+export interface DoctorResult extends Schema.Schema.Type<typeof DoctorResult> {}
+export class DoctorError extends Schema.TaggedError<DoctorError>()("DoctorError", { operation: Schema.NonEmptyString }) {}
+const observe = Effect.fn("Doctor.observe")(<A>(operation: string, read: () => A) => Effect.try({
+  try: read, catch: () => new DoctorError({ operation }),
+}));
+
+export const diagnoseInstalledIntegration = Effect.fn("Doctor.diagnose")(function* (options: {
   readonly installation: InstallationRequest;
   readonly repository: DoctorCheck;
   readonly credential: DoctorCheck;
-}): Promise<{
-  readonly version: 1;
-  readonly operation: "doctor";
-  readonly status: "ready" | "not-ready" | "unknown";
-  readonly offline: true;
-  readonly readOnly: true;
-  readonly providerCalls: 0;
-  readonly checks: ReadonlyArray<DoctorCheck>;
-  readonly nextSteps: ReadonlyArray<{ readonly stage: string; readonly action: string }>;
-}> => {
+}) {
   const checks: Array<DoctorCheck> = [];
   const declarationPath = join(packageRoot, "package-runtime.json");
-  const declaration = readable(declarationPath)
+  const declaration = yield* observe("read package declaration", () => readable(declarationPath)
     ? object(JSON.parse(readFileSync(declarationPath, "utf8")))
-    : undefined;
+    : undefined);
   checks.push(declaration === undefined
     ? { stage: "package", status: "missing", observed: "package-runtime.json unavailable", action: "reinstall the released package" }
     : { stage: "package", status: "ready", observed: { declaration: "package-runtime.json", packageRoot } });
@@ -69,7 +76,7 @@ export const diagnoseInstalledIntegration = async (options: {
     checks.push({ stage: "parser", status: "missing", observed: "load-failed", action: "reinstall a release archive containing compatible parser bindings for this platform" });
   }
 
-  const preview = previewCodexInstallation(options.installation) as InstallationResult;
+  const preview = yield* observe("preview installation", () => previewCodexInstallation(options.installation));
   const previewRecord = object(preview) ?? {};
   const host = object(previewRecord.host);
   const compatibility = object(host?.compatibility);
@@ -82,7 +89,7 @@ export const diagnoseInstalledIntegration = async (options: {
     ? { stage: "host", status: "ready", observed: { adapter: "codex", home: host?.home, version: codex.observed } }
     : { stage: "host", status: "unsupported", observed: codex?.observed ?? "unavailable", action: `select a Codex home and install ${codex?.required ?? "a declared Codex CLI version"}` });
 
-  const inspection = object(inspectCodexInstallation(options.installation)) ?? {};
+  const inspection = object(yield* observe("inspect installation", () => inspectCodexInstallation(options.installation))) ?? {};
   if (inspection.status === "conflict") {
     checks.push({
       stage: "configuration-ownership",
@@ -108,7 +115,7 @@ export const diagnoseInstalledIntegration = async (options: {
     });
   }
 
-  const resident = await Effect.runPromise(inspectResident());
+  const resident = yield* inspectResident();
   checks.push(resident.available
     ? { stage: "resident", status: "ready", observed: { lifetime: resident.lifetime, pid: resident.pid } }
     : { stage: "resident", status: "unknown", observed: "not-running-or-unreachable", action: "start or restart Codex so the installed hook can launch the resident" });
@@ -136,5 +143,5 @@ export const diagnoseInstalledIntegration = async (options: {
     providerCalls: 0,
     checks,
     nextSteps,
-  };
-};
+  } satisfies DoctorResult;
+});

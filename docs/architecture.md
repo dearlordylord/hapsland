@@ -57,6 +57,8 @@ Credential resolution, save, and logout compose in the caller's Effect runtime a
 
 Installation mutations compose in the caller's Effect runtime and own a scoped generation lock. Cancelled waiters remove their unpublished owner records; completion releases the exact published owner. Retained generation links fence competing stale-owner reclaimers. Mutation plans, journal revalidation and rollback preserve unrelated configuration and incomplete-operation recovery.
 
+The offline installed doctor composes its bounded, read-only resident probe in the caller's Effect runtime and configuration provider. It does not launch a resident or issue provider review calls. Native observation failures carry operation labels rather than source or credential contents.
+
 ## What verification establishes
 
 Bend owns the production transition decisions through `Canonical.step`, including admission, rule eligibility, capacity, request permission, freshness-related transitions, and delivery authorization. The import-graph reducer orders traversal and checks budgets. TypeScript observes native facts and executes filesystem, parser, credential, network, and host-output effects.

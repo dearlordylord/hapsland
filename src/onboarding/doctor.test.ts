@@ -1,4 +1,5 @@
-import { Effect } from "effect";
+import { ConfigProvider, Effect } from "effect";
+import { it as effectIt } from "@effect/vitest";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -28,6 +29,23 @@ afterEach(() => {
 });
 
 describe("offline installed integration doctor", () => {
+  effectIt.effect("resident inspection honors the caller provider and sanitizes its source failure", () => Effect.gen(function* () {
+    const root = mkdtempSync(join(tmpdir(), "doctor-provider-"));
+    roots.push(root);
+    const options = { installation: { codexHome: root, codexExecutable: process.execPath },
+      repository: readyCheck("file-selection"), credential: readyCheck("credential-accessibility") };
+    const empty = yield* diagnoseInstalledIntegration(options).pipe(Effect.provide(ConfigProvider.layer(
+      ConfigProvider.fromUnknown({ REVIEW_RESIDENT_DIR: "" }, { preserveEmptyStrings: true }),
+    )), Effect.result);
+    expect(empty).toMatchObject({ _tag: "Failure", failure: { _tag: "ResidentEndpointError", operation: "resolveConfiguration" } });
+    const privateDetail = "synthetic-private-doctor-configuration";
+    const unavailable = yield* diagnoseInstalledIntegration(options).pipe(Effect.provide(ConfigProvider.layer(
+      ConfigProvider.make(() => Effect.fail(new ConfigProvider.SourceError({ message: privateDetail }))),
+    )), Effect.result);
+    expect(unavailable).toMatchObject({ _tag: "Failure", failure: { _tag: "ResidentEndpointError", operation: "resolveConfiguration" } });
+    expect(JSON.stringify(unavailable)).not.toContain(privateDetail);
+  }));
+
   it("diagnoses exact ownership and drift without mutations, provider calls, or secret disclosure", async () => {
     const root = mkdtempSync(join(tmpdir(), "doctor-"));
     roots.push(root);
@@ -103,7 +121,7 @@ else console.log('{"version":1,"status":"available"}');
         action: expect.stringContaining("background hooks never prompt"),
       }),
     ]));
-    const result = await diagnoseInstalledIntegration({
+    const result = await Effect.runPromise(diagnoseInstalledIntegration({
       installation: request,
       repository: readyCheck("file-selection"),
       credential: {
@@ -111,7 +129,7 @@ else console.log('{"version":1,"status":"available"}');
         status: "ready",
         observed: { source: "environment", accessible: true },
       },
-    });
+    }));
     expect(result).toMatchObject({
       operation: "doctor",
       status: "unknown",
@@ -138,22 +156,22 @@ else console.log('{"version":1,"status":"available"}');
     const hooks = JSON.parse(hooksBefore) as { hooks: { PostToolUse: Array<unknown> } };
     hooks.hooks.PostToolUse.push(hooks.hooks.PostToolUse[0]);
     writeFileSync(join(codexHome, "hooks.json"), `${JSON.stringify(hooks)}\n`);
-    const drift = await diagnoseInstalledIntegration({
+    const drift = await Effect.runPromise(diagnoseInstalledIntegration({
       installation: request,
       repository: readyCheck("file-selection"),
       credential: readyCheck("credential-accessibility"),
-    });
+    }));
     expect(drift).toMatchObject({
       status: "not-ready",
       checks: expect.arrayContaining([
         expect.objectContaining({ stage: "configuration-ownership", status: "conflict" }),
       ]),
     });
-    const unsupportedWithDrift = await diagnoseInstalledIntegration({
+    const unsupportedWithDrift = await Effect.runPromise(diagnoseInstalledIntegration({
       installation: { ...request, codexExecutable: "/bin/true" },
       repository: readyCheck("file-selection"),
       credential: readyCheck("credential-accessibility"),
-    });
+    }));
     expect(unsupportedWithDrift).toMatchObject({
       checks: expect.arrayContaining([
         expect.objectContaining({ stage: "host", status: "unsupported" }),
