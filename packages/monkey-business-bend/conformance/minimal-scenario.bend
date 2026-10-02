@@ -75,7 +75,7 @@ def context(action: Driver.Action, config: Config, now: Nat) -> Driver.Context:
   context_active(Nat.is_le(7n, now), action, config)
 
 def graph_facts(queue: Queue, +now: Nat, +operation: Nat) -> Queue:
-  +one = Nat.add(now, 1n)
+  +one = Nat.add(now, Engine.preparation_fact_time(2n, 3n, 6n))
   +q = append(queue, now, Fact{operation, 0n, Graph.Root{1n, 100n, 20n, 0n, [2n]}})
   +q = append(q, now, Fact{operation, 1n, Graph.Next{}})
   +q = append(q, now, Fact{operation, 2n, Graph.Resolved{2n, Graph.Found{}}})
@@ -158,14 +158,34 @@ def boolean(value: Bool) -> Nat:
     case True{}: 1n
     case False{}: 0n
 
+def first(items: List<&2, Nat>) -> Nat:
+  match items:
+    case Nil{}: 0n
+    case head <> _: head
+
+def outcome_code(outcome: Canonical.RequestOutcome) -> Nat:
+  match outcome:
+    case Canonical.NeverSent{}: 1n
+    case Canonical.RequestFinding{}: 2n
+    case Canonical.RequestClear{}: 3n
+    case Canonical.RequestBackendFailure{}: 4n
+    case Canonical.RequestTimeout{}: 5n
+    case Canonical.RequestInterrupted{}: 6n
+
 def event_facts(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
   match event:
     case Canonical.FinalCandidateCheck{owner, generation, credential, expired, current, findings}:
       [boolean(owner), boolean(generation), boolean(credential), boolean(expired), boolean(current), boolean(findings)]
     case Canonical.JevRequestReady{_, _, _, _, root, configuration, credential, selected, current, physical}:
       [boolean(root), boolean(configuration), boolean(credential), boolean(selected), boolean(current), boolean(physical)]
-    case Canonical.JevRequestSettled{_, _, _, _, _, _, current}: [boolean(current), 0n, 0n, 0n, 0n, 0n]
+    case Canonical.JevRequestSettled{_, _, _, _, _, outcome, current}: [boolean(current), outcome_code(outcome), 0n, 0n, 0n, 0n]
     case Canonical.SubmissionTerminal{_, _, certain}: [boolean(certain), 0n, 0n, 0n, 0n, 0n]
+    case Canonical.BeginObservedPreparation{_, _, _, _, bytes}: [bytes, 0n, 0n, 0n, 0n, 0n]
+    case Canonical.PreparationCompleted{_, _, _, _, +units}: [List.length(&2, Nat, units), first(units), 0n, 0n, 0n, 0n]
+    case Canonical.SubmissionBegin{_, _, _, _, _, authorized, +items, +findings}:
+      [boolean(authorized), List.length(&2, Nat, items), first(items), List.length(&2, Nat, findings), first(findings), 0n]
+    case Canonical.CollectionLeaseCheck{_, _, expired, retired, acknowledged, failed}:
+      [boolean(expired), boolean(retired), boolean(acknowledged), boolean(failed), 0n, 0n]
     case _: [0n, 0n, 0n, 0n, 0n, 0n]
 
 def command_code(command: Canonical.Command) -> Nat:
@@ -239,15 +259,45 @@ def graph_result(transition: Types.GraphTransition, queue: Queue, now: Nat,
     case Types.GraphTransition{state, _, Graph.BoundedStep{graph, command}}:
       graph_row(graph, command, now) <> ih((state, queue))
 
+def controlled(config: Config) -> Bool:
+  match config:
+    case Config{_, current, credential, generation, readable}: Bool.not(current && credential && generation && readable)
+
+def control_if(apply: Bool, queue: Queue, state: Types.State, context: Driver.Context, now: Nat) -> Queue:
+  match apply:
+    case True{}: enqueue(Engine.revalidate(state, context), queue, now)
+    case False{}: queue
+
+def boundary_control(event: Canonical.CanonicalEvent, queue: Queue, state: Types.State,
+    +config: Config, context: Driver.Context, now: Nat) -> Queue:
+  match event:
+    case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: control_if(controlled(config), queue, state, context, now)
+    case _: queue
+
 def canonical_result(transition: Engine.Transition, +before: Types.State,
-    +action: Driver.Action, queue: Queue, +now: Nat, config: Config,
+    +action: Driver.Action, queue: Queue, +now: Nat, +config: Config,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match transition action:
-    case Engine.Transition{+state, Canonical.Advanced{_, +list}} Driver.Action{+event, delay, candidate, job, expiry}:
+    case Engine.Transition{+state, Canonical.Advanced{_, +list}} Driver.Action{+event, +delay, +candidate, +job, +expiry}:
       +q = commands(list, queue, now, state, event, context(Driver.Action{event, delay, candidate, job, expiry}, config, now))
       +q = enqueue(Engine.after(before, state, event), q, now)
+      +q = boundary_control(event, q, state, config, context(Driver.Action{event, delay, candidate, job, expiry}, config, now), now)
       (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), command_codes(list)))) <> ih((state, q))
     case _ _: [ [98n, now] ]
+
+def execution_context(event: Canonical.CanonicalEvent, action: Driver.Action, config: Config, now: Nat) -> Driver.Context:
+  match event:
+    case Canonical.JevRequestSettled{_, _, _, _, _, _, _}:
+      context(action, config, 0n)
+    case _: context(action, config, now)
+
+def execute(+state: Types.State, +action: Driver.Action, queue: Queue, +now: Nat, +config: Config,
+    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match action:
+    case Driver.Action{+event, +delay, +candidate, +job, +expiry}:
+      +a = {Driver.Action{event, delay, candidate, job, expiry} : Driver.Action}
+      +fenced = Engine.fence(state, event, True{}, execution_context(event, a, config, now))
+      canonical_result(Engine.step(state, fenced), state, Driver.Action{fenced, delay, candidate, job, expiry}, queue, now, config, ih)
 
 def input(input: Input, +state: Types.State, queue: Queue, now: Nat,
     config: Config,
@@ -255,7 +305,7 @@ def input(input: Input, +state: Types.State, queue: Queue, now: Nat,
   match input:
     case Edit{}: edit_plan(Engine.edit(state, 1n, 1n), state, queue, now, ih)
     case Event{Driver.Action{+event, delay, candidate, job, expiry}}:
-      canonical_result(Engine.step(state, event), state, Driver.Action{event, delay, candidate, job, expiry}, queue, now, config, ih)
+      execute(state, Driver.Action{event, delay, candidate, job, expiry}, queue, now, config, ih)
     case Fact{operation, step, event}:
       graph_result(Engine.graph_step(state, Types.GraphKey{1n, 1n, 1n, operation, 0n}, step,
         Graph.Limits{1n, 262144n, 20480n, 8n, 1572864n, 16n, 4n, 128n}, event), queue, now, ih)

@@ -186,9 +186,12 @@ it("runs original source-free minimal scenarios through the native shared driver
         ? [event.ownerCurrent, event.credentialGeneration, event.credentialAuthorized, event.expired, event.workCurrent, event.hasFindings].map(Number)
         : event.kind === "jevRequestReady"
           ? [event.rootValid, event.configurationValid, event.credentialReady, event.selected, event.currentWork, event.physicalAvailable].map(Number)
-          : event.kind === "jevRequestSettled" ? [Number(event.currentWork), 0, 0, 0, 0, 0]
-            : event.kind === "submissionTerminal" ? [Number(event.certain), 0, 0, 0, 0, 0] : [0, 0, 0, 0, 0, 0];
-      return [eventCodes[frame.event.kind] ?? 99, frame.time, ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(key => ((frame.event as unknown as Record<string, unknown>)[key] ?? (key === "operation" ? (frame.event as unknown as Record<string, unknown>).observation : undefined) ?? 0)), ...facts, ...frame.commands.map(command => { if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`); return commandCodes[command.kind]!; })];
+          : event.kind === "jevRequestSettled" ? [Number(event.currentWork), { neverSent: 1, finding: 2, clear: 3, backendFailure: 4, timeout: 5, interrupted: 6 }[event.outcome as "finding"], 0, 0, 0, 0]
+            : event.kind === "submissionTerminal" ? [Number(event.certain), 0, 0, 0, 0, 0] : event.kind === "beginObservedPreparation" ? [event.bytes, 0, 0, 0, 0, 0]
+              : event.kind === "preparationCompleted" ? [(event.unitBytes as number[]).length, (event.unitBytes as number[])[0] ?? 0, 0, 0, 0, 0]
+                : event.kind === "submissionBegin" ? [Number(event.authorizeNow), (event.fingerprints as number[]).length, (event.fingerprints as number[])[0] ?? 0, (event.units as number[]).length, (event.units as number[])[0] ?? 0, 0]
+                  : event.kind === "collectionLeaseCheck" ? [Number(event.expired), Number(event.stopCollector), Number(event.sameGroup), Number(event.reofferable), 0, 0] : [0, 0, 0, 0, 0, 0];
+      return [eventCodes[frame.event.kind] ?? 99, frame.time, ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(key => ((frame.event as unknown as Record<string, unknown>)[key] ?? (key === "operation" ? event.observation : key === "partition" ? event.group : key === "token" ? event.fingerprint : undefined) ?? 0)), ...facts, ...frame.commands.map(command => { if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`); return commandCodes[command.kind]!; })];
     });
   });
   expect(nativeTraces).toEqual(traces);
