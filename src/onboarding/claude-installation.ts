@@ -1,5 +1,5 @@
 import { Config, Effect, Schema } from "effect";
-import { spawnSync } from "node:child_process";
+import { execFileClosedStdin } from "./host-process.ts";
 import { createHash } from "node:crypto";
 import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -130,14 +130,12 @@ const withComposedGroup = (
   label: "Claude",
 });
 
-const host = (request: ClaudeInstallationRequest) => {
-  const executable = request.claudeExecutable ?? "claude";
-  const run = spawnSync(executable, ["--version"], { encoding: "utf8", timeout: 2_000 });
-  const observed = run.status === 0 ? run.stdout.trim() : "unavailable";
-  return { supported: observed === PROFILE || observed === `${PROFILE} (Claude Code)`, observed, required: `Claude Code ${PROFILE}` };
-};
+const host = (observed: string) => ({
+  supported: observed === PROFILE || observed === `${PROFILE} (Claude Code)`,
+  observed, required: `Claude Code ${PROFILE}`,
+});
 
-const inputs = (request: ClaudeInstallationRequest, configured: { runtime: string; entrypoint: string }) => {
+const inputs = (request: ClaudeInstallationRequest, configured: { runtime: string; entrypoint: string }, observed: string, runtimeObserved: string) => {
   const home = resolve(request.claudeHome ?? join(homedir(), ".claude"));
   const runtime = resolve(configured.runtime);
   let entrypoint = resolve(configured.entrypoint);
@@ -152,19 +150,26 @@ const inputs = (request: ClaudeInstallationRequest, configured: { runtime: strin
   const preGroup = { matcher: "Edit|Write", hooks: [{ type: "command", command: composed("before-edit"), timeout: 5 }] };
   const promptGroup = { hooks: [{ type: "command", command: composed("prompt"), timeout: 4 }] };
   return { home, runtime, entrypoint, command, group, preGroup, stopGroup, promptGroup,
-    paths: paths(home), host: host(request) };
+    paths: paths(home), host: host(observed), runtimeObserved };
 };
 
 const resolveInputs = Effect.fn("ClaudeInstallation.inputs")(function* (request: ClaudeInstallationRequest) {
   const runtime = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(Config.withDefault(process.execPath));
   const entrypoint = yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(Config.withDefault(process.argv[1] ?? "dist/cli.js"));
-  return yield* Effect.try({ try: () => inputs(request, { runtime, entrypoint }),
+  const hostRun = yield* execFileClosedStdin(request.claudeExecutable ?? "claude", ["--version"], {
+    env: process.env, timeout: 2_000, maxBuffer: 1_048_576,
+  });
+  const runtimeRun = yield* execFileClosedStdin(resolve(runtime), ["-e", "process.stdout.write(process.version)"], {
+    env: process.env, timeout: 2_000, maxBuffer: 1_048_576,
+  });
+  return yield* Effect.try({ try: () => inputs(request, { runtime, entrypoint },
+    hostRun.succeeded ? hostRun.stdout.trim() : "unavailable",
+    runtimeRun.succeeded ? runtimeRun.stdout.trim() : "unavailable"),
     catch: () => new ClaudeInstallationError({ reason: "installation inputs unavailable" }) });
 }, Effect.mapError(() => new ClaudeInstallationError({ reason: "Claude installation configuration is invalid" })));
 
 const ready = (input: ReturnType<typeof inputs>) => {
-  const runtime = spawnSync(input.runtime, ["-e", "process.stdout.write(process.version)"], { encoding: "utf8", timeout: 2_000 });
-  const version = runtime.status === 0 ? runtime.stdout.trim() : "unavailable";
+  const version = input.runtimeObserved;
   let entrypointReady = false;
   try { entrypointReady = statSync(input.entrypoint).isFile(); } catch { /* reported as unavailable */ }
   return {

@@ -62,6 +62,14 @@ for (const runtime of ["codex", "claude", "opencode"]) {
   }
 }
 
+const claudeInstallation = read("src/onboarding/claude-installation.ts");
+if (/spawnSync\(|process\.env(?:\.|\[)/u.test(claudeInstallation) ||
+    !claudeInstallation.includes('Config.NonEmptyString("REVIEW_INSTALL_RUNTIME")') ||
+    !claudeInstallation.includes('Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT")') ||
+    !claudeInstallation.includes("yield* execFileClosedStdin(")) {
+  throw new Error("Claude installation must use caller Config and scoped native host processes");
+}
+
 const doctor = read("src/onboarding/doctor.ts");
 if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||
     !doctor.includes("yield* inspectResident()")) {

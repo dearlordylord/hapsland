@@ -3783,5 +3783,19 @@
     "initialFailure": "13 Claude tests initially failed because default environment provider captured an earlier fixture; test runtime boundaries now supply a fresh provider with preserveEmptyStrings. Production workflows do not replace caller configuration.",
     "additionalEvidence": "Both empty runtime and empty entrypoint fail before files/lock directories are written; caller provider overrides ambient empty values.",
     "remaining": "Native Claude host/runtime probes still use spawnSync; native scoped process port and current full suite/conformance remain required."
+  },
+  "claudeScopedCompatibilityPort": {
+    "status": "pass",
+    "scope": "Claude host and runtime probes use shared scoped closed-stdin adapter, 2000ms per process and 1048576-byte bounded output; caller interruption waits for physical process closure through adapter. Compatibility observations resolved once and reused by plan/readiness. No spawnSync or private runtime remains in Claude installation.",
+    "checks": {
+      "typecheck": "pass",
+      "configurationBoundaryGuard": "pass",
+      "targetedTests": {
+        "files": 4,
+        "passed": 41,
+        "durationSeconds": 26.16
+      }
+    },
+    "limitations": "Shared adapter native tests included; this is synthetic host validation, not current real Claude/platform support acceptance. Full suite predates this port. Codex/dispatch/deadline/final gates remain incomplete."
   }
 }
