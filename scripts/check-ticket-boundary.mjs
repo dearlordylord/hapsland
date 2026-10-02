@@ -262,3 +262,8 @@ if (/Effect.runSync|Ref.getUnsafe|\bcommitAll\(/.test(deliverySurface)) {
 if (!deliverySurface.includes('isActive: Effect.fn("ComposedDelivery.isActive")')) {
   throw new Error("delivery active-round checks must execute as Effects");
 }
+
+const runtimeSurface = state.slice(state.indexOf("    runtime:"), state.indexOf("    dispatch:", state.indexOf("    runtime:")));
+if (!state.includes('snapshot: Effect.fn("RuntimeRecords.snapshot")') || runtimeSurface.includes("Ref.getUnsafe")) {
+  throw new Error("runtime records must read snapshots through Effect");
+}

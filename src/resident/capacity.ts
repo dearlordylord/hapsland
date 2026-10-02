@@ -288,7 +288,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
   return {
     ...capacity,
     runtime: {
-      snapshot: () => runtimeRecordView(Ref.getUnsafe(state).records.runtime),
+      snapshot: Effect.fn("RuntimeRecords.snapshot")(() => Ref.get(state).pipe(Effect.map((snapshot) => runtimeRecordView(snapshot.records.runtime)))),
       openConnection: Effect.fn("ResidentState.openConnection")((maximum: number) => runtimeCommitEffect((operations) => operations.openConnection(maximum))),
       releaseConnection: Effect.fn("ResidentState.releaseConnection")((connection: Parameters<ReturnType<typeof runtimeRecordOperations>["releaseConnection"]>[0]) => runtimeCommitEffect((operations) => operations.releaseConnection(connection))),
       rejectCapacity: Effect.fn("ResidentState.rejectCapacity")(() => runtimeCommitEffect((operations) => operations.rejectCapacity())),

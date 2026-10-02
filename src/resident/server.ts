@@ -577,7 +577,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       pendingFindingBatches: (yield* residentAdvice()).length,
       pendingOperationalNotices: (yield* residentPendingNoticeCount()),
       retainedBytes: capacity.bytes,
-      rejectedCapacity: residentLedger.runtime.snapshot().rejectedCapacity,
+      rejectedCapacity: (yield* residentLedger.runtime.snapshot()).rejectedCapacity,
       successfulCacheEntries: reuse.entries,
       pendingEvaluations: reuse.pending,
       noticeCooldowns: (yield* residentNotices.entries()).length,
@@ -593,7 +593,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     residentLedger.tickets.retain(limit));
 
   const cleanupEffect = Effect.fn("ResidentRuntime.cleanup")(function* (): Effect.fn.Return<"busy" | "cleaned"> {
-    if (residentLedger.runtime.snapshot().lifecycle !== "active") return "busy";
+    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return "busy";
     const now = residentNow();
     yield* residentExpirePending(now);
     yield* residentPruneNoticeCooldowns(now);
@@ -627,7 +627,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
     yield* residentPruneNoticeCooldowns(now);
-    if (residentLedger.runtime.snapshot().lifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
+    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     const group = adviceePartition(observation.root, observation.advicee);
     const generation = composed ? (yield* residentComposedDelivery.admitEdit(group,
       observation.advicee.toolUseId, monotonicNow(), requirePermit)) : undefined;
@@ -1296,9 +1296,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const accountingMetrics = Effect.fn("ResidentRuntime.accountingMetrics")(function* (): Effect.fn.Return<Effect.Success<ReturnType<ResidentRuntime["accountingMetrics"]>>> {
     const reuse = (yield* residentReuse.snapshot());
     const notices = yield* residentNotices.entries();
+    const runtimeState = yield* residentLedger.runtime.snapshot();
     return {
-      peakLedgerBytes: residentLedger.runtime.snapshot().peakLedgerBytes,
-      maxMaterializedPreparedUnits: residentLedger.runtime.snapshot().maxMaterializedPreparedUnits,
+      peakLedgerBytes: runtimeState.peakLedgerBytes,
+      maxMaterializedPreparedUnits: runtimeState.maxMaterializedPreparedUnits,
       successfulCacheEntries: reuse.entries,
       successfulCacheBytes: reuse.bytes,
       pendingEvaluations: reuse.pending,
@@ -1334,7 +1335,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentPruneNoticeCooldowns = Effect.fn("ResidentRuntime.pruneNoticeCooldowns")((now: number, exceptKey?: string) => residentNotices.prune(now, exceptKey));
 
   const residentRecordOperationalFailure = Effect.fn("ResidentRuntime.recordOperationalFailure")(function* (observation: DirectObservation, kind: OperationalNoticeKind, now?: number): Effect.fn.Return<void> {
-    if (residentLedger.runtime.snapshot().lifecycle !== "active" || !addressableAdvicee(observation.advicee)) return;
+    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active" || !addressableAdvicee(observation.advicee)) return;
     yield* residentNotices.record(adviceePartition(observation.root, observation.advicee), kind, now ?? residentNow());
   });
 
@@ -1419,7 +1420,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }, Effect.uninterruptible);
 
   const sweepQuietRoundsEffect = Effect.fn("ResidentRuntime.sweepQuietRounds")(function* (now: number): Effect.fn.Return<number> {
-    if (residentLedger.runtime.snapshot().lifecycle !== "active") return 0;
+    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return 0;
     yield* residentExpirePending(now);
     yield* residentPruneNoticeCooldowns(now);
     let closedCount = 0;
@@ -1456,7 +1457,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }, Effect.uninterruptible);
 
   const residentJobActive = Effect.fn("ResidentRuntime.jobActive")(function* (job: Job): Effect.fn.Return<boolean> {
-    return residentLedger.runtime.snapshot().lifecycle === "active" && !residentLifetimeController.signal.aborted &&
+    return (yield* residentLedger.runtime.snapshot()).lifecycle === "active" && !residentLifetimeController.signal.aborted &&
       !job.work?.controller.signal.aborted && (yield* residentRoundActive(job.round));
   });
 
@@ -1585,7 +1586,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         return;
       }
       yield* residentAwaitBackendGate();
-      if (residentLedger.runtime.snapshot().lifecycle !== "active") {
+      if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") {
         residentLedger.release(job.reservation);
         return;
       }
@@ -1609,7 +1610,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }),
         job.work?.controller.signal ?? residentLifetimeController.signal);
       residentLedger.release(job.reservation);
-      if (settings === undefined || residentLedger.runtime.snapshot().lifecycle !== "active" || !(yield* residentJobActive(job))) {
+      if (settings === undefined || (yield* residentLedger.runtime.snapshot()).lifecycle !== "active" || !(yield* residentJobActive(job))) {
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         return;
       }
@@ -1875,10 +1876,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       job.work?.controller.signal ?? residentLifetimeController.signal);
       return;
     }).pipe(
-      Effect.catch(() => Effect.sync(() => {
+      Effect.catch(() => Effect.gen(function* () {
         if (runtimeConfiguration.debug) console.error("resident preparation unavailable");
         residentLedger.release(job.reservation);
-        if (residentLedger.runtime.snapshot().lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
+        if ((yield* residentLedger.runtime.snapshot()).lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable" });
       })),
@@ -2142,14 +2143,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentReleaseReuseClaim(job.evaluationKey); yield* residentReleaseUnit(job); return;
       }
       if (result?.status === "evaluated") {
-        if ((yield* residentJobActive(job)) && residentLedger.runtime.snapshot().lifecycle === "active" &&
+        if ((yield* residentJobActive(job)) && (yield* residentLedger.runtime.snapshot()).lifecycle === "active" &&
             job.round !== undefined && job.workUnitId !== undefined &&
             !(yield* residentLedger.rounds.policyWork(job.round)).outcome(job.workUnitId, result.findings.length === 0
               ? { $: "Clear" }
               : { $: "Finding", count: result.findings.length, bytes: logicalBytes(result.findings) })) {
           throw new Error("Bend denied review outcome");
         }
-        const currentWork = residentLedger.runtime.snapshot().lifecycle === "active" && (yield* residentJobActive(job)) &&
+        const currentWork = (yield* residentLedger.runtime.snapshot()).lifecycle === "active" && (yield* residentJobActive(job)) &&
           (yield* residentIsCurrentWork(job.revision, job.prepared));
         if (issuedRequest === undefined || !requestStarted) {
           throw new Error("Jev result without a matching canonical request command and start");
@@ -2267,7 +2268,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "backend");
         yield* residentSettleJoined(job.evaluationKey, "unavailable", "backend");
         if (runtimeConfiguration.debug) console.error("resident evaluation unavailable");
-        if (residentLedger.runtime.snapshot().lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
+        if ((yield* residentLedger.runtime.snapshot()).lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable", unitIdentity: job.evaluationKey });
       })),
@@ -2417,11 +2418,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const server = runtime;
     return Effect.gen(function* () {
       if (request.operation === "hello") {
-        return residentResponse(residentLedger.runtime.snapshot().lifecycle === "active"
+        return residentResponse((yield* residentLedger.runtime.snapshot()).lifecycle === "active"
           ? { status: "ready", lifetime: server.lifetime, pid: process.pid }
           : { status: "obsolete-lifetime" });
       }
-      if (request.lifetime !== server.lifetime || residentLedger.runtime.snapshot().lifecycle !== "active") {
+      if (request.lifetime !== server.lifetime || (yield* residentLedger.runtime.snapshot()).lifecycle !== "active") {
         return residentResponse(request.requestRoute === "ticketed"
           ? request.operation === "collect" ? { requestRoute: "ticketed", status: "unavailable", reason: "lost" }
             : { requestRoute: "ticketed", status: "obsolete-lifetime" }
@@ -2945,10 +2946,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   });
 
   const residentScheduleIdleCheck = Effect.fn("ResidentRuntime.scheduleIdleCheck")(function* () {
-    if (residentLedger.runtime.snapshot().lifecycle !== "active") return;
+    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return;
     const pass = Effect.gen(function* () {
-      if (residentLedger.runtime.snapshot().lifecycle !== "active") return true;
-      if (residentLedger.runtime.snapshot().connections === 0 && (yield* cleanupEffect()) === "cleaned") {
+      if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return true;
+      if ((yield* residentLedger.runtime.snapshot()).connections === 0 && (yield* cleanupEffect()) === "cleaned") {
         yield* residentScheduleRetirementClose();
         return true;
       }
@@ -2962,9 +2963,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   });
 
   const residentScheduleQuietCheck = Effect.fn("ResidentRuntime.scheduleQuietCheck")(function* () {
-    if (residentLedger.runtime.snapshot().lifecycle !== "active") return;
+    if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return;
     const pass = Effect.gen(function* () {
-      if (residentLedger.runtime.snapshot().lifecycle !== "active") return true;
+      if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") return true;
       yield* sweepQuietRoundsEffect(residentNow());
       return false;
     });
