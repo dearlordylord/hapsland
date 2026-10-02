@@ -96,7 +96,7 @@ function repoFor(fixture, stage, candidate, pass) {
   delete env.OPENAI_API_KEY; delete env.REVIEW_CONTROL_JSON;
   const overrides = Object.fromEntries(configuredRules.map(rule => [rule.id, { enabled: rule.id === fixture.ruleId, threshold: 0.7 }]));
   write(env.REVIEW_USER_CONFIG_PATH, { version: 1, includes: ['**/*'], excludes: fixture.excludedPaths ?? [], ruleOverrides: overrides });
-  return { temp, repo, home, env, log, hookLog, receiptNonce: receiptProbe ? `${instructionVariant ? 'REVIEW_RECEIPT' : 'HAPSLAND_RECEIPT'}_${randomUUID().replaceAll('-', '')}` : undefined };
+  return { temp, repo, home, env, log, hookLog, receiptNonce: receiptProbe ? `REVIEW_RECEIPT_${randomUUID().replaceAll('-', '')}` : undefined };
 }
 function rubric(repo, ruleId) {
   const rule = configuredRules.find(x => x.id === ruleId);
