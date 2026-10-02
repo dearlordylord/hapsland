@@ -3817,5 +3817,26 @@
     },
     "emptyConfiguration": "Four empty installation settings fail before any home files are created; empty configured Codex home fails before ambient registration access. Native test boundaries use fresh environment provider preserving empty values.",
     "limitations": "Full suite predates these ports. Exact-host registration probe updated but not executed here. Native filesystem journal remains an atomic adapter; no current real host/platform support or live/performance acceptance claimed. Dispatch, external deadlines and final gates still incomplete."
+  },
+  "packageLifecycleScopedDispatchPort": {
+    "status": "pass",
+    "scope": "Selected/active package dispatch and activation are named Effects. Identity probing uses scoped closed-stdin transport plus Schema; dispatch uses scoped spawn with inherited terminal streams and original child exit status. No timeout added to interactive dispatch. Active recursion guard uses caller Config.NonEmptyString. Typed failures preserve per-client update/maintenance reporting; outer process boundary owns runtimes.",
+    "checks": {
+      "typecheck": "pass",
+      "configurationBoundaryGuard": "pass",
+      "firstTargetedTests": {
+        "files": 4,
+        "passed": 28,
+        "durationSeconds": 10.12
+      },
+      "finalTargetedTests": {
+        "files": 4,
+        "passed": 30,
+        "durationSeconds": 11.3
+      }
+    },
+    "nativeEvidence": "Inherited stdin/stdout/stderr and child exit 7; failed startup bounded; interrupted live child no longer exists after interrupt returns; exact selected flags and child dispatch environment.",
+    "initialTypecheckFailure": "Conditional union Effects did not infer through shared result pipe; each branch now applies Effect.result before yielding, preserving typed per-client failures. No runtime cast or error-to-throw bridge.",
+    "limitations": "Synthetic Linux child/CLI tests, not active-package real release acceptance. External deadline migration/full suite/conformance/live/performance/completion audit still required."
   }
 }

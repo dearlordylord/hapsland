@@ -1073,7 +1073,7 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
     }
     result = yield* run({ ...request, interactive: true });
     process.stderr.write(`Installation: ${stage(result, "installation")?.summary ?? "unavailable"}.\n`);
-    if (["complete", "partial"].includes(stage(result, "installation")?.status ?? "")) activateCurrentPackage(fileURLToPath(import.meta.url));
+    if (["complete", "partial"].includes(stage(result, "installation")?.status ?? "")) yield* activateCurrentPackage(fileURLToPath(import.meta.url));
     if (credentialEntered && stage(result, "credential")?.status === "complete") {
       process.stderr.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}.\n`);
     }
@@ -1201,7 +1201,7 @@ const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
       if (previewResult._tag === "Failure") { failed(host, previewResult.failure); continue; }
       const preview = previewResult.success;
       if (!["preview", "partial"].includes(preview.status) || preview.proposal === undefined) throw new Error("target did not return an applicable update preview");
-      if (preview.alreadyCurrent === true || preview.proposal.changes?.length === 0) { outcomes.set(host, "already current"); activatePackage(executable); }
+      if (preview.alreadyCurrent === true || preview.proposal.changes?.length === 0) { outcomes.set(host, "already current"); const activation = yield* activatePackage(executable).pipe(Effect.result); if (activation._tag === "Failure") failed(host, activation.failure); }
       else proposals.push({ host, digest: preview.proposal.digest });
     } catch (cause) { failed(host, cause); }
   }
@@ -1214,12 +1214,14 @@ const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
         if (invocation._tag === "Failure") { failed(proposal.host, invocation.failure); continue; }
         const result = invocation.success;
         if (result.status === "partial") {
-          activatePackage(executable);
+          const activation = yield* activatePackage(executable).pipe(Effect.result);
+          if (activation._tag === "Failure") { failed(proposal.host, activation.failure); continue; }
           throw new Error(`${formatFailure(result, proposal.host)} Next: hapsland repair ${proposal.host}. The selected package is retained for recovery.`);
         }
         if (!["updated", "complete", "already-current"].includes(result.status)) throw new Error(formatFailure(result, proposal.host));
         outcomes.set(proposal.host, result.status === "already-current" ? "already current" : "updated");
-        activatePackage(executable);
+        const activation = yield* activatePackage(executable).pipe(Effect.result);
+        if (activation._tag === "Failure") failed(proposal.host, activation.failure);
       } catch (cause) { failed(proposal.host, cause); }
     }
   }
@@ -1236,7 +1238,7 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
   if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error(`${command} needs a terminal. Use the version-one installation JSON interface for automation.`);
   const hosts = clientArguments?.host === undefined ? registeredClients(clientArguments?.flags ?? new Map(), reportClientFailure) : [selectedHost()];
   if (hosts.length === 0) {
-    if (command === "reinstall") activateCurrentPackage(fileURLToPath(import.meta.url));
+    if (command === "reinstall") yield* activateCurrentPackage(fileURLToPath(import.meta.url));
     process.stderr.write("No Hapsland integrations found. Run hapsland setup first.\n"); return;
   }
   for (const host of hosts) {
@@ -1244,7 +1246,9 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
       const fields = hostFields(host);
       const reinstall = command === "reinstall";
       const installed = fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields);
-      const inspection = fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : yield* inspectCodexInstallation(fields);
+      const inspectionResult = fields.host === "claude" ? yield* inspectClaudeInstallation(fields).pipe(Effect.result) : yield* inspectCodexInstallation(fields).pipe(Effect.result);
+      if (inspectionResult._tag === "Failure") { reportClientFailure(host, inspectionResult.failure); continue; }
+      const inspection = inspectionResult.success;
       const recovered = Schema.decodeUnknownSync(Schema.Struct({ recovery: Schema.optionalKey(Schema.Struct({ operation: Schema.String })) }))(inspection).recovery?.operation;
       const operation = command === "repair" && (recovered === "install" || recovered === "update" || recovered === "uninstall") ? recovered : command === "uninstall" ? "uninstall" : fields.host === "claude" && installed && !reinstall ? "update" : "install";
       const invoke = (digest?: string) => {
@@ -1270,9 +1274,15 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
       const invocation = yield* invoke(preview.proposal.digest).pipe(Effect.result);
       if (invocation._tag === "Failure") { reportClientFailure(host, invocation.failure); continue; }
       const result = invocation.success;
-      if (result.status === "partial" && operation !== "uninstall") activateCurrentPackage(fileURLToPath(import.meta.url));
+      if (result.status === "partial" && operation !== "uninstall") {
+        const activation = yield* activateCurrentPackage(fileURLToPath(import.meta.url)).pipe(Effect.result);
+        if (activation._tag === "Failure") { reportClientFailure(host, activation.failure); continue; }
+      }
       if (!["complete", "installed", "already-installed", "updated", "already-current", "uninstalled", "already-uninstalled", "removed", "already-removed"].includes(result.status)) throw new Error(formatFailure(result, host));
-      if (operation !== "uninstall") activateCurrentPackage(fileURLToPath(import.meta.url));
+      if (operation !== "uninstall") {
+        const activation = yield* activateCurrentPackage(fileURLToPath(import.meta.url)).pipe(Effect.result);
+        if (activation._tag === "Failure") { reportClientFailure(host, activation.failure); continue; }
+      }
       process.stderr.write(`${host}: ${operation === "uninstall" ? "removed" : "restored"}. User settings and credentials preserved.\n`);
       process.stderr.write(`Finish current work and restart ${host}${operation === "uninstall" ? "." : "; review native trust prompts."}\n`);
     } catch (cause) { process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`); process.exitCode = 6; }
@@ -1300,8 +1310,8 @@ if (process.argv[2] === "--package-identity") {
     clientArguments = parseClientArguments(command, process.argv.slice(3));
     const selectedPackage = clientArguments.flags.get("--target");
     const dispatched = selectedPackage !== undefined && command !== "update"
-      ? dispatchSelectedPackage(selectedPackage, command, clientArguments.host, clientArguments.flags)
-      : dispatchActivePackage([command, ...process.argv.slice(3)]);
+      ? await Effect.runPromise(dispatchSelectedPackage(selectedPackage, command, clientArguments.host, clientArguments.flags).pipe(Effect.provide(processConfigurationLayer)))
+      : await Effect.runPromise(dispatchActivePackage([command, ...process.argv.slice(3)]).pipe(Effect.provide(processConfigurationLayer)));
     if (dispatched !== undefined) process.exitCode = dispatched;
     else if (command === "doctor") {
       const hosts = clientArguments.host === undefined ? registeredClients(clientArguments.flags, reportClientFailure) : [selectedHost()];

@@ -79,6 +79,13 @@ if (/spawnSync\(|process\.env(?:\.|\[)/u.test(codexInstallation) ||
   throw new Error("Codex installation must use caller Config and scoped native host processes");
 }
 
+const clientLifecycle = read("src/onboarding/client-lifecycle.ts");
+if (/spawnSync\(|Effect\.run(?:Sync|Promise|Fork)\(|process\.env(?:\.|\[)/u.test(clientLifecycle) ||
+    !clientLifecycle.includes('Config.NonEmptyString("HAPSLAND_ACTIVE_DISPATCH")') ||
+    !clientLifecycle.includes("yield* spawnInherited(")) {
+  throw new Error("package lifecycle must compose caller Config and scoped inherited processes");
+}
+
 const doctor = read("src/onboarding/doctor.ts");
 if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||
     !doctor.includes("yield* inspectResident()")) {

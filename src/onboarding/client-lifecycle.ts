@@ -1,7 +1,7 @@
 import * as Effect from "effect/Effect";
-import { execFileClosedStdin } from "./host-process.ts";
+import { execFileClosedStdin, spawnInherited } from "./host-process.ts";
 import * as Schema from "effect/Schema";
-import { spawnSync } from "node:child_process";
+import * as Config from "effect/Config";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { readFileSync, realpathSync } from "node:fs";
@@ -65,53 +65,79 @@ export const registeredClients = (flags: ReadonlyMap<string, string>, onError?: 
 const ActivePackage = Schema.Struct({ version: Schema.Literal(1), executable: Schema.NonEmptyString, runtime: Schema.NonEmptyString, entrypoint: Schema.NonEmptyString });
 const PackageIdentity = Schema.Struct({ name: Schema.Literal("@hapsland/hapsland"), runtime: Schema.NonEmptyString, entrypoint: Schema.NonEmptyString });
 const activePath = () => join(homedir(), ".local", "share", "hapsland", "active.json");
-export const activateCurrentPackage = (entrypoint: string) => atomicInstallationFile(activePath(), JSON.stringify({ version: 1, executable: entrypoint, runtime: process.execPath, entrypoint }) + "\n");
-export const activatePackage = (executable: string) => {
-  const absolute = resolve(executable);
-  realpathSync(absolute);
-  const result = spawnSync(absolute, ["--package-identity"], { encoding: "utf8", timeout: 10_000, env: { ...process.env, HAPSLAND_ACTIVE_DISPATCH: "1" } });
-  if (result.error !== undefined || result.status !== 0) throw new Error("The updated hooks are installed, but activating the public CLI failed. Keep the target package and retry update.");
-  const identity = Schema.decodeUnknownSync(PackageIdentity)(JSON.parse(result.stdout));
-  if (!isAbsolute(identity.runtime) || !isAbsolute(identity.entrypoint)) throw new Error("Target package identity paths must be absolute.");
-  atomicInstallationFile(activePath(), JSON.stringify({ version: 1, executable: absolute, runtime: identity.runtime, entrypoint: identity.entrypoint }) + "\n");
+class PackageLifecycleError extends Schema.TaggedError<PackageLifecycleError>()("PackageLifecycleError", {
+  message: Schema.NonEmptyString,
+}) {}
+const nativePackageObservation = Effect.fn("PackageLifecycle.observe")(<A>(message: string, read: () => A) =>
+  Effect.try({ try: read, catch: () => new PackageLifecycleError({ message }) }));
+export const activateCurrentPackage = Effect.fn("PackageLifecycle.activateCurrent")((entrypoint: string) =>
+  nativePackageObservation("Activating the current public CLI failed. Keep the package and retry setup.", () =>
+    atomicInstallationFile(activePath(), JSON.stringify({ version: 1, executable: entrypoint, runtime: process.execPath, entrypoint }) + "\n")));
+export const activatePackage = Effect.fn("PackageLifecycle.activate")(function* (executable: string) {
+  const message = "The updated hooks are installed, but activating the public CLI failed. Keep the target package and retry update.";
+  const absolute = yield* nativePackageObservation(message, () => { const path = resolve(executable); realpathSync(path); return path; });
+  const result = yield* execFileClosedStdin(absolute, ["--package-identity"], {
+    timeout: 10_000, maxBuffer: 1_048_576, env: { ...process.env, HAPSLAND_ACTIVE_DISPATCH: "1" },
+  });
+  if (!result.succeeded) return yield* Effect.fail(new PackageLifecycleError({ message }));
+  const identity = yield* nativePackageObservation(message, (): unknown => JSON.parse(result.stdout)).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(PackageIdentity)),
+    Effect.mapError(() => new PackageLifecycleError({ message })),
+  );
+  if (!isAbsolute(identity.runtime) || !isAbsolute(identity.entrypoint)) {
+    return yield* Effect.fail(new PackageLifecycleError({ message: "Target package identity paths must be absolute." }));
+  }
+  yield* nativePackageObservation(message, () => atomicInstallationFile(activePath(), JSON.stringify({
+    version: 1, executable: absolute, runtime: identity.runtime, entrypoint: identity.entrypoint,
+  }) + "\n"));
+});
+const dispatchEnvironment = () => {
+  const environment: NodeJS.ProcessEnv = { ...process.env, HAPSLAND_ACTIVE_DISPATCH: "1" };
+  delete environment.REVIEW_INSTALL_RUNTIME;
+  delete environment.REVIEW_INSTALL_ENTRYPOINT;
+  return environment;
 };
 /** Explicit package selection overrides the active administrative package. */
-export const dispatchSelectedPackage = (executable: string, command: ClientCommand, host: SetupClient | undefined, flags: ReadonlyMap<string, string>) => {
+export const dispatchSelectedPackage = Effect.fn("PackageLifecycle.dispatchSelected")(function* (
+  executable: string, command: ClientCommand, host: SetupClient | undefined, flags: ReadonlyMap<string, string>,
+) {
   const args = [command, ...(host === undefined ? [] : [host]), ...[...flags].filter(([name]) => name !== "--target" && name !== "--host").map(([name, value]) => `${name}=${value}`)];
-  const environment: NodeJS.ProcessEnv = { ...process.env, HAPSLAND_ACTIVE_DISPATCH: "1" };
-  delete environment.REVIEW_INSTALL_RUNTIME;
-  delete environment.REVIEW_INSTALL_ENTRYPOINT;
-  const result = spawnSync(resolve(executable), args, { stdio: "inherit", env: environment });
-  if (result.error !== undefined) throw new Error(`Selected package cannot run: ${executable}.`);
-  return result.status ?? 6;
-};
-
-/** Only public lifecycle commands dispatch. Hook processes and JSON automation stay pinned. */
-export const dispatchActivePackage = (args: ReadonlyArray<string>): number | undefined => {
-  if (process.env.HAPSLAND_ACTIVE_DISPATCH === "1") return undefined;
-  let active: typeof ActivePackage.Type;
+  const result = yield* spawnInherited(resolve(executable), args, dispatchEnvironment());
+  if (!result.started) return yield* Effect.fail(new PackageLifecycleError({ message: `Selected package cannot run: ${executable}.` }));
+  return result.exitCode ?? 6;
+});
+const readActivePackage = (args: ReadonlyArray<string>): typeof ActivePackage.Type | undefined => {
   try {
-    active = Schema.decodeUnknownSync(ActivePackage)(JSON.parse(readFileSync(activePath(), "utf8")));
+    const active = Schema.decodeUnknownSync(ActivePackage)(JSON.parse(readFileSync(activePath(), "utf8")));
     if (![active.executable, active.runtime, active.entrypoint].every(isAbsolute)) throw new Error("active package paths must be absolute");
-  }
-  catch (cause) {
+    return active;
+  } catch (cause) {
     if (typeof cause === "object" && cause !== null && "code" in cause && cause.code === "ENOENT") return undefined;
     if (args[0] === "reinstall") { process.stderr.write("Active-package record is damaged; reinstalling from PATH.\n"); return undefined; }
-    throw new Error("Hapsland active-package record is damaged. Run hapsland reinstall to rebuild it from the package in PATH.");
+    throw new PackageLifecycleError({ message: "Hapsland active-package record is damaged. Run hapsland reinstall to rebuild it from the package in PATH." });
   }
-  try {
-    if (realpathSync(process.argv[1] ?? "") === realpathSync(active.entrypoint) && realpathSync(process.execPath) === realpathSync(active.runtime)) return undefined;
-  } catch {
-    if (args[0] === "reinstall") { process.stderr.write("Active package is unavailable; reinstalling from the package in PATH.\n"); return undefined; }
-    throw new Error(`Active package is unavailable: ${active.entrypoint}. Run hapsland reinstall to restore hooks from the package in PATH.`);
-  }
-  const environment: NodeJS.ProcessEnv = { ...process.env, HAPSLAND_ACTIVE_DISPATCH: "1" };
-  delete environment.REVIEW_INSTALL_RUNTIME;
-  delete environment.REVIEW_INSTALL_ENTRYPOINT;
-  const result = spawnSync(active.runtime, [active.entrypoint, ...args], { stdio: "inherit", env: environment });
-  if (result.error !== undefined) throw new Error(`Active package cannot run: ${active.executable}. Restore that package or remove ~/.local/share/hapsland/active.json and run hapsland reinstall.`);
-  return result.status ?? 6;
 };
+/** Only public lifecycle commands dispatch. Hook processes and JSON automation stay pinned. */
+export const dispatchActivePackage = Effect.fn("PackageLifecycle.dispatchActive")(function* (args: ReadonlyArray<string>) {
+  const dispatched = yield* Config.NonEmptyString("HAPSLAND_ACTIVE_DISPATCH").pipe(Config.withDefault("0"),
+    Effect.mapError(() => new PackageLifecycleError({ message: "Active package dispatch configuration is invalid." })));
+  if (dispatched === "1") return undefined;
+  const active = yield* Effect.try({ try: () => readActivePackage(args),
+    catch: (cause) => cause instanceof PackageLifecycleError ? cause : new PackageLifecycleError({ message: "Reading the active package failed." }) });
+  if (active === undefined) return undefined;
+  const current = yield* nativePackageObservation(`Active package is unavailable: ${active.entrypoint}. Run hapsland reinstall to restore hooks from the package in PATH.`, () => {
+    try {
+      return realpathSync(process.argv[1] ?? "") === realpathSync(active.entrypoint) && realpathSync(process.execPath) === realpathSync(active.runtime);
+    } catch {
+      if (args[0] === "reinstall") { process.stderr.write("Active package is unavailable; reinstalling from the package in PATH.\n"); return undefined; }
+      throw new Error("active package paths unavailable");
+    }
+  });
+  if (current !== false) return undefined;
+  const result = yield* spawnInherited(active.runtime, [active.entrypoint, ...args], dispatchEnvironment());
+  if (!result.started) return yield* Effect.fail(new PackageLifecycleError({ message: `Active package cannot run: ${active.executable}. Restore that package or remove ~/.local/share/hapsland/active.json and run hapsland reinstall.` }));
+  return result.exitCode ?? 6;
+});
 
 const record = (value: unknown): Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
 export const formatCompatibility = (value: unknown): string[] => {
