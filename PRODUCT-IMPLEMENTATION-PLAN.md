@@ -402,14 +402,14 @@ Phase F implementation unfinished.
 
 ### Phase G — composition and release hardening
 
-The detailed [onboarding specification](./PRODUCT-ONBOARDING-SPEC.md)
-now covers installation, activation, diagnostics, distribution, update/removal, and
-release gates. Decisions are settled and the
-implementation handoff (issue #62) is ready;
-platform and native-storage validation remain implementation gates. Its runtime
-baseline is the current asynchronous
-[direct-event supported profile](./docs/direct-event-v1-supported-profile.md), not
-the historical synchronous assumptions elsewhere in this plan.
+Current [installation workflows](./docs/installation-workflows.md),
+[installed compatibility](./docs/installed-release-compatibility.md), and
+[publishing guidance](./docs/npm-publishing.md) own the maintained onboarding,
+update/removal, and distribution instructions. The superseded #62 onboarding
+snapshot has been deleted; the issue and Git history retain its original scope.
+Use the [direct-event supported profile](./docs/direct-event-v1-supported-profile.md)
+and [testing matrix](./docs/testing-matrix.md) for current runtime boundaries
+and validation gates rather than the early synchronous assumptions in this plan.
 
 Test coexistence with a second dummy hook and, if practical, an existing tool such as
 Probity. Add install/doctor/uninstall flows, bounded logs, data-flow documentation, fixture
