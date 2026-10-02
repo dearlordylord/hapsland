@@ -248,3 +248,17 @@ for (const operation of ["registerEdit", "registerEditDecision", "finishSelectio
     throw new Error(`delivery ${operation} must compose as an atomic Effect`);
   }
 }
+
+for (const operation of ["generation", "suppresses", "backgroundReofferable"]) {
+  if (!deliverySurface.includes(`${operation}: Effect.fn("ComposedDelivery.${operation}")`) ||
+      !deliverySurface.includes(`deliveryCommitEffect((operations) => operations.${operation}(...args))`)) {
+    throw new Error(`delivery ${operation} must compose as an atomic Effect`);
+  }
+}
+
+if (/Effect.runSync|Ref.getUnsafe|\bcommitAll\(/.test(deliverySurface)) {
+  throw new Error("delivery service must compose Effects without synchronous ownership bridges");
+}
+if (!deliverySurface.includes('isActive: Effect.fn("ComposedDelivery.isActive")')) {
+  throw new Error("delivery active-round checks must execute as Effects");
+}

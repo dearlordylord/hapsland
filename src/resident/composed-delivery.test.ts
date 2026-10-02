@@ -108,9 +108,9 @@ describe("shared Hapsland rounds", () => {
     const quiet = { nativeWorkIdle: true, adviceEmpty: true };
     expect(Effect.runSync(state.tickQuietRound("agent", 100, quiet))).toBeUndefined();
     expect(Effect.runSync(state.tickQuietRound("agent", 100 + VIRTUAL_ROUND_QUIET_MS - 1, quiet))).toBeUndefined();
-    expect(state.isActive("agent")).toBe(true);
+    expect(Effect.runSync(state.isActive("agent"))).toBe(true);
     expect(Effect.runSync(state.tickQuietRound("agent", 100 + VIRTUAL_ROUND_QUIET_MS, quiet))).toBe(1);
-    expect(state.isActive("agent")).toBe(false);
+    expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(Effect.runSync(state.beginStop("agent", "late-stop"))).toBe(false);
     expect(Effect.runSync(state.registerEditDecision("agent", "late-edit", 99, 100 + VIRTUAL_ROUND_QUIET_MS + 1)).accepted)
       .toBe(false);
@@ -164,7 +164,7 @@ describe("shared Hapsland rounds", () => {
     Effect.runSync(state.tickQuietRound("agent", 100, quiet));
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(true);
     expect(Effect.runSync(state.tickQuietRound("agent", 100 + VIRTUAL_ROUND_QUIET_MS, quiet))).toBeUndefined();
-    expect(state.isActive("agent")).toBe(true);
+    expect(Effect.runSync(state.isActive("agent"))).toBe(true);
   });
 
   it("starts a new quiet interval after Stop continues the advicee", () => {
@@ -187,7 +187,7 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.admitEdit("next", "edit", 2))).toBeUndefined();
     Effect.runSync(state.tickQuietRound("agent-0", 100, quiet));
     expect(Effect.runSync(state.tickQuietRound("agent-0", 100 + VIRTUAL_ROUND_QUIET_MS, quiet))).toBe(1);
-    expect(state.isActive("agent-1")).toBe(true);
+    expect(Effect.runSync(state.isActive("agent-1"))).toBe(true);
     expect(Effect.runSync(state.admitEdit("next", "fresh-edit", 100 + VIRTUAL_ROUND_QUIET_MS + 1))).toBe(1);
   });
 
@@ -262,7 +262,7 @@ describe("shared Hapsland rounds", () => {
       expect(Effect.runSync(state.consumeStop("agent"))).toBe(true);
     }
     expect(Effect.runSync(state.consumeStop("agent"))).toBe(false);
-    expect(state.generation("agent")).toBe(1);
+    expect(Effect.runSync(state.generation("agent"))).toBe(1);
   });
 
   it("fences a closed round and requires fresh occurrence evidence to reopen", () => {
@@ -382,7 +382,7 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.registerEdit("agent", "failed", 101 + EDIT_PERMIT_EXPIRY_MS,
       102 + EDIT_PERMIT_EXPIRY_MS))).toBe(false);
     expect(Effect.runSync(state.admitEdit("agent", "failed", 103 + EDIT_PERMIT_EXPIRY_MS, true))).toBeUndefined();
-    expect(state.isActive("agent")).toBe(false);
+    expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(state.canonical.canonicalProjection().rounds).toHaveLength(0);
     expect(Effect.runSync(state.registerEdit("agent", "fresh", 104 + EDIT_PERMIT_EXPIRY_MS,
       105 + EDIT_PERMIT_EXPIRY_MS))).toBe(true);
@@ -406,7 +406,7 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.registerEdit("agent", "first", 100, 101))).toBe(true);
     Effect.runSync(state.expirePermits(100 + EDIT_PERMIT_EXPIRY_MS));
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(false);
-    expect(state.generation("agent")).toBe(0);
+    expect(Effect.runSync(state.generation("agent"))).toBe(0);
     expect(state.canonical.canonicalProjection().rounds).toHaveLength(0);
     expect(Effect.runSync(state.admitEdit("agent", "first", 100 + EDIT_PERMIT_EXPIRY_MS + 2, true))).toBeUndefined();
     expect(Effect.runSync(state.registerEdit("agent", "second", 100 + EDIT_PERMIT_EXPIRY_MS + 3,
@@ -422,8 +422,8 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.registerEdit("agent", "failed", 102, 103))).toBe(true);
     Effect.runSync(state.expirePermits(102 + EDIT_PERMIT_EXPIRY_MS));
     expect(Effect.runSync(state.admitEdit("agent", "failed", 103 + EDIT_PERMIT_EXPIRY_MS, true))).toBeUndefined();
-    expect(state.generation("agent")).toBe(1);
-    expect(state.isActive("agent")).toBe(false);
+    expect(Effect.runSync(state.generation("agent"))).toBe(1);
+    expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(Effect.runSync(state.beginStop("agent", "permit-only"))).toBe(false);
     expect(Effect.runSync(state.registerEdit("agent", "fresh", 104 + EDIT_PERMIT_EXPIRY_MS,
       105 + EDIT_PERMIT_EXPIRY_MS))).toBe(true);
@@ -435,8 +435,8 @@ describe("shared Hapsland rounds", () => {
     for (let i = 0; i < 64; i++) state.canonical.roundId(`occupied-${i}`);
     expect(Effect.runSync(state.registerEdit("agent", "edit", 100, 101))).toBe(true);
     expect(Effect.runSync(state.admitEdit("agent", "edit", 102, true))).toBeUndefined();
-    expect(state.generation("agent")).toBe(0);
-    expect(state.isActive("agent")).toBe(false);
+    expect(Effect.runSync(state.generation("agent"))).toBe(0);
+    expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(false);
     const admission = state.canonical.canonicalProjection().admissions.find(
       (item) => item.partition === state.canonical.partitionId("agent"));
@@ -462,12 +462,12 @@ describe("shared Hapsland rounds", () => {
     Effect.runSync(state.admitEdit("allow", "edit", 0));
     Effect.runSync(state.beginStop("allow", "lost"));
     expect(Effect.runSync(state.expireStop("allow", "lost"))).toBe(1);
-    expect(state.isActive("allow")).toBe(false);
+    expect(Effect.runSync(state.isActive("allow"))).toBe(false);
     Effect.runSync(state.admitEdit("continue", "edit", 0));
     Effect.runSync(state.beginStop("continue", "lost"));
     Effect.runSync(state.consumeStop("continue"));
     expect(Effect.runSync(state.expireStop("continue", "lost"))).toBeUndefined();
-    expect(state.isActive("continue")).toBe(true);
+    expect(Effect.runSync(state.isActive("continue"))).toBe(true);
     for (let count = 0; count < 3; count++) expect(Effect.runSync(state.consumeStop("continue"))).toBe(true);
     expect(Effect.runSync(state.consumeStop("continue"))).toBe(false);
   });
@@ -482,8 +482,8 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.reserveFinishOutput("agent", "attempt", "output",
       [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1))).toBe(true);
     expect(Effect.runSync(state.expireStop("agent", "attempt"))).toBe(1);
-    expect(state.isActive("agent")).toBe(false);
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
+    expect(Effect.runSync(state.isActive("agent"))).toBe(false);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(false);
     expect(Effect.runSync(state.authorizeFinishOutput("agent", "output"))).toBe(false);
     expect(Effect.runSync(state.beginStop("agent", "later"))).toBe(false);
     expect(Effect.runSync(state.authorizeFinishOutput("agent", "output"))).toBe(false);
@@ -504,7 +504,7 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.markSubmitted("output", [canonicalUnit]))).toBe(true);
     expect(Effect.runSync(state.markSubmitted("output", [canonicalUnit]))).toBe(false);
     expect(Effect.runSync(state.expireStop("agent", "attempt"))).toBeUndefined();
-    expect(state.isActive("agent")).toBe(true);
+    expect(Effect.runSync(state.isActive("agent"))).toBe(true);
     expect(Effect.runSync(state.closureCounts("agent")).reservedContinuations).toBe(1);
     expect(Effect.runSync(state.authorizeFinishOutput("agent", "output"))).toBe(false);
   });
@@ -615,11 +615,11 @@ describe("shared Hapsland rounds", () => {
     const state = makeCapacityLedger().delivery();
     expect(Effect.runSync(state.advance("agent", "prompt", 10))).toBe(true);
     expect(Effect.runSync(state.ensureFromHostTurn("agent", "turn", 11))).toBe(true);
-    expect(state.generation("agent")).toBe(0);
+    expect(Effect.runSync(state.generation("agent"))).toBe(0);
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(false);
     expect(Effect.runSync(state.consumeStop("agent"))).toBe(false);
     expect(Effect.runSync(state.registerEdit("agent", "edit", 12, 13))).toBe(true);
-    expect(state.generation("agent")).toBe(0);
+    expect(Effect.runSync(state.generation("agent"))).toBe(0);
     expect(Effect.runSync(state.beginStop("agent", "stop"))).toBe(false);
     expect(state.canonical.canonicalProjection().rounds).toHaveLength(0);
     expect(Effect.runSync(state.admitEdit("agent", "edit", 14, true))).toBe(1);
@@ -632,8 +632,8 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.finishStop("agent", "stop", true, 100))).toBe(1);
     expect(Effect.runSync(state.registerEdit("agent", "fresh", 102, 103))).toBe(true);
     const closedRounds = state.canonical.canonicalProjection().rounds;
-    expect(state.generation("agent")).toBe(1);
-    expect(state.isActive("agent")).toBe(false);
+    expect(Effect.runSync(state.generation("agent"))).toBe(1);
+    expect(Effect.runSync(state.isActive("agent"))).toBe(false);
     expect(Effect.runSync(state.beginStop("agent", "permit-only"))).toBe(false);
     expect(state.canonical.canonicalProjection().rounds).toEqual(closedRounds);
     expect(Effect.runSync(state.admitEdit("agent", "fresh", 104, true))).toBe(2);
@@ -772,12 +772,12 @@ describe("shared Hapsland rounds", () => {
     const finding = { rule: "r", advice: "repair" };
     Effect.runSync(state.admitEdit("agent", "edit", 0));
     Effect.runSync(state.beginSubmission("advice", "agent", "bg", [finding], "background", 1));
-    expect(state.suppresses("advice", "agent", finding)).toBe(true);
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding))).toBe(true);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(true);
     expect(Effect.runSync(state.beginSubmission("advice", "agent", "early-stop", [finding], "stop", 2))).toBe(false);
     Effect.runSync(state.markSubmitted("bg"));
-    expect(state.backgroundReofferable("advice", "bg")).toBe(false);
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    expect(Effect.runSync(state.backgroundReofferable("advice", "bg"))).toBe(false);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(true);
     expect(Effect.runSync(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2))).toBe(false);
     Effect.runSync(state.beginStop("agent", "close"));
     Effect.runSync(state.finishStop("agent", "close", true));
@@ -790,9 +790,9 @@ describe("shared Hapsland rounds", () => {
     Effect.runSync(state.admitEdit("agent", "edit", 0));
     expect(Effect.runSync(state.claimBackground("agent", "worker", 0))).toBe(true);
     expect(Effect.runSync(state.beginSubmission("advice", "agent", "bg", [finding], "background", 1))).toBe(true);
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(true);
     Effect.runSync(state.releaseBackground("agent", "worker"));
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(false);
     expect(Effect.runSync(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2))).toBe(true);
   });
 
@@ -803,10 +803,10 @@ describe("shared Hapsland rounds", () => {
     expect(Effect.runSync(state.beginSubmission("advice", "agent", "bg", [finding], "background", 1))).toBe(true);
     expect(Effect.runSync(state.markUncertain("bg"))).toBe(true);
     expect(Effect.runSync(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2))).toBe(true);
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(true);
     Effect.runSync(state.release("stop"));
     expect(Effect.runSync(state.hasToken("bg"))).toBe(true);
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(false);
     expect(Effect.runSync(state.beginSubmission("advice", "agent", "retry", [finding], "stop", 3))).toBe(true);
   });
 
@@ -815,12 +815,12 @@ describe("shared Hapsland rounds", () => {
     const finding = { rule: "r", advice: "repair" };
     Effect.runSync(state.admitEdit("agent", "edit", 0));
     expect(Effect.runSync(state.beginSubmission("advice", "agent", "bg", [finding], "background", 0.9))).toBe(true);
-    expect(state.backgroundReofferable("advice", "bg")).toBe(false);
+    expect(Effect.runSync(state.backgroundReofferable("advice", "bg"))).toBe(false);
     Effect.runSync(state.expire(DELIVERY_LEASE_MS + 0.1));
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(true);
     Effect.runSync(state.expire(DELIVERY_LEASE_MS + 0.9));
-    expect(state.backgroundReofferable("advice", "bg")).toBe(true);
-    expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
+    expect(Effect.runSync(state.backgroundReofferable("advice", "bg"))).toBe(true);
+    expect(Effect.runSync(state.suppresses("advice", "agent", finding, "stop"))).toBe(false);
     expect(Effect.runSync(state.markSubmitted("bg"))).toBe(false);
   });
 });

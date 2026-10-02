@@ -406,7 +406,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         }
         return value;
       }).pipe(Effect.uninterruptible);
-      const deliveryCommit = <A>(operation: (operations: ComposedDelivery) => A): A => Effect.runSync(deliveryCommitEffect(operation));
       const deliveryRead = <A>(operation: (view: ReturnType<typeof deliveryView>) => A): Effect.Effect<A> =>
         Ref.get(state).pipe(Effect.map((snapshot) => {
           const draft = draftCapacity(snapshot, (id) => snapshot.reservations.get(id));
@@ -427,7 +426,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         admitEdit: Effect.fn("ComposedDelivery.admitEdit")((...args: Parameters<ComposedDelivery["admitEdit"]>) => deliveryCommitEffect((operations) => operations.admitEdit(...args))),
         expirePermits: Effect.fn("ComposedDelivery.expirePermits")((...args: Parameters<ComposedDelivery["expirePermits"]>) => deliveryCommitEffect((operations) => operations.expirePermits(...args))),
         hasPendingEdits: Effect.fn("ComposedDelivery.hasPendingEdits")((...args: Parameters<ComposedDelivery["hasPendingEdits"]>) => deliveryCommitEffect((operations) => operations.hasPendingEdits(...args))),
-        isActive: (...args: Parameters<ComposedDelivery["isActive"]>) => deliveryCommit((operations) => operations.isActive(...args)),
+        isActive: Effect.fn("ComposedDelivery.isActive")((...args: Parameters<ComposedDelivery["isActive"]>) => deliveryCommitEffect((operations) => operations.isActive(...args))),
         beginStop: Effect.fn("ComposedDelivery.beginStop")((...args: Parameters<ComposedDelivery["beginStop"]>) => deliveryCommitEffect((operations) => operations.beginStop(...args))),
         ownsStop: Effect.fn("ComposedDelivery.ownsStop")((...args: Parameters<ComposedDelivery["ownsStop"]>) => deliveryCommitEffect((operations) => operations.ownsStop(...args))),
         finishGate: Effect.fn("ComposedDelivery.finishGate")((...args: Parameters<ComposedDelivery["finishGate"]>) => deliveryCommitEffect((operations) => operations.finishGate(...args))),
@@ -446,7 +445,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         canSubmit: Effect.fn("ComposedDelivery.canSubmit")((...args: Parameters<ComposedDelivery["canSubmit"]>) => deliveryCommitEffect((operations) => operations.canSubmit(...args))),
         canBeginSubmission: Effect.fn("ComposedDelivery.canBeginSubmission")((...args: Parameters<ComposedDelivery["canBeginSubmission"]>) => deliveryCommitEffect((operations) => operations.canBeginSubmission(...args))),
         canBeginExistingToken: Effect.fn("ComposedDelivery.canBeginExistingToken")((...args: Parameters<ComposedDelivery["canBeginExistingToken"]>) => deliveryCommitEffect((operations) => operations.canBeginExistingToken(...args))),
-        generation: (...args: Parameters<ComposedDelivery["generation"]>) => deliveryCommit((operations) => operations.generation(...args)),
+        generation: Effect.fn("ComposedDelivery.generation")((...args: Parameters<ComposedDelivery["generation"]>) => deliveryCommitEffect((operations) => operations.generation(...args))),
         consumeStop: Effect.fn("ComposedDelivery.consumeStop")((...args: Parameters<ComposedDelivery["consumeStop"]>) => deliveryCommitEffect((operations) => operations.consumeStop(...args))),
         hasVirtualRoundContinuationBudget: Effect.fn("ComposedDelivery.hasVirtualRoundContinuationBudget")((...args: Parameters<ComposedDelivery["hasVirtualRoundContinuationBudget"]>) => deliveryCommitEffect((operations) => operations.hasVirtualRoundContinuationBudget(...args))),
         beginSubmission: Effect.fn("ComposedDelivery.beginSubmission")((...args: Parameters<ComposedDelivery["beginSubmission"]>) => deliveryCommitEffect((operations) => operations.beginSubmission(...args))),
@@ -454,8 +453,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         markUncertain: Effect.fn("ComposedDelivery.markUncertain")((...args: Parameters<ComposedDelivery["markUncertain"]>) => deliveryCommitEffect((operations) => operations.markUncertain(...args))),
         release: Effect.fn("ComposedDelivery.release")((...args: Parameters<ComposedDelivery["release"]>) => deliveryCommitEffect((operations) => operations.release(...args))),
         forget: Effect.fn("ComposedDelivery.forget")((...args: Parameters<ComposedDelivery["forget"]>) => deliveryCommitEffect((operations) => operations.forget(...args))),
-        suppresses: (...args: Parameters<ComposedDelivery["suppresses"]>) => deliveryCommit((operations) => operations.suppresses(...args)),
-        backgroundReofferable: (...args: Parameters<ComposedDelivery["backgroundReofferable"]>) => deliveryCommit((operations) => operations.backgroundReofferable(...args)),
+        suppresses: Effect.fn("ComposedDelivery.suppresses")((...args: Parameters<ComposedDelivery["suppresses"]>) => deliveryCommitEffect((operations) => operations.suppresses(...args))),
+        backgroundReofferable: Effect.fn("ComposedDelivery.backgroundReofferable")((...args: Parameters<ComposedDelivery["backgroundReofferable"]>) => deliveryCommitEffect((operations) => operations.backgroundReofferable(...args))),
         hasToken: Effect.fn("ComposedDelivery.hasToken")((...args: Parameters<ComposedDelivery["hasToken"]>) => deliveryRead((view) => view.hasToken(...args))),
         expire: Effect.fn("ComposedDelivery.expire")((...args: Parameters<ComposedDelivery["expire"]>) => deliveryCommitEffect((operations) => operations.expire(...args))),
       };
