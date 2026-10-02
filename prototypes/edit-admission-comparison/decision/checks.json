@@ -1,0 +1,8 @@
+{
+  "decision_spec_checked": true,
+  "decision_cases_executed": true,
+  "unapproved_laws_exit": 1,
+  "unapproved_laws_todos": 3,
+  "receipt_and_first_slice_gates": "eight Receipt controls passed including first nine",
+  "native_runtime_conformance": "not checked"
+}

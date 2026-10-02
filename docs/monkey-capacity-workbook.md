@@ -852,3 +852,35 @@ by `typecheck.log`, `viz-build.log`, `monkey-tests.log`,
 `admission-tests.log`, `timing-browser.log`, `execution-browser.log`, and
 `resource-browser.log`. The untracked admission comparison prototype is outside
 this merge and is neither staged nor deleted.
+
+## Edit-admission comparison decision evidence (2026-10-02)
+
+Advisory comparison, not a contract change. The accepted target contract's
+[line-96 closure requirement](advicing-target-contract.md#advicee-identity-and-admission) permits
+only a provably fresh edit to open a round after closure; lines 112–140 specify
+the correlated PRE/start/deadline and external host-order premise. Bare post-only
+receipt A conflicts with that requirement: an old unseen POST delayed past
+closure and a fresh POST have identical observable input, and both open a
+successor in the computed A model. Current rejects both without a permit. This
+shows an admission-policy difference, not that current-snapshot review is unsafe.
+
+The isolated [comparison decision matrix](../prototypes/edit-admission-comparison/README.md#decision-what-would-justify-removing-pre)
+records the two approved model proofs, six additional computed boundary cases,
+source anchors, lost POST/fail-open PRE coverage limits and compensating provenance
+options. Current native freshness is conditional on actual synchronous host
+ordering, not proved by the model; restart has the accepted explicit attribution
+limitation (target contract lines 371–376), not a durable cross-restart guarantee.
+Source classes and verification states are separate in the matrix: accepted DOC,
+inspected SRC, executed model SRC, unknown native runtime conformance.
+
+Recommendation: retain PRE under the existing strict closure requirement.
+Removing it requires either verified original-attempt provenance ordered against
+closure, or an explicit owner change to arrival-based admission with separate
+successor-round/continuation policy review. Short synchronous POST intake alone
+improves coverage but cannot distinguish the delayed-old/fresh pair. Classification:
+BORROW correlated attempt/fence evidence; REJECT bare A as a contract-preserving
+drop-in; OPTIONAL INTEGRATION for a deliberately changed arrival policy; no new
+DEPEND ON proposal. Three next-law candidates remain unapproved and unproved;
+392 bounded literal checks passed, with native-conformance and product policy
+adoption still outside the evidence. Existing counterexamples suffice for the
+owner's policy choice; further theorem approval is not required to choose it.

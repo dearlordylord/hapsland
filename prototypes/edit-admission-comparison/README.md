@@ -200,3 +200,82 @@ branch with unchanged state; it compiles, then fails both the literal and
 `Laws.receipt_complete`. Predicate, law and proof sources remain unchanged in
 that mutant; no supporting proof adjustment is needed.
 `evidence/receipt-approved-gate.json` records the result and source hashes.
+
+## Decision: what would justify removing PRE?
+
+The accepted contract already requires **only a provably fresh edit may open a
+round after closure** ([target contract, line 96](../../docs/advicing-target-contract.md#advicee-identity-and-admission)).
+Its PRE/start/deadline/host-order requirements are at lines 112–140; its explicit
+restart attribution limitation and lifetime-scoped continuation cap are at
+lines 371–376. The comparison therefore has a concrete compatibility result:
+**bare A is not a replacement under that existing closure requirement.**
+This does not make late review of an attributed current snapshot inherently
+unsafe; it means its authority to open a successor differs from the contract.
+
+| Situation / required guarantee | Current projection | A projection | Premise or limit |
+| --- | --- | --- | --- |
+| Correct new POST without successful PRE | Incomplete admission | Accepted | Checked positive Receipt law; not a guarantee that POST arrives. |
+| New round after accepted closure requires native edit start after closure | Correlated fresh PRE provides the start fence | Receipt arrival alone does not provide native freshness | Current needs the external synchronous host-order premise; bare A conflicts with the accepted requirement. |
+| Old unseen POST delayed past closure versus genuinely fresh unseen POST | Neither accepted without a permit | Both accepted, opening successor round 2 | Their observable receipt histories are identical; native chronology differs only in the monitor. |
+| Known duplicate after closure | No second admission | No second admission | Literal case; identity evidence is bounded, not durable dedupe. |
+| Several POSTs before closure | Only successfully permitted observations admitted | Each eligible unseen receipt joins the active round | Computed model behavior; round topology remains an unapproved law candidate. |
+| PRE fails open, is missing, expires or reaches capacity | Native edit can happen without review admission | A can accept a later correct POST | Current hook returns quiet even on registration failure; no claim every actual edit is reviewed. |
+| POST is lost | No observation admitted for that edit | No observation admitted for that edit | PRE alone does not produce review; recovery would need separately attributed evidence. |
+| Old IPC retains original resident lifetime after restart | Rejected | Rejected | Literal case; accepted contract deliberately loses old work and leases. |
+| Previously unseen old event is stamped with the new lifetime | Still needs a fresh correlated PRE; not an absolute origin proof | May be accepted as newly arrived | Current POST attaches the connected resident lifetime; the accepted contract explicitly limits restart attribution. |
+
+`decision/cases.bend` computes six focused cases; `evidence/decision-cases.log`
+records counts/rounds for lost POST, three POSTs before closure, known late POST,
+the old/fresh indistinguishable pair, and restamped old POST after restart.
+In the decisive pair Current stays at one accepted edit / round 1; A reaches two
+accepted edits / round 2 for both old and fresh native histories. No snapshot,
+Jev call, advice delivery or four-request allowance is simulated. Opening a new
+round matters to a per-round allowance policy, but this model does not prove or
+measure budget replenishment.
+
+The source boundary supports this distinction: `src/direct-event/model.ts:12–27`
+and `:57` identify session/tool and observation, not native start/origin epoch;
+`src/resident/protocol.ts:52–57,76–85` carries observation and current lifetime;
+`src/resident/client.ts:326–333` obtains that lifetime at POST handling.
+`src/resident/composed-hook.ts:110–113` registers PRE with the conservative process
+start from `src/resident/hook-clock.ts:4–7`; `src/resident/server.ts:681–694`
+consumes the tool-correlated permit. These are source-inspected current adapter
+facts, not a claim that upstream runtimes can never supply better provenance or
+that supported runtime ordering has been empirically verified.
+
+**Recommendation:** Keep PRE while preserving the accepted strict post-closure
+native-freshness requirement. Its necessity is for that admission fence, not
+for capturing or reviewing edits in general. If the owner instead prefers
+post-receipt coverage, explicitly change the closure admission requirement before
+adopting A and separately decide how late observations affect successor rounds
+and their continuation allowance. No additional universal proof is needed to
+make this policy choice: the computed indistinguishable pair already defeats
+bare A's strict-freshness claim.
+
+A can preserve the strict requirement with compensating evidence only if it is
+correlated to the original tool attempt and reliably ordered against closure:
+for example a native edit-start timestamp on a shared trusted clock, or an
+original monotonic event sequence/epoch plus a closure watermark and a verified
+drain/order contract. Original lifetime binding and bounded replay handling
+must survive retries/restarts where claimed. A short synchronous POST receipt
+before background work improves ordinary intake ordering but cannot identify an
+old event first observed after closure by itself. POST arrival time, prompt/turn
+ID, or a freshly assigned resident lifetime alone is insufficient. None of these
+compensating runtime contracts has been implemented or validated here.
+
+Advisory classifications: **BORROW** the correlated start/fence and immutable
+attempt identity pattern; **REJECT** bare A as a drop-in for the current strict
+closure contract; treat an arrival-based A policy as an **OPTIONAL INTEGRATION**
+experiment requiring an explicit product decision. No new **DEPEND ON** candidate
+is proposed. Contract statements are DOC/accepted; implementation boundary facts
+are SRC/inspected; model outputs are SRC/executed; native conformance is UNKNOWN.
+
+`decision/LAWS.bend` contains three **unapproved** candidates: whole-trace native
+label erasure for A; conditional Current native freshness under the external
+host-order premise; and exact A round/active boundary effects. They clarify
+possible next proof scopes, not prerequisites for this decision. Their 392 literal
+instances pass (8 erasure, 288 conditional freshness, 96 boundaries), and their
+universal checker intentionally reports three TODOs. Sketches: induct over
+histories for erasure; combine the already checked PRE fence with the explicit
+native-start ordering premise for conditional freshness; inspect accepted/refused
+round effects for boundaries. No proof terms were written for these candidates.
