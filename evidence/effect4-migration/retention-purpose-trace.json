@@ -1,0 +1,60 @@
+{
+  "purpose": "Sanitized purpose-specific retention diagnosis",
+  "authority": "Instrumented implementation evidence; no timing acceptance",
+  "currentTree": "480a31f",
+  "baseline": "4324697adff22db315fc8e5490df6181e030b243",
+  "workload": "One 24-edit iteration, original five-millisecond controlled provider delay and first-edit Stop",
+  "observations": [
+    {
+      "mode": "baseline",
+      "reportedPeakBytes": 17781933,
+      "observedPeak": {
+        "bytes": 17781933,
+        "items": 23,
+        "purposes": {
+          "observationDispatch": {
+            "items": 7,
+            "bytes": 10990,
+            "maximum": 1570
+          },
+          "reviewUnit": {
+            "items": 8,
+            "bytes": 569200,
+            "maximum": 71150
+          },
+          "preparation": {
+            "items": 8,
+            "bytes": 17201743,
+            "maximum": 2156740
+          }
+        }
+      }
+    },
+    {
+      "mode": "current",
+      "reportedPeakBytes": 17807985,
+      "observedPeak": {
+        "bytes": 17807985,
+        "items": 23,
+        "purposes": {
+          "observationDispatch": {
+            "items": 7,
+            "bytes": 10990,
+            "maximum": 1570
+          },
+          "reviewUnit": {
+            "items": 8,
+            "bytes": 569200,
+            "maximum": 71150
+          },
+          "preparation": {
+            "items": 8,
+            "bytes": 17227795,
+            "maximum": 2156740
+          }
+        }
+      }
+    }
+  ],
+  "limitations": "Instrumentation can change scheduling; purpose totals contain no source, credentials or attribution identities."
+}

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -37,6 +37,24 @@ describe("first-review live budget", () => {
     claimDemoBudget(path, options.root, 40, 500);
     expect(() => initializeDemoBudget(path, options)).toThrow();
     expect(readDemoBudgetUsage(path)).toEqual({ sourceBytes: 40, providerCalls: 1 });
+  });
+
+  it("rejects malformed persisted authorities without reserving a call", () => {
+    for (const invalid of [
+      { version: 2 }, { root: "relative/repository" },
+      { expiresAt: -1 }, { providerCallBudget: 1.5 },
+      { usedSourceBytes: Number.MAX_SAFE_INTEGER + 1 },
+      { usedProviderCalls: "0" },
+    ]) {
+      const path = fixture();
+      writeFileSync(path, JSON.stringify({
+        version: 1, root: "/synthetic/repository", expiresAt: 1_000,
+        sourceByteBudget: 100, providerCallBudget: 2,
+        usedSourceBytes: 0, usedProviderCalls: 0, ...invalid,
+      }));
+      expect(readDemoBudgetUsage(path)).toBeUndefined();
+      expect(() => claimDemoBudget(path, "/synthetic/repository", 1, 500)).toThrow();
+    }
   });
 
   it("claims bounded source and provider calls atomically", () => {

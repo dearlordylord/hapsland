@@ -1,5 +1,5 @@
 import * as Schema from "effect/Schema";
-import type { Decision } from "effect/unstable/ai";
+import type { Decision } from "effect/ai";
 
 /** The pinned @effect/ai-typesafe rc.116 System One body for jev-latest Noul rules. */
 export const encodedProviderHttpBodyBytes = (

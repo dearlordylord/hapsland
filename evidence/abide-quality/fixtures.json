@@ -1,0 +1,427 @@
+{
+  "cases": [
+    {
+      "id": "context-invoice",
+      "category": "contextual-violation",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "import type { Money } from \"./support\";\nexport interface CaseState { label: string; amountDue: Money; }\n",
+      "after": "import type { Money } from \"./support\";\nexport interface CaseState { label: string; amountDue: Money; invoiceCurrency: \"EUR\" | \"USD\"; }\n",
+      "support": {
+        "support.ts": "export interface Money { minorUnits: number; currency: \"EUR\" | \"USD\"; }\n"
+      },
+      "gold": true,
+      "rationale": "Invoice currency is exactly the currency of its amount due; a second independent encoding can disagree.",
+      "counterexample": "{ label: \"a\", amountDue: { minorUnits: 100, currency: \"EUR\" }, invoiceCurrency: \"USD\" }",
+      "needsEvidence": [
+        "support.ts"
+      ],
+      "excludedPaths": [],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes."
+    },
+    {
+      "id": "context-rendering",
+      "category": "contextual-violation",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "import type { ImageAsset } from \"./support\";\nexport interface CaseState { label: string; asset: ImageAsset; }\n",
+      "after": "import type { ImageAsset } from \"./support\";\nexport interface CaseState { label: string; asset: ImageAsset; resolution: \"small\" | \"large\"; }\n",
+      "support": {
+        "support.ts": "export interface ImageAsset { rendering: RenderingPreset; }\nexport interface RenderingPreset { resolution: \"small\" | \"large\"; }\n"
+      },
+      "gold": true,
+      "rationale": "A poster resolution is the rendering resolution of its only asset; these are the same fact.",
+      "counterexample": "{ label: \"a\", asset: { rendering: { resolution: \"small\" } }, resolution: \"large\" }",
+      "needsEvidence": [
+        "support.ts"
+      ],
+      "excludedPaths": [],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes."
+    },
+    {
+      "id": "context-address",
+      "category": "contextual-violation",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "import type { Shipment } from \"./support\";\nexport interface CaseState { label: string; shipment: Shipment; }\n",
+      "after": "import type { Shipment } from \"./support\";\nexport interface CaseState { label: string; shipment: Shipment; destinationCountry: \"CA\" | \"US\"; }\n",
+      "support": {
+        "support.ts": "export interface Shipment { destination: Destination; }\nexport interface Destination { country: \"CA\" | \"US\"; }\n"
+      },
+      "gold": true,
+      "rationale": "The shipment has one destination; destinationCountry repeats that destination country.",
+      "counterexample": "{ label: \"a\", shipment: { destination: { country: \"CA\" } }, destinationCountry: \"US\" }",
+      "needsEvidence": [
+        "support.ts"
+      ],
+      "excludedPaths": [],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes."
+    },
+    {
+      "id": "context-seat",
+      "category": "contextual-violation",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "import type { SeatAssignment } from \"./support\";\nexport interface CaseState { label: string; assignment: SeatAssignment; }\n",
+      "after": "import type { SeatAssignment } from \"./support\";\nexport interface CaseState { label: string; assignment: SeatAssignment; row: \"A\" | \"B\"; }\n",
+      "support": {
+        "support.ts": "export interface SeatAssignment { seat: Seat; }\nexport interface Seat { row: \"A\" | \"B\"; number: number; }\n"
+      },
+      "gold": true,
+      "rationale": "The ticket row is the row of the assigned seat, not a preference or another resource.",
+      "counterexample": "{ label: \"a\", assignment: { seat: { row: \"A\", number: 1 } }, row: \"B\" }",
+      "needsEvidence": [
+        "support.ts"
+      ],
+      "excludedPaths": [],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes."
+    },
+    {
+      "id": "local-payment",
+      "category": "local-violation",
+      "ruleId": "r2_meaningless_combinations",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "export type CaseState = { label: string; status: \"pending\" } | { label: string; status: \"paid\"; receipt: string };\n",
+      "after": "export interface CaseState { label: string; status: \"pending\" | \"paid\"; receipt: string | null; }\n",
+      "support": {},
+      "gold": true,
+      "rationale": "Pending payments have no receipt; paid payments must have one.",
+      "counterexample": "{ label: \"a\", status: \"paid\", receipt: null }",
+      "needsEvidence": [],
+      "excludedPaths": [],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes."
+    },
+    {
+      "id": "local-result",
+      "category": "local-violation",
+      "ruleId": "r2_meaningless_combinations",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "export type CaseState = { label: string; outcome: \"success\"; value: number } | { label: string; outcome: \"failure\"; error: string };\n",
+      "after": "export interface CaseState { label: string; outcome: \"success\" | \"failure\"; value: number | null; error: string | null; }\n",
+      "support": {},
+      "gold": true,
+      "rationale": "Success has a value and no error; failure has an error and no value.",
+      "counterexample": "{ label: \"a\", outcome: \"success\", value: null, error: \"failed\" }",
+      "needsEvidence": [],
+      "excludedPaths": [],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes."
+    },
+    {
+      "id": "clean-payment",
+      "category": "clean-control",
+      "ruleId": "r2_meaningless_combinations",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "export type CaseState = { label: string; status: \"pending\" } | { label: string; status: \"paid\"; receipt: string };\n",
+      "after": "export type CaseState = { label: string; status: \"pending\"; note?: string } | { label: string; status: \"paid\"; receipt: string; note?: string };\n",
+      "support": {},
+      "gold": false,
+      "rationale": "The union enforces receipt applicability; notes are genuinely independent.",
+      "counterexample": null,
+      "needsEvidence": [],
+      "excludedPaths": [],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes."
+    },
+    {
+      "id": "clean-currencies",
+      "category": "clean-control",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "import type { Money } from \"./support\";\nexport interface CaseState { label: string; quoted: Money; }\n",
+      "after": "import type { Money } from \"./support\";\nexport interface CaseState { label: string; quoted: Money; settled: Money; }\n",
+      "support": {
+        "support.ts": "export interface Money { minorUnits: number; currency: \"EUR\" | \"USD\"; }\n"
+      },
+      "gold": false,
+      "rationale": "Quoted and settled amounts are different facts; conversion may change both amount and currency.",
+      "counterexample": null,
+      "needsEvidence": [
+        "support.ts"
+      ],
+      "excludedPaths": [],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes."
+    },
+    {
+      "id": "clean-note",
+      "category": "clean-control",
+      "ruleId": "r5_absence_confusion",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "export interface CaseState { label: string; }\n",
+      "after": "export interface CaseState { label: string; /** Omitted means no note was supplied, and has no other meaning. */ note?: string; }\n",
+      "support": {},
+      "gold": false,
+      "rationale": "Absence has precisely one documented meaning; an empty string is a supplied note.",
+      "counterexample": null,
+      "needsEvidence": [],
+      "excludedPaths": [],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes."
+    },
+    {
+      "id": "excluded-root",
+      "category": "insufficient-evidence",
+      "ruleId": "r2_meaningless_combinations",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "export type CaseState = { label: string; status: \"pending\" } | { label: string; status: \"paid\"; receipt: string };\n",
+      "after": "export interface CaseState { label: string; status: \"pending\" | \"paid\"; receipt: string | null; }\n",
+      "support": {},
+      "gold": null,
+      "rationale": "Hapsland policy excludes the root before capture; no assessment is warranted by that product. Underlying full-source gold is a violation.",
+      "counterexample": "{ label: \"a\", status: \"paid\", receipt: null }",
+      "needsEvidence": [],
+      "excludedPaths": [
+        "subject.ts"
+      ],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes.",
+      "underlyingGold": true,
+      "expectedHapsland": "unchecked-root-excluded"
+    },
+    {
+      "id": "excluded-support",
+      "category": "insufficient-evidence",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "import type { Money } from \"./support\";\nexport interface CaseState { label: string; amountDue: Money; }\n",
+      "after": "import type { Money } from \"./support\";\nexport interface CaseState { label: string; amountDue: Money; invoiceCurrency: \"EUR\" | \"USD\"; }\n",
+      "support": {
+        "support.ts": "export interface Money { minorUnits: number; currency: \"EUR\" | \"USD\"; }\n"
+      },
+      "gold": null,
+      "rationale": "Required supporting declaration is excluded; Hapsland should retain an unchecked reason, not infer a completed contextual assessment. Abide does not inherit this setting.",
+      "counterexample": "{ label: \"a\", amountDue: { minorUnits: 100, currency: \"EUR\" }, invoiceCurrency: \"USD\" }",
+      "needsEvidence": [
+        "support.ts"
+      ],
+      "excludedPaths": [
+        "support.ts"
+      ],
+      "prompt": "Update the CaseState declaration as requested, preserve the documented domain, and check your changes.",
+      "underlyingGold": true,
+      "expectedHapsland": "unchecked-support-excluded"
+    },
+    {
+      "id": "diff-result-regression",
+      "category": "diff-favorable",
+      "ruleId": "r2_meaningless_combinations",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "before": "export type CaseState = { label: string; result: \"found\"; item: string } | { label: string; result: \"missing\" };\n",
+      "after": "export interface CaseState { label: string; result: \"found\" | \"missing\"; item: string | null; }\n",
+      "support": {},
+      "gold": true,
+      "rationale": "The diff explicitly removes a constrained union and creates meaningless found-without-item combinations.",
+      "counterexample": "{ label: \"a\", result: \"found\", item: null }",
+      "needsEvidence": [],
+      "excludedPaths": [],
+      "prompt": "Simplify the implementation representation while preserving the existing found/missing domain semantics; check the resulting API."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "repair-1-context-invoice",
+      "caseId": "context-invoice",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "initial": "import type { Money } from \"./support\";\nexport interface CaseState { label: string; amountDue: Money; invoiceCurrency: \"EUR\" | \"USD\"; }\n",
+      "support": {
+        "support.ts": "export interface Money { minorUnits: number; currency: \"EUR\" | \"USD\"; }\n"
+      },
+      "excludedPaths": [],
+      "readme": "# Domain\n\nAn invoice has one amount due. Its invoice currency is the currency of that amount.\n\nCaseState is the public domain record. Its label is presentation text. Keep the recorded domain semantics and independent facts.\n",
+      "prompt": "First make only the presentation-field rename from label to displayLabel in subject.ts, using one apply_patch call and leaving the rest of the type unchanged. Keep CaseState exported. After that tool call returns, run npm run typecheck. Then review the public type against README.md, make any changes you judge necessary to preserve its domain semantics, run typecheck and tests, and report what you verified. Do not add runtime dependencies.",
+      "gold": true,
+      "probe": {
+        "strategy": "concrete-domain-counterexample",
+        "counterexample": "{ displayLabel: \"a\", amountDue: { minorUnits: 100, currency: \"EUR\" }, invoiceCurrency: \"USD\" }",
+        "validWitnesses": [
+          "{ displayLabel: \"a\", amountDue: { minorUnits: 100, currency: \"EUR\" }, invoiceCurrency: \"EUR\" }"
+        ],
+        "rationale": "Invoice currency is exactly the currency of its amount due; a second independent encoding can disagree.",
+        "requireExport": "CaseState",
+        "requireRenamedField": "displayLabel",
+        "adjudicateChangedShape": true
+      }
+    },
+    {
+      "id": "repair-2-context-rendering",
+      "caseId": "context-rendering",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "initial": "import type { ImageAsset } from \"./support\";\nexport interface CaseState { label: string; asset: ImageAsset; resolution: \"small\" | \"large\"; }\n",
+      "support": {
+        "support.ts": "export interface ImageAsset { rendering: RenderingPreset; }\nexport interface RenderingPreset { resolution: \"small\" | \"large\"; }\n"
+      },
+      "excludedPaths": [],
+      "readme": "# Domain\n\nA poster displays one asset. Its resolution is the rendering resolution of that asset.\n\nCaseState is the public domain record. Its label is presentation text. Keep the recorded domain semantics and independent facts.\n",
+      "prompt": "First make only the presentation-field rename from label to displayLabel in subject.ts, using one apply_patch call and leaving the rest of the type unchanged. Keep CaseState exported. After that tool call returns, run npm run typecheck. Then review the public type against README.md, make any changes you judge necessary to preserve its domain semantics, run typecheck and tests, and report what you verified. Do not add runtime dependencies.",
+      "gold": true,
+      "probe": {
+        "strategy": "concrete-domain-counterexample",
+        "counterexample": "{ displayLabel: \"a\", asset: { rendering: { resolution: \"small\" } }, resolution: \"large\" }",
+        "validWitnesses": [
+          "{ displayLabel: \"a\", asset: { rendering: { resolution: \"small\" } }, resolution: \"small\" }"
+        ],
+        "rationale": "A poster resolution is the rendering resolution of its only asset; these are the same fact.",
+        "requireExport": "CaseState",
+        "requireRenamedField": "displayLabel",
+        "adjudicateChangedShape": true
+      }
+    },
+    {
+      "id": "repair-3-local-payment",
+      "caseId": "local-payment",
+      "ruleId": "r2_meaningless_combinations",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "initial": "export interface CaseState { label: string; status: \"pending\" | \"paid\"; receipt: string | null; }\n",
+      "support": {},
+      "excludedPaths": [],
+      "readme": "# Domain\n\nA payment is pending or paid. Pending payments have no receipt. Paid payments have a receipt.\n\nCaseState is the public domain record. Its label is presentation text. Keep the recorded domain semantics and independent facts.\n",
+      "prompt": "First make only the presentation-field rename from label to displayLabel in subject.ts, using one apply_patch call and leaving the rest of the type unchanged. Keep CaseState exported. After that tool call returns, run npm run typecheck. Then review the public type against README.md, make any changes you judge necessary to preserve its domain semantics, run typecheck and tests, and report what you verified. Do not add runtime dependencies.",
+      "gold": true,
+      "probe": {
+        "strategy": "concrete-domain-counterexample",
+        "counterexample": "{ displayLabel: \"a\", status: \"paid\", receipt: null }",
+        "validWitnesses": [
+          "{ displayLabel: \"a\", status: \"pending\", receipt: null }",
+          "{ displayLabel: \"a\", status: \"paid\", receipt: \"receipt-1\" }"
+        ],
+        "rationale": "Pending payments have no receipt; paid payments must have one.",
+        "requireExport": "CaseState",
+        "requireRenamedField": "displayLabel",
+        "adjudicateChangedShape": true
+      }
+    },
+    {
+      "id": "repair-4-clean-payment",
+      "caseId": "clean-payment",
+      "ruleId": "r2_meaningless_combinations",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "initial": "export type CaseState = { label: string; status: \"pending\"; note?: string } | { label: string; status: \"paid\"; receipt: string; note?: string };\n",
+      "support": {},
+      "excludedPaths": [],
+      "readme": "# Domain\n\nA payment is pending or paid. Pending payments have no receipt. Paid payments have a receipt. Either may carry an independently supplied note.\n\nCaseState is the public domain record. Its label is presentation text. Keep the recorded domain semantics and independent facts.\n",
+      "prompt": "First make only the presentation-field rename from label to displayLabel in subject.ts, using one apply_patch call and leaving the rest of the type unchanged. Keep CaseState exported. After that tool call returns, run npm run typecheck. Then review the public type against README.md, make any changes you judge necessary to preserve its domain semantics, run typecheck and tests, and report what you verified. Do not add runtime dependencies.",
+      "gold": false,
+      "probe": {
+        "strategy": "valid-domain-witnesses",
+        "counterexample": null,
+        "validWitnesses": [
+          "{ displayLabel: \"a\", status: \"pending\" }",
+          "{ displayLabel: \"a\", status: \"paid\", receipt: \"receipt-1\", note: \"thanks\" }"
+        ],
+        "rationale": "The union enforces receipt applicability; notes are genuinely independent.",
+        "requireExport": "CaseState",
+        "requireRenamedField": "displayLabel",
+        "adjudicateChangedShape": true
+      }
+    },
+    {
+      "id": "repair-5-clean-currencies",
+      "caseId": "clean-currencies",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "initial": "import type { Money } from \"./support\";\nexport interface CaseState { label: string; quoted: Money; settled: Money; }\n",
+      "support": {
+        "support.ts": "export interface Money { minorUnits: number; currency: \"EUR\" | \"USD\"; }\n"
+      },
+      "excludedPaths": [],
+      "readme": "# Domain\n\nA transaction records a quoted amount and a settled amount. Settlement may apply currency conversion. The quoted and settled values are independent observations.\n\nCaseState is the public domain record. Its label is presentation text. Keep the recorded domain semantics and independent facts.\n",
+      "prompt": "First make only the presentation-field rename from label to displayLabel in subject.ts, using one apply_patch call and leaving the rest of the type unchanged. Keep CaseState exported. After that tool call returns, run npm run typecheck. Then review the public type against README.md, make any changes you judge necessary to preserve its domain semantics, run typecheck and tests, and report what you verified. Do not add runtime dependencies.",
+      "gold": false,
+      "probe": {
+        "strategy": "valid-domain-witnesses",
+        "counterexample": null,
+        "validWitnesses": [
+          "{ displayLabel: \"a\", quoted: { minorUnits: 100, currency: \"EUR\" }, settled: { minorUnits: 110, currency: \"USD\" } }"
+        ],
+        "rationale": "Quoted and settled amounts are different facts; conversion may change both amount and currency.",
+        "requireExport": "CaseState",
+        "requireRenamedField": "displayLabel",
+        "adjudicateChangedShape": true
+      }
+    },
+    {
+      "id": "repair-6-excluded-support",
+      "caseId": "excluded-support",
+      "ruleId": "r4_duplicate_encoding",
+      "filename": "subject.ts",
+      "declarationName": "CaseState",
+      "initial": "import type { Money } from \"./support\";\nexport interface CaseState { label: string; amountDue: Money; invoiceCurrency: \"EUR\" | \"USD\"; }\n",
+      "support": {
+        "support.ts": "export interface Money { minorUnits: number; currency: \"EUR\" | \"USD\"; }\n"
+      },
+      "excludedPaths": [
+        "support.ts"
+      ],
+      "readme": "# Domain\n\nAn invoice has one amount due. Its invoice currency is the currency of that amount.\n\nCaseState is the public domain record. Its label is presentation text. Keep the recorded domain semantics and independent facts.\n",
+      "prompt": "First make only the presentation-field rename from label to displayLabel in subject.ts, using one apply_patch call and leaving the rest of the type unchanged. Keep CaseState exported. After that tool call returns, run npm run typecheck. Then review the public type against README.md, make any changes you judge necessary to preserve its domain semantics, run typecheck and tests, and report what you verified. Do not add runtime dependencies.",
+      "gold": null,
+      "probe": {
+        "strategy": "valid-domain-witnesses",
+        "counterexample": "{ displayLabel: \"a\", amountDue: { minorUnits: 100, currency: \"EUR\" }, invoiceCurrency: \"USD\" }",
+        "validWitnesses": [
+          "{ displayLabel: \"a\", amountDue: { minorUnits: 100, currency: \"EUR\" }, invoiceCurrency: \"EUR\" }"
+        ],
+        "rationale": "Required supporting declaration is excluded; Hapsland should retain an unchecked reason, not infer a completed contextual assessment. Abide does not inherit this setting.",
+        "requireExport": "CaseState",
+        "requireRenamedField": "displayLabel",
+        "adjudicateChangedShape": true
+      }
+    }
+  ],
+  "rules": [
+    {
+      "id": "r2_meaningless_combinations",
+      "decision": {
+        "_tag": "Probability",
+        "instructions": "Does `artifact` let a field be set in combinations where that field has no meaning, because the shape makes it settable independently of whatever gives it meaning?\n\nFocus: A conditional field is correctly constrained when the shape makes it reachable only where its condition holds — inside one union member, or beside a discriminant that rules the combination out. The finding is a conditional field the shape leaves settable everywhere.",
+        "criteria": {
+          "false": "No field can be set where it means nothing\n\nExamples:\n- the backoff schedule lives inside the `retrying` variant, so a policy with no retries cannot carry one\n- `cancelledAt` exists only on the `cancelled` case of the status union\n- a job is either `{ schedule: Cron }` or `{ at: Instant }`, never both and never neither",
+          "true": "At least one combination the shape admits has no meaning in the domain, and nothing in the shape rules it out\n\nExamples:\n- a status of `pending` carried alongside a `deliveredAt` timestamp\n- `authenticated: false` beside a populated `userId`\n- a `selections` list beside a `kind` that has a `\"single\"` value, so two selections can sit next to `\"single\"`\n- a discount typed `free_shipping` that also carries `percentOff: 30`"
+        }
+      },
+      "threshold": 0.7,
+      "message": "The type appears to admit field combinations with no domain meaning."
+    },
+    {
+      "id": "r4_duplicate_encoding",
+      "decision": {
+        "_tag": "Probability",
+        "instructions": "Can a value of `artifact` carry one fact twice over and have the two copies disagree, because the shape stores it in more than one place?\n\nFocus: Fields that happen to correlate are not the finding. The finding is a fact the shape lets be written down twice, so nothing stops one copy from saying something the other contradicts.",
+        "criteria": {
+          "false": "Each fact is written down once, and anything else that depends on it is derived rather than stored\n\nExamples:\n- a `birthDate` alone, with age computed where it is needed\n- a `lines` list alone, its length read from the list\n- one `price: Money` value, formatted at the edge that displays it",
+          "true": "One fact is reachable through two fields at once, and the shape admits values where they disagree\n\nExamples:\n- a `birthDate` beside an `age`, either settable, so a value can claim an age its date denies\n- a `lines` list beside a `lineCount`, which nothing keeps in step\n- `priceCents` beside a `priceLabel` string that spells the same price out\n- a `path` beside a `directory` and a `fileName` that repeat its parts"
+        }
+      },
+      "threshold": 0.7,
+      "message": "The type appears to store the same fact in places that can disagree."
+    },
+    {
+      "id": "r5_absence_confusion",
+      "decision": {
+        "_tag": "Probability",
+        "instructions": "Does `artifact` offer two encodings of one state, or collapse two states that the domain distinguishes, around missing values?\n\nFocus: \"Not supplied\", \"known to be nothing\", and \"known to be empty\" are three different facts.",
+        "criteria": {
+          "false": "Collections are required and emptiness carries the nothing meaning, or absence has its own named meaning\n\nExamples:\n- a required `tags` list where empty is how a caller says there are none\n- permissions are `{ kind: \"inherited\" } | { kind: \"own\", granted: Permission[] }`, so inheritance is a named state rather than a missing field\n- an attachment list typed non-empty, so the invariant holds at construction",
+          "true": "An optional collection whose absence and emptiness mean the same thing, or a field where undefined, null and empty are all reachable\n\nExamples:\n- an optional `tags` list where absent and `[]` are both reachable and denote the same nothing\n- a `middleName` where missing, `null` and `\"\"` are all reachable\n- an optional `permissions` list whose absence carries a meaning the shape never names\n- an `items` list that must not be empty, with emptiness still representable"
+        }
+      },
+      "threshold": 0.7,
+      "message": "Absence appears to carry more than one meaning."
+    }
+  ]
+}

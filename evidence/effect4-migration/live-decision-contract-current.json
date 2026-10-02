@@ -1,0 +1,52 @@
+{
+  "declaration": {
+    "purpose": "Stable Effect4 Decision/ai-typesafe live contract milestone",
+    "authority": "Sanitized implementation evidence; no real-host or platform acceptance",
+    "intendedProviderCallCeiling": 2,
+    "automaticRetries": 0,
+    "perRequestDeadlineMs": 15000,
+    "retainedFields": [
+      "fixture identifiers",
+      "boolean contract results",
+      "timings",
+      "counted fetch attempts",
+      "bounded outcome categories"
+    ],
+    "credentialSource": "primary ignored env file read without sourcing or copying"
+  },
+  "subjectCommit": "ca0e3d3",
+  "environment": {
+    "node": "v24.20.0",
+    "platform": "linux",
+    "arch": "arm64"
+  },
+  "credentialAvailable": true,
+  "fetchAttempts": 2,
+  "checks": [
+    {
+      "fixtureId": "representative-single-noul",
+      "outcome": "answered",
+      "keysMatch": true,
+      "probabilitiesValid": true,
+      "representativeAboveThreshold": true,
+      "elapsedMs": 203
+    },
+    {
+      "fixtureId": "configured-noul-key-set",
+      "outcome": "answered",
+      "keysMatch": true,
+      "probabilitiesValid": true,
+      "fullConfiguredKeySet": true,
+      "elapsedMs": 169
+    }
+  ],
+  "passed": true,
+  "limitations": "Synthetic source only. Boolean contract observations do not establish host feedback, physical wire cancellation, accuracy across arbitrary source, or platform support.",
+  "postExecutionMetadata": {
+    "sourceSha256": {
+      "src/jev-decision.ts": "40f9d1f42b4411166f63df5b60d0137955fc1b5e3706a961ff326fb456946059",
+      "src/questions.ts": "3c29df77e218c791a328dd22ca3734dfc464da0dad8816a050105530cee650e2"
+    },
+    "note": "Metadata appended after execution; declaration retained unchanged. These source files are unchanged by later empty-path/doctor edits."
+  }
+}

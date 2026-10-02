@@ -1,0 +1,19 @@
+{
+  "purpose": "Pre-execution regression budgets for the staged Effect 4 migration",
+  "authority": "Implementation experiment declaration; no host, release or product acceptance claim",
+  "declaredBeforeExecution": "2026-10-01",
+  "baseline": "4324697adff22db315fc8e5490df6181e030b243",
+  "workload": { "warmups": 1, "iterations": 8, "editsPerIteration": 24, "mode": "offline controlled DecisionModel", "providerDelayMs": 5 },
+  "budgets": {
+    "admissionP95Ms": { "maximumRatio": 1.5, "absoluteAllowanceMs": 2 },
+    "stopP95Ms": { "maximumRatio": 1.5, "absoluteAllowanceMs": 5 },
+    "saturationP95Ms": { "maximumRatio": 1.5, "absoluteAllowanceMs": 100 },
+    "shutdownP95Ms": { "maximumRatio": 1.5, "absoluteAllowanceMs": 10 },
+    "eventLoopP95Ms": { "maximumRatio": 1.5, "absoluteAllowanceMs": 5 },
+    "peakRetainedBytes": { "maximumRatio": 1, "absoluteAllowanceBytes": 0 },
+    "peakRssBytes": { "maximumRatio": 1.25, "absoluteAllowanceBytes": 33554432 },
+    "maximumConcurrentDecisionEffects": 8
+  },
+  "rule": "Each limit is baseline times maximumRatio plus absoluteAllowance. Keep this declaration unchanged when recording subsequent results.",
+  "limitations": "Controlled local Decision effects and synthetic source only. No live Jev transport, real host, physical wire cancellation, or cross-platform performance evidence. Final migration must rerun the same workload and add the required physical retirement workloads."
+}

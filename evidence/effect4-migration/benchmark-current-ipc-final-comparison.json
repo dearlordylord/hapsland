@@ -1,0 +1,90 @@
+{
+  "purpose": "Migration comparison against unchanged pre-execution budgets",
+  "authority": "Implementation evidence; no release or platform acceptance",
+  "baselinePath": "evidence/effect4-migration/benchmark-baseline.json",
+  "measuredPath": "evidence/effect4-migration/benchmark-current-ipc-final.json",
+  "workload": {
+    "warmups": 1,
+    "iterations": 8,
+    "editsPerIteration": 24,
+    "mode": "offline controlled DecisionModel",
+    "providerDelayMs": 5
+  },
+  "checks": [
+    {
+      "metric": "admissionP95Ms",
+      "baseline": 4.888366999999562,
+      "measured": 5.957918000000063,
+      "limit": 9.332550499999343,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "stopP95Ms",
+      "baseline": 34.7334920000003,
+      "measured": 36.73830600000019,
+      "limit": 57.100238000000445,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "saturationP95Ms",
+      "baseline": 2145.1781680000004,
+      "measured": 2225.622109,
+      "limit": 3317.7672520000006,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "shutdownP95Ms",
+      "baseline": 5.1792030000015075,
+      "measured": 2.598852000000079,
+      "limit": 17.76880450000226,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "eventLoopP95Ms",
+      "baseline": 33.325055,
+      "measured": 32.620543,
+      "limit": 54.9875825,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "peakRetainedBytes",
+      "baseline": 17807985,
+      "measured": 17625630,
+      "limit": 17807985,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "peakRssBytes",
+      "baseline": 384208896,
+      "measured": 446398464,
+      "limit": 513815552,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "maximumConcurrentDecisionEffects",
+      "baseline": 4,
+      "measured": 4,
+      "limit": 8,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    }
+  ],
+  "comparableBudgetsMet": true,
+  "allComparativeBudgetsVerified": true,
+  "limitations": "Controlled local Decision effects and synthetic source only. No live Jev transport, real host, physical wire cancellation, or cross-platform performance evidence. Final migration must rerun the same workload and add the required physical retirement workloads."
+}

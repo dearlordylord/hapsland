@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import type { CodexDirectEventOutput, Finding } from "../direct-event/pipeline.ts";
 import { DIRECT_EVENT_ADVISORY_HEADING, toCodexDirectEventOutput } from "../direct-event/pipeline.ts";
 import { encodedCodexHostOutputBytes } from "../direct-event/writer.ts";
@@ -179,12 +180,12 @@ export type CanonicalFindingOffer = (input: {
   readonly selectionPartition: number; readonly selectionRound: number;
   readonly facts: FindingSelectionFacts; readonly selectedCount: number;
   readonly soloBytes: number; readonly prospectiveBytes: number;
-}) => "selected" | "retained" | "limited" | "expired";
+}) => Effect.Effect<"selected" | "retained" | "limited" | "expired">;
 
 export type CanonicalNoticeOffer = (items: number, bytes: number,
   skipUnfitting: boolean) => "include" | "skip" | "stop";
 
-const standaloneFindingOffer: CanonicalFindingOffer = (input) => {
+const standaloneFindingOffer: CanonicalFindingOffer = Effect.fn("Collection.standaloneFindingOffer")(function* (input) {
   const facts = input.facts;
   const command = canonicalCollectionCommand({ kind: "collectionFindingCheck",
     selectionPartition: input.selectionPartition, selectionRound: input.selectionRound,
@@ -201,7 +202,7 @@ const standaloneFindingOffer: CanonicalFindingOffer = (input) => {
     case "collectionFindingExpired": return "expired";
     default: throw new Error("invalid canonical finding offer");
   }
-};
+});
 
 const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting) => {
   const command = canonicalCollectionCommand({ kind: "collectionNoticeCheck",
@@ -214,44 +215,44 @@ const standaloneNoticeOffer: CanonicalNoticeOffer = (items, bytes, skipUnfitting
   }
 };
 
-const selectBendFindings = (
+const selectBendFindings = Effect.fn("Collection.selectBendFindings")(function* (
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
   encodedBytes: (findings: ReadonlyArray<Finding>) => number,
   facts: FindingSelectionFacts = previouslyValidated,
   onLimited?: (finding: Finding) => void,
   canonicalOffer?: CanonicalFindingOffer,
-): ReadonlyArray<Finding> => {
+): Effect.fn.Return<ReadonlyArray<Finding>> {
   try {
     const staged: Array<Finding> = [];
     const selected: Array<Finding> = [];
-    const offer = (finding: Finding, validated: boolean): boolean => {
+    const offer = Effect.fn("Collection.offerFinding")(function* (finding: Finding, validated: boolean) {
       const prospectiveBytes = encodedBytes([...staged, finding]);
       const current = validated ? previouslyValidated : facts;
       const soloBytes = encodedBytes([finding]);
-      const decision = (canonicalOffer ?? standaloneFindingOffer)({ selectionPartition: facts.partition,
+      const decision = yield* (canonicalOffer ?? standaloneFindingOffer)({ selectionPartition: facts.partition,
         selectionRound: facts.round, facts: { ...current, partition: facts.partition,
           round: facts.round }, selectedCount: staged.length, soloBytes, prospectiveBytes });
       if (decision === "limited" && !validated) onLimited?.(finding);
       if (decision !== "selected") return false;
       staged.push(finding);
       return true;
-    };
-    for (const finding of retained) if (!offer(finding, true)) return [];
-    for (const finding of candidates) if (offer(finding, false)) selected.push(finding);
+    });
+    for (const finding of retained) if (!(yield* offer(finding, true))) return [];
+    for (const finding of candidates) if (yield* offer(finding, false)) selected.push(finding);
     return selected;
   } catch {
     return [];
   }
-};
+}, (effect) => effect.pipe(Effect.catchDefect(() => Effect.succeed([]))));
 
 /** Final writer barrier: every offered finding carries its own current facts. */
-export const selectFittingCurrentFindingIndices = (
+export const selectFittingCurrentFindingIndices = Effect.fn("Collection.selectFittingCurrentFindingIndices")(function* (
   offers: ReadonlyArray<{ readonly finding: Finding; readonly facts: FindingSelectionFacts }>,
   mode: ClaudeOutputMode | "codex" | "claude-stop",
   onLimited?: (index: number) => void,
   canonicalOffer?: CanonicalFindingOffer,
-): ReadonlyArray<number> => {
+): Effect.fn.Return<ReadonlyArray<number>> {
   if (offers.length === 0) return [];
   try {
     const first = offers[0]!.facts;
@@ -269,7 +270,7 @@ export const selectFittingCurrentFindingIndices = (
         : mode === "claude-stop"
           ? encodedClaudeStopOutputBytes([finding], [])
         : encodedClaudeHostOutputBytes(combinedClaudeOutput([finding], [], mode));
-      const decision = (canonicalOffer ?? standaloneFindingOffer)({ selectionPartition: first.partition,
+      const decision = yield* (canonicalOffer ?? standaloneFindingOffer)({ selectionPartition: first.partition,
         selectionRound: first.round, facts, selectedCount: staged.length,
         soloBytes, prospectiveBytes });
       if (decision === "limited") onLimited?.(index);
@@ -281,7 +282,7 @@ export const selectFittingCurrentFindingIndices = (
   } catch {
     return [];
   }
-};
+}, (effect) => effect.pipe(Effect.catchDefect(() => Effect.succeed([]))));
 
 export const fitsClaudeReviewResponse = (
   findings: ReadonlyArray<Finding>,
@@ -290,15 +291,15 @@ export const fitsClaudeReviewResponse = (
 ): boolean => fitsBendBatch(findings.length + notices.length,
   encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, notices, mode)));
 
-export const selectFittingClaudeFindings = (
+export const selectFittingClaudeFindings = Effect.fn("Collection.selectFittingClaudeFindings")((
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
   mode: ClaudeOutputMode,
   facts?: FindingSelectionFacts,
   onLimited?: (finding: Finding) => void,
   canonicalOffer?: CanonicalFindingOffer,
-): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
-  (findings) => encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, [], mode)), facts, onLimited, canonicalOffer);
+) => selectBendFindings(retained, candidates,
+  (findings) => encodedClaudeHostOutputBytes(combinedClaudeOutput(findings, [], mode)), facts, onLimited, canonicalOffer));
 
 export const selectFittingClaudeNotices = (
   findings: ReadonlyArray<Finding>,
@@ -334,22 +335,22 @@ export const fitsCombinedResponse = (
 ): boolean => fitsCombinedReviewResponse(groups.flatMap((findings) => findings), []);
 
 /** Selects deterministic finding items without treating one unit as one item. */
-export const selectFittingFindings = (
+export const selectFittingFindings = Effect.fn("Collection.selectFittingFindings")((
   retained: ReadonlyArray<Finding>,
   candidates: ReadonlyArray<Finding>,
   facts?: FindingSelectionFacts,
   onLimited?: (finding: Finding) => void,
   canonicalOffer?: CanonicalFindingOffer,
-): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
-  (findings) => encodedHostOutputBytes(combinedReviewOutput(findings, [])), facts, onLimited, canonicalOffer);
+) => selectBendFindings(retained, candidates,
+  (findings) => encodedHostOutputBytes(combinedReviewOutput(findings, [])), facts, onLimited, canonicalOffer));
 
-export const selectFittingClaudeStopFindings = (
+export const selectFittingClaudeStopFindings = Effect.fn("Collection.selectFittingClaudeStopFindings")((
   retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>,
   facts?: FindingSelectionFacts,
   onLimited?: (finding: Finding) => void, canonicalOffer?: CanonicalFindingOffer,
-): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
+) => selectBendFindings(retained, candidates,
   (findings) => encodedClaudeStopOutputBytes(findings, []),
-  facts, onLimited, canonicalOffer);
+  facts, onLimited, canonicalOffer));
 
 export const selectFittingClaudeStopNotices = (
   findings: ReadonlyArray<Finding>, candidates: ReadonlyArray<OperationalNotice>,

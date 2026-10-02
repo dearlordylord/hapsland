@@ -1,3 +1,4 @@
+import { ConfigProvider, Effect } from "effect";
 import {
   chmodSync,
   existsSync,
@@ -15,7 +16,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
-import { inspectCodexInstallation, uninstallCodexIntegration } from "./codex-installation.ts";
+import { inspectCodexInstallation, installCodexIntegration, previewCodexInstallation, uninstallCodexIntegration } from "./codex-installation.ts";
+
+const runInstallation = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect.pipe(
+  Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))),
+));
 
 const roots: Array<string> = [];
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
@@ -165,7 +170,26 @@ const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessE
 };
 
 describe("public Codex installation operations", { timeout: 30_000 }, () => {
-  it("inspects the pinned hook runtime when the caller uses another Node path", () => {
+  it.each(["REVIEW_INSTALL_RUNTIME", "REVIEW_INSTALL_ENTRYPOINT", "REVIEW_INSTALL_CONTROLLED", "REVIEW_INSTALL_FAIL_AFTER_WRITES"])("rejects empty %s before installation state is written", async (key) => {
+    const { home, bin } = fixture();
+    const result = await Effect.runPromise(installCodexIntegration({ codexHome: home, codexExecutable: bin }).pipe(
+      Effect.result,
+      Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ [key]: "" }, { preserveEmptyStrings: true }))),
+    ));
+    expect(result).toMatchObject({ _tag: "Failure", failure: { reason: "Codex installation configuration is invalid" } });
+    expect(readdirSync(home)).toEqual([]);
+  });
+
+  it("rejects an empty configured Codex home before inspecting ambient registration", async () => {
+    const { bin } = fixture();
+    const result = await Effect.runPromise(previewCodexInstallation({ codexExecutable: bin }).pipe(
+      Effect.result,
+      Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ CODEX_HOME: "" }, { preserveEmptyStrings: true }))),
+    ));
+    expect(result).toMatchObject({ _tag: "Failure", failure: { reason: "Codex installation configuration is invalid" } });
+  });
+
+  it("inspects the pinned hook runtime when the caller uses another Node path", async () => {
     const test = fixture();
     previewAndInstall(test.home, test.bin);
     const previousRuntime = process.env.REVIEW_INSTALL_RUNTIME;
@@ -173,7 +197,7 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     try {
       process.env.REVIEW_INSTALL_RUNTIME = "/bin/true";
       process.env.REVIEW_INSTALL_ENTRYPOINT = join(process.cwd(), "src/cli.ts");
-      expect(inspectCodexInstallation({ codexHome: test.home, codexExecutable: test.bin })).toMatchObject({
+      expect(await runInstallation(inspectCodexInstallation({ codexHome: test.home, codexExecutable: test.bin }))).toMatchObject({
         status: "installed",
         installed: true,
       });
@@ -203,7 +227,7 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     const settings = JSON.parse(readFileSync(path, "utf8")) as { hooks: Record<typeof event, Array<{ hooks: Array<{ timeout: number }> }>> };
     settings.hooks[event][0]!.hooks[0]!.timeout = 3;
     writeFileSync(path, JSON.stringify(settings));
-    expect((await uninstallCodexIntegration({ codexHome: home, codexExecutable: bin })).status).toBe("conflict");
+    expect((await runInstallation(uninstallCodexIntegration({ codexHome: home, codexExecutable: bin }))).status).toBe("conflict");
   });
   it("updates an older owned installation to add SubagentStop", () => {
     const { root, home, bin } = fixture();
@@ -975,97 +999,99 @@ responses_websockets_v2 = true`);
   });
 });
 
-it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit", "foreground", "background", "feature"])("updates deleted Codex %s without losing settings", (missing) => {
-  const { root, home, bin } = fixture();
-  const entrypoint = localPackage(root, "0.1.0");
-  const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
-  const request = { codexHome: home, codexExecutable: bin };
-  writeFileSync(join(home, "config.toml"), 'model = "user-model"\n');
-  const preview = invoke({ ...request, operation: "install-preview" }, environment);
-  invoke({ ...request, operation: "install", proposalDigest: (preview.proposal as { digest: string }).digest }, environment);
-  const hooks = JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"));
-  if (missing === "foreground" || missing === "background") hooks.hooks.PostToolUse[0].hooks.splice(missing === "foreground" ? 0 : 1, 1);
-  else if (missing === "feature") writeFileSync(join(home, "config.toml"), 'model = "user-model"\n');
-  else delete hooks.hooks[missing];
-  writeFileSync(join(home, "hooks.json"), JSON.stringify(hooks));
-  const diagnosis = invoke({ ...request, operation: "doctor", cwd: root }, environment);
-  expect(diagnosis.checks).toEqual(expect.arrayContaining([expect.objectContaining({ stage: "configuration-ownership", status: "conflict" })]));
-  const update = invoke({ ...request, operation: "update-preview" }, environment);
-  expect(update.status).toBe("preview");
-  invoke({ ...request, operation: "update", proposalDigest: (update.proposal as { digest: string }).digest }, environment);
-  expect(readFileSync(join(home, "config.toml"), "utf8")).toContain('model = "user-model"');
-  const repeated = invoke({ ...request, operation: "update-preview" }, environment);
-  expect(repeated).toMatchObject({ alreadyCurrent: true, proposal: { changes: [] } });
-});
+describe("Codex update and explicit reinstall journeys", { timeout: 30_000 }, () => {
+  it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit", "foreground", "background", "feature"])("updates deleted Codex %s without losing settings", (missing) => {
+    const { root, home, bin } = fixture();
+    const entrypoint = localPackage(root, "0.1.0");
+    const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
+    const request = { codexHome: home, codexExecutable: bin };
+    writeFileSync(join(home, "config.toml"), 'model = "user-model"\n');
+    const preview = invoke({ ...request, operation: "install-preview" }, environment);
+    invoke({ ...request, operation: "install", proposalDigest: (preview.proposal as { digest: string }).digest }, environment);
+    const hooks = JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"));
+    if (missing === "foreground" || missing === "background") hooks.hooks.PostToolUse[0].hooks.splice(missing === "foreground" ? 0 : 1, 1);
+    else if (missing === "feature") writeFileSync(join(home, "config.toml"), 'model = "user-model"\n');
+    else delete hooks.hooks[missing];
+    writeFileSync(join(home, "hooks.json"), JSON.stringify(hooks));
+    const diagnosis = invoke({ ...request, operation: "doctor", cwd: root }, environment);
+    expect(diagnosis.checks).toEqual(expect.arrayContaining([expect.objectContaining({ stage: "configuration-ownership", status: "conflict" })]));
+    const update = invoke({ ...request, operation: "update-preview" }, environment);
+    expect(update.status).toBe("preview");
+    invoke({ ...request, operation: "update", proposalDigest: (update.proposal as { digest: string }).digest }, environment);
+    expect(readFileSync(join(home, "config.toml"), "utf8")).toContain('model = "user-model"');
+    const repeated = invoke({ ...request, operation: "update-preview" }, environment);
+    expect(repeated).toMatchObject({ alreadyCurrent: true, proposal: { changes: [] } });
+  });
 
-it("explicit Codex reinstall preserves independent handlers and resumes an interrupted replacement", () => {
-  const { root, home, bin } = fixture();
-  const entrypoint = localPackage(root, "0.1.0");
-  const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
-  const request = { codexHome: home, codexExecutable: bin };
-  const preview = invoke({ ...request, operation: "install-preview" }, environment);
-  invoke({ ...request, operation: "install", proposalDigest: (preview.proposal as { digest: string }).digest }, environment);
-  const hooks = JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"));
-  hooks.hooks.PostToolUse[0].hooks[0].timeout = 99;
-  hooks.hooks.PostToolUse[0].hooks.push({ type: "command", command: "independent-handler" });
-  hooks.hooks.Stop.push(structuredClone(hooks.hooks.Stop[0]));
-  writeFileSync(join(home, "hooks.json"), JSON.stringify(hooks));
-  const reinstall = { ...request, reinstall: true };
-  const proposal = invoke({ ...reinstall, operation: "install-preview" }, environment);
-  const digest = (proposal.proposal as { digest: string }).digest;
-  const interrupted = invoke({ ...reinstall, operation: "install", proposalDigest: digest }, { ...environment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" });
-  expect(interrupted.status).toBe("partial");
-  expect(invoke({ ...reinstall, operation: "install", proposalDigest: digest }, environment).status).toBe("installed");
-  expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("independent-handler");
-  expect(invoke({ ...request, operation: "install-preview" }, environment)).toMatchObject({ installed: true });
-});
+  it("explicit Codex reinstall preserves independent handlers and resumes an interrupted replacement", () => {
+    const { root, home, bin } = fixture();
+    const entrypoint = localPackage(root, "0.1.0");
+    const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
+    const request = { codexHome: home, codexExecutable: bin };
+    const preview = invoke({ ...request, operation: "install-preview" }, environment);
+    invoke({ ...request, operation: "install", proposalDigest: (preview.proposal as { digest: string }).digest }, environment);
+    const hooks = JSON.parse(readFileSync(join(home, "hooks.json"), "utf8"));
+    hooks.hooks.PostToolUse[0].hooks[0].timeout = 99;
+    hooks.hooks.PostToolUse[0].hooks.push({ type: "command", command: "independent-handler" });
+    hooks.hooks.Stop.push(structuredClone(hooks.hooks.Stop[0]));
+    writeFileSync(join(home, "hooks.json"), JSON.stringify(hooks));
+    const reinstall = { ...request, reinstall: true };
+    const proposal = invoke({ ...reinstall, operation: "install-preview" }, environment);
+    const digest = (proposal.proposal as { digest: string }).digest;
+    const interrupted = invoke({ ...reinstall, operation: "install", proposalDigest: digest }, { ...environment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1" });
+    expect(interrupted.status).toBe("partial");
+    expect(invoke({ ...reinstall, operation: "install", proposalDigest: digest }, environment).status).toBe("installed");
+    expect(readFileSync(join(home, "hooks.json"), "utf8")).toContain("independent-handler");
+    expect(invoke({ ...request, operation: "install-preview" }, environment)).toMatchObject({ installed: true });
+  });
 
-it("reinstall replaces a damaged journal only after approval, backs it up, and preserves current user edits", () => {
-  const { root, home, bin } = fixture();
-  const entrypoint = localPackage(root, "0.1.0");
-  const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
-  const request = { codexHome: home, codexExecutable: bin };
-  const preview = invoke({ ...request, operation: "install-preview" }, environment);
-  invoke({ ...request, operation: "install", proposalDigest: (preview.proposal as { digest: string }).digest }, environment);
-  const journalDirectory = join(home, ".realtime-review-tool");
-  const journal = join(journalDirectory, "journal-v1.json");
-  writeFileSync(journal, "damaged interrupted journal");
-  const hooksPath = join(home, "hooks.json");
-  const hooks = JSON.parse(readFileSync(hooksPath, "utf8")); hooks.currentUserEdit = true;
-  writeFileSync(hooksPath, JSON.stringify(hooks));
-  const reinstall = { ...request, reinstall: true };
-  const proposal = invoke({ ...reinstall, operation: "install-preview" }, environment);
-  expect(proposal.status).toBe("preview");
-  expect(readFileSync(journal, "utf8")).toBe("damaged interrupted journal");
-  const applied = invoke({ ...reinstall, operation: "install", proposalDigest: (proposal.proposal as { digest: string }).digest }, environment);
-  expect(applied.status).toBe("installed");
-  expect(existsSync(journal)).toBe(false);
-  const backup = readdirSync(journalDirectory).find(name => name.includes("reinstall-backup"));
-  expect(backup).toBeDefined();
-  expect(readFileSync(join(journalDirectory, backup!), "utf8")).toBe("damaged interrupted journal");
-  expect(JSON.parse(readFileSync(hooksPath, "utf8")).currentUserEdit).toBe(true);
-});
+  it("reinstall replaces a damaged journal only after approval, backs it up, and preserves current user edits", () => {
+    const { root, home, bin } = fixture();
+    const entrypoint = localPackage(root, "0.1.0");
+    const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
+    const request = { codexHome: home, codexExecutable: bin };
+    const preview = invoke({ ...request, operation: "install-preview" }, environment);
+    invoke({ ...request, operation: "install", proposalDigest: (preview.proposal as { digest: string }).digest }, environment);
+    const journalDirectory = join(home, ".realtime-review-tool");
+    const journal = join(journalDirectory, "journal-v1.json");
+    writeFileSync(journal, "damaged interrupted journal");
+    const hooksPath = join(home, "hooks.json");
+    const hooks = JSON.parse(readFileSync(hooksPath, "utf8")); hooks.currentUserEdit = true;
+    writeFileSync(hooksPath, JSON.stringify(hooks));
+    const reinstall = { ...request, reinstall: true };
+    const proposal = invoke({ ...reinstall, operation: "install-preview" }, environment);
+    expect(proposal.status).toBe("preview");
+    expect(readFileSync(journal, "utf8")).toBe("damaged interrupted journal");
+    const applied = invoke({ ...reinstall, operation: "install", proposalDigest: (proposal.proposal as { digest: string }).digest }, environment);
+    expect(applied.status).toBe("installed");
+    expect(existsSync(journal)).toBe(false);
+    const backup = readdirSync(journalDirectory).find(name => name.includes("reinstall-backup"));
+    expect(backup).toBeDefined();
+    expect(readFileSync(join(journalDirectory, backup!), "utf8")).toBe("damaged interrupted journal");
+    expect(JSON.parse(readFileSync(hooksPath, "utf8")).currentUserEdit).toBe(true);
+  });
 
 
-it("resumes reinstall after restoring a deleted preexisting hooks feature and removes only the restored feature", () => {
-  const { root, home, bin } = fixture();
-  const entrypoint = localPackage(root, "0.1.0");
-  const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
-  const request = { codexHome: home, codexExecutable: bin };
-  const configPath = join(home, "config.toml");
-  writeFileSync(configPath, 'model = "user-model"\n[features]\nhooks = true\n');
-  previewAndInstall(home, bin, environment);
-  writeFileSync(configPath, 'model = "user-model"\n');
-  const reinstall = { ...request, reinstall: true };
-  const preview = invoke({ ...reinstall, operation: "install-preview" }, environment);
-  const digest = (preview.proposal as { digest: string }).digest;
-  expect(invoke({ ...reinstall, operation: "install", proposalDigest: digest }, {
-    ...environment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1",
-  }).status).toBe("partial");
-  expect(invoke({ ...reinstall, operation: "install", proposalDigest: digest }, environment).status).toBe("installed");
-  expect(readFileSync(configPath, "utf8")).toContain("hooks = true");
-  const removal = invoke({ ...request, operation: "uninstall" }, environment);
-  expect(invoke({ ...request, operation: "uninstall", proposalDigest: (removal.proposal as { digest: string }).digest }, environment).status).toBe("uninstalled");
-  expect(readFileSync(configPath, "utf8")).toContain('model = "user-model"');
-  expect(readFileSync(configPath, "utf8")).not.toContain("hooks = true");
+  it("resumes reinstall after restoring a deleted preexisting hooks feature and removes only the restored feature", () => {
+    const { root, home, bin } = fixture();
+    const entrypoint = localPackage(root, "0.1.0");
+    const environment = { ...process.env, REVIEW_INSTALL_RUNTIME: process.execPath, REVIEW_INSTALL_ENTRYPOINT: entrypoint };
+    const request = { codexHome: home, codexExecutable: bin };
+    const configPath = join(home, "config.toml");
+    writeFileSync(configPath, 'model = "user-model"\n[features]\nhooks = true\n');
+    previewAndInstall(home, bin, environment);
+    writeFileSync(configPath, 'model = "user-model"\n');
+    const reinstall = { ...request, reinstall: true };
+    const preview = invoke({ ...reinstall, operation: "install-preview" }, environment);
+    const digest = (preview.proposal as { digest: string }).digest;
+    expect(invoke({ ...reinstall, operation: "install", proposalDigest: digest }, {
+      ...environment, REVIEW_INSTALL_FAIL_AFTER_WRITES: "1",
+    }).status).toBe("partial");
+    expect(invoke({ ...reinstall, operation: "install", proposalDigest: digest }, environment).status).toBe("installed");
+    expect(readFileSync(configPath, "utf8")).toContain("hooks = true");
+    const removal = invoke({ ...request, operation: "uninstall" }, environment);
+    expect(invoke({ ...request, operation: "uninstall", proposalDigest: (removal.proposal as { digest: string }).digest }, environment).status).toBe("uninstalled");
+    expect(readFileSync(configPath, "utf8")).toContain('model = "user-model"');
+    expect(readFileSync(configPath, "utf8")).not.toContain("hooks = true");
+  });
 });

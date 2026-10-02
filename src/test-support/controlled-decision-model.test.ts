@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import { Decision, DecisionModel } from "effect/unstable/ai";
+import { Decision, DecisionModel } from "effect/ai";
 import { controlledDecisionModelLayer } from "./controlled-decision-model.ts";
 
 const before = "type OrderCount = number";

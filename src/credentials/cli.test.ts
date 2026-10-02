@@ -1,10 +1,34 @@
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 describe("public credential CLI", () => {
+  it("rejects explicitly empty credential paths without invoking the helper or writing default state", () => {
+    const root = mkdtempSync(join(tmpdir(), "credential-cli-empty-"));
+    const helper = join(root, "helper.cjs");
+    const invoked = join(root, "invoked");
+    const entrypoint = join(process.cwd(), "src", "cli.ts");
+    writeFileSync(helper, `#!${process.execPath}\nrequire("node:fs").writeFileSync(${JSON.stringify(invoked)},"invoked");console.log(JSON.stringify({status:"available"}));\n`, { mode: 0o700 });
+    const environment = { ...process.env, HOME: root };
+    const login = spawnSync(process.execPath, [entrypoint, "--login", "--credential-stdin"], {
+      cwd: root, env: { ...environment, REVIEW_CREDENTIAL_HELPER: "", REVIEW_CREDENTIAL_STATE_PATH: join(root, "state") },
+      input: "synthetic-key\n", encoding: "utf8", timeout: 10_000,
+    });
+    expect(login.status).toBe(6);
+    expect(JSON.parse(login.stdout)).toMatchObject({ operation: "login", status: "unavailable" });
+    const logout = spawnSync(process.execPath, [entrypoint, "--logout"], {
+      cwd: root, env: { ...environment, REVIEW_CREDENTIAL_HELPER: helper, REVIEW_CREDENTIAL_STATE_PATH: "" },
+      encoding: "utf8", timeout: 10_000,
+    });
+    expect(logout.status).toBe(6);
+    expect(JSON.parse(logout.stdout)).toMatchObject({ operation: "logout", stateLock: "unavailable", savedCredentialUse: "suspended" });
+    expect(existsSync(invoked)).toBe(false);
+    expect(existsSync(join(root, ".local/state/realtime-review-tool/credential-state.json"))).toBe(false);
+    expect(`${login.stdout}${login.stderr}${logout.stdout}${logout.stderr}`).not.toContain("synthetic-key");
+  });
+
   it("logs in from explicit stdin without exposing the value and reports the surviving environment override on logout", () => {
     const root = mkdtempSync(join(tmpdir(), "credential-cli-"));
     const helper = join(root, "helper.mjs");

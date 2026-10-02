@@ -1,3 +1,6 @@
+import { runClient } from "../../src/test-support/client-runtime.ts";
+import { Deferred, Exit, Scope } from "effect";
+import { reviewControlsLayer } from "../../src/test-support/review-controls.ts";
 /** Offline resident wire witness. Run with node --experimental-strip-types. */
 import { createHash } from "node:crypto";
 import nodeHttp from "node:http";
@@ -8,10 +11,10 @@ import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts";
 import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts";
 import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts";
-import { residentRequest } from "../../src/resident/client.ts";
+import { residentRequestEffect as residentRequest } from "../../src/resident/client.ts";
 import { monotonicNow } from "../../src/resident/hook-clock.ts";
 import { residentPaths } from "../../src/resident/paths.ts";
-import { ResidentServer } from "../../src/resident/server.ts";
+import { makeResidentRuntime } from "../../src/resident/server.ts";
 import { makeOfflineSecurityHttpClient, securityWireManifest, securityWireRule } from "./security-wire-observer.ts";
 
 const scenario = process.argv[process.argv.indexOf("--scenario") + 1];
@@ -38,10 +41,9 @@ nodeHttp.request = denyNetwork;
 nodeHttp.get = denyNetwork;
 nodeHttps.request = denyNetwork;
 nodeHttps.get = denyNetwork;
-let release;
-let prepared;
-const held = new Promise((resolve) => { release = resolve; });
-const reachedPrepare = new Promise((resolve) => { prepared = resolve; });
+const held = Effect.runSync(Deferred.make());
+const prepared = Effect.runSync(Deferred.make());
+const reachedPrepare = Effect.runPromise(Deferred.await(prepared));
 const event = (kind, fields = {}) => events.push({ kind, jobId: "job-1", ...fields });
 const http = makeOfflineSecurityHttpClient((record) => {
   requests.push(record);
@@ -51,6 +53,7 @@ const http = makeOfflineSecurityHttpClient((record) => {
 });
 let root;
 let server;
+let fixtureScope;
 try {
   root = await makeGitFixture();
   await put(root, path, manifest.positive.source);
@@ -74,23 +77,24 @@ try {
   ));
   if (observation === undefined) throw new Error("fixture observation failed");
   const paths = residentPaths(join(root, "runtime"));
-  server = new ResidentServer(paths, undefined, {
+  fixtureScope = await Effect.runPromise(Scope.make());
+  server = await Effect.runPromise(makeResidentRuntime(paths, undefined, {
     offlineHttpClient: http,
     dispatchAuthorityObserver: (record) => {
       authorityObservations.push(record);
       authorityOrder.push({ kind: "dispatchAuthority", path: record.path, sequence: record.sequence });
     },
-    beforeEvaluate: async (unit) => {
+    reviewControls: reviewControlsLayer({ beforeEvaluate: (unit) => Effect.gen(function* () {
       event("prepared", {
         repoId: "fixture-repo", path: unit.input.path,
         declaration: unit.input.declaration.name,
         sourceSha256: sha256(unit.input.declaration.source), source: "production",
       });
-      prepared();
-      await held;
-    },
-  });
-  await server.listen();
+      yield* Deferred.succeed(prepared, undefined);
+      yield* Deferred.await(held);
+    }) }),
+  }).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
+  await Effect.runPromise(server.listen());
   const dispatch = {
     statePath, userConfigPath: null,
     credential: {
@@ -99,15 +103,15 @@ try {
     },
     controlled: null,
   };
-  const permit = await residentRequest(paths, {
+  const permit = await runClient(residentRequest(paths, {
     requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
     root: observation.root, advicee: observation.advicee, startedAt: monotonicNow(),
-  });
+  }));
   if (permit.status !== "advanced") throw new Error(`resident rejected fixture permit: ${permit.status}`);
-  const admit = await residentRequest(paths, {
+  const admit = await runClient(residentRequest(paths, {
     requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
     observation, controlledWriter: true, dispatch, composed: true,
-  });
+  }));
   event("admit", { status: admit.status, repoId: "fixture-repo", path, source: "production" });
   if (admit.status !== "accepted") throw new Error(`resident rejected fixture: ${admit.status}`);
   if (scenario !== "exclude-at-admission") await reachedPrepare;
@@ -124,12 +128,12 @@ try {
       source: "fixture",
     });
   }
-  release();
-  await server.whenIdle();
-  const collection = await residentRequest(paths, {
+  await Effect.runPromise(Deferred.succeed(held, undefined));
+  await Effect.runPromise(server.whenIdle());
+  const collection = await runClient(residentRequest(paths, {
     requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
     root: observation.root, advicee: observation.advicee, dispatch, composed: true,
-  });
+  }));
   if (collection.status === "unsupported") throw new Error("resident rejected composed fixture collection");
   event("settled", { repoId: "fixture-repo", path, source: "production" });
   const expectedCount = scenario === "allowed" ? 1 : 0;
@@ -165,6 +169,6 @@ try {
   process.stderr.write(`resident wire fixture failed: ${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;
 } finally {
-  if (server !== undefined) await server.close();
+  if (fixtureScope !== undefined) await Effect.runPromise(Scope.close(fixtureScope, Exit.void));
   if (root !== undefined) await rm(root, { recursive: true, force: true });
 }

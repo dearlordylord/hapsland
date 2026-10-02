@@ -313,6 +313,7 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
       hookPersisted = config.includes("trusted_hash");
       if (trusted || !repositoryPersisted || !hookPersisted) return;
       trusted = true;
+      progress("native-trust-persisted-awaiting-terminal-close");
       child.kill("SIGTERM");
     }).catch(() => undefined);
   }, 100);
@@ -357,7 +358,10 @@ const establishNativeTrust = (codexHome, repository, env) => new Promise((resolv
     clearTimeout(timer);
     clearInterval(trustPoll);
     if (!trusted) rejectTrust(new Error(`Codex native repository/hook trust review did not persist trust (exit=${code ?? "signal"}; signal=${signal ?? "none"}; repository-prompt=${repositorySelected}; hook-prompt=${hookSelected}; trust-choice=${hookChoiceSelected}; repository-persisted=${repositoryPersisted}; hook-persisted=${hookPersisted})`));
-    else resolveTrust();
+    else {
+      progress("native-trust-terminal-closed");
+      resolveTrust();
+    }
   });
 });
 

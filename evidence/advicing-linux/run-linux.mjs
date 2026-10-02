@@ -273,14 +273,15 @@ try {
     if (testCase.observeAfterSessionMs !== undefined && !testCase.postSessionResume &&
         observed.some((event) => event.kind === 'backend-complete')) {
       const postCheck = `
-        import { collectReady, makeResidentDispatchContext, acknowledgeAdvice } from ${JSON.stringify(new URL('../../src/resident/client.ts', import.meta.url).href)};
+        import { collectReadyEffect as collectReady, makeResidentDispatchContextEffect as makeResidentDispatchContext, acknowledgeAdviceEffect as acknowledgeAdvice } from ${JSON.stringify(new URL('../../src/resident/client.ts', import.meta.url).href)};
+import { runClient } from ${JSON.stringify(new URL('../../src/test-support/client-runtime.ts', import.meta.url).href)};
         import { residentPaths } from ${JSON.stringify(new URL('../../src/resident/paths.ts', import.meta.url).href)};
         import { realpath } from 'node:fs/promises';
         const root=await realpath(process.env.HAPSLAND_POST_ROOT);
-        const dispatch=await makeResidentDispatchContext(root,process.env.REVIEW_STATE_PATH,process.env.REVIEW_ACTIVITY_PATH,undefined,{syntheticR6BrandedRepair:'finding',delayMs:Number(process.env.HAPSLAND_CONTROL_DELAY_MS),outcomePath:process.env.HAPSLAND_CONTROL_OUTCOME_PATH,capturePath:process.env.HAPSLAND_CONTROL_CAPTURE_PATH});
+        const dispatch=await runClient(makeResidentDispatchContext(root,process.env.REVIEW_STATE_PATH,process.env.REVIEW_ACTIVITY_PATH,undefined,{syntheticR6BrandedRepair:'finding',delayMs:Number(process.env.HAPSLAND_CONTROL_DELAY_MS),outcomePath:process.env.HAPSLAND_CONTROL_OUTCOME_PATH,capturePath:process.env.HAPSLAND_CONTROL_CAPTURE_PATH}));
         const advicee={host:'codex-cli',hostVersion:'0.155.1',sessionId:process.env.HAPSLAND_POST_SESSION_ID,turnId:'post-session-turn',toolUseId:'post-session-tool',agentId:null};
-        const advice=await collectReady(root,advicee,dispatch,residentPaths(), 'turn-end').catch(()=>undefined);
-        const acknowledged=advice===undefined?false:await acknowledgeAdvice(advice).catch(()=>false);
+        const advice=await runClient(collectReady(root,advicee,dispatch,undefined, 'turn-end')).catch(()=>undefined);
+        const acknowledged=advice===undefined?false:await runClient(acknowledgeAdvice(advice)).catch(()=>false);
         process.stdout.write(JSON.stringify({collectable:advice!==undefined,acknowledged})+'\\n');
       `;
       if (sessionId !== undefined) {

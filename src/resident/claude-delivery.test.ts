@@ -1,3 +1,9 @@
+import { ReviewControlError } from "./review-controls.ts";
+import { runClient } from "../test-support/client-runtime.ts";
+import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
+import { Layer } from "effect";
+import { ResidentPreparationControls, defaultPreparationControls } from "./preparation-controls.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { join } from "node:path";
@@ -8,16 +14,12 @@ import type { DirectObservation } from "../direct-event/model.ts";
 import { makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
-import { ResidentServer } from "./server.ts";
-import { admitAndCollect, residentRequest } from "./client.ts";
+import { acquireResidentFixture, type ResidentRuntime as ResidentServer } from "./runtime-fixture.ts";
+import { admitAndCollectEffect as admitAndCollect, residentRequestEffect as residentRequest } from "./client.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import { encodeCurrentResidentRequest, type ResidentDispatchContext, type ResidentRequest, type ResidentResponse } from "./protocol.ts";
 
-const deferred = () => {
-  let resolve!: () => void;
-  const promise = new Promise<void>((done) => { resolve = done; });
-  return { promise, resolve };
-};
+
 const fixture = async () => {
   const root = await makeGitFixture();
   const userConfigPath = join(root, "user.jsonc");
@@ -42,8 +44,8 @@ const fixture = async () => {
   return { root, feedback, observation, dispatch };
 };
 const permit = async (server: ResidentServer, observation: DirectObservation) => {
-  expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-    root: observation.root, advicee: observation.advicee, startedAt: monotonicNow() - 1 })).status).toBe("advanced");
+  expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+    root: observation.root, advicee: observation.advicee, startedAt: monotonicNow() - 1 }))).status).toBe("advanced");
 };
 const request = (server: ResidentServer, observation: DirectObservation, dispatch: ResidentDispatchContext,
   waitMs = 1_200): Extract<ResidentRequest, { operation: "admit-and-collect" }> => ({
@@ -51,10 +53,10 @@ const request = (server: ResidentServer, observation: DirectObservation, dispatc
   observation, controlledWriter: true, composed: true, dispatch, waitMs,
 });
 const send = (server: ResidentServer, observation: DirectObservation, dispatch: ResidentDispatchContext, waitMs = 1_200) =>
-  residentRequest(server.paths, request(server, observation, dispatch, waitMs), 2_500);
+  runClient(residentRequest(server.paths, request(server, observation, dispatch, waitMs), 2_500));
 const ordinary = (server: ResidentServer, observation: DirectObservation, dispatch: ResidentDispatchContext) =>
-  server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-    root: observation.root, advicee: observation.advicee, dispatch, composed: true });
+  Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+    root: observation.root, advicee: observation.advicee, dispatch, composed: true }));
 const text = (response: ResidentResponse) => response.status === "advice"
   ? "reason" in response.output ? response.output.reason : response.output.hookSpecificOutput.additionalContext : "";
 
@@ -63,11 +65,11 @@ describe("registry-free Claude edit response", () => {
   it.each(["advisory", "block-current-findings"])("returns current %s feedback through one RPC", async (mode) => {
     const data = await fixture(); data.feedback(mode);
     const observation = await data.observation();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
+    await Effect.runPromise(server.listen());
     try {
       await permit(server, observation);
-      const outcome = await admitAndCollect(observation, data.dispatch, performance.now() + 2_500, server.paths);
+      const outcome = await runClient(admitAndCollect(observation, data.dispatch, monotonicNow() + 2_500, server.paths));
       expect(outcome.status).toBe("advice");
       if (outcome.status !== "advice") throw new Error("missing advice");
       expect(outcome.advice.output).toHaveProperty(mode === "advisory" ? "hookSpecificOutput" : "decision");
@@ -75,8 +77,8 @@ describe("registry-free Claude edit response", () => {
       const wire = JSON.stringify(outcome.advice.output);
       expect(Buffer.byteLength(wire + "\n")).toBeLessThanOrEqual(10_240);
       expect(wire).toContain("firstCount");
-      expect(server.accountingMetrics()).not.toHaveProperty("tickets");
-    } finally { await server.close(); }
+      expect(Effect.runSync(server.accountingMetrics())).not.toHaveProperty("tickets");
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it.each(["clear", "no-work", "failure"])("returns quietly after %s without an aggregate outcome", async (kind) => {
@@ -85,67 +87,65 @@ describe("registry-free Claude edit response", () => {
     const observation = kind === "no-work" ? { ...base, candidates: [{ operation: "delete" as const, path: "first.ts", addedLines: [] as const }] } : base;
     const dispatch = { ...data.dispatch, controlled: kind === "failure" ? { failure: "controlled failure" }
       : { answers: Object.fromEntries(configuredRules.map((rule) => [rule.id, { _tag: "Probability", probability: 0 }])) } };
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
+    await Effect.runPromise(server.listen());
     try {
       await permit(server, observation);
       expect(await send(server, observation, dispatch)).toEqual({ requestRoute: "edit", status: "empty" });
-      await server.whenIdle();
-      expect(server.stats().pendingFindingBatches).toBe(0);
-    } finally { await server.close(); }
+      await Effect.runPromise(server.whenIdle());
+      expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(0);
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("B's response includes A's still-current advice and keeps one exclusive delivery lease", async () => {
     const data = await fixture(); const first = await data.observation(); const second = await data.observation("second");
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
+    await Effect.runPromise(server.listen());
     try {
       await permit(server, first);
-      expect((await server.handle({ requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
-        observation: first, controlledWriter: true, composed: true, dispatch: data.dispatch })).status).toBe("accepted");
-      await server.whenIdle();
-      expect(server.stats().pendingFindingBatches).toBe(1);
+      expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
+        observation: first, controlledWriter: true, composed: true, dispatch: data.dispatch }))).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
+      expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
       await permit(server, second);
-      expect(server.stats().pendingFindingBatches).toBe(1);
+      expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
       const response = await send(server, second, data.dispatch);
       expect(response.status).toBe("advice");
       expect(text(response)).toContain("firstCount");
-      expect(server.pendingAdviceMetadata().find((item) => item.path === "first.ts")?.delivery).toBe("leased-unacknowledged");
+      expect(Effect.runSync(server.pendingAdviceMetadata()).find((item) => item.path === "first.ts")?.delivery).toBe("leased-unacknowledged");
       if (response.status !== "advice") throw new Error("missing advice");
-      expect(server.beginComposedSubmission(response.token, "edit").status).toBe("submitting");
-      expect(server.acknowledge(response.token).status).toBe("acknowledged");
-      expect(server.finalize(response.token).status).toBe("finalized");
-      expect(server.finalize(response.token).status).toBe("empty");
-      await server.whenIdle();
+      expect((await Effect.runPromise(server.beginComposedSubmission(response.token, "edit"))).status).toBe("submitting");
+      expect((await Effect.runPromise(server.acknowledge(response.token))).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.finalize(response.token))).status).toBe("finalized");
+      expect((await Effect.runPromise(server.finalize(response.token))).status).toBe("empty");
+      await Effect.runPromise(server.whenIdle());
       const later = await ordinary(server, second, data.dispatch);
       expect(text(later)).not.toContain("firstCount");
       if (response.findingCount === 1) expect(text(later)).toContain("secondCount");
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it.each(["session", "child", "root"])("never collects another %s's advice", async (scope) => {
     const data = await fixture(); const first = await data.observation();
     const other = scope === "root" ? await fixture() : data;
     const second = await other.observation("second", scope === "session" ? "other-session" : "session", scope === "child" ? "child" : null);
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
+    await Effect.runPromise(server.listen());
     try {
-      await permit(server, first); expect(server.admit(first, data.dispatch, true, true).status).toBe("accepted");
-      await server.whenIdle(); expect(server.pendingAdviceMetadata()).toHaveLength(1); await permit(server, second);
+      await permit(server, first); expect(Effect.runSync(server.admit(first, data.dispatch, true, true)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle()); expect(Effect.runSync(server.pendingAdviceMetadata())).toHaveLength(1); await permit(server, second);
       const response = await send(server, second, other.dispatch);
       expect(text(response)).toContain("secondCount"); expect(text(response)).not.toContain("firstCount");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect((await ordinary(server, first, data.dispatch)).status).toBe("advice");
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("concurrent response attempts freeze opt-in independently and compete for a common lease", async () => {
     const data = await fixture(); const first = await data.observation(); const second = await data.observation("second");
     const entered = deferred(); const release = deferred(); let evaluated = false;
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeEvaluate: async () => { if (!evaluated) { evaluated = true; entered.resolve(); } await release.promise; },
-    });
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {reviewControls: reviewControlsLayer({beforeEvaluate: Effect.fn("NativeFixture.beforeEvaluate")(function* () { if (!evaluated) { evaluated = true; yield* entered.complete(undefined); } yield* release.wait; })})});
+    await Effect.runPromise(server.listen());
     try {
       await permit(server, first);
       const a = send(server, first, data.dispatch);
@@ -157,7 +157,7 @@ describe("registry-free Claude edit response", () => {
       if (responses[1]?.status === "advice") expect(responses[1].output).toHaveProperty("decision", "block");
       expect(responses.filter((response) => response.status === "advice").reduce((n, response) =>
         n + (response.status === "advice" ? response.findingCount : 0), 0)).toBe(2);
-    } finally { release.resolve(); await server.close(); }
+    } finally { release.resolve(); await Effect.runPromise(server.close); }
   });
 
   it.each(["opt-in", "revoke", "project-narrowing", "source", "rotate", "suspend", "expiry", "round-closed"])(
@@ -171,8 +171,7 @@ describe("registry-free Claude edit response", () => {
           environmentOnly: false, generation: 1, statePath }, controlled: { ...data.dispatch.controlled, requireCredential: true },
       } : data.dispatch;
       let enabled = false; let now = 1_000;
-      const server = new ResidentServer(residentPaths(join(data.root, "runtime")), () => now, {
-        beforeResponseHandoff: async () => {
+      const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => now, {reviewControls: reviewControlsLayer({beforeResponseHandoff: Effect.fn("NativeFixture.beforeResponseHandoff")(function* () {
           if (!enabled) return;
           if (change === "opt-in") data.feedback("block-current-findings");
           if (change === "revoke") data.feedback("advisory");
@@ -184,14 +183,13 @@ describe("registry-free Claude edit response", () => {
           }));
           if (change === "expiry") now += 600_000;
           if (change === "round-closed") {
-            await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-              root: data.root, advicee: observation.advicee, token: "close" });
-            await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-              root: data.root, advicee: observation.advicee, token: "close", close: true });
+            yield* server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+              root: data.root, advicee: observation.advicee, token: "close" }).pipe(Effect.mapError(() => new ReviewControlError({ phase: "beforeResponseHandoff" })));
+            yield* server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+              root: data.root, advicee: observation.advicee, token: "close", close: true }).pipe(Effect.mapError(() => new ReviewControlError({ phase: "beforeResponseHandoff" })));
           }
-        },
-      });
-      await server.listen();
+        })})});
+      await Effect.runPromise(server.listen());
       try {
         await permit(server, observation); enabled = true;
         const response = await send(server, observation, dispatch);
@@ -204,7 +202,7 @@ describe("registry-free Claude edit response", () => {
           if (change === "expiry") expect(response).toMatchObject({ status: "unavailable", reason: "expired" });
           if (change === "round-closed") expect(response).toMatchObject({ status: "unavailable", reason: "lost" });
         }
-      } finally { await server.close(); }
+      } finally { await Effect.runPromise(server.close); }
     },
   );
 
@@ -217,46 +215,40 @@ describe("registry-free Claude edit response", () => {
         environmentOnly: false, generation: 1, statePath }, controlled: { ...data.dispatch.controlled, requireCredential: true } };
     };
     const a = credential("a"); const b = credential("b"); let gated = false;
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {reviewControls: reviewControlsLayer({beforeResponseHandoff: Effect.fn("NativeFixture.beforeResponseHandoff")(function* () {
         if (gated && b.credential !== null) writeFileSync(b.credential.statePath,
           JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
-      },
-    });
-    await server.listen();
+      })})});
+    await Effect.runPromise(server.listen());
     try {
-      await permit(server, first); expect(server.admit(first, a, true, true).status).toBe("accepted");
-      await server.whenIdle(); await permit(server, second); gated = true;
+      await permit(server, first); expect(Effect.runSync(server.admit(first, a, true, true)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle()); await permit(server, second); gated = true;
       expect(await send(server, second, b)).toMatchObject({ status: "unavailable", reason: "credential" });
-      expect(server.pendingAdviceMetadata().find((item) => item.path === "first.ts")?.delivery).toBe("available");
+      expect(Effect.runSync(server.pendingAdviceMetadata()).find((item) => item.path === "first.ts")?.delivery).toBe("available");
       expect(a.credential === null ? undefined : JSON.parse(readFileSync(a.credential.statePath, "utf8")).generation).toBe(1);
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("a request timeout leaves resident work running for later collection", async () => {
     const data = await fixture(); const observation = await data.observation();
     const entered = deferred(); const release = deferred();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeEvaluate: async () => { entered.resolve(); await release.promise; },
-    });
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {reviewControls: reviewControlsLayer({beforeEvaluate: Effect.fn("NativeFixture.beforeEvaluate")(function* () { yield* entered.complete(undefined); yield* release.wait; })})});
+    await Effect.runPromise(server.listen());
     try {
       await permit(server, observation);
       const response = send(server, observation, data.dispatch, 20);
       await entered.promise; expect(await response).toMatchObject({ status: "pending" });
-      expect(server.stats().running).toBeGreaterThan(0);
-      release.resolve(); await server.whenIdle();
+      expect(Effect.runSync(server.stats()).running).toBeGreaterThan(0);
+      release.resolve(); await Effect.runPromise(server.whenIdle());
       expect((await ordinary(server, observation, data.dispatch)).status).toBe("advice");
-    } finally { release.resolve(); await server.close(); }
+    } finally { release.resolve(); await Effect.runPromise(server.close); }
   });
 
   it("disconnect while review is running leaves that review resident-owned", async () => {
     const data = await fixture(); const observation = await data.observation();
     const entered = deferred(); const release = deferred();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeEvaluate: async () => { entered.resolve(); await release.promise; },
-    });
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {reviewControls: reviewControlsLayer({beforeEvaluate: Effect.fn("NativeFixture.beforeEvaluate")(function* () { yield* entered.complete(undefined); yield* release.wait; })})});
+    await Effect.runPromise(server.listen());
     try {
       await permit(server, observation);
       const socket = connect(server.paths.socket);
@@ -265,20 +257,18 @@ describe("registry-free Claude edit response", () => {
       await entered.promise;
       const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()));
       socket.destroy(); await closed;
-      await residentRequest(server.paths, { requestRoute: "shared", operation: "hello" });
-      expect(server.stats().running).toBeGreaterThan(0);
-      release.resolve(); await server.whenIdle();
+      await runClient(residentRequest(server.paths, { requestRoute: "shared", operation: "hello" }));
+      expect(Effect.runSync(server.stats()).running).toBeGreaterThan(0);
+      release.resolve(); await Effect.runPromise(server.whenIdle());
       expect((await ordinary(server, observation, data.dispatch)).status).toBe("advice");
-    } finally { release.resolve(); await server.close(); }
+    } finally { release.resolve(); await Effect.runPromise(server.close); }
   });
 
   it("disconnect during revalidation releases the provisional lease without cancelling review", async () => {
     const data = await fixture(); const first = await data.observation(); const second = await data.observation("second");
     const entered = deferred(); const release = deferred(); let pause = true;
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeRevalidate: async () => { if (pause) { entered.resolve(); await release.promise; } },
-    });
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {reviewControls: reviewControlsLayer({beforeRevalidate: Effect.fn("NativeFixture.beforeRevalidate")(function* () { if (pause) { yield* entered.complete(undefined); yield* release.wait; } })})});
+    await Effect.runPromise(server.listen());
     try {
       await permit(server, first);
       const socket = connect(server.paths.socket);
@@ -287,72 +277,70 @@ describe("registry-free Claude edit response", () => {
       await entered.promise;
       const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()));
       socket.destroy(); await closed;
-      pause = false; release.resolve(); await server.whenIdle();
+      pause = false; release.resolve(); await Effect.runPromise(server.whenIdle());
       await permit(server, second);
       const response = await send(server, second, data.dispatch);
       expect(response.status).toBe("advice");
       expect(text(response)).toContain("firstCount");
-    } finally { release.resolve(); await server.close(); }
+    } finally { release.resolve(); await Effect.runPromise(server.close); }
   });
 
   it("disconnect at final handoff releases a selected lease for another collector", async () => {
     const data = await fixture(); const observation = await data.observation();
     const entered = deferred(); const release = deferred(); let gated = false;
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeResponseHandoff: async () => { if (gated) { entered.resolve(); await release.promise; } },
-    });
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {reviewControls: reviewControlsLayer({beforeResponseHandoff: Effect.fn("NativeFixture.beforeResponseHandoff")(function* () { if (gated) { yield* entered.complete(undefined); yield* release.wait; } })})});
+    await Effect.runPromise(server.listen());
     try {
       await permit(server, observation); gated = true;
       const socket = connect(server.paths.socket);
       socket.on("error", () => undefined);
       socket.once("connect", () => socket.write(encodeCurrentResidentRequest(request(server, observation, data.dispatch)) + "\n"));
       await entered.promise;
-      expect(server.pendingAdviceMetadata()[0]?.delivery).toBe("leased-unacknowledged");
+      expect(Effect.runSync(server.pendingAdviceMetadata())[0]?.delivery).toBe("leased-unacknowledged");
       const closed = new Promise<void>((resolve) => socket.once("close", () => resolve()));
       socket.destroy(); await closed;
       // A subsequent socket response also fences processing of the close event.
       gated = false;
-      await residentRequest(server.paths, { requestRoute: "shared", operation: "hello" });
-      expect(server.pendingAdviceMetadata()[0]?.delivery).toBe("available");
+      await runClient(residentRequest(server.paths, { requestRoute: "shared", operation: "hello" }));
+      expect(Effect.runSync(server.pendingAdviceMetadata())[0]?.delivery).toBe("available");
       expect((await ordinary(server, observation, data.dispatch)).status).toBe("advice");
-    } finally { release.resolve(); await server.close(); }
+    } finally { release.resolve(); await Effect.runPromise(server.close); }
   });
 
   it("a replacement resident cannot continue a previous response attempt", async () => {
     const data = await fixture(); const observation = await data.observation();
     const paths = residentPaths(join(data.root, "runtime"));
-    const previous = new ResidentServer(paths); await previous.listen();
+    const previous = await acquireResidentFixture(paths); await Effect.runPromise(previous.listen());
     const oldRequest = request(previous, observation, data.dispatch);
-    await previous.close();
-    const replacement = new ResidentServer(paths); await replacement.listen();
+    await Effect.runPromise(previous.close);
+    const replacement = await acquireResidentFixture(paths); await Effect.runPromise(replacement.listen());
     try {
-      expect(await residentRequest(paths, oldRequest)).toMatchObject({ status: "unavailable", reason: "lost" });
-      expect(replacement.stats().queued).toBe(0); expect(replacement.stats().running).toBe(0);
-    } finally { await replacement.close(); }
+      expect(await runClient(residentRequest(paths, oldRequest))).toMatchObject({ status: "unavailable", reason: "lost" });
+      expect(Effect.runSync(replacement.stats()).queued).toBe(0); expect(Effect.runSync(replacement.stats()).running).toBe(0);
+    } finally { await Effect.runPromise(replacement.close); }
   });
 
   it("settled quiet RPCs retain no authority that prevents lifetime cleanup", async () => {
     const data = await fixture(); const observation = await data.observation();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime"))); await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime"))); await Effect.runPromise(server.listen());
     const dispatch = { ...data.dispatch, controlled: { answers: Object.fromEntries(configuredRules.map((rule) =>
       [rule.id, { _tag: "Probability", probability: 0 }])) } };
     try {
       await permit(server, observation); expect(await send(server, observation, dispatch)).toMatchObject({ status: "empty" });
-      await server.whenIdle();
-      await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root: data.root, advicee: observation.advicee, token: "settled" });
-      await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-        root: data.root, advicee: observation.advicee, token: "settled", close: true });
-      expect(server.cleanup()).toBe("cleaned");
-      expect(server.stats()).toMatchObject({ retainedBytes: 0, currentWork: 0, pendingEvaluations: 0, pendingAdvice: 0 });
-    } finally { await server.close(); }
+      await Effect.runPromise(server.whenIdle());
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root: data.root, advicee: observation.advicee, token: "settled" }));
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root: data.root, advicee: observation.advicee, token: "settled", close: true }));
+      expect(Effect.runSync(server.cleanup())).toBe("cleaned");
+      expect(Effect.runSync(server.stats())).toMatchObject({ retainedBytes: 0, currentWork: 0, pendingEvaluations: 0, pendingAdvice: 0 });
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("binds admission to the native tool permit and original resident lifetime", async () => {
     const data = await fixture(); const observation = await data.observation();
-    const server = new ResidentServer(residentPaths(join(data.root, "runtime")));
-    await server.listen();
+    const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
+    await Effect.runPromise(server.listen());
     try {
       await permit(server, observation);
       if (observation.advicee.host !== "claude-code") throw new Error("expected Claude observation");
@@ -362,12 +350,12 @@ describe("registry-free Claude edit response", () => {
         { ...observation, advicee: { ...observation.advicee, subagentId: "wrong" } },
         { ...observation, root: join(data.root, "other-root") },
       ]) expect((await send(server, mismatched, data.dispatch)).status).toBe("rejected-stale");
-      expect(await residentRequest(server.paths, { ...request(server, observation, data.dispatch), lifetime: "previous-lifetime" }))
+      expect(await runClient(residentRequest(server.paths, { ...request(server, observation, data.dispatch), lifetime: "previous-lifetime" })))
         .toMatchObject({ status: "unavailable", reason: "lost" });
-      expect(server.stats().running).toBe(0);
+      expect(Effect.runSync(server.stats()).running).toBe(0);
       expect((await send(server, observation, data.dispatch)).status).toBe("advice");
       expect((await send(server, observation, data.dispatch)).status).toBe("rejected-stale");
       expect(readFileSync(join(data.root, "first.ts"), "utf8")).toContain("firstCount");
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 });

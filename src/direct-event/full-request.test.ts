@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
-import { Decision } from "effect/unstable/ai";
+import { Decision } from "effect/ai";
 import { configuredRules } from "../policy/rules.ts";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 import { encodedPreparedProviderInputBytes, encodedPreparedProviderHttpBodyBytes, evaluatePrepared } from "./pipeline.ts";
@@ -34,7 +34,7 @@ describe("complete Jev request measurement", () => {
           source: "type A = number", sourceHash: "fixture" },
         unit: { root: { artifact: { path: "a.ts", id: "a.ts:type-alias:A", kind: "type-alias", name: "A",
           source: "type A = number", sourceHash: "fixture" }, references: [] } },
-        rules: [{ ...rule, decision }], interpretation: "probability-strictly-greater-than-threshold" },
+        rules: [{ ...rule, decision: { ...decision, criteria: { false: "No", true: "Yes" } } }], interpretation: "probability-strictly-greater-than-threshold" },
     };
     expect(encodedPreparedProviderInputBytes(prepared)).toBeLessThanOrEqual(20_480);
     expect(encodedPreparedProviderHttpBodyBytes(prepared)).toBeGreaterThan(150_000);

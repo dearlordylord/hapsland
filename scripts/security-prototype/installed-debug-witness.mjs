@@ -20,8 +20,10 @@ if (process.argv[2] === "child") {
   const packageRoot = join(installation, "node_modules", "@hapsland", "hapsland");
   const installed = async (path) => import(pathToFileURL(join(packageRoot, "dist", path)).href);
   const Effect = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Effect.js")).href);
+  const Scope = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Scope.js")).href);
+  const Exit = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Exit.js")).href);
   const { adaptCodexDirectEvent } = await installed("direct-event/adapter.js");
-  const { ResidentServer } = await installed("resident/server.js");
+  const { makeResidentRuntime } = await installed("resident/server.js");
   const { residentPaths } = await installed("resident/paths.js");
   await command("git", ["init", "-q", root]);
   await command("git", ["-C", root, "config", "user.email", "test@example.invalid"]);
@@ -35,12 +37,14 @@ if (process.argv[2] === "child") {
   };
   const observation = await Effect.runPromise(adaptCodexDirectEvent(event));
   if (observation === undefined) throw new Error("installed event adapter returned no observation");
-  const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+  const fixtureScope = await Effect.runPromise(Scope.make());
+  const server = await Effect.runPromise(makeResidentRuntime(residentPaths(join(root, "runtime")), undefined, {
     afterPrepare: async () => { throw new Error(marker); },
-  });
-  const admitted = server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath: join(root, "called") } });
+  }).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
+  const admitted = await Effect.runPromise(server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath: join(root, "called") } }));
   if (admitted.status !== "accepted") throw new Error(`installed admission was ${admitted.status}`);
-  await server.whenIdle();
+  await Effect.runPromise(server.whenIdle());
+  await Effect.runPromise(Scope.close(fixtureScope, Exit.void));
 } else {
   const temporary = await mkdtemp(join(tmpdir(), "hapsland-security-installed-debug-"));
   try {

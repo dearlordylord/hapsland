@@ -1,0 +1,64 @@
+{
+  "stage": "A",
+  "caseId": "clean-note",
+  "candidate": "abide",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "handler-completed",
+    "startExit": 0,
+    "hookExit": 0,
+    "finding": false
+  },
+  "requests": [
+    {
+      "id": "9be110bc-0427-45f6-9d93-5965d2b4622b",
+      "at": 1790961876006,
+      "candidate": "abide",
+      "caseId": "clean-note",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 1628,
+      "stateKeys": [
+        "diff",
+        "file",
+        "task"
+      ],
+      "questionIds": [
+        "r5-absence-confusion"
+      ],
+      "taskIncluded": true
+    },
+    {
+      "id": "9be110bc-0427-45f6-9d93-5965d2b4622b",
+      "at": 1790961876006,
+      "candidate": "abide",
+      "caseId": "clean-note",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 248,
+      "answers": {
+        "r5_absence_confusion": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 623,
+        "output_tokens": 27
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

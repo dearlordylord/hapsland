@@ -1,0 +1,77 @@
+{
+  "stage": "A",
+  "caseId": "diff-result-regression",
+  "candidate": "hapsland",
+  "pass": 0,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r2_meaningless_combinations"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "23f3e681-7e99-40a0-8f8f-7bdccb5e9724",
+      "at": 1790961886476,
+      "candidate": "hapsland",
+      "caseId": "diff-result-regression",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "request",
+      "bytes": 1908,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r2_meaningless_combinations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "23f3e681-7e99-40a0-8f8f-7bdccb5e9724",
+      "at": 1790961886476,
+      "candidate": "hapsland",
+      "caseId": "diff-result-regression",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 0,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 206,
+      "answers": {
+        "r2_meaningless_combinations": {
+          "finding": false,
+          "band": "middle"
+        }
+      },
+      "usage": {
+        "input_tokens": 838,
+        "output_tokens": 28
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

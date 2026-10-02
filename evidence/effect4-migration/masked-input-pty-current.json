@@ -1,0 +1,29 @@
+{
+  "platform": "Linux PTY",
+  "cases": [
+    {
+      "case": "enter",
+      "exitCode": 0,
+      "termiosRestored": true,
+      "result": {
+        "success": true
+      }
+    },
+    {
+      "case": "signal",
+      "exitCode": 0,
+      "termiosRestored": true,
+      "result": {
+        "cancelled": true
+      }
+    },
+    {
+      "case": "fiber",
+      "exitCode": 0,
+      "termiosRestored": true,
+      "result": {
+        "interrupted": true
+      }
+    }
+  ]
+}

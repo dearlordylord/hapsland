@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-02T17:16:24.186Z",
+  "mode": "offline",
+  "fixturesSha256": "01c1c8d081d1876091e3b6b2528bdd8dda6c24b839deb321815e61f4e2de1731",
+  "scripts": {
+    "run-abide-quality.mjs": "6acca04220af6cec0033a06cb2e60903322fb3fd5997fc3e745c1128898e1857",
+    "abide-quality-capture.mjs": "78b286f3c64db2a32b1894f0606e8daf51d929cd2b5d86c49abc24457a86d850",
+    "abide-quality-observer.mjs": "f898e432aad6343b5a46e151e74d4579662ff48e9114beaabe9d5908b1243900",
+    "abide-quality-fixtures.mjs": "54b5b9aa015e2ab33bcb00010372b52f0b7c834052d3630a621dd158137230d7"
+  },
+  "hapslandCommit": "6bea2c3f2e0d608cb38e6908b8823f8ad791506d",
+  "codexVersion": "codex-cli 0.155.1",
+  "model": "gpt-6-luna",
+  "reasoning": "max",
+  "abideVersion": "0.0.7",
+  "abideHookSha256": "77626436f4e84a18b1907181c6b970a345b86b03381a9325947dcdb00accc0b1",
+  "requestCap": 120,
+  "stageACells": 48,
+  "stageBSessions": 3,
+  "sourceCheckoutHapsland": true,
+  "manuallyActiveAbideNoulRubric": true,
+  "nativeTrustBypassed": true,
+  "hostSandboxBypassed": true,
+  "automaticRetries": 0,
+  "maximumHostMs": 300000,
+  "tokenCaps": {
+    "perSession": 25000,
+    "cumulative": 300000,
+    "observedAtCompletionOnly": true
+  },
+  "amendment": "User authorized live execution on 2026-10-02; finite original sample/cap retained. One target rule per case; Abide act threshold 0.7/flag 0.3; Hapsland threshold 0.7. Abide IDs map underscores to hyphens and artifact locator maps to changed CaseState in diff; semantic wording otherwise unchanged. All fixtures frozen before provider calls."
+}

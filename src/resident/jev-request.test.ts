@@ -1,3 +1,6 @@
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
+import { makePreparationControls } from "../test-support/preparation-controls.ts";
+import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it, vi } from "vitest";
 import * as Effect from "effect/Effect";
 import { join } from "node:path";
@@ -6,8 +9,8 @@ import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
-import { ResidentServer, type JevRequestObservation } from "./server.ts";
-import { CapacityLedger } from "./capacity.ts";
+import { type JevRequestObservation } from "./server.ts";
+import { makeResidentState } from "./capacity.ts";
 import { captureStable } from "../direct-event/capture.ts";
 import { FUNCTION_INPUT_CONTRACT, TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
 
@@ -35,16 +38,16 @@ describe("canonical Jev request boundary", () => {
     if (observation === undefined) throw new Error("fixture observation missing");
     const seen: string[] = [];
     const capturePath = join(root, "provider-calls.txt");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
-      beforeEvaluate: async (prepared) => { if (prepared.input.rules.some((rule) => rule.id === "team/check")) seen.push(prepared.input.contract); },
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () { if (prepared.input.rules.some((rule) => rule.id === "team/check")) seen.push(prepared.input.contract); }) }),
     });
     try {
-      expect(server.admit(observation, { statePath: join(root, "consent"), userConfigPath: null,
-        credential: null, controlled: { capturePath } }).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(observation, { statePath: join(root, "consent"), userConfigPath: null,
+        credential: null, controlled: { capturePath } })).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       expect(new Set(seen)).toEqual(new Set([TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT]));
       expect(existsSync(capturePath)).toBe(true);
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
   it("captures an over-32 KiB same-file candidate without sending a v1 request", async () => {
     const root = await makeGitFixture();
@@ -58,19 +61,19 @@ describe("canonical Jev request boundary", () => {
       captureStable(sourceRoot, path, { ...hooks, sourceRead: (name) => { reads.push(name); } }, identity);
     const capturePath = join(root, "provider-calls.txt");
     const commands: JevRequestObservation[] = [];
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       captureSource, jevRequestObserver: (value) => { commands.push(value); },
     });
     try {
       expect(Buffer.byteLength(source, "utf8")).toBeGreaterThan(32 * 1024);
-      expect(server.admit(observation, { statePath, userConfigPath: null, credential: null,
-        controlled: { capturePath } }).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(observation, { statePath, userConfigPath: null, credential: null,
+        controlled: { capturePath } })).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       expect(reads).toContain("large.ts");
       expect(commands).toEqual([]);
       expect(existsSync(capturePath)).toBe(false);
-      expect(server.accountingMetrics().pendingOperationalNotices).toBe(0);
-    } finally { await server.close(); }
+      expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBe(0);
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("issues a Jev request for large rule text when evidence is within the tree limit", async () => {
@@ -88,17 +91,17 @@ describe("canonical Jev request boundary", () => {
     if (observation === undefined) throw new Error("fixture observation missing");
     const capturePath = join(root, "provider-calls.txt");
     const commands: JevRequestObservation[] = [];
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       jevRequestObserver: (value) => { commands.push(value); },
     });
     try {
-      expect(server.admit(observation, { statePath, userConfigPath: null, credential: null,
-        controlled: { capturePath } }).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(observation, { statePath, userConfigPath: null, credential: null,
+        controlled: { capturePath } })).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       expect(commands.map((item) => item.stage)).toContain("started");
       expect(existsSync(capturePath)).toBe(true);
-      expect(server.accountingMetrics().pendingOperationalNotices).toBe(0);
-    } finally { await server.close(); }
+      expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBe(0);
+    } finally { await Effect.runPromise(server.close); }
   });
   it("sends complete selected cross-file evidence and excludes denied supporting source", async () => {
     const root = await makeGitFixture();
@@ -113,35 +116,35 @@ describe("canonical Jev request boundary", () => {
       captureStable(sourceRoot, path, { ...hooks, sourceRead: (name) => { reads.push(name); } }, identity);
     const capturePath = join(root, "provider-calls.txt");
     const dispatch = { statePath, userConfigPath: null, credential: null, controlled: { capturePath } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       captureSource,
     });
     try {
-      expect(server.admit(observation, dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       expect(existsSync(capturePath)).toBe(true);
       expect(reads).toContain("c.ts");
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
 
     const gatedCalls = join(root, "gated-provider-calls.txt");
-    const gatedServer = new ResidentServer(residentPaths(join(root, "gated-runtime")));
+    const gatedServer = await acquireResidentFixture(residentPaths(join(root, "gated-runtime")));
     try {
-      expect(gatedServer.admit(observation, { ...dispatch, controlled: { capturePath: gatedCalls } }).status).toBe("accepted");
-      await gatedServer.whenIdle();
+      expect(Effect.runSync(gatedServer.admit(observation, { ...dispatch, controlled: { capturePath: gatedCalls } })).status).toBe("accepted");
+      await Effect.runPromise(gatedServer.whenIdle());
       expect(existsSync(gatedCalls)).toBe(true);
-      expect(gatedServer.accountingMetrics().pendingOperationalNotices).toBe(0);
-    } finally { await gatedServer.close(); }
+      expect((await Effect.runPromise(gatedServer.accountingMetrics())).pendingOperationalNotices).toBe(0);
+    } finally { await Effect.runPromise(gatedServer.close); }
 
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, excludes: ["c.ts"] }));
     reads.length = 0;
     const excludedCalls = join(root, "excluded-provider-calls.txt");
-    const excludedServer = new ResidentServer(residentPaths(join(root, "excluded-runtime")), undefined, { captureSource });
+    const excludedServer = await acquireResidentFixture(residentPaths(join(root, "excluded-runtime")), undefined, { captureSource });
     try {
-      expect(excludedServer.admit(observation, { ...dispatch, controlled: { capturePath: excludedCalls } }).status).toBe("accepted");
-      await excludedServer.whenIdle();
+      expect(Effect.runSync(excludedServer.admit(observation, { ...dispatch, controlled: { capturePath: excludedCalls } })).status).toBe("accepted");
+      await Effect.runPromise(excludedServer.whenIdle());
       expect(existsSync(excludedCalls)).toBe(false);
       expect(reads).not.toContain("c.ts");
-    } finally { await excludedServer.close(); }
+    } finally { await Effect.runPromise(excludedServer.close); }
   });
   it("records an issued command that failed before provider dispatch and releases its permit", async () => {
     const root = await makeGitFixture();
@@ -156,13 +159,13 @@ describe("canonical Jev request boundary", () => {
     const observations: JevRequestObservation[] = [];
     const dispatch = { statePath, userConfigPath: null, credential: null,
       controlled: { capturePath } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       jevRequestObserver: (observation) => { observations.push(observation); },
     });
     try {
-      expect(server.admit(await event(), { ...dispatch,
-        demoBudgetPath: join(root, "missing-budget.json") }).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(await event(), { ...dispatch,
+        demoBudgetPath: join(root, "missing-budget.json") })).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       expect(observations.map((item) => [item.stage, item.outcome])).toEqual([
         ["issued", undefined], ["settled", "neverSent"],
       ]);
@@ -170,25 +173,25 @@ describe("canonical Jev request boundary", () => {
         item.canonicalLifetime === 1 && item.canonicalPartition > 0 &&
         item.round > 0 && item.hapslandRound === null)).toBe(true);
       expect(existsSync(capturePath)).toBe(false);
-      expect(server.stats().retainedBytes).toBe(0);
+      expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
 
-      expect(server.admit(await event(), dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(await event(), dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       expect(observations.slice(2).map((item) => item.stage)).toEqual([
         "issued", "started", "settled",
       ]);
       expect(new Set(observations.map((item) => item.round)).size).toBe(1);
       expect(existsSync(capturePath)).toBe(true);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
     const nextLifetime: JevRequestObservation[] = [];
-    const restarted = new ResidentServer(residentPaths(join(root, "restarted-runtime")), undefined, {
+    const restarted = await acquireResidentFixture(residentPaths(join(root, "restarted-runtime")), undefined, {
       jevRequestObserver: (observation) => { nextLifetime.push(observation); },
     });
     try {
-      expect(restarted.admit(await event(), dispatch, true).status).toBe("accepted");
-      await restarted.whenIdle();
+      expect(Effect.runSync(restarted.admit(await event(), dispatch, true)).status).toBe("accepted");
+      await Effect.runPromise(restarted.whenIdle());
       expect(nextLifetime.map((item) => item.stage)).toEqual(["issued", "started", "settled"]);
       expect(nextLifetime.every((item) => item.lifetime === restarted.lifetime)).toBe(true);
       expect(nextLifetime.every((item) => (item.hapslandRound ?? 0) > 0)).toBe(true);
@@ -196,7 +199,7 @@ describe("canonical Jev request boundary", () => {
       expect(nextLifetime[0]?.canonicalLifetime).toBe(observations[0]?.canonicalLifetime);
       expect(nextLifetime[0]?.round).toBe(observations[0]?.round);
     } finally {
-      await restarted.close();
+      await Effect.runPromise(restarted.close);
     }
   });
 
@@ -221,9 +224,9 @@ describe("canonical Jev request boundary", () => {
     const ninthUnavailable = deferred();
     const observations: JevRequestObservation[] = [];
     let effectsEntered = 0;
-    let preparations = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
-      afterPrepare: async () => { preparations += 1; },
+    const controls = await Effect.runPromise(makePreparationControls());
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      preparationControls: controls.layer,
       controlledRequestEffect: async () => {
         effectsEntered += 1;
         if (effectsEntered === 8) eightEntered.resolve();
@@ -235,28 +238,28 @@ describe("canonical Jev request boundary", () => {
       },
     });
     try {
-      expect(server.admit(await observe(paths.slice(0, 8)), dispatch).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(await observe(paths.slice(0, 8)), dispatch)).status).toBe("accepted");
       await eightEntered.promise;
       expect(effectsEntered).toBe(8);
       expect(observations.filter((item) => item.stage === "issued")).toHaveLength(8);
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(8);
 
-      expect(server.admit(await observe([paths[8]!]), dispatch).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(await observe([paths[8]!]), dispatch)).status).toBe("accepted");
       await ninthUnavailable.promise;
-      expect(preparations).toBe(2);
+      expect(await Effect.runPromise(controls.preparationCount)).toBe(2);
       expect(effectsEntered).toBe(8);
       expect(observations.filter((item) => item.stage === "unavailable")).toHaveLength(1);
 
       release.resolve();
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(8);
-      expect(server.pendingAdviceMetadata()).toHaveLength(8);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(8);
 
-      expect(server.admit(await observe([paths[9]!]), dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(await observe([paths[9]!]), dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       expect(effectsEntered).toBe(9);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(9);
-      expect(server.pendingAdviceMetadata()).toHaveLength(9);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(9);
       for (const [index, item] of observations.entries()) {
         if (item.stage !== "started" && item.stage !== "settled") continue;
         expect(observations.slice(0, index).some((prior) => prior.stage === "issued" &&
@@ -264,7 +267,7 @@ describe("canonical Jev request boundary", () => {
       }
     } finally {
       release.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   }, 15_000);
 
@@ -288,19 +291,28 @@ describe("canonical Jev request boundary", () => {
     const reusedStarted = deferred();
     const saturatedUnavailable = deferred();
     const afterReuseUnavailable = deferred();
-    const release = deferred();
+    const releases = Array.from({ length: 9 }, () => deferred());
+    const interruptedRequest = deferred();
+    const physicallySettled = deferred();
+    let physicallyRunning = 0;
+    let peakPhysicallyRunning = 0;
     const observations: JevRequestObservation[] = [];
     let effectsEntered = 0;
     let unavailableCount = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       controlledRequestEffect: async () => {
-        effectsEntered += 1;
+        const requestIndex = effectsEntered++;
+        physicallyRunning += 1;
+        peakPhysicallyRunning = Math.max(peakPhysicallyRunning, physicallyRunning);
         if (effectsEntered === 8) eightStarted.resolve();
         if (effectsEntered === 9) reusedStarted.resolve();
-        await release.promise;
+        await releases[requestIndex]!.promise;
+        physicallyRunning -= 1;
       },
       jevRequestObserver: (observation) => {
         observations.push(observation);
+        if (observation.stage === "interrupted") interruptedRequest.resolve();
+        if (observation.stage === "settled") physicallySettled.resolve();
         if (observation.stage === "unavailable") {
           unavailableCount += 1;
           if (unavailableCount === 1) saturatedUnavailable.resolve();
@@ -311,23 +323,29 @@ describe("canonical Jev request boundary", () => {
     try {
       const first = await observe(0);
       for (let index = 0; index < 8; index += 1) {
-        expect(server.admit(index === 0 ? first : await observe(index), dispatch, true).status)
+        expect(Effect.runSync(server.admit(index === 0 ? first : await observe(index), dispatch, true)).status)
           .toBe("accepted");
       }
       await eightStarted.promise;
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(8);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
-      expect(server.admit(await observe(8), dispatch, true).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(await observe(8), dispatch, true)).status).toBe("accepted");
       await saturatedUnavailable.promise;
       expect(effectsEntered).toBe(8);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
 
-      expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: first.advicee, token: "interrupt-first" })).toEqual({ status: "advanced" });
-      expect(await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-        root, advicee: first.advicee, token: "interrupt-first", close: true })).toEqual({ status: "advanced" });
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: first.advicee, token: "interrupt-first" }))).toEqual({ status: "advanced" });
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: first.advicee, token: "interrupt-first", close: true }))).toEqual({ status: "advanced" });
 
-      expect(server.admit(await observe(9), dispatch, true).status).toBe("accepted");
+      await interruptedRequest.promise;
+      expect(physicallyRunning).toBe(8);
+      expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
+      releases[0]!.resolve();
+      // Wait for the original request's physical completion and canonical settlement.
+      await physicallySettled.promise;
+      expect(Effect.runSync(server.admit(await observe(9), dispatch, true)).status).toBe("accepted");
       await reusedStarted.promise;
       const interruptionIndex = observations.findIndex((item) => item.stage === "interrupted");
       expect(interruptionIndex).toBeGreaterThanOrEqual(0);
@@ -341,14 +359,16 @@ describe("canonical Jev request boundary", () => {
       expect(observations[settlementIndex]?.outcome).toBe("interrupted");
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1);
 
-      expect(server.admit(await observe(10), dispatch, true).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(await observe(10), dispatch, true)).status).toBe("accepted");
       await afterReuseUnavailable.promise;
       expect(effectsEntered).toBe(9);
+      expect(peakPhysicallyRunning).toBe(8);
+      expect(physicallyRunning).toBe(8);
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(9);
     } finally {
-      release.resolve();
-      await server.whenIdle();
-      await server.close();
+      for (const release of releases) release.resolve();
+      await Effect.runPromise(server.whenIdle());
+      await Effect.runPromise(server.close);
     }
   }, 15_000);
 
@@ -375,7 +395,7 @@ describe("canonical Jev request boundary", () => {
     const observations: JevRequestObservation[] = [];
     let effectsEntered = 0;
     let unavailableCount = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       controlledRequestEffect: async () => {
         effectsEntered += 1;
         if (effectsEntered === 1) { firstStarted.resolve(); return; }
@@ -397,17 +417,17 @@ describe("canonical Jev request boundary", () => {
       controlled: { delayMs: 16_000 } };
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
     try {
-      expect(server.admit(prepared[0]!, dispatch).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(prepared[0]!, dispatch)).status).toBe("accepted");
       await firstStarted.promise;
       await vi.advanceTimersByTimeAsync(5_000);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
 
       for (let index = 1; index < 8; index += 1) {
-        expect(server.admit(prepared[index]!, dispatch).status).toBe("accepted");
+        expect(Effect.runSync(server.admit(prepared[index]!, dispatch)).status).toBe("accepted");
       }
       await eightStarted.promise;
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(8);
-      expect(server.admit(prepared[8]!, dispatch).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(prepared[8]!, dispatch)).status).toBe("accepted");
       await firstUnavailable.promise;
       expect(effectsEntered).toBe(8);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
@@ -419,20 +439,20 @@ describe("canonical Jev request boundary", () => {
       expect(timeoutIndex).toBeGreaterThanOrEqual(0);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1);
 
-      expect(server.admit(prepared[9]!, dispatch).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(prepared[9]!, dispatch)).status).toBe("accepted");
       await reusedStarted.promise;
       const startIndices = observations.flatMap((item, index) => item.stage === "started" ? [index] : []);
       expect(startIndices[8]).toBeGreaterThan(timeoutIndex);
       expect(effectsEntered).toBe(9);
-      expect(server.admit(prepared[10]!, dispatch).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(prepared[10]!, dispatch)).status).toBe("accepted");
       await secondUnavailable.promise;
       expect(effectsEntered).toBe(9);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1);
     } finally {
       release.resolve();
       await vi.advanceTimersByTimeAsync(16_000);
-      await server.whenIdle();
-      await server.close();
+      await Effect.runPromise(server.whenIdle());
+      await Effect.runPromise(server.close);
       vi.useRealTimers();
     }
   }, 15_000);
@@ -440,69 +460,69 @@ describe("canonical Jev request boundary", () => {
   it("keeps an interrupted canonical Jev permit charged until its settlement", () => {
     // Resident abort interrupts the controlled Effect promptly. Hold the
     // canonical interval open here to check the capacity boundary itself.
-    const ledger = new CapacityLedger(undefined, "interruption-barrier");
+    const ledger = Effect.runSync(makeResidentState(undefined, "interruption-barrier"));
     const partition = "review-partition";
     const facts = { rootValid: true, configurationValid: true,
       credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
     const reviewUnit = (owner = partition) => {
-      const observation = ledger.admitObservation(owner);
-      expect(ledger.observation(owner, observation, "startObservation", ledger.roundId(owner))).toBe(true);
-      const preparation = ledger.beginObservedPreparation(owner, observation, 100, ledger.roundId(owner));
+      const observation = Effect.runSync(ledger.admitObservation(owner));
+      expect(Effect.runSync(ledger.observation(owner, observation, "startObservation", Effect.runSync(ledger.roundId(owner))))).toBe(true);
+      const preparation = Effect.runSync(ledger.beginObservedPreparation(owner, observation, 100, Effect.runSync(ledger.roundId(owner))));
       if (preparation === undefined) throw new Error("preparation refused");
-      expect(ledger.observation(owner, observation, "completeObservation", ledger.roundId(owner))).toBe(true);
-      const unit = ledger.completePreparation(owner, preparation.operation,
-        preparation.reservation, [10], ledger.roundId(owner))[0];
+      expect(Effect.runSync(ledger.observation(owner, observation, "completeObservation", Effect.runSync(ledger.roundId(owner))))).toBe(true);
+      const unit = Effect.runSync(ledger.completePreparation(owner, preparation.operation,
+        preparation.reservation, [10], Effect.runSync(ledger.roundId(owner))))[0];
       if (unit === undefined) throw new Error("unit refused");
-      expect(ledger.startReview(owner, unit.operation, ledger.roundId(owner))).toBe(true);
+      expect(Effect.runSync(ledger.startReview(owner, unit.operation, Effect.runSync(ledger.roundId(owner))))).toBe(true);
       return unit;
     };
     const held = Array.from({ length: 8 }, () => {
       const unit = reviewUnit();
-      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, ledger.roundId(partition));
+      const ready = Effect.runSync(ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, Effect.runSync(ledger.roundId(partition))));
       if (ready.status !== "issued") throw new Error("Jev permit refused before saturation");
-      expect(ledger.startJevRequest(partition, unit.operation, ready.request)).toBe(true);
+      expect(Effect.runSync(ledger.startJevRequest(partition, unit.operation, ready.request))).toBe(true);
       return { unit, request: ready.request };
     });
     const interrupted = held[0]!;
-    expect(ledger.interruptJevRequest(partition, interrupted.unit.operation, interrupted.request)).toBe(true);
-    ledger.retireRound(partition, ledger.roundId(partition));
+    expect(Effect.runSync(ledger.interruptJevRequest(partition, interrupted.unit.operation, interrupted.request))).toBe(true);
+    Effect.runSync(ledger.retireRound(partition, Effect.runSync(ledger.roundId(partition))));
     const nextPartition = partition;
     const premature = reviewUnit(nextPartition);
-    expect(ledger.readyJevRequest(nextPartition, premature.operation, premature.reservation, facts, ledger.roundId(nextPartition)).status)
+    expect(Effect.runSync(ledger.readyJevRequest(nextPartition, premature.operation, premature.reservation, facts, Effect.runSync(ledger.roundId(nextPartition)))).status)
       .toBe("unavailable");
-    expect(ledger.settleJevRequest(partition, interrupted.unit.operation, interrupted.request,
-      interrupted.unit.reservation, "interrupted", false)).not.toBe("stale");
+    expect(Effect.runSync(ledger.settleJevRequest(partition, interrupted.unit.operation, interrupted.request,
+      interrupted.unit.reservation, "interrupted", false))).not.toBe("stale");
     const replacement = reviewUnit(nextPartition);
-    const ready = ledger.readyJevRequest(nextPartition, replacement.operation, replacement.reservation, facts, ledger.roundId(nextPartition));
+    const ready = Effect.runSync(ledger.readyJevRequest(nextPartition, replacement.operation, replacement.reservation, facts, Effect.runSync(ledger.roundId(nextPartition))));
     expect(ready.status).toBe("issued");
     if (ready.status !== "issued") return;
-    expect(ledger.startJevRequest(nextPartition, replacement.operation, ready.request)).toBe(true);
+    expect(Effect.runSync(ledger.startJevRequest(nextPartition, replacement.operation, ready.request))).toBe(true);
     const excess = reviewUnit(nextPartition);
-    expect(ledger.readyJevRequest(nextPartition, excess.operation, excess.reservation, facts, ledger.roundId(nextPartition)).status)
+    expect(Effect.runSync(ledger.readyJevRequest(nextPartition, excess.operation, excess.reservation, facts, Effect.runSync(ledger.roundId(nextPartition)))).status)
       .toBe("unavailable");
   });
 
   it("binds local canonical lifetime 1 to each resident UUID and rotates canonical rounds", () => {
-    const first = new CapacityLedger(undefined, "resident-a");
-    const second = new CapacityLedger(undefined, "resident-b");
+    const first = Effect.runSync(makeResidentState(undefined, "resident-a"));
+    const second = Effect.runSync(makeResidentState(undefined, "resident-b"));
     const facts = { rootValid: true, configurationValid: true,
       credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
-    const issue = (ledger: CapacityLedger) => {
+    const issue = (ledger: typeof first) => {
       const partition = "review-partition";
-      const observation = ledger.admitObservation(partition);
-      expect(ledger.observation(partition, observation, "startObservation", ledger.roundId(partition))).toBe(true);
-      const preparation = ledger.beginObservedPreparation(partition, observation, 100, ledger.roundId(partition));
+      const observation = Effect.runSync(ledger.admitObservation(partition));
+      expect(Effect.runSync(ledger.observation(partition, observation, "startObservation", Effect.runSync(ledger.roundId(partition))))).toBe(true);
+      const preparation = Effect.runSync(ledger.beginObservedPreparation(partition, observation, 100, Effect.runSync(ledger.roundId(partition))));
       if (preparation === undefined) throw new Error("preparation refused");
-      expect(ledger.observation(partition, observation, "completeObservation", ledger.roundId(partition))).toBe(true);
-      const unit = ledger.completePreparation(partition, preparation.operation,
-        preparation.reservation, [10], ledger.roundId(partition))[0];
+      expect(Effect.runSync(ledger.observation(partition, observation, "completeObservation", Effect.runSync(ledger.roundId(partition))))).toBe(true);
+      const unit = Effect.runSync(ledger.completePreparation(partition, preparation.operation,
+        preparation.reservation, [10], Effect.runSync(ledger.roundId(partition))))[0];
       if (unit === undefined) throw new Error("unit refused");
-      expect(ledger.startReview(partition, unit.operation, ledger.roundId(partition))).toBe(true);
-      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, ledger.roundId(partition));
+      expect(Effect.runSync(ledger.startReview(partition, unit.operation, Effect.runSync(ledger.roundId(partition))))).toBe(true);
+      const ready = Effect.runSync(ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, Effect.runSync(ledger.roundId(partition))));
       if (ready.status !== "issued") throw new Error("request refused");
-      expect(ledger.startJevRequest(partition, unit.operation, ready.request)).toBe(true);
-      expect(ledger.settleJevRequest(partition, unit.operation, ready.request,
-        unit.reservation, "clear", true)).toBe("settleClear");
+      expect(Effect.runSync(ledger.startJevRequest(partition, unit.operation, ready.request))).toBe(true);
+      expect(Effect.runSync(ledger.settleJevRequest(partition, unit.operation, ready.request,
+        unit.reservation, "clear", true))).toBe("settleClear");
       return ready.round;
     };
     const firstRound = issue(first);
@@ -512,7 +532,7 @@ describe("canonical Jev request boundary", () => {
     expect(first.canonicalLifetime).toBe(1);
     expect(second.canonicalLifetime).toBe(1);
     expect(firstRound).toBe(otherLifetimeRound);
-    first.retireRound("review-partition", first.roundId("review-partition"));
+    Effect.runSync(first.retireRound("review-partition", Effect.runSync(first.roundId("review-partition"))));
     expect(issue(first)).toBeGreaterThan(firstRound);
   });
 });

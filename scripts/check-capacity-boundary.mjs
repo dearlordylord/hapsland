@@ -15,3 +15,5 @@ for (const name of readdirSync(resident)) {
 const adapter = readFileSync(resolve(resident, "capacity.ts"), "utf8");
 assert.match(adapter, /from "\.\.\/canonical\/adapter\.ts"/,
   "resident capacity must use the shared checked canonical adapter");
+assert.doesNotMatch(adapter, /Effect\.runSync|Ref\.getUnsafe|makeCapacityLedger|canonical: capacity/,
+  "resident state must expose Effects without synchronous owner bridges or draft-owner capabilities");

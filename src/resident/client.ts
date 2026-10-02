@@ -2,21 +2,23 @@ import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
+import { Cause, Clock, Config, Context, Duration, Layer, Option, Redacted, Ref, Schedule, Schema } from "effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
 import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { DirectObservation, DirectAdvicee } from "../direct-event/model.ts";
 import type { CodexDirectEventOutput } from "../direct-event/pipeline.ts";
-import { loadReviewSettings } from "../runtime/review-config.ts";
+import { loadReviewSettings, type ReviewConfigError } from "../runtime/review-config.ts";
 import type { ControlledDecisionModelOptions } from "../test-support/controlled-decision-model.ts";
 import { DEFAULT_CREDENTIAL_STATE_PATH, readCredentialState } from "../credentials/secret-service.ts";
 import type { ClaudeHostOutput, CollectionMode } from "./collection.ts";
 import {
   prepareResidentDirectory,
-  residentPaths,
+  resolveResidentPaths,
   verifyResidentSocket,
   type ResidentPaths,
+  type ResidentEndpointError,
 } from "./paths.ts";
 import {
   CLIENT_REQUEST_DEADLINE_MS,
@@ -30,213 +32,229 @@ import {
   type ResidentResponse,
 } from "./protocol.ts";
 
-export class ResidentIpcError extends Error {}
+const monotonicMillis = Clock.monotonicTimeNanos.pipe(
+  Effect.map((now) => Number(now) / 1_000_000),
+);
 
-const delay = (milliseconds: number) => new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+export class ResidentIpcError extends Schema.TaggedError<ResidentIpcError>()("ResidentIpcError", { message: Schema.String }) {}
 
-const requestConnected = (
-  paths: ResidentPaths,
-  request: ResidentRequest,
-  timeoutMs: number,
-): Promise<ResidentResponse> => {
+const requestConnected = Effect.fn("ResidentClient.requestConnected")(function* (
+  paths: ResidentPaths, request: ResidentRequest, timeoutMs: number,
+) {
   const frame = `${encodeCurrentResidentRequest(request)}\n`;
   if (Buffer.byteLength(frame, "utf8") > MAX_IPC_FRAME_BYTES) {
-    return Promise.reject(new ResidentIpcError("resident request exceeded frame bound"));
+    return yield* Effect.fail(new ResidentIpcError({ message: "resident request exceeded frame bound" }));
   }
-  return new Promise((resolve, reject) => {
-    const socket = connect(paths.socket);
-    let settled = false;
-    let bytes = 0;
-    let encoded = "";
-    const finish = (error: Error | undefined, response?: ResidentResponse) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      socket.destroy();
-      if (error !== undefined) reject(error);
-      else if (response !== undefined) resolve(response);
-    };
-    const timer = setTimeout(
-      () => finish(new ResidentIpcError("resident request deadline exceeded; outcome is uncertain")),
-      timeoutMs,
+  return yield* Effect.acquireUseRelease(
+    Effect.try({ try: () => connect(paths.socket), catch: () => new ResidentIpcError({ message: "resident IPC unavailable" }) }),
+    (socket) => Effect.callback<ResidentResponse, ResidentIpcError>((resume) => {
+      let settled = false;
+      let bytes = 0;
+      let encoded = "";
+      const finish = (result: Effect.Effect<ResidentResponse, ResidentIpcError>) => {
+        if (settled) return;
+        settled = true;
+        resume(result);
+      };
+      socket.once("connect", () => socket.write(frame));
+      socket.on("data", (chunk: Buffer) => {
+        bytes += chunk.byteLength;
+        if (bytes > MAX_IPC_FRAME_BYTES) {
+          finish(Effect.fail(new ResidentIpcError({ message: "resident response exceeded frame bound" })));
+          return;
+        }
+        encoded += chunk.toString("utf8");
+        const newline = encoded.indexOf("\n");
+        if (newline < 0) return;
+        try {
+          const unknown: unknown = JSON.parse(encoded.slice(0, newline));
+          const decoded = decodeCurrentResidentResponse(unknown, request);
+          if (decoded === undefined) throw new Error("response schema mismatch");
+          finish(Effect.succeed(decoded));
+        } catch {
+          finish(Effect.fail(new ResidentIpcError({ message: "resident response was invalid" })));
+        }
+      });
+      socket.once("error", () => finish(Effect.fail(new ResidentIpcError({ message: "resident IPC unavailable" }))));
+      socket.once("close", () => finish(Effect.fail(new ResidentIpcError({ message: "resident response closed before acknowledgement" }))));
+      return Effect.sync(() => { settled = true; });
+    }).pipe(Effect.timeoutOrElse({
+      duration: timeoutMs,
+      orElse: () => Effect.fail(new ResidentIpcError({ message: "resident request deadline exceeded; outcome is uncertain" })),
+    })),
+    (socket) => Effect.sync(() => { socket.destroy(); }),
+  );
+});
+
+export const residentRequestEffect = Effect.fn("ResidentClient.request")(function* (
+  paths: ResidentPaths, request: ResidentRequest, timeoutMs = CLIENT_REQUEST_DEADLINE_MS,
+) {
+  const deadline = (yield* monotonicMillis) + timeoutMs;
+  yield* verifyResidentSocket(paths).pipe(Effect.timeoutOrElse({
+    duration: timeoutMs,
+    orElse: () => Effect.fail(new ResidentIpcError({ message: "resident endpoint verification timed out" })),
+  }));
+  const remaining = deadline - (yield* monotonicMillis);
+  if (remaining <= 0) return yield* Effect.fail(new ResidentIpcError({ message: "resident request deadline exceeded" }));
+  return yield* requestConnected(paths, request, remaining);
+});
+
+export interface ResidentStartupOperations {
+  readonly now: Effect.Effect<number>;
+  readonly prepare: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, ResidentEndpointError>;
+  readonly probe: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<ResidentResponse, ResidentIpcError | ResidentEndpointError>;
+  readonly launch: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, ResidentIpcError>;
+  readonly wait: (milliseconds: number) => Effect.Effect<void>;
+  readonly clearDiagnostic: (paths: ResidentPaths) => Effect.Effect<void, ResidentIpcError>;
+  readonly diagnostic: (paths: ResidentPaths) => Effect.Effect<string>;
+}
+export class ResidentStartup extends Context.Service<ResidentStartup, ResidentStartupOperations>()("hapsland/ResidentStartup") {}
+
+export class ResidentLauncher extends Context.Service<ResidentLauncher, {
+  readonly now: Effect.Effect<number>;
+  readonly spawn: (paths: ResidentPaths) => Effect.Effect<void, ResidentIpcError>;
+}>()("hapsland/ResidentLauncher") {}
+
+const residentLauncherLayer = Layer.succeed(ResidentLauncher, ResidentLauncher.of({
+  now: monotonicMillis,
+  spawn: Effect.fn("ResidentLauncher.spawn")(function* (paths: ResidentPaths) {
+    const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
+    const source = fileURLToPath(new URL("./main.ts", import.meta.url));
+    const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
+    const diagnostic = `${paths.lock}.startup-error`;
+    return yield* Effect.acquireUseRelease(
+      Effect.try({ try: () => openSync(diagnostic, "a", 0o600), catch: () => new ResidentIpcError({ message: "resident launch failed" }) }),
+      (descriptor) => Effect.callback<void, ResidentIpcError>((resume) => {
+        let child: ReturnType<typeof spawn>;
+        try {
+          child = spawn(process.execPath, [main, paths.directory], {
+            detached: true, stdio: ["ignore", "ignore", descriptor], env: process.env,
+          });
+        } catch { resume(Effect.fail(new ResidentIpcError({ message: "resident launch failed" }))); return; }
+        const started = () => { child.unref(); resume(Effect.void); };
+        const failed = (cause: Error) => {
+          try { writeFileSync(diagnostic, `${String(cause)}\n`, { flag: "a", mode: 0o600 }); } catch { /* launch failure remains visible */ }
+          resume(Effect.fail(new ResidentIpcError({ message: "resident launch failed" })));
+        };
+        child.once("spawn", started);
+        child.once("error", failed);
+        return Effect.sync(() => { child.removeListener("spawn", started); child.removeListener("error", failed); });
+      }),
+      (descriptor) => Effect.sync(() => closeSync(descriptor)),
     );
-    socket.once("connect", () => socket.write(frame));
-    socket.on("data", (chunk: Buffer) => {
-      bytes += chunk.byteLength;
-      if (bytes > MAX_IPC_FRAME_BYTES) {
-        finish(new ResidentIpcError("resident response exceeded frame bound"));
-        return;
-      }
-      encoded += chunk.toString("utf8");
-      const newline = encoded.indexOf("\n");
-      if (newline < 0) return;
-      try {
-        const unknown: unknown = JSON.parse(encoded.slice(0, newline));
-        const decoded = decodeCurrentResidentResponse(unknown, request);
-        if (decoded === undefined) throw new Error("response schema mismatch");
-        finish(undefined, decoded);
-      } catch {
-        finish(new ResidentIpcError("resident response was invalid"));
-      }
+  }, Effect.uninterruptible),
+}));
+
+export const makeResidentStartup = Effect.gen(function* () {
+  const launcher = yield* ResidentLauncher;
+  const launches = yield* Ref.make<ReadonlyMap<string, { readonly expiry: number }>>(new Map());
+  const launch = Effect.fn("ResidentStartup.launch")(function* (paths: ResidentPaths, _timeoutMs: number) {
+    const now = yield* launcher.now;
+    const claim = yield* Ref.modify(launches, (current) => {
+      const next = new Map([...current].filter(([, value]) => value.expiry > now));
+      if (next.has(paths.lock)) return [undefined, next] as const;
+      const claim = Object.freeze({ expiry: now + 2_000 });
+      next.set(paths.lock, claim);
+      return [claim, next] as const;
     });
-    socket.once("error", () => finish(new ResidentIpcError("resident IPC unavailable")));
-    socket.once("close", () => finish(new ResidentIpcError("resident response closed before acknowledgement")));
+    if (claim === undefined) return;
+    yield* launcher.spawn(paths).pipe(Effect.onError(() => Ref.update(launches, (current) => {
+      if (current.get(paths.lock) !== claim) return current;
+      const next = new Map(current); next.delete(paths.lock); return next;
+    })));
+  }, Effect.uninterruptible);
+  return ResidentStartup.of({
+    now: launcher.now,
+    prepare: Effect.fn("ResidentStartup.prepare")((paths: ResidentPaths) => prepareResidentDirectory(paths)),
+    probe: Effect.fn("ResidentStartup.probe")((paths: ResidentPaths, timeoutMs: number) => residentRequestEffect(paths, { requestRoute: "shared", operation: "hello" }, timeoutMs)),
+    launch,
+    wait: Effect.fn("ResidentStartup.wait")((milliseconds: number) => Effect.sleep(milliseconds)),
+    clearDiagnostic: Effect.fn("ResidentStartup.clearDiagnostic")((paths: ResidentPaths) => Effect.try({
+      try: () => rmSync(`${paths.lock}.startup-error`, { force: true }), catch: () => new ResidentIpcError({ message: "resident startup diagnostic cleanup failed" }),
+    })),
+    diagnostic: Effect.fn("ResidentStartup.diagnostic")((paths: ResidentPaths) => Effect.sync(() => {
+      try { return readFileSync(`${paths.lock}.startup-error`, "utf8").trim().slice(-1_024); } catch { return ""; }
+    })),
   });
-};
+}).pipe(Effect.withSpan("ResidentStartup.make"));
 
-export const residentRequest = async (
-  paths: ResidentPaths,
-  request: ResidentRequest,
-  timeoutMs = CLIENT_REQUEST_DEADLINE_MS,
-): Promise<ResidentResponse> => {
-  const deadline = performance.now() + timeoutMs;
-  await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(
-      () => reject(new ResidentIpcError("resident endpoint verification timed out")),
-      timeoutMs,
-    );
-    void verifyResidentSocket(paths).then(
-      () => { clearTimeout(timer); resolve(); },
-      (cause: unknown) => { clearTimeout(timer); reject(cause); },
-    );
-  });
-  const remaining = deadline - performance.now();
-  if (remaining <= 0) throw new ResidentIpcError("resident request deadline exceeded");
-  return requestConnected(paths, request, remaining);
-};
+export const residentStartupLayer = Layer.effect(ResidentStartup, makeResidentStartup).pipe(Layer.provide(residentLauncherLayer));
 
-export type EnsureResidentDependencies = {
-  readonly now: () => number;
-  readonly prepare: (paths: ResidentPaths, timeoutMs: number) => Promise<void>;
-  readonly probe: (paths: ResidentPaths, timeoutMs: number) => Promise<ResidentResponse>;
-  readonly launch: (paths: ResidentPaths, timeoutMs: number) => void;
-  readonly wait: (milliseconds: number) => Promise<void>;
-};
-
-const within = async <A>(effect: Promise<A>, timeoutMs: number, message: string): Promise<A> =>
-  new Promise<A>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new ResidentIpcError(message)), timeoutMs);
-    void effect.then(
-      (value) => { clearTimeout(timer); resolve(value); },
-      (cause: unknown) => { clearTimeout(timer); reject(cause); },
-    );
-  });
-
-const launches = new Map<string, number>();
-const launchResident = (paths: ResidentPaths, _timeoutMs: number) => {
-  const now = Date.now();
-  if ((launches.get(paths.lock) ?? 0) > now) return;
-  const expires = now + 2_000;
-  launches.set(paths.lock, expires);
-  const expiry = setTimeout(() => {
-    if (launches.get(paths.lock) === expires) launches.delete(paths.lock);
-  }, 2_000);
-  expiry.unref();
-  const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
-  const source = fileURLToPath(new URL("./main.ts", import.meta.url));
-  const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
-  const diagnostic = `${paths.lock}.startup-error`;
-  const diagnosticDescriptor = openSync(diagnostic, "a", 0o600);
-  const child = spawn(process.execPath, [main, paths.directory], {
-    detached: true,
-    stdio: ["ignore", "ignore", diagnosticDescriptor],
-    env: process.env,
-  });
-  closeSync(diagnosticDescriptor);
-  child.once("error", (cause) => {
-    writeFileSync(diagnostic, `${String(cause)}\n`, { flag: "a", mode: 0o600 });
-    launches.delete(paths.lock);
-  });
-  child.unref();
-};
-
-const liveEnsureDependencies: EnsureResidentDependencies = {
-  now: () => performance.now(),
-  prepare: (paths, timeoutMs) => within(
-    prepareResidentDirectory(paths),
-    timeoutMs,
-    "resident endpoint preparation timed out",
-  ),
-  probe: (paths, timeoutMs) => residentRequest(paths, { requestRoute: "shared", operation: "hello" }, timeoutMs),
-  launch: launchResident,
-  wait: delay,
-};
-
-export const ensureResident = async (
-  paths = residentPaths(),
+export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(function* (
+  paths: ResidentPaths | undefined = undefined,
   readinessMs = STARTUP_READINESS_DEADLINE_MS,
-  dependencies: EnsureResidentDependencies = liveEnsureDependencies,
-): Promise<Extract<ResidentResponse, { status: "ready" }>> => {
-  const ready = (response: Extract<ResidentResponse, { status: "ready" }>) => {
-    rmSync(`${paths.lock}.startup-error`, { force: true });
-    return response;
-  };
-  const deadline = dependencies.now() + readinessMs;
-  const remaining = () => Math.max(0, deadline - dependencies.now());
-  await dependencies.prepare(paths, remaining());
-  if (remaining() <= 0) throw new ResidentIpcError("resident readiness deadline exceeded");
-  try {
-    const existing = await dependencies.probe(paths, Math.min(250, remaining()));
-    if (existing.status === "ready") return ready(existing);
-  } catch {
-    // A failed probe is not a death determination. Contending servers use the
-    // atomic owner directory; only its live owner may replace the socket.
-  }
+) {
+  paths ??= yield* resolveResidentPaths();
+  const dependencies = yield* ResidentStartup;
+  const ready = (response: Extract<ResidentResponse, { status: "ready" }>) =>
+    dependencies.clearDiagnostic(paths).pipe(Effect.as(response));
+  const deadline = (yield* dependencies.now) + readinessMs;
+  const remaining = dependencies.now.pipe(Effect.map((now) => Math.max(0, deadline - now)));
+  yield* dependencies.prepare(paths, (yield* remaining)).pipe(Effect.timeoutOrElse({
+    duration: (yield* remaining),
+    orElse: () => Effect.fail(new ResidentIpcError({ message: "resident endpoint preparation timed out" })),
+  }));
+  if ((yield* remaining) <= 0) return yield* Effect.fail(new ResidentIpcError({ message: "resident readiness deadline exceeded" }));
+  const probe = (timeoutMs: number) => dependencies.probe(paths, timeoutMs).pipe(Effect.catch(() => Effect.succeed(undefined)));
+  // Failed probes do not determine death; atomic owner acquisition protects
+  // contending servers and stale recovery checks process liveness.
+  const existing = yield* probe(Math.min(250, (yield* remaining)));
+  if (existing?.status === "ready") return yield* ready(existing);
+  type Ready = Extract<ResidentResponse, { status: "ready" }>;
   let lastLaunch = Number.NEGATIVE_INFINITY;
-  while (remaining() > 0) {
-    if (dependencies.now() - lastLaunch >= 500) {
-      dependencies.launch(paths, remaining());
-      lastLaunch = dependencies.now();
+  const readinessPass = Effect.fn("ResidentClient.readinessPass")(function* () {
+    if ((yield* remaining) <= 0) return undefined;
+    if ((yield* dependencies.now) - lastLaunch >= 500) {
+      yield* dependencies.launch(paths, (yield* remaining));
+      lastLaunch = yield* dependencies.now;
     }
-    if (remaining() <= 0) break;
-    try {
-      const response = await dependencies.probe(paths, Math.min(250, remaining()));
-      if (response.status === "ready") return ready(response);
-    } catch {
-      // Another contender may still own the lock, or its owner may have exited
-      // without publishing an endpoint. Acquisition is non-blocking and stale
-      // recovery checks process liveness, so retries cannot displace an owner.
-    }
-    const backoff = Math.min(50, remaining());
-    if (backoff > 0) await dependencies.wait(backoff);
-  }
-  let detail = "";
-  try {
-    const diagnostic = readFileSync(`${paths.lock}.startup-error`, "utf8").trim();
-    if (diagnostic.length > 0) detail = `; resident launch failed: ${diagnostic.slice(-1_024)}`;
-  } catch { /* no launcher diagnostic was produced */ }
-  throw new ResidentIpcError(`resident did not become ready within 10 seconds${detail}`);
-};
+    if ((yield* remaining) <= 0) return undefined;
+    const response = yield* probe(Math.min(250, (yield* remaining)));
+    return response?.status === "ready" ? response : undefined;
+  });
+  const readinessSchedule = Schedule.fromStep(Effect.succeed(
+    (_now: number, response: Ready | undefined) => Effect.gen(function* () {
+      if (response !== undefined) return yield* Cause.done(response);
+      const backoff = Math.min(50, yield* remaining);
+      if (backoff <= 0) return yield* Cause.done(undefined);
+      yield* dependencies.wait(backoff);
+      if ((yield* remaining) <= 0) return yield* Cause.done(undefined);
+      return [undefined, Duration.zero] as [Ready | undefined, Duration.Duration];
+    }),
+  ));
+  const response = yield* readinessPass().pipe(Effect.repeat(readinessSchedule));
+  if (response !== undefined) return yield* ready(response);
+  const diagnostic = yield* dependencies.diagnostic(paths);
+  const detail = diagnostic.length > 0 ? `; resident launch failed: ${diagnostic}` : "";
+  return yield* Effect.fail(new ResidentIpcError({ message: `resident did not become ready within 10 seconds${detail}` }));
+});
 
 /** Read-only bounded probe. Unlike ensureResident, this never launches or repairs a resident. */
-export const inspectResident = async (
-  paths = residentPaths(),
-): Promise<{ readonly available: boolean; readonly lifetime?: string; readonly pid?: number }> => {
-  try {
-    const response = await residentRequest(
-      paths,
-      { requestRoute: "shared", operation: "hello" },
-      Math.min(250, CLIENT_REQUEST_DEADLINE_MS),
-    );
-    return response.status === "ready"
-      ? { available: true, lifetime: response.lifetime, pid: response.pid }
-      : { available: false };
-  } catch {
-    return { available: false };
-  }
-};
+export const inspectResidentEffect = Effect.fn("ResidentClient.inspectResident")(function* (
+  paths: ResidentPaths | undefined = undefined,
+): Effect.fn.Return<{ readonly available: boolean; readonly lifetime?: string; readonly pid?: number }, ResidentIpcError | ResidentEndpointError> {
+  paths ??= yield* resolveResidentPaths();
+  const response = yield* residentRequestEffect(
+    paths,
+    { requestRoute: "shared", operation: "hello" },
+    Math.min(250, CLIENT_REQUEST_DEADLINE_MS),
+  ).pipe(Effect.catch(() => Effect.succeed(undefined)));
+  return response?.status === "ready"
+    ? { available: true, lifetime: response.lifetime, pid: response.pid }
+    : { available: false };
+});
 
-export const makeResidentDispatchContext = async (
+export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeResidentDispatchContext")(function* (
   root: string,
   statePath: string,
   activityPath: string,
   userConfigPath: string | undefined,
   controlledOptions: ControlledDecisionModelOptions | undefined,
-): Promise<ResidentDispatchContext> => {
-  const settings = await Effect.runPromise(loadReviewSettings(
+): Effect.fn.Return<ResidentDispatchContext, ResidentIpcError | ReviewConfigError> {
+  const settings = yield* loadReviewSettings(
     root,
     userConfigPath === undefined ? {} : { userConfigPath },
-  ));
+  );
   const controlled = controlledOptions === undefined ? null : {
     ...(controlledOptions.answers === undefined ? {} : { answers: controlledOptions.answers }),
     ...(controlledOptions.delayMs === undefined ? {} : { delayMs: controlledOptions.delayMs }),
@@ -255,28 +273,35 @@ export const makeResidentDispatchContext = async (
       syntheticR6BrandedRepair: controlledOptions.syntheticR6BrandedRepair,
     }),
   };
-  const credentialValue = process.env[settings.credentialEnvVar];
-  const credentialStatePath = resolve(process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH);
-  const credentialState = readCredentialState(credentialStatePath);
+  const configuration = yield* Config.all({
+    credential: Config.option(Config.Redacted(settings.credentialEnvVar)),
+    credentialStatePath: Config.NonEmptyString("REVIEW_CREDENTIAL_STATE_PATH").pipe(Config.withDefault(DEFAULT_CREDENTIAL_STATE_PATH)),
+    demoBudgetPath: Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH")),
+  }).pipe(Effect.mapError(() => new ResidentIpcError({ message: "resident dispatch configuration unavailable" })));
+  const credentialStatePath = resolve(configuration.credentialStatePath);
+  const credentialState = yield* Effect.try({
+    try: () => readCredentialState(credentialStatePath),
+    catch: () => new ResidentIpcError({ message: "resident credential metadata unavailable" }),
+  });
   const environmentOnly = settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in";
   return {
     statePath: resolve(statePath),
     activityPath: resolve(activityPath),
     sessionAnalytics: effectiveSessionAnalytics(settings.configuration.policy),
     userConfigPath: userConfigPath === undefined ? null : resolve(userConfigPath),
-    demoBudgetPath: process.env.REVIEW_DEMO_BUDGET_PATH === undefined
+    demoBudgetPath: Option.isNone(configuration.demoBudgetPath)
       ? null
-      : resolve(process.env.REVIEW_DEMO_BUDGET_PATH),
+      : resolve(configuration.demoBudgetPath.value),
     credential: controlled !== null && controlled.requireCredential !== true ? null : {
       name: settings.credentialEnvVar,
-      environmentValue: credentialValue === undefined ? null : credentialValue,
+      environmentValue: Option.isNone(configuration.credential) ? null : Redacted.value(configuration.credential.value),
       environmentOnly,
       generation: credentialState.generation,
       statePath: credentialStatePath,
     },
     controlled,
   };
-};
+});
 
 export type CollectedAdvice = {
   readonly output: ClaudeHostOutput;
@@ -289,17 +314,18 @@ export type CollectedAdvice = {
   readonly findingCount: number;
 };
 
-export const admitObservation = async (
+export const admitObservationEffect = Effect.fn("ResidentClient.admitObservation")(function* (
   observation: DirectObservation,
   controlledWriter: boolean,
   dispatch: ResidentDispatchContext,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   composed = true,
-) => {
+) {
+  paths ??= yield* resolveResidentPaths();
   if (!composed) return { status: "unsupported" } as const;
-  const owner = await ensureResident(paths);
+  const owner = yield* ensureResidentEffect(paths);
   if (!controlledWriter) return { status: "empty" } as const;
-  return residentRequest(paths, {
+  return yield* residentRequestEffect(paths, {
     requestRoute: "shared",
     operation: "admit",
     lifetime: owner.lifetime,
@@ -308,30 +334,31 @@ export const admitObservation = async (
     composed: true,
     dispatch,
   });
-};
+});
 
 export type CollectionOutcome =
   | { readonly status: "advice"; readonly advice: CollectedAdvice }
   | { readonly status: "pending" | "empty" }
   | { readonly status: "unavailable"; readonly reason: "backend" | "credential" | "capacity" | "stale" | "lost" | "expired" };
 
-/** One response attempt, bound to the original resident. No remotely collectible authority is issued. */
-export const admitAndCollect = async (
+/** One bounded response attempt, tied to its originating resident lifetime. */
+export const admitAndCollectEffect = Effect.fn("ResidentClient.admitAndCollect")(function* (
   observation: DirectObservation,
   dispatch: ResidentDispatchContext,
   deadlineAt: number,
-  paths = residentPaths(),
-): Promise<CollectionOutcome> => {
+  paths: ResidentPaths | undefined = undefined,
+): Effect.fn.Return<CollectionOutcome, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
   if (observation.advicee.host !== "claude-code") return { status: "unavailable", reason: "lost" };
-  const owner = await ensureResident(paths, Math.min(STARTUP_READINESS_DEADLINE_MS,
-    Math.max(1, deadlineAt - performance.now())));
-  const timeoutMs = Math.min(EDIT_REQUEST_DEADLINE_MS, deadlineAt - performance.now());
+  paths ??= yield* resolveResidentPaths();
+  const owner = yield* ensureResidentEffect(paths, Math.min(STARTUP_READINESS_DEADLINE_MS,
+    Math.max(1, deadlineAt - (yield* monotonicMillis))));
+  const timeoutMs = Math.min(EDIT_REQUEST_DEADLINE_MS, deadlineAt - (yield* monotonicMillis));
   if (timeoutMs <= 150) return { status: "unavailable", reason: "expired" };
-  const response = await residentRequest(paths, {
+  const response = yield* residentRequestEffect(paths, {
     requestRoute: "edit", operation: "admit-and-collect", lifetime: owner.lifetime,
     observation, controlledWriter: true, composed: true, dispatch,
     waitMs: Math.max(0, Math.floor(timeoutMs - 150)),
-  }, timeoutMs).catch(() => undefined);
+  }, timeoutMs).pipe(Effect.catch(() => Effect.succeed(undefined)));
   if (response === undefined || !("requestRoute" in response) || response.requestRoute !== "edit") {
     return { status: "unavailable", reason: "lost" };
   }
@@ -343,17 +370,18 @@ export const admitAndCollect = async (
   if (response.status === "unavailable") return response;
   if (response.status === "pending" || response.status === "empty") return { status: response.status };
   return { status: "unavailable", reason: "lost" };
-};
+});
 
-export const collectReady = async (
+export const collectReadyEffect = Effect.fn("ResidentClient.collectReady")(function* (
   root: string,
   advicee: DirectAdvicee,
   dispatch: ResidentDispatchContext,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   mode: CollectionMode = "ordinary",
-): Promise<(CollectedAdvice & { readonly output: CodexDirectEventOutput }) | undefined> => {
-  const owner = await ensureResident(paths);
-  const response = await residentRequest(paths, {
+): Effect.fn.Return<(CollectedAdvice & { readonly output: CodexDirectEventOutput }) | undefined, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
+  paths ??= yield* resolveResidentPaths();
+  const owner = yield* ensureResidentEffect(paths);
+  const response = yield* residentRequestEffect(paths, {
     requestRoute: "shared",
     operation: "collect",
     lifetime: owner.lifetime,
@@ -375,27 +403,28 @@ export const collectReady = async (
         findingCount: response.findingCount,
       }
     : undefined;
-};
+});
 
 export type AdviceeCollectionOutcome =
   | { readonly status: "advice"; readonly advice: CollectedAdvice & { readonly output: CodexDirectEventOutput } }
   | { readonly status: "pending" | "empty" };
 
 /** Shared background/Stop collection probe for any supported host advicee. */
-export const collectAdviceeOutcome = async (
+export const collectAdviceeOutcomeEffect = Effect.fn("ResidentClient.collectAdviceeOutcome")(function* (
   root: string,
   advicee: DirectAdvicee,
   dispatch: ResidentDispatchContext,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   mode: CollectionMode = "ordinary",
   deadlineAt = Number.POSITIVE_INFINITY,
   finish?: { readonly token: string; readonly deadlineReached: boolean },
-): Promise<AdviceeCollectionOutcome> => {
-  const owner = await inspectResident(paths);
+): Effect.fn.Return<AdviceeCollectionOutcome, ResidentIpcError | ResidentEndpointError> {
+  paths ??= yield* resolveResidentPaths();
+  const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return { status: "empty" };
-  const remaining = deadlineAt - performance.now() - 100;
+  const remaining = deadlineAt - (yield* monotonicMillis) - 100;
   if (remaining <= 0) return { status: "empty" };
-  const response = await residentRequest(paths, {
+  const response = yield* residentRequestEffect(paths, {
     requestRoute: "shared",
     operation: "collect",
     lifetime: owner.lifetime,
@@ -420,109 +449,108 @@ export const collectAdviceeOutcome = async (
     } };
   }
   return { status: response.status === "pending" ? "pending" : "empty" };
-};
+});
 
-export const markComposedUserPrompt = async (
+export const markComposedUserPromptEffect = Effect.fn("ResidentClient.markComposedUserPrompt")(function* (
   root: string,
   advicee: DirectAdvicee,
   marker: string,
-  paths = residentPaths(),
+  paths: ResidentPaths | undefined = undefined,
   promptDigest?: string,
   onlyIfMissing?: true,
-): Promise<boolean> => {
-  const owner = await ensureResident(paths, 1_500);
-  const response = await residentRequest(paths, {
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
+  paths ??= yield* resolveResidentPaths();
+  const owner = yield* ensureResidentEffect(paths, 1_500);
+  const response = yield* residentRequestEffect(paths, {
     requestRoute: "shared", operation: "prompt-marker", lifetime: owner.lifetime,
     root, advicee, marker,
     ...(promptDigest === undefined ? {} : { promptDigest }),
     ...(onlyIfMissing === true ? { onlyIfMissing: true as const } : {}),
   });
   return response.status === "advanced";
-};
+});
 
-export const claimComposedBackground = async (
+export const claimComposedBackgroundEffect = Effect.fn("ResidentClient.claimComposedBackground")(function* (
   root: string, advicee: DirectAdvicee, token: string,
-  paths = residentPaths(),
-): Promise<boolean> => {
-  const owner = await ensureResident(paths, 1_500);
-  const response = await residentRequest(paths, {
+  paths: ResidentPaths | undefined = undefined,
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
+  paths ??= yield* resolveResidentPaths();
+  const owner = yield* ensureResidentEffect(paths, 1_500);
+  const response = yield* residentRequestEffect(paths, {
     requestRoute: "shared", operation: "claim-background", lifetime: owner.lifetime,
     root, advicee, token,
   });
   return response.status === "background-claimed";
-};
+});
 
-export const releaseComposedBackground = async (
+export const releaseComposedBackgroundEffect = Effect.fn("ResidentClient.releaseComposedBackground")(function* (
   root: string, advicee: DirectAdvicee, token: string,
-  paths = residentPaths(),
-): Promise<boolean> => {
-  const owner = await inspectResident(paths);
+  paths: ResidentPaths | undefined = undefined,
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError> {
+  paths ??= yield* resolveResidentPaths();
+  const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
-  const response = await residentRequest(paths, {
+  const response = yield* residentRequestEffect(paths, {
     requestRoute: "shared", operation: "release-background", lifetime: owner.lifetime,
     root, advicee, token,
   });
   return response.status === "released";
-};
+});
 
-export const beginComposedSubmission = async (
+export const beginComposedSubmissionEffect = Effect.fn("ResidentClient.beginComposedSubmission")(function* (
   advice: CollectedAdvice,
   surface: "edit" | "background" | "stop",
-): Promise<boolean> => {
-  const response = await residentRequest(advice.paths, {
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError> {
+  const response = yield* residentRequestEffect(advice.paths, {
     requestRoute: "shared", operation: "begin-submission", lifetime: advice.lifetime,
     token: advice.token, surface,
   });
   return response.status === "submitting";
-};
+});
 
-export const releaseComposedSubmission = async (advice: CollectedAdvice): Promise<boolean> => {
-  const response = await residentRequest(advice.paths, {
+export const releaseComposedSubmissionEffect = Effect.fn("ResidentClient.releaseComposedSubmission")(function* (advice: CollectedAdvice): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError> {
+  const response = yield* residentRequestEffect(advice.paths, {
     requestRoute: "shared", operation: "release", lifetime: advice.lifetime,
     token: advice.token,
   });
   return response.status === "released";
-};
+});
 
-export const acknowledgeAdvice = async (advice: CollectedAdvice): Promise<boolean> => {
-  const deadline = performance.now() + CLIENT_REQUEST_DEADLINE_MS;
-  const acknowledged = await residentRequest(advice.paths, {
-    requestRoute: "shared",
-    operation: "acknowledge",
-    lifetime: advice.lifetime,
-    token: advice.token,
-  }).catch(() => undefined);
+export const acknowledgeAdviceEffect = Effect.fn("ResidentClient.acknowledgeAdvice")(function* (advice: CollectedAdvice) {
+  const deadline = (yield* monotonicMillis) + CLIENT_REQUEST_DEADLINE_MS;
+  const acknowledged = yield* residentRequestEffect(advice.paths, {
+    requestRoute: "shared", operation: "acknowledge", lifetime: advice.lifetime, token: advice.token,
+  }).pipe(Effect.catch(() => Effect.succeed(undefined)));
   if (acknowledged?.status !== "acknowledged") return false;
-  const remaining = deadline - performance.now();
+  const remaining = deadline - (yield* monotonicMillis);
   if (remaining <= 0) return false;
-  const finalized = await residentRequest(advice.paths, {
-    requestRoute: "shared",
-    operation: "finalize",
-    lifetime: advice.lifetime,
-    token: advice.token,
-  }, remaining).catch(() => undefined);
+  const finalized = yield* residentRequestEffect(advice.paths, {
+    requestRoute: "shared", operation: "finalize", lifetime: advice.lifetime, token: advice.token,
+  }, remaining).pipe(Effect.catch(() => Effect.succeed(undefined)));
   return finalized?.status === "finalized";
-};
+});
 
-export const composedStopBoundary = async (
+export const composedStopBoundaryEffect = Effect.fn("ResidentClient.composedStopBoundary")(function* (
   operation: "begin-stop" | "finish-stop", root: string, advicee: DirectAdvicee,
-  token: string, close = false, paths = residentPaths(), reason: RoundCloseReason = "no-advice",
-): Promise<boolean> => {
-  const owner = await inspectResident(paths);
+  token: string, close = false, paths: ResidentPaths | undefined = undefined, reason: RoundCloseReason = "no-advice",
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError> {
+  paths ??= yield* resolveResidentPaths();
+  const owner = yield* inspectResidentEffect(paths);
   if (!owner.available || owner.lifetime === undefined) return false;
-  const response = await residentRequest(paths, { requestRoute: "shared", operation,
+  const response = yield* residentRequestEffect(paths, { requestRoute: "shared", operation,
     lifetime: owner.lifetime, root, advicee, token, close, reason }, 250);
   return response.status === "advanced";
-};
+});
 
-export const registerComposedEdit = async (
-  root: string, advicee: DirectAdvicee, startedAt: number, paths = residentPaths(), activityPath?: string,
+export const registerComposedEditEffect = Effect.fn("ResidentClient.registerComposedEdit")(function* (
+  root: string, advicee: DirectAdvicee, startedAt: number, paths: ResidentPaths | undefined = undefined, activityPath?: string,
   userConfigPath?: string,
-): Promise<boolean> => {
-  const owner = await ensureResident(paths, 1_500);
-  const response = await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+): Effect.fn.Return<boolean, ResidentIpcError | ResidentEndpointError, ResidentStartup> {
+  paths ??= yield* resolveResidentPaths();
+  const owner = yield* ensureResidentEffect(paths, 1_500);
+  const response = yield* residentRequestEffect(paths, { requestRoute: "shared", operation: "register-edit",
     lifetime: owner.lifetime, root, advicee, startedAt,
     ...(activityPath === undefined ? {} : { activityPath }),
     ...(userConfigPath === undefined ? {} : { userConfigPath }) });
   return response.status === "advanced";
-};
+});

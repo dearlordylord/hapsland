@@ -1,0 +1,17 @@
+{
+  "purpose": "Sanitized CPU profile summary for the scoped runtime benchmark regression",
+  "authority": "Implementation evidence; no performance acceptance",
+  "measuredTree": "c397c3b",
+  "cohort": "4.0.0",
+  "method": "Node --cpu-prof on the unchanged benchmark workload; sum sample timeDeltas through parent stacks for named functions. Inclusive times overlap and must not be added. Profiled timings are diagnostic only.",
+  "inclusiveCpuMs": {
+    "projectCanonical": 7569.6,
+    "stepCanonical": 5195.3,
+    "canonicalProjection": 2628.7,
+    "capacitySnapshot": 408.0,
+    "runtimeCommitEffect": 9.5
+  },
+  "finding": "Repeated validated projection traversals dominate a substantial part of runtime CPU. Native spawn calls also take substantial time; no substrate or workload gate is bypassed.",
+  "next": "Projection conformance and latency/RSS checks pass; remaining retention-budget failure has a separate purpose-specific investigation.",
+  "rawProfile": "Deleted after summary transfer and projection conformance/performance verification; sanitized evidence remains here and in the benchmark artifacts."
+}

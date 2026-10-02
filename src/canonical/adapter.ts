@@ -1,3 +1,4 @@
+import { freezeCanonicalData } from "./immutable.ts";
 import { bendCanonicalInitial, bendCanonicalInventory, bendCanonicalPartitionUsage, bendCanonicalStep, bendCanonicalTotal, bendPreparationLimit, bendJevRequestLimit } from "./canonical.generated.js";
 
 const MAX_NAT = 2 ** 48 - 1;
@@ -919,8 +920,18 @@ export type CanonicalProjection = {
 };
 type DispatchEntry = { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly sequence: number; readonly cancelled: boolean; readonly preparation: boolean };
 const known = new WeakSet<object>();
+// Projections contain validated numeric facts, not native handles or payloads.
+// Weak keys do not extend canonical-state lifetime beyond its actual owner.
+const projections = new WeakMap<object, CanonicalProjection>();
+const registerCanonical = (state: unknown): void => {
+  known.add(freezeCanonicalData(object(state)));
+  projectCanonical(state);
+};
 export const projectCanonical = (state: unknown): CanonicalProjection => {
-  if (!known.has(object(state))) throw new TypeError("foreign canonical state");
+  const identity = object(state);
+  if (!known.has(identity)) throw new TypeError("foreign canonical state");
+  const cached = projections.get(identity);
+  if (cached !== undefined) return cached;
   const s = fields(state, "Canonical.State", ["ledger", "rounds", "work", "next_round", "next_operation", "admissions", "dispatch", "collection", "history"]);
   nat(s.next_round, true); nat(s.next_operation, true);
   const history = fields(s.history, "EditHistory.State", ["entries"]);
@@ -1160,11 +1171,13 @@ export const projectCanonical = (state: unknown): CanonicalProjection => {
         entry.limits.globalBytes !== limits.global_bytes ||
         entry.limits.partitionItems !== limits.partition_items ||
         entry.limits.partitionBytes !== limits.partition_bytes)) throw new TypeError("inconsistent capacity inventory");
-  return { global, executionLimits,
+  const projection = freezeCanonicalData({ global, executionLimits,
     limits: { globalItems: nat(limits.global_items, true), globalBytes: nat(limits.global_bytes, true),
       partitionItems: nat(limits.partition_items, true), partitionBytes: nat(limits.partition_bytes, true) },
     partitions, charges, inventory, rounds, admissions, completedEdits, work, pendingFindings,
-    dispatch, collection, revision, reuse, notices, delivery };
+    dispatch, collection, revision, reuse, notices, delivery });
+  projections.set(identity, projection);
+  return projection;
 };
 export const initialCanonical = (limits: { readonly globalItems: number; readonly globalBytes: number; readonly partitionItems: number; readonly partitionBytes: number }): unknown => {
   const values = Object.values(limits);
@@ -1172,7 +1185,7 @@ export const initialCanonical = (limits: { readonly globalItems: number; readonl
       limits.globalItems > 512 || limits.partitionItems > 16 ||
       limits.globalBytes > MAX_BYTES || limits.partitionBytes > MAX_BYTES) throw new TypeError("invalid canonical limits");
   const state = bendCanonicalInitial({ $: "Ledger.Limits", global_items: limits.globalItems, global_bytes: limits.globalBytes, partition_items: limits.partitionItems, partition_bytes: limits.partitionBytes });
-  known.add(object(state)); projectCanonical(state);
+  registerCanonical(state);
   return state;
 };
 /** Callers must supply measured byte counts, authenticated attribution, and correct deadline facts. */
@@ -1182,12 +1195,12 @@ export const stepCanonical = (state: unknown, event: CanonicalEvent): { readonly
   switch (tag(raw)) {
     case "Canonical.Advanced": {
       const x = fields(raw, "Canonical.Advanced", ["state", "commands"]);
-      known.add(object(x.state)); projectCanonical(x.state);
+      registerCanonical(x.state);
       return { state: x.state, commands: readList(x.commands, decodeCommand) };
     }
     case "Canonical.Rejected": {
       const x = fields(raw, "Canonical.Rejected", ["state", "reason"]);
-      known.add(object(x.state)); projectCanonical(x.state);
+      registerCanonical(x.state);
       const reason = tag(x.reason);
       if (reason === "Canonical.PermitDenied") {
         const detail = tag(fields(x.reason, "Canonical.PermitDenied", ["reason"]).reason);

@@ -1,3 +1,4 @@
+import { ConfigProvider, Effect } from "effect";
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -40,8 +41,8 @@ describe("OpenCode unsupported installation and owned cleanup", () => {
     const { home, request } = fixture();
     expect(previewOpenCodeInstallation(request).status).toBe("unsupported");
     expect(previewOpenCodeUpdate(request).status).toBe("unsupported");
-    expect((await installOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" })).status).toBe("unsupported");
-    expect((await updateOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" })).status).toBe("unsupported");
+    expect((await Effect.runPromise(installOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" }))).status).toBe("unsupported");
+    expect((await Effect.runPromise(updateOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" }))).status).toBe("unsupported");
     expect(existsSync(home)).toBe(false);
   });
 
@@ -50,18 +51,53 @@ describe("OpenCode unsupported installation and owned cleanup", () => {
     seedOwnedPlugin(home);
     writeFileSync(join(home, "plugins", "other.mjs"), "other plugin");
     const ownedPlugin = readFileSync(join(home, "plugins", "hapsland.mjs"), "utf8");
-    expect((await installOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" })).status).toBe("unsupported");
-    expect((await updateOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" })).status).toBe("unsupported");
+    expect((await Effect.runPromise(installOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" }))).status).toBe("unsupported");
+    expect((await Effect.runPromise(updateOpenCodeIntegration({ ...request, proposalDigest: "old-proposal" }))).status).toBe("unsupported");
     expect(readFileSync(join(home, "plugins", "hapsland.mjs"), "utf8")).toBe(ownedPlugin);
-    const doctor = diagnoseOpenCodeIntegration(request);
+    const doctor = await Effect.runPromise(diagnoseOpenCodeIntegration(request));
     expect(doctor.status).toBe("not-ready");
     expect(doctor.checks.find((check) => check.stage === "pre-edit-permit")?.status).toBe("unsupported");
-    const removal = await uninstallOpenCodeIntegration(request);
+    const removal = await Effect.runPromise(uninstallOpenCodeIntegration(request));
     expect(removal.status).toBe("preview");
     if (removal.status !== "preview") throw new Error("removal preview unavailable");
-    expect((await uninstallOpenCodeIntegration({ ...request, proposalDigest: removal.proposal.digest })).status).toBe("complete");
+    expect((await Effect.runPromise(uninstallOpenCodeIntegration({ ...request, proposalDigest: removal.proposal.digest }))).status).toBe("complete");
     expect(existsSync(join(home, "plugins", "hapsland.mjs"))).toBe(false);
     expect(readFileSync(join(home, "plugins", "other.mjs"), "utf8")).toBe("other plugin");
+  });
+
+  it("rejects an explicitly empty runtime through caller configuration before cleanup", async () => {
+    const { home, request } = fixture();
+    seedOwnedPlugin(home);
+    const plugin = join(home, "plugins", "hapsland.mjs");
+    const before = readFileSync(plugin, "utf8");
+    const result = await Effect.runPromise(uninstallOpenCodeIntegration(request).pipe(
+      Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
+        REVIEW_INSTALL_RUNTIME: "",
+      }, { preserveEmptyStrings: true }))),
+    ));
+    expect(result).toMatchObject({ status: "conflict", error: {
+      message: "OpenCode installation configuration is invalid",
+    } });
+    expect(readFileSync(plugin, "utf8")).toBe(before);
+  });
+
+  it("preserves another lock owner and releases its own lock after cleanup", async () => {
+    const { home, request } = fixture();
+    seedOwnedPlugin(home);
+    const preview = await Effect.runPromise(uninstallOpenCodeIntegration(request));
+    if (preview.status !== "preview") throw new Error("removal preview unavailable");
+    const lock = join(home, ".realtime-review-tool", "opencode-installation.lock");
+    mkdirSync(lock);
+    writeFileSync(join(lock, "owner"), "other owner");
+    const approved = { ...request, proposalDigest: preview.proposal.digest };
+    expect(await Effect.runPromise(uninstallOpenCodeIntegration(approved))).toMatchObject({
+      status: "conflict", error: { message: "OpenCode installation is locked" },
+    });
+    expect(readFileSync(join(lock, "owner"), "utf8")).toBe("other owner");
+    expect(existsSync(join(home, "plugins", "hapsland.mjs"))).toBe(true);
+    rmSync(lock, { recursive: true });
+    expect((await Effect.runPromise(uninstallOpenCodeIntegration(approved))).status).toBe("complete");
+    expect(existsSync(lock)).toBe(false);
   });
 
   it("refuses a modified owned file and never removes it", async () => {
@@ -69,7 +105,7 @@ describe("OpenCode unsupported installation and owned cleanup", () => {
     seedOwnedPlugin(home);
     const plugin = join(home, "plugins", "hapsland.mjs");
     writeFileSync(plugin, "modified\n");
-    expect((await uninstallOpenCodeIntegration(request)).status).toBe("conflict");
+    expect((await Effect.runPromise(uninstallOpenCodeIntegration(request))).status).toBe("conflict");
     expect(readFileSync(plugin, "utf8")).toBe("modified\n");
   });
 });

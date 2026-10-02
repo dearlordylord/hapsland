@@ -1,3 +1,7 @@
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
+import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
+import { makeDispatchControls } from "../test-support/dispatch-controls.ts";
+import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { existsSync, readFileSync } from "node:fs";
@@ -6,16 +10,12 @@ import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { residentPaths } from "./paths.ts";
-import { ResidentServer } from "./server.ts";
+
 import type { ResidentDispatchContext } from "./protocol.ts";
 
 // Regresses dispatch authorization after a completed policy update. The
 // controlled provider writes one line per DecisionModel call.
-const deferred = () => {
-  let resolve!: () => void;
-  const promise = new Promise<void>((done) => { resolve = done; });
-  return { promise, resolve };
-};
+
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -47,17 +47,17 @@ const calls = (path: string) => existsSync(path)
 describe("queued exclusion authority", () => {
   it("has a provider-attempt positive control", async () => {
     const fixture = await setup(false);
-    const server = new ResidentServer(residentPaths(join(fixture.root, "runtime")));
-    expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")));
+    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(1);
   }, 30_000);
 
   it("does not call the provider for an initially excluded candidate", async () => {
     const fixture = await setup(true);
-    const server = new ResidentServer(residentPaths(join(fixture.root, "runtime")));
-    expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")));
+    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
   }, 30_000);
 
@@ -66,40 +66,40 @@ describe("queued exclusion authority", () => {
     const entered = deferred();
     const release = deferred();
     let preparedSourceSeen = false;
-    const server = new ResidentServer(residentPaths(join(fixture.root, "runtime")), undefined, {
-      beforeEvaluate: async (prepared) => {
+    const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
-        entered.resolve();
-        await release.promise;
-      },
+        yield* entered.complete();
+        yield* release.wait;
+      }) }),
     });
-    expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     await entered.promise;
     expect(preparedSourceSeen).toBe(true);
     expect(calls(fixture.capturePath)).toBe(0);
     await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     release.resolve();
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
   }, 30_000);
 
   it("rechecks exclusion after the credential-to-dispatch wait", async () => {
     const fixture = await setup(false);
     let preparedSourceSeen = false;
-    let updateCompleted = false;
-    const server = new ResidentServer(residentPaths(join(fixture.root, "runtime")), undefined, {
-      beforeEvaluate: async (prepared) => {
+    const controls = await Effect.runPromise(makeDispatchControls());
+    await Effect.runPromise(controls.holdNext("credentialResolved"));
+    const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
-      },
-      afterCredentialBeforeDispatch: async () => {
-        await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
-        updateCompleted = true;
-      },
+      }) }),
+      dispatchControls: controls.layer,
     });
-    expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
+    expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved");
     expect(preparedSourceSeen).toBe(true);
-    expect(updateCompleted).toBe(true);
+    await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
+    await Effect.runPromise(controls.release);
+    await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
   }, 30_000);
 });

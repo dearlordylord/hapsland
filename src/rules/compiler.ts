@@ -1,4 +1,4 @@
-import { Decision } from "effect/unstable/ai";
+import { Decision } from "effect/ai";
 import { APPLIES_FROM, levelOf, type Level } from "../questions.ts";
 import { RuleId } from "../domain/contracts.ts";
 import { ConfigurationError } from "../configuration/errors.ts";
@@ -35,7 +35,7 @@ export type CompiledRule = {
   readonly packDigest: string;
   readonly ruleId: string;
   readonly definitionDigest: string;
-  readonly decision: Decision.Probability;
+  readonly decision: Decision.Probability & { readonly criteria: { readonly false: string; readonly true: string } };
   readonly threshold: number;
   readonly message: string;
   readonly rank: number;
@@ -238,7 +238,7 @@ export const compileRules = (
         packDigest: pack.contentDigest,
         ruleId: rule.id,
         definitionDigest: digestRuleDefinition(pack, rule),
-        decision: Decision.probability({ instructions: rule.question, criteria: rule.criteria }),
+        decision: { ...Decision.probability({ instructions: rule.question, criteria: rule.criteria }), criteria: rule.criteria },
         threshold,
         message,
         rank,

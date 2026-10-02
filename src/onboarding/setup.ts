@@ -57,7 +57,7 @@ export type SetupOptions = {
   readonly statePath: string;
   readonly userConfigPath?: string;
   /** Supplied only by the installed CLI's masked /dev/tty handoff. */
-  readonly readCredential?: () => Promise<string>;
+  readonly readCredential?: () => Effect.Effect<string, unknown>;
 };
 
 export const runSetup = Effect.fn("Setup.run")(function* (
@@ -75,19 +75,19 @@ export const runSetup = Effect.fn("Setup.run")(function* (
   } : {};
   const codexRequest = request.host === "codex" ? installationRequest(request) : {};
   const claudeInstalled = request.host === "claude" && hasClaudeRegistration(claudeRequest);
-  const preview = () => {
-    if (request.host !== "claude") return previewCodexInstallation(codexRequest);
-    if (!claudeInstalled) return previewClaudeInstallation(claudeRequest);
-    const target = previewClaudeUpdate(claudeRequest);
+  const preview = Effect.fn("Setup.previewInstallation")(function* () {
+    if (request.host !== "claude") return yield* previewCodexInstallation(codexRequest);
+    if (!claudeInstalled) return yield* previewClaudeInstallation(claudeRequest);
+    const target = yield* previewClaudeUpdate(claudeRequest);
     const changes = list(record(record(target)?.proposal)?.changes);
     return { ...target, installed: target.status === "preview" && changes.length === 0 };
-  };
+  });
   const install = (proposalDigest: string) => request.host === "claude"
     ? claudeInstalled
       ? updateClaudeIntegration({ ...claudeRequest, proposalDigest })
       : installClaudeIntegration({ ...claudeRequest, proposalDigest })
     : installCodexIntegration({ ...codexRequest, proposalDigest });
-  let installation: unknown = preview();
+  let installation: unknown = yield* preview();
   let installationRecord = record(installation) ?? {};
   const previewHost = record(installationRecord.host);
   const compatibility = record(previewHost?.compatibility);
@@ -110,10 +110,10 @@ export const runSetup = Effect.fn("Setup.run")(function* (
   const installDigest = text(proposal?.digest);
   const installedAtPreview = installationRecord.installed === true;
   if (installationStatus === "partial" && request.installProposalDigest === installDigest && installDigest !== undefined) {
-    installation = yield* Effect.promise(() => install(installDigest));
+    installation = yield* install(installDigest);
     installationRecord = record(installation) ?? {};
   } else if (installationStatus === "preview" && !installedAtPreview && request.installProposalDigest === installDigest && installDigest !== undefined) {
-    installation = yield* Effect.promise(() => install(installDigest));
+    installation = yield* install(installDigest);
     installationRecord = record(installation) ?? {};
   }
 
@@ -227,10 +227,10 @@ export const runSetup = Effect.fn("Setup.run")(function* (
         pending.push("select a credential source");
       }
     } else {
-      let resolution = yield* Effect.promise(() => resolveCredential({
+      let resolution = yield* resolveCredential({
         envVar: settings.credentialEnvVar,
         environmentOnly,
-      }));
+      });
       let interactiveOutcome:
         | { readonly status: "cancelled" }
         | {
@@ -247,16 +247,16 @@ export const runSetup = Effect.fn("Setup.run")(function* (
         options.readCredential !== undefined &&
         installed
       ) {
-        const valueResult = yield* Effect.tryPromise(options.readCredential).pipe(Effect.result);
+        const valueResult = yield* options.readCredential().pipe(Effect.result);
         if (valueResult._tag === "Success") {
           let value = valueResult.success;
-          const saved = yield* Effect.promise(() => saveCredential(value));
+          const saved = yield* saveCredential(value);
           value = "";
           if (saved.status === "stored") {
-            resolution = yield* Effect.promise(() => resolveCredential({
+            resolution = yield* resolveCredential({
               envVar: settings.credentialEnvVar,
               environmentOnly: false,
-            }));
+            });
           } else {
             interactiveOutcome = {
               status: saved.status,

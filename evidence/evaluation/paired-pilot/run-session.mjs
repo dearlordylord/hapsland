@@ -1,3 +1,4 @@
+import { runClient } from "../../../src/test-support/client-runtime.ts";
 // Run one preregistered issue #95 arm in a disposable repository.
 // Raw Codex and Jev material stays in memory or temporary private files.
 import { spawn } from "node:child_process";
@@ -7,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeTypeFile } from "../../../src/direct-event/analyzer.ts";
-import { residentRequest } from "../../../src/resident/client.ts";
+import { residentRequestEffect as residentRequest } from "../../../src/resident/client.ts";
 import { residentPaths } from "../../../src/resident/paths.ts";
 import { claimOutputRoot, retryOutputRoot } from "./artifact-claim.mjs";
 import { FRESH_ORDER, tokenAccounting, validateNext } from "./preflight.mjs";
@@ -380,7 +381,7 @@ try {
   try { residentOwner = JSON.parse(await readFile(residentPaths(join(state, "resident")).owner, "utf8")); } catch { residentOwner = undefined; }
   if (residentOwner) {
     const paths = residentPaths(join(state, "resident"));
-    await residentRequest(paths, { version: 1, operation: "cleanup", lifetime: residentOwner.lifetime }).catch(() => {});
+    await runClient(residentRequest(paths, { version: 1, operation: "cleanup", lifetime: residentOwner.lifetime })).catch(() => {});
     try { process.kill(residentOwner.pid, "SIGTERM"); } catch { /* already gone */ }
   }
   await rm(temporary, { recursive: true, force: true });

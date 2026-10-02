@@ -167,7 +167,7 @@ const residentV1 = async ({ root, observations, primer }) => {
     return { contract: "installed-resident-v1", primerAdmissions: 1, admittedPayloads: admission.length, captureGateEntered: held.entered,
       runningAtGate: atGate.running, queuedAtGate: atGate.queued,
       ledgerBytesAtGate: atGate.retainedBytes,
-      peakLedgerBytes: server.accountingMetrics().peakLedgerBytes,
+      peakLedgerBytes: (await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes,
       rejectedCapacity: after.rejectedCapacity, retainedBytesAfterIdle: after.retainedBytes,
       pendingAdviceAfterIdle: after.pendingAdvice, providerCalls,
       memory: { baseline: sample.baseline, peak: sample.peak } };

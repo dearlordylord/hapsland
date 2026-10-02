@@ -1,3 +1,4 @@
+import { runClient } from "../test-support/client-runtime.ts";
 /** Resident source-free diagnostic and process-sink regression witnesses. */
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
@@ -9,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { makeGitFixture, put, updateEvent } from "../direct-event/test-fixtures.ts";
-import { ensureResident, residentRequest } from "./client.ts";
+import { ensureResidentEffect as ensureResident, residentRequestEffect as residentRequest } from "./client.ts";
 import { residentPaths } from "./paths.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
@@ -55,7 +56,7 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     const activityPath = join(temporary, "activity");
     const runtime = join(temporary, "runtime");
 
-    const launchScript = "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));";
+    const launchScript = "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));";
     const child = spawn(process.execPath, ["--input-type=module", "-e", launchScript], {
       cwd: process.cwd(),
       env: {
@@ -98,8 +99,8 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     })}\n`;
     expect(admissionFrame).toContain(marker);
     const paths = residentPaths(runtime);
-    expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
-      lifetime: owner.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
+    expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+      lifetime: owner.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
     const admissionResponse = await new Promise<string>((resolve, reject) => {
       const socket = connect(paths.socket);
       let response = "";
@@ -115,13 +116,13 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     expect(JSON.parse(admissionResponse)).toEqual({ version: 1, status: "accepted" });
     await waitFor(async () => {
       if (!existsSync(join(temporary, "called"))) return false;
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       return stats.status === "stats" && stats.running === 0;
     });
-    const response = await residentRequest(paths, {
+    const response = await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "collect", composed: true, lifetime: owner.lifetime,
       root, advicee: observation.advicee, dispatch,
-    });
+    }));
     expect(JSON.stringify(response)).not.toContain(marker);
     const files = await allFileContents(temporary);
     expect(files).not.toHaveLength(0);
@@ -136,19 +137,24 @@ describe("security sink prototype", { timeout: 15_000 }, () => {
     const statePath = join(temporary, "consent");
     const script = [
       "import * as Effect from 'effect/Effect';",
+      "import {Layer} from 'effect';",
+      "import {ResidentPreparationControls,PreparationControlError,defaultPreparationControls} from './src/resident/preparation-controls.ts';",
       "import {adaptCodexDirectEvent} from './src/direct-event/adapter.ts';",
       "import {updateEvent} from './src/direct-event/test-fixtures.ts';",
-      "import {ResidentServer} from './src/resident/server.ts';",
+      "import {makeResidentRuntime} from './src/resident/server.ts';",
       "import {residentPaths} from './src/resident/paths.ts';",
       `const root=${JSON.stringify(root)};`,
       `const marker=${JSON.stringify(marker)};`,
       `const statePath=${JSON.stringify(statePath)};`,
       `const runtime=${JSON.stringify(join(temporary, "runtime"))};`,
       "const observation=await Effect.runPromise(adaptCodexDirectEvent(updateEvent(root,'type.ts',[`type OrderCount = number // ${marker}`])));",
-      "const server=new ResidentServer(residentPaths(runtime),undefined,{afterPrepare:async()=>{throw new Error(marker)}});",
-      "server.admit(observation,{statePath,userConfigPath:null,credential:null,controlled:{}});",
-      "for(let i=0;i<200;i++){const s=server.stats();if(s.running===0&&s.queued===0)break;await new Promise(r=>setTimeout(r,10))}",
+      "await Effect.runPromise(Effect.scoped(Effect.gen(function*(){",
+      "const preparationControls=Layer.succeed(ResidentPreparationControls,{...defaultPreparationControls,afterPrepare:Effect.fail(new PreparationControlError({phase:'prepared',cause:new Error(marker)}))});",
+      "const server=yield* makeResidentRuntime(residentPaths(runtime),undefined,{preparationControls});",
+      "Effect.runSync(server.admit(observation,{statePath,userConfigPath:null,credential:null,controlled:{}}));",
+      "for(let i=0;i<200;i++){const s=Effect.runSync(server.stats());if(s.running===0&&s.queued===0)break;yield* Effect.promise(()=>new Promise(r=>setTimeout(r,10)))}",
       "console.log('done');",
+      "})));",
     ].join("\n");
     const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
       cwd: process.cwd(),

@@ -1,0 +1,77 @@
+{
+  "stage": "A",
+  "caseId": "clean-payment",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r2_meaningless_combinations"
+        ],
+        "findingIds": []
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "48eee378-fa7a-496d-813f-fe42ea5025be",
+      "at": 1790961870058,
+      "candidate": "hapsland",
+      "caseId": "clean-payment",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 1959,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r2_meaningless_combinations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "48eee378-fa7a-496d-813f-fe42ea5025be",
+      "at": 1790961870058,
+      "candidate": "hapsland",
+      "caseId": "clean-payment",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 219,
+      "answers": {
+        "r2_meaningless_combinations": {
+          "finding": false,
+          "band": "clear"
+        }
+      },
+      "usage": {
+        "input_tokens": 861,
+        "output_tokens": 28
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

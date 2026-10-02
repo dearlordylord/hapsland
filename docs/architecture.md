@@ -4,7 +4,7 @@
 **Status:** Active architecture explanation; public copy remains subject to editorial review.
 **Authority:** Maintained explanatory guidance. The linked accepted contracts own product behavior; this page introduces no new guarantees.
 **Expected use:** Understand what can leave the repository, why context is structured, and which guarantees have executable evidence.
-**Lifecycle:** Update alongside changes to review inputs, file policy, reducer authority, or provider routing. Review before public publication and whenever one of those boundaries changes.
+**Lifecycle:** Update alongside changes to review inputs, file policy, reducer authority, provider routing, or runtime ownership. Review before public publication and whenever one of those boundaries changes.
 
 Hapsland helps a coding agent revisit data-model and API decisions before more code builds on them. After a supported edit, it reviews the changed type or function together with related definitions, using built-in rules and rules you supply. Jev evaluates the supplied code against rule questions. Hapsland chooses which code and rules can be sent, maps the result to configured feedback, and checks that feedback still applies to the current code.
 
@@ -46,6 +46,20 @@ With credentials available and no file settings, all otherwise eligible files ar
 Access exclusions and size limits act at different points. An excluded dependency is refused before its source is read. A dependency's source may already have been read when its contribution is found not to fit the evidence tree; that contribution is then omitted. A walkthrough must distinguish local reads from code included in the request.
 
 Before dispatch, captured files must still match. Before advice is delivered, Hapsland rebuilds the unit and checks current source, policy, rules, and attribution. Changing exclusions affects future dispatches; it cannot recall a request already sent. The current destination is fixed to Jev at `https://api.typesafe.ai/v1/systemone`. Effect's provider-neutral API is an integration boundary; configurable alternative deciders are future work. See [configuration](configuration.md) for exact controls and precedence.
+
+## Runtime ownership
+
+Effect 4 services compose the resident, client, source preparation, Jev evaluation, and host-output workflows. Each resident acquisition owns one shared state record: short synchronous commits publish the Bend state and matching native records together, while filesystem and network effects run outside those commits. Scoped fibers execute admitted work; process and host adapters enter the Effect runtime at their boundaries. Jev integration uses provider-neutral `Decision` / `DecisionModel` with `@effect/ai-typesafe` and `Decision.probability` for the Noul rules.
+
+An IPC connection owns its response context and provisional delivery lease. Shared review work belongs to the resident lifetime, so disconnecting a collector does not cancel another collector's evaluation. Cancellation stops further authorized work, but issued requests and capture workspace retain their accounting until native work physically settles. Shutdown waits for that settlement before releasing ownership artifacts. Claude edit feedback uses one bounded admission-and-collection request with immutable response authority; it retains no edit tickets or duplicate outcome registry. The [advicee contract](advicing-target-contract.md) owns the delivery rules.
+
+Credential resolution, save, and logout compose in the caller's Effect runtime and configuration provider. Save and logout publish a suspended generation before invoking the native credential helper. The state lock remains owned until the helper physically closes, including after timeout or interruption; token checks prevent cleanup from deleting a successor's lock. Lock polling uses an Effect schedule, and persisted version-one state is decoded with Schema. CLI and resident process configuration preserve empty environment values so empty credential paths are rejected rather than replaced by defaults.
+
+Installation mutations compose in the caller's Effect runtime and own a scoped generation lock. Cancelled waiters remove their unpublished owner records; completion releases the exact published owner. Retained generation links fence competing stale-owner reclaimers. Mutation plans, journal revalidation and rollback preserve unrelated configuration and incomplete-operation recovery.
+
+The offline installed doctor composes its bounded, read-only resident probe in the caller's Effect runtime and configuration provider. It does not launch a resident or issue provider review calls. Native observation failures carry operation labels rather than source or credential contents.
+
+The explicitly selected first-review demo uses named Effect workflows for fixture preparation, claim consumption, host execution, observation and cleanup. A claimed preview owns a scoped cleanup capability. Native process timeout or interruption waits for callback settlement and physical closure before that scope removes the disposable root. Pending preview records remain available for explicit live selection or cancellation; their digest, owner marker and cleanup token fence execution and removal. Observation polling and elapsed-time measurements use Schedule and the caller's monotonic Clock. Budget expiry and persisted timestamps use epoch time.
 
 ## What verification establishes
 

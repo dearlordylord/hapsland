@@ -6,6 +6,10 @@
 **Expected use:** Apply these instructions when creating or changing repository artifacts.
 **Lifecycle:** Maintained with changes to repository policy, tooling, and product boundaries; review whenever an accepted workflow or product-boundary decision changes these instructions.
 
+Start with the [repository map](docs/agents/navigation.md) to find each task's
+contract, implementation, tests, website, and research assets. Use the
+[testing matrix](docs/testing-matrix.md) to select checks.
+
 ## Review requests and acceptance decisions
 
 When requesting owner review of a diagram or other visual artifact, present the
@@ -57,8 +61,8 @@ change the product name to Jev.
 ## Effect and Jev integration baseline
 
 The version-one implementation uses TypeScript and the latest mutually compatible
-Effect 4 RC cohort. Pin `effect` and companion Effect packages to the same exact RC; do
-not use an open prerelease range. As of 2026-09-19, that cohort is `4.0.0-rc.116`.
+Effect 4 stable cohort. Pin `effect` and companion Effect packages to the same exact
+release; do not use an open range. As of 2026-10-01, that cohort is `4.0.0`.
 
 New product code integrates Jev through Effect's provider-neutral `Decision` /
 `DecisionModel` API and the `@effect/ai-typesafe` provider. Use

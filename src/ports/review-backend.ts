@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
-import { Decision, DecisionModel } from "effect/unstable/ai";
+import { Decision, DecisionModel } from "effect/ai";
 import { BackendError } from "../domain/errors.ts";
 import type { Rule } from "../policy/rules.ts";
 
@@ -74,7 +74,7 @@ export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =
       const decisions: Record<string, Decision.Probability> = {};
       for (const rule of options.rules) decisions[rule.id] = rule.decision;
       const definition = Decision.make({ input: Schema.Json, decisions });
-      const started = yield* Clock.currentTimeMillis;
+      const started = yield* Clock.monotonicTimeNanos;
       let attempts = 0;
       const providerDispatch = model.decide(definition, { input }).pipe(
         Effect.mapError(
@@ -104,7 +104,7 @@ export const layerWithOptions = (layerOptions: ReviewBackendLayerOptions = {}) =
         backend: {
           id: "jev",
           model: "jev-latest",
-          durationMs: Math.max(0, (yield* Clock.currentTimeMillis) - started),
+          durationMs: Math.max(0, Number((yield* Clock.monotonicTimeNanos) - started) / 1_000_000),
           retries: Math.max(0, attempts - 1),
           usage: {
             ...(response.usage.inputTokens === undefined

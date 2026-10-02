@@ -1,0 +1,331 @@
+{
+  "purpose": "Requirement-by-requirement current migration audit",
+  "authority": "Implementation and validation evidence; neither product acceptance nor expanded platform support",
+  "productionSourceCommit": "0c86f40",
+  "completion": "complete",
+  "requirements": [
+    {
+      "requirement": "Full effectful product workflows compose as Effect; runtimes at process/host boundaries",
+      "status": "pass",
+      "evidence": [
+        "docs/architecture.md",
+        "src/resident/server.ts",
+        "src/resident/client.ts",
+        "src/cli.ts",
+        "src/package-doctor.ts"
+      ],
+      "exceptions": "Pure codecs, generated Bend policy, descriptor-anchored Linux capture and native socket callbacks remain boundary adapters. Linux capture is awaited uninterruptibly through physical descriptor cleanup.",
+      "verification": "133-module source inventory, original six responsibility map, scoped native-adapter exceptions, authority guards, caller-context native IPC regression and current full suite."
+    },
+    {
+      "requirement": "Stable exact mutually compatible Effect 4 cohort requested by user",
+      "status": "pass",
+      "evidence": [
+        "package.json",
+        "bun.lock",
+        "packages/agent-flow-viz/package.json",
+        "packages/agent-flow-viz/package-lock.json"
+      ],
+      "cohort": "4.0.0"
+    },
+    {
+      "requirement": "One canonical/native state owner and retained dispatch handoff; Bend remains policy authority",
+      "status": "pass",
+      "evidence": [
+        "src/resident/capacity.ts",
+        "src/resident/dispatch.test.ts",
+        "src/resident/capacity.test.ts",
+        "scripts/check-canonical-authority.mjs",
+        "scripts/check-production-authority.mjs"
+      ],
+      "verification": "Full production source suite passes; authority and boundary checks included."
+    },
+    {
+      "requirement": "Physical retirement, bounded concurrency, interruption and shutdown fences",
+      "status": "pass",
+      "evidence": [
+        "physical-retirement-current-ipc-final.json",
+        "physical-retirement-current-ipc-final-comparison.json"
+      ],
+      "limitation": "Comparative shutdown speed is unproven under the original declared baseline rule."
+    },
+    {
+      "requirement": "Decision / DecisionModel / ai-typesafe / probability Jev boundary",
+      "status": "pass",
+      "evidence": [
+        "src/jev-decision.ts",
+        "live-decision-contract-current.json"
+      ],
+      "scope": "Two bounded real fetch attempts and controlled offline suites; no arbitrary-source accuracy claim."
+    },
+    {
+      "requirement": "Build, typecheck, offline full suite and direct-event manifest",
+      "status": "pass",
+      "evidence": [
+        "checkpoint.json",
+        "conformance/direct-event-v1.json"
+      ],
+      "verification": "Current source: typecheck/build pass, 1292 tests pass in full suite; direct-event manifest unchanged obligations and references validated."
+    },
+    {
+      "requirement": "Explicit empty env values rejected; caller configuration preserved",
+      "status": "pass",
+      "evidence": [
+        "src/cli.test.ts",
+        "src/resident/client.test.ts",
+        "scripts/check-configuration-boundary.mjs",
+        "docs/configuration.md"
+      ]
+    },
+    {
+      "requirement": "Clean packed production install and Linux native host delivery",
+      "status": "pass",
+      "evidence": [
+        "installed-package-current.json",
+        "claude-native-current.json"
+      ],
+      "scope": "Latest production source: freshly installed Codex 0.155.1 with native interactive trust and controlled backend; Claude 2.1.218 native source case with Stop finding, repair and clear follow-up."
+    },
+    {
+      "requirement": "Public lifecycle/setup and terminal cleanup",
+      "status": "pass",
+      "evidence": [
+        "setup-package-current.json",
+        "client-selection-pty-current.json",
+        "masked-input-pty-current.json",
+        "checkpoint.json"
+      ],
+      "scope": "Fresh setup/package and public two-client lifecycle replays on final source pass offline, zero provider calls. Native Linux PTY Enter/Escape/signal/fiber restoration receipts remain for unchanged terminal source."
+    },
+    {
+      "requirement": "Original latency, retention, RSS and concurrency budgets",
+      "status": "pass",
+      "evidence": [
+        "benchmark-current-ipc-final-comparison.json"
+      ],
+      "limitation": "Separate physical-settlement shutdown comparison remains explicitly unproven."
+    },
+    {
+      "requirement": "Current native macOS host/package conformance identified by advisory adoption gate",
+      "status": "deferred-by-owner",
+      "evidence": [
+        "https://github.com/dearlordylord/hapsland/issues/172"
+      ],
+      "reason": "Linux host cannot execute macOS native capture, terminal, Keychain or agent profiles. Historical records do not prove migrated source.",
+      "followupIssue": "https://github.com/dearlordylord/hapsland/issues/172",
+      "requiredForCurrentMigration": false
+    }
+  ],
+  "next": "Migration merged into master at 474cc8e52e5c78c609770e775e3cdfeff1f3e380 and pushed. Perform macOS validation later under #172.",
+  "sourceInventory": {
+    "evidence": "source-inventory-current.json",
+    "reproducer": "node evidence/effect4-migration/source-inventory.mjs",
+    "moduleCount": 133,
+    "limitations": "Direct AST syntax only; aliases and dynamic imports need manual review. Tree-sitter reports one unsupported export type * at function-analyzer.ts:3; that eight-line pure language adapter was inspected manually. TypeScript 7 package exposes no legacy JS compiler API; inventory uses existing native Tree-sitter with no added dependency.",
+    "followup": "Native IPC listener now captures caller Context for runForkWith; regression reproduced unsupported hello before fix and validates ready response plus caller Clock/ConfigProvider after fix. Focused 23 tests and build pass; final suite remains required."
+  },
+  "currentProductionFollowup": "Latest production source passes typecheck/build and full suite (1292 tests), unchanged original performance budgets and all eight physical ownership invariants. Fresh installed Codex 0.155.1 case passes native trust and correlated review; latest exact Claude 2.1.218 case passes Stop finding, repair and clear follow-up.",
+  "responsibilityMap": [
+    {
+      "original": "ResidentServer",
+      "current": [
+        "src/resident/server.ts",
+        "src/resident/main.ts",
+        "src/resident/socket-frame.ts"
+      ],
+      "owner": "ResidentRuntimeService acquisition; process scope and listener-captured request Context",
+      "verification": [
+        "src/resident/runtime.test.ts",
+        "src/resident/ipc-context.test.ts",
+        "src/resident/socket-frame.test.ts",
+        "src/resident/server.test.ts"
+      ]
+    },
+    {
+      "original": "CapacityLedger",
+      "current": [
+        "src/resident/capacity.ts",
+        "src/canonical/adapter.ts"
+      ],
+      "owner": "One private Ref publishes canonical state and matching native records atomically",
+      "verification": [
+        "src/resident/capacity.test.ts",
+        "src/resident/runtime-records.test.ts"
+      ]
+    },
+    {
+      "original": "ComposedDelivery",
+      "current": [
+        "src/resident/composed-delivery.ts",
+        "src/resident/hook-output.ts",
+        "src/resident/composed-hook.ts"
+      ],
+      "owner": "Delivery drafts in shared state; scoped output service and named host workflows",
+      "verification": [
+        "src/resident/composed-delivery.test.ts",
+        "src/resident/hook-output.test.ts",
+        "src/resident/composed-hook.test.ts"
+      ]
+    },
+    {
+      "original": "EvaluationReuse",
+      "current": [
+        "src/resident/evaluation-reuse.ts",
+        "src/resident/joined-reviews.ts"
+      ],
+      "owner": "Canonical claims, identity, cache payloads and bytes in shared state; evaluation outside commit",
+      "verification": [
+        "src/resident/evaluation-reuse.test.ts",
+        "src/resident/joined-reviews.test.ts"
+      ]
+    },
+    {
+      "original": "DispatchQueue / DispatchCycles",
+      "current": [
+        "src/resident/dispatch.ts"
+      ],
+      "owner": "Retained canonical starts and acknowledgements in shared state; scoped fibers execute commands",
+      "verification": [
+        "src/resident/dispatch.test.ts",
+        "physical-retirement-current-final.json"
+      ]
+    },
+    {
+      "original": "BendWorkTracker",
+      "current": [
+        "src/resident/bend-work.ts"
+      ],
+      "owner": "Pure explicit projection operations; generated Bend remains sole policy authority",
+      "verification": [
+        "src/resident/bend-work.test.ts",
+        "scripts/check-canonical-authority.mjs"
+      ]
+    }
+  ],
+  "advisoryDispositions": [
+    {
+      "candidate": "Explicit canonical/native event and command transactions",
+      "classification": "BORROW",
+      "disposition": "implemented and tested"
+    },
+    {
+      "candidate": "Effect Context, Layer, Ref, Scope, fibers, Deferred, Latch, Schedule, Clock, Config, Schema",
+      "classification": "DEPEND ON",
+      "disposition": "Used in named workflow/services and deterministic tests; stable exact existing cohort."
+    },
+    {
+      "candidate": "Generic Cache, semaphore, Pool or RPC as canonical policy/IPC replacement",
+      "classification": "REJECT",
+      "disposition": "Canonical LRU, byte capacity, dispatch fairness and version-one wire contracts retain their owners."
+    },
+    {
+      "candidate": "platform-node generic OS implementation",
+      "classification": "DEPEND ON",
+      "disposition": "Conditional advisory candidate not adopted. Existing native adapters compose scoped Effects and preserve descriptor flags, physical process closure and socket framing. No new platform dependency or extra supply-chain closure introduced."
+    },
+    {
+      "candidate": "OTLP, Prometheus, OpenTelemetry SDK and devtools export",
+      "classification": "OPTIONAL INTEGRATION",
+      "disposition": "Deferred; no exporter endpoint, listener, credential/source telemetry or new egress introduced."
+    },
+    {
+      "candidate": "Durable workflow, cluster, SQL, persistent source queues and implicit retry/fallback plans",
+      "classification": "REJECT",
+      "disposition": "No accepted resident requirement calls for these facilities. Existing declared retry/accounting behavior remains."
+    }
+  ],
+  "nativeAdapterExceptions": [
+    {
+      "paths": [
+        "src/direct-event/capture.ts"
+      ],
+      "reason": "Descriptor-anchored native read requires O_NOFOLLOW, bigint inode/device checks and bounded double reads. Effect acquisition/finalizers own returned buffers and wait uninterruptibly for issued native reads and descriptor closure."
+    },
+    {
+      "paths": [
+        "src/onboarding/host-process.ts",
+        "src/credentials/secret-service-process.ts",
+        "src/resident/socket-frame.ts"
+      ],
+      "reason": "Native callbacks expose physical close, socket readiness/frame bytes and process stdout outcomes. Named Effect adapters own cancellation and resource cleanup; no independent application runner."
+    },
+    {
+      "paths": [
+        "src/onboarding/atomic-installation-file.ts",
+        "src/onboarding/demo-budget.ts",
+        "src/credentials/secret-service.ts"
+      ],
+      "reason": "Synchronous file transactions and native identity facts retain exclusive-write, permission, rename and token fences. Effect workflows own locks, helper invocation, deadlines and finalization."
+    },
+    {
+      "paths": [
+        "src/activity/status.ts",
+        "src/activity/storage.ts",
+        "src/activity/analytics.ts",
+        "src/onboarding/demo-trace.ts"
+      ],
+      "reason": "Bounded source-free native artifact/diagnostic writes remain synchronous sink adapters. Callers compose workflows as Effect; persisted timestamps intentionally use epoch time."
+    },
+    {
+      "paths": [
+        "src/direct-event/languages/native-parser.ts",
+        "src/parser-main.ts"
+      ],
+      "reason": "Native binding discovery and parser process I/O remain host boundaries; language analysis, codecs and generated policy remain pure."
+    }
+  ],
+  "historicalReleaseAncestry": {
+    "assembledCommit": "f2f47e94cd2d90cf73062f07c5e61416218e2f13",
+    "observations": {
+      "taskBaseline": {
+        "ref": "4324697adff22db315fc8e5490df6181e030b243",
+        "exitCode": 1
+      },
+      "currentBranch": {
+        "ref": "HEAD",
+        "exitCode": 1
+      },
+      "primaryMaster": {
+        "ref": "master",
+        "exitCode": 1
+      }
+    },
+    "interpretation": "Read-only ancestry observation; release declaration is not rewritten. A failed ancestry gate cannot validate current source."
+  },
+  "localVerification": "Complete for final production source 0c86f40: typecheck/build, full suite, scoped native IPC context, unchanged budget workloads, fresh installed Codex, exact Claude, fresh public setup/lifecycle, stable visualization build/browser and unchanged live Decision source hashes.",
+  "remainingVerification": [
+    "Native macOS arm64 validation is deferred to #172 and does not block this migration goal.",
+    "Historical installed-release ancestry failure predates the migration. Its earlier support declaration is unchanged; no new release/platform acceptance is claimed."
+  ],
+  "acceptanceDecision": {
+    "authority": "Explicit owner instruction in this session: move macOS validation to a separate task and consider the Effect migration goal closed.",
+    "followupIssue": "https://github.com/dearlordylord/hapsland/issues/172",
+    "scope": "Full idiomatic stable Effect 4 implementation and Linux verification; native macOS validation is deferred, not claimed passed.",
+    "mergePreparation": "Fresh origin/master e9ecab69146f9ab270a960a9e9fcda3e311efd32 integrated at 3c725907ff70211da44f3f0b3080d1608d83dc88. It adds documentation navigation and link-check tooling; no product source or dependency-lock change."
+  },
+  "historicalReleaseVerification": {
+    "requirement": "Historical authoritative installed-release gate",
+    "status": "contradicted",
+    "evidence": [
+      "conformance/installed-release-v1.json",
+      "docs/installed-release-compatibility.md"
+    ],
+    "reason": "Pinned assembled commit ancestry fails on migration branch and primary master. Current independent package receipts do not replace the historical accepted release declaration.",
+    "requiredForCurrentMigration": false,
+    "scope": "Verification of an earlier pinned support declaration; not the current implementation/merge gate. Fresh master testing matrix lists current migration-relevant gates separately."
+  },
+  "mergedMasterVerification": {
+    "typecheck": "pass",
+    "build": "pass",
+    "documentationChecks": "pass",
+    "documentationFixtureTests": 1,
+    "documentationErrors": 0,
+    "productionSourceInventoryHashes": "All 133 module hashes match the tested source exactly.",
+    "fullSuiteApplicability": "1292 tests/126 files pass on unchanged production source; two credential-gated live tests remain separately evidenced. No rerun of unchanged source tests required."
+  },
+  "handoffLifecycle": {
+    "source": "/tmp/hapsland-effect4-migration-handoff.md",
+    "action": "delete after migration context is incorporated into durable architecture, executable tests and this audit",
+    "replacement": "docs/architecture.md and evidence/effect4-migration/completion-audit-current.json"
+  }
+}

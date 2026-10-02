@@ -6,7 +6,7 @@ import { runFirstReviewDemo } from "../src/onboarding/first-review-demo.ts";
 const input = JSON.parse(readFileSync(process.argv[2] ?? "", "utf8"));
 const result = await Effect.runPromise(runFirstReviewDemo(input.request, {
   statePath: input.demoStatePath,
-  execute: async (options) => {
+  execute: (options) => Effect.sync(() => {
     for (let call = 0; call < 2; call += 1) {
       claimDemoBudget(options.budgetPath, options.root, 100);
       appendFileSync(input.dispatchMarkerPath, "reserved-provider-call\n", { mode: 0o600 });
@@ -32,7 +32,7 @@ const result = await Effect.runPromise(runFirstReviewDemo(input.request, {
       },
       repair: { changed: true, rejectsInvalidStates: true },
     };
-  },
+  }),
 }));
 
 process.stdout.write(`${JSON.stringify(result)}\n`);

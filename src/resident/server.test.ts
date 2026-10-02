@@ -1,6 +1,17 @@
+import { runClient } from "../test-support/client-runtime.ts";
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
+import { ReviewControlError } from "./review-controls.ts";
+import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
+import { ResidentDispatchControls, DispatchControlError } from "./dispatch-controls.ts";
+import { makeDispatchControls } from "../test-support/dispatch-controls.ts";
+import { Layer } from "effect";
+import { ResidentPreparationControls, PreparationControlError, defaultPreparationControls } from "./preparation-controls.ts";
+import { makePreparationControls } from "../test-support/preparation-controls.ts";
+import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { monotonicNow } from "./hook-clock.ts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as Effect from "effect/Effect";
+import * as Deferred from "effect/Deferred";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -12,14 +23,14 @@ import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { readActivity } from "../activity/status.ts";
 import { claudeHostOutputText } from "../direct-event/claude-output.ts";
 import { residentPaths } from "./paths.ts";
-import { residentRequest } from "./client.ts";
+import { residentRequestEffect as residentRequest } from "./client.ts";
 import {
   DELIVERY_LEASE_MS,
   decodeResidentRequest,
   type ResidentDispatchContext,
   type ResidentRequest,
 } from "./protocol.ts";
-import { ResidentServer } from "./server.ts";
+
 import { PARTITION_BYTE_LIMIT } from "./capacity.ts";
 import { VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
 import {
@@ -28,11 +39,7 @@ import {
   encodedHostOutputBytes,
 } from "./collection.ts";
 
-const deferred = <A = void>() => {
-  let resolve!: (value: A | PromiseLike<A>) => void;
-  const promise = new Promise<A>((done) => { resolve = done; });
-  return { promise, resolve };
-};
+
 
 const findingDispatch = (statePath: string): ResidentDispatchContext => ({
   statePath,
@@ -67,22 +74,22 @@ describe("virtual round quiescence", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["quiet.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
     const activityPath = join(root, "activity");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now());
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now());
     const dispatch = { ...findingDispatch(join(root, "consent")), activityPath,
       controlled: { answers: Object.fromEntries(configuredRules.map((rule) =>
         [rule.id, { _tag: "Probability" as const, probability: 0 }])) } };
     try {
-      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
-      await server.whenIdle();
-      expect(server.pendingAdviceMetadata()).toEqual([]);
-      expect(server.sweepQuietRounds(1_000)).toBe(0);
-      expect(server.sweepQuietRounds(1_000 + VIRTUAL_ROUND_QUIET_MS - 1)).toBe(0);
-      expect(server.sweepQuietRounds(1_000 + VIRTUAL_ROUND_QUIET_MS)).toBe(1);
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
+      expect(Effect.runSync(server.sweepQuietRounds(1_000))).toBe(0);
+      expect(Effect.runSync(server.sweepQuietRounds(1_000 + VIRTUAL_ROUND_QUIET_MS - 1))).toBe(0);
+      expect(Effect.runSync(server.sweepQuietRounds(1_000 + VIRTUAL_ROUND_QUIET_MS))).toBe(1);
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
       expect(activity.roundClosures?.[0]?.reason).toBe("quiescent");
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 });
@@ -102,9 +109,9 @@ const mutuallyReferencingTypes = (count = 17) => Array.from({ length: count }, (
   return `interface ${typeName(index)} { ${fields} }`;
 }).join("\n");
 
-const waitUntilIdle = async (server: ResidentServer): Promise<void> => {
+const waitUntilIdle = async (server: ResidentRuntime): Promise<void> => {
   for (let attempt = 0; attempt < 100; attempt += 1) {
-    const stats = server.stats();
+    const stats = Effect.runSync(server.stats());
     if (stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0) return;
     await new Promise<void>((resolveImmediate) => setImmediate(resolveImmediate));
   }
@@ -131,24 +138,24 @@ describe("canonical resident capacity", () => {
     const release = deferred();
     const captured: Array<string> = [];
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       captureSource: (_root, path) => Effect.sync(() => {
         captured.push(path.relativePath);
         const bytes = new TextEncoder().encode(text);
         return { text, bytes, byteLength: bytes.byteLength,
           contentHash: createHash("sha256").update(bytes).digest("hex"), metadata: "rule-fixture" };
       }),
-      beforeEvaluate: async () => { started.resolve(); await release.promise; },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* release.wait; }) }),
     });
     try {
-      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
       await started.promise;
       expect(captured).toEqual(["type.ts"]);
       clock = 200;
       release.resolve();
-      await server.whenIdle();
-      const response = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-        root, advicee: advicee(), dispatch, mode: "ordinary", composed: true });
+      await Effect.runPromise(server.whenIdle());
+      const response = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+        root, advicee: advicee(), dispatch, mode: "ordinary", composed: true }));
       expect(response.status).toBe(expected);
       if (response.status === "advice") {
         expect("hookSpecificOutput" in response.output).toBe(true);
@@ -156,13 +163,13 @@ describe("canonical resident capacity", () => {
           expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(1))
             .toHaveLength(configuredRules.length);
         }
-        expect(server.beginComposedSubmission(response.token, "background").status).toBe("submitting");
-        expect(server.acknowledge(response.token).status).toBe("acknowledged");
-        expect(server.finalize(response.token).status).toBe("finalized");
+        expect((await Effect.runPromise(server.beginComposedSubmission(response.token, "background"))).status).toBe("submitting");
+        expect((await Effect.runPromise(server.acknowledge(response.token))).status).toBe("acknowledged");
+        expect((await Effect.runPromise(server.finalize(response.token))).status).toBe("finalized");
       }
     } finally {
       release.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -180,7 +187,7 @@ describe("canonical resident capacity", () => {
     const evaluated: Array<string> = [];
     const captured: Array<string> = [];
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
       captureSource: (_root, path) => Effect.sync(() => {
         captured.push(path.relativePath);
         const text = "type SafeCount = number\n";
@@ -188,25 +195,25 @@ describe("canonical resident capacity", () => {
         return { text, bytes, byteLength: bytes.byteLength,
           contentHash: createHash("sha256").update(bytes).digest("hex"), metadata: "fixture" };
       }),
-      beforeEvaluate: async (prepared) => {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         evaluated.push(prepared.input.path);
-        started.resolve();
-        await release.promise;
-      },
+        yield* started.complete();
+        yield* release.wait;
+      }) }),
     });
     try {
-      expect(server.admit(observation, findingDispatch(join(root, "unused-grants"))).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, findingDispatch(join(root, "unused-grants")))).status).toBe("accepted");
       clock = 101;
       await started.promise;
       expect(captured).toEqual(["safe.ts"]);
       expect(evaluated).toEqual(["safe.ts"]);
       release.resolve();
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(captured).toEqual(["safe.ts"]);
-      expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["safe.ts"]);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["safe.ts"]);
     } finally {
       release.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -222,29 +229,29 @@ describe("canonical resident capacity", () => {
     const secondStarted = deferred();
     const firstGate = deferred();
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
-      beforeEvaluate: async (prepared) => {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         if (prepared.input.path === "first.ts") {
-          firstStarted.resolve();
-          await firstGate.promise;
-        } else if (prepared.input.path === "second.ts") secondStarted.resolve();
-      },
+          yield* firstStarted.complete();
+          yield* firstGate.wait;
+        } else if (prepared.input.path === "second.ts") yield* secondStarted.complete();
+      }) }),
     });
     try {
-      expect(server.admit(observation, allFindingsDispatch(statePath)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, allFindingsDispatch(statePath))).status).toBe("accepted");
       clock = 101;
       await firstStarted.promise;
       await secondStarted.promise;
       for (let attempt = 0; attempt < 200 &&
-          !server.pendingAdviceMetadata().some((item) => item.path === "second.ts"); attempt += 1) {
+          !(await Effect.runPromise(server.pendingAdviceMetadata())).some((item) => item.path === "second.ts"); attempt += 1) {
         await new Promise<void>((resolveTimeout) => setTimeout(resolveTimeout, 5));
       }
-      expect(server.pendingAdviceMetadata().map((item) => item.path)).toEqual(["second.ts"]);
-      expect(await server.collect(root, observation.advicee, allFindingsDispatch(statePath)))
+      expect((await Effect.runPromise(server.pendingAdviceMetadata())).map((item) => item.path)).toEqual(["second.ts"]);
+      expect(await Effect.runPromise(server.collect(root, observation.advicee, allFindingsDispatch(statePath))))
         .toMatchObject({ status: "empty" });
       firstGate.resolve();
-      await server.whenIdle();
-      const complete = await server.collect(root, observation.advicee, allFindingsDispatch(statePath));
+      await Effect.runPromise(server.whenIdle());
+      const complete = await Effect.runPromise(server.collect(root, observation.advicee, allFindingsDispatch(statePath)));
       expect(complete.status).toBe("advice");
       if (complete.status === "advice") {
         expect(complete.output.hookSpecificOutput.additionalContext).toContain("first.ts");
@@ -252,7 +259,7 @@ describe("canonical resident capacity", () => {
       }
     } finally {
       firstGate.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -265,20 +272,20 @@ describe("canonical resident capacity", () => {
       ["first.ts", "second.ts"])));
     if (observation === undefined) throw new Error("missing fixture observation");
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     try {
-      expect(server.admit(observation, allFindingsDispatch(statePath)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, allFindingsDispatch(statePath))).status).toBe("accepted");
       clock = 101;
-      await server.whenIdle();
-      expect(server.pendingAdviceMetadata().map((item) => item.path).sort())
+      await Effect.runPromise(server.whenIdle());
+      expect((await Effect.runPromise(server.pendingAdviceMetadata())).map((item) => item.path).sort())
         .toEqual(["first.ts", "second.ts"]);
-      expect(server.pendingAdviceMetadata()).toHaveLength(2);
-      expect(server.stats().retainedBytes).toBeGreaterThan(0);
-      expect(server.stats().rejectedCapacity).toBe(0);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(2);
+      expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(0);
+      expect(Effect.runSync(server.stats()).rejectedCapacity).toBe(0);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
-    expect(server.stats().retainedBytes).toBe(0);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
   });
 
   it("keeps two advicees in one shared capacity ledger through preparation and cleanup", async () => {
@@ -292,23 +299,23 @@ describe("canonical resident capacity", () => {
       { session_id: "agent-b", tool_use_id: "edit-b" })));
     if (a === undefined || b === undefined) throw new Error("missing fixture observation");
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     const dispatch = allFindingsDispatch(statePath);
     try {
-      expect(server.admit(a, dispatch).status).toBe("accepted");
-      expect(server.admit(b, dispatch).status).toBe("accepted");
-      expect(server.stats().retainedBytes).toBeGreaterThan(0);
+      expect(Effect.runSync(server.admit(a, dispatch)).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(b, dispatch)).status).toBe("accepted");
+      expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(0);
       clock = 101;
-      await server.whenIdle();
-      const metadata = server.pendingAdviceMetadata();
+      await Effect.runPromise(server.whenIdle());
+      const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
       expect(metadata).toHaveLength(2);
       expect(new Set(metadata.map((item) => item.partition)).size).toBe(2);
       expect(new Set(metadata.map((item) => item.path))).toEqual(new Set(["agent-a.ts", "agent-b.ts"]));
-      expect(server.stats().rejectedCapacity).toBe(0);
+      expect(Effect.runSync(server.stats()).rejectedCapacity).toBe(0);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
-    expect(server.stats().retainedBytes).toBe(0);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
   });
 });
 
@@ -322,30 +329,30 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const entered = deferred();
     const release = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
-      afterAdvicePending: async () => { entered.resolve(); await release.promise; },
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
+      reviewControls: reviewControlsLayer({ afterAdvicePending: () => Effect.gen(function* () { yield* entered.complete(); yield* release.wait; }) }),
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
     try {
-      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
       await entered.promise;
-      expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "held" })).status).toBe("advanced");
-      await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "held" }))).status).toBe("advanced");
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-        finish: { token: "held", deadlineReached: true } });
-      expect(server.pendingAdviceMetadata()).toHaveLength(1);
-      await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "held", close: true, reason: "no-advice" });
+        finish: { token: "held", deadlineReached: true } }));
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(1);
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "held", close: true, reason: "no-advice" }));
       release.resolve();
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
       expect(activity.roundClosures?.[0]).toBeDefined();
       expect(activity.roundClosures?.[0]?.reason).not.toBe("unavailable");
     } finally {
       release.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -359,18 +366,18 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
     const gate = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
-      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* gate.wait; }) }),
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
     try {
-      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
       await started.promise;
-      expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "fanout" })).status).toBe("advanced");
-      const decision = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "fanout" }))).status).toBe("advanced");
+      const decision = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-        finish: { token: "fanout", deadlineReached: true } });
+        finish: { token: "fanout", deadlineReached: true } }));
       expect(decision.status).toBe("empty");
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
@@ -380,11 +387,11 @@ describe("resident delivery lease", () => {
       expect(activity.roundClosures?.[0]?.discarded?.queued).toBe(0);
       expect(activity.roundClosures?.[0]?.discarded?.running).toBeGreaterThan(0);
       gate.resolve();
-      await server.whenIdle();
-      expect(server.pendingAdviceMetadata()).toEqual([]);
+      await Effect.runPromise(server.whenIdle());
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
     } finally {
       gate.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -397,33 +404,33 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
     const gate = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
-      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* gate.wait; }) }),
     });
     const dispatch = findingDispatch(statePath);
     try {
-      server.admit(observation, dispatch, true);
+      Effect.runSync(server.admit(observation, dispatch, true));
       await started.promise;
-      await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish" });
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" }));
       const request = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const,
         reportWorkState: true as const, finish: { token: "finish", deadlineReached: false } };
-      expect((await server.handle(request)).status).toBe("pending");
+      expect((await Effect.runPromise(server.handle(request))).status).toBe("pending");
       gate.resolve();
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       // A second admitted observation must keep already completed advice waiting.
       const next = { ...observation, advicee: { ...observation.advicee, toolUseId: "second" },
         candidates: [{ ...observation.candidates[0]!, path: "second.ts" }] };
-      server.admit(next, dispatch, true);
-      expect((await server.handle(request)).status).toBe("pending");
-      await server.whenIdle();
-      const decision = await server.handle(request);
+      Effect.runSync(server.admit(next, dispatch, true));
+      expect((await Effect.runPromise(server.handle(request))).status).toBe("pending");
+      await Effect.runPromise(server.whenIdle());
+      const decision = await Effect.runPromise(server.handle(request));
       expect(decision.status).toBe("advice");
       if (decision.status === "advice") expect(decision.findingCount).toBe(2);
     } finally {
       gate.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -437,41 +444,41 @@ describe("resident delivery lease", () => {
     const gate = deferred();
     const started = deferred();
     let hold = false;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
-      beforeEvaluate: async () => { if (hold) { started.resolve(); await gate.promise; } },
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { if (hold) { yield* started.complete(); yield* gate.wait; } }) }),
     });
     const dispatch = findingDispatch(statePath);
     try {
-      server.admit(observation, dispatch, true);
-      await server.whenIdle();
+      Effect.runSync(server.admit(observation, dispatch, true));
+      await Effect.runPromise(server.whenIdle());
       hold = true;
       const next = { ...observation, advicee: { ...observation.advicee, toolUseId: "second" },
         candidates: [{ ...observation.candidates[0]!, path: "second.ts" }] };
-      server.admit(next, dispatch, true);
+      Effect.runSync(server.admit(next, dispatch, true));
       await started.promise;
-      await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish" });
-      const decision = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" }));
+      const decision = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-        finish: { token: "finish", deadlineReached: true } });
+        finish: { token: "finish", deadlineReached: true } }));
       expect(decision.status).toBe("advice");
       if (decision.status !== "advice") throw new Error("missing decision");
       expect(decision.findingCount).toBe(1);
-      expect(server.stats().pendingEvaluations).toBe(0);
-      expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("submitting");
-      expect(server.acknowledge(decision.token).status).toBe("acknowledged");
-      expect(server.finalize(decision.token).status).toBe("finalized");
-      await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish", close: false });
+      expect(Effect.runSync(server.stats()).pendingEvaluations).toBe(0);
+      expect((await Effect.runPromise(server.beginComposedSubmission(decision.token, "stop"))).status).toBe("submitting");
+      expect((await Effect.runPromise(server.acknowledge(decision.token))).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.finalize(decision.token))).status).toBe("finalized");
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish", close: false }));
       gate.resolve(); hold = false;
-      await server.whenIdle();
-      expect(server.stats().pendingFindingBatches).toBe(1);
-      expect(server.admit({ ...next, advicee: { ...next.advicee, toolUseId: "repair" } }, dispatch, true).status).toBe("accepted");
-      await server.whenIdle();
-      expect(server.stats().pendingFindingBatches).toBe(2);
+      await Effect.runPromise(server.whenIdle());
+      expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
+      expect(Effect.runSync(server.admit({ ...next, advicee: { ...next.advicee, toolUseId: "repair" } }, dispatch, true)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
+      expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(2);
     } finally {
       gate.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -481,32 +488,32 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
     try {
-      server.admit(observation, dispatch, true);
-      await server.whenIdle();
-      const background = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+      Effect.runSync(server.admit(observation, dispatch, true));
+      await Effect.runPromise(server.whenIdle());
+      const background = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
       if (background.status !== "advice") throw new Error("missing background finding");
-      expect(server.beginComposedSubmission(background.token, "background").status).toBe("submitting");
-      expect(server.beginComposedSubmission(background.token, "background").status).toBe("empty");
-      await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish" });
+      expect((await Effect.runPromise(server.beginComposedSubmission(background.token, "background"))).status).toBe("submitting");
+      expect((await Effect.runPromise(server.beginComposedSubmission(background.token, "background"))).status).toBe("empty");
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" }));
       const request = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const,
         finish: { token: "finish", deadlineReached: false } };
-      expect((await server.handle(request)).status).toBe("pending");
-      expect(server.acknowledge(background.token).status).toBe("acknowledged");
-      expect(server.finalize(background.token).status).toBe("finalized");
-      expect((await server.handle({ ...request, mode: "turn-end", finish: { token: "finish", deadlineReached: true } })).status).toBe("empty");
-      await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish", close: true });
-      await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "second-finish" });
-      expect((await server.handle({ ...request, mode: "turn-end", finish: { token: "second-finish", deadlineReached: false } })).status).toBe("empty");
-      expect(server.stats().pendingAdvice).toBe(0);
-    } finally { await server.close(); }
+      expect((await Effect.runPromise(server.handle(request))).status).toBe("pending");
+      expect((await Effect.runPromise(server.acknowledge(background.token))).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.finalize(background.token))).status).toBe("finalized");
+      expect((await Effect.runPromise(server.handle({ ...request, mode: "turn-end", finish: { token: "finish", deadlineReached: true } }))).status).toBe("empty");
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish", close: true }));
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "second-finish" }));
+      expect((await Effect.runPromise(server.handle({ ...request, mode: "turn-end", finish: { token: "second-finish", deadlineReached: false } }))).status).toBe("empty");
+      expect(Effect.runSync(server.stats()).pendingAdvice).toBe(0);
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("keeps a pending finish poll pending when the last result arrives before IPC handoff", async () => {
@@ -518,28 +525,29 @@ describe("resident delivery lease", () => {
     const gate = deferred(), started = deferred();
     let armed = true;
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, () => performance.now(), {
-      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
-      beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(paths, () => performance.now(), {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* gate.wait; }),
+beforeResponseHandoff: () => Effect.gen(function* () {
         if (!armed) return;
         armed = false;
-        gate.resolve();
-        await server.whenIdle();
-      },
+        yield* gate.complete();
+        yield* server.whenIdle();
+      }) }),
+
     });
     const dispatch = findingDispatch(statePath);
     try {
-      await server.listen();
-      server.admit(observation, dispatch, true);
+      await Effect.runPromise(server.listen());
+      Effect.runSync(server.admit(observation, dispatch, true));
       await started.promise;
-      await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish" });
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" }));
       const request = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const,
         reportWorkState: true as const, finish: { token: "finish", deadlineReached: false } };
-      expect((await residentRequest(paths, request)).status).toBe("pending");
-      expect((await residentRequest(paths, request)).status).toBe("advice");
-    } finally { gate.resolve(); await server.close(); }
+      expect((await runClient(residentRequest(paths, request))).status).toBe("pending");
+      expect((await runClient(residentRequest(paths, request))).status).toBe("advice");
+    } finally { gate.resolve(); await Effect.runPromise(server.close); }
   });
 
   it("decides a settled round after a diagnostic-only backend failure", async () => {
@@ -549,20 +557,20 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     let now = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     const dispatch = { ...findingDispatch(statePath), controlled: { failure: "fixture unavailable" } };
     try {
-      server.admit(observation, dispatch, true);
-      await server.whenIdle();
+      Effect.runSync(server.admit(observation, dispatch, true));
+      await Effect.runPromise(server.whenIdle());
       const collect = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary" as const, composed: true as const };
-      expect((await server.handle(collect)).status).toBe("empty");
-      expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
-      await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish" });
-      const decision = await server.handle({ ...collect, mode: "turn-end", finish: { token: "finish", deadlineReached: false } });
+      expect((await Effect.runPromise(server.handle(collect))).status).toBe("empty");
+      expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0);
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" }));
+      const decision = await Effect.runPromise(server.handle({ ...collect, mode: "turn-end", finish: { token: "finish", deadlineReached: false } }));
       expect(decision.status).toBe("empty");
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it.each(["shared"] as const)("rejects noncomposed %s socket admission before any review", async (requestRoute) => {
@@ -574,29 +582,29 @@ describe("resident delivery lease", () => {
       host: "claude-code" as const, hostVersion: "2.1.218" as const, turnId: null } };
     let reviews = 0;
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
-    await server.listen();
+    const server = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { reviews += 1; }) }) });
+    await Effect.runPromise(server.listen());
     try {
       const admission = { requestRoute, operation: "admit" as const, lifetime: server.lifetime,
         observation, dispatch: findingDispatch(join(root, "consent")), controlledWriter: true as const, composed: true as const } as ResidentRequest;
       for (const composed of [undefined, false]) {
         const unsupported = { ...admission, composed } as unknown as ResidentRequest;
-        expect((await residentRequest(paths, unsupported)).status).toBe("unsupported");
-        expect((await server.handle(unsupported)).status).toBe("unsupported");
+        expect((await runClient(residentRequest(paths, unsupported))).status).toBe("unsupported");
+        expect((await Effect.runPromise(server.handle(unsupported))).status).toBe("unsupported");
       }
-      expect((await residentRequest(paths, admission)).status).toBe("rejected-stale");
-      await server.whenIdle();
+      expect((await runClient(residentRequest(paths, admission))).status).toBe("rejected-stale");
+      await Effect.runPromise(server.whenIdle());
       expect(reviews).toBe(0);
-      expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingEvaluations: 0 });
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
-        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-      expect((await residentRequest(paths, { ...admission, composed: false } as unknown as ResidentRequest)).status)
+      expect(Effect.runSync(server.stats())).toMatchObject({ queued: 0, running: 0, pendingEvaluations: 0 });
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
+      expect((await runClient(residentRequest(paths, { ...admission, composed: false } as unknown as ResidentRequest))).status)
         .toBe("unsupported");
-      expect((await residentRequest(paths, admission)).status).toBe("accepted");
-      expect((await residentRequest(paths, admission)).status).toBe("rejected-stale");
-      await server.whenIdle();
+      expect((await runClient(residentRequest(paths, admission))).status).toBe("accepted");
+      expect((await runClient(residentRequest(paths, admission))).status).toBe("rejected-stale");
+      await Effect.runPromise(server.whenIdle());
       expect(reviews).toBeGreaterThan(0);
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("rejects unsupported collection shapes and unreserved acknowledgements while preserving authorized Stop output", async () => {
@@ -607,46 +615,46 @@ describe("resident delivery lease", () => {
     const observation = { ...base, advicee: { ...base.advicee,
       host: "claude-code" as const, hostVersion: "2.1.218" as const, turnId: null } };
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths);
+    const server = await acquireResidentFixture(paths);
     const dispatch = findingDispatch(join(root, "consent"));
-    await server.listen();
+    await Effect.runPromise(server.listen());
     try {
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
-        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-      const admission = await residentRequest(paths, { requestRoute: "shared", operation: "admit",
-        lifetime: server.lifetime, observation, dispatch, controlledWriter: true, composed: true });
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
+      const admission = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "admit",
+        lifetime: server.lifetime, observation, dispatch, controlledWriter: true, composed: true }));
       if (admission.status !== "accepted") throw new Error("missing admission");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       const collect = { requestRoute: "shared" as const, operation: "collect" as const,
         lifetime: server.lifetime, root, advicee: observation.advicee, dispatch, composed: true as const };
-      const ordinary = await residentRequest(paths, collect);
+      const ordinary = await runClient(residentRequest(paths, collect));
       if (ordinary.status !== "advice") throw new Error("missing ordinary advice");
       for (const operation of ["acknowledge", "finalize"] as const) {
-        expect((await residentRequest(paths, { requestRoute: "shared", operation,
-          lifetime: server.lifetime, token: ordinary.token })).status).toBe("empty");
+        expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation,
+          lifetime: server.lifetime, token: ordinary.token }))).status).toBe("empty");
       }
-      server.releaseDelivery(ordinary.token);
+      (await Effect.runPromise(server.releaseDelivery(ordinary.token)));
       for (const requestRoute of ["shared"] as const) {
         for (const composed of [undefined, false, true]) {
           const unsupported = { ...collect, requestRoute, composed,
             mode: "turn-end" } as unknown as ResidentRequest;
-          expect((await residentRequest(paths, unsupported)).status).toBe("unsupported");
-          expect((await server.handle(unsupported)).status).toBe("unsupported");
+          expect((await runClient(residentRequest(paths, unsupported))).status).toBe("unsupported");
+          expect((await Effect.runPromise(server.handle(unsupported))).status).toBe("unsupported");
         }
       }
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-stop",
-        lifetime: server.lifetime, root, advicee: observation.advicee, token: "finish" })).status).toBe("advanced");
-      const finished = await residentRequest(paths, { ...collect, mode: "turn-end",
-        finish: { token: "finish", deadlineReached: false } });
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "begin-stop",
+        lifetime: server.lifetime, root, advicee: observation.advicee, token: "finish" }))).status).toBe("advanced");
+      const finished = await runClient(residentRequest(paths, { ...collect, mode: "turn-end",
+        finish: { token: "finish", deadlineReached: false } }));
       if (finished.status !== "advice") throw new Error("missing authorized Stop advice");
-      expect((await residentRequest(paths, collect)).status).toBe("empty");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-submission",
-        lifetime: server.lifetime, token: finished.token, surface: "stop" })).status).toBe("submitting");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "acknowledge",
-        lifetime: server.lifetime, token: finished.token })).status).toBe("acknowledged");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "finalize",
-        lifetime: server.lifetime, token: finished.token })).status).toBe("finalized");
-    } finally { await server.close(); }
+      expect((await runClient(residentRequest(paths, collect))).status).toBe("empty");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "begin-submission",
+        lifetime: server.lifetime, token: finished.token, surface: "stop" }))).status).toBe("submitting");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "acknowledge",
+        lifetime: server.lifetime, token: finished.token }))).status).toBe("acknowledged");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "finalize",
+        lifetime: server.lifetime, token: finished.token }))).status).toBe("finalized");
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("rejects OpenCode review IPC before permitting or evaluating work", async () => {
@@ -658,9 +666,9 @@ describe("resident delivery lease", () => {
       hostVersion: "1.14.44" as const, turnId: null, subagentId: null } };
     const paths = residentPaths(join(root, "runtime"));
     let reviews = 0;
-    const server = new ResidentServer(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
+    const server = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { reviews += 1; }) }) });
     const dispatch = findingDispatch(join(root, "consent"));
-    await server.listen();
+    await Effect.runPromise(server.listen());
     try {
       const requests: ResidentRequest[] = [
         { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
@@ -673,13 +681,13 @@ describe("resident delivery lease", () => {
           root, advicee: observation.advicee, token: "unsupported" },
       ];
       for (const request of requests) {
-        expect((await residentRequest(paths, request)).status).toBe("unsupported");
-        expect((await server.handle(request)).status).toBe("unsupported");
+        expect((await runClient(residentRequest(paths, request))).status).toBe("unsupported");
+        expect((await Effect.runPromise(server.handle(request))).status).toBe("unsupported");
       }
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(reviews).toBe(0);
-      expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingEvaluations: 0 });
-    } finally { await server.close(); }
+      expect(Effect.runSync(server.stats())).toMatchObject({ queued: 0, running: 0, pendingEvaluations: 0 });
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("requires the installed PreToolUse permit before admitting composed IPC", async () => {
@@ -690,30 +698,30 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const paths = residentPaths(join(root, "runtime"));
     mkdirSync(paths.directory, { recursive: true, mode: 0o700 });
-    const server = new ResidentServer(paths);
+    const server = await acquireResidentFixture(paths);
     const dispatch = findingDispatch(statePath);
     const admission = { requestRoute: "shared" as const, operation: "admit" as const, lifetime: server.lifetime,
       observation, dispatch, controlledWriter: true as const, composed: true as const };
-    expect((await server.handle(admission)).status).toBe("rejected-stale");
-    expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-      root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
+    expect((await Effect.runPromise(server.handle(admission))).status).toBe("rejected-stale");
+    expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+      root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
     writeFileSync(join(paths.directory, "repeat-edits.log"), "x".repeat(256 * 1024), { mode: 0o600 });
-    expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-      root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
+    expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+      root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
     const repeatLog = join(paths.directory, "repeat-edits.log");
     expect(JSON.parse(readFileSync(repeatLog, "utf8").trim())).toMatchObject({ kind: "repeat-edit-id", phase: "pending" });
     expect(readFileSync(repeatLog, "utf8")).not.toContain(observation.advicee.toolUseId);
     expect(readFileSync(join(paths.directory, "repeat-edits-observed"), "utf8")).toBe("1\n");
-    expect((await server.handle({ ...admission,
-      observation: { ...observation, advicee: { ...observation.advicee, subagentId: "child" } } })).status)
+    expect((await Effect.runPromise(server.handle({ ...admission,
+      observation: { ...observation, advicee: { ...observation.advicee, subagentId: "child" } } }))).status)
       .toBe("rejected-stale");
-    expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "permit-only" })).toEqual({ status: "busy" });
-    expect((await server.handle(admission)).status).toBe("accepted");
-    expect((await server.handle(admission)).status).toBe("rejected-stale");
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "permit-only" }))).toEqual({ status: "busy" });
+    expect((await Effect.runPromise(server.handle(admission))).status).toBe("accepted");
+    expect((await Effect.runPromise(server.handle(admission))).status).toBe("rejected-stale");
     expect(readFileSync(repeatLog, "utf8").trim().split("\n")).toHaveLength(2);
-    await server.whenIdle();
-    await server.close();
+    await Effect.runPromise(server.whenIdle());
+    await Effect.runPromise(server.close);
   });
 
   it("applies user-configured pending edit limits at the resident boundary", async () => {
@@ -722,18 +730,18 @@ describe("resident delivery lease", () => {
     await put(root, "user-config.jsonc", '{"version":1,"editPermitLimits":{"perAdvicee":1,"resident":2}}');
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    const register = (subagentId: string, toolUseId: string) => server.handle({
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
+    const register = (subagentId: string, toolUseId: string) => Effect.runPromise(server.handle({
       requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
       root, advicee: { ...observation.advicee, subagentId, toolUseId },
       startedAt: monotonicNow(), userConfigPath,
-    });
+    }));
     try {
       expect((await register("a", "a1")).status).toBe("advanced");
       expect(await register("a", "a2")).toMatchObject({ status: "rejected-stale", reason: "AdviceePermitLimit" });
       expect((await register("b", "b1")).status).toBe("advanced");
       expect(await register("c", "c1")).toMatchObject({ status: "rejected-stale", reason: "ResidentPermitLimit" });
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("closes a composed round, cancels queued work and fences late results", async () => {
@@ -744,25 +752,25 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const started = deferred();
     const gate = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => performance.now(), {
-      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* gate.wait; }) }),
     });
     const activityPath = join(root, "activity");
     const dispatch = { ...findingDispatch(statePath), activityPath };
-    expect(server.admit(observation, dispatch, true).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
     await started.promise;
-    expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "stop" })).toEqual({ status: "advanced" });
-    await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "stop", close: true });
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "stop" }))).toEqual({ status: "advanced" });
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "stop", close: true }));
     gate.resolve();
-    await server.whenIdle();
-    expect(server.stats().pendingAdvice).toBe(0);
-    expect(server.stats().pendingEvaluations).toBe(0);
-    expect(server.admit({ ...observation, advicee: { ...observation.advicee, toolUseId: "late" } }, dispatch, true).status)
+    await Effect.runPromise(server.whenIdle());
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(0);
+    expect(Effect.runSync(server.stats()).pendingEvaluations).toBe(0);
+    expect(Effect.runSync(server.admit({ ...observation, advicee: { ...observation.advicee, toolUseId: "late" } }, dispatch, true)).status)
       .toBe("rejected-stale");
-    expect((await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true })).status).toBe("empty");
+    expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }))).status).toBe("empty");
     const activity = readActivity({ statePath: activityPath, root,
       sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
     expect(activity.roundClosures).toHaveLength(1);
@@ -770,9 +778,9 @@ describe("resident delivery lease", () => {
     expect(activity.roundClosures?.[0]?.discarded.running).toBe(1);
     expect(JSON.stringify(activity.roundClosures)).not.toContain(root);
     expect(JSON.stringify(activity.roundClosures)).not.toContain("OrderCount");
-    expect(server.stats().retainedBytes).toBe(0);
-    await server.close();
-    expect(server.stats().retainedBytes).toBe(0);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
+    await Effect.runPromise(server.close);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
   });
 
   it("fences a delayed preparation callback after a successor round opens", async () => {
@@ -780,39 +788,36 @@ describe("resident delivery lease", () => {
     await put(root, "type.ts", "type OrderCount = number\n");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const entered = deferred();
-    const release = deferred();
-    let hold = true;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
-      afterReuseBoundary: async (stage) => {
-        if (stage === "ownerClaimed" && hold) {
-          hold = false;
-          entered.resolve();
-          await release.promise;
-        }
-      },
+    const controls = await Effect.runPromise(makePreparationControls());
+    await Effect.runPromise(controls.holdNextOwner);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      preparationControls: controls.layer,
     });
     const dispatch = findingDispatch(join(root, "state"));
     try {
-      expect(server.admit(observation, dispatch, true).status).toBe("accepted");
-      await entered.promise;
-      expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "old-stop" })).toEqual({ status: "advanced" });
-      await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "old-stop", close: true });
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
+      await Effect.runPromise(controls.ownerEntered);
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "old-stop" }))).toEqual({ status: "advanced" });
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "old-stop", close: true }));
+      // Round closure fences starts through the next millisecond. Establish
+      // that this successor starts beyond that fence, independent of speed.
+      const closedBy = monotonicNow();
+      await vi.waitUntil(() => monotonicNow() > closedBy + 1, { interval: 1, timeout: 1000 });
       const successor = { ...observation, advicee: { ...observation.advicee, toolUseId: "successor-edit" } };
-      expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-        root, advicee: successor.advicee, startedAt: monotonicNow() })).toEqual({ status: "advanced" });
-      expect(server.admit(successor, dispatch, true, true).status).toBe("accepted");
-      release.resolve();
-      await server.whenIdle();
-      expect(server.stats().pendingFindingBatches).toBe(1);
-      expect(server.stats().pendingEvaluations).toBe(0);
-      expect((await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-        root, advicee: successor.advicee, dispatch, mode: "ordinary", composed: true })).status).toBe("advice");
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+        root, advicee: successor.advicee, startedAt: monotonicNow() }))).toEqual({ status: "advanced" });
+      expect(Effect.runSync(server.admit(successor, dispatch, true, true)).status).toBe("accepted");
+      await Effect.runPromise(controls.releaseOwner);
+      await Effect.runPromise(server.whenIdle());
+      expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
+      expect(Effect.runSync(server.stats()).pendingEvaluations).toBe(0);
+      expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+        root, advicee: successor.advicee, dispatch, mode: "ordinary", composed: true }))).status).toBe("advice");
     } finally {
-      release.resolve();
-      await server.close();
+      await Effect.runPromise(controls.releaseOwner);
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -822,39 +827,39 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const activityPath = join(root, "activity");
     const dispatch = { ...findingDispatch(statePath), activityPath };
-    server.admit(observation, dispatch, true);
-    await server.whenIdle();
-    const collect = () => server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+    Effect.runSync(server.admit(observation, dispatch, true));
+    await Effect.runPromise(server.whenIdle());
+    const collect = () => Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
     const background = await collect();
     expect(background.status).toBe("advice");
     if (background.status !== "advice") return;
-    expect((await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "background-worker" })).status).toBe("background-claimed");
-    expect(server.beginComposedSubmission(background.token, "background").status).toBe("submitting");
-    expect((await server.handle({ requestRoute: "shared", operation: "release-background", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "background-worker" })).status).toBe("released");
-    await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "reoffer" });
-    const stop = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+    expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "background-worker" }))).status).toBe("background-claimed");
+    expect((await Effect.runPromise(server.beginComposedSubmission(background.token, "background"))).status).toBe("submitting");
+    expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "release-background", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "background-worker" }))).status).toBe("released");
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "reoffer" }));
+    const stop = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-      finish: { token: "reoffer", deadlineReached: true } });
+      finish: { token: "reoffer", deadlineReached: true } }));
     expect(stop.status).toBe("advice");
     if (stop.status !== "advice") return;
-    expect(server.beginComposedSubmission(stop.token, "stop").status).toBe("submitting");
-    server.acknowledge(stop.token); server.finalize(stop.token);
-    await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "reoffer", close: false });
+    expect((await Effect.runPromise(server.beginComposedSubmission(stop.token, "stop"))).status).toBe("submitting");
+    (await Effect.runPromise(server.acknowledge(stop.token))); (await Effect.runPromise(server.finalize(stop.token)));
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "reoffer", close: false }));
     expect((await collect()).status).toBe("empty");
-    await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "close" });
-    await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "close", close: true });
-    expect(server.stats().pendingAdvice).toBe(0);
-    expect(server.stats().pendingEvaluations).toBe(0);
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "close" }));
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "close", close: true }));
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(0);
+    expect(Effect.runSync(server.stats()).pendingEvaluations).toBe(0);
     const activity = readActivity({ statePath: activityPath, root,
       sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
     expect(activity.roundClosures).toHaveLength(1);
@@ -862,9 +867,9 @@ describe("resident delivery lease", () => {
     expect(activity.roundClosures?.[0]?.discarded).toMatchObject({ pendingAdvice: 1, submitted: 1, uncertain: 1 });
     expect(JSON.stringify(activity.roundClosures)).not.toContain(root);
     expect(JSON.stringify(activity.roundClosures)).not.toContain("OrderCount");
-    expect(server.stats().retainedBytes).toBe(0);
-    await server.close();
-    expect(server.stats().retainedBytes).toBe(0);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
+    await Effect.runPromise(server.close);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
   });
 
   it("does not reoffer a live background writer when the Stop deadline forces a decision", async () => {
@@ -873,24 +878,24 @@ describe("resident delivery lease", () => {
     const statePath = join(root, "consent");
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     try {
       const dispatch = findingDispatch(statePath);
-      server.admit(observation, dispatch, true);
-      await server.whenIdle();
-      const background = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+      Effect.runSync(server.admit(observation, dispatch, true));
+      await Effect.runPromise(server.whenIdle());
+      const background = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
       if (background.status !== "advice") throw new Error("missing background finding");
-      expect(server.beginComposedSubmission(background.token, "background").status).toBe("submitting");
-      expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "deadline" })).status).toBe("advanced");
-      const decision = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      expect((await Effect.runPromise(server.beginComposedSubmission(background.token, "background"))).status).toBe("submitting");
+      expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "deadline" }))).status).toBe("advanced");
+      const decision = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-        finish: { token: "deadline", deadlineReached: true } });
+        finish: { token: "deadline", deadlineReached: true } }));
       expect(decision.status).toBe("empty");
-      expect(server.acknowledge(background.token).status).toBe("empty");
+      expect((await Effect.runPromise(server.acknowledge(background.token))).status).toBe("empty");
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -901,31 +906,31 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
     const request = { requestRoute: "shared" as const, operation: "collect" as const,
       lifetime: server.lifetime, root, advicee: observation.advicee,
       dispatch, mode: "ordinary" as const, composed: true as const, reportWorkState: true as const };
-    const [background, stop] = await Promise.all([server.handle(request), server.handle(request)]);
+    const [background, stop] = await Promise.all([Effect.runPromise(server.handle(request)), Effect.runPromise(server.handle(request))]);
     expect([background.status, stop.status].filter((status) => status === "advice")).toHaveLength(1);
     const winner = background.status === "advice" ? background : stop;
     if (winner.status !== "advice") return;
-    await server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
-      root, advicee: observation.advicee, marker: "a".repeat(64), onlyIfMissing: true });
-    expect(await server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
-      token: winner.token, surface: "background" })).toEqual({ status: "submitting" });
-    expect(server.acknowledge(winner.token)).toEqual({ status: "acknowledged" });
-    expect(server.finalize(winner.token)).toEqual({ status: "finalized" });
-    await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "reoffer" });
-    const reoffer = await server.handle({ ...request,
-      mode: "turn-end", finish: { token: "reoffer", deadlineReached: true } });
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
+      root, advicee: observation.advicee, marker: "a".repeat(64), onlyIfMissing: true }));
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
+      token: winner.token, surface: "background" }))).toEqual({ status: "submitting" });
+    expect((await Effect.runPromise(server.acknowledge(winner.token)))).toEqual({ status: "acknowledged" });
+    expect((await Effect.runPromise(server.finalize(winner.token)))).toEqual({ status: "finalized" });
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "reoffer" }));
+    const reoffer = await Effect.runPromise(server.handle({ ...request,
+      mode: "turn-end", finish: { token: "reoffer", deadlineReached: true } }));
     expect(reoffer.status).toBe("empty");
-    await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "reoffer", close: false });
-    expect((await server.handle(request)).status).toBe("empty");
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "reoffer", close: false }));
+    expect((await Effect.runPromise(server.handle(request))).status).toBe("empty");
   });
 
   it("keeps composed findings addressed across Codex and Claude in one working root", async () => {
@@ -947,16 +952,16 @@ describe("resident delivery lease", () => {
       sessionId: "claude-session", turnId: null, toolUseId: "claude-tool", subagentId: null,
     } };
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(codex, dispatch, true)).toEqual({ status: "accepted" });
-    expect(server.admit(claude, dispatch, true)).toEqual({ status: "accepted" });
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(codex, dispatch, true))).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(claude, dispatch, true))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
     const collect = (adviceeValue: typeof codex.advicee | typeof claude.advicee,
-      mode: "ordinary" | "turn-end") => server.handle({
+      mode: "ordinary" | "turn-end") => Effect.runPromise(server.handle({
       requestRoute: "shared", operation: "collect", lifetime: server.lifetime, root,
       advicee: adviceeValue, dispatch, mode, composed: true,
-    });
+    }));
     const [codexReply, claudeReply] = await Promise.all([
       collect(codex.advicee, "ordinary"), collect(claude.advicee, "ordinary"),
     ]);
@@ -969,14 +974,14 @@ describe("resident delivery lease", () => {
     expect(codexText).not.toContain("claude.ts");
     expect(claudeText).toContain("claude.ts");
     expect(claudeText).not.toContain("codex.ts");
-    await server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
-      root, advicee: codex.advicee, marker: "a".repeat(64), onlyIfMissing: true });
-    expect(await server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
-      token: codexReply.token, surface: "background" })).toEqual({ status: "submitting" });
-    await server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
-      root, advicee: claude.advicee, marker: "a".repeat(64), onlyIfMissing: true });
-    expect(await server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
-      token: claudeReply.token, surface: "stop" })).toEqual({ status: "submitting" });
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
+      root, advicee: codex.advicee, marker: "a".repeat(64), onlyIfMissing: true }));
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
+      token: codexReply.token, surface: "background" }))).toEqual({ status: "submitting" });
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
+      root, advicee: claude.advicee, marker: "a".repeat(64), onlyIfMissing: true }));
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
+      token: claudeReply.token, surface: "stop" }))).toEqual({ status: "submitting" });
   });
 
   it("drops Claude composed advice after credential generation rotates", async () => {
@@ -992,19 +997,19 @@ describe("resident delivery lease", () => {
       host: "claude-code" as const, hostVersion: "2.1.218" as const,
       sessionId: "claude-session", turnId: null, toolUseId: "write-1", subagentId: null,
     } };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch: ResidentDispatchContext = { ...findingDispatch(statePath), credential: {
       name: "TYPESAFE_API_KEY", environmentValue: "synthetic-race-marker",
       environmentOnly: true, generation: 1, statePath: credentialStatePath,
     } };
-    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
-    await server.whenIdle();
-    expect(server.pendingAdviceMetadata()).toHaveLength(1);
+    expect(Effect.runSync(server.admit(observation, dispatch))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(1);
     writeFileSync(credentialStatePath, JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
     const rotated = { ...dispatch, credential: { ...dispatch.credential!, generation: 2 } };
-    const result = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+    const result = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: { ...observation.advicee, toolUseId: "later-tool" },
-      dispatch: rotated, mode: "ordinary", composed: true });
+      dispatch: rotated, mode: "ordinary", composed: true }));
     expect(result.status).toBe("empty");
   });
 
@@ -1023,32 +1028,32 @@ describe("resident delivery lease", () => {
       environmentOnly: true, generation: 1, statePath: credentialStatePath,
     } };
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths);
-    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
-    await server.whenIdle();
-    const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+    const server = await acquireResidentFixture(paths);
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
+    const collected = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
     if (collected.status !== "advice") throw new Error("missing fixture advice");
     writeFileSync(credentialStatePath, credentialState(2));
-    expect(server.beginComposedSubmission(collected.token, "background")).toEqual({ status: "empty" });
-    await server.close();
+    expect((await Effect.runPromise(server.beginComposedSubmission(collected.token, "background")))).toEqual({ status: "empty" });
+    await Effect.runPromise(server.close);
 
     writeFileSync(credentialStatePath, credentialState(1));
     let rotateAtHandoff = true;
-    const gated = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
+    const gated = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
       if (!rotateAtHandoff) return;
       rotateAtHandoff = false;
       writeFileSync(credentialStatePath, credentialState(2));
-    } });
+    }) }) });
     try {
-      expect(gated.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
-      await gated.whenIdle();
-      await gated.listen();
-      const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: gated.lifetime,
-        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+      expect(Effect.runSync(gated.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
+      await Effect.runPromise(gated.whenIdle());
+      await Effect.runPromise(gated.listen());
+      const result = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: gated.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
       expect(result).toEqual({ status: "empty" });
     } finally {
-      await gated.close();
+      await Effect.runPromise(gated.close);
     }
   });
 
@@ -1068,24 +1073,24 @@ describe("resident delivery lease", () => {
       environmentOnly: true, generation: 1, statePath: credentialStatePath,
     } };
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
       writeFileSync(credentialStatePath, credentialState(2));
-    } });
+    }) }) });
     try {
-      expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
-      await server.whenIdle();
-      await server.listen();
-      expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish" })).toEqual({ status: "advanced" });
-      const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
+      await Effect.runPromise(server.whenIdle());
+      await Effect.runPromise(server.listen());
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" }))).toEqual({ status: "advanced" });
+      const result = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-        finish: { token: "finish", deadlineReached: true } });
+        finish: { token: "finish", deadlineReached: true } }));
       expect(result).toEqual({ status: "empty" });
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
       expect(activity.roundClosures?.[0]?.reservedContinuations).toBe(0);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -1098,26 +1103,27 @@ describe("resident delivery lease", () => {
     if (observation === undefined) throw new Error("missing fixture observation");
     const dispatch = { ...findingDispatch(statePath), activityPath };
     const paths = residentPaths(join(root, "runtime"));
-    let server: ResidentServer;
-    server = new ResidentServer(paths, undefined, { beforeResponseHandoff: async () => {
-      expect(await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish", close: false })).toEqual({ status: "advanced" });
-    } });
+    let server: ResidentRuntime;
+    server = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
+      expect((yield* server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish", close: false }).pipe(
+          Effect.mapError(() => new ReviewControlError({ phase: "beforeResponseHandoff" }))))).toEqual({ status: "advanced" });
+    }) }) });
     try {
-      expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
-      await server.whenIdle();
-      await server.listen();
-      expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish" })).toEqual({ status: "advanced" });
-      const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
+      await Effect.runPromise(server.whenIdle());
+      await Effect.runPromise(server.listen());
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish" }))).toEqual({ status: "advanced" });
+      const result = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-        finish: { token: "finish", deadlineReached: true } });
+        finish: { token: "finish", deadlineReached: true } }));
       expect(result).toEqual({ status: "empty" });
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
       expect(activity.roundClosures?.[0]?.reservedContinuations).toBe(0);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -1139,36 +1145,36 @@ describe("resident delivery lease", () => {
     const paths = residentPaths(join(root, "runtime"));
     let invalidate = false;
     let now = 0;
-    const server = new ResidentServer(paths, () => now, { beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(paths, () => now, { reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
       if (invalidate) now = PENDING_ADVICE_EXPIRY_MS + 1;
-    } });
+    }) }) });
     try {
-      expect(server.admit(finding, dispatch, true)).toEqual({ status: "accepted" });
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(finding, dispatch, true))).toEqual({ status: "accepted" });
+      await Effect.runPromise(server.whenIdle());
       now = Math.floor(PENDING_ADVICE_EXPIRY_MS / 2);
-      expect(server.admit(failure, failedDispatch, true)).toEqual({ status: "accepted" });
-      await server.whenIdle();
-      await server.listen();
+      expect(Effect.runSync(server.admit(failure, failedDispatch, false, true))).toEqual({ status: "accepted" });
+      await Effect.runPromise(server.whenIdle());
+      await Effect.runPromise(server.listen());
       const request = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: finding.advicee, dispatch, mode: "ordinary" as const, composed: true as const };
-      const mixed = await residentRequest(paths, request);
+      const mixed = await runClient(residentRequest(paths, request));
       expect(mixed.status).toBe("advice");
       if (mixed.status !== "advice") return;
       expect(mixed.findingCount).toBe(1);
       expect(claudeHostOutputText(mixed.output)).not.toMatch(/unavailable/i);
-      expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
-      server.releaseDelivery(mixed.token);
-      expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: finding.advicee, token: "finish" })).toEqual({ status: "advanced" });
+      expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0);
+      (await Effect.runPromise(server.releaseDelivery(mixed.token)));
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: finding.advicee, token: "finish" }))).toEqual({ status: "advanced" });
       invalidate = true;
-      const final = await residentRequest(paths, { ...request,
-        mode: "turn-end", finish: { token: "finish", deadlineReached: true } });
+      const final = await runClient(residentRequest(paths, { ...request,
+        mode: "turn-end", finish: { token: "finish", deadlineReached: true } }));
       expect(final).toEqual({ status: "empty" });
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: finding.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
       expect(activity.roundClosures?.[0]?.reservedContinuations).toBe(0);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -1181,13 +1187,13 @@ describe("resident delivery lease", () => {
     })));
     expect(first).toBeDefined();
     if (first === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(first, dispatch)).toEqual({ status: "accepted" });
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(first, dispatch))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
     const later = { ...first.advicee, toolUseId: "later-tool", turnId: "later-turn" };
-    const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: later, dispatch, mode: "ordinary", composed: true });
+    const collected = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: later, dispatch, mode: "ordinary", composed: true }));
     expect(collected.status).toBe("advice");
     if (collected.status === "advice") {
       expect(claudeHostOutputText(collected.output)).toContain("first.ts");
@@ -1207,27 +1213,27 @@ describe("resident delivery lease", () => {
     const second = { ...first, candidates: [{ ...first.candidates[0]!, path: "second.ts" }],
       advicee: { ...first.advicee, toolUseId: "second" } };
     const issued: Array<{ partition: string; round: number }> = [];
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
       jevRequestObserver: (event) => { if (event.stage === "issued") issued.push(event); },
     });
     const dispatch = findingDispatch(join(root, "state"));
     try {
-      const admittedFirst = server.admit(first, dispatch, true);
+      const admittedFirst = Effect.runSync(server.admit(first, dispatch, true));
       expect(admittedFirst.status).toBe("accepted");
-      await server.whenIdle();
-      const admittedSecond = server.admit(second, dispatch, true);
+      await Effect.runPromise(server.whenIdle());
+      const admittedSecond = Effect.runSync(server.admit(second, dispatch, true));
       expect(admittedSecond.status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(issued).toHaveLength(2);
       expect(new Set(issued.map(({ partition }) => partition)).size).toBe(1);
       expect(new Set(issued.map(({ round }) => round)).size).toBe(1);
       expect(issued[0]?.partition).not.toContain("toolUseId");
       expect(issued[0]?.partition).not.toContain("round:");
-      const collected = await server.handle({ requestRoute: "shared", operation: "collect",
-        lifetime: server.lifetime, root, advicee: second.advicee, dispatch, composed: true });
+      const collected = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect",
+        lifetime: server.lifetime, root, advicee: second.advicee, dispatch, composed: true }));
       expect(collected).toMatchObject({ status: "advice", findingCount: 2 });
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -1244,29 +1250,29 @@ describe("resident delivery lease", () => {
     })));
     if (first === undefined || second === undefined) throw new Error("missing fixture observation");
     let now = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => now);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     const dispatch = findingDispatch(statePath);
     try {
-      expect(server.admit(first, dispatch, true).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(first, dispatch, true)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       now = Math.floor(PENDING_ADVICE_EXPIRY_MS / 2);
-      expect(server.admit(second, dispatch, true).status).toBe("accepted");
-      await server.whenIdle();
-      expect(server.stats().pendingAdvice).toBe(2);
-      expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-        root, advicee: first.advicee, token: "finish" })).toEqual({ status: "advanced" });
-      const selected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      expect(Effect.runSync(server.admit(second, dispatch, true)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
+      expect(Effect.runSync(server.stats()).pendingAdvice).toBe(2);
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+        root, advicee: first.advicee, token: "finish" }))).toEqual({ status: "advanced" });
+      const selected = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: first.advicee, dispatch, mode: "turn-end", composed: true,
-        finish: { token: "finish", deadlineReached: true } });
+        finish: { token: "finish", deadlineReached: true } }));
       expect(selected.status).toBe("advice");
       if (selected.status !== "advice") return;
       expect(selected.findingCount).toBe(2);
       now = PENDING_ADVICE_EXPIRY_MS + 1;
-      expect(server.beginComposedSubmission(selected.token, "stop")).toEqual({ status: "empty" });
-      expect(server.acknowledge(selected.token)).toEqual({ status: "empty" });
-      expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
+      expect((await Effect.runPromise(server.beginComposedSubmission(selected.token, "stop")))).toEqual({ status: "empty" });
+      expect((await Effect.runPromise(server.acknowledge(selected.token)))).toEqual({ status: "empty" });
+      expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["b.ts"]);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -1278,36 +1284,36 @@ describe("resident delivery lease", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
     const dispatch = findingDispatch(statePath);
-    const collect = () => server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
-    const mark = (marker: string) => server.handle({ requestRoute: "shared", operation: "prompt-marker",
-      lifetime: server.lifetime, root, advicee: observation.advicee, marker });
+    const collect = () => Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
+    const mark = (marker: string) => Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker",
+      lifetime: server.lifetime, root, advicee: observation.advicee, marker }));
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
-    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
     const first = await collect();
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
-    await server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
-      root, advicee: observation.advicee, marker: "a".repeat(64), onlyIfMissing: true });
-    expect(await server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
-      token: first.token, surface: "background" })).toEqual({ status: "submitting" });
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
+      root, advicee: observation.advicee, marker: "a".repeat(64), onlyIfMissing: true }));
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
+      token: first.token, surface: "background" }))).toEqual({ status: "submitting" });
     clock += DELIVERY_LEASE_MS;
-    expect(server.beginComposedSubmission(first.token, "background")).toEqual({ status: "empty" });
-    await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "reoffer" });
-    const reoffer = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+    expect((await Effect.runPromise(server.beginComposedSubmission(first.token, "background")))).toEqual({ status: "empty" });
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "reoffer" }));
+    const reoffer = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
       root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-      finish: { token: "reoffer", deadlineReached: true } });
+      finish: { token: "reoffer", deadlineReached: true } }));
     expect(reoffer.status).toBe("advice");
     if (reoffer.status === "advice") {
-      expect(server.beginComposedSubmission(reoffer.token, "stop")).toEqual({ status: "submitting" });
-      server.releaseComposedSubmission(reoffer.token);
+      expect((await Effect.runPromise(server.beginComposedSubmission(reoffer.token, "stop")))).toEqual({ status: "submitting" });
+      (await Effect.runPromise(server.releaseComposedSubmission(reoffer.token)));
     }
-    await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "reoffer", close: false });
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "reoffer", close: false }));
     expect(await mark("b".repeat(64))).toEqual({ status: "advanced" });
     expect((await collect()).status).toBe("empty");
   });
@@ -1319,23 +1325,23 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
     const request = { requestRoute: "shared" as const, operation: "collect" as const,
       lifetime: server.lifetime, root, advicee: observation.advicee, dispatch,
       mode: "ordinary" as const, composed: true as const };
-    const first = await server.handle(request);
+    const first = await Effect.runPromise(server.handle(request));
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
-    await server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
-      root, advicee: observation.advicee, marker: "a".repeat(64), onlyIfMissing: true });
-    expect(await server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
-      token: first.token, surface: "background" })).toEqual({ status: "submitting" });
-    expect(await server.handle({ requestRoute: "shared", operation: "release", lifetime: server.lifetime,
-      token: first.token })).toEqual({ status: "released" });
-    const retry = await server.handle(request);
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
+      root, advicee: observation.advicee, marker: "a".repeat(64), onlyIfMissing: true }));
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
+      token: first.token, surface: "background" }))).toEqual({ status: "submitting" });
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "release", lifetime: server.lifetime,
+      token: first.token }))).toEqual({ status: "released" });
+    const retry = await Effect.runPromise(server.handle(request));
     expect(retry.status).toBe("advice");
     if (retry.status === "advice") expect(retry.token).not.toBe(first.token);
   });
@@ -1347,15 +1353,15 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(observation, dispatch))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
     await put(root, "type.ts", 'type OrderCount = number & { readonly __brand: "OrderCount" }\n');
-    expect(await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }))
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true })))
       .toEqual({ status: "empty" });
-    expect(server.stats().pendingAdvice).toBe(0);
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(0);
   });
 
   it("batches distinct current units for composed collection", async () => {
@@ -1366,12 +1372,12 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["first.ts", "second.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
-    await server.whenIdle();
-    const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+    expect(Effect.runSync(server.admit(observation, dispatch))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
+    const collected = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
     expect(collected.status).toBe("advice");
     if (collected.status === "advice") {
       expect(collected.findingCount).toBe(2);
@@ -1387,14 +1393,14 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = { ...findingDispatch(statePath), controlled: { failure: "fixture unavailable" } };
-    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
-    await server.whenIdle();
-    const collected = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+    expect(Effect.runSync(server.admit(observation, dispatch))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
+    const collected = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
     expect(collected.status).toBe("empty");
-    expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
+    expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0);
   });
 
   it("keeps submitted advice suppressed across prompt notifications in the same round", async () => {
@@ -1404,25 +1410,25 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    const collect = () => server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true, reportWorkState: true });
-    const mark = (marker: string) => server.handle({ requestRoute: "shared", operation: "prompt-marker",
-      lifetime: server.lifetime, root, advicee: observation.advicee, marker });
+    const collect = () => Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true, reportWorkState: true }));
+    const mark = (marker: string) => Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker",
+      lifetime: server.lifetime, root, advicee: observation.advicee, marker }));
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
-    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
+    await Effect.runPromise(server.whenIdle());
     const first = await collect();
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
-    await server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
-      root, advicee: observation.advicee, marker: "a".repeat(64), onlyIfMissing: true });
-    expect(await server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
-      token: first.token, surface: "background" })).toEqual({ status: "submitting" });
+    await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
+      root, advicee: observation.advicee, marker: "a".repeat(64), onlyIfMissing: true }));
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
+      token: first.token, surface: "background" }))).toEqual({ status: "submitting" });
     expect(await collect()).toEqual({ status: "pending" });
-    expect(server.acknowledge(first.token)).toEqual({ status: "acknowledged" });
-    expect(server.finalize(first.token)).toEqual({ status: "finalized" });
+    expect((await Effect.runPromise(server.acknowledge(first.token)))).toEqual({ status: "acknowledged" });
+    expect((await Effect.runPromise(server.finalize(first.token)))).toEqual({ status: "finalized" });
     expect(await collect()).toEqual({ status: "empty" });
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
     expect(await collect()).toEqual({ status: "empty" });
@@ -1437,34 +1443,34 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     if (observation === undefined) throw new Error("missing fixture observation");
     const dispatch = findingDispatch(join(root, "consent"));
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const codex = advicee({ sessionId: "codex-session" });
     const claude = { host: "claude-code" as const, hostVersion: "2.1.218" as const,
       sessionId: "claude-session", turnId: null, toolUseId: "prompt", subagentId: null };
     const marker = "a".repeat(64);
     for (const selected of [codex, claude]) {
-      await server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime, root, advicee: selected, marker });
+      await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime, root, advicee: selected, marker }));
       const firstToken = "00000000-0000-4000-8000-000000000001";
       const secondToken = "00000000-0000-4000-8000-000000000002";
-      expect(await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
-        root, advicee: selected, token: firstToken })).toEqual({ status: "busy" });
-      expect(await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-        root, advicee: selected, startedAt: monotonicNow() - 1 })).toEqual({ status: "advanced" });
-      expect(server.admit({ ...observation, advicee: selected }, dispatch, true, true)).toEqual({ status: "accepted" });
-      expect(await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
-        root, advicee: selected, token: firstToken })).toEqual({ status: "background-claimed" });
-      expect(await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
-        root, advicee: { ...selected, toolUseId: "next-tool" }, token: secondToken }))
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
+        root, advicee: selected, token: firstToken }))).toEqual({ status: "busy" });
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+        root, advicee: selected, startedAt: monotonicNow() - 1 }))).toEqual({ status: "advanced" });
+      expect(Effect.runSync(server.admit({ ...observation, advicee: selected }, dispatch, true, true))).toEqual({ status: "accepted" });
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
+        root, advicee: selected, token: firstToken }))).toEqual({ status: "background-claimed" });
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
+        root, advicee: { ...selected, toolUseId: "next-tool" }, token: secondToken })))
         .toEqual({ status: "busy" });
-      expect(await server.handle({ requestRoute: "shared", operation: "release-background", lifetime: server.lifetime,
-        root, advicee: selected, token: firstToken })).toEqual({ status: "released" });
-      expect(await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
-        root, advicee: selected, token: secondToken })).toEqual({ status: "background-claimed" });
-      expect(await server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
-        root, advicee: selected, marker })).toEqual({ status: "advanced" });
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "release-background", lifetime: server.lifetime,
+        root, advicee: selected, token: firstToken }))).toEqual({ status: "released" });
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
+        root, advicee: selected, token: secondToken }))).toEqual({ status: "background-claimed" });
+      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "prompt-marker", lifetime: server.lifetime,
+        root, advicee: selected, marker }))).toEqual({ status: "advanced" });
     }
-    await server.whenIdle();
-    await server.close();
+    await Effect.runPromise(server.whenIdle());
+    await Effect.runPromise(server.close);
   });
 
   it.each(["codex-cli", "claude-code"] as const)("rejects legacy %s continuation replay without consuming Stop budget", async (host) => {
@@ -1478,35 +1484,35 @@ describe("resident delivery lease", () => {
     const observation = { ...base, advicee: selected };
     const dispatch = findingDispatch(join(root, "consent"));
     const paths = residentPaths(join(root, "runtime"));
-    const server = new ResidentServer(paths);
-    await server.listen();
+    const server = await acquireResidentFixture(paths);
+    await Effect.runPromise(server.listen());
     try {
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
-        lifetime: server.lifetime, root, advicee: selected, startedAt: monotonicNow() })).status).toBe("advanced");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch, composed: true })).status).toBe("accepted");
-      await server.whenIdle();
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+        lifetime: server.lifetime, root, advicee: selected, startedAt: monotonicNow() }))).status).toBe("advanced");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
+        observation, controlledWriter: true, dispatch, composed: true }))).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       const legacy = { requestRoute: "shared", operation: "consume-stop", lifetime: server.lifetime,
         root, advicee: selected } as unknown as ResidentRequest;
       for (let attempt = 0; attempt < 5; attempt += 1) {
         expect(decodeResidentRequest(JSON.stringify(legacy))).toBeUndefined();
-        expect((await residentRequest(paths, legacy)).status).toBe("unsupported");
-        expect((await server.handle(legacy)).status).toBe("unsupported");
+        expect((await runClient(residentRequest(paths, legacy))).status).toBe("unsupported");
+        expect((await Effect.runPromise(server.handle(legacy))).status).toBe("unsupported");
       }
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-stop",
-        lifetime: server.lifetime, root, advicee: selected, token: "finish" })).status).toBe("advanced");
-      const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect",
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "begin-stop",
+        lifetime: server.lifetime, root, advicee: selected, token: "finish" }))).status).toBe("advanced");
+      const result = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "collect",
         lifetime: server.lifetime, root, advicee: selected, dispatch, composed: true, mode: "turn-end",
-        finish: { token: "finish", deadlineReached: false } });
+        finish: { token: "finish", deadlineReached: false } }));
       expect(result.status).toBe("advice");
       if (result.status !== "advice") throw new Error("missing authorized Stop advice");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-submission",
-        lifetime: server.lifetime, token: result.token, surface: "stop" })).status).toBe("submitting");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "acknowledge",
-        lifetime: server.lifetime, token: result.token })).status).toBe("acknowledged");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "finalize",
-        lifetime: server.lifetime, token: result.token })).status).toBe("finalized");
-    } finally { await server.close(); }
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "begin-submission",
+        lifetime: server.lifetime, token: result.token, surface: "stop" }))).status).toBe("submitting");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "acknowledge",
+        lifetime: server.lifetime, token: result.token }))).status).toBe("acknowledged");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "finalize",
+        lifetime: server.lifetime, token: result.token }))).status).toBe("finalized");
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("reports pending work only to its advicee during composed collection", async () => {
@@ -1516,22 +1522,23 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const held = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
-      afterPrepare: () => held.promise,
+    const controls = await Effect.runPromise(makePreparationControls());
+    await Effect.runPromise(controls.holdNextPreparation);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      preparationControls: controls.layer,
     });
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch, true)).toEqual({ status: "accepted" });
-    const collect = (adviceeValue: typeof observation.advicee, reportWorkState?: true) => server.handle({
+    expect(Effect.runSync(server.admit(observation, dispatch, true))).toEqual({ status: "accepted" });
+    const collect = (adviceeValue: typeof observation.advicee, reportWorkState?: true) => Effect.runPromise(server.handle({
       requestRoute: "shared", operation: "collect", lifetime: server.lifetime, root,
       advicee: adviceeValue, dispatch, composed: true,
       ...(reportWorkState === true ? { reportWorkState: true as const } : {}),
-    });
+    }));
     expect(await collect(observation.advicee)).toEqual({ status: "empty" });
     expect(await collect(observation.advicee, true)).toEqual({ status: "pending" });
     expect(await collect({ ...observation.advicee, sessionId: "other" }, true)).toEqual({ status: "empty" });
-    held.resolve();
-    await server.whenIdle();
+    await Effect.runPromise(controls.releasePreparation);
+    await Effect.runPromise(server.whenIdle());
     expect((await collect(observation.advicee, true)).status).toBe("advice");
   });
 
@@ -1545,18 +1552,10 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const changed = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), undefined, {
-      afterCredentialBeforeDispatch: async () => {
-        const child = spawn(process.execPath, ["-e", `
-          require("node:fs").writeFileSync(process.argv[1], JSON.stringify({version:1,generation:2,savedUseSuspended:false}));
-        `, credentialStatePath], { stdio: "ignore" });
-        await new Promise<void>((resolveExit, rejectExit) => {
-          child.once("exit", () => resolveExit());
-          child.once("error", rejectExit);
-        });
-        changed.resolve();
-      },
+    const controls = await Effect.runPromise(makeDispatchControls());
+    await Effect.runPromise(controls.holdNext("credentialResolved"));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      dispatchControls: controls.layer,
     });
     const dispatch: ResidentDispatchContext = {
       statePath,
@@ -1576,11 +1575,19 @@ describe("resident delivery lease", () => {
         ])),
       },
     };
-    expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
-    await changed.promise;
+    expect(Effect.runSync(server.admit(observation, dispatch))).toEqual({ status: "accepted" });
+    expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved");
+    const child = spawn(process.execPath, ["-e", `
+      require("node:fs").writeFileSync(process.argv[1], JSON.stringify({version:1,generation:2,savedUseSuspended:false}));
+    `, credentialStatePath], { stdio: "ignore" });
+    await new Promise<void>((resolveExit, rejectExit) => {
+      child.once("exit", (code) => code === 0 ? resolveExit() : rejectExit(new Error("credential update failed")));
+      child.once("error", rejectExit);
+    });
+    await Effect.runPromise(controls.release);
     await waitUntilIdle(server);
     expect(existsSync(capturePath)).toBe(false);
-    expect(server.stats()).toMatchObject({ pendingEvaluations: 0 });
+    expect(Effect.runSync(server.stats())).toMatchObject({ pendingEvaluations: 0 });
   });
 
   it("aggregates findings from distinct production units in one event", async () => {
@@ -1592,9 +1599,9 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, { ...findingDispatch(statePath), activityPath }).status).toBe("accepted");
-    await server.whenIdle();
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
+    expect(Effect.runSync(server.admit(observation, { ...findingDispatch(statePath), activityPath })).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
     expect(readActivity({
       statePath: activityPath,
       root,
@@ -1611,50 +1618,50 @@ describe("resident delivery lease", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch = findingDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
 
-    expect(await server.handle({
+    expect(await Effect.runPromise(server.handle({
       requestRoute: "shared",
       operation: "cleanup",
       lifetime: server.lifetime,
-    })).toEqual({ status: "cleaned" });
-    expect(await server.handle({ requestRoute: "shared", operation: "hello" }))
+    }))).toEqual({ status: "cleaned" });
+    expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "hello" })))
       .toEqual({ status: "obsolete-lifetime" });
-    expect(await server.handle({
+    expect(await Effect.runPromise(server.handle({
       requestRoute: "shared",
       operation: "admit", composed: true,
       lifetime: server.lifetime,
       observation,
       controlledWriter: true,
       dispatch,
-    })).toEqual({ status: "obsolete-lifetime" });
-    expect(await server.handle({
+    }))).toEqual({ status: "obsolete-lifetime" });
+    expect(await Effect.runPromise(server.handle({
       requestRoute: "shared",
       operation: "collect", composed: true,
       lifetime: server.lifetime,
       root,
       advicee: advicee(),
       dispatch,
-    })).toEqual({ status: "obsolete-lifetime" });
-    expect(await server.handle({
+    }))).toEqual({ status: "obsolete-lifetime" });
+    expect(await Effect.runPromise(server.handle({
       requestRoute: "shared",
       operation: "acknowledge",
       lifetime: server.lifetime,
       token: "old-token",
-    })).toEqual({ status: "obsolete-lifetime" });
-    expect(await server.handle({
+    }))).toEqual({ status: "obsolete-lifetime" });
+    expect(await Effect.runPromise(server.handle({
       requestRoute: "shared",
       operation: "finalize",
       lifetime: server.lifetime,
       token: "old-token",
-    })).toEqual({ status: "obsolete-lifetime" });
-    expect(await server.handle({
+    }))).toEqual({ status: "obsolete-lifetime" });
+    expect(await Effect.runPromise(server.handle({
       requestRoute: "shared",
       operation: "stats",
       lifetime: server.lifetime,
-    })).toEqual({ status: "obsolete-lifetime" });
-    expect(server.cleanup()).toBe("busy");
-    expect(server.stats()).toMatchObject({
+    }))).toEqual({ status: "obsolete-lifetime" });
+    expect(Effect.runSync(server.cleanup())).toBe("busy");
+    expect(Effect.runSync(server.stats())).toMatchObject({
       queued: 0,
       running: 0,
       pendingAdvice: 0,
@@ -1685,37 +1692,37 @@ describe("resident delivery lease", () => {
       },
     };
     let clock = 100;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    expect(server.stats()).toMatchObject({ pendingAdvice: 1, running: 0 });
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    expect(Effect.runSync(server.stats())).toMatchObject({ pendingAdvice: 1, running: 0 });
 
-    const first = await server.collect(root, advicee({ turnId: "later", toolUseId: "collect-1" }), dispatch);
+    const first = await Effect.runPromise(server.collect(root, advicee({ turnId: "later", toolUseId: "collect-1" }), dispatch));
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
-    server.releaseDelivery(first.token);
-    const afterDisconnect = await server.collect(
+    (await Effect.runPromise(server.releaseDelivery(first.token)));
+    const afterDisconnect = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "collect-2" }),
       dispatch,
-    );
+    ));
     expect(afterDisconnect.status).toBe("advice");
     if (afterDisconnect.status !== "advice") return;
 
-    expect(server.acknowledge(afterDisconnect.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(afterDisconnect.token))).status).toBe("acknowledged");
     clock += DELIVERY_LEASE_MS;
-    const afterFailedAck = await server.collect(
+    const afterFailedAck = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "collect-3" }),
       dispatch,
-    );
+    ));
     expect(afterFailedAck.status).toBe("advice");
     if (afterFailedAck.status !== "advice") return;
-    expect(server.acknowledge(afterFailedAck.token).status).toBe("acknowledged");
-    expect(server.finalize(afterFailedAck.token).status).toBe("finalized");
-    expect(server.stats()).toMatchObject({
+    expect((await Effect.runPromise(server.acknowledge(afterFailedAck.token))).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.finalize(afterFailedAck.token))).status).toBe("finalized");
+    expect(Effect.runSync(server.stats())).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   });
 
@@ -1737,11 +1744,11 @@ describe("resident delivery lease", () => {
         ])),
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    expect(server.stats()).toMatchObject({ queued: 0, running: 0, pendingAdvice: 1 });
-    expect(server.stats().retainedBytes).toBe(server.accountingMetrics().operationalNoticeBytes);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    expect(Effect.runSync(server.stats())).toMatchObject({ queued: 0, running: 0, pendingAdvice: 1 });
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe((await Effect.runPromise(server.accountingMetrics())).operationalNoticeBytes);
   });
 
   it("bounds 16-path/64-unit preparation and accounts accepted units exactly", async () => {
@@ -1789,24 +1796,24 @@ describe("resident delivery lease", () => {
         },
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
 
-    const metadata = server.pendingAdviceMetadata();
-    const stats = server.stats();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
+    const stats = Effect.runSync(server.stats());
     expect(metadata.length).toBeGreaterThanOrEqual(8);
     expect(metadata.length).toBeLessThanOrEqual(16);
     expect(stats).toMatchObject({ pendingAdvice: metadata.length });
     expect(stats.rejectedCapacity).toBeGreaterThan(0);
     expect(stats.retainedBytes).toBe(metadata.reduce((total, item) => total + item.retainedBytes, 0) +
-      server.accountingMetrics().successfulCacheBytes);
+      (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(metadata.length);
     expect(metadata.map((item) => item.sequence)).toEqual(
       [...metadata.map((item) => item.sequence)].sort((left, right) => left - right),
     );
-    expect(server.accountingMetrics()).toMatchObject({ maxMaterializedPreparedUnits: 64 });
-    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ maxMaterializedPreparedUnits: 64 });
+    expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
   });
 
   it("reserves large valid outcomes before evaluation and rejects unreservable outcomes without a call", async () => {
@@ -1849,34 +1856,34 @@ describe("resident delivery lease", () => {
           },
         },
       };
-      const server = new ResidentServer(residentPaths(join(root, "runtime")));
-      expect(server.admit(observation, dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
+      expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       return { root, statePath, capturePath, dispatch, server };
     };
 
     const retained = await run(20 * 1024);
-    expect(retained.server.stats()).toMatchObject({ pendingAdvice: 1, rejectedCapacity: 0 });
+    expect(Effect.runSync(retained.server.stats())).toMatchObject({ pendingAdvice: 1, rejectedCapacity: 0 });
     expect(readFileSync(retained.capturePath, "utf8").trim()).toBe("called");
-    const delivered = await retained.server.collect(
+    const delivered = await Effect.runPromise(retained.server.collect(
       retained.root,
       advicee({ turnId: "later", toolUseId: "large" }),
       retained.dispatch,
-    );
+    ));
     expect(delivered).toMatchObject({ status: "empty" });
-    expect(retained.server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
-    expect(retained.server.stats()).toMatchObject({ pendingAdvice: 2 });
+    expect((await Effect.runPromise(retained.server.accountingMetrics())).pendingOperationalNotices).toBeGreaterThan(0);
+    expect(Effect.runSync(retained.server.stats())).toMatchObject({ pendingAdvice: 2 });
 
     const rejected = await run(2 * 1024 * 1024);
-    expect(rejected.server.stats().rejectedCapacity).toBeGreaterThan(0);
+    expect(Effect.runSync(rejected.server.stats()).rejectedCapacity).toBeGreaterThan(0);
     expect(existsSync(rejected.capturePath)).toBe(false);
-    expect(rejected.server.accountingMetrics().maxMaterializedPreparedUnits).toBeLessThanOrEqual(1);
-    expect(rejected.server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    expect((await Effect.runPromise(rejected.server.accountingMetrics())).maxMaterializedPreparedUnits).toBeLessThanOrEqual(1);
+    expect((await Effect.runPromise(rejected.server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
 
     const transportRejected = await run(300 * 1024);
-    expect(transportRejected.server.stats()).toMatchObject({ pendingAdvice: 1, rejectedCapacity: 1 });
-    expect(transportRejected.server.stats().retainedBytes).toBe(
-      transportRejected.server.accountingMetrics().operationalNoticeBytes,
+    expect(Effect.runSync(transportRejected.server.stats())).toMatchObject({ pendingAdvice: 1, rejectedCapacity: 1 });
+    expect(Effect.runSync(transportRejected.server.stats()).retainedBytes).toBe(
+      (await Effect.runPromise(transportRejected.server.accountingMetrics())).operationalNoticeBytes,
     );
     expect(existsSync(transportRejected.capturePath)).toBe(false);
   });
@@ -1901,41 +1908,43 @@ describe("resident delivery lease", () => {
       },
     };
     const entered: Array<string> = [];
-    const releases = new Map<string, () => void>();
-    const server = new ResidentServer(
+    const releases = new Map<string, Effect.Effect<void>>();
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
-      { beforeRevalidate: (id) => new Promise<void>((resolve) => {
+      { reviewControls: reviewControlsLayer({ beforeRevalidate: (id) => Effect.gen(function* () {
+        const release = yield* Deferred.make<void>();
         entered.push(id);
-        releases.set(id, resolve);
-      }) },
+        releases.set(id, Deferred.succeed(release, undefined).pipe(Effect.asVoid));
+        yield* Deferred.await(release);
+      }) }) },
     );
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const [first, second] = server.pendingAdviceMetadata();
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const [first, second] = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(first).toBeDefined();
     expect(second).toBeDefined();
     if (first === undefined || second === undefined) return;
     await put(root, "a.ts", "type FirstShape = string\n");
 
-    const collectFirst = server.collect(root, advicee({ turnId: "c1", toolUseId: "c1" }), dispatch);
+    const collectFirst = Effect.runPromise(server.collect(root, advicee({ turnId: "c1", toolUseId: "c1" }), dispatch));
     while (entered.length < 1) await Promise.resolve();
-    const collectSecond = server.collect(root, advicee({ turnId: "c2", toolUseId: "c2" }), dispatch);
+    const collectSecond = Effect.runPromise(server.collect(root, advicee({ turnId: "c2", toolUseId: "c2" }), dispatch));
     while (entered.length < 2) await Promise.resolve();
     expect(entered).toEqual([first.id, second.id]);
 
-    releases.get(second.id)?.();
+    Effect.runSync(releases.get(second.id) ?? Effect.void);
     const secondResult = await collectSecond;
     expect(secondResult.status).toBe("advice");
     if (secondResult.status === "advice") {
-      expect(server.acknowledge(secondResult.token).status).toBe("acknowledged");
-      expect(server.finalize(secondResult.token).status).toBe("finalized");
+      expect((await Effect.runPromise(server.acknowledge(secondResult.token))).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.finalize(secondResult.token))).status).toBe("finalized");
     }
-    releases.get(first.id)?.();
+    Effect.runSync(releases.get(first.id) ?? Effect.void);
     await expect(collectFirst).resolves.toMatchObject({ status: "empty" });
-    expect(server.stats()).toMatchObject({
+    expect(Effect.runSync(server.stats())).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   });
 
@@ -1957,12 +1966,12 @@ describe("resident delivery lease", () => {
       credential: null,
       controlled: { capturePath },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    expect(server.stats()).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
-    expect(server.accountingMetrics().maxMaterializedPreparedUnits).toBe(0);
-    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    expect(Effect.runSync(server.stats())).toMatchObject({ pendingAdvice: 0, rejectedCapacity: 1, retainedBytes: 0 });
+    expect((await Effect.runPromise(server.accountingMetrics())).maxMaterializedPreparedUnits).toBe(0);
+    expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
     expect(existsSync(capturePath)).toBe(false);
   });
 
@@ -1974,58 +1983,49 @@ describe("resident delivery lease", () => {
     expect(first).toBeDefined();
     if (first === undefined) return;
     const dispatch = findingDispatch(statePath);
-    const firstPrepared = deferred();
-    const replacementPrepared = deferred();
-    const releaseFirstPrepare = deferred();
+    const controls = await Effect.runPromise(makePreparationControls());
+    await Effect.runPromise(controls.holdNextPreparation);
     const oldEvaluationEntered = deferred();
     const releaseOldEvaluation = deferred();
-    let preparation = 0;
     let heldOldEvaluation = false;
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
       {
-        afterPrepare: async () => {
-          preparation += 1;
-          if (preparation === 1) {
-            firstPrepared.resolve();
-            await releaseFirstPrepare.promise;
-          }
-          if (preparation === 2) replacementPrepared.resolve();
-        },
-        beforeEvaluate: async (prepared) => {
+        preparationControls: controls.layer,
+        reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
           if (!heldOldEvaluation && prepared.input.declaration.source.includes("number")) {
             heldOldEvaluation = true;
-            oldEvaluationEntered.resolve();
-            await releaseOldEvaluation.promise;
+            yield* oldEvaluationEntered.complete();
+            yield* releaseOldEvaluation.wait;
           }
-        },
+        }) }),
       },
     );
-    expect(server.admit(first, dispatch).status).toBe("accepted");
-    await firstPrepared.promise;
+    expect(Effect.runSync(server.admit(first, dispatch)).status).toBe("accepted");
+    expect(await Effect.runPromise(controls.nextPreparation)).toBe(1);
     await put(root, "type.ts", "type OrderCount = string\n");
     const replacement = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
       tool_use_id: "replacement",
     })));
     expect(replacement).toBeDefined();
     if (replacement === undefined) return;
-    expect(server.admit(replacement, dispatch).status).toBe("accepted");
-    releaseFirstPrepare.resolve();
+    expect(Effect.runSync(server.admit(replacement, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(controls.releasePreparation);
     await oldEvaluationEntered.promise;
-    await replacementPrepared.promise;
+    expect(await Effect.runPromise(controls.nextPreparation)).toBe(2);
     releaseOldEvaluation.resolve();
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
 
-    const metadata = server.pendingAdviceMetadata();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(metadata).toHaveLength(1);
     expect(metadata[0]?.generation).toBe(2);
-    expect(server.stats().currentWork).toBe(1);
-    const delivered = await server.collect(
+    expect(Effect.runSync(server.stats()).currentWork).toBe(1);
+    const delivered = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "replacement-collect" }),
       dispatch,
-    );
+    ));
     expect(delivered.status).toBe("advice");
   });
 
@@ -2036,7 +2036,7 @@ describe("resident delivery lease", () => {
     const first = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(first).toBeDefined();
     if (first === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const capturePath = join(root, "backend-calls");
     const dispatch: ResidentDispatchContext = {
       statePath,
@@ -2050,7 +2050,7 @@ describe("resident delivery lease", () => {
         ])),
       },
     };
-    expect(server.admit(first, dispatch).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(first, dispatch)).status).toBe("accepted");
     const huge = "x".repeat(32 * 1024);
     for (let index = 0; index < 6; index += 1) {
       const duplicate = {
@@ -2064,24 +2064,24 @@ describe("resident delivery lease", () => {
           ? { ...candidate, addedLines: [huge] }
           : candidate),
       };
-      expect(server.admit(duplicate, dispatch).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(duplicate, dispatch)).status).toBe("accepted");
     }
-    await server.whenIdle();
-    const metadata = server.pendingAdviceMetadata();
+    await Effect.runPromise(server.whenIdle());
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(metadata).toHaveLength(1);
     expect(new Set(metadata.map(({ generation }) => generation))).toEqual(new Set([1]));
     expect(new Set(metadata.flatMap(({ evaluationIdentities }) => evaluationIdentities)).size).toBe(1);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(1);
-    expect(server.accountingMetrics().pendingEvaluations).toBe(0);
-    expect(server.stats().retainedBytes).toBe(
-      (metadata[0]?.retainedBytes ?? 0) + server.accountingMetrics().successfulCacheBytes,
+    expect((await Effect.runPromise(server.accountingMetrics())).pendingEvaluations).toBe(0);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(
+      (metadata[0]?.retainedBytes ?? 0) + (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     );
-    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
-    await expect(server.collect(
+    expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    await expect(Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "after-storm", toolUseId: "after-storm" }),
       dispatch,
-    )).resolves.toMatchObject({ status: "advice" });
+    ))).resolves.toMatchObject({ status: "advice" });
   });
 
   it("uses stable advice identity when replacement arrives during collection", async () => {
@@ -2094,24 +2094,24 @@ describe("resident delivery lease", () => {
     const entered = deferred();
     const release = deferred();
     let held = false;
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
-      { beforeRevalidate: async () => {
+      { reviewControls: reviewControlsLayer({ beforeRevalidate: () => Effect.gen(function* () {
         if (held) return;
         held = true;
-        entered.resolve();
-        await release.promise;
-      } },
+        yield* entered.complete();
+        yield* release.wait;
+      }) }) },
     );
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(first, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const collecting = server.collect(
+    expect(Effect.runSync(server.admit(first, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const collecting = Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "collecting", toolUseId: "collecting" }),
       dispatch,
-    );
+    ));
     await entered.promise;
 
     await put(root, "type.ts", "type OrderCount = string\n");
@@ -2120,19 +2120,19 @@ describe("resident delivery lease", () => {
     })));
     expect(replacement).toBeDefined();
     if (replacement === undefined) return;
-    expect(server.admit(replacement, dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(replacement, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
     release.resolve();
     await expect(collecting).resolves.toMatchObject({ status: "empty" });
 
-    const metadata = server.pendingAdviceMetadata();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(metadata).toHaveLength(1);
     expect(metadata[0]?.generation).toBe(2);
-    await expect(server.collect(
+    await expect(Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "replacement" }),
       dispatch,
-    )).resolves.toMatchObject({ status: "advice" });
+    ))).resolves.toMatchObject({ status: "advice" });
   });
 
   it("keeps retired advice workspace charged until active revalidation finalizes", async () => {
@@ -2145,27 +2145,27 @@ describe("resident delivery lease", () => {
     const workspaceReserved = deferred();
     const releaseRevalidation = deferred();
     let held = false;
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
-      { afterRevalidationWorkspaceReserved: async () => {
+      { reviewControls: reviewControlsLayer({ afterRevalidationWorkspaceReserved: () => Effect.gen(function* () {
         if (held) return;
         held = true;
-        workspaceReserved.resolve();
-        await releaseRevalidation.promise;
-      } },
+        yield* workspaceReserved.complete();
+        yield* releaseRevalidation.wait;
+      }) }) },
     );
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(first, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const baseBytes = server.stats().retainedBytes;
-    const collecting = server.collect(
+    expect(Effect.runSync(server.admit(first, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const baseBytes = Effect.runSync(server.stats()).retainedBytes;
+    const collecting = Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "collecting", toolUseId: "collecting" }),
       dispatch,
-    );
+    ));
     await workspaceReserved.promise;
-    expect(server.stats().retainedBytes).toBeGreaterThan(baseBytes);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(baseBytes);
 
     await put(root, "type.ts", "type OrderCount = string\n");
     const replacement = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
@@ -2173,35 +2173,35 @@ describe("resident delivery lease", () => {
     })));
     expect(replacement).toBeDefined();
     if (replacement === undefined) return;
-    expect(server.admit(replacement, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const replacementAdvice = server.pendingAdviceMetadata();
+    expect(Effect.runSync(server.admit(replacement, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const replacementAdvice = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(replacementAdvice).toHaveLength(1);
     expect(replacementAdvice[0]?.generation).toBe(2);
-    expect(server.stats().currentWork).toBe(1);
+    expect(Effect.runSync(server.stats()).currentWork).toBe(1);
     const replacementBytes = replacementAdvice[0]?.retainedBytes ?? 0;
-    expect(server.stats().retainedBytes).toBeGreaterThan(replacementBytes);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(replacementBytes);
 
     releaseRevalidation.resolve();
     await expect(collecting).resolves.toMatchObject({ status: "empty" });
-    expect(server.stats()).toMatchObject({
+    expect(Effect.runSync(server.stats())).toMatchObject({
       pendingAdvice: 1,
       currentWork: 1,
-      retainedBytes: replacementBytes + server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: replacementBytes + (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
-    const delivered = await server.collect(
+    const delivered = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "replacement" }),
       dispatch,
-    );
+    ));
     expect(delivered.status).toBe("advice");
     if (delivered.status !== "advice") return;
-    expect(server.acknowledge(delivered.token).status).toBe("acknowledged");
-    expect(server.finalize(delivered.token).status).toBe("finalized");
-    expect(server.stats()).toMatchObject({
+    expect((await Effect.runPromise(server.acknowledge(delivered.token))).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.finalize(delivered.token))).status).toBe("finalized");
+    expect(Effect.runSync(server.stats())).toMatchObject({
       pendingAdvice: 0,
       currentWork: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   });
 
@@ -2228,16 +2228,16 @@ describe("resident delivery lease", () => {
     const revalidationHeld = deferred();
     const releaseRevalidation = deferred();
     let holdNextRevalidation = true;
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
       {
-        afterRevalidationWorkspaceReserved: async () => {
+        reviewControls: reviewControlsLayer({ afterRevalidationWorkspaceReserved: () => Effect.gen(function* () {
           if (!holdNextRevalidation) return;
           holdNextRevalidation = false;
-          revalidationHeld.resolve();
-          await releaseRevalidation.promise;
-        },
+          yield* revalidationHeld.complete();
+          yield* releaseRevalidation.wait;
+        }) }),
       },
     );
     const admitSource = async (
@@ -2250,37 +2250,37 @@ describe("resident delivery lease", () => {
         tool_use_id: toolUseId,
       })));
       expect(observation).toBeDefined();
-      if (observation !== undefined) expect(server.admit(observation, dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      if (observation !== undefined) expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
     };
 
     await admitSource("type OrderCount = boolean\n", "seed-B-clear", clearDispatch);
-    expect(server.accountingMetrics().successfulCacheEntries).toBe(1);
+    expect((await Effect.runPromise(server.accountingMetrics())).successfulCacheEntries).toBe(1);
     await admitSource("type OrderCount = number\n", "A", finding);
-    expect(server.pendingAdviceMetadata()).toHaveLength(1);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(1);
 
-    const collectingA = server.collect(
+    const collectingA = Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "held-A", toolUseId: "held-A" }),
       finding,
-    );
+    ));
     await revalidationHeld.promise;
 
     await admitSource("type OrderCount = boolean\n", "cached-B", finding);
-    expect(server.pendingAdviceMetadata()).toHaveLength(0);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(0);
     await admitSource("type OrderCount = string\n", "new-C", finding);
-    const currentC = server.pendingAdviceMetadata();
+    const currentC = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(currentC).toHaveLength(1);
     const cGeneration = currentC[0]?.generation;
 
     releaseRevalidation.resolve();
     await expect(collectingA).resolves.toMatchObject({ status: "empty" });
-    expect(server.pendingAdviceMetadata()).toMatchObject([{ generation: cGeneration }]);
-    const deliveredC = await server.collect(
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{ generation: cGeneration }]);
+    const deliveredC = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "C", toolUseId: "C" }),
       finding,
-    );
+    ));
     expect(deliveredC.status).toBe("advice");
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(3);
   });
@@ -2293,24 +2293,24 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["b.ts", "a.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    expect(server.pendingAdviceMetadata()).toHaveLength(2);
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(2);
     await put(root, "b.ts", "type BCount = string\n");
 
-    const delivered = await server.collect(
+    const delivered = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "multi" }),
       dispatch,
-    );
+    ));
     expect(delivered.status).toBe("advice");
     if (delivered.status === "advice") {
       expect(delivered.output.hookSpecificOutput.additionalContext).toContain("a.ts :: ACount");
       expect(delivered.output.hookSpecificOutput.additionalContext).not.toContain("b.ts :: BCount");
     }
-    expect(server.stats().pendingAdvice).toBe(1);
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1);
   });
 
   it("keeps addressed advice pending when current revalidation is unavailable", async () => {
@@ -2320,23 +2320,23 @@ describe("resident delivery lease", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root)));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
     await put(root, "type.ts", "interface Broken { value: Missing }\n");
-    await expect(server.collect(
+    await expect(Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "unavailable" }),
       dispatch,
-    )).resolves.toMatchObject({ status: "empty" });
-    expect(server.stats().pendingAdvice).toBe(1);
-    expect(await server.collect(
+    ))).resolves.toMatchObject({ status: "empty" });
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1);
+    expect(await Effect.runPromise(server.collect(
       root,
       advicee({ subagentId: "other", turnId: "other", toolUseId: "other" }),
       dispatch,
-    )).toMatchObject({ status: "empty" });
-    expect(server.stats().pendingAdvice).toBe(1);
+    ))).toMatchObject({ status: "empty" });
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1);
   });
 
   it("retires resident advice when complete rule input changes", async () => {
@@ -2375,19 +2375,19 @@ describe("resident delivery lease", () => {
         },
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    expect(server.stats().pendingAdvice).toBe(1);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1);
     await put(root, "rules.jsonc", rules("changed recommendation"));
-    await expect(server.collect(
+    await expect(Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "rules" }),
       dispatch,
-    )).resolves.toMatchObject({ status: "empty" });
-    expect(server.stats()).toMatchObject({
+    ))).resolves.toMatchObject({ status: "empty" });
+    expect(Effect.runSync(server.stats())).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   });
 
@@ -2402,27 +2402,27 @@ describe("resident delivery lease", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch = findingDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const saturated = server.stats();
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const saturated = Effect.runSync(server.stats());
     // Every attempted unit either retains advice or is refused by the
     // partition ledger, whose successful cache entries also consume space.
     expect(saturated.pendingAdvice + saturated.rejectedCapacity).toBe(16);
     expect(saturated.pendingAdvice).toBeGreaterThan(0);
-    const beforeItems = server.pendingAdviceMetadata();
+    const beforeItems = (await Effect.runPromise(server.pendingAdviceMetadata()));
 
-    const collected = await server.collect(
+    const collected = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "saturated", toolUseId: "saturated" }),
       dispatch,
-    );
+    ));
     expect(collected.status).toBe("advice");
     if (collected.status !== "advice") return;
-    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
-    expect(server.finalize(collected.token).status).toBe("finalized");
-    expect(server.stats()).toMatchObject({ pendingAdvice: saturated.pendingAdvice - collected.findingCount });
-    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - beforeItems
+    expect((await Effect.runPromise(server.acknowledge(collected.token))).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.finalize(collected.token))).status).toBe("finalized");
+    expect(Effect.runSync(server.stats())).toMatchObject({ pendingAdvice: saturated.pendingAdvice - collected.findingCount });
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(saturated.retainedBytes - beforeItems
       .slice(0, collected.findingCount).reduce((total, item) => total + item.retainedBytes, 0));
   });
 
@@ -2432,7 +2432,7 @@ describe("resident delivery lease", () => {
     const root = await makeGitFixture();
     const statePath = join(root, "consent");
     const dispatch = findingDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     for (let partition = 0; partition < 4; partition += 1) {
       const paths = Array.from({ length: 16 }, (_, index) => `p${partition}-${index}.ts`);
       for (const [index, path] of paths.entries()) {
@@ -2444,26 +2444,26 @@ describe("resident delivery lease", () => {
       })));
       expect(observation).toBeDefined();
       if (observation === undefined) return;
-      expect(server.admit(observation, dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
     }
-    const saturated = server.stats();
+    const saturated = Effect.runSync(server.stats());
     expect(saturated.pendingAdvice + saturated.rejectedCapacity).toBe(64);
     expect(saturated.pendingAdvice).toBeGreaterThan(0);
-    const beforeItems = server.pendingAdviceMetadata().filter(({ partition }) =>
+    const beforeItems = (await Effect.runPromise(server.pendingAdviceMetadata())).filter(({ partition }) =>
       partition.includes('"subagentId":"agent-0"'));
 
-    const collected = await server.collect(
+    const collected = await Effect.runPromise(server.collect(
       root,
       advicee({ subagentId: "agent-0", turnId: "global", toolUseId: "global" }),
       dispatch,
-    );
+    ));
     expect(collected.status).toBe("advice");
     if (collected.status !== "advice") return;
-    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
-    expect(server.finalize(collected.token).status).toBe("finalized");
-    expect(server.stats()).toMatchObject({ pendingAdvice: saturated.pendingAdvice - collected.findingCount });
-    expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - beforeItems
+    expect((await Effect.runPromise(server.acknowledge(collected.token))).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.finalize(collected.token))).status).toBe("finalized");
+    expect(Effect.runSync(server.stats())).toMatchObject({ pendingAdvice: saturated.pendingAdvice - collected.findingCount });
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(saturated.retainedBytes - beforeItems
       .slice(0, collected.findingCount).reduce((total, item) => total + item.retainedBytes, 0));
   }, 10_000);
 
@@ -2477,39 +2477,39 @@ describe("resident delivery lease", () => {
     if (observation === undefined) return;
     const dispatch = findingDispatch(statePath);
     const visits: Array<string> = [];
-    const server = new ResidentServer(
+    const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
-      { beforeRevalidate: async (id) => { visits.push(id); } },
+      { reviewControls: reviewControlsLayer({ beforeRevalidate: (id) => Effect.gen(function* () { visits.push(id); }) }) },
     );
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const before = server.pendingAdviceMetadata();
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const before = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(before.map(({ path }) => path)).toEqual(["a.ts", "b.ts"]);
     await put(root, "a.ts", "interface Broken { value: Missing }\n");
 
-    const collected = await server.collect(
+    const collected = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "scan", toolUseId: "scan" }),
       dispatch,
-    );
+    ));
     expect(collected.status).toBe("advice");
     if (collected.status !== "advice") return;
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
     expect(visits).toEqual(before.map(({ id }) => id));
-    const after = server.pendingAdviceMetadata();
+    const after = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(after.find(({ path }) => path === "a.ts")?.delivery).toBe("available");
     expect(after.find(({ path }) => path === "b.ts")?.delivery).toBe("leased-unacknowledged");
-    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
-    expect(server.finalize(collected.token).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "a.ts", delivery: "available" }]);
+    expect((await Effect.runPromise(server.acknowledge(collected.token))).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.finalize(collected.token))).status).toBe("finalized");
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{ path: "a.ts", delivery: "available" }]);
   });
 
   it("reuses successful clear evaluations but never failures or malformed responses", async () => {
     const root = await makeGitFixture();
     await put(root, "type.ts", "type OrderCount = number\n");
     const statePath = join(root, "consent");
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const clearCalls = join(root, "clear-calls");
     const clearDispatch: ResidentDispatchContext = {
       statePath,
@@ -2525,12 +2525,12 @@ describe("resident delivery lease", () => {
         tool_use_id: toolUseId,
       })));
       expect(observation).toBeDefined();
-      if (observation !== undefined) expect(server.admit(observation, clearDispatch).status).toBe("accepted");
-      await server.whenIdle();
+      if (observation !== undefined) expect(Effect.runSync(server.admit(observation, clearDispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
     }
     expect(readFileSync(clearCalls, "utf8").trim().split("\n")).toHaveLength(1);
-    expect(server.stats().pendingAdvice).toBe(0);
-    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 1 });
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(0);
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ successfulCacheEntries: 1 });
 
     const malformedCalls = join(root, "malformed-calls");
     const malformedDispatch: ResidentDispatchContext = {
@@ -2549,11 +2549,11 @@ describe("resident delivery lease", () => {
         tool_use_id: toolUseId,
       })));
       expect(observation).toBeDefined();
-      if (observation !== undefined) expect(server.admit(observation, malformedDispatch).status).toBe("accepted");
-      await server.whenIdle();
+      if (observation !== undefined) expect(Effect.runSync(server.admit(observation, malformedDispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
     }
     expect(readFileSync(malformedCalls, "utf8").trim().split("\n")).toHaveLength(2);
-    expect(server.accountingMetrics().successfulCacheEntries).toBe(1);
+    expect((await Effect.runPromise(server.accountingMetrics())).successfulCacheEntries).toBe(1);
   });
 
   it("restores cached A after A to B to A without retaining delivery history", async () => {
@@ -2572,32 +2572,32 @@ describe("resident delivery lease", () => {
         ])),
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const admitSource = async (source: string, toolUseId: string) => {
       await put(root, "type.ts", source);
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
         tool_use_id: toolUseId,
       })));
       expect(observation).toBeDefined();
-      if (observation !== undefined) expect(server.admit(observation, dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      if (observation !== undefined) expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
     };
     await admitSource("type OrderCount = number\n", "A-1");
-    const firstAIdentity = server.pendingAdviceMetadata()[0]?.evaluationIdentities[0];
-    const deliveredA = await server.collect(root, advicee({ turnId: "A", toolUseId: "A" }), dispatch);
+    const firstAIdentity = (await Effect.runPromise(server.pendingAdviceMetadata()))[0]?.evaluationIdentities[0];
+    const deliveredA = await Effect.runPromise(server.collect(root, advicee({ turnId: "A", toolUseId: "A" }), dispatch));
     expect(deliveredA.status).toBe("advice");
     if (deliveredA.status === "advice") {
-      expect(server.acknowledge(deliveredA.token).status).toBe("acknowledged");
-      expect(server.finalize(deliveredA.token).status).toBe("finalized");
+      expect((await Effect.runPromise(server.acknowledge(deliveredA.token))).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.finalize(deliveredA.token))).status).toBe("finalized");
     }
     await admitSource("type OrderCount = string\n", "B");
-    expect(server.pendingAdviceMetadata()).toHaveLength(1);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(1);
     await admitSource("type OrderCount = number\n", "A-2");
-    const restored = server.pendingAdviceMetadata();
+    const restored = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(restored).toHaveLength(1);
     expect(restored[0]?.evaluationIdentities).toEqual([firstAIdentity]);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(2);
-    expect(server.accountingMetrics()).toMatchObject({ successfulCacheEntries: 2, pendingEvaluations: 0 });
+    expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ successfulCacheEntries: 2, pendingEvaluations: 0 });
   });
 
   it("bounds successful reuse by entry and byte limits and reevaluates evicted input", async () => {
@@ -2610,19 +2610,19 @@ describe("resident delivery lease", () => {
       credential: null,
       controlled: { capturePath },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const admit = async (index: number, toolUseId: string) => {
       await put(root, "type.ts", `type Shape${index} = ${index}\n`);
       const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["type.ts"], {
         tool_use_id: toolUseId,
       })));
       expect(observation).toBeDefined();
-      if (observation !== undefined) expect(server.admit(observation, dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      if (observation !== undefined) expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
     };
     for (let index = 0; index < 10; index += 1) await admit(index, `unique-${index}`);
-    expect(server.accountingMetrics().successfulCacheEntries).toBeLessThanOrEqual(8);
-    expect(server.accountingMetrics().successfulCacheBytes).toBeLessThanOrEqual(128 * 1024);
+    expect((await Effect.runPromise(server.accountingMetrics())).successfulCacheEntries).toBeLessThanOrEqual(8);
+    expect((await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes).toBeLessThanOrEqual(128 * 1024);
     await admit(0, "restored-evicted");
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(11);
   });
@@ -2664,7 +2664,7 @@ describe("resident delivery lease", () => {
         ])),
       },
     };
-    const server = new ResidentServer(residentPaths(join(root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     const encoded = JSON.stringify({
       requestRoute: "shared",
       operation: "admit", composed: true,
@@ -2677,32 +2677,32 @@ describe("resident delivery lease", () => {
     const decoded = decodeResidentRequest(encoded);
     expect(decoded?.operation).toBe("admit");
     if (decoded?.operation !== "admit") return;
-    expect(server.admit(decoded.observation, decoded.dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(decoded.observation, decoded.dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
 
-    const metadata = server.pendingAdviceMetadata();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(metadata).toHaveLength(8);
-    expect(server.stats().rejectedCapacity).toBe(0);
-    expect(server.stats().retainedBytes).toBe(
+    expect(Effect.runSync(server.stats()).rejectedCapacity).toBe(0);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(
       metadata.reduce((total, item) => total + item.retainedBytes, 0) +
-        server.accountingMetrics().successfulCacheBytes +
-        server.accountingMetrics().operationalNoticeBytes,
+        (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes +
+        (await Effect.runPromise(server.accountingMetrics())).operationalNoticeBytes,
     );
-    expect(server.stats().retainedBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
-    expect(server.accountingMetrics().peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
+    expect((await Effect.runPromise(server.accountingMetrics())).peakLedgerBytes).toBeLessThanOrEqual(PARTITION_BYTE_LIMIT);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(metadata.length);
 
-    expect(await server.collect(
+    expect(await Effect.runPromise(server.collect(
       root,
       { ...observation.advicee, subagentId: `${subagentId.slice(0, -1)}z` },
       dispatch,
-    )).toMatchObject({ status: "empty" });
-    expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
+    ))).toMatchObject({ status: "empty" });
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ id, delivery }) => ({ id, delivery }))).toEqual(
       metadata.map(({ id }) => ({ id, delivery: "available" })),
     );
     const otherRoot = await makeGitFixture();
-    expect(await server.collect(otherRoot, observation.advicee, dispatch)).toMatchObject({ status: "empty" });
-    expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
+    expect(await Effect.runPromise(server.collect(otherRoot, observation.advicee, dispatch))).toMatchObject({ status: "empty" });
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ id, delivery }) => ({ id, delivery }))).toEqual(
       metadata.map(({ id }) => ({ id, delivery: "available" })),
     );
   }, 10_000);
@@ -2717,23 +2717,23 @@ describe("resident bounded advice batches", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch = allFindingsDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100);
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const first = await server.collect(root, advicee({ turnId: "first", toolUseId: "first" }), dispatch);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100);
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const first = await Effect.runPromise(server.collect(root, advicee({ turnId: "first", toolUseId: "first" }), dispatch));
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
     expect(first.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(9);
-    expect(server.pendingAdviceMetadata()).toMatchObject([{
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{
       pendingFindings: 9,
       deliveryFindings: 9,
     }]);
-    expect(server.acknowledge(first.token).status).toBe("acknowledged");
-    expect(server.finalize(first.token).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toEqual([]);
-    expect(server.stats()).toMatchObject({
+    expect((await Effect.runPromise(server.acknowledge(first.token))).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.finalize(first.token))).status).toBe("finalized");
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
+    expect(Effect.runSync(server.stats())).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(server.accountingMetrics())).successfulCacheBytes,
     });
   }, 10_000);
 
@@ -2749,24 +2749,24 @@ describe("resident bounded advice batches", () => {
     const blocked = deferred();
     const release = deferred();
     let bId = "";
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100, {
-      beforeRevalidate: async (id) => {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
+      reviewControls: reviewControlsLayer({ beforeRevalidate: (id) => Effect.gen(function* () {
         if (id !== bId) return;
-        blocked.resolve();
-        await release.promise;
-      },
+        yield* blocked.complete();
+        yield* release.wait;
+      }) }),
     });
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const metadata = server.pendingAdviceMetadata();
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     bId = metadata.find(({ path }) => path === "b.ts")?.id ?? "";
     expect(bId).not.toBe("");
 
-    const collecting = server.collect(
+    const collecting = Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "collect", toolUseId: "collect" }),
       dispatch,
-    );
+    ));
     await blocked.promise;
     // A passed the first revalidation before B blocked. The final pass must
     // observe this change rather than publishing A's now-stale finding.
@@ -2777,7 +2777,7 @@ describe("resident bounded advice batches", () => {
     if (collected.status !== "advice") return;
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
-    expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["b.ts"]);
   }, 10_000);
 
   it("filters an earlier item that reaches expiry while a later final revalidation waits", async () => {
@@ -2796,28 +2796,28 @@ describe("resident bounded advice batches", () => {
     let bId = "";
     const blocked = deferred();
     const release = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
-      beforeFinalRevalidate: async (id) => {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
+      reviewControls: reviewControlsLayer({ beforeFinalRevalidate: (id) => Effect.gen(function* () {
         if (id !== bId) return;
-        blocked.resolve();
-        await release.promise;
-      },
+        yield* blocked.complete();
+        yield* release.wait;
+      }) }),
     });
     const dispatch = singleFindingDispatch(statePath);
-    expect(server.admit(firstObservation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    expect(Effect.runSync(server.admit(firstObservation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
     clock = 1;
-    expect(server.admit(secondObservation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    bId = server.pendingAdviceMetadata().find(({ path }) => path === "b.ts")?.id ?? "";
+    expect(Effect.runSync(server.admit(secondObservation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    bId = (await Effect.runPromise(server.pendingAdviceMetadata())).find(({ path }) => path === "b.ts")?.id ?? "";
     expect(bId).not.toBe("");
 
     clock = PENDING_ADVICE_EXPIRY_MS - 1;
-    const collecting = server.collect(
+    const collecting = Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "expiry", toolUseId: "expiry" }),
       dispatch,
-    );
+    ));
     await blocked.promise;
     clock = PENDING_ADVICE_EXPIRY_MS;
     release.resolve();
@@ -2826,7 +2826,7 @@ describe("resident bounded advice batches", () => {
     if (collected.status !== "advice") return;
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
-    expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["b.ts"]);
   }, 10_000);
 
   it("filters an earlier item superseded while a later final revalidation waits", async () => {
@@ -2840,27 +2840,27 @@ describe("resident bounded advice batches", () => {
     let bId = "";
     const blocked = deferred();
     const release = deferred();
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100, {
-      beforeFinalRevalidate: async (id) => {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
+      reviewControls: reviewControlsLayer({ beforeFinalRevalidate: (id) => Effect.gen(function* () {
         if (id !== bId) return;
-        blocked.resolve();
-        await release.promise;
-      },
+        yield* blocked.complete();
+        yield* release.wait;
+      }) }),
     });
     const dispatch = singleFindingDispatch(statePath);
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    const initial = server.pendingAdviceMetadata();
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const initial = (await Effect.runPromise(server.pendingAdviceMetadata()));
     const oldAId = initial.find(({ path }) => path === "a.ts")?.id ?? "";
     bId = initial.find(({ path }) => path === "b.ts")?.id ?? "";
     expect(oldAId).not.toBe("");
     expect(bId).not.toBe("");
 
-    const collecting = server.collect(
+    const collecting = Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "replacement", toolUseId: "replacement" }),
       dispatch,
-    );
+    ));
     await blocked.promise;
     await put(root, "a.ts", "type ACount = string\n");
     const replacement = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"], {
@@ -2868,10 +2868,10 @@ describe("resident bounded advice batches", () => {
     })));
     expect(replacement).toBeDefined();
     if (replacement === undefined) return;
-    expect(server.admit(replacement, dispatch).status).toBe("accepted");
-    await server.whenIdle();
-    expect(server.pendingAdviceMetadata().some(({ id, path }) => path === "a.ts" && id !== oldAId)).toBe(true);
-    expect(server.stats().currentWork).toBe(2);
+    expect(Effect.runSync(server.admit(replacement, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).some(({ id, path }) => path === "a.ts" && id !== oldAId)).toBe(true);
+    expect(Effect.runSync(server.stats()).currentWork).toBe(2);
     release.resolve();
 
     const collected = await collecting;
@@ -2879,8 +2879,8 @@ describe("resident bounded advice batches", () => {
     if (collected.status !== "advice") return;
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
-    expect(server.pendingAdviceMetadata().some(({ id }) => id === oldAId)).toBe(false);
-    expect(server.stats().currentWork).toBe(2);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).some(({ id }) => id === oldAId)).toBe(false);
+    expect(Effect.runSync(server.stats()).currentWork).toBe(2);
   });
 
   it("does not send part of a later edit after an earlier edit was delivered", async () => {
@@ -2901,56 +2901,57 @@ describe("resident bounded advice batches", () => {
     const releaseC = deferred();
     const bPending = deferred();
     let pendingCount = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
-      beforeEvaluate: async (prepared) => {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         if (prepared.input.path !== "c.ts") return;
-        cEntered.resolve();
-        await releaseC.promise;
-      },
-      afterAdvicePending: () => {
+        yield* cEntered.complete();
+        yield* releaseC.wait;
+      }),
+      afterAdvicePending: () => Effect.gen(function* () {
         pendingCount += 1;
-        if (pendingCount === 2) bPending.resolve();
-      },
+        if (pendingCount === 2) yield* bPending.complete();
+      }) }),
+
     });
-    expect(server.admit(firstObservation, allFindingsDispatch(statePath)).status).toBe("accepted");
-    await server.whenIdle();
-    const first = await server.collect(
+    expect(Effect.runSync(server.admit(firstObservation, allFindingsDispatch(statePath))).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
+    const first = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "cycle-1", toolUseId: "cycle-1" }),
       allFindingsDispatch(statePath),
-    );
+    ));
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
-    expect(server.acknowledge(first.token).status).toBe("acknowledged");
-    expect(server.finalize(first.token).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toEqual([]);
+    expect((await Effect.runPromise(server.acknowledge(first.token))).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.finalize(first.token))).status).toBe("finalized");
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
 
-    expect(server.admit(secondObservation, singleFindingDispatch(statePath)).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(secondObservation, singleFindingDispatch(statePath))).status).toBe("accepted");
     await cEntered.promise;
     await bPending.promise;
-    const overlap = await server.collect(
+    const overlap = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "overlap", toolUseId: "overlap" }),
       singleFindingDispatch(statePath),
-    );
+    ));
     expect(overlap.status).toBe("empty");
-    await expect(server.collect(
+    await expect(Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "too-early", toolUseId: "too-early" }),
       singleFindingDispatch(statePath),
-    )).resolves.toMatchObject({ status: "empty" });
+    ))).resolves.toMatchObject({ status: "empty" });
 
     clock += 50;
-    const stillWaiting = await server.collect(
+    const stillWaiting = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "aged", toolUseId: "aged" }),
       singleFindingDispatch(statePath),
-    );
+    ));
     expect(stillWaiting.status).toBe("empty");
     releaseC.resolve();
-    await server.whenIdle();
-    const complete = await server.collect(root,
-      advicee({ turnId: "complete", toolUseId: "complete" }), singleFindingDispatch(statePath));
+    await Effect.runPromise(server.whenIdle());
+    const complete = await Effect.runPromise(server.collect(root,
+      advicee({ turnId: "complete", toolUseId: "complete" }), singleFindingDispatch(statePath)));
     expect(complete.status).toBe("advice");
     if (complete.status === "advice") {
       expect(complete.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
@@ -2968,50 +2969,53 @@ describe("resident bounded advice batches", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     let clock = 10_000;
-    const releases = new Map<string, () => void>();
+    const releases = new Map<string, Effect.Effect<void>>();
     const entered: Array<string> = [];
     const firstTwoEntered = deferred();
     const allEntered = deferred();
     const firstAdvicePending = deferred();
     const secondAdvicePending = deferred();
     let pending = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock, {
-      beforeEvaluate: (prepared) => new Promise<void>((resolve) => {
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
+        const release = yield* Deferred.make<void>();
         entered.push(prepared.input.path);
-        releases.set(prepared.input.path, resolve);
-        if (entered.length === 2) firstTwoEntered.resolve();
-        if (entered.length === 3) allEntered.resolve();
+        releases.set(prepared.input.path, Deferred.succeed(release, undefined).pipe(Effect.asVoid));
+        if (entered.length === 2) yield* firstTwoEntered.complete();
+        if (entered.length === 3) yield* allEntered.complete();
+        yield* Deferred.await(release);
       }),
-      afterAdvicePending: () => {
+      afterAdvicePending: () => Effect.gen(function* () {
         pending += 1;
-        if (pending === 1) firstAdvicePending.resolve();
-        if (pending === 2) secondAdvicePending.resolve();
-      },
+        if (pending === 1) yield* firstAdvicePending.complete();
+        if (pending === 2) yield* secondAdvicePending.complete();
+      }) }),
+
     });
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
     await firstTwoEntered.promise;
-    releases.get("a.ts")?.();
+    Effect.runSync(releases.get("a.ts") ?? Effect.void);
     await firstAdvicePending.promise;
     await allEntered.promise;
-    expect(server.pendingAdviceMetadata()).toMatchObject([{
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{
       path: "a.ts",
       pendingAt: 10_000,
     }]);
 
-    await expect(server.collect(root, advicee({ turnId: "early", toolUseId: "early" }), dispatch))
+    await expect(Effect.runPromise(server.collect(root, advicee({ turnId: "early", toolUseId: "early" }), dispatch)))
       .resolves.toMatchObject({ status: "empty" });
     clock += 49;
-    await expect(server.collect(root, advicee({ turnId: "before", toolUseId: "before" }), dispatch))
+    await expect(Effect.runPromise(server.collect(root, advicee({ turnId: "before", toolUseId: "before" }), dispatch)))
       .resolves.toMatchObject({ status: "empty" });
-    releases.get("b.ts")?.();
+    Effect.runSync(releases.get("b.ts") ?? Effect.void);
     await secondAdvicePending.promise;
     clock += 1;
-    await expect(server.collect(root, advicee({ turnId: "at", toolUseId: "at" }), dispatch))
+    await expect(Effect.runPromise(server.collect(root, advicee({ turnId: "at", toolUseId: "at" }), dispatch)))
       .resolves.toMatchObject({ status: "empty" });
-    releases.get("c.ts")?.();
-    await server.whenIdle();
-    const complete = await server.collect(root, advicee({ turnId: "complete", toolUseId: "complete" }), dispatch);
+    Effect.runSync(releases.get("c.ts") ?? Effect.void);
+    await Effect.runPromise(server.whenIdle());
+    const complete = await Effect.runPromise(server.collect(root, advicee({ turnId: "complete", toolUseId: "complete" }), dispatch));
     expect(complete.status).toBe("advice");
     if (complete.status === "advice") {
       const text = complete.output.hookSpecificOutput.additionalContext;
@@ -3019,7 +3023,7 @@ describe("resident bounded advice batches", () => {
     }
   });
 
-  it("returns only the ready subset after the checked Stop deadline", async () => {
+  it("returns the ready subset and interrupts a suspended review after the checked Stop deadline", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
@@ -3027,39 +3031,43 @@ describe("resident bounded advice batches", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const releases = new Map<string, () => void>();
+    const releases = new Map<string, Effect.Effect<void>>();
     const bothEntered = deferred();
     const ready = deferred();
+    const cancelled = deferred();
     let entered = 0;
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 100, {
-      beforeEvaluate: (prepared) => new Promise<void>((resolve) => {
-        releases.set(prepared.input.path, resolve);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
+        const release = yield* Deferred.make<void>();
+        releases.set(prepared.input.path, Deferred.succeed(release, undefined).pipe(Effect.asVoid));
         entered += 1;
-        if (entered === 2) bothEntered.resolve();
+        if (entered === 2) yield* bothEntered.complete();
+        yield* Deferred.await(release).pipe(Effect.onInterrupt(() => cancelled.complete()));
       }),
-      afterAdvicePending: () => { ready.resolve(); },
+      afterAdvicePending: () => Effect.gen(function* () { yield* ready.complete(); }) }),
+
     });
     const dispatch = findingDispatch(statePath);
-    expect(server.admit(observation, dispatch, true).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted");
     await bothEntered.promise;
-    releases.get("a.ts")?.();
+    Effect.runSync(releases.get("a.ts") ?? Effect.void);
     await ready.promise;
-    await expect(server.collect(
+    await expect(Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "turn-end", toolUseId: "turn-end" }),
       dispatch,
       "ordinary",
-    )).resolves.toMatchObject({ status: "empty" });
-    expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-      root, advicee: observation.advicee, token: "partial-stop" })).status).toBe("advanced");
-    const turnEnd = await server.handle({ requestRoute: "shared", operation: "collect",
+    ))).resolves.toMatchObject({ status: "empty" });
+    expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      root, advicee: observation.advicee, token: "partial-stop" }))).status).toBe("advanced");
+    const turnEnd = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect",
       lifetime: server.lifetime, root, advicee: observation.advicee, dispatch, mode: "turn-end",
-      composed: true, finish: { token: "partial-stop", deadlineReached: true } });
+      composed: true, finish: { token: "partial-stop", deadlineReached: true } }));
     expect(turnEnd.status).toBe("advice");
-    expect(server.stats()).toMatchObject({ running: 1, pendingAdvice: 1 });
-    if (turnEnd.status === "advice") server.releaseDelivery(turnEnd.token);
-    releases.get("b.ts")?.();
-    await server.whenIdle();
+    await cancelled.promise;
+    expect(Effect.runSync(server.stats())).toMatchObject({ running: 0, pendingAdvice: 1 });
+    if (turnEnd.status === "advice") (await Effect.runPromise(server.releaseDelivery(turnEnd.token)));
+    await Effect.runPromise(server.whenIdle());
   });
 
   it("combines six deterministic findings when they fit within the byte bound", async () => {
@@ -3071,33 +3079,33 @@ describe("resident bounded advice batches", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     const dispatch = singleFindingDispatch(statePath);
-    const server = new ResidentServer(residentPaths(join(root, "runtime")), () => 500);
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
-    await server.whenIdle();
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 500);
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+    await Effect.runPromise(server.whenIdle());
 
-    const first = await server.collect(root, advicee({ turnId: "batch-1", toolUseId: "batch-1" }), dispatch);
+    const first = await Effect.runPromise(server.collect(root, advicee({ turnId: "batch-1", toolUseId: "batch-1" }), dispatch));
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
     expect(encodedHostOutputBytes(first.output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     for (let index = 0; index < 6; index += 1) {
       expect(first.output.hookSpecificOutput.additionalContext).toContain(`type-${index}.ts :: Count${index}`);
     }
-    expect(server.pendingAdviceMetadata().filter(({ delivery }) => delivery !== "available")).toHaveLength(6);
-    server.releaseDelivery(first.token);
-    expect(server.pendingAdviceMetadata().every(({ delivery }) => delivery === "available")).toBe(true);
-    const retried = await server.collect(
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).filter(({ delivery }) => delivery !== "available")).toHaveLength(6);
+    (await Effect.runPromise(server.releaseDelivery(first.token)));
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).every(({ delivery }) => delivery === "available")).toBe(true);
+    const retried = await Effect.runPromise(server.collect(
       root,
       advicee({ turnId: "batch-retry", toolUseId: "batch-retry" }),
       dispatch,
-    );
+    ));
     expect(retried.status).toBe("advice");
     if (retried.status !== "advice") return;
     expect(retried.output).toEqual(first.output);
-    expect(server.acknowledge(retried.token).status).toBe("acknowledged");
-    expect(server.finalize(retried.token).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toEqual([]);
+    expect((await Effect.runPromise(server.acknowledge(retried.token))).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.finalize(retried.token))).status).toBe("finalized");
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
 
-    const second = await server.collect(root, advicee({ turnId: "batch-2", toolUseId: "batch-2" }), dispatch);
+    const second = await Effect.runPromise(server.collect(root, advicee({ turnId: "batch-2", toolUseId: "batch-2" }), dispatch));
     expect(second.status).toBe("empty");
   });
 
@@ -3110,16 +3118,16 @@ describe("resident bounded advice batches", () => {
       expect(observation).toBeDefined();
       if (observation === undefined) throw new Error("fixture adaptation failed");
       let clock = 1_000;
-      const server = new ResidentServer(residentPaths(join(root, "runtime")), () => clock);
+      const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock);
       const dispatch = findingDispatch(statePath);
-      expect(server.admit(observation, dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       clock += age;
-      const collected = await server.collect(
+      const collected = await Effect.runPromise(server.collect(
         root,
         advicee({ turnId: `age-${age}`, toolUseId: `age-${age}` }),
         dispatch,
-      );
+      ));
       return { collected, server };
     };
 
@@ -3127,15 +3135,130 @@ describe("resident bounded advice batches", () => {
     expect(before.collected.status).toBe("advice");
     const at = await run(PENDING_ADVICE_EXPIRY_MS);
     expect(at.collected.status).toBe("empty");
-    expect(at.server.stats()).toMatchObject({
+    expect(Effect.runSync(at.server.stats())).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: at.server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(at.server.accountingMetrics())).successfulCacheBytes,
     });
     const after = await run(PENDING_ADVICE_EXPIRY_MS + 1);
     expect(after.collected.status).toBe("empty");
-    expect(after.server.stats()).toMatchObject({
+    expect(Effect.runSync(after.server.stats())).toMatchObject({
       pendingAdvice: 0,
-      retainedBytes: after.server.accountingMetrics().successfulCacheBytes,
+      retainedBytes: (await Effect.runPromise(after.server.accountingMetrics())).successfulCacheBytes,
     });
+  });
+});
+
+
+describe("Effect dispatch ownership", () => {
+  it.each(["authorized", "credentialResolved"] as const)("releases charged work when the %s control fails", async (phase) => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const capturePath = join(root, "provider-calls");
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      dispatchControls: Layer.succeed(ResidentDispatchControls, ResidentDispatchControls.of({
+        atBoundary: Effect.fn("DispatchFailureFixture.atBoundary")(function* (boundary) {
+          if (boundary === phase) yield* Effect.fail(new DispatchControlError({ phase }));
+        }),
+      })),
+    });
+    try {
+      expect(Effect.runSync(server.admit(observation, { ...findingDispatch(join(root, "consent")),
+        controlled: { ...findingDispatch(join(root, "consent")).controlled, capturePath } })).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
+      expect(existsSync(capturePath)).toBe(false);
+      expect(Effect.runSync(server.stats())).toMatchObject({ queued: 0, running: 0, retainedBytes: 0, pendingEvaluations: 0 });
+    } finally { await Effect.runPromise(server.close); }
+  });
+
+  it.each(["authorized", "credentialResolved"] as const)("closes a held %s boundary without an external release", async (phase) => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const controls = await Effect.runPromise(makeDispatchControls());
+    await Effect.runPromise(controls.holdNext(phase));
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined,
+      { dispatchControls: controls.layer });
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      expect(Effect.runSync(server.admit(observation, findingDispatch(join(root, "consent")))).status).toBe("accepted");
+      expect(await Effect.runPromise(controls.entered)).toBe(phase);
+      await Promise.race([Effect.runPromise(server.close), new Promise<never>((_, reject) => {
+        deadline = setTimeout(() => reject(new Error("resident did not cancel its held dispatch")), 2_000);
+      })]);
+      await Effect.runPromise(controls.retired);
+      expect(Effect.runSync(server.stats())).toMatchObject({ queued: 0, running: 0, retainedBytes: 0, pendingEvaluations: 0 });
+    } finally {
+      clearTimeout(deadline);
+      await Effect.runPromise(controls.release);
+      await Effect.runPromise(server.close);
+    }
+  });
+});
+
+describe("Effect preparation ownership", () => {
+  it.each(["owner", "prepared"] as const)("closes a held %s barrier without an external gate release", async (phase) => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const controls = await Effect.runPromise(makePreparationControls());
+    await Effect.runPromise(phase === "owner" ? controls.holdNextOwner : controls.holdNextPreparation);
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined,
+      { preparationControls: controls.layer });
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      expect(Effect.runSync(server.admit(observation, findingDispatch(join(root, "consent")))).status).toBe("accepted");
+      await Effect.runPromise(phase === "owner" ? controls.ownerEntered : controls.nextPreparation.pipe(Effect.asVoid));
+      // Bound failure cleanup without releasing the gate on the success path.
+      await Promise.race([Effect.runPromise(server.close), new Promise<never>((_, reject) => {
+        deadline = setTimeout(() => reject(new Error("resident did not cancel its held preparation")), 2_000);
+      })]);
+      await Effect.runPromise(controls.retired);
+      expect(Effect.runSync(server.stats())).toMatchObject({ queued: 0, running: 0, retainedBytes: 0, pendingEvaluations: 0 });
+    } finally {
+      clearTimeout(deadline);
+      await Effect.runPromise(controls.releaseOwner.pipe(Effect.andThen(controls.releasePreparation)));
+      await Effect.runPromise(server.close);
+    }
+  });
+
+  it("releases preparation workspace and reuse claims after a claim barrier fails", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      preparationControls: Layer.succeed(ResidentPreparationControls, ResidentPreparationControls.of({
+        ...defaultPreparationControls,
+        afterReuseBoundary: Effect.fn("PreparationFailureFixture.afterReuseBoundary")((phase) => Effect.fail(new PreparationControlError({ phase }))),
+      })),
+    });
+    try {
+      expect(Effect.runSync(server.admit(observation, findingDispatch(join(root, "consent")))).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
+      expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
+      expect(Effect.runSync(server.stats()).pendingEvaluations).toBe(0);
+      expect(Effect.runSync(server.stats()).currentWork).toBe(0);
+    } finally { await Effect.runPromise(server.close); }
+  });
+
+  it("releases charged capture workspace when resident shutdown interrupts capture", async () => {
+    const root = await makeGitFixture();
+    await put(root, "a.ts", "type OrderCount = number\n");
+    const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts"])));
+    if (observation === undefined) throw new Error("missing fixture observation");
+    const entered = Deferred.makeUnsafe<void>();
+    const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
+      captureSource: () => Deferred.succeed(entered, undefined).pipe(Effect.andThen(Effect.never)),
+    });
+    expect(Effect.runSync(server.admit(observation, findingDispatch(join(root, "consent")))).status).toBe("accepted");
+    await Effect.runPromise(Deferred.await(entered));
+    expect(Effect.runSync(server.stats()).retainedBytes).toBeGreaterThan(0);
+    await Effect.runPromise(server.close);
+    expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
+    expect(Effect.runSync(server.stats()).pendingEvaluations).toBe(0);
   });
 });

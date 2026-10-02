@@ -1,4 +1,5 @@
-import { spawnSync } from "node:child_process";
+import { Config, Effect, Schema } from "effect";
+import { execFileClosedStdin } from "./host-process.ts";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
@@ -16,7 +17,15 @@ export interface OpenCodeInstallationRequest {
   readonly proposalDigest?: string;
 }
 
-type OwnedRecord = { version: 1; adapter: "opencode"; home: string; pluginDigest: string; runtime: string; entrypoint: string };
+const OwnedRecord = Schema.Struct({
+  version: Schema.Literal(1),
+  adapter: Schema.Literal("opencode"),
+  home: Schema.String,
+  pluginDigest: Schema.String,
+  runtime: Schema.String,
+  entrypoint: Schema.String,
+});
+interface OwnedRecord extends Schema.Schema.Type<typeof OwnedRecord> {}
 const paths = (home: string) => ({
   plugin: join(home, "plugins", "hapsland.mjs"),
   ownership: join(home, ".realtime-review-tool", "opencode-installation-v1.json"),
@@ -36,28 +45,30 @@ const record = (content: string | undefined): OwnedRecord | undefined => {
   let value: unknown;
   try { value = JSON.parse(content); } catch { throw new Error("OpenCode ownership record is malformed"); }
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("OpenCode ownership record is malformed");
-  const r = value as Record<string, unknown>;
-  if (r.version !== 1 || r.adapter !== ADAPTER || typeof r.home !== "string" ||
-      typeof r.pluginDigest !== "string" || typeof r.runtime !== "string" || typeof r.entrypoint !== "string") {
-    throw new Error("OpenCode ownership record has an unsupported shape");
-  }
-  return r as OwnedRecord;
+  const decoded = Schema.decodeUnknownOption(OwnedRecord)(value);
+  if (decoded._tag === "None") throw new Error("OpenCode ownership record has an unsupported shape");
+  return decoded.value;
 };
-const inputs = (request: OpenCodeInstallationRequest) => {
-  const home = resolve(request.opencodeConfigHome ?? join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "opencode"));
-  const runtime = resolve(process.env.REVIEW_INSTALL_RUNTIME ?? process.execPath);
-  const entrypoint = resolve(process.env.REVIEW_INSTALL_ENTRYPOINT ?? process.argv[1] ?? "dist/cli.js");
-  const hostRun = spawnSync(request.opencodeExecutable ?? "opencode", ["--version"], { encoding: "utf8", timeout: 2_000 });
-  const observed = hostRun.status === 0 ? hostRun.stdout.trim() : "unavailable";
-  const runtimeRun = spawnSync(runtime, ["-e", "process.stdout.write(process.version)"], { encoding: "utf8", timeout: 2_000 });
-  const runtimeObserved = runtimeRun.status === 0 ? runtimeRun.stdout.trim() : "unavailable";
+class OpenCodeConfigurationError extends Schema.TaggedError<OpenCodeConfigurationError>()("OpenCodeConfigurationError", {
+  message: Schema.String,
+}) {}
+const configuration = Effect.fn("OpenCodeInstallation.configuration")(function* (request: OpenCodeInstallationRequest) {
+  const home = request.opencodeConfigHome ?? join(yield* Config.NonEmptyString("XDG_CONFIG_HOME").pipe(
+    Config.withDefault(join(homedir(), ".config"))), "opencode");
+  const runtime = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(Config.withDefault(process.execPath));
+  const entrypoint = yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(
+    Config.withDefault(process.argv[1] ?? "dist/cli.js"));
+  return { home: resolve(home), runtime: resolve(runtime), entrypoint: resolve(entrypoint) };
+}, Effect.mapError(() => new OpenCodeConfigurationError({ message: "OpenCode installation configuration is invalid" })));
+const inputs = (configured: { home: string; runtime: string; entrypoint: string },
+  observed: string, runtimeObserved: string) => {
+  const { home, entrypoint } = configured;
   const compatibility = { supported: observed === PROFILE && runtimeObserved === "v24.20.0" && existsSync(entrypoint),
     host: { observed, required: PROFILE }, runtime: { observed: runtimeObserved, required: "v24.20.0" },
     entrypoint: { path: entrypoint, ready: existsSync(entrypoint) } };
   return { home, compatibility, paths: paths(home) };
 };
-const planUninstall = (request: OpenCodeInstallationRequest) => {
-  const input = inputs(request);
+const planUninstall = (input: ReturnType<typeof inputs>) => {
   const beforePlugin = read(input.paths.plugin);
   const beforeRecord = read(input.paths.ownership);
   const ownership = record(beforeRecord);
@@ -77,10 +88,10 @@ const unsupported = (operation: string) => ({
   host: { adapter: ADAPTER },
   error: { message: "OpenCode review is unavailable until its pre-edit permit lifecycle is implemented." },
 });
-const previewUninstall = (request: OpenCodeInstallationRequest) => {
+const previewUninstall = (input: ReturnType<typeof inputs>) => {
   const operation = "uninstall-preview";
   try {
-    const next = planUninstall(request);
+    const next = planUninstall(input);
     return { version: 1 as const, operation, status: "preview" as const,
       host: { adapter: ADAPTER, home: next.input.home, compatibility: next.input.compatibility },
       proposal: { digest: next.proposalDigest, changes: [
@@ -95,44 +106,72 @@ const previewUninstall = (request: OpenCodeInstallationRequest) => {
       pending: ["apply this proposal digest to remove the owned integration"] };
   } catch (cause) { return conflict(operation, cause); }
 };
-const applyUninstall = (request: OpenCodeInstallationRequest) => {
+class OpenCodeInstallationError extends Schema.TaggedError<OpenCodeInstallationError>()("OpenCodeInstallationError", {
+  message: Schema.String,
+}) {}
+const applyUninstall = Effect.fn("OpenCodeInstallation.applyUninstall")((request: OpenCodeInstallationRequest, input: ReturnType<typeof inputs>) =>
+  Effect.acquireUseRelease(
+    Effect.try({
+      try: () => {
+        mkdirSync(dirname(input.paths.lock), { recursive: true, mode: 0o700 });
+        try { mkdirSync(input.paths.lock); } catch { throw new Error("OpenCode installation is locked"); }
+        return input.paths.lock;
+      },
+      catch: (cause) => new OpenCodeInstallationError({ message: message(cause) }),
+    }),
+    () => Effect.try({ try: () => {
+  const next = planUninstall(input);
+  if (request.proposalDigest === undefined) return previewUninstall(input);
+  if (request.proposalDigest !== next.proposalDigest) return { version: 1 as const, operation: "uninstall" as const,
+    status: "proposal-mismatch" as const, error: { message: "OpenCode configuration changed since preview" } };
+  if (next.noChange) return { version: 1 as const, operation: "uninstall" as const, status: "already-current" as const };
   try {
-    const input = inputs(request);
-    mkdirSync(dirname(input.paths.lock), { recursive: true, mode: 0o700 });
-    try { mkdirSync(input.paths.lock); } catch { throw new Error("OpenCode installation is locked"); }
-    try {
-      const next = planUninstall(request);
-      if (request.proposalDigest === undefined) return previewUninstall(request);
-      if (request.proposalDigest !== next.proposalDigest) return { version: 1 as const, operation: "uninstall" as const,
-        status: "proposal-mismatch" as const, error: { message: "OpenCode configuration changed since preview" } };
-      if (next.noChange) return { version: 1 as const, operation: "uninstall" as const, status: "already-current" as const };
-      try {
-        atomicInstallationFile(input.paths.plugin, undefined);
-        atomicInstallationFile(input.paths.ownership, undefined);
-      } catch (cause) {
-        if (read(input.paths.plugin) === next.beforePlugin) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
-        throw cause;
-      }
-      return { version: 1 as const, operation: "uninstall" as const, status: "complete" as const };
-    } finally { rmSync(input.paths.lock, { recursive: true, force: true }); }
-  } catch (cause) { return conflict("uninstall", cause); }
-};
+    atomicInstallationFile(input.paths.plugin, undefined);
+    atomicInstallationFile(input.paths.ownership, undefined);
+  } catch (cause) {
+    if (read(input.paths.plugin) === next.beforePlugin) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
+    throw cause;
+  }
+  return { version: 1 as const, operation: "uninstall" as const, status: "complete" as const };
+    }, catch: (cause) => new OpenCodeInstallationError({ message: message(cause) }) }),
+    (lock) => Effect.try({
+      try: () => rmSync(lock, { recursive: true, force: true }),
+      catch: (cause) => new OpenCodeInstallationError({ message: message(cause) }),
+    }),
+  ).pipe(Effect.catch((cause) => Effect.succeed(conflict("uninstall", cause)))));
 export const previewOpenCodeInstallation = (_request: OpenCodeInstallationRequest) => unsupported("install-preview");
-export const installOpenCodeIntegration = async (_request: OpenCodeInstallationRequest) => unsupported("install");
+export const installOpenCodeIntegration = Effect.fn("OpenCodeInstallation.install")((_request: OpenCodeInstallationRequest) => Effect.succeed(unsupported("install")));
 export const previewOpenCodeUpdate = (_request: OpenCodeInstallationRequest) => unsupported("update-preview");
-export const updateOpenCodeIntegration = async (_request: OpenCodeInstallationRequest) => unsupported("update");
-export const uninstallOpenCodeIntegration = async (request: OpenCodeInstallationRequest) =>
-  request.proposalDigest === undefined ? previewUninstall(request) : applyUninstall(request);
-export const inspectOpenCodeInstallation = (request: OpenCodeInstallationRequest) => {
+export const updateOpenCodeIntegration = Effect.fn("OpenCodeInstallation.update")((_request: OpenCodeInstallationRequest) => Effect.succeed(unsupported("update")));
+const resolveInputs = Effect.fn("OpenCodeInstallation.inputs")(function* (request: OpenCodeInstallationRequest) {
+  const configured = yield* configuration(request);
+  const options = { env: process.env, timeout: 2_000, maxBuffer: 1024 * 1024 };
+  const hostRun = yield* execFileClosedStdin(request.opencodeExecutable ?? "opencode", ["--version"], options);
+  const runtimeRun = yield* execFileClosedStdin(configured.runtime, ["-e", "process.stdout.write(process.version)"], options);
+  return yield* Effect.sync(() => inputs(configured,
+    hostRun.succeeded ? hostRun.stdout.trim() : "unavailable",
+    runtimeRun.succeeded ? runtimeRun.stdout.trim() : "unavailable"));
+});
+export const uninstallOpenCodeIntegration = Effect.fn("OpenCodeInstallation.uninstall")(function* (request: OpenCodeInstallationRequest) {
+  const input = yield* resolveInputs(request);
+  return request.proposalDigest === undefined
+    ? yield* Effect.sync(() => previewUninstall(input))
+    : yield* applyUninstall(request, input);
+}, Effect.catch((cause: OpenCodeConfigurationError) => Effect.succeed(conflict("uninstall", cause))));
+const inspect = (input: ReturnType<typeof inputs>) => {
   try {
-    const next = planUninstall(request);
+    const next = planUninstall(input);
     return { version: 1 as const, operation: "inspect-installation" as const, status: "ready" as const,
       installed: next.beforeRecord !== undefined };
   } catch (cause) { return conflict("inspect-installation", cause); }
 };
-export const diagnoseOpenCodeIntegration = (request: OpenCodeInstallationRequest) => {
-  const input = inputs(request);
-  const inspection = inspectOpenCodeInstallation(request);
+export const inspectOpenCodeInstallation = Effect.fn("OpenCodeInstallation.inspect")(function* (request: OpenCodeInstallationRequest) {
+  const input = yield* resolveInputs(request);
+  return yield* Effect.sync(() => inspect(input));
+});
+export const diagnoseOpenCodeIntegration = Effect.fn("OpenCodeInstallation.diagnose")(function* (request: OpenCodeInstallationRequest) {
+  const input = yield* resolveInputs(request);
+  const inspection = yield* Effect.sync(() => inspect(input));
   const checks = [
     { stage: "pre-edit-permit", status: "unsupported", observed: "OpenCode has no supported pre-edit permit lifecycle; review hooks are inactive" },
     { stage: "host", status: input.compatibility.host.observed === PROFILE ? "ready" : "unsupported", observed: input.compatibility.host },
@@ -144,4 +183,4 @@ export const diagnoseOpenCodeIntegration = (request: OpenCodeInstallationRequest
   return { version: 1 as const, operation: "doctor" as const,
     status: checks.some((check) => ["conflict", "unsupported", "missing"].includes(check.status)) ? "not-ready" as const : "unknown" as const,
     offline: true as const, readOnly: true as const, providerCalls: 0 as const, checks };
-};
+});

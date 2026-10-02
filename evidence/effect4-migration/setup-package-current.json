@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "operation": "setup-package-conformance",
+  "status": "passed",
+  "providerCalls": 0,
+  "journeys": [
+    "noninteractive-handoff",
+    "interruption-resume",
+    "idempotent-repeat",
+    "offline-first-review-demo",
+    "disabled-completion",
+    "interactive-masked-terminal",
+    "guided-pilot"
+  ],
+  "postExecutionMetadata": {
+    "productionSourceCommit": "0c86f40",
+    "timing": "After execution; fresh setup-package replay on final source, zero provider calls."
+  }
+}

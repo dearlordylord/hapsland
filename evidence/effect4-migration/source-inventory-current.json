@@ -1,0 +1,2502 @@
+{
+  "purpose": "Production source-graph Effect migration inventory",
+  "authority": "Source-inspection evidence; no behavioral, release or platform acceptance",
+  "method": "Tree-sitter AST traversal of production .ts roots using current tsconfig.build.json exclusions, followed by relative imports/exports including production-imported fixture ports. Hashes bind observations. Pure modules and native adapters require individual review. Counts recognize direct Effect and process.env syntax; aliases/dynamic imports require review.",
+  "moduleCount": 133,
+  "modules": [
+    {
+      "path": "src/activity/analytics.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "5de4b375a04fde2e11127e7aec5f775d70cc7780c5bfbffa82c7c5223dfebbfb",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/activity/status.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "25868534069ccc3b367a28182ae56199f0e5998c592f60ea65e56657cb32b0d2",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/activity/storage.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "ccdf4439667ef10027fabe745d15490e70438431f3cd010fc06f98ea32f1d896",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/canonical/adapter.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "c70fa2da9e20081c7ddc74d60ca01cc1622b4f77a83b3f8f6d65c7370557ce84",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/canonical/graph-adapter.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "701bbb2fc24e36dfe963e23399b61be52138151c7db494c1b7460519c93661ed",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/canonical/immutable.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "c9e8a69591fa4ebefab86e5055fc4a96b6d57449e4c38450ad7725b34db0b43d",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/cli.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "7846d38baf7c72271cfcdfac911caf839c2e5023f319b9d0184f994d315d61d6",
+      "nativeImports": [
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "effectImports": [
+        "effect/Config",
+        "effect/ConfigProvider",
+        "effect/Effect",
+        "effect/Fiber",
+        "effect/Option",
+        "effect/Redacted",
+        "effect/Schedule",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [
+        {
+          "operation": "runPromise",
+          "line": 1319
+        },
+        {
+          "operation": "runPromise",
+          "line": 1320
+        },
+        {
+          "operation": "runPromise",
+          "line": 1327
+        },
+        {
+          "operation": "runPromise",
+          "line": 1332
+        },
+        {
+          "operation": "runPromise",
+          "line": 1333
+        },
+        {
+          "operation": "runPromise",
+          "line": 1334
+        },
+        {
+          "operation": "runPromise",
+          "line": 1335
+        },
+        {
+          "operation": "runPromise",
+          "line": 1364
+        },
+        {
+          "operation": "runPromise",
+          "line": 1365
+        }
+      ],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        945,
+        1099,
+        1194,
+        1301
+      ],
+      "effectCalls": {
+        "try": 5,
+        "flatMap": 9,
+        "fail": 4,
+        "succeed": 9,
+        "gen": 5,
+        "catch": 6,
+        "fn": 10,
+        "timeoutOrElse": 1,
+        "map": 3,
+        "catchCause": 1,
+        "tap": 1,
+        "sync": 2,
+        "forEach": 1,
+        "catchDefect": 1,
+        "runPromise": 9,
+        "provide": 13,
+        "sleep": 1,
+        "andThen": 1
+      }
+    },
+    {
+      "path": "src/configuration/current-claude-authority.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "c1df849902cc628281839beb6ecc159199495d74113b8558e872010dbdf69a09",
+      "nativeImports": [
+        "node:fs",
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/configuration/decision.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "5a0fe64c6fac768a9e203d816a9c1b9e094354864cd457f0eab1de816eef9e0e",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/configuration/decode.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "57db666a4eb4725c12daccc542ae0ae42101c74ef40ade567fd846ea04651d87",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1,
+        "try": 1
+      }
+    },
+    {
+      "path": "src/configuration/errors.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "1d76f9ed4a6bf79dc9490187796b1bffb0ce2ebfadad3aeb5db22c9dee6c9de9",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema",
+        "effect/SchemaIssue"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/configuration/graph-limits.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "23e76e56d05f4ccea6dadedc2ec5eb5270e2e3a9704e683df747746f18355987",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/configuration/index.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "be21f25fc023c3e152a46d3c36fba45a742217ab30b480850baa92eadd10544d",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/configuration/jsonc.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "cb0b0c70b54b30f9d7159c34d8a8980370e099427854b4abfbc07f528e3b1692",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/configuration/load.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "cc5315eb8efeb8d3d4999b7da7251ddb29b49cfd3a7f34a4fa1985885e12f3d0",
+      "nativeImports": [
+        "node:fs/promises",
+        "node:os",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 4,
+        "tryPromise": 2,
+        "as": 1,
+        "catch": 1,
+        "succeed": 1,
+        "try": 1
+      }
+    },
+    {
+      "path": "src/configuration/resolve.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "e0bbc69e00bf4ee837349fe79313f4e555e51c2b09f4217bcce221c3a5062387",
+      "nativeImports": [
+        "node:crypto"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/configuration/schema.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "274d88c3d80a764b446e98d4dd3f223b8a9b5829c94433c114c266fbe40823ba",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/configuration/types.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "5e7dacb581e76f95611a10e44061747a5cddbc73833654c03cd4b9b75f1c87ee",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/credentials/index.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "90d04b0afb6bb8c8f69b37a93b7becc8a0c2efeed7f715bc24e50ec4bd98fa86",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/credentials/masked-input.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "307cb3456fa8d4d9c714fa60ce6c94872f34a5185471f4dc1940d4b0b925e2fd",
+      "nativeImports": [
+        "node:fs"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        13
+      ],
+      "effectCalls": {
+        "fn": 4,
+        "acquireUseRelease": 1,
+        "try": 5,
+        "gen": 2,
+        "sync": 2,
+        "fail": 5,
+        "succeed": 3,
+        "sleep": 1,
+        "andThen": 1,
+        "repeat": 2,
+        "raceFirst": 1
+      }
+    },
+    {
+      "path": "src/credentials/secret-service-process.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "d421d3a40a9d1f414b3ecc6519a59ebb510438a267d6fcd2e868af9a9e5eac9c",
+      "nativeImports": [
+        "node:child_process"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        43
+      ],
+      "effectCalls": {
+        "fn": 3,
+        "try": 2,
+        "callback": 1,
+        "succeed": 3,
+        "sync": 2,
+        "acquireUseRelease": 1,
+        "andThen": 3,
+        "timeoutOrElse": 1,
+        "catch": 1
+      }
+    },
+    {
+      "path": "src/credentials/secret-service.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "d820171c11610f992663b2ba3ff2dbfaf1ffa23657b8854a0a900cf69f1cc1e4",
+      "nativeImports": [
+        "node:child_process",
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path",
+        "node:url"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        145
+      ],
+      "effectCalls": {
+        "fn": 8,
+        "gen": 9,
+        "try": 1,
+        "sync": 2,
+        "acquireUseRelease": 1,
+        "repeat": 1,
+        "succeed": 6,
+        "map": 3,
+        "catch": 5
+      }
+    },
+    {
+      "path": "src/credentials/terminal.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "98f91347d1f8d44378d75f8654e3fb32aec51750ab906f8c17139b6e886407f2",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/adapter.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "ca29a99784ccfd606e9119ac31a26fa8bdfa436a1d12c6e084691dedaa69076f",
+      "nativeImports": [
+        "node:fs/promises",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 6,
+        "tryPromise": 2
+      }
+    },
+    {
+      "path": "src/direct-event/analyzer.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "187fe80cdd45936c923c0b0c114b88b77ee933954e8f9eb7ac586051682f2254",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/capture.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "aa95c801013e1d835ab47cc674fb3e1661ff8812947933158093b9ab139462ac",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
+        "node:path",
+        "node:url"
+      ],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [
+        56
+      ],
+      "environmentAccess": [
+        44
+      ],
+      "effectCalls": {
+        "fn": 3,
+        "fail": 2,
+        "try": 2,
+        "tryPromise": 2,
+        "sync": 1,
+        "acquireUseRelease": 2,
+        "gen": 2,
+        "catch": 1,
+        "succeed": 1
+      }
+    },
+    {
+      "path": "src/direct-event/claude-output.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "3a727b9ae36ce2daa50a8a89da1106eb3af1f870b6c6664e1db479f47b6ddb99",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/codex-patch-hunks.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "0d83fc170764c5d6ba5a4ae0d57951ff229c75ef08d1220d338a4618edbb60a6",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/edit-attribution.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "85592a14f9b146df441e72900237214055371ff8bb89754e6b84a2dd72b81691",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/function-analyzer.ts",
+      "parserHasError": true,
+      "parserErrors": [
+        3
+      ],
+      "sha256": "a7c7dc8545eca4d95a319ef86ddae60965a654c126b2c219cca955bdf3d29874",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/function-resolver.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "6e509d4fba20e1d5572f7c72facc3becb2c88571f3462918005c042215ea2acd",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/graph-resolver.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "cb54b5484194228c683bb9713e765fb8552a7fdda9dd9880798efc1704f1e90a",
+      "nativeImports": [
+        "node:fs/promises",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1,
+        "promise": 1
+      }
+    },
+    {
+      "path": "src/direct-event/index.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "df2c23aa1e5b274099634626076b25b8d8d2dbbae2400b5414eb84229588f962",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/languages/bend/adapter.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "2cb1b9acc3ea9c24487ef609f6bad74035acc5df82bafa0afb7ad27f706fdd0f",
+      "nativeImports": [
+        "node:crypto",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "succeed": 1
+      }
+    },
+    {
+      "path": "src/direct-event/languages/bend/extractor.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "726b3a8bb1bb35a2d53f00794f43648539b0bed19c1e0c6461589deb5a7955d0",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/languages/contracts.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "07f30e7431dd15be40adaef772f83e3b7f3ed9feb303734c91c924e028db2b0f",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/languages/function-facts.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "761d7ead8c6d2490f39be210b7221cf908ac1d8d6c9e455edf54040d836190da",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/languages/native-parser.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "f53037ef591202087f0c64a85ea85202e609d18a41528aaed58b9519e8bcd1dd",
+      "nativeImports": [
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        16,
+        30,
+        31
+      ],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/languages/registry.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "4274548361d2a075c830b753c98f5e20b7bc8a8d3e81b724b5572dcaab627eae",
+      "nativeImports": [
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/languages/rust-adapter.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "8348160ce7cbb3b0c16e8fb9badbf835e3444194a481f0e20389f16795771425",
+      "nativeImports": [
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1
+      }
+    },
+    {
+      "path": "src/direct-event/languages/rust-module-context.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "0d11c818abbc05ae67f194aef3968a417a62493e2eec0810bfcdb1fd1b452066",
+      "nativeImports": [
+        "node:fs/promises",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 4,
+        "promise": 2
+      }
+    },
+    {
+      "path": "src/direct-event/languages/rust.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "aaf9e8f39aad9a4742887804247359d8c727df98e49c3bf66ec4eebd114fb9f6",
+      "nativeImports": [
+        "node:crypto",
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/languages/typescript-functions.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "3b53bc2609d48627866fb7fedae7131fa1fb3af8f11eb4b57ce1a179779a9fdc",
+      "nativeImports": [
+        "node:crypto",
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/languages/typescript.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "5745afc200d4bb6d4df485990d3392a576e396309f5653a62224c57897155e1c",
+      "nativeImports": [
+        "node:crypto",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "succeed": 1
+      }
+    },
+    {
+      "path": "src/direct-event/model.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "d9c6913f115b65dfbf8671660c264c794e4f8f9bd09386cf95f2fdf1d1b97d24",
+      "nativeImports": [
+        "node:crypto"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/pipeline.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "20d1a17fe1fd011c987e44a3336ff2e72b6ac854c9435ceaafcc9649d2277cc7",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Option",
+        "effect/Result",
+        "effect/Schema",
+        "effect/ai"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 9,
+        "andThen": 1,
+        "timeoutOption": 1
+      }
+    },
+    {
+      "path": "src/direct-event/provider-body-size.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "176aef3d714397221cef2690495449af9e9011bbdb1c26680dd2527aa71a40d6",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema",
+        "effect/ai"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/review-renderer.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "a2de1a71a6aca40a9cf79a30022b82f3f2e2608c2cdf2fd27d54dd90a45edaf2",
+      "nativeImports": [
+        "node:crypto",
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/direct-event/selection.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "d6ec680f87ace30b02d6232c5a9b67e5c3e066808879370621d88e4f1cddafca",
+      "nativeImports": [
+        "node:fs/promises",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 3,
+        "tryPromise": 1,
+        "gen": 1,
+        "catch": 1,
+        "succeed": 1
+      }
+    },
+    {
+      "path": "src/direct-event/writer.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "fc5a3e99d00ee94c9098fd1a1bbac96ad88d3c2843157b032e8af6950ac50ef2",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/domain/contracts.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "2d329c5f94f53b3848ac49dfec3ce843210d37bce919b8db3d45abfd1d39c1ca",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/domain/errors.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "70e381e4536eb89777a36d1dd76a0fa548a67c319aaac4658a9bc42d68f06354",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/domain/rule-identity.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "0219b2bf41517698abb026e967f1fc8fc17501e80bef465497ed2cb49bf2e59d",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/evaluation/command.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "c8ed846994f24ea45a40ee31ed732988fe30385bccf64ff1c94b3e53674574b1",
+      "nativeImports": [],
+      "effectImports": [
+        "effect",
+        "effect/Config",
+        "effect/Effect",
+        "effect/Layer",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 3,
+        "map": 1,
+        "mapError": 2,
+        "try": 1
+      }
+    },
+    {
+      "path": "src/evaluation/comparison.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "b93e1f95f1eca4851152b06e68939b104a7f6b8c75bc04413a3af55011e5c9c6",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/evaluation/digest.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "6ca66246923ad141aa335a4b970f1947046a8a0c0b49b9a29adccc4fece08b9d",
+      "nativeImports": [
+        "node:crypto"
+      ],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/evaluation/fixtures.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "041489117b189eccf7cc85c0d656dd6d921ca01a7aa2cb89dfc94d5d48ba3fe8",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/evaluation/index.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "9b38caa290524a44d248c33fceb92a675f75571c430532668eeb991900cb0de3",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/evaluation/model.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "1ca7d2cc15d1a26f5cd250358236b9ce75558a9856f1c67d6edbb3f5b90e64ea",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/evaluation/plan.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "89845c26e49065ee5782a2d6ce2fb49b5b7e65cc04551d940936e4b69a9360a1",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/evaluation/report.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "ce5412a66d47bc69e2487545231123d6a4d45a57da886b38830ae865be2d697b",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/evaluation/runner.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "20fcfd2938b18864d2750200097bed1ea0a126e32ecccff1655593bc5bf2a234",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Layer",
+        "effect/Result",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fail": 3,
+        "succeed": 2,
+        "forEach": 1,
+        "fn": 1,
+        "gen": 1,
+        "provide": 1
+      }
+    },
+    {
+      "path": "src/explanation/explain.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "64e55237cb4410e17d968cd08975566059f27638ebb0b86048031b987ba251c4",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/explanation/index.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "199b5c6b1912d72e57ef53ae10e64c2d143d9d5840ee9d7e8c3aeb887fcdc6d1",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/hosts/opencode/adapter.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "526cc3ec5d14888e870f8badc94b8a7e7548107be8d272a90aceba943f785982",
+      "nativeImports": [
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1
+      }
+    },
+    {
+      "path": "src/jev-decision.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "40f9d1f42b4411166f63df5b60d0137955fc1b5e3706a961ff326fb456946059",
+      "nativeImports": [],
+      "effectImports": [
+        "@effect/ai-typesafe",
+        "effect/Config",
+        "effect/Effect",
+        "effect/Layer",
+        "effect/Schema",
+        "effect/ai",
+        "effect/http/FetchHttpClient",
+        "effect/http/HttpClient"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "gen": 2
+      }
+    },
+    {
+      "path": "src/matcher/glob.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "25591121162e2c3861132190c6f8c5579bfc95e9c96571beec2f09718fc48761",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/matcher/index.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "99f3069f4ee4a9d95672243803e743b58c4bffa6cde48de4f9754f9def489df3",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/onboarding/atomic-installation-file.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "6efbc5ad22c5920776eb640b79786a823c8b932e19e069a6e8e16f9c043a1f37",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/onboarding/claude-installation.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "33c16957ad9a089dc66121b3eb5e1aac8654317304a1a606e347d5a4bf01aec3",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        160,
+        163
+      ],
+      "effectCalls": {
+        "fn": 9,
+        "try": 2,
+        "mapError": 1,
+        "catch": 1,
+        "succeed": 1
+      }
+    },
+    {
+      "path": "src/onboarding/client-lifecycle.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "317725ab121abc65457a79d8e52c55ce5c36b1eaf2a025e25297d4a907b82690",
+      "nativeImports": [
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Config",
+        "effect/Effect",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        80,
+        95,
+        223
+      ],
+      "effectCalls": {
+        "fn": 6,
+        "try": 4,
+        "fail": 6,
+        "flatMap": 1,
+        "mapError": 3
+      }
+    },
+    {
+      "path": "src/onboarding/client-selection.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "1eedded929ccd9b772e45bd72ff43e0ba3985987b75789a82f78867f436526e4",
+      "nativeImports": [
+        "node:readline"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1,
+        "fail": 4,
+        "acquireUseRelease": 1,
+        "try": 2,
+        "callback": 1,
+        "succeed": 3,
+        "sync": 1
+      }
+    },
+    {
+      "path": "src/onboarding/codex-installation.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "e2ea19651b25eac04fc3387e4d7debd1f928ebfab289ed3c91d0b0b40e42a52f",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        578,
+        723
+      ],
+      "effectCalls": {
+        "fn": 8,
+        "sync": 1,
+        "try": 5,
+        "flatMap": 1,
+        "mapError": 1,
+        "gen": 2,
+        "catch": 3,
+        "succeed": 3
+      }
+    },
+    {
+      "path": "src/onboarding/confirmation.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "6eceb64f36ceaea786c3f08a6378bfcb912741b2bde02ac4656b819220523e30",
+      "nativeImports": [
+        "node:readline/promises",
+        "node:stream"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1,
+        "acquireUseRelease": 1,
+        "try": 1,
+        "tryPromise": 1,
+        "map": 1,
+        "sync": 1
+      }
+    },
+    {
+      "path": "src/onboarding/demo-budget.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "b91ad3bd7e0cd0b0367cd761f256cd916b98994d30f44b490e541f990a9e5ee2",
+      "nativeImports": [
+        "node:fs",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/onboarding/demo-trace.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "be27ba012ce840937d0618c8b0136a6c11bf31d50570937ade7e156b869167f5",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/onboarding/distribution.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "8032ce1ea8d98a923d23015a20bb0c18dafae2a560bd6b41d799d22c37764bf7",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        33
+      ],
+      "effectCalls": {
+        "fail": 1,
+        "fn": 3,
+        "try": 1,
+        "flatMap": 1
+      }
+    },
+    {
+      "path": "src/onboarding/doctor.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "ac33fab115f693d32d0331900496384643d6fad38b3db2da4b3111b28e98609c",
+      "nativeImports": [
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 2,
+        "try": 1
+      }
+    },
+    {
+      "path": "src/onboarding/first-review-demo.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "06385609d89a158d19e2ce1d1dacfb643a620a78922e6847ce61409d0c434b31",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs/promises",
+        "node:os",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect",
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        164,
+        293,
+        298,
+        329
+      ],
+      "effectCalls": {
+        "fn": 11,
+        "tryPromise": 1,
+        "map": 2,
+        "gen": 11,
+        "try": 3,
+        "catch": 9,
+        "succeed": 6,
+        "andThen": 1,
+        "fail": 3,
+        "acquireUseRelease": 1,
+        "tap": 1,
+        "acquireRelease": 1,
+        "flatMap": 1,
+        "sleep": 1,
+        "repeat": 1,
+        "mapError": 1,
+        "as": 2
+      }
+    },
+    {
+      "path": "src/onboarding/hook-reconciliation.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "a659f1c696cac926e32982781ef2187aa82875caa5930a35667a5547c7f12d71",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/onboarding/host-process.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "96267537b2ed38e8ac2602c3a344944205b0912a96c4a97c7a15c6c781bfc7d3",
+      "nativeImports": [
+        "node:child_process"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 6,
+        "try": 3,
+        "callback": 2,
+        "succeed": 6,
+        "sync": 4,
+        "acquireUseRelease": 2,
+        "andThen": 4,
+        "timeoutOrElse": 1,
+        "catch": 2
+      }
+    },
+    {
+      "path": "src/onboarding/installation-lock.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "da02b6856e4258a37161b2cab53066bd54c11f629725700f57c6d7b5eff830d1",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 3,
+        "try": 4,
+        "gen": 2,
+        "mapError": 1,
+        "acquireUseRelease": 1,
+        "repeat": 1,
+        "sleep": 1
+      }
+    },
+    {
+      "path": "src/onboarding/opencode-installation.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "61df3f804c8b1086f060ccccb42a2c507014626d95c6ae928eaf9484bba4abab",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        148
+      ],
+      "effectCalls": {
+        "fn": 8,
+        "mapError": 1,
+        "acquireUseRelease": 1,
+        "try": 3,
+        "catch": 2,
+        "succeed": 4,
+        "sync": 4
+      }
+    },
+    {
+      "path": "src/onboarding/setup.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "7ae67dd7abe5549c2e933ccab53438904bb3d6df818594299c2a394d66d8964d",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 2
+      }
+    },
+    {
+      "path": "src/package-doctor.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "0592ccae88e9af5d02b69768c794e055a677dbf91ca3df6f5f67700e586ca528",
+      "nativeImports": [
+        "node:fs",
+        "node:path",
+        "node:url"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [
+        {
+          "operation": "runPromise",
+          "line": 164
+        }
+      ],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        67
+      ],
+      "effectCalls": {
+        "fn": 1,
+        "try": 2,
+        "flatMap": 1,
+        "gen": 1,
+        "tryPromise": 2,
+        "catch": 1,
+        "sync": 1,
+        "runPromise": 1
+      }
+    },
+    {
+      "path": "src/parser-main.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "158e1b7c73e4e557bc991480b02043a2554d27ff82e88be0afdecc233e520b6f",
+      "nativeImports": [
+        "node:fs"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/policy/file-policy.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "0eff2fc78ee4b46be8aff883b7d20a41165cdf809a32c3d4c7a5290ff9ea7e02",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/policy/index.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "b013d6f3f2a11d349a0e3abe86be90402fef1cb58837fd78d2fe2f22c4c7f732",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/policy/path-facts.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "f23f70721eaa84f7fe5576e3188ad8460af5bb030064b7465b8747b06a98a896",
+      "nativeImports": [
+        "node:path"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/policy/rules.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "3c927bec7a4d8ad48412fbed6c655296c3b1e21ebac5fba0054d37b568c12c81",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/ports/review-backend.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "c96866bf7015f82952c166cf0d0534ade167c90f200f4c51bbc2c1921030adea",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Clock",
+        "effect/Context",
+        "effect/Effect",
+        "effect/Layer",
+        "effect/Schedule",
+        "effect/Schema",
+        "effect/ai"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "gen": 1,
+        "fn": 1,
+        "mapError": 2,
+        "sync": 1,
+        "andThen": 2,
+        "retry": 1
+      }
+    },
+    {
+      "path": "src/questions.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "3c29df77e218c791a328dd22ca3734dfc464da0dad8816a050105530cee650e2",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/repository/root.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "0c41fa034fe75dff1e8a5a99a9b38598ac521a3e480dc1a41f487b146f701152",
+      "nativeImports": [
+        "node:fs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        14,
+        50
+      ],
+      "effectCalls": {
+        "fn": 4,
+        "tryPromise": 1,
+        "fail": 3,
+        "all": 1
+      }
+    },
+    {
+      "path": "src/resident/advice-records.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "2515b5a9d0a9c0a1a65a969975e0a419d441c2a0b5071f32ca14f625b819d1ef",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/bend-work.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "e8f2fff0d52e4e1a3ec4fa90b8fca1a6f30b1cdbc6a1c823250896187dee1099",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/capacity.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "8e47ce0a836dd33fcf234586b4bc00a8c472da41a9c180340f4bc127e953a33a",
+      "nativeImports": [
+        "node:crypto"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "gen": 2,
+        "sync": 1,
+        "withSpan": 2,
+        "fn": 148,
+        "map": 26,
+        "suspend": 1
+      }
+    },
+    {
+      "path": "src/resident/client.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "040594a88656136717080218566e5fade9184c57431e39c267e46a195cd2b431",
+      "nativeImports": [
+        "node:child_process",
+        "node:fs",
+        "node:net",
+        "node:path",
+        "node:url"
+      ],
+      "effectImports": [
+        "effect",
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [
+        131
+      ],
+      "effectCalls": {
+        "map": 2,
+        "fn": 25,
+        "fail": 13,
+        "acquireUseRelease": 2,
+        "try": 4,
+        "callback": 2,
+        "succeed": 7,
+        "sync": 5,
+        "timeoutOrElse": 3,
+        "gen": 2,
+        "onError": 1,
+        "sleep": 1,
+        "withSpan": 1,
+        "as": 1,
+        "catch": 5,
+        "repeat": 1,
+        "mapError": 1
+      }
+    },
+    {
+      "path": "src/resident/collection.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "d9b83fc785e2147d0db2abedf8b1f17f0340e81ade90398bb60f09e5903f1d0a",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 7,
+        "catchDefect": 2,
+        "succeed": 2
+      }
+    },
+    {
+      "path": "src/resident/composed-delivery.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "ecbe272320257443163191bea60f5c3d440b63dc5c50e56f9b0c2b16d1c30e63",
+      "nativeImports": [
+        "node:crypto"
+      ],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/composed-hook.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "ce21f9c9d1b43756b5a444007a60d19d1f3738f5c280217f26eca95af81e3623",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs/promises"
+      ],
+      "effectImports": [
+        "effect",
+        "effect/Effect",
+        "effect/Schedule"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "gen": 5,
+        "provideService": 3,
+        "fn": 2,
+        "tryPromise": 1,
+        "catch": 15,
+        "succeed": 14,
+        "acquireRelease": 2,
+        "repeat": 1
+      }
+    },
+    {
+      "path": "src/resident/direct-hook-output.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "45c34991ab915129f9a055304a12734602e9273bba5b08c73c792261d2f69274",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "gen": 3,
+        "fn": 3,
+        "sync": 2,
+        "catch": 2,
+        "succeed": 2,
+        "ensuring": 1,
+        "suspend": 1
+      }
+    },
+    {
+      "path": "src/resident/dispatch-controls.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "f69a05712488facfdc8c73210ef6cf521a83ac52686387183320670974d3f3ad",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1
+      }
+    },
+    {
+      "path": "src/resident/dispatch.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "e3e5b24629c718fb2b020a2a82ae0fbd33d9c4fb716bfda7ba7bee3d2196bbb6",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "gen": 6,
+        "fn": 12,
+        "uninterruptible": 4,
+        "die": 4,
+        "suspend": 1,
+        "catch": 1,
+        "ensuring": 1,
+        "forkIn": 1,
+        "addFinalizer": 1,
+        "andThen": 2,
+        "withSpan": 1
+      }
+    },
+    {
+      "path": "src/resident/evaluation-reuse.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "7d34e94a4d4971dca015baea5d62521e00f78bed58f6cb01c120c1e20d106fd9",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/hook-clock.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "b95a56e967b6c0a9512e9d44c8abf3db248b89d4bee7b2c4c8c06a218d56ae67",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "map": 1
+      }
+    },
+    {
+      "path": "src/resident/hook-output.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "0d4314787c740cda49f762122b23675839f2116d76b09b1afe09900ef00a1dee",
+      "nativeImports": [
+        "node:stream"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 2,
+        "acquireUseRelease": 1,
+        "sync": 1,
+        "callback": 2,
+        "succeed": 2,
+        "timeoutOrElse": 1,
+        "gen": 1
+      }
+    },
+    {
+      "path": "src/resident/index.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "27b51ddc9e8475c9f09f116470b1e6b9820c5cedf01ea6a23debf3db6f47e4db",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/joined-reviews.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "7dad7a4edc79a6b338cda58e427913c8b12e304f4c6293ead1ab0d5335d194a4",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/main.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "4179715e5cb409d19adff7d1fcc4c4d8c38b89c9abadec0dd258ff72c48f56fb",
+      "nativeImports": [
+        "node:fs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Config",
+        "effect/ConfigProvider",
+        "effect/Effect",
+        "effect/Option",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [
+        {
+          "operation": "runPromise",
+          "line": 59
+        }
+      ],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "tryPromise": 1,
+        "callback": 1,
+        "sync": 2,
+        "fn": 1,
+        "fail": 1,
+        "acquireRelease": 1,
+        "mapError": 2,
+        "gen": 1,
+        "provide": 3,
+        "runPromise": 1,
+        "scoped": 1,
+        "raceFirst": 1,
+        "catch": 1
+      }
+    },
+    {
+      "path": "src/resident/notice-records.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "a7287733943d54ec99342b900ce296df3ce7d8e2331ffda7de5b8b7820df1ba8",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/ownership.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "179d2c3a6bd07c1fc2d404140ea65fa0581b109da64eac17a64cea1862fce98c",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs/promises"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "tryPromise": 1,
+        "fn": 5,
+        "catch": 5,
+        "succeed": 6,
+        "fail": 4,
+        "acquireUseRelease": 1,
+        "gen": 2,
+        "as": 2,
+        "onExit": 1
+      }
+    },
+    {
+      "path": "src/resident/paths.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "5f760f889876f2e54e185e0f44eb277c32feb672b17fa619135a6a3d13793bd6",
+      "nativeImports": [
+        "node:fs/promises",
+        "node:os",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 5,
+        "context": 1,
+        "mapError": 1,
+        "tryPromise": 1,
+        "fail": 4,
+        "catch": 1,
+        "succeed": 1
+      }
+    },
+    {
+      "path": "src/resident/preparation-controls.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "5b48bdcf77d0f751ade825af7427879bccb2910c812d0e081068e7a8a3f0a384",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1
+      }
+    },
+    {
+      "path": "src/resident/preparation-workspace.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "32fcea48cc288484065cc8d5d409401c247472e43277131d1db0cf810fb14bed",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/protocol.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "7f602e6b1ea2386fa485a8d58c57dca44a7f4b8ea5911547aed4256aeb0fe819",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Option",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/review-controls.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "aa22d760078790d368aaa6cae76c5e7418ca4f415259a455a8ced7fe608f0a96",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 6
+      }
+    },
+    {
+      "path": "src/resident/revision.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "6ad10d0b382747cca067240e2223d9d23c9670f31a6505d214f65085867b7130",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/round-records.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "140dbb97e7929178edb3d51e8887cf2cb8ee52a529608f3db26eb711f6c6691b",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/runtime-configuration.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "290fb18cafea19aee0dc83734348f6eaeafc3bcde70db2f3c4df9685327d9326",
+      "nativeImports": [],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1
+      }
+    },
+    {
+      "path": "src/resident/runtime-records.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "79005ed24eafc6beb22877f5494c375509e826437c3863110035131b15778932",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/resident/server.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "21b24d603dfb3dd31b04a2690eb7d79e28eff7218bc01447eb8383aa67f50f43",
+      "nativeImports": [
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
+        "node:net",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect",
+        "effect/Clock",
+        "effect/Config",
+        "effect/ConfigProvider",
+        "effect/Effect",
+        "effect/Fiber",
+        "effect/FiberHandle",
+        "effect/Option",
+        "effect/Schedule",
+        "effect/Schema",
+        "effect/http/HttpClient"
+      ],
+      "runtimeEntries": [
+        {
+          "operation": "runForkWith",
+          "line": 3053
+        }
+      ],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "tryPromise": 1,
+        "acquireUseRelease": 3,
+        "sync": 3,
+        "gen": 38,
+        "callback": 3,
+        "fail": 4,
+        "raceFirst": 2,
+        "fn": 89,
+        "mapError": 16,
+        "addFinalizer": 4,
+        "provideService": 3,
+        "exit": 1,
+        "suspend": 4,
+        "forEach": 7,
+        "onError": 4,
+        "ensuring": 6,
+        "catch": 10,
+        "flatMap": 2,
+        "try": 1,
+        "andThen": 8,
+        "provide": 2,
+        "as": 4,
+        "succeed": 8,
+        "repeat": 5,
+        "uninterruptibleMask": 1,
+        "timeoutOrElse": 1,
+        "forkIn": 3,
+        "sleep": 4,
+        "uninterruptible": 4,
+        "runForkWith": 1,
+        "context": 1,
+        "forkChild": 1,
+        "cached": 1,
+        "map": 1
+      }
+    },
+    {
+      "path": "src/resident/socket-frame.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "0afb9c10ac8a28ebe07bc9d83bb51e229221700f75c92af4d62869224d32da80",
+      "nativeImports": [
+        "node:net",
+        "node:string_decoder"
+      ],
+      "effectImports": [
+        "effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 3,
+        "sync": 7,
+        "callback": 2,
+        "andThen": 2,
+        "succeed": 1
+      }
+    },
+    {
+      "path": "src/rules/bundled.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "4b1458232b5149b8a893ad21ece303ebde98aad6c75ae2d1e99e57e819f78ff7",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/rules/compiler.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "02e733ea09b34d2f9583eba9d799ce08f7ea23ac3875f95609d1ab5261caa598",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/ai"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/rules/decision.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "018698e36ec9f143cb717a9199a34e419f60dfb66c8649060de3ed31a1cdff34",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/rules/index.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "1ed6fb4d42fcfdc7be3641e0fc4d14d92ed4a4c3eed4e03447a814efa70b1238",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/rules/loader.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "a61cd54f5a2febffa5fb7682e07f8e6561701f52f507c06de1a6e195e5fa1484",
+      "nativeImports": [
+        "node:fs/promises",
+        "node:path"
+      ],
+      "effectImports": [
+        "effect/Effect"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 5,
+        "try": 1,
+        "tryPromise": 1,
+        "catch": 1,
+        "succeed": 1
+      }
+    },
+    {
+      "path": "src/rules/schema.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "d76f4acd0044fe435451ae7e4af8add8095888ffac0cd7f7d530dc50fb041834",
+      "nativeImports": [
+        "node:crypto"
+      ],
+      "effectImports": [
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/rules/targets.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "7bd16d9a27e29a731f8acebaba88d6f78054315ad5670acef5f0c100217050ff",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/runtime/assessment.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "37674a329dffa9f503e5b43e38ac6ee7e6aa44d00205b1e308270c61e659493e",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1,
+        "mapError": 1
+      }
+    },
+    {
+      "path": "src/runtime/backend.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "e3af0b506cc2c409c7fbc220df6e9edf5c44711db8879c414a96a7c7ebd93b33",
+      "nativeImports": [],
+      "effectImports": [],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {}
+    },
+    {
+      "path": "src/runtime/review-config.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "1e4eeeb7665063a54d4ccc009e1c34f8e726783d89f3bc56707757b7d3495591",
+      "nativeImports": [],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Schema"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fn": 1,
+        "mapError": 2,
+        "try": 1
+      }
+    },
+    {
+      "path": "src/test-support/controlled-decision-model.ts",
+      "parserHasError": false,
+      "parserErrors": [],
+      "sha256": "b30647a636bfc69fc8cad4dfb1f3bb57eb99210777462f697a33b9f863e05153",
+      "nativeImports": [
+        "node:fs/promises"
+      ],
+      "effectImports": [
+        "effect/Effect",
+        "effect/Layer",
+        "effect/ai/AiError",
+        "effect/ai/DecisionModel"
+      ],
+      "runtimeEntries": [],
+      "asyncFunctions": [],
+      "environmentAccess": [],
+      "effectCalls": {
+        "fail": 2,
+        "succeed": 5,
+        "map": 3,
+        "delay": 1,
+        "tryPromise": 2,
+        "catch": 2,
+        "andThen": 4
+      }
+    }
+  ]
+}

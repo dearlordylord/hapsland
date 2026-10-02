@@ -1,0 +1,44 @@
+{
+  "purpose": "Isolated native library publication probe; synthetic parser inputs only",
+  "authority": "Implementation diagnostic evidence; no cross-platform support claim",
+  "environment": {
+    "node": "v24.20.0",
+    "platform": "linux",
+    "arch": "arm64"
+  },
+  "copiesPerBinding": 32,
+  "results": [
+    {
+      "mode": "overwrite",
+      "code": null,
+      "signal": "SIGSEGV",
+      "completed": false,
+      "batches": null
+    },
+    {
+      "mode": "atomic",
+      "code": 0,
+      "signal": null,
+      "completed": true,
+      "batches": 267
+    }
+  ],
+  "limitation": "Scratch clones of installed native bindings only; reproduced overwrite crash mechanism does not attribute every historical crash or timeout.",
+  "precedingBoundedRunResults": [
+    {
+      "mode": "overwrite",
+      "code": null,
+      "signal": "SIGBUS",
+      "completed": false,
+      "batches": null
+    },
+    {
+      "mode": "atomic",
+      "code": 0,
+      "signal": null,
+      "completed": true,
+      "batches": 371
+    }
+  ],
+  "amendment": "Final runner disables core dumps in its isolated child process; same bounded copy/parser loop, with prior bounded run preserved"
+}

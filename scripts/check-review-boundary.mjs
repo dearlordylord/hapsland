@@ -8,11 +8,16 @@ for (const name of ["bendWorkPreparedOffer", "bendWorkEmptyPrepared",
     throw new Error(`resident review decision bypasses canonical transition: ${name}`);
   }
 }
-if (source.includes("this.#ledger.replace(")) {
+if (source.includes("residentLedger.replace(")) {
   throw new Error("resident review unit fan-out bypasses canonical preparation completion");
 }
-for (const call of ["this.#ledger.admitObservation(", "this.#ledger.completePreparation(",
-  "this.#ledger.readyJevRequest(", "ledger.startJevRequest(",
-  "this.#ledger.settleJevRequest("]) {
+for (const call of ["residentLedger.admitObservation(", "residentLedger.completePreparation(",
+  "residentLedger.readyJevRequest(", "residentLedger.startJevRequest(",
+  "residentLedger.settleJevRequest("]) {
   if (!source.includes(call)) throw new Error(`resident review transition missing: ${call}`);
+}
+
+const backend = readFileSync(resolve(import.meta.dirname, "../src/ports/review-backend.ts"), "utf8");
+if (backend.includes("Clock.currentTimeMillis") || !backend.includes("Clock.monotonicTimeNanos")) {
+  throw new Error("backend elapsed duration must use the caller monotonic Clock");
 }

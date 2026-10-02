@@ -1,3 +1,4 @@
+import { runClient } from "../src/test-support/client-runtime.ts";
 // Bounded real-host observation of TypeScript, Rust and Bend cross-file review.
 // Raw host streams, source, provider bodies, and credentials stay in a disposable directory.
 import { spawn, spawnSync } from "node:child_process";
@@ -5,7 +6,7 @@ import { createHash } from "node:crypto";
 import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, watch, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { residentRequest } from "../src/resident/client.ts";
+import { residentRequestEffect as residentRequest } from "../src/resident/client.ts";
 import { residentPaths } from "../src/resident/paths.ts";
 import * as Effect from "effect/Effect";
 import { addEvent } from "../src/direct-event/test-fixtures.ts";
@@ -442,7 +443,7 @@ globalThis.fetch=async (...args)=>{
   mutationWatcher?.close();
   try {
     owner = JSON.parse(readFileSync(residentPaths(runtime).owner, "utf8"));
-    await residentRequest(residentPaths(runtime), { requestRoute: "shared", operation: "cleanup", lifetime: owner.lifetime }).catch(() => {});
+    await runClient(residentRequest(residentPaths(runtime), { requestRoute: "shared", operation: "cleanup", lifetime: owner.lifetime })).catch(() => {});
     process.kill(owner.pid, "SIGTERM");
   } catch { /* resident may never have started */ }
   rmSync(temp, { recursive: true, force: true });

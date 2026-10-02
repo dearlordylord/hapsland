@@ -1,0 +1,79 @@
+{
+  "stage": "A",
+  "caseId": "local-result",
+  "candidate": "hapsland",
+  "pass": 1,
+  "exitCode": 0,
+  "timedOut": false,
+  "stderrBytes": 0,
+  "summary": {
+    "status": "complete",
+    "ready": 1,
+    "pathReasons": [
+      {
+        "status": "observed",
+        "reason": null
+      }
+    ],
+    "evaluations": [
+      {
+        "status": "evaluated",
+        "ruleIds": [
+          "r2_meaningless_combinations"
+        ],
+        "findingIds": [
+          "r2_meaningless_combinations"
+        ]
+      }
+    ]
+  },
+  "requests": [
+    {
+      "id": "a2b60153-3639-4a01-983d-e3f01425d875",
+      "at": 1790961866466,
+      "candidate": "hapsland",
+      "caseId": "local-result",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "request",
+      "bytes": 1934,
+      "stateKeys": [
+        "artifact",
+        "evidence",
+        "inputContract"
+      ],
+      "questionIds": [
+        "r2_meaningless_combinations"
+      ],
+      "taskIncluded": false
+    },
+    {
+      "id": "a2b60153-3639-4a01-983d-e3f01425d875",
+      "at": 1790961866466,
+      "candidate": "hapsland",
+      "caseId": "local-result",
+      "phase": "edit",
+      "stage": "A",
+      "pass": 1,
+      "kind": "response",
+      "status": 200,
+      "durationMs": 173,
+      "answers": {
+        "r2_meaningless_combinations": {
+          "finding": true,
+          "band": "finding"
+        }
+      },
+      "usage": {
+        "input_tokens": 848,
+        "output_tokens": 28
+      }
+    }
+  ],
+  "finalTypecheck": {
+    "passes": true,
+    "diagnosticCodes": []
+  },
+  "rawOutputRetained": false
+}

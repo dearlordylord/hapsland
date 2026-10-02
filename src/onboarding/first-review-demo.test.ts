@@ -1,4 +1,5 @@
 import * as Effect from "effect/Effect";
+import { Deferred, Fiber } from "effect";
 import { execFile } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,6 +15,7 @@ import {
   uninstrumentedHostEvidence,
   type DemoExecution,
   type DemoExecutor,
+  DemoExecutionError,
 } from "./first-review-demo.ts";
 import { claimDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
 import { readDemoTrace, recordDemoTrace } from "./demo-trace.ts";
@@ -164,10 +166,10 @@ describe("installed-product first-review demo", () => {
     const proposal = await preview(test);
     if (proposal.status !== "preview") throw new Error("expected preview");
     let executions = 0;
-    const execute: DemoExecutor = async () => {
+    const execute: DemoExecutor = () => Effect.sync<DemoExecution>(() => {
       executions += 1;
       return completed;
-    };
+    });
     const result = await run(test, runFirstReviewDemo({
       ...liveRequest(proposal),
       selectionDigest: "0".repeat(64),
@@ -178,6 +180,60 @@ describe("installed-product first-review demo", () => {
     await run(test, runFirstReviewDemo({
       version: 1, operation: "demo", selection: "cancel", demoId: proposal.demo.id,
     }, { statePath: test.demoStatePath }));
+  });
+
+  it("interrupting claimed execution removes its owned root, claim and budget before returning", async () => {
+    const test = fixture();
+    const proposal = await preview(test);
+    if (proposal.status !== "preview") throw new Error("expected preview");
+    await run(test, Effect.gen(function* () {
+      const entered = yield* Deferred.make<void>();
+      const running = yield* Effect.forkChild(runFirstReviewDemo(liveRequest(proposal), {
+        statePath: test.demoStatePath,
+        execute: () => Deferred.succeed(entered, undefined).pipe(Effect.andThen(Effect.never)),
+      }), { startImmediately: true });
+      yield* Deferred.await(entered);
+      expect(existsSync(proposal.demo.disposableRoot)).toBe(true);
+      expect(existsSync(join(test.demoStatePath, `${proposal.demo.id}.claimed`))).toBe(true);
+      yield* Fiber.interrupt(running);
+      expect((yield* Fiber.await(running))._tag).toBe("Failure");
+      expect(existsSync(proposal.demo.disposableRoot)).toBe(false);
+      expect(readdirSync(test.demoStatePath)).toEqual([]);
+    }));
+  });
+
+  it("retains sanitized budget usage when execution fails after reserving a call", async () => {
+    const test = fixture();
+    const proposal = await preview(test);
+    if (proposal.status !== "preview") throw new Error("expected preview");
+    const result = await run(test, runFirstReviewDemo(liveRequest(proposal), {
+      statePath: test.demoStatePath,
+      execute: (options) => Effect.sync(() => claimDemoBudget(options.budgetPath, options.root, 100)).pipe(
+        Effect.andThen(Effect.fail(new DemoExecutionError({ operation: "synthetic interrupted observation" }))),
+      ),
+    }));
+    expect(result).toMatchObject({ status: "incomplete", paidVerificationPerformed: true,
+      evidence: { providerCalls: 1, sourceBytes: 100 }, cleanup: { disposableRootRemoved: true } });
+    expect(readdirSync(test.demoStatePath)).toEqual([]);
+  });
+
+  it("runs the default executor against a synthetic host and reports UTF-8 bytes before cleanup", async () => {
+    const test = fixture();
+    const proposal = await preview(test);
+    if (proposal.status !== "preview") throw new Error("expected preview");
+    const executable = join(test.root, "synthetic-host.cjs");
+    const stdout = `${JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: "synthetic 🌲" } })}\n`;
+    const stderr = "é";
+    writeFileSync(executable, `#!${process.execPath}\nif(process.argv[2]==="--version")process.stdout.write("synthetic-host\\n");else{process.stdout.write(${JSON.stringify(stdout)});process.stderr.write(${JSON.stringify(stderr)});}\n`, { mode: 0o700 });
+    const result = await run(test, runFirstReviewDemo({ ...liveRequest(proposal), codexExecutable: executable },
+      { statePath: test.demoStatePath }));
+    expect(result).toMatchObject({ status: "inconclusive", paidVerificationPerformed: false,
+      evidence: { hostVersion: "synthetic-host", hostFailure: null,
+        hostStdoutBytes: Buffer.byteLength(stdout, "utf8"), hostStderrBytes: Buffer.byteLength(stderr, "utf8"),
+        hostEventCounts: { agentMessages: 1 }, providerCalls: 0 },
+      cleanup: { disposableRootRemoved: true } });
+    expect(existsSync(proposal.demo.disposableRoot)).toBe(false);
+    expect(readdirSync(test.demoStatePath)).toEqual([]);
   });
 
   it("atomically consumes one confirmation across processes and admits at most two calls", async () => {
@@ -205,10 +261,10 @@ describe("installed-product first-review demo", () => {
     let replayExecutions = 0;
     const replay = await run(test, runFirstReviewDemo(liveRequest(proposal), {
       statePath: test.demoStatePath,
-      execute: async () => {
+      execute: () => Effect.sync<DemoExecution>(() => {
         replayExecutions += 1;
         return completed;
-      },
+      }),
     }));
     expect(replay.status).toBe("conflict");
     expect(replayExecutions).toBe(0);
@@ -220,12 +276,12 @@ describe("installed-product first-review demo", () => {
     if (proposal.status !== "preview") throw new Error("expected preview");
     const result = await run(test, runFirstReviewDemo(liveRequest(proposal), {
       statePath: test.demoStatePath,
-      execute: async (options) => {
+      execute: (options) => Effect.sync<DemoExecution>(() => {
         expect(readDemoBudgetUsage(options.budgetPath)).toEqual({ sourceBytes: 0, providerCalls: 0 });
         claimDemoBudget(options.budgetPath, options.root, 100);
         claimDemoBudget(options.budgetPath, options.root, 100);
         return completed;
-      },
+      }),
     }));
     expect(result.status).toBe("passed");
     if (!("evidence" in result)) throw new Error("expected evidence");
@@ -254,7 +310,7 @@ describe("installed-product first-review demo", () => {
     if (reactionProposal.status !== "preview") throw new Error("expected preview");
     const reactionResult = await run(missingReaction, runFirstReviewDemo(liveRequest(reactionProposal), {
       statePath: missingReaction.demoStatePath,
-      execute: async () => ({
+      execute: () => Effect.sync<DemoExecution>(() => ({
         ...completed,
         review: {
           ...completed.review,
@@ -263,7 +319,7 @@ describe("installed-product first-review demo", () => {
             reason: "host-model-reaction-not-instrumented",
           },
         },
-      }),
+      })),
     }));
     expect(reactionResult.status).toBe("inconclusive");
     if (!("evidence" in reactionResult)) throw new Error("expected reaction evidence");
@@ -278,7 +334,7 @@ describe("installed-product first-review demo", () => {
     if (followUpProposal.status !== "preview") throw new Error("expected preview");
     const followUpResult = await run(missingFollowUp, runFirstReviewDemo(liveRequest(followUpProposal), {
       statePath: missingFollowUp.demoStatePath,
-      execute: async () => ({
+      execute: () => Effect.sync<DemoExecution>(() => ({
         ...completed,
         review: {
           ...completed.review,
@@ -287,7 +343,7 @@ describe("installed-product first-review demo", () => {
             reason: "post-repair-review-not-instrumented",
           },
         },
-      }),
+      })),
     }));
     expect(followUpResult.status).toBe("inconclusive");
   });
@@ -298,7 +354,7 @@ describe("installed-product first-review demo", () => {
     if (proposal.status !== "preview") throw new Error("expected preview");
     const result = await run(test, runFirstReviewDemo(liveRequest(proposal), {
       statePath: test.demoStatePath,
-      execute: async () => ({
+      execute: () => Effect.sync<DemoExecution>(() => ({
         host: { completed: true, version: "codex-cli 0.155.1", durationMs: 900 },
         review: {
           providerCalls: 3,
@@ -308,7 +364,7 @@ describe("installed-product first-review demo", () => {
           followUp: { status: "not-observed", source: "post-repair-terminal-review" },
         },
         repair: { changed: false, rejectsInvalidStates: false },
-      }),
+      })),
     }));
     expect(result.status).toBe("inconclusive");
     if (result.status !== "inconclusive" || !("evidence" in result)) throw new Error("expected evidence");

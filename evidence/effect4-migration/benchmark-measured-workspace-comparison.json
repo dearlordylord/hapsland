@@ -1,0 +1,66 @@
+{
+  "purpose": "Measured preparation workspace benchmark against unchanged pre-execution budgets",
+  "authority": "Implementation evidence; no product or support acceptance",
+  "measuredTree": "480a31f plus measured preparation workspace and successor fixture clock coordination",
+  "checks": [
+    {
+      "metric": "admissionP95Ms",
+      "baseline": 4.888366999999562,
+      "measured": 7.824367000000166,
+      "limit": 9.332550499999343,
+      "passes": true
+    },
+    {
+      "metric": "stopP95Ms",
+      "baseline": 34.7334920000003,
+      "measured": 71.76593299999877,
+      "limit": 57.100238000000445,
+      "passes": false
+    },
+    {
+      "metric": "saturationP95Ms",
+      "baseline": 2145.1781680000004,
+      "measured": 3891.755251999999,
+      "limit": 3317.7672520000006,
+      "passes": false
+    },
+    {
+      "metric": "shutdownP95Ms",
+      "baseline": 5.1792030000015075,
+      "measured": 8.20257700000002,
+      "limit": 17.76880450000226,
+      "passes": true
+    },
+    {
+      "metric": "eventLoopP95Ms",
+      "baseline": 33.325055,
+      "measured": 61.177855,
+      "limit": 54.9875825,
+      "passes": false
+    },
+    {
+      "metric": "peakRetainedBytes",
+      "baseline": 17807985,
+      "measured": 15554794,
+      "limit": 17807985,
+      "passes": true
+    },
+    {
+      "metric": "peakRssBytes",
+      "baseline": 384208896,
+      "measured": 377143296,
+      "limit": 513815552.0,
+      "passes": true
+    },
+    {
+      "metric": "maximumConcurrentDecisionEffects",
+      "baseline": 4,
+      "measured": 5,
+      "limit": 8,
+      "passes": true
+    }
+  ],
+  "budgetsMet": false,
+  "requiredSaturationReached": false,
+  "limitations": "Controlled local Decision effects and synthetic source only. No live Jev transport, real host, physical wire cancellation, or cross-platform performance evidence. Final migration must rerun the same workload and add the required physical retirement workloads."
+}

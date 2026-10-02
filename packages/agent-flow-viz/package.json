@@ -25,10 +25,10 @@
     "test:stop-slot-browser": "node scripts/check-stop-slot-browser.mjs"
   },
   "dependencies": {
-    "@effect/platform-browser": "4.0.0-rc.116",
+    "@effect/platform-browser": "4.0.0",
     "@hapsland/agent-flow-projection": "file:../agent-flow-projection",
-    "effect": "4.0.0-rc.116",
-    "foldkit": "0.163.0"
+    "effect": "4.0.0",
+    "foldkit": "0.165.0"
   },
   "devDependencies": {
     "playwright": "1.63.0",

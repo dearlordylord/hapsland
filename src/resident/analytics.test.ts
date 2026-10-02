@@ -1,17 +1,22 @@
+import { runClient } from "../test-support/client-runtime.ts";
+import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
+import { Layer } from "effect";
+import { ResidentPreparationControls, defaultPreparationControls } from "./preparation-controls.ts";
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import * as HttpClient from "effect/unstable/http/HttpClient";
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import { addEvent, makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { readAnalytics } from "../activity/analytics.ts";
-import { makeResidentDispatchContext } from "./client.ts";
+import { makeResidentDispatchContextEffect as makeResidentDispatchContext } from "./client.ts";
 import { residentPaths } from "./paths.ts";
-import { ResidentServer } from "./server.ts";
+import { acquireResidentFixture, type ResidentRuntime as ResidentServer } from "./runtime-fixture.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
 import { readCredentialState } from "../credentials/secret-service.ts";
 
@@ -34,87 +39,78 @@ const setup = async (enabled = true) => {
   };
   return { root, dispatch, read, observation };
 };
-const deferred = () => {
-  let resolve: () => void = () => { throw new Error("deferred not initialized"); };
-  const promise = new Promise<void>((done) => { resolve = done; });
-  return { promise, resolve };
-};
+
 
 describe("resident session analytics", () => {
   it("propagates user opt-in through the native dispatch context", async () => {
     const f = await setup();
-    const context = await makeResidentDispatchContext(f.root, f.dispatch.statePath,
-      f.dispatch.activityPath ?? "", f.dispatch.userConfigPath ?? undefined, {});
+    const context = await runClient(makeResidentDispatchContext(f.root, f.dispatch.statePath,
+      f.dispatch.activityPath ?? "", f.dispatch.userConfigPath ?? undefined, {}));
     expect(context.sessionAnalytics).toBe(true);
   });
 
   it("counts quiet clear reviews, cache reuse and skipped candidates separately", async () => {
-    const f = await setup(); const server = new ResidentServer(residentPaths(join(f.root, "runtime")));
+    const f = await setup(); const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")));
     try {
       for (const id of ["first", "repeated"]) {
-        expect(server.admit(await f.observation(id), f.dispatch).status).toBe("accepted");
-        await server.whenIdle();
+        expect(Effect.runSync(server.admit(await f.observation(id), f.dispatch)).status).toBe("accepted");
+        await Effect.runPromise(server.whenIdle());
       }
       await put(f.root, "empty.ts", "const value = 1;\n");
-      expect(server.admit(await f.observation("skipped", "empty.ts"), f.dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(await f.observation("skipped", "empty.ts"), f.dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       await put(f.root, "user.jsonc", JSON.stringify({ version: 1, sessionAnalytics: true,
         ruleOverrides: Object.fromEntries(configuredRules.map((rule) => [rule.id, { enabled: false }])) }));
-      expect(server.admit(await f.observation("rules-disabled"), f.dispatch).status).toBe("accepted");
-      await server.whenIdle();
+      expect(Effect.runSync(server.admit(await f.observation("rules-disabled"), f.dispatch)).status).toBe("accepted");
+      await Effect.runPromise(server.whenIdle());
       expect(f.read()).toMatchObject({ status: "recorded", totals: { requestsStarted: 0 }, controlledTotals: {
         requestsStarted: 1, requestsSucceeded: 1, clearReviews: 1, cacheHits: 1, skippedCandidates: 1, incompleteCandidates: 1,
       } });
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("counts pending joins without inventing additional provider requests", async () => {
     const f = await setup(); const entered = deferred(); const release = deferred(); const prepared = deferred(); let preparations = 0;
-    const server = new ResidentServer(residentPaths(join(f.root, "runtime")), undefined, {
-      beforeEvaluate: async () => { entered.resolve(); await release.promise; },
-      afterPrepare: async () => { if (++preparations === 2) prepared.resolve(); },
-    });
+    const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")), undefined, {reviewControls: reviewControlsLayer({beforeEvaluate: Effect.fn("NativeFixture.beforeEvaluate")(function* () { yield* entered.complete(undefined); yield* release.wait; })}),preparationControls: Layer.succeed(ResidentPreparationControls, ResidentPreparationControls.of({...defaultPreparationControls,afterPrepare: Effect.gen(function* () { if (++preparations === 2) yield* prepared.complete(undefined); })}))});
     try {
-      expect(server.admit(await f.observation("owner"), f.dispatch).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(await f.observation("owner"), f.dispatch)).status).toBe("accepted");
       await entered.promise;
-      expect(server.admit(await f.observation("join"), f.dispatch).status).toBe("accepted");
-      await prepared.promise; release.resolve(); await server.whenIdle();
+      expect(Effect.runSync(server.admit(await f.observation("join"), f.dispatch)).status).toBe("accepted");
+      await prepared.promise; release.resolve(); await Effect.runPromise(server.whenIdle());
       expect(f.read().controlledTotals).toMatchObject({ requestsStarted: 1, requestsSucceeded: 1, joinedReviews: 1, cacheHits: 0 });
-    } finally { release.resolve(); await server.close(); }
+    } finally { release.resolve(); await Effect.runPromise(server.close); }
   });
 
   it("records detected rule IDs and acknowledged submission once", async () => {
     const f = await setup();
     const dispatch = { ...f.dispatch, controlled: { answers: Object.fromEntries(configuredRules.map((rule) =>
       [rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 }])) } };
-    const server = new ResidentServer(residentPaths(join(f.root, "runtime")));
+    const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")));
     try {
       const observation = await f.observation("finding");
-      expect(server.admit(observation, dispatch, true).status).toBe("accepted"); await server.whenIdle();
+      expect(Effect.runSync(server.admit(observation, dispatch, true)).status).toBe("accepted"); await Effect.runPromise(server.whenIdle());
       expect(f.read().controlledTotals).toMatchObject({ requestsStarted: 1, requestsSucceeded: 1, reviewsWithFindings: 1, findings: 1 });
       expect(f.read().details.find((detail) => detail.kind === "request-findings")?.ruleIds).toEqual(["r6_bare_domain_value"]);
-      const response = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-        root: f.root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+      const response = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+        root: f.root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
       if (response.status !== "advice") throw new Error("fixture finding was not collected");
-      expect(server.beginComposedSubmission(response.token, "background").status).toBe("submitting");
-      expect(server.acknowledge(response.token).status).toBe("acknowledged");
-      server.acknowledge(response.token);
+      expect((await Effect.runPromise(server.beginComposedSubmission(response.token, "background"))).status).toBe("submitting");
+      expect((await Effect.runPromise(server.acknowledge(response.token))).status).toBe("acknowledged");
+      (await Effect.runPromise(server.acknowledge(response.token)));
       expect(f.read().controlledTotals).toMatchObject({ submissions: 1, submittedFindings: 1 });
-      expect(server.finalize(response.token).status).toBe("finalized");
-    } finally { await server.close(); }
+      expect((await Effect.runPromise(server.finalize(response.token))).status).toBe("finalized");
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("does not record successful reviews after user recording is disabled", async () => {
     const f = await setup(); const entered = deferred(); const release = deferred();
-    const server = new ResidentServer(residentPaths(join(f.root, "runtime")), undefined, {
-      beforeEvaluate: async () => { entered.resolve(); await release.promise; },
-    });
+    const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")), undefined, {reviewControls: reviewControlsLayer({beforeEvaluate: Effect.fn("NativeFixture.beforeEvaluate")(function* () { yield* entered.complete(undefined); yield* release.wait; })})});
     try {
-      expect(server.admit(await f.observation("disabled"), f.dispatch).status).toBe("accepted"); await entered.promise;
+      expect(Effect.runSync(server.admit(await f.observation("disabled"), f.dispatch)).status).toBe("accepted"); await entered.promise;
       await put(f.root, "user.jsonc", '{"version":1,"sessionAnalytics":false}');
-      release.resolve(); await server.whenIdle();
+      release.resolve(); await Effect.runPromise(server.whenIdle());
       expect(f.read()).toMatchObject({ status: "no-observation", controlledTotals: { requestsStarted: 0 } });
-    } finally { release.resolve(); await server.close(); }
+    } finally { release.resolve(); await Effect.runPromise(server.close); }
   });
 
   it("counts the real Jev provider path through an offline HTTP transport", async () => {
@@ -124,7 +120,7 @@ describe("resident session analytics", () => {
       name: "TYPESAFE_API_KEY", environmentValue: "ANALYTICS_SYNTHETIC_KEY", environmentOnly: true,
       generation: readCredentialState(credentialStatePath).generation, statePath: credentialStatePath,
     } };
-    const server = new ResidentServer(residentPaths(join(f.root, "runtime")), undefined, {
+    const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")), undefined, {
       offlineHttpClient: HttpClient.make((request) => {
         requests++;
         return Effect.succeed(HttpClientResponse.fromWeb(request, new Response(JSON.stringify({
@@ -134,31 +130,42 @@ describe("resident session analytics", () => {
       }),
     });
     try {
-      expect(server.admit(await f.observation("jev"), dispatch).status).toBe("accepted"); await server.whenIdle();
+      expect(Effect.runSync(server.admit(await f.observation("jev"), dispatch)).status).toBe("accepted"); await Effect.runPromise(server.whenIdle());
       expect(requests).toBe(1);
       expect(f.read()).toMatchObject({ totals: { requestsStarted: 1, requestsSucceeded: 1, clearReviews: 1 }, controlledTotals: { requestsStarted: 0 } });
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("records request interruption separately from discarded queued work during shutdown", async () => {
-    const f = await setup(); const entered = deferred(); const release = deferred();
-    const server = new ResidentServer(residentPaths(join(f.root, "runtime")), undefined, {
-      controlledRequestEffect: async () => { entered.resolve(); await release.promise; },
+    const f = await setup(); const entered = deferred(); const release = deferred(); const interrupted = deferred();
+    const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")), undefined, {
+      controlledRequestEffect: async (signal) => {
+        const abort = () => interrupted.resolve();
+        if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
+        entered.resolve();
+        try { await release.promise; } finally { signal.removeEventListener("abort", abort); }
+      },
     });
     try {
-      expect(server.admit(await f.observation("interrupted"), f.dispatch).status).toBe("accepted");
+      expect(Effect.runSync(server.admit(await f.observation("interrupted"), f.dispatch)).status).toBe("accepted");
       await entered.promise;
       expect(f.read().controlledTotals.requestsStarted).toBe(1);
-      await server.close();
+      let closed = false;
+      const closing = Effect.runPromise(server.close).then(() => { closed = true; });
+      await interrupted.promise;
+      expect(closed).toBe(false);
+      expect(f.read().controlledTotals.requestsSucceeded).toBe(0);
+      release.resolve();
+      await closing;
       expect(f.read().controlledTotals).toMatchObject({ requestsStarted: 1, requestsInterrupted: 1,
         requestsSucceeded: 0, discardedWork: 0 });
-    } finally { release.resolve(); await server.close(); }
+    } finally { release.resolve(); await Effect.runPromise(server.close); }
   });
 
   it("exposes opted-in history through JSON and human status without making requests", async () => {
-    const f = await setup(); const server = new ResidentServer(residentPaths(join(f.root, "runtime")));
+    const f = await setup(); const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")));
     try {
-      expect(server.admit(await f.observation("status"), f.dispatch).status).toBe("accepted"); await server.whenIdle();
+      expect(Effect.runSync(server.admit(await f.observation("status"), f.dispatch)).status).toBe("accepted"); await Effect.runPromise(server.whenIdle());
       const input = JSON.stringify({ version: 1, operation: "status", cwd: f.root, sessionId: "session" });
       const env = { ...process.env, REVIEW_USER_CONFIG_PATH: f.dispatch.userConfigPath ?? "",
         REVIEW_ACTIVITY_PATH: f.dispatch.activityPath ?? "", REVIEW_RESIDENT_DIR: join(f.root, "runtime"),
@@ -172,17 +179,17 @@ describe("resident session analytics", () => {
       expect(human.stdout).toContain("analytics: recorded (recording=enabled)");
       expect(human.stdout).toContain("controlled request-clear");
       expect(f.read().controlledTotals.requestsStarted).toBe(1);
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("records provider failure and does not reuse it", async () => {
-    const f = await setup(); const server = new ResidentServer(residentPaths(join(f.root, "runtime")));
+    const f = await setup(); const server = await acquireResidentFixture(residentPaths(join(f.root, "runtime")));
     try {
       const dispatch = { ...f.dispatch, controlled: { failure: "synthetic offline failure" } };
       for (const id of ["failure-1", "failure-2"]) {
-        expect(server.admit(await f.observation(id), dispatch).status).toBe("accepted"); await server.whenIdle();
+        expect(Effect.runSync(server.admit(await f.observation(id), dispatch)).status).toBe("accepted"); await Effect.runPromise(server.whenIdle());
       }
       expect(f.read().controlledTotals).toMatchObject({ requestsStarted: 2, requestsFailed: 2, requestsSucceeded: 0, cacheHits: 0 });
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 });

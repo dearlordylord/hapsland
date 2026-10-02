@@ -42,7 +42,7 @@ const Pattern = Schema.String.check(Schema.isMinLength(1)).annotate({
   description: "A non-empty repository-relative glob pattern using forward slashes.",
 });
 const EnvironmentVariableName = Schema.String.check(
-  Schema.isPattern(/^[A-Z_][A-Z0-9_]*$/),
+  Schema.isPattern(/^[A-Z_][A-Z0-9_]*$/u),
 ).annotate({
   description: "Name of the environment variable that supplies the review credential. Store the secret value outside configuration.",
   default: DEFAULT_CREDENTIAL_ENV_VAR,

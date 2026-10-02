@@ -3,9 +3,9 @@ import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
-import { Decision, DecisionModel } from "effect/unstable/ai";
-import * as FetchHttpClient from "effect/unstable/http/FetchHttpClient";
-import * as HttpClient from "effect/unstable/http/HttpClient";
+import { Decision, DecisionModel } from "effect/ai";
+import * as FetchHttpClient from "effect/http/FetchHttpClient";
+import * as HttpClient from "effect/http/HttpClient";
 import { JEV_API_BASE } from "./runtime/backend.ts";
 
 export const MODEL = "jev-latest";
@@ -35,9 +35,9 @@ const renderCriterion = ({ what, examples }: ProbabilityCriterion): string =>
 export const probability = (
   instructions: ProbabilityInstructions,
   criteria: ProbabilityCriteria,
-): Decision.Probability =>
-  Decision.probability({
-    instructions: renderInstructions(instructions),
+): Decision.Probability & { readonly criteria: { readonly false: string; readonly true: string } } =>
+  ({
+    ...Decision.probability({ instructions: renderInstructions(instructions) }),
     criteria: {
       false: renderCriterion(criteria.false),
       true: renderCriterion(criteria.true),

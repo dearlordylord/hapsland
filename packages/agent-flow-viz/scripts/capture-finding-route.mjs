@@ -27,7 +27,8 @@ try {
       document.querySelector(".canonical-progress")?.textContent?.includes(expected), `Guided step ${step} of 8`);
   }
   assert.match(await page.locator(".topology-step").innerText(), /jevRequestSettled accepted.*reviewRecorded.*retainFinding/s);
-  assert.equal(await page.locator(".topology-route.active").filter({ hasText: "retain finding command" }).count(), 1);
+  assert.equal(await page.locator(".topology-node").filter({ hasText: "CMD · retain finding for Review item" }).count(), 1);
+  assert.equal(await page.locator(".topology-node.active").filter({ hasText: "Pending advice" }).count(), 0);
   assert.equal(await page.locator(".topology-route.active").filter({ hasText: "clear / stale / unavailable" }).count(), 0);
   await page.locator(".production-flow").screenshot({ path: output });
   await page.locator(".topology-scroll").screenshot({ path: routesOutput });

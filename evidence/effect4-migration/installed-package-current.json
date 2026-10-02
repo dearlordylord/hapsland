@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-02T15:29:54.667Z",
+  "package": {
+    "name": "@hapsland/hapsland",
+    "version": "0.1.0",
+    "artifact": "hapsland-hapsland-0.1.0.tgz",
+    "source": "local-pack",
+    "sha256": "e46594c28d7d13004dc3e043e8516b27b375e0b26bd7997f9356c02d6a02fd34"
+  },
+  "environment": {
+    "node": "v24.20.0",
+    "operatingSystem": "linux",
+    "architecture": "arm64"
+  },
+  "isolation": {
+    "temporaryInstallation": true,
+    "developmentDependencies": false,
+    "checkoutPathUsedAtRuntime": false,
+    "retainedSyntheticSource": false
+  },
+  "entryPoints": {
+    "cli": "passed",
+    "parser": "passed",
+    "resident": "passed",
+    "hook": "passed"
+  },
+  "rustPreparation": {
+    "status": "passed",
+    "cargoAuthority": true,
+    "supportingFileResolved": true,
+    "rendered": true
+  },
+  "bendPreparation": {
+    "status": "passed",
+    "qualifiedImportResolved": true,
+    "stableCaptures": true,
+    "supportingFileResolved": true,
+    "rendered": true
+  },
+  "installation": {
+    "preview": "passed",
+    "installed": "passed",
+    "idempotent": "passed",
+    "scopedUninstall": "passed",
+    "customQuotedHome": true,
+    "independentHookPreserved": true,
+    "fileSelection": "effective-settings",
+    "disableDispatchGate": "passed",
+    "update": {
+      "fromVersion": "0.1.0",
+      "toVersion": "0.0.1-local",
+      "preview": "passed",
+      "protocolIncompatibility": "rejected-before-write",
+      "partialRecovery": "resumed",
+      "previousHookRetainedOnPartialFailure": true,
+      "oldGrantFilesPreserved": true,
+      "credentialState": "preserved-controlled-helper",
+      "trustRecordsModified": false,
+      "processesStopped": false,
+      "controlledReviewAfterUpdate": "passed",
+      "independentHookAfterUpdate": "passed"
+    }
+  },
+  "review": {
+    "backend": "controlled-offline",
+    "submissions": 2,
+    "adviceReturned": true,
+    "activity": {
+      "submitted": {
+        "instrumentation": "resident-v1",
+        "kind": "submitted",
+        "submission": "submitted",
+        "modelReaction": "unavailable"
+      },
+      "restart": {
+        "before": "pending",
+        "after": "restarted/lost",
+        "modelReaction": "unavailable"
+      }
+    }
+  },
+  "credentialLifecycle": {
+    "status": "controlled-helper",
+    "loginMs": 630,
+    "separateProcessLookupMs": 337,
+    "defaultKeychainIsolation": "not-applicable",
+    "residentRestartPersistence": "passed-distinct-pid-and-lifetime",
+    "residentControlledTransportResolution": "passed",
+    "logoutBeforeFutureDispatch": "passed"
+  },
+  "realCodex": {
+    "status": "passed",
+    "codexVersion": "codex-cli 0.155.1",
+    "hostExitCode": 0,
+    "hookTrust": {
+      "status": "persisted-exact-definition",
+      "flow": "native-interactive-review",
+      "synchronization": "rendered-screen-state",
+      "repositoryTrustSeeded": false,
+      "bypassFlag": false
+    },
+    "reviewSubmission": {
+      "status": "observed",
+      "controlledBackendSubmissions": 1
+    },
+    "reviewCompletion": {
+      "status": "completed-findings",
+      "terminalOutcomes": 1,
+      "correlation": "resident-native-event-identity"
+    },
+    "hostEvents": {
+      "types": [
+        "item.completed",
+        "item.started",
+        "thread.started",
+        "turn.completed",
+        "turn.started"
+      ],
+      "toolItemTypes": [
+        "agent_message",
+        "command_execution",
+        "file_change"
+      ]
+    },
+    "activityStages": [
+      "findings",
+      "incomplete",
+      "pending",
+      "submitted",
+      "unknown"
+    ],
+    "hostActivity": {
+      "status": "submitted",
+      "counts": {
+        "no-observation": 0,
+        "skipped": 0,
+        "pending": 0,
+        "clear": 0,
+        "findings": 1,
+        "submitted": 1,
+        "unavailable": 0,
+        "incomplete": 0,
+        "restarted/lost": 0
+      },
+      "categories": [],
+      "readiness": "ready"
+    },
+    "independentHook": {
+      "status": "observed",
+      "observations": 2
+    },
+    "nativeHookEventShape": [
+      {
+        "hookEventName": "PostToolUse",
+        "toolName": "apply_patch",
+        "payloadKeys": [
+          "cwd",
+          "hook_event_name",
+          "model",
+          "permission_mode",
+          "session_id",
+          "tool_input",
+          "tool_name",
+          "tool_response",
+          "tool_use_id",
+          "transcript_path",
+          "turn_id"
+        ],
+        "toolInputKeys": [
+          "command"
+        ],
+        "commandBytes": 178,
+        "commandEndsWithNewline": false,
+        "parserAccepted": true,
+        "observationAccepted": true,
+        "candidateOperation": "add",
+        "targetMatches": true,
+        "candidateAbsolute": false,
+        "candidateLexicallyWithinRoot": true,
+        "candidateRealpathWithinRoot": true,
+        "canonicalRootAliasesCandidateParent": false,
+        "pathEligible": true,
+        "captureAvailable": true,
+        "analysisStatus": "analyzed",
+        "diagnosticError": null,
+        "patchStart": true,
+        "patchEnd": true,
+        "patchHeaders": 1,
+        "responseKeys": [],
+        "responseFailed": false,
+        "controlledInstall": true,
+        "controlledReviewConfigured": true,
+        "residentConfigured": true
+      },
+      {
+        "hookEventName": "PostToolUse",
+        "toolName": "Bash",
+        "payloadKeys": [
+          "cwd",
+          "hook_event_name",
+          "model",
+          "permission_mode",
+          "session_id",
+          "tool_input",
+          "tool_name",
+          "tool_response",
+          "tool_use_id",
+          "transcript_path",
+          "turn_id"
+        ],
+        "toolInputKeys": [
+          "command"
+        ],
+        "commandBytes": 30,
+        "commandEndsWithNewline": false,
+        "parserAccepted": false,
+        "observationAccepted": false,
+        "candidateOperation": null,
+        "targetMatches": false,
+        "candidateAbsolute": false,
+        "candidateLexicallyWithinRoot": false,
+        "candidateRealpathWithinRoot": false,
+        "canonicalRootAliasesCandidateParent": false,
+        "pathEligible": false,
+        "captureAvailable": false,
+        "analysisStatus": "not-run",
+        "diagnosticError": null,
+        "patchStart": false,
+        "patchEnd": false,
+        "patchHeaders": 0,
+        "responseKeys": [],
+        "responseFailed": false,
+        "controlledInstall": true,
+        "controlledReviewConfigured": true,
+        "residentConfigured": true
+      }
+    ]
+  },
+  "transientPackageDownloadPerEdit": false,
+  "verdict": "clean-package-and-real-host-passed",
+  "postExecutionMetadata": {
+    "productionSourceCommit": "0c86f40",
+    "timing": "Recorded after native run; fresh pack/install and real Codex 0.155.1 execution include listener Context and backend monotonic duration changes."
+  }
+}

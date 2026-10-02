@@ -1,7 +1,9 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
+  closeSync,
   mkdirSync,
+  openSync,
   readFileSync,
   renameSync,
   rmSync,
@@ -11,6 +13,8 @@ import {
 import { homedir, hostname } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Clock, Config, Effect, Option, Redacted, Schedule, Schema } from "effect";
+import { runSecretServiceProcess, type SecretServiceOperation } from "./secret-service-process.ts";
 
 export const CREDENTIAL_LOOKUP_DEADLINE_MS = 750;
 export const DEFAULT_CREDENTIAL_STATE_PATH = join(
@@ -36,11 +40,12 @@ export type SecretServiceResult = {
   readonly value?: string;
 };
 
-export type CredentialState = {
-  readonly version: 1;
-  readonly generation: number;
-  readonly savedUseSuspended: boolean;
-};
+export const CredentialState = Schema.Struct({
+  version: Schema.Literal(1),
+  generation: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  savedUseSuspended: Schema.Boolean,
+});
+export interface CredentialState extends Schema.Schema.Type<typeof CredentialState> {}
 
 export type CredentialStateLockStatus = "acquired" | "recovered" | "busy" | "unavailable";
 
@@ -59,22 +64,20 @@ const initialState: CredentialState = {
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 const packagedHelper = resolve(moduleDirectory, "../../native/prebuilt", `${process.platform}-${process.arch}`, "credential-secret-service");
 
-export const credentialHelperPath = (): string =>
-  process.env.REVIEW_CREDENTIAL_HELPER ?? packagedHelper;
+const helperPathConfig = Config.NonEmptyString("REVIEW_CREDENTIAL_HELPER").pipe(Config.withDefault(packagedHelper));
+const statePathConfig = Config.NonEmptyString("REVIEW_CREDENTIAL_STATE_PATH").pipe(Config.withDefault(DEFAULT_CREDENTIAL_STATE_PATH));
+class CredentialStateError extends Schema.TaggedError<CredentialStateError>()("CredentialStateError", {}) {}
+const resolveStatePath = Effect.fn("Credentials.statePath")((path?: string) => Effect.gen(function* () {
+  return path === undefined ? yield* statePathConfig : path;
+}));
 
-const decodeState = (value: unknown): CredentialState => {
-  if (
-    typeof value === "object" && value !== null &&
-    "version" in value && value.version === 1 &&
-    "generation" in value && typeof value.generation === "number" &&
-    Number.isSafeInteger(value.generation) && value.generation >= 0 &&
-    "savedUseSuspended" in value && typeof value.savedUseSuspended === "boolean"
-  ) return value as CredentialState;
-  return { ...initialState, savedUseSuspended: true };
-};
+const decodeState = (value: unknown): CredentialState => Option.getOrElse(
+  Schema.decodeUnknownOption(CredentialState)(value),
+  () => ({ ...initialState, savedUseSuspended: true }),
+);
 
 export const readCredentialState = (
-  statePath = process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH,
+  statePath = DEFAULT_CREDENTIAL_STATE_PATH,
 ): CredentialState => {
   try {
     return decodeState(JSON.parse(readFileSync(statePath, "utf8")) as unknown);
@@ -88,8 +91,20 @@ export const readCredentialState = (
 const writeCredentialState = (statePath: string, state: CredentialState): void => {
   mkdirSync(dirname(statePath), { recursive: true, mode: 0o700 });
   const temporary = `${statePath}.${process.pid}.${randomUUID()}.tmp`;
-  writeFileSync(temporary, `${JSON.stringify(state)}\n`, { mode: 0o600, flag: "wx" });
-  renameSync(temporary, statePath);
+  // Own the exclusive file before writing, including partial-write failures.
+  const descriptor = openSync(temporary, "wx", 0o600);
+  let closed = false;
+  try {
+    writeFileSync(descriptor, `${JSON.stringify(state)}\n`);
+    closeSync(descriptor);
+    closed = true;
+    renameSync(temporary, statePath);
+  } finally {
+    if (!closed) {
+      try { closeSync(descriptor); } catch { /* Preserve the primary failure. */ }
+    }
+    try { rmSync(temporary, { force: true }); } catch { /* Preserve the primary failure. */ }
+  }
 };
 
 type StateLockOwner = {
@@ -198,7 +213,7 @@ const processIsAlive = (pid: number): boolean => {
   }
 };
 
-const recoverStaleStateLock = (lock: string): boolean => {
+const recoverStaleStateLock = (lock: string, now: number): boolean => {
   const owner = readStateLockOwner(lock);
   let retirementIdentity: string;
   if (owner !== undefined) {
@@ -215,7 +230,7 @@ const recoverStaleStateLock = (lock: string): boolean => {
   } else {
     try {
       const stat = statSync(lock);
-      if (Date.now() - stat.mtimeMs < OWNERLESS_LOCK_GRACE_MS) return false;
+      if (now - stat.mtimeMs < OWNERLESS_LOCK_GRACE_MS) return false;
       retirementIdentity = `ownerless-${stat.dev.toString(36)}-${stat.ino.toString(36)}`;
       // Make the deterministic retirement directory nonempty before rename.
       // A delayed second reclaimer then cannot rename a successor over it.
@@ -240,273 +255,191 @@ const recoverStaleStateLock = (lock: string): boolean => {
   return true;
 };
 
-const withStateLock = async (
-  statePath: string,
-  unexpectedStatus: "indeterminate" | "unavailable",
-  operation: () => Promise<Omit<CredentialLifecycleResult, "stateLock">>,
-): Promise<CredentialLifecycleResult> => {
-  const lock = `${statePath}.lock`;
-  const owner: StateLockOwner = {
-    version: 1,
-    pid: process.pid,
-    machineIdentity,
-    bootIdentity,
-    processBirthIdentity: processBirthIdentity(process.pid) ?? null,
-    token: randomUUID(),
-    createdAt: Date.now(),
-  };
-  try {
-    mkdirSync(dirname(statePath), { recursive: true, mode: 0o700 });
-  } catch {
-    return { status: "unavailable", state: readCredentialState(statePath), stateLock: "unavailable" };
-  }
-  const started = Date.now();
-  let recovered = false;
-  for (;;) {
-    try {
-      mkdirSync(lock, { mode: 0o700 });
-    } catch (cause) {
-      if (systemErrorCode(cause) !== "EEXIST") {
-        return { status: "unavailable", state: readCredentialState(statePath), stateLock: "unavailable" };
-      }
-      if (recoverStaleStateLock(lock)) {
-        recovered = true;
-        continue;
-      }
-      if (Date.now() - started >= STATE_LOCK_WAIT_MS) {
-        return { status: "busy", state: readCredentialState(statePath), stateLock: "busy" };
-      }
-      await new Promise((resolveWait) => setTimeout(resolveWait, 10));
-      continue;
-    }
-    try {
-      writeFileSync(join(lock, "owner.json"), `${JSON.stringify(owner)}\n`, { mode: 0o600, flag: "wx" });
-      break;
-    } catch {
-      // We created this previously nonexistent directory and have not exposed a
-      // valid owner, so it cannot be a successfully acquired competing lock.
-      try {
-        rmSync(lock, { recursive: true, force: true });
-      } catch { /* It remains an ownerless lock with bounded recovery. */ }
-      return { status: "unavailable", state: readCredentialState(statePath), stateLock: "unavailable" };
-    }
-  }
-  try {
-    const result = await operation();
-    return { ...result, stateLock: recovered ? "recovered" : "acquired" };
-  } catch {
-    return {
-      status: unexpectedStatus,
-      state: readCredentialState(statePath),
-      stateLock: recovered ? "recovered" : "acquired",
-    };
-  } finally {
-    // A stale owner may have been atomically moved aside. Never remove a lock
-    // subsequently acquired by another process.
-    if (readStateLockOwner(lock)?.token === owner.token) {
-      try {
-        rmSync(lock, { recursive: true, force: true });
-      } catch { /* A later invocation can reclaim this owner after process exit. */ }
-    }
-  }
-};
+const writeState = Effect.fn("Credentials.writeState")((path: string, state: CredentialState) => Effect.try({
+  try: () => writeCredentialState(path, state),
+  catch: () => new CredentialStateError(),
+}));
 
-export const runSecretService = (
-  operation: "probe" | "get" | "set" | "delete",
-  options: {
-    readonly input?: string;
-    readonly deadlineMs?: number;
-    readonly signal?: AbortSignal;
-    readonly allowInteraction?: boolean;
-  } = {},
-): Promise<SecretServiceResult> => new Promise((resolveResult) => {
-  let settled = false;
-  let termination: "timed-out" | "cancelled" | undefined;
-  const startHelper = () => spawn(
-    credentialHelperPath(),
-    options.allowInteraction === true ? [operation, "--allow-interaction"] : [operation],
-    { stdio: ["pipe", "pipe", "ignore"], env: process.env },
+const withStateLock = Effect.fn("Credentials.withStateLock")((statePath: string,
+  unexpectedStatus: "indeterminate" | "unavailable",
+  operation: Effect.Effect<Omit<CredentialLifecycleResult, "stateLock">, CredentialStateError>,
+) => Effect.gen(function* () {
+  const lock = `${statePath}.lock`;
+  const createdAt = yield* Clock.currentTimeMillis;
+  const started = yield* Clock.monotonicTimeNanos;
+  const owner: StateLockOwner = {
+    version: 1, pid: process.pid, machineIdentity, bootIdentity,
+    processBirthIdentity: processBirthIdentity(process.pid) ?? null,
+    token: randomUUID(), createdAt,
+  };
+  let recovered = false;
+  const attempt = Effect.fn("Credentials.acquireStateLock")(() => Effect.gen(function* () {
+    const now = yield* Clock.currentTimeMillis;
+    const elapsed = Number((yield* Clock.monotonicTimeNanos) - started) / 1_000_000;
+    return yield* Effect.sync(() => {
+      try { mkdirSync(dirname(statePath), { recursive: true, mode: 0o700 }); }
+      catch { return "unavailable" as const; }
+      try { mkdirSync(lock, { mode: 0o700 }); }
+      catch (cause) {
+        if (systemErrorCode(cause) !== "EEXIST") return "unavailable" as const;
+        if (recoverStaleStateLock(lock, now)) { recovered = true; return "retry" as const; }
+        return elapsed >= STATE_LOCK_WAIT_MS ? "busy" as const : "retry" as const;
+      }
+      // Directory creation and owner publication are one uninterrupted native
+      // acquisition. A failed publication removes only this unpublished lock.
+      try { writeFileSync(join(lock, "owner.json"), `${JSON.stringify(owner)}\n`, { mode: 0o600, flag: "wx" }); }
+      catch {
+        try { rmSync(lock, { recursive: true, force: true }); }
+        catch { /* Retain ownerless lock for bounded recovery. */ }
+        return "unavailable" as const;
+      }
+      return recovered ? "recovered" as const : "acquired" as const;
+    });
+  }));
+  return yield* Effect.acquireUseRelease(
+    attempt().pipe(Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: (status) => status === "retry" })),
+    (stateLock) => stateLock === "busy" || stateLock === "unavailable" || stateLock === "retry"
+      ? Effect.succeed<CredentialLifecycleResult>({ status: stateLock === "busy" ? "busy" : "unavailable",
+          state: readCredentialState(statePath), stateLock: stateLock === "busy" ? "busy" : "unavailable" })
+      : operation.pipe(
+          Effect.map((result): CredentialLifecycleResult => ({ ...result, stateLock })),
+          Effect.catch(() => Effect.succeed<CredentialLifecycleResult>({ status: unexpectedStatus,
+            state: readCredentialState(statePath), stateLock })),
+        ),
+    (stateLock) => Effect.sync(() => {
+      if (stateLock !== "acquired" && stateLock !== "recovered") return;
+      // Never delete a successor lock after stale-owner retirement.
+      if (readStateLockOwner(lock)?.token !== owner.token) return;
+      try { rmSync(lock, { recursive: true, force: true }); }
+      catch { /* A later invocation can reclaim after process exit. */ }
+    }),
   );
-  let child: ReturnType<typeof startHelper>;
-  try {
-    child = startHelper();
-  } catch {
-    // A foreign native binary can throw synchronously on some Node/OS pairs.
-    resolveResult({ status: "unavailable" });
-    return;
-  }
-  const chunks: Array<Buffer> = [];
-  let total = 0;
-  const finish = (result: SecretServiceResult) => {
-    if (settled) return;
-    settled = true;
-    clearTimeout(timer);
-    options.signal?.removeEventListener("abort", abort);
-    resolveResult(result);
-  };
-  const timer = setTimeout(() => {
-    termination = "timed-out";
-    child.kill("SIGKILL");
-  }, options.deadlineMs ?? CREDENTIAL_LOOKUP_DEADLINE_MS);
-  const abort = () => {
-    termination = "cancelled";
-    child.kill("SIGKILL");
-  };
-  options.signal?.addEventListener("abort", abort, { once: true });
-  if (options.signal?.aborted === true) abort();
-  child.stdout.on("data", (chunk: Buffer) => {
-    total += chunk.length;
-    if (total <= 65_536) chunks.push(chunk);
-    else child.kill("SIGKILL");
+}));
+
+export const runSecretService = Effect.fn("Credentials.runHelper")((operation: SecretServiceOperation,
+  options: { readonly input?: string; readonly deadlineMs?: number; readonly signal?: AbortSignal;
+    readonly allowInteraction?: boolean } = {},
+) => Effect.gen(function* () {
+  const helper = yield* helperPathConfig;
+  return yield* runSecretServiceProcess(helper, operation, {
+    ...options, deadlineMs: options.deadlineMs ?? CREDENTIAL_LOOKUP_DEADLINE_MS,
   });
-  child.stdin.on("error", () => {
-    // A helper may close stdin yet remain alive. Terminate it and let close (or
-    // the retained deadline) settle the sanitized result.
-    child.kill("SIGKILL");
-  });
-  child.on("error", () => finish({ status: termination ?? "unavailable" }));
-  child.on("close", () => {
-    if (settled) return;
-    if (termination !== undefined) return finish({ status: termination });
-    const malformedStatus = operation === "set" ? "indeterminate" as const : "unavailable" as const;
-    try {
-      const output = Buffer.concat(chunks);
-      const newline = output.indexOf(0x0a);
-      if (newline < 0) return finish({ status: malformedStatus });
-      const header = JSON.parse(output.subarray(0, newline).toString("utf8")) as unknown;
-      if (typeof header !== "object" || header === null || !("status" in header)) {
-        return finish({ status: malformedStatus });
-      }
-      const status = header.status;
-      const allowed: ReadonlyArray<SecretServiceStatus> = [
-        "available", "stored", "deleted", "present", "missing", "locked", "interaction-required",
-        "invalid", "unavailable", "indeterminate",
-      ];
-      if (typeof status !== "string" || !allowed.includes(status as SecretServiceStatus)) {
-        return finish({ status: malformedStatus });
-      }
-      if (status === "present") {
-        const value = output.subarray(newline + 1).toString("utf8");
-        if (value.length === 0 || Buffer.byteLength(value, "utf8") > 32_768) {
-          return finish({ status: "invalid" });
-        }
-        return finish({ status, value });
-      }
-      return finish({ status: status as SecretServiceStatus });
-    } catch {
-      return finish({ status: malformedStatus });
-    }
-  });
-  child.stdin.end(options.input);
-});
+}).pipe(Effect.catch(() => Effect.succeed<SecretServiceResult>({ status: "unavailable" }))));
 
 export type CredentialResolution =
   | { readonly status: "present"; readonly source: "environment" | "saved"; readonly value: string; readonly generation: number }
   | { readonly status: "missing" | "invalid" | "locked" | "interaction-required" | "unavailable" | "timed-out" | "suspended"; readonly source: "environment" | "saved"; readonly generation: number };
 
-export const resolveCredential = async (options: {
+export const resolveCredential = Effect.fn("Credentials.resolve")((options: {
   readonly envVar: string;
   readonly environmentOnly: boolean;
   readonly environmentValue?: string | null;
   readonly expectedGeneration?: number;
   readonly statePath?: string;
-}): Promise<CredentialResolution> => {
-  const state = readCredentialState(options.statePath);
+}) => Effect.gen(function* () {
+  const statePath = yield* resolveStatePath(options.statePath);
+  const state = readCredentialState(statePath);
   const environmentValue = "environmentValue" in options
     ? options.environmentValue ?? undefined
-    : process.env[options.envVar];
+    : Option.getOrUndefined(yield* Config.option(Config.Redacted(options.envVar)).pipe(
+        Effect.map((value) => Option.map(value, Redacted.value)),
+      ));
   const selectedSource = options.environmentOnly ||
       (environmentValue !== undefined && environmentValue.length > 0)
     ? "environment" as const
     : "saved" as const;
   if (options.expectedGeneration !== undefined && options.expectedGeneration !== state.generation) {
-    return { status: "suspended", source: selectedSource, generation: state.generation };
+    return { status: "suspended", source: selectedSource, generation: state.generation } as const;
   }
   if (options.environmentOnly || (environmentValue !== undefined && environmentValue.length > 0)) {
     if (environmentValue === undefined || environmentValue.length === 0) {
-      return { status: "missing", source: "environment", generation: state.generation };
+      return { status: "missing", source: "environment", generation: state.generation } as const;
     }
     if (Buffer.byteLength(environmentValue, "utf8") > 32_768) {
-      return { status: "invalid", source: "environment", generation: state.generation };
+      return { status: "invalid", source: "environment", generation: state.generation } as const;
     }
-    const current = readCredentialState(options.statePath);
+    const current = readCredentialState(statePath);
     if (current.generation !== state.generation) {
-      return { status: "suspended", source: "environment", generation: current.generation };
+      return { status: "suspended", source: "environment", generation: current.generation } as const;
     }
-    return { status: "present", source: "environment", value: environmentValue, generation: state.generation };
+    return { status: "present", source: "environment", value: environmentValue, generation: state.generation } as const;
   }
   if (state.savedUseSuspended) {
-    return { status: "suspended", source: "saved", generation: state.generation };
+    return { status: "suspended", source: "saved", generation: state.generation } as const;
   }
-  const saved = await runSecretService("get");
-  const current = readCredentialState(options.statePath);
+  const saved = yield* runSecretService("get");
+  const current = readCredentialState(statePath);
   if (current.generation !== state.generation || current.savedUseSuspended) {
-    return { status: "suspended", source: "saved", generation: current.generation };
+    return { status: "suspended", source: "saved", generation: current.generation } as const;
   }
   if (saved.status === "present" && saved.value !== undefined) {
-    return { status: "present", source: "saved", value: saved.value, generation: state.generation };
+    return { status: "present", source: "saved", value: saved.value, generation: state.generation } as const;
   }
   const status = saved.status === "missing" || saved.status === "locked" ||
       saved.status === "interaction-required" ||
       saved.status === "invalid" || saved.status === "timed-out"
     ? saved.status
     : "unavailable";
-  return { status, source: "saved", generation: state.generation };
-};
+  return { status, source: "saved", generation: state.generation } as const;
+}).pipe(Effect.map((result): CredentialResolution => result), Effect.catch(() =>
+  Effect.succeed<CredentialResolution>({ status: "unavailable", source: options.environmentOnly ? "environment" : "saved", generation: 0 }))));
 
-export const saveCredential = async (
-  value: string,
-  statePath = process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH,
-) => withStateLock(statePath, "indeterminate", async () => {
-  if (value.length === 0 || Buffer.byteLength(value, "utf8") > 32_768) {
-    return { status: "invalid" as const, state: readCredentialState(statePath) };
-  }
-  const previous = readCredentialState(statePath);
-  const pending = {
-    version: 1 as const,
-    generation: previous.generation + 1,
-    savedUseSuspended: true,
-  };
-  // Publish invalidation before replacement so no old-generation resident work
-  // can race the Secret Service commit.
-  writeCredentialState(statePath, pending);
-  const stored = await runSecretService("set", { input: value, deadlineMs: 15_000 });
-  if (stored.status !== "stored") {
+export const saveCredential = Effect.fn("Credentials.save")((value: string, path?: string) => Effect.gen(function* () {
+  const statePath = yield* resolveStatePath(path);
+  return yield* withStateLock(statePath, "indeterminate", Effect.gen(function* () {
+    if (value.length === 0 || Buffer.byteLength(value, "utf8") > 32_768) {
+      return { status: "invalid" as const, state: readCredentialState(statePath) };
+    }
+    const previous = readCredentialState(statePath);
+    const pending = {
+      version: 1 as const,
+      generation: previous.generation + 1,
+      savedUseSuspended: true,
+    };
+    // Publish invalidation before replacement so no old-generation resident work
+    // can race the Secret Service commit.
+    yield* writeState(statePath, pending);
+    const stored = yield* runSecretService("set", { input: value, deadlineMs: 15_000 });
+    if (stored.status !== "stored") {
+      const state = {
+        ...pending,
+        savedUseSuspended: previous.savedUseSuspended ||
+          stored.status === "timed-out" || stored.status === "indeterminate",
+      };
+      yield* writeState(statePath, state);
+      return {
+        status: stored.status === "timed-out" || stored.status === "indeterminate"
+          ? "indeterminate" as const
+          : stored.status,
+        state,
+      };
+    }
+    const state = { ...pending, savedUseSuspended: false };
+    yield* writeState(statePath, state);
+    return { status: "stored" as const, state };
+  }));
+}).pipe(Effect.catch(() => Effect.succeed<CredentialLifecycleResult>({ status: "unavailable",
+  state: { ...initialState, savedUseSuspended: true }, stateLock: "unavailable" }))));
+
+export const logoutCredential = Effect.fn("Credentials.logout")((path?: string) => Effect.gen(function* () {
+  const statePath = yield* resolveStatePath(path);
+  return yield* withStateLock(statePath, "indeterminate", Effect.gen(function* () {
+    const previous = readCredentialState(statePath);
+    const pending = {
+      version: 1 as const,
+      generation: previous.generation + 1,
+      savedUseSuspended: true,
+    };
+    // Revoke all outstanding capabilities before deletion can block or commit.
+    yield* writeState(statePath, pending);
+    const deleted = yield* runSecretService("delete", { deadlineMs: 15_000 });
+    const successful = deleted.status === "deleted" || deleted.status === "missing";
     const state = {
       ...pending,
-      savedUseSuspended: previous.savedUseSuspended ||
-        stored.status === "timed-out" || stored.status === "indeterminate",
+      savedUseSuspended: !successful,
     };
-    writeCredentialState(statePath, state);
-    return {
-      status: stored.status === "timed-out" || stored.status === "indeterminate"
-        ? "indeterminate" as const
-        : stored.status,
-      state,
-    };
-  }
-  const state = { ...pending, savedUseSuspended: false };
-  writeCredentialState(statePath, state);
-  return { status: "stored" as const, state };
-});
-
-export const logoutCredential = async (
-  statePath = process.env.REVIEW_CREDENTIAL_STATE_PATH ?? DEFAULT_CREDENTIAL_STATE_PATH,
-) => withStateLock(statePath, "indeterminate", async () => {
-  const previous = readCredentialState(statePath);
-  const pending = {
-    version: 1 as const,
-    generation: previous.generation + 1,
-    savedUseSuspended: true,
-  };
-  // Revoke all outstanding capabilities before deletion can block or commit.
-  writeCredentialState(statePath, pending);
-  const deleted = await runSecretService("delete", { deadlineMs: 15_000 });
-  const successful = deleted.status === "deleted" || deleted.status === "missing";
-  const state = {
-    ...pending,
-    savedUseSuspended: !successful,
-  };
-  writeCredentialState(statePath, state);
-  return { status: deleted.status, state };
-});
+    yield* writeState(statePath, state);
+    return { status: deleted.status, state };
+  }));
+}).pipe(Effect.catch(() => Effect.succeed<CredentialLifecycleResult>({ status: "unavailable",
+  state: { ...initialState, savedUseSuspended: true }, stateLock: "unavailable" }))));

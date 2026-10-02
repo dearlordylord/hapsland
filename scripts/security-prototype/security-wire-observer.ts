@@ -2,8 +2,8 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import * as Effect from "effect/Effect";
-import * as HttpClient from "effect/unstable/http/HttpClient";
-import * as HttpClientResponse from "effect/unstable/http/HttpClientResponse";
+import * as HttpClient from "effect/http/HttpClient";
+import * as HttpClientResponse from "effect/http/HttpClientResponse";
 
 // Fixture authority is intentionally independent of the production default.
 const APPROVED_FIXTURE_DESTINATION = "https://api.typesafe.ai/v1/systemone";
