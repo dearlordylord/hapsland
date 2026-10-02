@@ -170,3 +170,8 @@ const tokenPruning = server.slice(server.indexOf("  const residentPruneCollectio
 if (!tokenPruning.includes("yield* residentLedger.advice.snapshots()") || tokenPruning.includes("advice.delivery")) {
   throw new Error("collection token pruning must inspect advice snapshots");
 }
+
+const adviceInsertion = state.slice(state.indexOf('insert: Effect.fn("AdviceRecords.insert")'), state.indexOf('publish: Effect.fn("AdviceRecords.publish")'));
+if (/get (evaluations|findings|collectionEligible|delivery)\(|Ref.getUnsafe/.test(adviceInsertion)) {
+  throw new Error("advice identity capabilities must not expose live content getters");
+}

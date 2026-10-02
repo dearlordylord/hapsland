@@ -37,8 +37,8 @@ export type AdviceContent = {
   readonly collectionEligible: boolean;
   readonly delivery?: AdviceDelivery;
 };
-/** Immutable capability; its getters observe the owner's current published content. */
-export type Advice = AdviceMetadata & Omit<AdviceContent, "delivery"> & { readonly delivery: AdviceDelivery | undefined };
+/** Immutable identity capability; content is read through its owning service. */
+export type Advice = AdviceMetadata;
 export type AdviceInitial = AdviceMetadata & Pick<AdviceContent, "evaluations" | "findings">;
 export type AdviceRecordsState = { readonly entries: ReadonlyMap<string, { readonly capability: Advice; readonly content: AdviceContent }> };
 export const initialAdviceRecords = (): AdviceRecordsState => ({ entries: new Map() });

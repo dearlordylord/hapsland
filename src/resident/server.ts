@@ -1727,7 +1727,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           } else if (item.kind === "joined") {
             const existing = residentAdvice().find((advice) => advice.evaluationKey === item.evaluationKey);
             if (existing !== undefined) {
-              residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing, ticketUnit), existing.id);
+              yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing, ticketUnit), existing.id);
               recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
                 advicee: job.observation.advicee, lifetime: server.lifetime, stage: "findings",
                 findings: (yield* residentLedger.advice.current(existing)).findings.length, unitIdentity: item.evaluationKey });
@@ -2289,19 +2289,19 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentSettleJoined = Effect.fn("ResidentRuntime.settleJoined")(function* (key: string, state: "pending" | "clear" | "unavailable", reason?: ResidentUnavailableReason,
     adviceId?: string) {
-    residentRecordJoinedOutcomes(yield* residentJoined.settle(key, state, reason, adviceId), adviceId);
+    yield* residentRecordJoinedOutcomes(yield* residentJoined.settle(key, state, reason, adviceId), adviceId);
   }, Effect.uninterruptible);
 
-  function residentRecordJoinedOutcomes(outcomes: ReadonlyArray<JoinedReviewOutcome>, adviceId?: string): void {
+  const residentRecordJoinedOutcomes = Effect.fn("ResidentRuntime.recordJoinedOutcomes")(function* (outcomes: ReadonlyArray<JoinedReviewOutcome>, adviceId?: string) {
     for (const { review, stage } of outcomes) {
       recordActivity({ statePath: review.activityPath,
         root: review.observation.root, advicee: review.observation.advicee,
         lifetime: runtime.lifetime, stage,
         ...(stage !== "findings" ? {} : {
-          findings: residentAdvice().find((item) => item.id === adviceId)?.findings.length ?? 0,
+          findings: (yield* residentLedger.advice.snapshots()).find(({ capability }) => capability.id === adviceId)?.content.findings.length ?? 0,
         }), unitIdentity: review.evaluationKey });
     }
-  }
+  });
 
   const residentRetainAdvice = Effect.fn("ResidentRuntime.retainAdvice")((
     job: UnitJob, evaluation: EvaluatedUnit, sequence: number,
@@ -2315,7 +2315,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
       if (residentAdvice().some((item) => item.evaluationKey === job.evaluationKey)) {
         const existing = residentAdvice().find((item) => item.evaluationKey === job.evaluationKey);
-        if (existing !== undefined) residentRecordJoinedOutcomes(
+        if (existing !== undefined) yield* residentRecordJoinedOutcomes(
           yield* residentLedger.advice.publish(existing, job.ticketUnit, job.revision), existing.id);
         if (job.round !== undefined && job.workUnitId !== undefined) (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
         yield* residentReleaseUnit(job);
@@ -2349,7 +2349,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentAdapter("pending advice barrier", () => Promise.resolve(residentAfterAdvicePending?.(advice.id)));
         if (!residentJobActive(job)) return;
       }
-      residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(advice, job.ticketUnit, job.revision), advice.id);
+      yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(advice, job.ticketUnit, job.revision), advice.id);
     });
   });
 

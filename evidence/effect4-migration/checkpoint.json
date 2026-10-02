@@ -160,7 +160,8 @@
     "Collection ownership/current-token checks, collection work count, reused finding activity count and final transport token checks inspect explicit advice snapshots",
     "Both Stop finish selection and binding checks consume explicit advice batch snapshot content rather than capability delivery getters",
     "Collection token pruning composes a named Effect and reads delivery tokens from advice snapshots; Stop expired-lease cleanup reads batch snapshot content",
-    "Pending-advice diagnostics compose a named Effect from batch snapshot content; fixture and runnable-probe callers await diagnostics directly"
+    "Pending-advice diagnostics compose a named Effect from batch snapshot content; fixture and runnable-probe callers await diagnostics directly",
+    "Advice identity capabilities contain immutable metadata only; all live content getters deleted. Joined activity outcomes compose snapshot reads; fixtures inspect content through explicit Effects"
   ],
   "verification": [
     {
@@ -2008,12 +2009,21 @@
       "boundaryChecksPassed": 15,
       "probeStrictTypecheck": true,
       "scope": "Diagnostic snapshot conversion; capability getters/list reader remain pending removal"
+    },
+    {
+      "stage": "advice-getter-removal",
+      "testsPassed": 132,
+      "testFiles": 4,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "scope": "Live advice getters removed; synchronous capability listing remains"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Replace all advice getter and synchronous values callers with explicit snapshot/values Effects, remove getters; then remaining capacity, reuse, delivery and notice domain bridges",
+    "Convert advice capability listing and all callers to Effects, then remaining capacity, reuse, delivery and notice domain bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -2031,7 +2041,8 @@
     "Round-record mutation Effect physical run preserves all eight settlement invariants and comparable budgets, but shutdown P95 11.475841ms exceeds the unchanged numeric 10.6382545ms formula. Fixed baseline remains physically invalid; retain this miss and do not claim all comparative budgets verified.",
     "Round-read/snapshot physical run preserves all settlement invariants and comparable budgets, but shutdown P95 11.841803ms exceeds the unchanged numeric 10.6382545ms formula. The baseline remains physically invalid; performance remains unresolved for final migration validation.",
     "Revision-release physical run passes all eight settlement invariants and comparable budgets. Shutdown P95 15.746528ms exceeds the unchanged numeric 10.6382545ms formula; fixed baseline remains physically invalid. Retain this miss for final performance audit.",
-    "Advice current snapshot read is adopted by lease checking; remaining live content getters and synchronous values reader are intermediate migration work and must be removed before completion."
+    "Advice current snapshot read is adopted by lease checking; remaining live content getters and synchronous values reader are intermediate migration work and must be removed before completion.",
+    "Advice live getters have now been deleted; earlier intermediate-getter limitation is superseded. Synchronous advice values listing still needs conversion."
   ],
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",

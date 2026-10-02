@@ -46,21 +46,21 @@ it.effect("owns frozen advice content and leases together with canonical state",
   const { owner, initial } = yield* fixture();
   const advice = yield* owner.advice.insert(initial);
   expect(Object.isFrozen(advice)).toBe(true);
-  expect(Object.isFrozen(advice.findings)).toBe(true);
-  expect(Object.isFrozen(advice.evaluations[0])).toBe(true);
+  expect(Object.isFrozen((yield* owner.advice.current(advice)).findings)).toBe(true);
+  expect(Object.isFrozen((yield* owner.advice.current(advice)).evaluations[0])).toBe(true);
   expect(Reflect.set(advice, "findings", [])).toBe(false);
   expect(yield* owner.advice.eligible(advice, false)).toBe(true);
-  expect(advice.collectionEligible).toBe(true);
+  expect((yield* owner.advice.current(advice)).collectionEligible).toBe(true);
   expect(yield* owner.advice.reserveLease(advice, "collector")).toBe(true);
-  const first = advice.delivery;
+  const first = (yield* owner.advice.current(advice)).delivery;
   expect(Object.isFrozen(first)).toBe(true);
   expect(owner.canonicalProjection().collection.leases).toEqual([{ advice: initial.canonicalOperationId, owner: owner.collectionTokenId("collector") }]);
   expect(yield* owner.advice.updateDelivery(advice, "wrong", { acknowledged: true })).toBe(false);
   expect(yield* owner.advice.updateDelivery(advice, "collector", { findings: [finding], leaseUntil: 10, acknowledged: true })).toBe(true);
-  expect(advice.delivery?.acknowledged).toBe(true);
+  expect((yield* owner.advice.current(advice)).delivery?.acknowledged).toBe(true);
   expect(first?.acknowledged).toBe(false);
   yield* owner.advice.checkLease(advice, 10, false, false, false);
-  expect(advice.delivery).toBeUndefined();
+  expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
 }));
 
@@ -75,10 +75,10 @@ it.effect("rolls back retention and lease updates when native payload snapshotti
   yield* owner.advice.eligible(advice, false);
   yield* owner.advice.reserveLease(advice, "collector");
   const leased = owner.canonicalProjection();
-  const delivery = advice.delivery;
+  const delivery = (yield* owner.advice.current(advice)).delivery;
   expect(yield* defectMessage(owner.advice.updateDelivery(advice, "collector", { findings: [finding, invalid] }))).toContain("snapshot failed");
   expect(owner.canonicalProjection()).toEqual(leased);
-  expect(advice.delivery).toBe(delivery);
+  expect((yield* owner.advice.current(advice)).delivery).toBe(delivery);
 }));
 
 it.effect("retires advice, ticket bindings and leases while retaining active capture workspace", () => Effect.gen(function* () {
@@ -94,7 +94,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   expect(yield* owner.advice.remove(advice, "stale", "wrong")).toBe(false);
   expect(yield* owner.advice.remove(advice, "stale", "collector")).toBe(true);
   expect(owner.advice.values()).toEqual([]);
-  expect(advice.delivery).toBeUndefined();
+  expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
   expect((yield* owner.ticketUnits.stage(unit))).toMatchObject({ stage: "unavailable", reason: "stale" });
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
@@ -144,7 +144,7 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
   expect(owner.canonicalProjection()).toEqual(before);
   expect(owner.advice.values()).toEqual([advice]);
   expect(owner.snapshot().bytes).toBe(100);
-  expect(advice.delivery?.token).toBe("collector");
+  expect((yield* owner.advice.current(advice)).delivery?.token).toBe("collector");
 }));
 
 
@@ -179,12 +179,12 @@ it.effect("executes advice eligibility and revision against current retained ide
   const advice = yield* owner.advice.insert(initial);
   const eligible = owner.advice.eligible(advice, false);
   const revise = owner.advice.revise(advice, [], []);
-  expect(advice.collectionEligible).toBe(false);
+  expect((yield* owner.advice.current(advice)).collectionEligible).toBe(false);
   expect(yield* eligible).toBe(true);
-  expect(advice.collectionEligible).toBe(true);
-  expect(advice.findings).toHaveLength(initial.findings.length);
+  expect((yield* owner.advice.current(advice)).collectionEligible).toBe(true);
+  expect((yield* owner.advice.current(advice)).findings).toHaveLength(initial.findings.length);
   expect(yield* revise).toBe(true);
-  expect(advice.findings).toEqual([]);
+  expect((yield* owner.advice.current(advice)).findings).toEqual([]);
   yield* owner.advice.remove(advice, "stale");
   expect(yield* eligible).toBe(false);
   expect(yield* revise).toBe(false);
@@ -202,9 +202,9 @@ it.effect("defers advice retention and snapshots source payloads at execution", 
   expect(owner.advice.values()).toEqual([]);
   pendingFindings.length = 0;
   const retained = yield* insert;
-  expect(retained.findings).toEqual([]);
+  expect((yield* owner.advice.current(retained)).findings).toEqual([]);
   pendingFindings.push(finding);
-  expect(retained.findings).toEqual([]);
+  expect((yield* owner.advice.current(retained)).findings).toEqual([]);
   expect(owner.advice.values()).toEqual([retained]);
 }));
 
@@ -214,7 +214,7 @@ it.effect("arbitrates competing collectors only when lease Effects execute", () 
   const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
   const attempts = Array.from({ length: 16 }, (_, index) => owner.advice.reserveLease(advice, `collector-${index}`));
-  expect(advice.delivery).toBeUndefined();
+  expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
   const results = yield* Effect.all(attempts, { concurrency: 16 });
   expect(results.filter(Boolean)).toHaveLength(1);
   expect(owner.canonicalProjection().collection.leases).toHaveLength(1);
@@ -226,12 +226,12 @@ it.effect("validates delivery token when a deferred update executes", () => Effe
   yield* owner.advice.eligible(advice, false);
   yield* owner.advice.reserveLease(advice, "old");
   const update = owner.advice.updateDelivery(advice, "old", { acknowledged: true });
-  expect(advice.delivery?.acknowledged).toBe(false);
+  expect((yield* owner.advice.current(advice)).delivery?.acknowledged).toBe(false);
   yield* owner.advice.releaseLease(advice, "old");
   yield* owner.advice.reserveLease(advice, "new");
   expect(yield* update).toBe(false);
-  expect(advice.delivery?.token).toBe("new");
-  expect(advice.delivery?.acknowledged).toBe(false);
+  expect((yield* owner.advice.current(advice)).delivery?.token).toBe("new");
+  expect((yield* owner.advice.current(advice)).delivery?.acknowledged).toBe(false);
 }));
 
 
@@ -242,12 +242,12 @@ it.effect("checks expiry against the lease retained at execution", () => Effect.
   yield* owner.advice.reserveLease(advice, "collector");
   yield* owner.advice.updateDelivery(advice, "collector", { leaseUntil: 10 });
   const check = owner.advice.checkLease(advice, 10, false, false, false);
-  expect(advice.delivery).toBeDefined();
+  expect((yield* owner.advice.current(advice)).delivery).toBeDefined();
   yield* owner.advice.updateDelivery(advice, "collector", { leaseUntil: 20 });
   yield* check;
-  expect(advice.delivery).toBeDefined();
+  expect((yield* owner.advice.current(advice)).delivery).toBeDefined();
   yield* owner.advice.checkLease(advice, 20, false, false, false);
-  expect(advice.delivery).toBeUndefined();
+  expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
 }));
 
@@ -257,11 +257,11 @@ it.effect("releases only the lease owned at execution", () => Effect.gen(functio
   yield* owner.advice.eligible(advice, false);
   yield* owner.advice.reserveLease(advice, "old");
   const release = owner.advice.releaseLease(advice, "old");
-  expect(advice.delivery?.token).toBe("old");
+  expect((yield* owner.advice.current(advice)).delivery?.token).toBe("old");
   expect(yield* release).toBe(true);
   yield* owner.advice.reserveLease(advice, "new");
   expect(yield* release).toBe(false);
-  expect(advice.delivery?.token).toBe("new");
+  expect((yield* owner.advice.current(advice)).delivery?.token).toBe("new");
   expect(yield* owner.advice.releaseLease(advice, "new")).toBe(true);
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
 }));
