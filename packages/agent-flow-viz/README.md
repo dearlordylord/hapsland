@@ -235,9 +235,13 @@ agent names and reproducible seeds. Generator events enter the same checked
 Bend resident; admission and global contention are decided there.
 
 The **Global review capacity** panel displays the resident's checked item/byte
-totals and per-partition usage. **Shared Jev request pool** displays the one
-pool's held request permits, their owning agents and observed start status.
-The permit limit comes from the checked execution limits, currently eight.
+totals and per-partition usage. **Jev request attempt** contains eight occupied/free
+positions for the shared resident request-permit pool. Every agent layer mirrors
+the same full resident requests, ordered by request identity and colored using
+the same owning-agent palette. The local started count remains separate. Full
+agent/request identities and ready/started status are available in the stage
+inspector and slot accessibility labels. Positions are permits, not connections
+or stable socket identities. The checked execution limit is currently eight.
 Resource contacts inside each SVG attach this same ledger to **Admission &
 capacity**, and the same request pool to **Jev request attempt**.
 

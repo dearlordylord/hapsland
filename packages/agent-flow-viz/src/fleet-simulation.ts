@@ -139,7 +139,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
                 h.strong([], [`AGENT ${String(index + 1).padStart(2, "0")}`]), h.span([], [`${current?.time ?? run?.now ?? 0} ms · seed ${agent.seed}`]),
               ]),
               ...(local ? [productionFlowView(h, local, last,
-                false, place => action(`fleet:inspect:${index}:${place}`), preparationSnapshot(history.map(frame => ({ ...frame, origin: "manual" as const }))), numbers, true, projection, current ? current.capacityMetadata : model.resident.selected < 0 ? run?.capacityMetadata : undefined, agent.partition, index === model.active ? { group: model.resident.resourceGroup === "" ? undefined : Number(model.resident.resourceGroup), round: model.resident.resourceRound === "" ? undefined : Number(model.resident.resourceRound) } : undefined)]
+                false, place => action(`fleet:inspect:${index}:${place}`), preparationSnapshot(history.map(frame => ({ ...frame, origin: "manual" as const }))), numbers, true, projection, current ? current.capacityMetadata : model.resident.selected < 0 ? run?.capacityMetadata : undefined, agent.partition, index === model.active ? { group: model.resident.resourceGroup === "" ? undefined : Number(model.resident.resourceGroup), round: model.resident.resourceRound === "" ? undefined : Number(model.resident.resourceRound) } : undefined, scopes)]
                 : [h.div([h.Class("ensemble-empty")], [h.strong([], ["Your agent diagram starts here"]), h.p([], ["Start one resident to connect independent Monkey Business generators."])])]),
             ])),
             ...(!model.flat ? layers.slice(0, -1).filter(layer => layer.local).flatMap(({ index }) => INFRASTRUCTURE_CONTACTS.map(contact => h.div([
@@ -164,6 +164,6 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
     ]),
     h.div([h.Class("ensemble-inspector-heading")], [h.h2([], [`Resident controls · ${active.agent.agent} selected`]),
       h.p([], [run && !run.agentScopes.length ? "Scripted replay: no event generator is attached. Backend/native profiles, playback, history and replay files apply to the whole resident." : `Edit pace, bursts, size and suspension target ${active.agent.agent}. Backend/native profiles, playback, history and replay files apply to the whole resident.`])]),
-    residentView(model.resident, h, action, changed, false, active.local ? { projection: active.local, observations: active.history, partition: active.agent.partition } : undefined),
+    residentView(model.resident, h, action, changed, false, active.local ? { projection: active.local, observations: active.history, partition: active.agent.partition, agents: scopes } : undefined),
   ]);
 };

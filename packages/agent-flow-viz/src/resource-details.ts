@@ -1,5 +1,6 @@
 import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalProjection } from "../../../src/canonical/adapter";
+import type { AgentScope } from "./shared-resident-view";
 import type { CapacityMetadata } from "../../monkey-business/src/index";
 
 export const adviceePermitLimit = (metadata: CapacityMetadata | undefined, partition: number | undefined): number | undefined =>
@@ -23,7 +24,7 @@ export const residentRetentionDetails = <Message>(h: HtmlBuilder<Message>, s: Ca
   ]);
 };
 
-export const stageResourceDetails = <Message>(h: HtmlBuilder<Message>, stage: string, local: CanonicalProjection, resident: CanonicalProjection, metadata?: CapacityMetadata, candidate?: { bytes: number; items: number; decision?: "fits" | "limited" }, partition?: number, selectedGroup?: number, selectedRound?: number) => {
+export const stageResourceDetails = <Message>(h: HtmlBuilder<Message>, stage: string, local: CanonicalProjection, resident: CanonicalProjection, metadata?: CapacityMetadata, candidate?: { bytes: number; items: number; decision?: "fits" | "limited" }, partition?: number, selectedGroup?: number, selectedRound?: number, agents?: readonly AgentScope[]) => {
   const rows = [];
   const knownGroups = [...resident.delivery.slots.map(s => s.group), ...resident.delivery.counters.map(c => c.group), ...resident.collection.claims.map(c => c.group), ...(metadata?.deliveryGroups ?? []).map(binding => binding.group)];
   if (selectedGroup !== undefined && !knownGroups.includes(selectedGroup)) selectedGroup = undefined;
@@ -34,6 +35,7 @@ export const stageResourceDetails = <Message>(h: HtmlBuilder<Message>, stage: st
   }
   if (stage === "outcomes") rows.push(residentRetentionDetails(h, resident, metadata));
   if (stage === "scheduling" || stage === "preparation") rows.push(resourceMeter(h, "Resident preparation workers · shared by all agents", resident.dispatch.running.filter(w => w.preparation).length, resident.executionLimits.preparation));
+  if (stage === "effect") rows.push(h.p([], ["One resident Jev permit pool, mirrored across agent layers. Occupied positions are request permits; Jev responses are simulated."]), h.ul([h.Class("jev-owner-details")], [...resident.dispatch.requests].sort((left, right) => left.request - right.request).map(request => h.li([], [`${agents?.find(agent => agent.partition === request.partition)?.agent ?? `partition ${request.partition}`} · request #${request.request} · ${request.started ? "started" : "authorized, not started"}`]))));
   if (["authorization", "effect", "jev"].includes(stage)) rows.push(resourceMeter(h, "Resident Jev permits · shared by all agents", resident.dispatch.requests.length, resident.executionLimits.jevRequests));
   if (stage === "collection" || stage === "advice") {
     rows.push(resourceMeter(h, "Operational notice keys · resident", resident.notices.length, metadata?.notices?.maximumKeys), h.ul([], resident.notices.map(n => h.li([], [`Notice key ${n.id} · partition ${n.partition} · ${n.suppressed} suppressed · ${n.pending ? `${n.pending.count} accumulated · ${n.pending.leased ? "leased" : "available"}` : "cooldown only"}`]))));

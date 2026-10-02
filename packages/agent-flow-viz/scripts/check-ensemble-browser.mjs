@@ -84,8 +84,9 @@ try {
   assert.deepEqual(replays[1], replays[0], "agent selection must not change the resident replay");
   assert.deepEqual(replays[2], replays[0]);
   assert.equal(new Set(events).size, 1, "all agents inspect the same resident event");
-  assert.equal(await ensemble.locator(".shared-jev-slots").count(), 1);
-  assert.equal(await ensemble.locator(".shared-jev-slot").count(), 8);
+  assert.equal(await ensemble.locator(".shared-jev").count(), 0, "superseded external pool panel is removed");
+  assert.equal(await ensemble.locator(".stage-jev-pool").count(), await ensemble.locator(".ensemble-layer").count());
+  for (const pool of await ensemble.locator(".stage-jev-pool").all()) assert.equal(await pool.locator(".stage-jev-slot").count(), 8);
   await click("Select agent 2");
   await inspector.getByLabel("Edit interval (virtual ms)", { exact: true }).fill("731");
   await click("Apply edit pace");
@@ -143,8 +144,12 @@ try {
   assert.ok(new Set(saturation.projection.dispatch.requests.map(request => request.partition)).size > 1);
   await inspector.getByLabel("Replay JSON", { exact: true }).fill(JSON.stringify(saturation.replay));
   await click("Load replay");
-  assert.equal(await ensemble.locator(".shared-jev-slot.occupied").count(), 8, "there is one eight-slot pool across all agents");
-  assert.equal(await ensemble.locator(".shared-jev-total").textContent(), "8 / 8 permits held");
+  for (const pool of await ensemble.locator(".stage-jev-pool").all()) {
+    assert.equal(await pool.locator(".stage-jev-slot.occupied").count(), 8, "each layer mirrors the same resident pool");
+    assert.equal(await pool.locator(".stage-jev-total").textContent(), "Shared Jev pool · 8/8 held");
+  }
+  const poolOwners = await ensemble.locator(".stage-jev-pool").evaluateAll(pools => pools.map(pool => Array.from(pool.querySelectorAll(".stage-jev-slot"), slot => [slot.getAttribute("aria-label"), slot.querySelector("rect").getAttribute("fill")])));
+  for (const owners of poolOwners) assert.deepEqual(owners, poolOwners[0], "all layers use the same global owners and agent colors");
   assert.match(await ensemble.locator(".shared-capacity-total").textContent(), new RegExp(`^${saturation.projection.global.items} / 64 items · ${saturation.projection.global.bytes} / 8000 bytes$`));
   const times = await ensemble.locator(".ensemble-layer-title span").allTextContents();
   assert.equal(new Set(times.map(text => text.split(" · ")[0])).size, 1, "all layers share the same resident time");
@@ -153,7 +158,7 @@ try {
   await click("Previous event");
   const prior = JSON.parse(await inspector.locator(".simulation-details pre").textContent());
   assert.match(await ensemble.locator(".shared-capacity-total").textContent(), new RegExp(`^${prior.after.global.items} /`));
-  assert.equal(await ensemble.locator(".shared-jev-slot.occupied").count(), prior.after.dispatch.requests.length);
+  for (const pool of await ensemble.locator(".stage-jev-pool").all()) assert.equal(await pool.locator(".stage-jev-slot.occupied").count(), prior.after.dispatch.requests.length);
   await click("Return to latest");
   assert.equal(await ensemble.locator(".shared-resident").textContent(), finalResourceText);
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-three.png" });

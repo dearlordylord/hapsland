@@ -257,3 +257,47 @@ user or product-policy decision is required for this delivered scope. The explic
 capability-linkage deferral and live-advice/native exclusions remain boundaries,
 not implied completed coverage. Retain this requested workbook until the lifecycle
 replacement milestone above.
+
+
+## Requested Jev pool placement change (2026-10-01)
+
+The owner requested moving the shared Jev request pool from its external panel
+into **Jev request attempt**, with eight occupied/free positions colored by their
+owning agent. This user direction supersedes the earlier advisory rail placement
+for this change; the pre-implementation recommendation above remains historical.
+Review decisions will be presented to the owner one at a time.
+
+Astra's advice before implementation keeps the 224×116 square and existing
+owner/title rows, replaces its facet area with a shared held/maximum line and
+eight compact positions, and preserves a separate local started count. Every
+layer receives the same full resident requests and the same fleet ownership
+palette. Positions are request permits, not independent per-agent pools or
+physical connections. Exact owner/request identities and ready/started status
+remain in accessibility labels and the screen-facing stage inspector. The
+superseded external panel and its maintained CSS are removed; the ledger uses
+the full rail width. Rendered review and verification outcomes will be appended
+separately after checks, without implying native effects or release support.
+
+
+Implementation and validation outcome: the Jev request attempt square now
+contains eight deterministic permit positions, shared held/maximum usage, and
+its separate agent-local started count. The external pool panel is deleted.
+Exact owner, request identity, and authorized/started status remain available
+through keyboard inspection. README and dashboard guidance describe the new
+placement without changing the historical advice.
+
+The dedicated `test:jev-pool-browser` check passed empty, three mixed owners
+(including an authorized request that has not started), eight occupied permits,
+release to zero, identical resident mirrors and colors across layers, agent
+selection, history rewind/export/reload, keyboard inspection, flat and 3D views,
+and a 390px page with existing horizontal panning. The updated ensemble browser
+also passed, and the final visualization build passed. Logs are `/tmp/hapsland-jev-square-browser.log` and
+`/tmp/hapsland-jev-square-ensemble.log`; the build log is
+`/tmp/hapsland-jev-square-build.log`. Astra's rendered after-review found no
+blocking issue in the desktop and narrow square/inspector cases. Representative
+captures are `/tmp/hapsland-jev-square-mixed-flat-1512.png`,
+`/tmp/hapsland-jev-square-mixed-scrolled-390.png`, and
+`/tmp/hapsland-jev-square-inspector-390.png`. This is source-free visualization
+and checked replay evidence; it does not claim live Jev behavior or platform
+release support. Owner review remains a separate decision, presented one at a
+time.

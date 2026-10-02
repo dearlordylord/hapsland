@@ -11,7 +11,6 @@ export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection:
   agents: readonly AgentScope[], sequence: number, now: number, metadata?: CapacityMetadata, inspect?: (stage: "outcomes" | "collection") => Message) => {
   const label = (partition: number) => agents.find(agent => agent.partition === partition)?.agent ?? `partition ${partition}`;
   const color = (partition: number) => AGENT_COLORS[Math.max(0, agents.findIndex(agent => agent.partition === partition)) % AGENT_COLORS.length];
-  const requests = projection.dispatch.requests;
   return h.section([h.Class("shared-resident"), h.AriaLabel("Shared resident resources")], [
     h.div([h.Class("shared-resident-heading")], [h.strong([], ["ONE RESIDENT"]),
       h.span([], [`${agents.length} agent${agents.length === 1 ? "" : "s"} · ${sequence < 0 ? "initial state" : `event ${sequence}`} · ${now} ms`])]),
@@ -30,18 +29,7 @@ export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection:
         })),
         h.small([], [`Per-agent ceiling: ${projection.limits.partitionItems} items / ${projection.limits.partitionBytes} bytes. All agents draw from the global ledger above.`]),
       ]),
-      h.div([h.Class("shared-jev")], [
-        h.h3([], ["Shared Jev request pool"]),
-        h.p([h.Class("shared-jev-total")], [`${requests.length} / ${projection.executionLimits.jevRequests} permits held`]),
-        h.div([h.Class("shared-jev-slots"), h.AriaLabel("Shared Jev permits")], Array.from({ length: projection.executionLimits.jevRequests }, (_, index) => {
-          const request = requests[index];
-          return h.div([h.Class(`shared-jev-slot ${request ? "occupied" : "free"}`),
-            ...(request ? [h.Style({ borderColor: color(request.partition), background: `${color(request.partition)}15` })] : []),
-            h.Title(request ? `${label(request.partition)} · request ${request.request} · ${request.started ? "started" : "authorized, not started"}` : "Available permit"),
-          ], [h.strong([], [request ? label(request.partition) : "Free"]), h.small([], [request ? `#${request.request} · ${request.started ? "started" : "ready"}` : String(index + 1)])]);
-        })),
-        h.small([], ["A permit belongs to one agent request. The pool is shared; Jev responses are simulated."]),
-      ]),
+
     ]),
     h.div([h.Class("shared-secondary-resources")], [
       resourceMeter(h, "Preparation workers · shared by all agents", projection.dispatch.running.filter(w => w.preparation).length, projection.executionLimits.preparation),

@@ -11,7 +11,8 @@
     "test:replay-browser": "node scripts/check-replay-navigation.mjs",
     "test:usability": "node scripts/check-usability.mjs",
     "test:ensemble-browser": "node scripts/check-ensemble-browser.mjs",
-    "test:resource-browser": "node scripts/check-resource-browser.mjs"
+    "test:resource-browser": "node scripts/check-resource-browser.mjs",
+    "test:jev-pool-browser": "node scripts/check-jev-pool-browser.mjs"
   },
   "dependencies": {
     "@hapsland/agent-flow-projection": "file:../agent-flow-projection",

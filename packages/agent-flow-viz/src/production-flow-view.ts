@@ -1,3 +1,5 @@
+import { jevPoolView } from "./jev-pool-view";
+import type { AgentScope } from "./shared-resident-view";
 import { adviceePermitLimit } from "./resource-details";
 import type { CapacityMetadata } from "../../monkey-business/src/index";
 import { Option } from "effect";
@@ -195,6 +197,7 @@ export const productionFlowView = <Message>(
   metadata?: CapacityMetadata,
   partition?: number,
   selected?: { readonly group?: number; readonly round?: number },
+  agents?: readonly AgentScope[],
 ) => {
   if (selected?.group !== undefined && ![...resident.delivery.slots.map(s => s.group), ...resident.delivery.counters.map(c => c.group), ...resident.collection.claims.map(c => c.group), ...(metadata?.deliveryGroups ?? []).map(binding => binding.group)].includes(selected.group)) selected = { ...selected, group: undefined };
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
@@ -343,9 +346,10 @@ export const productionFlowView = <Message>(
               h.FontWeight("700"), h.Fill("#52647d")], [node.owner]),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 49)), h.FontSize("14"),
               h.FontWeight("700"), h.Fill("#1e3048")], [node.title]),
-            ...(node.id === "admission" ? [] : node.id === "scheduling" ? node.facets.filter((_, index) => index !== 2) : node.id === "round" ? node.facets.slice(0, 2) : node.id === "collection" ? node.facets.slice(0, 2) : node.id === "delivery" ? node.facets.slice(1) : node.facets).map((facet, index) =>
+            ...(node.id === "admission" || node.id === "effect" ? [] : node.id === "scheduling" ? node.facets.filter((_, index) => index !== 2) : node.id === "round" ? node.facets.slice(0, 2) : node.id === "collection" ? node.facets.slice(0, 2) : node.id === "delivery" ? node.facets.slice(1) : node.facets).map((facet, index) =>
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + (index + (node.id === "delivery" ? 1 : 0)) * 13)), h.FontSize(squareFacetFontSize(facet)), h.FontWeight("600"), h.Class("topology-facet"),
                 h.Fill("#435670")], [squareFacetLine(facet)])),
+            ...(node.id === "effect" ? [jevPoolView(h, point.x, point.y, resident, projection, agents, partition)] : []),
             ...(node.id === "collection" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], [`Collectors shared ${resident.collection.claims.length}${metadata?.collectors ? `/${metadata.collectors.capacity}` : " · limit unrecorded"}`])] : []),
             ...(node.id === "delivery" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("9"), h.Fill("#435670")], [selected?.group === undefined ? "Output slot · select group in inspector" : `Group ${selected.group} · ${resident.delivery.slots.some(s => s.group === selected.group) ? "occupied" : "free"}`])] : []),
             ...(node.id === "round" ? (() => {
