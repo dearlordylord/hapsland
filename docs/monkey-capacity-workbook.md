@@ -525,3 +525,34 @@ and flat diagram have no ticket-unit facet, preserve outcome work counts, and
 have no visual blocker. Desktop and narrow shared-rail removal also passed.
 The next preparation-workers image records its existing placement for a separate
 discussion; no preparation design change is included in this decision.
+
+
+## Accepted combined execution-pool inset (2026-10-01)
+
+The owner accepted Astra's combined Preparation/Jev pool prototype and explicitly
+removed the words “independently allocated” from its subtitle. This placement
+supersedes the earlier Jev-request-square placement decision while preserving
+that historical record. The dashed inset at the right of Round state contains
+two separately labeled rows and the subtitle “Shared by all agents”. Every layer
+uses the same complete resident snapshot and owner palette. Preparation counts
+only running jobs marked preparation, sorted by operation ID; Jev permits use
+request IDs and checked authorization/started status. The two rows have no
+position pairing or additional flow arrows. Their maxima come from projection.
+The old Jev-square slot helper and top-rail preparation meter are removed; the
+square retains concise shared/local references and the original gold Jev contact
+remains. No cache, ticket, or notice UI is restored. Backend policy is unchanged.
+
+
+Validation of the accepted placement: visualization typecheck/build, dedicated
+execution-pools browser, ensemble browser, resource browser, and diff checks pass.
+The dedicated browser checks empty/released rows, mixed Preparation 2/8 and Jev
+3/8 with three owner colors, separate saturation of each row, identical resident
+mirrors across agent layers/selection, history/export/reload, keyboard owner
+inspection, 3D/flat views, and a panned 390px view. Astra reviewed nine rendered
+cases with no blocking mismatch; accepted geometry and subtitle are honored and
+black owner labels remain readable against the owner palette. Logs:
+`/tmp/hapsland-execution-pools-build.log`,
+`/tmp/hapsland-execution-pools-browser.log`,
+`/tmp/hapsland-execution-pools-ensemble.log`, and
+`/tmp/hapsland-execution-pools-resource.log`. This validates the authorized
+visualization change, not native Jev behavior or a backend policy change.

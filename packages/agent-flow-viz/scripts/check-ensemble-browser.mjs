@@ -146,7 +146,7 @@ try {
   await click("Load replay");
   for (const pool of await ensemble.locator(".stage-jev-pool").all()) {
     assert.equal(await pool.locator(".stage-jev-slot.occupied").count(), 8, "each layer mirrors the same resident pool");
-    assert.equal(await pool.locator(".stage-jev-total").textContent(), "Shared Jev pool · 8/8 held");
+    assert.equal(await pool.locator(".stage-jev-total").textContent(), "8 / 8");
   }
   const poolOwners = await ensemble.locator(".stage-jev-pool").evaluateAll(pools => pools.map(pool => Array.from(pool.querySelectorAll(".stage-jev-slot"), slot => [slot.getAttribute("aria-label"), slot.querySelector("rect").getAttribute("fill")])));
   for (const owners of poolOwners) assert.deepEqual(owners, poolOwners[0], "all layers use the same global owners and agent colors");

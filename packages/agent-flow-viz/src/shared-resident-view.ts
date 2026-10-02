@@ -32,7 +32,6 @@ export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection:
 
     ]),
     h.div([h.Class("shared-secondary-resources")], [
-      resourceMeter(h, "Preparation workers · shared by all agents", projection.dispatch.running.filter(w => w.preparation).length, projection.executionLimits.preparation),
       resourceMeter(h, "Edit permits · shared by all agents", projection.admissions.reduce((n,a) => n + a.permits.length, 0), metadata?.permits?.residentLimit),
       resourceMeter(h, "Background collectors · shared by all agents", projection.collection.claims.length, metadata?.collectors?.capacity),
     ]),

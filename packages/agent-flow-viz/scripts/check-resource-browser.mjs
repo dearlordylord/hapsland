@@ -16,7 +16,7 @@ try {
   await click('Start resident');
   const resident=page.locator('.shared-resident');
   assert.match(await resident.innerText(),/Resident ledger items\s+0 \/ 32/);
-  assert.match(await resident.innerText(),/Preparation workers · shared by all agents\s+0 \/ 8/);
+  assert.match(await page.locator('.stage-preparation-total').first().textContent(),/0 \/ 8/);
   assert.match(await resident.innerText(),/Edit permits · shared by all agents\s+0 \/ 8/);
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-initial-1512.png'});
   await click('Focus selected agent');

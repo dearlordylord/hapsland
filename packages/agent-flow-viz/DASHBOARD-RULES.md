@@ -129,7 +129,17 @@ preparation workers, Jev permits, edit permits and background collectors retain
 their actual resident or partition scopes. Selecting another agent changes its
 local contribution and inspection, not the shared numerator or denominator.
 Preparation occupancy counts running preparation jobs, excluding waiting work and
-running reviews. The eight Jev slots inside each **Jev request attempt** square mirror the single shared resident request-permit pool. Every layer uses the complete selected resident snapshot and the same owning-agent palette; its local started count is separate. Sort occupied positions by request identity for deterministic snapshots. Show exact agent/request identities and ready/started status in accessibility labels and the stage inspector. Slot positions do not identify physical connections or stable sockets. The former external Jev pool panel is removed.
+running reviews. The combined **ONE RESIDENT · EXECUTION POOLS** inset to the
+right of Round state contains separately labeled Preparation workers and Jev
+request permit rows. Its subtitle is **Shared by all agents**. Each row mirrors
+the complete selected resident snapshot and owning-agent palette on every layer,
+using its checked maximum. Sort preparation operations and Jev requests by their
+own identities; do not pair positions or add links between the rows. Exact owner
+identities and request status belong in accessibility labels and the keyboard
+stage inspector. Jev request attempt retains the shared count and local started
+reference; Scheduling retains its local preparation reference. The top rail
+contains no duplicate preparation pool, and the original gold Jev contact stays.
+Positions do not identify physical connections or stable sockets.
 
 Effective limits come from checked projection limits or capacity metadata captured
 at the selected frame. Known initial configuration and subsequent event-supplied

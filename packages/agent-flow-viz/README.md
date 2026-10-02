@@ -235,15 +235,16 @@ agent names and reproducible seeds. Generator events enter the same checked
 Bend resident; admission and global contention are decided there.
 
 The **Global review capacity** panel displays the resident's checked item/byte
-totals and per-partition usage. **Jev request attempt** contains eight occupied/free
-positions for the shared resident request-permit pool. Every agent layer mirrors
-the same full resident requests, ordered by request identity and colored using
-the same owning-agent palette. The local started count remains separate. Full
-agent/request identities and ready/started status are available in the stage
-inspector and slot accessibility labels. Positions are permits, not connections
-or stable socket identities. The checked execution limit is currently eight.
-Resource contacts inside each SVG attach this same ledger to **Admission &
-capacity**, and the same request pool to **Jev request attempt**.
+totals and per-partition usage. The **ONE RESIDENT · EXECUTION POOLS** inset to
+the right of Round state displays separately labeled Preparation workers and
+Jev request permit rows, each using its checked resident maximum. Every agent
+layer mirrors the same complete resident snapshot and ownership palette.
+Preparation jobs are sorted by operation identity and Jev requests by request
+identity; positions across rows do not correspond. Exact owners and identities
+are accessible from the slots and keyboard stage inspector. Jev request attempt
+keeps a concise shared-count and local-started reference. Scheduling keeps its
+local preparation contribution. The original gold Jev contact remains. These
+positions represent execution capacity, not connections or stable socket IDs.
 
 **Play resident**, **Pause resident** and **Step resident** advance one global
 chronological history. Every plane displays its partition of the same selected
@@ -402,7 +403,7 @@ decision. The multi-agent layer layout is a new visual change; positions within 
 
 ## Capacity inspection in the shared resident
 
-The shared rail has separate resident item and byte bars and resident preparation-worker, edit-permit and
+The shared rail has separate resident item and byte bars and resident edit-permit and
 background-collector meters. Admission has partition item/byte/permit indicators;
 scheduling and Jev stages reference their shared pools. Cache, ticket retention,
 and operational-failure diagnostic notice retention are intentionally omitted
@@ -445,7 +446,8 @@ admission, rule eligibility, reuse or output authorization.
 
 Run `npm run test:resource-browser` for resource metadata/selection, optional
 fixtures, encoded candidate display, import detail and narrow-layout checks.
-`test:ensemble-browser` covers shared pools/history and agent selection;
+`test:execution-pools-browser` covers both pool rows, ownership, saturation,
+keyboard inspection and replay; `test:ensemble-browser` covers shared pools/history and agent selection;
 `test:simulation-browser` covers the single-agent controls and inspector.
 Keep individual suite outcomes in the working validation record: a passing
 resource or ensemble suite does not imply all guided-browser assertions pass.

@@ -1,4 +1,4 @@
-import { jevPoolView } from "./jev-pool-view";
+import { executionPoolsView } from "./execution-pools-view";
 import type { AgentScope } from "./shared-resident-view";
 import { adviceePermitLimit } from "./resource-details";
 import type { CapacityMetadata } from "../../monkey-business/src/index";
@@ -312,6 +312,7 @@ export const productionFlowView = <Message>(
     h.div([h.Class("topology-scroll")], [
       h.svg([h.ViewBox("0 0 1400 830"), h.Role(inspect ? "group" : "img"),
         h.AriaLabel("Connected production flow from agent edit through Jev review to advice and round decision")], [
+        executionPoolsView(h, resident, agents, inspect),
         ...routes.map((route, index) => {
           const same = routeMultiplicity.get(`${route.from}:${route.to}`) ?? 1;
           const offset = (routeOffsets[index] - (same - 1) / 2) * 18;
@@ -349,7 +350,10 @@ export const productionFlowView = <Message>(
             ...(node.id === "admission" || node.id === "effect" ? [] : node.id === "scheduling" ? node.facets.filter((_, index) => index !== 2) : node.id === "round" ? node.facets.slice(0, 2) : node.id === "collection" ? node.facets.slice(0, 2) : node.id === "delivery" ? node.facets.slice(1) : node.facets).map((facet, index) =>
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + (index + (node.id === "delivery" ? 1 : 0)) * 13)), h.FontSize(squareFacetFontSize(facet)), h.FontWeight("600"), h.Class("topology-facet"),
                 h.Fill("#435670")], [squareFacetLine(facet)])),
-            ...(node.id === "effect" ? [jevPoolView(h, point.x, point.y, resident, projection, agents, partition)] : []),
+            ...(node.id === "effect" ? [
+              h.text([h.X(String(point.x+13)),h.Y(String(point.y+69)),h.FontSize("10"),h.Fill("#435670")],[`Shared Jev permits: ${resident.dispatch.requests.length} / ${resident.executionLimits.jevRequests}`]),
+              h.text([h.X(String(point.x+13)),h.Y(String(point.y+91)),h.FontSize("10"),h.Fill("#435670")],[`This agent: ${projection.dispatch.requests.filter(request=>request.started && (partition === undefined || request.partition === partition)).length} started`]),
+            ] : []),
             ...(node.id === "collection" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], [`Collectors shared ${resident.collection.claims.length}${metadata?.collectors ? `/${metadata.collectors.capacity}` : " · limit unrecorded"}`])] : []),
             ...(node.id === "delivery" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("9"), h.Fill("#435670")], [selected?.group === undefined ? "Output slot · select group in inspector" : `Group ${selected.group} · ${resident.delivery.slots.some(s => s.group === selected.group) ? "occupied" : "free"}`])] : []),
             ...(node.id === "round" ? (() => {
