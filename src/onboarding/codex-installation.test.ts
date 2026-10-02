@@ -229,7 +229,8 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     const previousEntrypoint = process.env.REVIEW_INSTALL_ENTRYPOINT;
     try {
       process.env.REVIEW_INSTALL_RUNTIME = "/bin/true";
-      process.env.REVIEW_INSTALL_ENTRYPOINT = join(process.cwd(), "src/cli.ts");
+      // Keep the selected fixture package metadata constant; vary only the caller runtime.
+      process.env.REVIEW_INSTALL_ENTRYPOINT = createInstallationPackageFixture(test.root);
       expect(await runInstallation(inspectCodexInstallation({ codexHome: test.home, codexExecutable: test.bin }))).toMatchObject({
         status: "installed",
         installed: true,
