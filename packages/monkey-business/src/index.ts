@@ -244,7 +244,7 @@ export class Run {
   private supplyEvaluation(operation: number, outcome: "clear" | "finding" | "unavailable") {
     if (outcome !== "unavailable") { this.supplyReuse(operation, outcome); return; }
     const work = this.projection.work.find(work => work.operation === operation);
-    if (work) this.event({ kind: "reviewCompleted", partition: work.partition, lifetime: work.lifetime, round: work.round, operation, outcome });
+    if (work) this.event(work.partition, { kind: "reviewCompleted", partition: work.partition, lifetime: work.lifetime, round: work.round, operation, outcome });
   }
   private cachedOutcomes = new Map<number, "clear" | "finding">();
   private identity(value: string): number { const known = this.identityIds.get(value); if (known !== undefined) return known; const id = this.nextIdentity++; this.identityIds.set(value, id); return id; }
@@ -252,7 +252,9 @@ export class Run {
   private supplyReuse(operation: number, outcome: "clear" | "finding") {
     const revision = this.operationRevisions.get(operation);
     if (revision) {
-      this.event({ kind: "revisionCurrentCheck", ...revision });
+      const owner = this.projection.work.find(work => work.operation === operation);
+      if (!owner) return;
+      this.event(owner.partition, { kind: "revisionCurrentCheck", ...revision });
       this.annotate({ reuseOperation: operation, reuseOutcome: outcome });
       return;
     }
@@ -261,7 +263,7 @@ export class Run {
   private observeReuse(operation: number, outcome: "clear" | "finding", currentWork: boolean) {
     const work = this.projection.work.find(w => w.operation === operation);
     if (!work) return;
-    this.event({ kind: "reviewObserved", partition: work.partition, lifetime: work.lifetime, round: work.round, operation, outcome, currentWork });
+    this.event(work.partition, { kind: "reviewObserved", partition: work.partition, lifetime: work.lifetime, round: work.round, operation, outcome, currentWork });
   }
   private collectorCandidates = new Map<number, { advice: number; round: number; token: number }>();
   private readonly metadata: CapacityMetadata = { preparationWorkers: 8, jevRequests: 8, continuationBudget: 4 };
@@ -318,12 +320,6 @@ export class Run {
   private timelineOrder = 0;
   private finishes = new Map<number, Finish>();
   private nextFinishIdentity = 100000;
-  private partition = 1;
-  private get finish() { return this.finishes.get(this.partition); }
-  private set finish(value: Finish | undefined) {
-    if (value) this.finishes.set(this.partition, value);
-    else this.finishes.delete(this.partition);
-  }
   private issuedRequests = new Map<
     number,
     Extract<CanonicalCommand, { kind: "jevRequestIssued" }>
@@ -332,7 +328,6 @@ export class Run {
   private readonly config: RunConfig;
   private readonly generators = new Map<number, ReturnType<SharedCore["session"]>>();
   private readonly scopes: { agent: string; partition: number; seed: number }[] = [];
-  private get session() { return this.generators.get(this.partition); }
   get agentScopes(): readonly { readonly agent: string; readonly partition: number; readonly seed: number }[] {
     return copy(this.scopes);
   }
@@ -464,6 +459,7 @@ export class Run {
     });
   }
   private event(
+    partition: number,
     event: CanonicalEvent,
     delay = 0,
     job?: Extract<RunInput, { kind: "edit" }>,
@@ -472,7 +468,7 @@ export class Run {
     this.enqueue({ at: this.clock + delay, kind: "canonical", event }, job, expiryAdvice);
     const scheduled = this.queue.find(item => item.order === this.order - 1)!;
     scheduled.generated = true;
-    scheduled.partition = this.partition;
+    scheduled.partition = partition;
   }
   applyControl(control: Control): ControlRecord {
     const value: Control = validateLiveControl(control);
@@ -491,7 +487,8 @@ export class Run {
         { at: this.clock, order: 0, input: { at: this.clock, kind: "finish" } }, "clear");
       context.background = this.generators.size > 0;
       for (const action of decodeDriver({ handled: true, actions: this.core.revalidate(context) }).actions) {
-        this.event(action.event, action.delay);
+        const partition = action.candidate?.partition ?? this.inputPartition({ at: this.clock, order: 0, input: { at: this.clock, kind: "canonical", event: action.event } });
+        this.event(partition, action.event, action.delay);
         if (action.candidate) {
           const scheduled = this.scheduled.get(this.order - 1);
           if (!scheduled) throw new Error("shared driver action lost source facts");
@@ -523,9 +520,10 @@ export class Run {
     return copy(record);
   }
   private driverContext(event: CanonicalEvent, item: Scheduled, outcome: JevRequestOutcome, job?: Extract<RunInput, { kind: "edit" }>) {
-    const binding = "round" in event && "partition" in event && "lifetime" in event ? event : { partition: this.partition, lifetime: 1, round: 0 };
+    const partition = this.inputPartition(item);
+    const binding = "round" in event && "partition" in event && "lifetime" in event ? event : { partition: partition, lifetime: 1, round: 0 };
     const automaticReview = !this.config.lifecycles?.reuse && !(this.config.lifecycles?.cancellation === "suppressed") && !(job && "revisionSubject" in job && job.revisionSubject !== undefined);
-    const automaticCollection = !this.config.lifecycles?.collectors && !this.finishes.has(this.partition);
+    const automaticCollection = !this.config.lifecycles?.collectors && !this.finishes.has(partition);
     const automaticOutput = this.candidateOutputBytes === undefined && this.outputProfile.outcome !== "failed" && this.outputProfile.delayMs < this.outputProfile.leaseMs;
     const c = item.candidate;
     return { $: "Driver.Context", partition: binding.partition, lifetime: binding.lifetime, round: binding.round,
@@ -536,7 +534,7 @@ export class Run {
       candidate: c ? { $: "Some", value: { $: "Driver.Candidate", partition: c.partition, advice: c.advice, round: c.round,
         token: c.token, surface: { $: `Handoff.${c.surface[0]!.toUpperCase()}${c.surface.slice(1)}` }, selection: c.selection ?? false } } : { $: "None" },
       automatic_collection: automaticCollection, automatic_review: automaticReview, automatic_output: automaticOutput,
-      output_certain: this.outputProfile.outcome === "certain", output_delay: this.outputProfile.delayMs, output_lease: this.outputProfile.leaseMs, background: !!this.session, automatic_dispatch: !(this.config.lifecycles?.reuse && job && "evaluationInputs" in job && job.evaluationInputs) };
+      output_certain: this.outputProfile.outcome === "certain", output_delay: this.outputProfile.delayMs, output_lease: this.outputProfile.leaseMs, background: this.generators.has(partition), automatic_dispatch: !(this.config.lifecycles?.reuse && job && "evaluationInputs" in job && job.evaluationInputs) };
   }
   private drive(event: CanonicalEvent, command: CanonicalCommand, index: number, item: Scheduled) {
     const job = item.job ?? ("operation" in command ? this.jobs.get(command.operation) : undefined);
@@ -546,7 +544,7 @@ export class Run {
     const handled = decodeDriver(this.core.handle(event, index, context));
     if (!handled.handled) return { handled: false, outcome: undefined };
     for (const action of handled.actions) {
-      this.event(action.event, action.delay, action.job ? job : undefined, action.expiryAdvice);
+      this.event(this.inputPartition(item), action.event, action.delay, action.job ? job : undefined, action.expiryAdvice);
       if (action.candidate) {
         const scheduled = this.scheduled.get(this.order - 1);
         if (!scheduled) throw new Error("shared driver action lost source facts");
@@ -566,7 +564,9 @@ export class Run {
       return;
     const item = this.queueShift();
     if (!item) return;
-    this.partition = this.inputPartition(item);
+    const partition = this.inputPartition(item);
+    const session = this.generators.get(partition);
+    const emit = (event: CanonicalEvent, delay = 0, job?: Extract<RunInput, { kind: "edit" }>, expiryAdvice?: number) => this.event(partition, event, delay, job, expiryAdvice);
     if (item.input.kind === "preparationGraph") {
       const event = item.input.event;
       const before = this.projection;
@@ -576,13 +576,13 @@ export class Run {
       }
       const preparation = this.core.graphStep(event);
       return this.record({ sequence: this.count++, time: this.clock, event,
-        preparation, before, after: before, commands: [], effects: [], capacityMetadata: this.capacityMetadata, partition: this.partition, agent: this.agentName(this.partition) });
+        preparation, before, after: before, commands: [], effects: [], capacityMetadata: this.capacityMetadata, partition: partition, agent: this.agentName(partition) });
     }
-    if (this.session && !this.session.valid(item.input))
+    if (session && !session.valid(item.input))
       return this.step(untilTime);
     if (
       item.finishAttempt !== undefined &&
-      item.finishAttempt !== this.finish?.attempt
+      item.finishAttempt !== this.finishes.get(partition)?.attempt
     )
       return this.step(untilTime);
     if (item.input.kind !== "canonical") {
@@ -590,16 +590,16 @@ export class Run {
         "recurring" in item.input &&
         item.input.recurring &&
         item.input.kind !== "finish" &&
-        this.session
+        session
       )
-        for (const input of this.session.next(this.clock)) this.enqueue(input);
+        for (const input of session.next(this.clock)) this.enqueue(input);
       if (item.input.kind === "task") return this.step(untilTime);
-      const scope = this.projection.rounds.find((r) => r.partition === this.partition);
+      const scope = this.projection.rounds.find((r) => r.partition === partition);
       const round = scope?.id;
       if (item.input.kind === "finish") {
-        if (round && !this.finish) {
+        if (round && !this.finishes.get(partition)) {
           const identity = this.nextFinishIdentity++;
-          this.finish = {
+          this.finishes.set(partition, {
             round,
             attempt: identity,
             token: identity,
@@ -608,24 +608,24 @@ export class Run {
             selected: [],
             waiting: false,
             validating: 0,
-          };
-          this.pollFinish();
-          this.pollFinish(this.config.finishDeadline ?? 200);
+          });
+          this.pollFinish(partition);
+          this.pollFinish(partition, this.config.finishDeadline ?? 200);
         } else if (
           !round &&
           "recurring" in item.input &&
           item.input.recurring &&
-          this.session
+          session
         )
-          for (const input of this.session.next(this.clock))
+          for (const input of session.next(this.clock))
             this.enqueue(input);
         return this.step(untilTime);
       }
       const permits = this.config.lifecycles?.permits;
       if (!round && !permits) {
-        const plan = readRecord(this.core.edit(this.partition, 1));
-        if (!this.queue.some(item => item.input.kind === "canonical" && item.input.event.kind === "openRound" && item.input.event.partition === this.partition))
-          for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) this.event(action.event, action.delay);
+        const plan = readRecord(this.core.edit(partition, 1));
+        if (!this.queue.some(item => item.input.kind === "canonical" && item.input.event.kind === "openRound" && item.input.event.partition === partition))
+          for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emit(action.event, action.delay);
         if (readBool(plan.retry)) this.enqueue({ ...item.input, at: this.clock, ...("recurring" in item.input ? { recurring: false } : {}) }, item.input);
         return this.step(untilTime);
       }
@@ -641,18 +641,18 @@ export class Run {
       if ("revisionSubject" in item.input && item.input.revisionSubject !== undefined && item.input.revisionInput === undefined) throw new TypeError("revisionInput required with revisionSubject");
       if (permits) {
         const lifetime = permits.lifetimeMs ?? 30000;
-        const timing = this.core.preTiming(this.partition, item.input.editDurationMs, permits.holdMs ?? 0, lifetime);
+        const timing = this.core.preTiming(partition, item.input.editDurationMs, permits.holdMs ?? 0, lifetime);
         const duration = timing.duration;
         validateLiveControl({ kind: "editDuration", durationMs: duration });
         item.input = { ...item.input, editDurationMs: duration };
         const tool = "tool" in item.input && item.input.tool !== undefined ? item.input.tool : this.nextTool++;
-        const actions = this.core.issuePre({ $: "Workload.PermitFacts", partition: this.partition, lifetime: 1, tool,
+        const actions = this.core.issuePre({ $: "Workload.PermitFacts", partition: partition, lifetime: 1, tool,
           provided: { $: "Some", value: duration }, fallback: permits.holdMs ?? 0, permit_lifetime: lifetime,
           advicee_limit: permits.adviceeLimit, resident_limit: permits.residentLimit });
-        for (const action of decodeDriver(actions).actions) this.event(action.event, action.delay, item.input);
+        for (const action of decodeDriver(actions).actions) emit(action.event, action.delay, item.input);
       } else {
-        const plan = readRecord(this.core.edit(this.partition, 1));
-        for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) this.event(action.event, action.delay, item.input);
+        const plan = readRecord(this.core.edit(partition, 1));
+        for (const action of decodeDriver({ handled: true, actions: plan.actions }).actions) emit(action.event, action.delay, item.input);
       }
       return this.step(untilTime);
     }
@@ -692,14 +692,14 @@ export class Run {
       throw new Error("mismatched completion identity");
     const result = this.core.step(event);
     if (item.generated && event.kind === "cacheCommit" && !result.commands.some(command => command.kind === "cacheCommitted")) {
-      this.event({ kind: "releaseCapacity", reservation: event.reservation });
+      emit({ kind: "releaseCapacity", reservation: event.reservation });
       if (!this.projection.reuse.cache.some(entry => entry.id === event.id)) this.cachedOutcomes.delete(event.id);
     }
     if (event.kind === "collectionFitCheck") {
       const command = result.commands.find(c => c.kind === "collectionFits" || c.kind === "collectionLimited");
       if (command) Object.assign(this.metadata, { encodedOutput: { ...this.metadata.encodedOutput!, decision: command.kind === "collectionFits" ? "fits" : "limited" } });
     }
-    for (const followup of this.resourceScenarios?.handle(event, result.commands, before) ?? []) this.event(followup);
+    for (const followup of this.resourceScenarios?.handle(event, result.commands, before) ?? []) emit(followup);
     const effects: EffectObservation[] = [];
     const scope =
       "round" in event && "partition" in event && "lifetime" in event
@@ -712,6 +712,7 @@ export class Run {
     for (const [commandIndex, command] of result.commands.entries()) {
       const driver = this.drive(event, command, commandIndex, item);
       const driven = driver.handled;
+      const finish = this.finishes.get(partition);
       switch (command.kind) {
         case "permitIssued": {
           if (event.kind !== "issuePermit" || !item.job) break;
@@ -721,7 +722,7 @@ export class Run {
             duration: item.job.editDurationMs ?? this.config.lifecycles?.permits?.holdMs ?? 0,
             terminal: terminal === "consume" ? 0 : terminal === "release" ? 1 : 2 };
           for (const action of decodeDriver(this.core.permitActions(capture)).actions)
-            this.event(action.event, action.delay, action.job ? item.job : undefined);
+            emit(action.event, action.delay, action.job ? item.job : undefined);
           break;
         }
         case "permitConsumed":
@@ -730,24 +731,24 @@ export class Run {
             // are resident-wide identities and may differ for another partition.
             const accepted = this.projection.rounds.find(round => round.partition === event.partition && round.lifetime === event.lifetime);
             if (!accepted) throw new Error("consumed permit lacks its checked canonical round");
-            this.event({ kind: "admitObservation", partition: event.partition, lifetime: event.lifetime, round: accepted.id }, 0, item.job);
+            emit({ kind: "admitObservation", partition: event.partition, lifetime: event.lifetime, round: accepted.id }, 0, item.job);
           }
           break;
         case "quietRoundExpired":
           if (event.kind === "quietRoundTick") {
-            this.event({ kind: "closePermitRound", partition: event.partition, lifetime: event.lifetime, round: event.round, at: this.clock });
-            this.event({ kind: "retirePartition", partition: event.partition, lifetime: event.lifetime, round: event.round });
+            emit({ kind: "closePermitRound", partition: event.partition, lifetime: event.lifetime, round: event.round, at: this.clock });
+            emit({ kind: "retirePartition", partition: event.partition, lifetime: event.lifetime, round: event.round });
           }
           break;
         case "quietRoundWaiting":
-          if (event.kind === "quietRoundTick") this.event({ ...event, now: command.since + event.window }, Math.max(0, command.since + event.window - this.clock));
+          if (event.kind === "quietRoundTick") emit({ ...event, now: command.since + event.window }, Math.max(0, command.since + event.window - this.clock));
           break;
         case "observationAdmitted": {
           if (!scope || !item.job)
             throw new Error("unhandled required command: observationAdmitted");
           this.jobs.set(command.id, item.job);
-          if (this.config.lifecycles?.quietWindowMs) this.event({ kind: "quietRoundReset", ...scope });
-          if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) this.event({ kind: "revisionRegister", subject: this.identity(JSON.stringify([scope.partition, "subject", item.job.revisionSubject])), input: this.identity(JSON.stringify([scope.partition, "input", item.job.revisionInput])), addMember: false });
+          if (this.config.lifecycles?.quietWindowMs) emit({ kind: "quietRoundReset", ...scope });
+          if ("revisionSubject" in item.job && item.job.revisionSubject !== undefined) emit({ kind: "revisionRegister", subject: this.identity(JSON.stringify([scope.partition, "subject", item.job.revisionSubject])), input: this.identity(JSON.stringify([scope.partition, "input", item.job.revisionInput])), addMember: false });
           if (!driven) throw new Error("unhandled shared observation dispatch");
           break;
         }
@@ -794,7 +795,7 @@ export class Run {
           });
           const completion = decodeDriver({ handled: true, actions: { $: "Con", head: this.core.preparationCompleted({ ...scope, operation: command.operation }, item.job.unitBytes, this.config.preparationDelay ?? 2), tail: { $: "Nil" } } }).actions[0];
           if (!completion) throw new Error("missing preparation completion action");
-          this.event(completion.event, completion.delay, item.job);
+          emit(completion.event, completion.delay, item.job);
           break;
         }
         case "unitAdmitted": {
@@ -814,7 +815,7 @@ export class Run {
           if (this.config.lifecycles?.reuse && inputs) {
             const id = this.identity(JSON.stringify([scope.partition, "evaluation", inputs[command.position - 1]]));
             this.evaluations.set(command.operation, { id, bytes: command.bytes });
-            this.event({ kind: "reuseRoute", id, liveAdvice: false });
+            emit({ kind: "reuseRoute", id, liveAdvice: false });
             this.annotate({ reuseOperation: command.operation });
           } else if (!driven) throw new Error("unhandled shared review unit dispatch");
           break;
@@ -834,8 +835,8 @@ export class Run {
           if (item.reuseOperation !== undefined && event.kind === "reuseRoute") {
             this.fulfilledEvaluations.delete(event.id);
             const work = this.projection.work.find(w => w.operation === item.reuseOperation)!;
-            this.event({ kind: "reuseAttach", id: event.id });
-            this.event({ kind: "queueDispatch", partition: work.partition, lifetime: work.lifetime, round: work.round, operation: work.operation });
+            emit({ kind: "reuseAttach", id: event.id });
+            emit({ kind: "queueDispatch", partition: work.partition, lifetime: work.lifetime, round: work.round, operation: work.operation });
           }
           break;
         case "reuseJoinPending":
@@ -860,7 +861,7 @@ export class Run {
           for (const id of command.ids) {
             this.cachedOutcomes.delete(id);
             const discarded = before.reuse.cache.find(entry => entry.id === id);
-            if (discarded) this.event({ kind: "releaseCapacity", reservation: discarded.reservation });
+            if (discarded) emit({ kind: "releaseCapacity", reservation: discarded.reservation });
           }
           break;
         case "cachePrepared":
@@ -868,10 +869,10 @@ export class Run {
             for (const id of command.evicted) {
               this.cachedOutcomes.delete(id);
               const evicted = before.reuse.cache.find(entry => entry.id === id);
-              if (evicted) this.event({ kind: "releaseCapacity", reservation: evicted.reservation });
+              if (evicted) emit({ kind: "releaseCapacity", reservation: evicted.reservation });
             }
-            const owner = this.partition;
-            this.event({ kind: "reserveCapacity", partition: owner, bytes: event.bytes, purpose: "storedResult" });
+            const owner = partition;
+            emit({ kind: "reserveCapacity", partition: owner, bytes: event.bytes, purpose: "storedResult" });
             this.annotate({ cacheId: event.id, cacheBytes: event.bytes, ...(item.cacheOutcome ? { cacheOutcome: item.cacheOutcome } : {}) });
           }
           break;
@@ -883,7 +884,7 @@ export class Run {
           break;
         case "capacityGranted":
           if (item.cacheId !== undefined && this.config.lifecycles?.reuse) {
-            this.event({ kind: "cacheCommit", id: item.cacheId, partition: this.partition, bytes: item.cacheBytes!, reservation: command.id, entryLimit: this.config.lifecycles.reuse.entryLimit, byteLimit: this.config.lifecycles.reuse.byteLimit });
+            emit({ kind: "cacheCommit", id: item.cacheId, partition: partition, bytes: item.cacheBytes!, reservation: command.id, entryLimit: this.config.lifecycles.reuse.entryLimit, byteLimit: this.config.lifecycles.reuse.byteLimit });
             if (item.cacheOutcome) this.annotate({ cacheOutcome: item.cacheOutcome });
           }
           break;
@@ -905,19 +906,19 @@ export class Run {
           });
           if (driven) break;
           // Synthetic outcomes supply the same lifecycle facts required by native callbacks.
-          if (selectedOutcome !== "neverSent") this.event({ kind: "jevRequestStarted", ...binding });
+          if (selectedOutcome !== "neverSent") emit({ kind: "jevRequestStarted", ...binding });
           if (selectedOutcome === "interrupted" && this.config.lifecycles?.cancellation === "suppressed") {
-            this.event({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
-            this.event({ kind: "jevRequestSettled", ...binding, outcome: "interrupted", currentWork: false }, this.jevDelay);
+            emit({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
+            emit({ kind: "jevRequestSettled", ...binding, outcome: "interrupted", currentWork: false }, this.jevDelay);
             break;
           }
-          if (selectedOutcome === "interrupted") this.event({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
+          if (selectedOutcome === "interrupted") emit({ kind: "jevRequestInterrupted", ...binding }, this.jevDelay);
           const revision = this.operationRevisions.get(command.operation);
           if (revision) {
-            this.event({ kind: "revisionCurrentCheck", ...revision }, this.jevDelay);
+            emit({ kind: "revisionCurrentCheck", ...revision }, this.jevDelay);
             this.annotate({ reuseOperation: command.operation });
           }
-          this.event(
+          emit(
             {
               kind: "jevRequestSettled",
               ...binding,
@@ -943,30 +944,30 @@ export class Run {
           if (event.kind === "collectionReady" && !this.finishes.has(event.partition)) {
             if (this.config.lifecycles?.collectors) {
               this.collectorCandidates.set(event.advice, { advice: event.advice, round: event.round, token: event.advice });
-              this.event({ kind: "collectionClaimBackground", group: event.partition, token: event.advice, active: true, capacity: this.config.lifecycles.collectors.capacity });
-            } else if (!driven) this.validateAdvice(event.advice, event.round, event.advice, this.session ? "background" : "edit");
+              emit({ kind: "collectionClaimBackground", group: event.partition, token: event.advice, active: true, capacity: this.config.lifecycles.collectors.capacity });
+            } else if (!driven) this.validateAdvice(partition, event.advice, event.round, event.advice, session ? "background" : "edit");
           }
           break;
         }
         case "collectionBackgroundClaimed":
           if (event.kind === "collectionClaimBackground" && this.config.lifecycles?.collectors) {
             const candidate = this.collectorCandidates.get(event.token);
-            if (candidate) this.validateAdvice(candidate.advice, candidate.round, candidate.token, "background");
+            if (candidate) this.validateAdvice(partition, candidate.advice, candidate.round, candidate.token, "background");
             const lifetime = this.config.lifecycles?.collectors?.lifetimeMs ?? 30000;
-            this.event({ kind: "collectionExpireBackground", group: event.group, token: event.token, elapsed: lifetime, lifetime }, lifetime);
+            emit({ kind: "collectionExpireBackground", group: event.group, token: event.token, elapsed: lifetime, lifetime }, lifetime);
           }
           break;
         case "collectionBackgroundReleased":
           for (const [token, candidate] of this.collectorCandidates) {
             const owner = this.projection.work.find(w => w.operation === candidate.advice);
             if (!owner) { this.collectorCandidates.delete(token); continue; }
-            this.event({ kind: "collectionClaimBackground", group: owner.partition, token, active: true, capacity: this.config.lifecycles!.collectors!.capacity });
+            emit({ kind: "collectionClaimBackground", group: owner.partition, token, active: true, capacity: this.config.lifecycles!.collectors!.capacity });
           }
           break;
         case "submissionBegun":
           if (event.kind === "submissionBegin" && this.outputProfile.outcome === "failed") {
-            this.event({ kind: "submissionRelease", advice: event.advice, token: event.token }, this.outputProfile.delayMs);
-            this.event({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, this.outputProfile.delayMs);
+            emit({ kind: "submissionRelease", advice: event.advice, token: event.token }, this.outputProfile.delayMs);
+            emit({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, this.outputProfile.delayMs);
             break;
           }
           if (event.kind !== "submissionBegin" || !event.authorizeNow) break;
@@ -984,25 +985,25 @@ export class Run {
           const profile = this.outputProfile;
           if (driven) break;
           if (profile.outcome === "failed") {
-            this.event({ kind: "submissionRelease", advice: event.advice, token: event.token }, profile.delayMs);
-            this.event({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, profile.delayMs);
-            if (this.finish && event.token === this.finish.token)
-              this.event({ kind: "finishTerminal", group: this.partition, round: this.finish.round,
-                attempt: this.finish.attempt, token: event.token, selected: this.finish.selected,
+            emit({ kind: "submissionRelease", advice: event.advice, token: event.token }, profile.delayMs);
+            emit({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, profile.delayMs);
+            if (finish && event.token === finish.token)
+              emit({ kind: "finishTerminal", group: partition, round: finish.round,
+                attempt: finish.attempt, token: event.token, selected: finish.selected,
                 outcome: "failed" }, profile.delayMs);
           } else {
             const due = Math.min(profile.delayMs, profile.leaseMs);
             if (profile.delayMs > profile.leaseMs)
-              this.event({ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: true }, profile.delayMs);
+              emit({ kind: "deliveryAcknowledgeCheck", items: 1, anyExpired: true }, profile.delayMs);
             if (profile.delayMs >= profile.leaseMs)
-              this.event({ kind: "submissionExpiryCheck", advice: event.advice, token: event.token,
+              emit({ kind: "submissionExpiryCheck", advice: event.advice, token: event.token,
                 elapsed: profile.leaseMs, lifetime: profile.leaseMs }, due);
-            else this.event({ kind: "submissionTerminal", advice: event.advice, token: event.token,
+            else emit({ kind: "submissionTerminal", advice: event.advice, token: event.token,
               certain: profile.outcome === "certain" }, due);
-            this.event({ kind: "collectionLeaseCheck", advice: event.advice, token: event.token,
+            emit({ kind: "collectionLeaseCheck", advice: event.advice, token: event.token,
               expired: profile.delayMs >= profile.leaseMs, stopCollector: false, sameGroup: true,
               reofferable: false }, due);
-            this.event({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, due);
+            emit({ kind: "collectionReleaseLease", advice: event.advice, token: event.token }, due);
           }
           break;
         }
@@ -1017,7 +1018,7 @@ export class Run {
         }
         case "submissionExpired":
           if (event.kind === "submissionExpiryCheck")
-            this.event({ kind: "submissionTerminal", advice: event.advice, token: event.token, certain: false });
+            emit({ kind: "submissionTerminal", advice: event.advice, token: event.token, certain: false });
           break;
         case "submissionUnsuppressed":
           if (driven) break;
@@ -1026,18 +1027,18 @@ export class Run {
             break;
           }
         case "collectionFits": {
-          if (!item.candidate && this.finish?.fitPending && item.fitFinish === this.finish.attempt) { this.finish.fitPending = false; this.finishBudget(true); break; }
+          if (!item.candidate && finish?.fitPending && item.fitFinish === finish.attempt) { finish.fitPending = false; this.finishBudget(partition, true); break; }
           if (item.candidate) {
             const c = item.candidate;
-            if (c.selection && this.finish) {
-              this.finish.selected.push(c.advice);
-              this.finish.validating--;
-              if (this.finish.validating === 0) this.finishBudget();
+            if (c.selection && finish) {
+              finish.selected.push(c.advice);
+              finish.validating--;
+              if (finish.validating === 0) this.finishBudget(partition);
               break;
             }
             {
-              this.event({ kind: "collectionReserveLease", advice: c.advice, token: c.token });
-              this.event({ kind: "submissionBegin", advice: c.advice, group: c.partition, round: c.round,
+              emit({ kind: "collectionReserveLease", advice: c.advice, token: c.token });
+              emit({ kind: "submissionBegin", advice: c.advice, group: c.partition, round: c.round,
                 token: c.token, surface: c.surface, authorizeNow: c.surface !== "stop" && this.outputProfile.outcome !== "failed",
                 fingerprints: [c.advice], units: [c.advice] });
             }
@@ -1045,12 +1046,12 @@ export class Run {
           break;
         }
         case "collectionLimited":
-          if (!item.candidate && this.finish?.fitPending && item.fitFinish === this.finish.attempt) { this.finish.fitPending = false; this.finish.selected = []; this.finishBudget(true); break; }
+          if (!item.candidate && finish?.fitPending && item.fitFinish === finish.attempt) { finish.fitPending = false; finish.selected = []; this.finishBudget(partition, true); break; }
           if (item.candidate) {
             const c = item.candidate;
             this.collectorCandidates.delete(c.token);
-            if (this.projection.collection.claims.some(claim => claim.group === c.partition && claim.owner === c.token)) this.event({ kind: "collectionReleaseBackground", group: c.partition, token: c.token });
-            if (c.selection && this.finish) { this.finish.validating--; if (!this.finish.validating) this.finishBudget(); }
+            if (this.projection.collection.claims.some(claim => claim.group === c.partition && claim.owner === c.token)) emit({ kind: "collectionReleaseBackground", group: c.partition, token: c.token });
+            if (c.selection && finish) { finish.validating--; if (!finish.validating) this.finishBudget(partition); }
           }
           break;
         case "retireCandidate":
@@ -1058,13 +1059,13 @@ export class Run {
             this.queue = this.queue.filter(queued => queued.expiryAdvice !== item.candidate!.advice);
             this.jobs.delete(item.candidate.advice);
             this.adviceCredentials.delete(item.candidate.advice);
-          } else if (item.candidate) this.retireAdvice(item.candidate.advice);
+          } else if (item.candidate) this.retireAdvice(partition, item.candidate.advice);
         case "releaseCandidate":
         case "ignoreCandidate":
         case "submissionSuppresses":
-          if (item.candidate?.selection && this.finish) {
-            this.finish.validating--;
-            if (this.finish.validating === 0) this.finishBudget();
+          if (item.candidate?.selection && finish) {
+            finish.validating--;
+            if (finish.validating === 0) this.finishBudget(partition);
           }
           break;
         case "jevRequestUnavailable":
@@ -1073,7 +1074,7 @@ export class Run {
             if (evaluation) {
               this.fulfilledEvaluations.set(evaluation.id, "unavailable");
               for (const operation of this.evaluationWaiters.get(evaluation.id) ?? []) this.supplyEvaluation(operation, "unavailable");
-              this.event({ kind: "reuseRelease", id: evaluation.id });
+              emit({ kind: "reuseRelease", id: evaluation.id });
               this.evaluationWaiters.delete(evaluation.id);
               this.evaluations.delete(event.operation);
               this.operationRevisions.delete(event.operation);
@@ -1088,34 +1089,34 @@ export class Run {
         case "collectionExpired": {
           const advice = item.expiryAdvice;
           if (advice === undefined) break;
-          this.retireAdvice(advice);
+          this.retireAdvice(partition, advice);
           break;
         }
         case "waitForWork":
         case "waitForOutput":
-          if (this.finish) this.finish.waiting = true;
+          if (finish) finish.waiting = true;
           break;
         case "finishReady":
         case "finishLimit": {
-          const f = this.finish;
+          const f = finish;
           if (!f) break;
           f.waiting = false;
           f.selected = [];
           const candidates = command.kind === "finishLimit" ? [] : this.projection.work.filter(work =>
-            work.partition === this.partition && work.round === f.round && work.kind === "pendingFinding");
+            work.partition === partition && work.round === f.round && work.kind === "pendingFinding");
           f.validating = candidates.length;
-          if (!f.validating) this.finishBudget();
-          for (const work of candidates) this.validateAdvice(work.operation, f.round, f.token, "stop", true);
+          if (!f.validating) this.finishBudget(partition);
+          for (const work of candidates) this.validateAdvice(partition, work.operation, f.round, f.token, "stop", true);
           break;
         }
         case "roundContinuationAvailable":
         case "roundContinuationExhausted": {
-          const f = this.finish;
+          const f = finish;
           if (!f) break;
           if (command.kind === "roundContinuationExhausted") f.selected = [];
-          this.event({
+          emit({
             kind: "finishReserve",
-            group: this.partition,
+            group: partition,
             lifetime: 1,
             round: f.round,
             attempt: f.attempt,
@@ -1132,21 +1133,21 @@ export class Run {
         case "finishAllowedNoAdvice":
         case "finishAllowedDeadline":
         case "finishAllowedUnavailable":
-          this.endFinish(false);
+          this.endFinish(partition, false);
           break;
         case "finishReserved": {
-          const f = this.finish;
+          const f = finish;
           if (!f) break;
           for (const advice of f.selected) {
-            this.event({
+            emit({
               kind: "collectionReserveLease",
               advice,
               token: f.token,
             });
-            this.event({
+            emit({
               kind: "submissionBegin",
               advice,
-              group: this.partition,
+              group: partition,
               round: f.round,
               token: f.token,
               surface: "stop",
@@ -1156,12 +1157,12 @@ export class Run {
             });
           }
           if (this.outputProfile.outcome === "failed") {
-            this.event({ kind: "finishRelease", group: this.partition, round: f.round, attempt: f.attempt, token: f.token }, this.outputProfile.delayMs);
+            emit({ kind: "finishRelease", group: partition, round: f.round, attempt: f.attempt, token: f.token }, this.outputProfile.delayMs);
             break;
           }
-          this.event({
+          emit({
             kind: "finishAuthorize",
-            group: this.partition,
+            group: partition,
             round: f.round,
             attempt: f.attempt,
             token: f.token,
@@ -1170,45 +1171,45 @@ export class Run {
           break;
         }
         case "finishAuthorized": {
-          const f = this.finish;
+          const f = finish;
           if (!f) break;
           effects.push({ kind: "output", phase: "started", advices: [...f.selected] });
           const profile = this.outputProfile;
           if (profile.outcome === "failed") {
-            this.event({ kind: "finishTerminal", group: this.partition, round: f.round,
+            emit({ kind: "finishTerminal", group: partition, round: f.round,
               attempt: f.attempt, token: f.token, selected: f.selected, outcome: "failed" }, profile.delayMs);
             for (const advice of f.selected) {
-              this.event({ kind: "submissionRelease", advice, token: f.token }, profile.delayMs);
-              this.event({ kind: "collectionReleaseLease", advice, token: f.token }, profile.delayMs);
+              emit({ kind: "submissionRelease", advice, token: f.token }, profile.delayMs);
+              emit({ kind: "collectionReleaseLease", advice, token: f.token }, profile.delayMs);
             }
           } else {
             const due = Math.min(profile.delayMs, profile.leaseMs);
             if (profile.delayMs > profile.leaseMs)
-              this.event({ kind: "deliveryAcknowledgeCheck", items: f.selected.length, anyExpired: true }, profile.delayMs);
-            this.event({ kind: "finishTerminal", group: this.partition, round: f.round,
+              emit({ kind: "deliveryAcknowledgeCheck", items: f.selected.length, anyExpired: true }, profile.delayMs);
+            emit({ kind: "finishTerminal", group: partition, round: f.round,
               attempt: f.attempt, token: f.token, selected: f.selected,
               outcome: profile.delayMs >= profile.leaseMs || profile.outcome === "uncertain"
                 ? "unknown" : "acknowledged" }, due);
             for (const advice of f.selected) {
-              this.event({ kind: "collectionLeaseCheck", advice, token: f.token,
+              emit({ kind: "collectionLeaseCheck", advice, token: f.token,
                 expired: profile.delayMs >= profile.leaseMs, stopCollector: false, sameGroup: true,
                 reofferable: false }, due);
-              this.event({ kind: "collectionReleaseLease", advice, token: f.token }, due);
+              emit({ kind: "collectionReleaseLease", advice, token: f.token }, due);
             }
           }
           break;
         }
         case "finishRecorded": {
-          const f = this.finish;
+          const f = finish;
           if (f) {
-            this.event({
+            emit({
               kind: "continuationConsume",
-              group: this.partition,
+              group: partition,
               round: f.round,
             });
-            this.event({
+            emit({
               kind: "finishEnd",
-              group: this.partition,
+              group: partition,
               round: f.round,
               attempt: f.attempt,
               token: f.token,
@@ -1217,14 +1218,14 @@ export class Run {
           break;
         }
         case "finishReleased":
-          this.endFinish(true);
+          this.endFinish(partition, true);
           break;
         case "finishEnded":
-          this.endFinish(true);
+          this.endFinish(partition, true);
           break;
         case "finishRefused":
           // A product refusal grants no finish or continuation permission.
-          if (this.finish) this.finish.waiting = false;
+          if (finish) finish.waiting = false;
           break;
         case "cancelWork":
           effects.push({
@@ -1236,24 +1237,20 @@ export class Run {
       }
     }
     for (const action of decodeDriver({ handled: true, actions: result.afterActions }).actions)
-      this.event(action.event, action.delay, action.job ? item.job : undefined, action.expiryAdvice);
+      emit(action.event, action.delay, action.job ? item.job : undefined, action.expiryAdvice);
     if (event.kind === "preparationCompleted" && item.job) {
       const parent = before.work.find(w => w.operation === event.operation)?.parent;
       if (parent) this.jobs.delete(parent);
     }
     if (["preparationCompleted", "jevRequestSettled", "submissionTerminal", "collectionReleaseLease"].includes(event.kind)) {
-      const owner = this.partition;
-      for (const [partition, finish] of this.finishes) if (finish.waiting) {
-        this.partition = partition;
-        this.pollFinish();
-      }
-      this.partition = owner;
+      for (const [waitingPartition, finish] of this.finishes)
+        if (finish.waiting) this.pollFinish(waitingPartition);
     }
-    if (!result.rejection && this.session && (
+    if (!result.rejection && session && (
       event.kind === "submissionTerminal" && result.commands.some((c) => c.kind === "submissionRecorded") ||
       event.kind === "finishTerminal" && event.outcome === "acknowledged" &&
         result.commands.some((c) => c.kind === "finishRecorded")))
-      for (const input of this.session.onAdvice(this.clock))
+      for (const input of session.onAdvice(this.clock))
         this.enqueue(input);
     if (event.kind === "reviewObserved" || event.kind === "reviewCompleted" || event.kind === "retireReview") {
       this.evaluations.delete(event.operation);
@@ -1276,14 +1273,14 @@ export class Run {
         if (["clear", "finding"].includes(event.outcome) && !result.rejection && event.currentWork) {
           const outcome = event.outcome as "clear" | "finding";
           this.fulfilledEvaluations.set(evaluation.id, outcome);
-          this.event({ kind: "cachePrepare", id: evaluation.id, bytes: evaluation.bytes, entryLimit: this.config.lifecycles!.reuse!.entryLimit, byteLimit: this.config.lifecycles!.reuse!.byteLimit });
+          emit({ kind: "cachePrepare", id: evaluation.id, bytes: evaluation.bytes, entryLimit: this.config.lifecycles!.reuse!.entryLimit, byteLimit: this.config.lifecycles!.reuse!.byteLimit });
           this.annotate({ cacheOutcome: outcome });
           for (const operation of this.evaluationWaiters.get(evaluation.id) ?? []) this.supplyReuse(operation, outcome);
         } else {
           this.fulfilledEvaluations.set(evaluation.id, "unavailable");
           for (const operation of this.evaluationWaiters.get(evaluation.id) ?? []) this.supplyEvaluation(operation, "unavailable");
         }
-        this.event({ kind: "reuseRelease", id: evaluation.id });
+        emit({ kind: "reuseRelease", id: evaluation.id });
         this.evaluationWaiters.delete(evaluation.id);
         this.evaluations.delete(event.operation);
       }
@@ -1305,16 +1302,16 @@ export class Run {
       const token = event.kind === "collectionRetireAdvice" ? event.advice : event.token;
       const claim = this.projection.collection.claims.find(c => c.owner === token);
       this.collectorCandidates.delete(token);
-      if (claim) this.event({ kind: "collectionReleaseBackground", group: claim.group, token });
+      if (claim) emit({ kind: "collectionReleaseBackground", group: claim.group, token });
     }
     if (this.config.lifecycles?.quietWindowMs && ["completeObservation", "jevRequestSettled", "submissionTerminal", "collectionReleaseLease", "releasePermit", "expirePermit", "collectionRetireAdvice", "submissionForget", "retireReview", "collectionReleaseBackground", "collectionExpireBackground"].includes(event.kind)) {
-      const round = this.projection.rounds.find(round => round.partition === this.partition);
-      if (round) this.event({ kind: "quietRoundTick", partition: round.partition, lifetime: round.lifetime, round: round.id, now: this.clock,
+      const round = this.projection.rounds.find(round => round.partition === partition);
+      if (round) emit({ kind: "quietRoundTick", partition: round.partition, lifetime: round.lifetime, round: round.id, now: this.clock,
         window: this.config.lifecycles.quietWindowMs, facts: { nativeWorkIdle: !this.jobs.size, adviceEmpty: !this.projection.work.some(f => f.partition === round.partition && f.kind === "pendingFinding"), handoffIdle: !this.projection.collection.claims.some(c => c.group === round.partition), stopAbsent: !this.finishes.has(round.partition) } });
     }
     const observation: Observation = {
-      partition: this.partition,
-      agent: this.agentName(this.partition),
+      partition: partition,
+      agent: this.agentName(partition),
       sequence: this.count++,
       time: this.clock,
       event: copy(event),
@@ -1366,57 +1363,57 @@ export class Run {
     for (const listener of this.listeners) listener(observation);
     return observation;
   }
-  private finishBudget(fitted = false) {
-    const f = this.finish;
+  private finishBudget(partition: number, fitted = false) {
+    const f = this.finishes.get(partition);
     if (!f) return;
     const bytes = this.candidateOutputBytes;
     if (!fitted && bytes !== undefined && f.selected.length) {
       f.fitPending = true;
-      this.event({ kind: "collectionFitCheck", items: f.selected.length, bytes });
+      this.event(partition, { kind: "collectionFitCheck", items: f.selected.length, bytes });
       this.queue.find(item => item.order === this.order - 1)!.fitFinish = f.attempt;
       return;
     }
-    this.event({ kind: "roundContinuationBudgetCheck", active: true,
-      count: this.projection.delivery.counters.find(counter => counter.group === this.partition && counter.round === f.round)?.used ?? 0 });
+    this.event(partition, { kind: "roundContinuationBudgetCheck", active: true,
+      count: this.projection.delivery.counters.find(counter => counter.group === partition && counter.round === f.round)?.used ?? 0 });
   }
   private candidateEvent(event: Extract<CanonicalEvent, { kind: "finalCandidateCheck" | "submissionSuppressCheck" | "collectionFitCheck" }>, candidate: CandidateContext) {
     this.queuePush({ at: this.clock, order: this.order++, generated: true,
       input: { at: this.clock, kind: "canonical", event }, candidate, partition: candidate.partition });
   }
-  private validateAdvice(advice: number, round: number, token: number, surface: "edit" | "background" | "stop", selection = false) {
+  private validateAdvice(partition: number, advice: number, round: number, token: number, surface: "edit" | "background" | "stop", selection = false) {
     this.candidateEvent({ kind: "finalCandidateCheck", ownerCurrent: true,
       credentialGeneration: (this.adviceCredentials.get(advice) ?? 1) === (this.environment.credentialGeneration ?? 1),
       credentialAuthorized: this.environment.credentialReady, expired: false,
-      workCurrent: this.environment.currentWork && (this.environment.sourceReadable ?? true), hasFindings: true }, { partition: this.projection.work.find(work => work.operation === advice)?.partition ?? this.partition, advice, round, token, surface, selection });
+      workCurrent: this.environment.currentWork && (this.environment.sourceReadable ?? true), hasFindings: true }, { partition: this.projection.work.find(work => work.operation === advice)?.partition ?? partition, advice, round, token, surface, selection });
   }
-  private retireAdvice(advice: number) {
+  private retireAdvice(partition: number, advice: number) {
     const retained = this.projection.work.find(work =>
       work.operation === advice && work.kind === "pendingFinding");
     this.queue = this.queue.filter(item => item.expiryAdvice !== advice);
-    this.event({ kind: "collectionRetireAdvice", advice });
-    this.event({ kind: "submissionForget", advice });
-    if (retained) this.event({ kind: "retireReview",
+    this.event(partition, { kind: "collectionRetireAdvice", advice });
+    this.event(partition, { kind: "submissionForget", advice });
+    if (retained) this.event(partition, { kind: "retireReview",
       partition: retained.partition, lifetime: retained.lifetime,
       round: retained.round, operation: advice });
     this.jobs.delete(advice);
     this.adviceCredentials.delete(advice);
   }
-  private pollFinish(delay = 0) {
-    const f = this.finish;
+  private pollFinish(partition: number, delay = 0) {
+    const f = this.finishes.get(partition);
     if (!f) return;
     const at = this.clock + delay;
-    if (this.queue.some(item => item.finishAttempt === f.attempt && item.partition === this.partition && item.at === at)) return;
+    if (this.queue.some(item => item.finishAttempt === f.attempt && item.partition === partition && item.at === at)) return;
     this.queuePush({
       at,
       order: this.order++,
       finishAttempt: f.attempt,
-      partition: this.partition,
+      partition: partition,
       input: {
         at: this.clock + delay,
         kind: "canonical",
         event: {
           kind: "stopPolled",
-          partition: this.partition,
+          partition: partition,
           lifetime: 1,
           round: f.round,
           deadline: this.clock + delay >= f.deadline,
@@ -1424,31 +1421,32 @@ export class Run {
       },
     });
   }
-  private endFinish(continuation: boolean) {
-    const f = this.finish;
+  private endFinish(partition: number, continuation: boolean) {
+    const f = this.finishes.get(partition);
     if (!f) return;
-    this.event({
+    this.event(partition, {
       kind: "stopGroupEnded",
-      group: this.partition,
+      group: partition,
       lifetime: 1,
       round: f.round,
-      scopes: [{ partition: this.partition, round: f.round }],
+      scopes: [{ partition: partition, round: f.round }],
     });
     if (!continuation) {
       for (const work of this.projection.work)
-        if (work.partition === this.partition && work.round === f.round && work.kind === "pendingFinding")
-          this.retireAdvice(work.operation);
-      this.event({
+        if (work.partition === partition && work.round === f.round && work.kind === "pendingFinding")
+          this.retireAdvice(partition, work.operation);
+      this.event(partition, {
         kind: "retirePartition",
-        partition: this.partition,
+        partition: partition,
         lifetime: 1,
         round: f.round,
       });
     }
-    this.queue = this.queue.filter(item => item.finishAttempt !== f.attempt || item.partition !== this.partition);
-    this.finish = undefined;
-    if (f.recurring && this.session)
-      for (const input of this.session.onFinish(this.clock, continuation))
+    this.queue = this.queue.filter(item => item.finishAttempt !== f.attempt || item.partition !== partition);
+    this.finishes.delete(partition);
+    const session = this.generators.get(partition);
+    if (f.recurring && session)
+      for (const input of session.onFinish(this.clock, continuation))
         this.enqueue(input);
   }
   advance(options: AdvanceOptions = {}) {
