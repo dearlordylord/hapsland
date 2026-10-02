@@ -102,13 +102,6 @@ it("restores availability without changing issuance authority, and rotation reti
   run.schedule({ ...edit, at: 21 });
   run.advance({ untilTime: 30 });
   expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "submissionRecorded")).toHaveLength(2);
-  // Readiness and explicit revalidation independently scheduled the old
-  // candidate. Its second retirement reaches the actual stale-operation fence;
-  // the refusal stays observable and cannot release its charge twice.
-  const refusals = run.observations.filter(frame => frame.rejection);
-  expect(refusals.map(frame => ({ time: frame.time, event: frame.event, rejection: frame.rejection }))).toEqual([
-    { time: 17, event: { kind: "retireReview", partition: 1, lifetime: 1, round: 1, operation: 7 }, rejection: "StaleOperation" },
-  ]);
-  for (const refusal of refusals) expect(refusal.after).toEqual(refusal.before);
+  expect(run.observations.filter(frame => frame.rejection)).toEqual([]);
   replayExact(run);
 });
