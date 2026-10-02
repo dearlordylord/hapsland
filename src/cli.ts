@@ -1076,15 +1076,17 @@ For automation, use the versioned --setup operation documented in docs/claude-in
 `);
 };
 
+const processConfigurationLayer = ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }));
+
 let clientArguments: ReturnType<typeof parseClientArguments> | undefined;
 const flagValue = (name: string): string | undefined => clientArguments?.flags.get(name);
 const positionalHost = () => clientArguments?.host;
 const selectedHost = (): SetupClient => clientArguments?.host ?? "codex";
 const hostFields = (host: SetupClient) => profileFields(host, clientArguments?.flags ?? new Map());
 
-const askConfirmation = async (question: string) => {
+const askConfirmation = async (question: string, signal?: AbortSignal) => {
   const prompt = createInterface({ input: process.stdin, output: process.stderr });
-  try { return (await prompt.question(`${question} [y/N] `)).trim().toLowerCase() === "y"; }
+  try { return (await prompt.question(`${question} [y/N] `, signal === undefined ? {} : { signal })).trim().toLowerCase() === "y"; }
   finally { prompt.close(); }
 };
 
@@ -1216,7 +1218,7 @@ const chooseSetupClients = async () => {
   }
 };
 
-const updateInteractive = async () => {
+const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
   if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Interactive update needs a terminal. Use --update-preview / --update JSON operations for automation.");
   const explicitHost = flagValue("--host") !== undefined || positionalHost() !== undefined;
   const hosts: SetupClient[] = [];
@@ -1248,7 +1250,7 @@ const updateInteractive = async () => {
       ? { kind: "registry", channel, ...(version === undefined ? {} : { version }) }
       : { kind: "archive", path: archive };
     process.stderr.write(`Select ${archive ?? `@hapsland/hapsland@${version ?? channel}`}; reuse a verified package when available. The previous package is retained.\n`);
-    const staged = await Effect.runPromise(stageRelease(selection));
+    const staged = yield* stageRelease(selection);
     executable = staged.executable;
     process.stderr.write(`Target ${staged.packageVersion}: ${executable}\n`);
   }
@@ -1271,7 +1273,7 @@ const updateInteractive = async () => {
     } catch (cause) { failed(host, cause); }
   }
   if (proposals.length > 0) {
-    const apply = await askConfirmation(`Apply these changes to ${proposals.map(proposal => proposal.host).join(", ")} profiles?`);
+    const apply = yield* Effect.tryPromise((signal) => askConfirmation(`Apply these changes to ${proposals.map(proposal => proposal.host).join(", ")} profiles?`, signal));
     for (const proposal of proposals) {
       if (!apply) { outcomes.set(proposal.host, "skipped"); continue; }
       try {
@@ -1291,7 +1293,7 @@ const updateInteractive = async () => {
     if (status === "updated") process.stderr.write(`Finish current work, restart ${host}, and review native trust prompts.\n`);
   }
   process.stderr.write("Retain previous packages until their hooks and active sessions no longer depend on them.\n");
-};
+});
 
 const reportClientFailure = (host: SetupClient, cause: unknown) => { process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`); process.exitCode = 6; };
 
@@ -1360,7 +1362,7 @@ if (process.argv[2] === "--package-identity") {
           if (result.status !== 0 || diagnosis.status === "not-ready") process.exitCode = result.status || 6;
         } catch (cause) { reportClientFailure(host, cause); }
       }
-    } else if (command === "update") await updateInteractive();
+    } else if (command === "update") await Effect.runPromise(updateInteractive().pipe(Effect.provide(processConfigurationLayer)));
     else if (command === "repair" || command === "reinstall" || command === "uninstall") await maintenanceInteractive(command);
     else if (clientArguments.host === undefined) await chooseSetupClients();
     else await pilotSetup(selectedHost());
@@ -1387,7 +1389,6 @@ const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
   if (timedOut && watchdog !== undefined) yield* Fiber.join(watchdog);
   return output;
 }, Effect.scoped);
-const processConfigurationLayer = ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }));
 const output = isCredentialCommand
   ? await Effect.runPromise(runCredentialCommand().pipe(Effect.provide(processConfigurationLayer)))
   : await Effect.runPromise(runReviewProgram().pipe(Effect.provide(processConfigurationLayer), Effect.provide(directHookSubmissionLayer), Effect.provide(composedHookRuntimeLayer), Effect.provide(hookOutputLayer), Effect.provide(residentStartupLayer)));

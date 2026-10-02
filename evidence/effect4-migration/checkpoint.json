@@ -3342,5 +3342,29 @@
       "src/onboarding/installation-lock.test.ts": "f470d968a6daa15946248477e870bf9fe8a1eb158e0aa0cd37878c2cd59397c6"
     },
     "limitations": "Full suite evidence at 3cf71c6 predates this change; Codex/Claude Config, interactive workflows, coordinated deadline and final completion gates remain required."
+  },
+  "interactiveUpdateCompositionPort": {
+    "status": "interactive update is named Effect workflow; stageRelease directly yielded",
+    "scope": "Effect runtime moved from nested release staging to actual CLI interactive-update process boundary, with preserveEmptyStrings process ConfigProvider. Native readline question receives interruption AbortSignal and closes via its existing finally. Existing selection, proposal preview, explicit human approval and outcome handling retained.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "node scripts/check-configuration-boundary.mjs",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 8,
+        "durationSeconds": 7.86
+      }
+    ],
+    "sourceSha256": {
+      "src/cli.ts": "875a9ee43a9cca784709f475667b1d9e53488f457bae968a646764cbc1cfba91"
+    },
+    "limitations": "CLI tests do not exercise actual interactive TTY cancellation; no physical restoration claim. Native lifecycle invocation remains synchronous, other interactive setup/maintenance and masked entry remain Promise workflows. Full suite at 3cf71c6 predates this edit; remaining full migration gates still required."
   }
 }
