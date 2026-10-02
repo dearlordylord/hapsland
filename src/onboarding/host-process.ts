@@ -13,21 +13,23 @@ export type HostProcessResult = {
   readonly stderr: string;
   readonly succeeded: boolean;
   readonly timedOut: boolean;
+  readonly exitCode: number | null;
 };
 class HostProcessStartError extends Schema.TaggedError<HostProcessStartError>()("HostProcessStartError", {}) {}
-const failedStart: HostProcessResult = { stdout: "", stderr: "", succeeded: false, timedOut: false };
+const failedStart: HostProcessResult = { stdout: "", stderr: "", succeeded: false, timedOut: false, exitCode: null };
 
 const acquireProcess = Effect.fn("HostProcess.acquireProcess")((executable: string, args: ReadonlyArray<string>,
   options: HostProcessOptions) => Effect.try({
   try: () => {
     let output: { readonly stdout: string; readonly stderr: string; readonly succeeded: boolean } | undefined;
     let closed = false;
+    let exitCode: number | null = null;
     let timedOut = false;
     let outcome: HostProcessResult | undefined;
     const waiters = new Set<(result: HostProcessResult) => void>();
     const settle = () => {
       if (!closed || output === undefined || outcome !== undefined) return;
-      outcome = { ...output, timedOut };
+      outcome = { ...output, timedOut, exitCode };
       for (const finish of waiters) finish(outcome);
       waiters.clear();
     };
@@ -36,7 +38,7 @@ const acquireProcess = Effect.fn("HostProcess.acquireProcess")((executable: stri
       output = { stdout, stderr, succeeded: cause === null };
       settle();
     });
-    child.once("close", () => { closed = true; settle(); });
+    child.once("close", (code) => { exitCode = code !== null && code >= 0 ? code : null; closed = true; settle(); });
     child.stdin?.on("error", () => { if (!closed) child.kill("SIGKILL"); });
     const wait = Effect.callback<HostProcessResult>((resume) => {
       if (outcome !== undefined) { resume(Effect.succeed(outcome)); return; }

@@ -3693,5 +3693,31 @@
       "src/cli.ts": "7346f61f84214b735e6e19055c1d6efdc4c1b6dbd13a63e9783b960ce390c8d7"
     },
     "limitations": "No actual interactive guided setup run. Standalone human doctor and active-package dispatcher still use synchronous subprocesses. Installation Config/inspection, external Clock deadline and final complete gates remain incomplete."
+  },
+  "humanDoctorProcessPort": {
+    "status": "standalone human doctor invokes scoped Effect subprocess; CLI has no spawnSync import",
+    "contract": "10000ms doctor deadline and JSON stdin retained; process adapter records exit code at physical close and normalizes missing/negative native launch code to null. Human doctor preserves nonzero/not-ready exit fallback and per-host reporting. Status decoded by Schema; formatting reads original unknown result through existing checked formatter.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/host-process.test.ts src/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 13,
+        "durationSeconds": 8.15
+      }
+    ],
+    "testCorrections": [
+      "Initial spawn failure test exposed native close code -2; normalized to null.",
+      "New failed-exit expectation mistakenly used 1 for fixture explicitly exiting 2; corrected expectation, production exit-code behavior retained."
+    ],
+    "sourceSha256": {
+      "src/cli.ts": "973ce846e7f101aca5bc41f2197639704b3845345003052e04082283bef09ba5",
+      "src/onboarding/host-process.ts": "39356c9740445ef1a8ff9420e0b365aafa3040f2e4fe28ddbc8657a48251472d",
+      "src/onboarding/host-process.test.ts": "7fbc998b40147b75ee174b89f07c445c953ea7581aa991262d44e6bc2b059445"
+    },
+    "limitations": "Active/selected package dispatch and identity remain synchronous in client-lifecycle. No installed-package/actual human doctor acceptance claim; installation Config, external Clock deadline and final gates remain incomplete."
   }
 }

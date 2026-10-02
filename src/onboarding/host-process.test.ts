@@ -59,11 +59,11 @@ effectIt.live("interruption waits for native close and remains interrupted", () 
 effectIt.live("failed spawn and command exit return structured outcomes without raw errors", () => Effect.gen(function* () {
   const missing = yield* execFileClosedStdin("/nonexistent-hapsland-host", [],
     { env: process.env, timeout: 1_000, maxBuffer: 1_024 });
-  expect(missing).toEqual({ succeeded: false, timedOut: false, stdout: "", stderr: "" });
+  expect(missing).toEqual({ succeeded: false, timedOut: false, exitCode: null, stdout: "", stderr: "" });
   const failed = yield* execFileClosedStdin(process.execPath, ["-e",
     "process.stdout.write('synthetic-output');process.stderr.write('synthetic-authentication-error');process.exitCode=2",
   ], { env: process.env, timeout: 1_000, maxBuffer: 1_024 });
-  expect(failed).toEqual({ succeeded: false, timedOut: false,
+  expect(failed).toEqual({ succeeded: false, timedOut: false, exitCode: 2,
     stdout: "synthetic-output", stderr: "synthetic-authentication-error" });
 }));
 

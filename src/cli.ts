@@ -13,7 +13,6 @@ import * as Schema from "effect/Schema";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { execFileClosedStdin } from "./onboarding/host-process.ts";
 import { askConfirmation } from "./onboarding/confirmation.ts";
 import { fileURLToPath } from "node:url";
@@ -1280,6 +1279,17 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
   }
 });
 
+const diagnoseClientProcess = Effect.fn("HumanDoctor.diagnoseClient")(function* (host: SetupClient) {
+  const result = yield* execFileClosedStdin(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
+    input: JSON.stringify({ version: 1, operation: "doctor", cwd: process.cwd(), ...hostFields(host) }),
+    env: process.env, timeout: 10_000, maxBuffer: 1024 * 1024,
+  });
+  if (result.timedOut) return yield* Effect.fail(new Error("doctor request deadline exceeded"));
+  const diagnosis: unknown = yield* Effect.try(() => JSON.parse(result.stdout));
+  const checked = yield* Schema.decodeUnknownEffect(Schema.Struct({ status: Schema.String }))(diagnosis);
+  return { diagnosis, status: checked.status, exitCode: result.exitCode };
+});
+
 if (process.argv[2] === "--package-identity") {
   process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", runtime: process.execPath, entrypoint: fileURLToPath(import.meta.url) }) + "\n");
 } else if (process.argv.includes("--help") || process.argv.includes("-h")) {
@@ -1298,13 +1308,9 @@ if (process.argv[2] === "--package-identity") {
       if (hosts.length === 0) process.stderr.write("No Hapsland integrations found. Run hapsland setup first.\n");
       for (const host of hosts) {
         try {
-          const result = spawnSync(process.execPath, [fileURLToPath(import.meta.url), "--doctor"], {
-            input: JSON.stringify({ version: 1, operation: "doctor", cwd: process.cwd(), ...hostFields(host) }), encoding: "utf8", timeout: 10_000,
-          });
-          if (result.error !== undefined) throw result.error;
-          const diagnosis = JSON.parse(result.stdout);
-          process.stdout.write(formatDoctor(diagnosis, host).join("\n") + "\n");
-          if (result.status !== 0 || diagnosis.status === "not-ready") process.exitCode = result.status || 6;
+          const result = await Effect.runPromise(diagnoseClientProcess(host).pipe(Effect.provide(processConfigurationLayer)));
+          process.stdout.write(formatDoctor(result.diagnosis, host).join("\n") + "\n");
+          if (result.exitCode !== 0 || result.status === "not-ready") process.exitCode = result.exitCode || 6;
         } catch (cause) { reportClientFailure(host, cause); }
       }
     } else if (command === "update") await Effect.runPromise(updateInteractive().pipe(Effect.provide(processConfigurationLayer)));
