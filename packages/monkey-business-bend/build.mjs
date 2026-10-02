@@ -17,7 +17,7 @@ collect(join(root, "Engine.bend"));
 const sourceHash = hash([...consumed].sort(([a], [b]) => a.localeCompare(b)).map(([path, source]) => `${relative(root, path)}\0${source}\0`).join(""));
 const declarationHash = hash(readFileSync(join(root, "engine.d.mts")));
 const buildHash = hash(readFileSync(fileURLToPath(import.meta.url)));
-const hostPaths = ["index.ts", "shared-core.ts", "driver-codec.ts", "controls.ts", "outcomes.ts", "file-trees.ts", "preparation.ts", "session.ts", "lifecycle-profile.ts", "resource-scenarios.ts", "sizes.ts", "numeric-codec.ts"].map(name => `../monkey-business/src/${name}`).concat(["../../src/canonical/simulation-adapter.ts", "../../src/canonical/simulation-codec.ts", "../../src/canonical/canonical-boundary.ts", "../../src/canonical/graph-adapter.ts"]);
+const hostPaths = ["index.ts", "shared-core.ts", "driver-codec.ts", "controls.ts", "outcomes.ts", "file-trees.ts", "preparation.ts", "session.ts", "lifecycle-profile.ts", "resource-scenarios.ts", "sizes.ts", "numeric-codec.ts", "jev-interventions.ts"].map(name => `../monkey-business/src/${name}`).concat(["../../src/canonical/simulation-adapter.ts", "../../src/canonical/simulation-codec.ts", "../../src/canonical/canonical-boundary.ts", "../../src/canonical/graph-adapter.ts"]);
 const hostHash = hash(hostPaths.map(path => `${path}\0${readFileSync(join(root, path))}\0`).join(""));
 const identityHash = hash(`${sourceHash}\0${hostHash}\0${buildHash}\0${declarationHash}`);
 const preparationHash = hash(["../../src/canonical/import-graph.generated.js", "../monkey-business/src/preparation.ts", "../monkey-business/src/file-trees.ts"].map(path => readFileSync(join(root, path))).join(""));
@@ -32,7 +32,7 @@ if (process.argv.includes("--check")) {
     const compiled = readFileSync(join(temp, "engine.mjs"), "utf8");
     const marker = "export default {";
     const offset = compiled.lastIndexOf(marker);
-    const names = ["initial", "step", "canonical", "graph_step", "retire", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "pre_issue", "permit_actions", "session_delay"];
+    const names = ["intervene_request", "declare_advicee", "advicee_identity", "advicee_partition", "advicee_targets", "credentials", "configure_credentials", "credential_action", "generate_tree", "initial", "step", "canonical", "graph_step", "retire", "handle", "edit", "preparation_completed", "after", "enqueue", "take", "queued", "cancel", "fence", "preparation_fact_time", "revalidate", "clock", "configure_seed", "configure_workload", "workload_action", "workload_valid", "workload_duration", "sample_outcome", "pre_timing", "numeric_add", "numeric_divide", "random_initial", "random_sample", "session_initial", "session_next", "session_generation", "session_sizes", "session_burst", "session_interval", "session_rewind", "session_suspend", "session_finish", "session_advice", "pre_issue", "permit_actions", "session_delay"];
     if (offset < 0 || names.some(name => !compiled.includes(`function $${name}$(`))) throw new Error("Bend shared engine JavaScript layout changed");
     // Same immediate-Nat ABI convention as agent-flow-bend's checked builds.
     // Keep all emitted policy code; avoid re-marshalling original opaque state.
@@ -56,6 +56,15 @@ const facts = value => {
   return value;
 };
 export default {
+ intervene_request: (state, target, outcome, delay) => run_loop($intervene_request$(state, facts(target), facts(outcome), facts(delay))),
+ declare_advicee: (state, identity, seed) => run_loop($declare_advicee$(state, facts(identity), seed)),
+ advicee_identity: (state, identity) => run_loop($advicee_identity$(state, facts(identity))),
+ advicee_partition: (state, partition) => run_loop($advicee_partition$(state, facts(partition))),
+ advicee_targets: (state, identity) => run_loop($advicee_targets$(state, facts(identity))),
+ credentials: state => run_loop($credentials$(state)),
+ configure_credentials: (state, available, generation) => run_loop($configure_credentials$(state, available, facts(generation))),
+ credential_action: (state, available, rotation) => run_loop($credential_action$(state, available, rotation)),
+ generate_tree: (seed, operation, unit, profile, limits) => run_loop($generate_tree$(facts(seed), facts(operation), facts(unit), facts(profile), facts(limits))),
  initial: limits => run_loop($initial$(facts(limits))),
  step: (state, event) => run_loop($step$(state, facts(event))),
  canonical: state => run_loop($canonical$(state)),

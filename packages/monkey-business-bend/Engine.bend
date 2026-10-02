@@ -1,4 +1,6 @@
 import Base
+import ./PreparationScenario.bend as PreparationScenario
+import ./TreeFacts.bend as TreeFacts
 import ./Advicees.bend as Advicees
 import ./JevEffects.bend as JevEffects
 import ./FaultTargets.bend as FaultTargets
@@ -243,3 +245,6 @@ def credential_action(state: Types.State, available: Bool, rotation: Bool) -> Ty
   match state:
     case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials}:
       Types.State{canonical, graphs, scheduler, workloads, random, advicees, changed_credentials(credentials, available, rotation)}
+
+def generate_tree(seed: Nat, operation: Nat, unit: Nat, profile: TreeFacts.Profile, limits: ImportGraph.Limits) -> PreparationScenario.Generated:
+  PreparationScenario.generate(seed, operation, unit, profile, limits)

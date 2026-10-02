@@ -8,7 +8,7 @@ const policyModules = new Set([
   "Retention", "Reuse", "ReuseState", "RevisionState", "Round", "RulePolicy",
   "SubmissionState", "Work",
 ]);
-const localModules = new Set(["Driver", "Types", "Scheduler", "Engine", "Workload", "Random", "Numeric", "Session"]);
+const localModules = new Set(["Driver", "Types", "Scheduler", "Engine", "Workload", "Random", "Numeric", "Session", "Advicees", "AdviceeScope", "CredentialFacts", "FaultTargets", "JevEffects", "TreeFacts", "PreparationScenario"]);
 const baseTags = new Set(["Nil", "Con", "Some", "None", "Tuple", "LT", "EQ", "GT"]);
 const readWord = decoder(Word);
 const convertTag = (value: unknown, encode: boolean): string => {

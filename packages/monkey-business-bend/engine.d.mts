@@ -1,9 +1,18 @@
 export declare const PREPARATION_SOURCE_IDENTITY: string;
 export declare const SOURCE_IDENTITY: string;
-export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unknown; scheduler: unknown; workloads: unknown; random: unknown }
+export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unknown; scheduler: unknown; workloads: unknown; random: unknown; advicees: unknown; credentials: unknown }
 export interface Transition { $: "Transition"; state: EngineState; result: unknown }
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
 declare const Engine: {
+ intervene_request(state: EngineState, target: unknown, outcome: unknown, delay: bigint): unknown;
+ declare_advicee(state: EngineState, identity: bigint, seed: number): { state: EngineState; scope: unknown; valid: boolean };
+ advicee_identity(state: EngineState, identity: bigint): unknown;
+ advicee_partition(state: EngineState, partition: bigint): unknown;
+ advicee_targets(state: EngineState, identity: unknown): unknown;
+ credentials(state: EngineState): unknown;
+ configure_credentials(state: EngineState, available: boolean, generation: bigint): EngineState;
+ credential_action(state: EngineState, available: boolean, rotation: boolean): EngineState;
+ generate_tree(seed: bigint, operation: bigint, unit: bigint, profile: unknown, limits: unknown): unknown;
  pre_issue(state: EngineState, facts: unknown): unknown;
  permit_actions(state: EngineState, capture: unknown): unknown;
  session_delay(settings: unknown, random: number): number;
