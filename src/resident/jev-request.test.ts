@@ -187,7 +187,7 @@ describe("canonical Jev request boundary", () => {
       jevRequestObserver: (observation) => { nextLifetime.push(observation); },
     });
     try {
-      expect(restarted.admit(await event(), dispatch, false, true).status).toBe("accepted");
+      expect(restarted.admit(await event(), dispatch, true).status).toBe("accepted");
       await restarted.whenIdle();
       expect(nextLifetime.map((item) => item.stage)).toEqual(["issued", "started", "settled"]);
       expect(nextLifetime.every((item) => item.lifetime === restarted.lifetime)).toBe(true);
@@ -311,13 +311,13 @@ describe("canonical Jev request boundary", () => {
     try {
       const first = await observe(0);
       for (let index = 0; index < 8; index += 1) {
-        expect(server.admit(index === 0 ? first : await observe(index), dispatch, false, true).status)
+        expect(server.admit(index === 0 ? first : await observe(index), dispatch, true).status)
           .toBe("accepted");
       }
       await eightStarted.promise;
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(8);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
-      expect(server.admit(await observe(8), dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(await observe(8), dispatch, true).status).toBe("accepted");
       await saturatedUnavailable.promise;
       expect(effectsEntered).toBe(8);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(0);
@@ -327,7 +327,7 @@ describe("canonical Jev request boundary", () => {
       expect(await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: first.advicee, token: "interrupt-first", close: true })).toEqual({ status: "advanced" });
 
-      expect(server.admit(await observe(9), dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(await observe(9), dispatch, true).status).toBe("accepted");
       await reusedStarted.promise;
       const interruptionIndex = observations.findIndex((item) => item.stage === "interrupted");
       expect(interruptionIndex).toBeGreaterThanOrEqual(0);
@@ -341,7 +341,7 @@ describe("canonical Jev request boundary", () => {
       expect(observations[settlementIndex]?.outcome).toBe("interrupted");
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(1);
 
-      expect(server.admit(await observe(10), dispatch, false, true).status).toBe("accepted");
+      expect(server.admit(await observe(10), dispatch, true).status).toBe("accepted");
       await afterReuseUnavailable.promise;
       expect(effectsEntered).toBe(9);
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(9);

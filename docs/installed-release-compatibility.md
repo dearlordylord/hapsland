@@ -1,7 +1,7 @@
 # Installed release compatibility
 
-The composed Codex and Claude background plus bounded finish delivery candidate
-is **not part of the pinned release support declaration below**. The
+Codex background and bounded finish delivery, and Claude synchronous edit delivery
+with bounded Stop fallback, are **not part of the pinned release support declaration below**. The
 [Advicing target contract](advicing-target-contract.md) states accepted behavior;
 the [Linux evidence index](../evidence/advicing-linux/README.md) records current
 candidate observations and gaps. The [product vocabulary](../CONTEXT.md)

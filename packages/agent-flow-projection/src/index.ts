@@ -93,7 +93,7 @@ const stageSignature = (state: CanonicalProjection, stage: FlowStage): unknown =
     case "authorization": return state.dispatch.requests.filter((item) => !item.started).map((item) => item.request);
     case "effect": return state.dispatch.requests.filter((item) => item.started).map((item) => [item.request, item.interrupted]);
     case "jev": return [state.work.filter((item) => item.kind === "atJev").map((item) => item.operation), state.dispatch.requests.map((item) => item.request)];
-    case "outcomes": return [state.work.filter((item) => item.kind === "pendingFinding"), state.pendingFindings, state.tickets];
+    case "outcomes": return [state.work.filter((item) => item.kind === "pendingFinding"), state.pendingFindings];
     case "advice": return [state.collection.ready, state.collection.leases.map((item) => item.advice)];
     case "collection": return [state.collection.leases, state.collection.claims, state.rounds.filter((item) => item.waiting)];
     case "delivery": return state.delivery;

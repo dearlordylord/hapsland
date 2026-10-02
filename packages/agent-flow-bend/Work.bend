@@ -27,9 +27,9 @@ def prepared_offer(ready: Bool, within_frame: Bool) -> PreparedOffer:
     Bool.pick(PreparedOffer, within_frame, AdmitPrepared{}, RejectPreparedCapacity{}))
 
 def empty_prepared(ready_count: Nat, has_non_skipped: Bool,
-    ticketed: Bool) -> EmptyPrepared:
+    authority_bound: Bool) -> EmptyPrepared:
   Bool.pick(EmptyPrepared, Bool.and(Nat.is_eq(ready_count, 0n),
-    Bool.and(has_non_skipped, ticketed)), FailEmptyLost{}, NoEmptyFailure{})
+    Bool.and(has_non_skipped, authority_bound)), FailEmptyLost{}, NoEmptyFailure{})
 
 def evaluated_disposition(has_findings: Bool, +current_work: Bool) -> EvaluatedDisposition:
   Bool.pick(EvaluatedDisposition, has_findings,

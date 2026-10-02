@@ -37,7 +37,8 @@ do. Before an eligible edit tool runs, Hapsland's pre-edit hook asks the residen
 to register that edit attempt. After the tool edits a file, the synchronous
 post-edit hook reports the result. The first accepted edit opens the advicee's
 virtual round. Review then runs in the resident; the agent can receive advice
-after an edit, through a background hook, or when it tries to finish.
+after an edit or when it tries to finish. Codex also uses a background hook;
+Claude does not install or collect advice through an asynchronous PostToolUse hook.
 
 When the agent tries to finish, its Stop hook gives Hapsland a bounded chance
 to complete admitted reviews. A continue-with-advice response asks the agent
@@ -201,7 +202,9 @@ prevents late pre-decision work from appearing as advice after that response.
 
 The installed Claude `PostToolUse` hook also collects current advice within its
 safe synchronous deadline. If no eligible advice is ready, it returns quietly
-and leaves later opportunities to background or Stop. Advisory output is the
+and leaves later opportunities to another synchronous edit response or Stop.
+Stop remains a safety net for late findings. The synchronous collection bound
+remains approximately 3.9 seconds and does not guarantee a result. Advisory output is the
 default. A synchronous `block-current-findings` response requires a user-owned
 opt-in that remains valid at the final handoff; project policy may narrow it to
 advisory. For ordinary collection, findings from an accepted edit become ready
@@ -213,16 +216,28 @@ other edits and advicees can use free preparation slots concurrently. The
 collector may batch eligible findings from several completed admissions in
 the same advicee and virtual round. For example, edit B's synchronous response
 may include a still-current finding from edit A in that round, even when the
-finding was not ready during edit A's hook. An admission identifies each
-derived review unit and carries authorization and lifetime facts; it does not limit the batch
-to one edit or store a second ticket-wide outcome. Operational failure records use the
+finding was not ready during edit A's hook.
+
+The installed edit hook uses one bounded admission-and-collection RPC. Its active
+response context freezes the originating tool, root, advicee, resident lifetime,
+round, credential generation, configuration reference, expiry, and admission-time
+user opt-in. Final
+handoff rechecks credentials, source freshness, round authority, and current
+opt-in; later opt-in cannot elevate an advisory response. Closing or timing out
+the response releases provisional delivery leases and discards its context.
+Admitted preparation and review work continue under the resident lifetime and
+remain available to later synchronous collection or Stop, and to background
+collection for Codex. Common work, revision, reuse, and advice
+state determine readiness; no collectible ticket or per-unit outcome mirror is
+retained. Operational failure records use the
 same advicee scope across those opportunities, but are retained for diagnostics
 instead of being included in agent output. The installed edit path
-automatically starts a bounded background advice wait.
+automatically starts a bounded background advice wait for Codex only.
+Claude background invocations return without collecting or submitting advice.
 CLI and resident exchange one version 1 local IPC envelope across admission,
 collection, lifecycle, and delivery operations. An older peer's response cannot
 establish readiness, successful review, or submission.
-One waiter per advicee coalesces matching triggers, holds no advice lease while
+For Codex background collection, one waiter per advicee coalesces matching triggers, holds no advice lease while
 waiting, and exits quietly if no eligible advice becomes ready. A background
 wait with no reserved advice cannot prolong a settled finish decision. A
 reserved background advice submission can finish during the open finish call; only
@@ -272,7 +287,7 @@ without waiting for work whose advice cannot be presented.
 
 Successful stdout submission counts as delivery. Stop does not repeat a
 background finding after that submission, even though the runtime does not
-acknowledge model visibility. An uncertain background write may be offered
+acknowledge model visibility. An uncertain Codex background write may be offered
 **once** at a finish attempt in the same active virtual round.
 This uses its existing advice identity and a fresh eligibility check, never a
 second Jev evaluation. A live background advice submission keeps its lease;
@@ -303,7 +318,7 @@ Enabled work must eventually be scheduled, and matching authorization and
 completion facts must eventually be processed. A successful host acknowledgement
 must advance the handoff to recorded submission. This guarantees no agent receipt,
 model visibility or use beyond the acknowledged runtime boundary. Existing
-suppression and the one uncertain-background reoffer at Stop still apply; this
+suppression and the one uncertain Codex background reoffer at Stop still apply; this
 requirement does not authorize unlimited output retries.
 
 After a finite failure period, restoring these healthy conditions must let fresh

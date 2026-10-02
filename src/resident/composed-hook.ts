@@ -20,7 +20,7 @@ import {
   releaseComposedBackground,
 } from "./client.ts";
 import { residentPaths } from "./paths.ts";
-import { composedClaudeHostOutput } from "./collection.ts";
+import { claudeStopHostOutput } from "./collection.ts";
 
 export type ComposedHookKind = "background" | "stop" | "prompt" | "before-edit";
 export type ComposedHookHost = "codex-cli" | "claude-code";
@@ -93,6 +93,9 @@ export const runComposedHook = async (input: {
     await beforeQuiet();
     if (input.kind !== "background") await writeJson({}, deadlineAt);
   };
+  // Claude advice is synchronous or delivered at Stop. Background stdout does
+  // not establish model visibility and must not consume Stop's pending advice.
+  if (input.host === "claude-code" && input.kind === "background") return;
   const event = record(input.event);
   if (event === undefined) return quiet();
   const eventName = input.kind === "before-edit" ? "PreToolUse" : input.kind === "background" ? "PostToolUse"
@@ -178,8 +181,7 @@ export const runComposedHook = async (input: {
           if (!begun) { closeReason = "unavailable"; return quiet(); }
         }
         const output = input.host === "claude-code"
-          ? composedClaudeHostOutput(advice.output, advice.findingCount,
-              input.kind === "background" ? "background" : "stop")
+          ? claudeStopHostOutput(advice.output, advice.findingCount)
           : input.kind === "background" ? advice.output
             : advice.findingCount > 0 ? { decision: "block", reason: message }
               : { systemMessage: message };

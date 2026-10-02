@@ -363,18 +363,17 @@ for (const trace of revisionFixture.traces) {
   }
   assert.deepEqual(projectCanonical(current).revision, trace.revision, trace.name);
 }
-const ticketFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-ticket-v1.json"), "utf8"));
-for (const trace of ticketFixture.traces) {
+const authorityFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-response-authority-v1.json"), "utf8"));
+for (const trace of authorityFixture.traces) {
   let current = initialCanonical(fixture.limits);
   for (const { expect: expected, ...event } of trace.events) {
     const result = stepCanonical(current, event);
     current = result.state;
     const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) =>
-      command.kind === "ticketUnitSnapshot" ? `${command.kind}:${command.stage}${command.delivered ? ":delivered" : ""}${command.reason ? `:${command.reason}` : ""}` :
         "reason" in command ? `${command.kind}:${command.reason}` : command.kind).join(",");
     assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
   }
-  assert.deepEqual(projectCanonical(current).tickets, trace.tickets, trace.name);
+  assert.ok(!Object.hasOwn(projectCanonical(current), "tickets"), "canonical state must have no ticket registry");
 }
 const reuseFixture = JSON.parse(readFileSync(resolve(import.meta.dirname, "../../../conformance/canonical-reuse-v1.json"), "utf8"));
 for (const trace of reuseFixture.traces) {
@@ -418,7 +417,7 @@ for (const trace of retentionFixture.traces) {
     current = result.state;
     const actual = result.rejection ? `rejected:${result.rejection}` : result.commands.map((command) => {
       switch (command.kind) {
-        case "ticketEvicted": case "capacityGranted": case "reservationReleased": case "roundStarted":
+        case "capacityGranted": case "reservationReleased": case "roundStarted":
           return `${command.kind}:${command.id}`;
         case "prepare": return `${command.kind}:${command.operation}:${command.reservation}`;
         default: return command.kind;
@@ -427,7 +426,7 @@ for (const trace of retentionFixture.traces) {
     assert.equal(actual, expected, `${trace.name}: ${event.kind}`);
   }
   const projection = projectCanonical(current);
-  assert.deepEqual(projection.tickets, trace.tickets, trace.name);
+  assert.ok(!Object.hasOwn(projection, "tickets"));
   assert.equal(projection.dispatch.closed, trace.closed, trace.name);
   if (trace.rounds) assert.deepEqual(projection.rounds.map((round) => round.id).sort((a, b) => a - b), trace.rounds, trace.name);
 }
@@ -466,6 +465,6 @@ for (const trace of ruleFixture.traces) {
   assert.deepEqual(projectCanonical(current), before, `${trace.name}: rule facts are not retained`);
   assert.deepEqual(current, initialCanonical(fixture.limits), `${trace.name}: canonical state is unchanged`);
 }
-console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + ticketFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length + retentionFixture.traces.length + configurationFixture.traces.length + ruleFixture.traces.length} independent source-free canonical traces`);
+console.log(`checked ${fixture.traces.length + permitFixture.traces.length + reviewFixture.traces.length + dispatchFixture.traces.length + stopFixture.traces.length + collectionFixture.traces.length + deliveryFixture.traces.length + submissionFixture.traces.length + revisionFixture.traces.length + authorityFixture.traces.length + reuseFixture.traces.length + noticeFixture.traces.length + retentionFixture.traces.length + configurationFixture.traces.length + ruleFixture.traces.length} independent source-free canonical traces`);
 
 console.log(`checked round uniqueness after ${uniquenessCheckedTransitions} transitions across ${uniquenessCheckedKinds.size} event kinds`);

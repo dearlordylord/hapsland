@@ -4,6 +4,7 @@ import { recordRoundClosure, type RoundCloseReason } from "../activity/status.ts
 import { monotonicNow } from "./hook-clock.ts";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
+import * as Schedule from "effect/Schedule";
 import * as Schema from "effect/Schema";
 import type * as HttpClient from "effect/unstable/http/HttpClient";
 import { createHash, randomUUID } from "node:crypto";
@@ -49,6 +50,7 @@ import {
 } from "./paths.ts";
 import {
   DELIVERY_LEASE_MS,
+  EDIT_REQUEST_DEADLINE_MS,
   MAX_IPC_CONNECTIONS,
   MAX_IPC_FRAME_BYTES,
   decodeCurrentResidentRequest,
@@ -56,7 +58,6 @@ import {
   type ResidentDispatchContext,
   type ResidentRequest,
   type ResidentResponse,
-  type ResidentCollectionTicket,
   type ResidentUnavailableReason,
 } from "./protocol.ts";
 import {
@@ -67,18 +68,17 @@ import {
 import { DispatchQueue } from "./dispatch.ts";
 import { ComposedDelivery } from "./composed-delivery.ts";
 import { BendWorkTracker } from "./bend-work.ts";
-import type { CanonicalCommand, CanonicalEvent, TicketReason, TicketUnitEvent } from "../canonical/adapter.ts";
+import type { CanonicalCommand, CanonicalEvent } from "../canonical/adapter.ts";
 import {
   PENDING_ADVICE_EXPIRY_MS,
   combinedClaudeOutput,
   combinedReviewOutput,
-  encodedComposedClaudeOutputBytes,
-  selectFittingComposedClaudeFindings,
+  encodedClaudeStopOutputBytes,
+  selectFittingClaudeStopFindings,
   selectFittingFindings,
   selectFittingCurrentFindingIndices,
   selectFittingClaudeFindings,
   type ClaudeOutputMode,
-  type ComposedClaudeSurface,
   type CollectionMode,
   type FindingSelectionFacts,
   type CanonicalFindingOffer,
@@ -180,75 +180,30 @@ type IngressJob = {
   readonly dispatch: ResidentDispatchContext;
   analyticsEnabled?: boolean;
   analyticsDiscardReported?: boolean;
-  readonly ticket?: TicketRecord;
 };
 
-type TicketUnitState = { readonly revision?: WorkRevision; readonly adviceId?: string };
-type TicketUnit = { readonly id: number;
-  /** Admission capability generation, distinct from the canonical observation ID. */
-  readonly ticketId: number;
-  readonly ledger: CapacityLedger; current: TicketUnitState };
 type JoinedReview = {
   readonly admission: number;
   readonly evaluationKey: string;
   readonly observation: DirectObservation;
   readonly activityPath: string | undefined;
-  readonly ticketUnit?: TicketUnit;
   revision?: WorkRevision;
 };
-const ticketUnitStageOrUndefined = (unit: TicketUnit) => {
-  const command = unit.ledger.transition({ kind: "ticketUnitCheck", id: unit.ticketId,
-    unit: unit.id }).commands[0];
-  if (command?.kind === "ticketUnitSnapshot") return command;
-  if (command?.kind === "ticketUnitMissing") return undefined;
-  throw new Error("canonical ticket unit check refused");
+type ResponseAuthority = {
+  readonly lifetime: string; readonly partition: string;
+  readonly root: string; readonly advicee: DirectAdvicee; readonly userConfigPath: string | null; readonly claudeFeedbackMode: ClaudeOutputMode;
+  readonly credentialGeneration: number | null; readonly credentialStatePath: string | null;
+  readonly credentialRequired: boolean; readonly credentialEnvironmentOnly: boolean;
+  readonly expiresAt: number; readonly round: RoundWork | undefined;
 };
-const ticketUnitStage = (unit: TicketUnit) => {
-  const stage = ticketUnitStageOrUndefined(unit);
-  if (stage === undefined) throw new Error("canonical ticket unit missing");
-  return stage;
+type EditRequest = Extract<ResidentRequest, { operation: "admit-and-collect" }>;
+type EditCollectionRequest = {
+  readonly requestRoute: "edit"; readonly operation: "collect"; readonly lifetime: string;
+  readonly root: string; readonly advicee: DirectAdvicee; readonly dispatch: ResidentDispatchContext;
+  readonly composed: true; readonly mode: "ordinary";
 };
-const ticketUnitTransition = (unit: TicketUnit, event: TicketUnitEvent,
-  reason: TicketReason = "lost"): boolean => {
-  if (ticketUnitStageOrUndefined(unit) === undefined) return false;
-  const result = unit.ledger.transition({ kind: "ticketStepUnit", id: unit.ticketId,
-    unit: unit.id, event, reason });
-  const command = result.commands[0]?.kind;
-  if (command === "ticketUnitUpdated") return true;
-  if (command === "ticketRefused") return false;
-  throw new Error("canonical ticket unit transition refused");
-};
-const unitUnavailable = (unit: TicketUnit, reason: ResidentUnavailableReason): void => {
-  const before = ticketUnitStageOrUndefined(unit);
-  if (before === undefined || before.stage === "unavailable") return;
-  if (!ticketUnitTransition(unit, "failUnit", reason) || ticketUnitStage(unit).stage !== "unavailable") {
-    throw new Error("canonical ticket unit failure refused");
-  }
-  unit.current = {};
-};
-const unitRevision = (unit: TicketUnit, revision: WorkRevision): void => {
-  if (!ticketUnitTransition(unit, "revise")) return;
-  if (ticketUnitStage(unit).stage !== "pending") throw new Error("invalid canonical ticket revision stage");
-  unit.current = { revision };
-};
-const unitClear = (unit: TicketUnit, revision: WorkRevision): void => {
-  if (!ticketUnitTransition(unit, "clearResult")) return;
-  if (ticketUnitStage(unit).stage !== "clear") throw new Error("invalid canonical ticket clear stage");
-  unit.current = { revision };
-};
-const unitFinding = (unit: TicketUnit, revision: WorkRevision, adviceId: string): void => {
-  if (!ticketUnitTransition(unit, "findingResult")) return;
-  if (ticketUnitStage(unit).stage !== "finding") throw new Error("invalid canonical ticket finding stage");
-  unit.current = { revision, adviceId };
-};
-type TicketRecord = { readonly ticket: ResidentCollectionTicket; readonly generation: number;
-  readonly partition: string; readonly editAuthority: string; readonly credentialGeneration: number | null;
-  readonly root: string; readonly userConfigPath: string | null; readonly claudeFeedbackMode: ClaudeOutputMode;
-  readonly credentialStatePath: string | null; readonly credentialRequired: boolean;
-  readonly credentialEnvironmentOnly: boolean;
-  readonly expiresAt: number };
-const TICKET_RETENTION_MS = 600_000;
-const MAX_TICKETS = 256;
+type HandoffRequest = ResidentRequest | EditCollectionRequest;
+type ResponseContext = { authority?: ResponseAuthority; token?: string; readonly controller: AbortController };
 
 type UnitJob = {
   readonly canonicalRound: number;
@@ -273,8 +228,6 @@ type UnitJob = {
   readonly sourceHash?: string;
   revision: WorkRevision;
   readonly evaluationKey: string;
-  readonly ticketUnit?: TicketUnit;
-  readonly ticket?: TicketRecord;
 };
 
 type Job = IngressJob | UnitJob;
@@ -389,12 +342,6 @@ const adviceePartition = (root: string, advicee: DirectAdvicee) => canonicalValu
   hostVersion: advicee.hostVersion,
   sessionId: advicee.sessionId,
   subagentId: advicee.subagentId,
-});
-
-/** Individual edit authority for a tool-bound response or ticket. */
-const editAuthority = (root: string, advicee: DirectAdvicee) => canonicalValue({
-  partition: adviceePartition(root, advicee),
-  toolUseId: advicee.toolUseId,
 });
 
 const workSubject = (partition: string, prepared: PreparedUnit): string => canonicalValue({
@@ -536,11 +483,7 @@ export class ResidentServer {
   readonly #currentWork = new Map<string, CurrentWork>();
   readonly #bendPartitions = new Map<string, number>();
   #nextBendPartition = 1;
-  readonly #tickets = new Map<string, TicketRecord>();
-  readonly #ticketUnits = new Set<TicketUnit>();
   readonly #joinedReviews = new Map<string, Array<JoinedReview>>();
-  #nextAdmissionGeneration = 1;
-  #nextTicketUnitId = 1;
   readonly #ledger = new CapacityLedger(undefined, this.lifetime);
   readonly #reuse: EvaluationReuse<UnitJob>;
   readonly #dispatcher: DispatchQueue<string, Job>;
@@ -564,7 +507,6 @@ export class ResidentServer {
   });
   readonly #now: () => number;
   readonly #maximumOperationalNoticeKeys: number;
-  readonly #maximumTickets: number;
   #server: Server | undefined;
   #connections = 0;
   #lifecycle: "active" | "retiring" | "closed" = "active";
@@ -623,7 +565,6 @@ export class ResidentServer {
       /** Fixture-only gate entered by the controlled DecisionModel call. */
       readonly controlledRequestEffect?: () => Promise<void>;
       readonly beforeResponseHandoff?: () => Promise<void>;
-      readonly maximumTickets?: number;
     } = {},
   ) {
     const maximumOperationalNoticeKeys = options.maximumOperationalNoticeKeys ?? MAX_OPERATIONAL_NOTICE_KEYS;
@@ -635,11 +576,6 @@ export class ResidentServer {
       throw new RangeError(`maximumOperationalNoticeKeys must be an integer from 1 to ${MAX_OPERATIONAL_NOTICE_KEYS}`);
     }
     this.paths = paths;
-    const maximumTickets = options.maximumTickets ?? MAX_TICKETS;
-    if (!Number.isSafeInteger(maximumTickets) || maximumTickets < 1 || maximumTickets > MAX_TICKETS) {
-      throw new RangeError(`maximumTickets must be an integer from 1 to ${MAX_TICKETS}`);
-    }
-    this.#maximumTickets = maximumTickets;
     this.#now = now;
     this.#maximumOperationalNoticeKeys = maximumOperationalNoticeKeys;
     this.#beforeRevalidate = options.beforeRevalidate;
@@ -698,25 +634,6 @@ export class ResidentServer {
    * reached a terminal state. Successful cache entries are then discarded as
    * part of ending this lifetime; they never authorize source reconstruction.
    */
-  #evictRetainedTickets(limit: number): void {
-    while (true) {
-      const result = this.#ledger.transition({ kind: "ticketRetentionCheck", limit });
-      const command = result.commands[0];
-      if (result.rejection !== undefined || command === undefined) throw new Error("canonical ticket retention refused");
-      if (command.kind === "ticketKept") return;
-      if (command.kind !== "ticketEvicted") throw new Error("invalid canonical ticket retention");
-      const retained = [...this.#tickets].find(([, ticket]) => ticket.generation === command.id);
-      if (retained === undefined) throw new Error("canonical ticket eviction lost native handle");
-      if (retained[0] !== this.#tickets.keys().next().value) {
-        throw new Error("canonical ticket admission order differs from native retention");
-      }
-      this.#tickets.delete(retained[0]);
-      for (const unit of this.#ticketUnits) {
-        if (unit.ticketId === command.id) this.#ticketUnits.delete(unit);
-      }
-    }
-  }
-
   cleanup(): "busy" | "cleaned" {
     if (this.#lifecycle !== "active") return "busy";
     const now = this.#now();
@@ -740,7 +657,6 @@ export class ResidentServer {
     if (check.commands[0]?.kind === "cleanupBusy") return "busy";
     if (check.commands[0]?.kind !== "cleanupReady") throw new Error("invalid canonical cleanup check");
     this.#reuse.clear();
-    this.#evictRetainedTickets(0);
     const commit = this.#ledger.transition({ kind: "cleanupCommit" });
     if (commit.rejection !== undefined || commit.commands.length !== 1) throw new Error("canonical cleanup commit refused");
     if (commit.commands[0]?.kind === "cleanupBusy") return "busy";
@@ -760,20 +676,20 @@ export class ResidentServer {
     this.#ledger.pruneCollectionTokenIds(live);
   }
 
-  admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): ResidentResponse {
+  admit(observation: DirectObservation, dispatch: ResidentDispatchContext, composed = false, requirePermit = false): ResidentResponse {
     const now = this.#now();
     this.#expirePending(now);
     // Reclaim cooldown state whose active guarantee and pending notice have
     // both ended before it can cause an otherwise-valid admission to fail.
     this.#pruneNoticeCooldowns(now);
-    if (this.#lifecycle !== "active") return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
+    if (this.#lifecycle !== "active") return { status: "rejected-capacity" };
     const group = adviceePartition(observation.root, observation.advicee);
     const generation = composed ? this.#composedDelivery.admitEdit(group,
       observation.advicee.toolUseId, monotonicNow(), requirePermit) : undefined;
     if (composed && generation === undefined) {
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee,
         lifetime: this.lifetime, stage: "incomplete" });
-      return ticketed ? { requestRoute: "ticketed", status: "rejected-stale" } : { status: "rejected-stale" };
+      return { status: "rejected-stale" };
     }
     let round = composed ? this.#rounds.get(group) : undefined;
     if (generation !== undefined && round?.generation !== generation) {
@@ -791,30 +707,14 @@ export class ResidentServer {
       this.#rejectedCapacity += 1;
       this.#recordAnalytics({ observation, dispatch }, "capacity-rejected");
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
-      return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
+      return { status: "rejected-capacity" };
     }
     let canonicalObservationId: number;
     try {
       canonicalObservationId = this.#ledger.admitObservation(partition, canonicalRound);
     } catch {
       this.#ledger.release(reservation);
-      return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
-    }
-    const ticket: TicketRecord | undefined = ticketed ? {
-      ticket: { nonce: randomUUID(), lifetime: this.lifetime },
-      generation: this.#nextAdmissionGeneration++, partition,
-      editAuthority: editAuthority(observation.root, observation.advicee),
-      root: observation.root, userConfigPath: dispatch.userConfigPath,
-      claudeFeedbackMode: this.#currentClaudeFeedbackMode(observation.root, dispatch.userConfigPath),
-      credentialGeneration: dispatch.credential?.generation ?? null,
-      credentialStatePath: dispatch.credential?.statePath ?? null,
-      credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
-      credentialEnvironmentOnly: dispatch.credential?.environmentOnly ?? false,
-      expiresAt: now + TICKET_RETENTION_MS,
-    } : undefined;
-    if (ticket !== undefined && this.#ledger.transition({ kind: "ticketOpen",
-      id: ticket.generation }).commands[0]?.kind !== "ticketOpened") {
-      throw new Error("canonical ticket open refused");
+      return { status: "rejected-capacity" };
     }
     const job = {
       kind: "ingress" as const,
@@ -826,20 +726,14 @@ export class ResidentServer {
       partition,
       reservation,
       dispatch,
-      ...(ticket === undefined ? {} : { ticket }),
     };
     if (!this.#dispatcher.enqueue(partition, job)) {
-      if (ticket !== undefined) this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
       this.#ledger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound);
       this.#ledger.release(reservation);
       this.#rejectedCapacity += 1;
       this.#recordAnalytics({ observation, dispatch }, "capacity-rejected");
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
-      return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
-    }
-    if (ticket !== undefined) {
-      this.#tickets.set(ticket.ticket.nonce, ticket);
-      this.#evictRetainedTickets(this.#maximumTickets);
+      return { status: "rejected-capacity" };
     }
     const acceptedPath = process.env.REVIEW_RESIDENT_ADMISSION_ACCEPTED_PATH;
     if (acceptedPath !== undefined) void writeFile(acceptedPath, "accepted\n").catch(() => undefined);
@@ -855,7 +749,7 @@ export class ResidentServer {
       }
     }
     recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "pending" });
-    return ticket === undefined ? { status: "accepted" } : { requestRoute: "ticketed", status: "accepted", ticket: ticket.ticket };
+    return { status: "accepted" };
   }
 
   #collectionElapsed(now: number, started: number, limit: number): number {
@@ -968,40 +862,35 @@ export class ResidentServer {
     else if (result.commands[0]?.kind !== "collectionLeaseKept") throw new Error("invalid canonical collection lease check");
   }
 
-  collect(
-    root: string,
-    advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
-    mode?: CollectionMode,
-  ): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
-  collect(
-    root: string,
-    advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
-    mode: CollectionMode,
-    ticket: undefined,
-    composed: true,
-  ): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
-  collect(
-    root: string,
-    advicee: DirectAdvicee,
-    dispatch: ResidentDispatchContext,
-    mode: CollectionMode,
-    ticket: TicketRecord,
-    composed?: boolean,
-  ): Promise<ResidentResponse>;
-  async collect(
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext,
+    mode?: CollectionMode, authority?: undefined, composed?: boolean): Promise<Exclude<ResidentResponse, { requestRoute: "edit" }>>;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext,
+    mode: CollectionMode, authority: ResponseAuthority, composed: true, signal?: AbortSignal): Promise<ResidentResponse>;
+  async collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext,
+    mode: CollectionMode = "ordinary", authority?: ResponseAuthority, composed = false,
+    signal?: AbortSignal): Promise<ResidentResponse> {
+    const ownedTokens = new Set<string>();
+    const release = () => { for (const token of ownedTokens) this.releaseDelivery(token); };
+    signal?.addEventListener("abort", release, { once: true });
+    try { return await this.#collect(root, advicee, dispatch, mode, authority, composed, signal, ownedTokens); }
+    finally { signal?.removeEventListener("abort", release); if (signal?.aborted) release(); }
+  }
+
+  async #collect(
     root: string,
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode: CollectionMode = "ordinary",
-    ticket?: TicketRecord,
+    authority?: ResponseAuthority,
     composed = false,
+    signal?: AbortSignal,
+    ownedTokens?: Set<string>,
   ): Promise<ResidentResponse> {
     const partition = adviceePartition(root, advicee);
-    const claudeSurface: ComposedClaudeSurface | undefined = composed && ticket === undefined &&
-      advicee.host === "claude-code" ? mode === "turn-end" ? "stop" : "background" : undefined;
+    const claudeStop = composed && authority === undefined &&
+      advicee.host === "claude-code" && mode === "turn-end";
     const now = this.#now();
+    if (signal?.aborted) return { status: "empty" };
     if (composed && mode !== "turn-end" && this.#composedDelivery.isDeciding(partition)) return { status: "empty" };
     const stopCollector = composed && mode === "turn-end" && this.#composedDelivery.isDeciding(partition);
     this.#expirePending(now);
@@ -1035,9 +924,9 @@ export class ResidentServer {
         !this.#composedDelivery.suppresses(item.id,
           adviceePartition(item.observation.root, item.observation.advicee), finding,
           stopCollector ? "stop" : undefined));
-      const ticketOwns = ticket === undefined || ticket.partition === item.partition;
+      const authorityOwns = authority === undefined || authority.partition === item.partition;
       const result = this.#ledger.transition({ kind: "collectionCandidateCheck",
-        samePartition, unleased, hasUnsuppressed, ticketOwns });
+        samePartition, unleased, hasUnsuppressed, authorityOwns });
       if (result.rejection !== undefined) throw new Error("canonical advice candidate refused");
       if (result.commands[0]?.kind !== "collectionCandidate" && result.commands[0]?.kind !== "collectionSkip") {
         throw new Error("invalid canonical advice candidate");
@@ -1051,6 +940,7 @@ export class ResidentServer {
       .sort((left, right) => this.#collectionOrder(left, right))
       .map((item) => item.id);
     const token = randomUUID();
+    ownedTokens?.add(token);
     const fittingFindings = (
       retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>,
       advice: Advice, reportLimit: boolean,
@@ -1059,12 +949,12 @@ export class ResidentServer {
       const onLimited = reportLimit
         ? () => this.#recordOperationalFailure(advice.observation, "output-limit")
         : undefined;
-      return ticket === undefined
-        ? claudeSurface === undefined
+      return authority === undefined
+        ? !claudeStop
           ? selectFittingFindings(retained, candidates, facts, onLimited, this.#collectionFindingOffer)
-          : selectFittingComposedClaudeFindings(retained, candidates, claudeSurface,
+          : selectFittingClaudeStopFindings(retained, candidates,
               facts, onLimited, this.#collectionFindingOffer)
-        : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode,
+        : selectFittingClaudeFindings(retained, candidates, authority.claudeFeedbackMode,
           facts, onLimited, this.#collectionFindingOffer);
     };
     let handoffFindings: Array<Finding> = [];
@@ -1240,8 +1130,8 @@ export class ResidentServer {
           facts: this.#findingSelectionFacts(advice, partition, credentialGeneration, handoffNow, composed),
         })));
         const accepted = new Set(selectFittingCurrentFindingIndices(offers,
-          ticket === undefined ? claudeSurface === undefined ? "codex" :
-            claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
+          authority === undefined ? !claudeStop ? "codex" :
+            "claude-stop" : authority.claudeFeedbackMode,
           (index) => this.#recordOperationalFailure(offers[index]!.advice.observation,
             "output-limit", handoffNow),
           this.#collectionFindingOffer));
@@ -1255,14 +1145,15 @@ export class ResidentServer {
         handoffFindings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
       }
     }
+    if (signal?.aborted) { this.releaseDelivery(token); return { status: "empty" }; }
     // Operational failures stay in resident diagnostics; agent output carries
     // only actionable findings.
     if (handoffFindings.length === 0) return { status: "empty" };
-    return ticket === undefined
+    return authority === undefined
       ? { status: "advice", token, findingCount: handoffFindings.length,
           output: combinedReviewOutput(handoffFindings, []) }
-      : { requestRoute: "ticketed", status: "advice", token, findingCount: handoffFindings.length,
-          output: combinedClaudeOutput(handoffFindings, [], ticket.claudeFeedbackMode) };
+      : { requestRoute: "edit", status: "advice", token, findingCount: handoffFindings.length,
+          output: combinedClaudeOutput(handoffFindings, [], authority.claudeFeedbackMode) };
   }
 
   #candidateRoute(event: Extract<CanonicalEvent, { readonly kind:
@@ -1358,11 +1249,6 @@ export class ResidentServer {
         continue;
       }
       if (disposition.commands[0]?.kind === "deliveryRetireAdvice") {
-        for (const unit of this.#ticketUnits) {
-          if (ticketUnitStage(unit).stage === "finding" && unit.current.adviceId === item.id) {
-            ticketUnitTransition(unit, "markDelivered");
-          }
-        }
         this.#removeAdvice(item.id, token);
         continue;
       }
@@ -1488,7 +1374,7 @@ export class ResidentServer {
   pendingAdviceMetadata(): ReadonlyArray<{
     readonly id: string;
     readonly partition: string;
-      readonly sequence: number;
+    readonly sequence: number;
     readonly pendingAt: number;
     readonly collectionEligible: boolean;
     readonly retainedBytes: number;
@@ -1809,7 +1695,7 @@ export class ResidentServer {
     return this.#registerRevision(partition, prepared, true);
   }
 
-  #retireSuperseded(subject: string, generation: number, includeTickets: boolean): void {
+  #retireSuperseded(subject: string, generation: number, includeMembers: boolean): void {
     const superseded = (revision: WorkRevision): boolean => {
       const command = this.#ledger.transition({ kind: "revisionSupersededCheck",
         subject: this.#revisionSubject(subject),
@@ -1821,15 +1707,10 @@ export class ResidentServer {
       return command.kind === "revisionSuperseded";
     };
     if (this.#currentRevisionGeneration(subject) !== generation) throw new Error("canonical revision changed");
-    if (includeTickets) {
-      for (const unit of this.#ticketUnits) {
-        const revision = unit.current.revision;
-        if (revision !== undefined && superseded(revision)) unitUnavailable(unit, "stale");
-      }
+    if (includeMembers) {
       for (const [key, joined] of this.#joinedReviews) {
         const current = joined.filter((review) => {
           if (review.revision === undefined || !superseded(review.revision)) return true;
-          if (review.ticketUnit !== undefined) unitUnavailable(review.ticketUnit, "stale");
           recordActivity({ statePath: review.activityPath, root: review.observation.root,
             advicee: review.observation.advicee, lifetime: this.lifetime,
             stage: "unavailable", unitIdentity: review.evaluationKey });
@@ -1890,12 +1771,6 @@ export class ResidentServer {
         removed.round.policyWork.retire(removed.workUnitId);
       }
       this.#composedDelivery.forget(id);
-      for (const unit of this.#ticketUnits) {
-        const stage = ticketUnitStage(unit);
-        if (stage.stage === "finding" && unit.current.adviceId === id && !stage.delivered) {
-          unitUnavailable(unit, this.#adviceExpired(removed, this.#now()) ? "expired" : "stale");
-        }
-      }
       removed.retired = true;
       if (!removed.revalidationActive) this.#releaseUnit(removed);
       if (!this.#rounds.has(removed.partition) &&
@@ -1981,8 +1856,7 @@ export class ResidentServer {
       this.#ledger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound);
     }
     if (job.kind === "unit") {
-      if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
-      this.#settleJoined(job.evaluationKey, "unavailable", "lost");
+      this.#settleJoined(job.evaluationKey, "unavailable");
       this.#releaseReuseClaim(job.evaluationKey);
       // An issued Jev permit remains reserved until its native Effect settles.
       if (job.requestId === undefined) this.#releaseUnit(job);
@@ -2022,13 +1896,6 @@ export class ResidentServer {
     }
     this.#reuse.discardPartition(round.group);
     this.#bendPartitions.delete(round.group);
-    for (const [key, ticket] of this.#tickets) if (ticket.partition === round.group) {
-      this.#tickets.delete(key);
-      this.#ledger.transition({ kind: "ticketForget", id: ticket.generation });
-      for (const unit of this.#ticketUnits) {
-        if (unit.ticketId === ticket.generation) this.#ticketUnits.delete(unit);
-      }
-    }
     this.#ledger.retireRound(round.group, round.canonicalRound);
   }
 
@@ -2232,7 +2099,6 @@ export class ResidentServer {
           await this.#afterReuseBoundary("ownerClaimed");
         }
         if (!this.#jobActive(job)) { this.#ledger.release(workspace); return; }
-        const ticketUnitsByPlan = new Map<(typeof planned)[number], TicketUnit>();
         const retained = planned.filter((item) =>
           item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
         const reservations = this.#ledger.completePreparation(
@@ -2249,35 +2115,20 @@ export class ResidentServer {
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
-          const ticketUnit: TicketUnit | undefined = job.ticket === undefined ? undefined : {
-            id: this.#nextTicketUnitId++, ticketId: job.ticket.generation,
-            ledger: this.#ledger, current: {},
-          };
-          if (ticketUnit !== undefined && this.#ledger.transition({ kind: "ticketAddUnit",
-            id: ticketUnit.ticketId, unit: ticketUnit.id }).commands[0]?.kind !== "ticketUnitAdded") {
-            throw new Error("canonical ticket unit admission refused");
-          }
-          if (ticketUnit !== undefined) {
-            this.#ticketUnits.add(ticketUnit);
-            ticketUnitsByPlan.set(item, ticketUnit);
-          }
           if (item.kind === "cached" && item.cached.evaluation.findings.length === 0) {
             const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
-            if (ticketUnit !== undefined) unitClear(ticketUnit, revision);
             this.#releaseCurrentWork(revision);
             expectedActivityUnits.push(item.evaluationKey);
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "clear", unitIdentity: item.evaluationKey });
           } else if (item.kind === "joined") {
             const existing = this.#advice.find((advice) => advice.evaluationKey === item.evaluationKey);
             if (existing !== undefined) {
-              if (ticketUnit !== undefined) unitFinding(ticketUnit, existing.revision, existing.id);
               recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
                 advicee: job.observation.advicee, lifetime: this.lifetime, stage: "findings",
                 findings: existing.findings.length, unitIdentity: item.evaluationKey });
             } else {
               const pending = this.#reuse.pending(item.evaluationKey);
               if (pending === undefined && item.join !== "claimed") {
-                if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
                 recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
                   advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable",
                   unitIdentity: item.evaluationKey });
@@ -2285,9 +2136,7 @@ export class ResidentServer {
                 const joined: JoinedReview = { admission: job.canonicalObservationId,
                   evaluationKey: item.evaluationKey, observation: pathObservation,
                   activityPath: job.dispatch.activityPath,
-                  ...(ticketUnit === undefined ? {} : { ticketUnit }),
                   ...(pending === undefined ? {} : { revision: pending.revision }) };
-                if (ticketUnit !== undefined && pending !== undefined) unitRevision(ticketUnit, pending.revision);
                 const reviews = this.#joinedReviews.get(item.evaluationKey) ?? [];
                 reviews.push(joined);
                 this.#joinedReviews.set(item.evaluationKey, reviews);
@@ -2310,10 +2159,8 @@ export class ResidentServer {
             }
             return;
           }
-          const ticketUnit = ticketUnitsByPlan.get(item);
           const admitted = reservations[index];
           if (admitted === undefined) {
-            if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             if (item.kind === "owner") this.#releaseReuseClaim(item.evaluationKey, "capacity");
             this.#rejectedCapacity += 1;
             this.#recordAnalytics(job, "capacity-rejected");
@@ -2323,14 +2170,12 @@ export class ResidentServer {
           }
           const reservation = admitted.reservation;
           const revision = this.#registerCurrentWork(job.partition, item.outcome.prepared);
-          if (ticketUnit !== undefined) unitRevision(ticketUnit, revision);
           const workUnitId = job.round === undefined || job.workObservationId === undefined ? undefined
             : item.kind === "cached"
               ? job.round.policyWork.cachedFinding(job.workObservationId,
                 item.cached.evaluation.findings.length, logicalBytes(item.cached.evaluation.findings), admitted.operation)
               : job.round.policyWork.spawn(job.workObservationId, admitted.operation);
           if (job.round !== undefined && workUnitId === undefined) {
-            if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
             if (item.kind === "owner") this.#releaseReuseClaim(item.evaluationKey);
             this.#ledger.release(reservation);
             this.#releaseCurrentWork(revision);
@@ -2355,8 +2200,6 @@ export class ResidentServer {
             ...(sourceHash === undefined ? {} : { sourceHash }),
             revision,
             evaluationKey: item.evaluationKey,
-            ...(ticketUnit === undefined ? {} : { ticketUnit }),
-            ...(job.ticket === undefined ? {} : { ticket: job.ticket }),
           };
           if (item.kind === "cached") {
             if (!this.#ledger.startReview(job.partition, admitted.operation, job.canonicalRound) ||
@@ -2391,7 +2234,6 @@ export class ResidentServer {
           unassignedClaims.delete(item.evaluationKey);
           this.#attachClaimedJoined(item.evaluationKey, revision);
           if (!this.#dispatcher.enqueue(job.partition, unit)) {
-            if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             this.#releaseReuseClaim(item.evaluationKey, "capacity");
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
@@ -2510,8 +2352,7 @@ export class ResidentServer {
       if (!this.#jobActive(job) || !this.#isCurrentWork(job.revision, job.prepared)) {
         denyReady();
         this.#recordAnalytics(job, "review-unavailable");
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "stale");
-        this.#settleJoined(job.evaluationKey, "unavailable", "stale");
+        this.#settleJoined(job.evaluationKey, "unavailable");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
         this.#releaseReuseClaim(job.evaluationKey);
         this.#releaseUnit(job);
@@ -2682,10 +2523,7 @@ export class ResidentServer {
         { signal: job.work?.controller.signal ?? this.#lifetimeController.signal });
       if (result?.status === "notAuthorized") {
         this.#recordAnalytics(job, "review-unavailable");
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit,
-          result.reason === "credential" ? "credential" : "lost");
-        this.#settleJoined(job.evaluationKey, "unavailable",
-          result.reason === "credential" ? "credential" : "lost");
+        this.#settleJoined(job.evaluationKey, "unavailable");
         if (result.reason === "credential") this.#recordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
           advicee: job.observation.advicee, lifetime: this.lifetime,
@@ -2750,14 +2588,8 @@ export class ResidentServer {
               job.round !== undefined && job.workUnitId !== undefined) {
             job.round.policyWork.retire(job.workUnitId);
           }
-          if (job.ticketUnit !== undefined) {
-            if (disposition === "settleClear") {
-              unitClear(job.ticketUnit, job.revision);
-            } else unitUnavailable(job.ticketUnit, "stale");
-          }
           this.#settleJoined(job.evaluationKey,
-            disposition === "settleClear" ? "clear" : "unavailable",
-            "stale");
+            disposition === "settleClear" ? "clear" : "unavailable");
           job.completed = true;
           this.#releaseUnit(job);
           await recordOutcome();
@@ -2786,18 +2618,15 @@ export class ResidentServer {
         observeRequest("settled", issuedRequest, observed ?? "neverSent");
       }
       if (failure === "failureBackend") {
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
-        this.#settleJoined(job.evaluationKey, "unavailable", "backend");
+        this.#settleJoined(job.evaluationKey, "unavailable");
         this.#recordOperationalFailure(job.observation, "backend");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureCredential") {
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "credential");
-        this.#settleJoined(job.evaluationKey, "unavailable", "credential");
+        this.#settleJoined(job.evaluationKey, "unavailable");
         this.#recordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureLost") {
-        if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "lost");
-        this.#settleJoined(job.evaluationKey, "unavailable", "lost");
+        this.#settleJoined(job.evaluationKey, "unavailable");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure !== "failureNone") {
         throw new Error("Bend denied review failure disposition");
@@ -2816,8 +2645,7 @@ export class ResidentServer {
         requestSettled = true;
         observeRequest("settled", issuedRequest, observed);
       }
-      if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "backend");
-      this.#settleJoined(job.evaluationKey, "unavailable", "backend");
+      this.#settleJoined(job.evaluationKey, "unavailable");
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident evaluation unavailable");
       if (this.#lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
         root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime,
@@ -2833,9 +2661,6 @@ export class ResidentServer {
     for (const joined of this.#joinedReviews.get(key) ?? []) {
       if (joined.revision !== undefined) continue;
       joined.revision = revision;
-      if (joined.ticketUnit !== undefined && ticketUnitStageOrUndefined(joined.ticketUnit)?.stage === "pending") {
-        unitRevision(joined.ticketUnit, revision);
-      }
     }
   }
 
@@ -2847,7 +2672,6 @@ export class ResidentServer {
     for (const review of joined) {
       if (review.revision !== undefined) attached.push(review);
       else {
-        if (review.ticketUnit !== undefined) unitUnavailable(review.ticketUnit, reason);
         recordActivity({ statePath: review.activityPath, root: review.observation.root,
           advicee: review.observation.advicee, lifetime: this.lifetime,
           stage: "unavailable", unitIdentity: review.evaluationKey });
@@ -2857,39 +2681,25 @@ export class ResidentServer {
     else this.#joinedReviews.delete(key);
   }
 
-  #settleJoined(key: string, state: "pending" | "clear" | "finding" | "unavailable", reason?: ResidentUnavailableReason,
+  #settleJoined(key: string, state: "pending" | "clear" | "finding" | "unavailable",
     adviceId?: string): void {
     const joined = this.#joinedReviews.get(key);
     if (joined === undefined) return;
     this.#joinedReviews.delete(key);
     for (const review of joined) {
-      const unit = review.ticketUnit;
       const revision = review.revision;
       let outcome: "clear" | "findings" | "unavailable" | undefined;
-      if (unit !== undefined && ticketUnitStageOrUndefined(unit) !== undefined) {
-        const stage = ticketUnitStage(unit);
-        const disposition = this.#ledger.transition({ kind: "ticketJoinedCheck", state,
-          staleUnavailable: stage.stage === "unavailable" && stage.reason === "stale",
-          hasRevision: revision !== undefined, hasAdviceId: adviceId !== undefined }).commands[0]?.kind;
-        switch (disposition) {
-          case "ticketKeepJoined": break;
-          case "ticketSetJoinedUnavailable": unitUnavailable(unit, reason ?? "lost"); outcome = "unavailable"; break;
-          case "ticketSetJoinedLost": unitUnavailable(unit, "lost"); outcome = "unavailable"; break;
-          case "ticketSetJoinedClear":
-            if (revision === undefined) throw new Error("Bend joined clear lacks revision");
-            unitClear(unit, revision);
-            outcome = "clear";
-            break;
-          case "ticketSetJoinedFinding":
-            if (revision === undefined || adviceId === undefined) throw new Error("Bend joined finding lacks identity");
-            unitFinding(unit, revision, adviceId);
-            outcome = "findings";
-            break;
-          default: throw new Error("Bend denied joined ticket disposition");
-        }
-      } else if (state === "clear" || state === "finding") {
-        outcome = revision === undefined ? "unavailable" : state === "clear" ? "clear" : "findings";
-      } else if (state === "unavailable") outcome = "unavailable";
+      const disposition = this.#ledger.transition({ kind: "reuseMemberCheck", state,
+        staleUnavailable: revision !== undefined && this.#currentRevisionGeneration(revision.subject) !== revision.generation,
+        hasRevision: revision !== undefined,
+        hasAdviceId: adviceId !== undefined && this.#advice.some((advice) => advice.id === adviceId) }).commands[0]?.kind;
+      switch (disposition) {
+        case "reuseKeepMember": break;
+        case "reuseSetMemberUnavailable": case "reuseSetMemberLost": outcome = "unavailable"; break;
+        case "reuseSetMemberClear": outcome = "clear"; break;
+        case "reuseSetMemberFinding": outcome = "findings"; break;
+        default: throw new Error("canonical reuse member disposition refused");
+      }
       if (outcome !== undefined) recordActivity({ statePath: review.activityPath,
         root: review.observation.root, advicee: review.observation.advicee,
         lifetime: this.lifetime, stage: outcome,
@@ -2911,10 +2721,7 @@ export class ResidentServer {
     }
     if (this.#advice.some((item) => item.evaluationKey === job.evaluationKey)) {
       const existing = this.#advice.find((item) => item.evaluationKey === job.evaluationKey);
-      if (job.ticketUnit !== undefined && existing !== undefined) {
-        unitFinding(job.ticketUnit, job.revision, existing.id);
-      }
-      if (existing !== undefined) this.#settleJoined(job.evaluationKey, "finding", undefined, existing.id);
+      if (existing !== undefined) this.#settleJoined(job.evaluationKey, "finding", existing.id);
       if (job.round !== undefined && job.workUnitId !== undefined) job.round.policyWork.retire(job.workUnitId);
       this.#releaseUnit(job);
       return;
@@ -2959,14 +2766,12 @@ export class ResidentServer {
     job.completed = true;
     const afterPending = this.#afterAdvicePending?.(advice.id);
     if (afterPending === undefined) {
-      if (job.ticketUnit !== undefined) unitFinding(job.ticketUnit, job.revision, advice.id);
-      this.#settleJoined(job.evaluationKey, "finding", undefined, advice.id);
+      this.#settleJoined(job.evaluationKey, "finding", advice.id);
       return;
     }
     return Promise.resolve(afterPending).then(() => {
       if (!this.#jobActive(job)) return;
-      if (job.ticketUnit !== undefined) unitFinding(job.ticketUnit, job.revision, advice.id);
-      this.#settleJoined(job.evaluationKey, "finding", undefined, advice.id);
+      this.#settleJoined(job.evaluationKey, "finding", advice.id);
     });
   }
 
@@ -3036,22 +2841,62 @@ export class ResidentServer {
     }
   }
 
-  async handle(request: ResidentRequest): Promise<ResidentResponse> {
+  #editCollectionRequest(request: EditRequest): EditCollectionRequest {
+    return { requestRoute: "edit", operation: "collect", lifetime: request.lifetime,
+      root: request.observation.root, advicee: request.observation.advicee,
+      dispatch: request.dispatch, composed: true, mode: "ordinary" };
+  }
+
+  async #admitAndCollect(request: EditRequest, context: ResponseContext): Promise<ResidentResponse> {
+    const { observation, dispatch } = request;
+    const startedAt = this.#now();
+    const group = adviceePartition(observation.root, observation.advicee);
+    // Capture opt-in before admission; later opt-in cannot elevate this response attempt.
+    const mode = this.#currentClaudeFeedbackMode(observation.root, dispatch.userConfigPath);
+    const admitted = this.admit(observation, dispatch, true, true);
+    if (admitted.status !== "accepted") return { requestRoute: "edit", status:
+      admitted.status === "rejected-stale" ? "rejected-stale" : "rejected-capacity" };
+    const authority: ResponseAuthority = {
+      lifetime: this.lifetime, partition: group,
+      root: observation.root, advicee: observation.advicee, userConfigPath: dispatch.userConfigPath,
+      claudeFeedbackMode: mode, credentialGeneration: dispatch.credential?.generation ?? null,
+      credentialStatePath: dispatch.credential?.statePath ?? null,
+      credentialRequired: dispatch.controlled === null || dispatch.controlled.requireCredential === true,
+      credentialEnvironmentOnly: dispatch.credential?.environmentOnly ?? false,
+      // Preserve the original authority expiry separately from this request's shorter waiting budget.
+      expiresAt: startedAt + 600_000, round: this.#rounds.get(group),
+    };
+    context.authority = authority;
+    const server = this;
+    const pass = Effect.fn("Resident.collectEditResponse")(function* () {
+      const gate = yield* Effect.sync(() => server.#collectorGate(authority, dispatch, server.#now()));
+      if (gate !== undefined) return gate;
+      const response = yield* Effect.promise((signal) => server.collect(observation.root, observation.advicee,
+        dispatch, "ordinary", authority, true, AbortSignal.any([signal, context.controller.signal])));
+      if (response.status === "advice") context.token = response.token;
+      return response.status === "advice" ? response : server.#editCollectionStatus(authority, server.#now());
+    });
+    return Effect.runPromise(pass().pipe(
+      Effect.repeat({ schedule: Schedule.spaced("50 millis"), while: (response) => response.status === "pending" }),
+      Effect.timeoutOrElse({ duration: request.waitMs, orElse: () => Effect.succeed<ResidentResponse>({ requestRoute: "edit", status: "pending" }) }),
+    ), { signal: context.controller.signal }).catch(() => ({ requestRoute: "edit", status: "unavailable", reason: "lost" }));
+  }
+
+  async handle(request: ResidentRequest, context: ResponseContext = { controller: new AbortController() }): Promise<ResidentResponse> {
     if (request.operation === "hello") {
       return this.#lifecycle === "active"
         ? { status: "ready", lifetime: this.lifetime, pid: process.pid }
         : { status: "obsolete-lifetime" };
     }
     if (request.lifetime !== this.lifetime || this.#lifecycle !== "active") {
-      return request.requestRoute === "ticketed"
-        ? request.operation === "collect" ? { requestRoute: "ticketed", status: "unavailable", reason: "lost" }
-          : { requestRoute: "ticketed", status: "obsolete-lifetime" }
+      return request.requestRoute === "edit"
+        ? { requestRoute: "edit", status: "unavailable", reason: "lost" }
         : { status: "obsolete-lifetime" };
     }
-    if (request.operation === "register-edit" || request.operation === "admit" ||
+    if (request.operation === "register-edit" || request.operation === "admit" || request.operation === "admit-and-collect" ||
         request.operation === "begin-stop") this.sweepQuietRounds();
     if (("advicee" in request && request.advicee.host === "opencode") ||
-        (request.operation === "admit" && request.observation.advicee.host === "opencode")) return { status: "unsupported" };
+        ((request.operation === "admit" || request.operation === "admit-and-collect") && request.observation.advicee.host === "opencode")) return { status: "unsupported" };
     if (request.operation === "prompt-marker") {
       const group = adviceePartition(request.root, request.advicee);
       return (request.onlyIfMissing === true
@@ -3110,25 +2955,14 @@ export class ResidentServer {
       if (!decision.accepted) return { status: "rejected-stale", reason: decision.reason };
       return { status: "advanced" };
     }
+    if (request.operation === "admit-and-collect") return this.#admitAndCollect(request, context);
     if (request.operation === "admit") {
       if (request.composed !== true) return { status: "unsupported" };
-      return this.admit(request.observation, request.dispatch, request.requestRoute === "ticketed", true, true);
+      return this.admit(request.observation, request.dispatch, true, true);
     }
     if (request.operation === "collect") {
       if (request.composed !== true || (request.mode === "turn-end" &&
-          (request.requestRoute === "ticketed" || request.finish === undefined))) return { status: "unsupported" };
-      if (request.requestRoute === "ticketed") {
-        const ticket = this.#ticketFor(request.ticket, request.root, request.advicee,
-          true);
-        if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
-        const gate = this.#ticketCollectGate(ticket, request.dispatch, this.#now());
-        if (gate !== undefined) return gate;
-        const collected = await this.collect(request.root, request.advicee, request.dispatch,
-          request.mode ?? "ordinary", ticket, true);
-        return collected.status === "advice" ? { ...collected, requestRoute: "ticketed" }
-          : this.#ticketCollectionStatus(ticket, request.root, request.advicee,
-              true, this.#now());
-      }
+          request.finish === undefined)) return { status: "unsupported" };
       if (request.finish !== undefined) {
         const group = adviceePartition(request.root, request.advicee);
         if (!this.#composedDelivery.ownsStop(group, request.finish.token)) return { status: "empty" };
@@ -3202,51 +3036,39 @@ export class ResidentServer {
     return { status: "unsupported" };
   }
 
-  #ticketFor(ticket: ResidentCollectionTicket, root: string, advicee: DirectAdvicee,
-    composed = false): TicketRecord | undefined {
-    const retained = this.#tickets.get(ticket.nonce);
-    const basePartition = adviceePartition(root, advicee);
-    return retained?.ticket.lifetime === this.lifetime && ticket.lifetime === this.lifetime &&
-      retained.ticket.nonce === ticket.nonce && retained.generation > 0 &&
-      retained.partition === basePartition &&
-      retained.editAuthority === editAuthority(root, advicee)
-      ? retained : undefined;
-  }
-
   #currentClaudeFeedbackMode(root: string, userConfigPath: string | null): ClaudeOutputMode {
     const authority = readCurrentClaudeFeedbackAuthority(root, userConfigPath ?? undefined);
     return authority.valid ? authority.mode : "advisory";
   }
 
-  #ticketCollectGate(ticket: TicketRecord, dispatch: ResidentDispatchContext,
+  #collectorGate(authority: ResponseAuthority, dispatch: ResidentDispatchContext,
     now: number): ResidentResponse | undefined {
-    const command = this.#ledger.transition({ kind: "ticketCollectGateCheck",
-      expired: now >= ticket.expiresAt,
-      credentialValid: ticket.credentialGeneration === (dispatch.credential?.generation ?? null) &&
-        this.#credentialAuthority(ticket) }).commands[0];
-    if (command?.kind === "ticketCollectProceed") return undefined;
-    if (command?.kind === "ticketCollectUnavailable") {
-      return { requestRoute: "ticketed", status: "unavailable", reason: command.reason };
+    if (authority.lifetime !== this.lifetime || this.#lifecycle !== "active" ||
+        !this.#roundActive(authority.round)) return { requestRoute: "edit", status: "unavailable", reason: "lost" };
+    const command = this.#ledger.transition({ kind: "collectorGateCheck",
+      expired: now >= authority.expiresAt,
+      credentialValid: authority.credentialGeneration === (dispatch.credential?.generation ?? null) &&
+        this.#credentialAuthority(authority) }).commands[0];
+    if (command?.kind === "collectorProceed") return undefined;
+    if (command?.kind === "collectorUnavailable") {
+      return { requestRoute: "edit", status: "unavailable", reason: command.reason };
     }
-    throw new Error("canonical ticket collect gate refused");
+    throw new Error("canonical authority collect gate refused");
   }
 
-  #ticketCollectionStatus(ticket: TicketRecord, root: string, advicee: DirectAdvicee,
-    composed: boolean, now: number): ResidentResponse {
-    const partition = composed ? adviceePartition(root, advicee) : ticket.partition;
-    const hasAdvice = this.#advice.some((item) =>
-      (composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
-        : item.partition === partition) && !this.#adviceExpired(item, now));
-    return { requestRoute: "ticketed", status: hasAdvice || this.#collectionWorkCount(root, advicee, composed) > 0
-      ? "pending" : "empty" };
+  #editCollectionStatus(authority: ResponseAuthority, now: number): ResidentResponse {
+    const hasAdvice = this.#advice.some((item) => item.partition === authority.partition &&
+      !this.#adviceExpired(item, now));
+    return { requestRoute: "edit", status: hasAdvice ||
+      this.#collectionWorkCount(authority.root, authority.advicee, true) > 0 ? "pending" : "empty" };
   }
 
-  #credentialAuthority(ticket: TicketRecord): boolean {
-    if (!ticket.credentialRequired) return true;
-    const credentialState = ticket.credentialStatePath === null ? undefined : readCredentialState(ticket.credentialStatePath);
+  #credentialAuthority(authority: ResponseAuthority): boolean {
+    if (!authority.credentialRequired) return true;
+    const credentialState = authority.credentialStatePath === null ? undefined : readCredentialState(authority.credentialStatePath);
     return credentialState !== undefined &&
-      credentialState.generation === ticket.credentialGeneration &&
-      (ticket.credentialEnvironmentOnly || !credentialState.savedUseSuspended);
+      credentialState.generation === authority.credentialGeneration &&
+      (authority.credentialEnvironmentOnly || !credentialState.savedUseSuspended);
   }
 
   #adviceCredentialAuthority(advice: Advice): boolean {
@@ -3257,14 +3079,15 @@ export class ResidentServer {
   }
 
   async #responseGate(operation: ResidentRequest["operation"], response: ResidentResponse): Promise<void> {
-    const variable = operation === "collect" && response.status === "advice" &&
+    const collecting = operation === "collect" || operation === "admit-and-collect";
+    const variable = collecting && response.status === "advice" &&
         process.env.REVIEW_RESIDENT_COLLECT_ADVICE_RESPONSE_GATE_PATH !== undefined
       ? "REVIEW_RESIDENT_COLLECT_ADVICE_RESPONSE_GATE_PATH"
       : operation === "admit"
       ? "REVIEW_RESIDENT_ADMIT_RESPONSE_GATE_PATH"
       : operation === "cleanup"
         ? "REVIEW_RESIDENT_CLEANUP_RESPONSE_GATE_PATH"
-        : operation === "collect"
+        : collecting
           ? "REVIEW_RESIDENT_COLLECT_RESPONSE_GATE_PATH"
           : operation === "acknowledge"
             ? "REVIEW_RESIDENT_ACK_RESPONSE_GATE_PATH"
@@ -3288,7 +3111,7 @@ export class ResidentServer {
   }
 
   /** Recheck source with the same bounded, descriptor-anchored capture used at preparation. */
-  async #handoffSourceCurrent(response: ResidentResponse): Promise<ReadonlyMap<string, boolean>> {
+  async #handoffSourceCurrent(response: ResidentResponse, signal?: AbortSignal): Promise<ReadonlyMap<string, boolean>> {
     const current = new Map<string, boolean>();
     if (response.status !== "advice") return current;
     for (const advice of this.#advice) {
@@ -3297,37 +3120,34 @@ export class ResidentServer {
       const captured = await Effect.runPromise(captureStable(advice.observation.root, {
         relativePath,
         absolutePath: resolve(advice.observation.root, relativePath),
-      }, {}, advice.observation.rootIdentity));
+      }, {}, advice.observation.rootIdentity), { signal });
       current.set(advice.id, advice.sourceHash !== undefined && captured?.contentHash === advice.sourceHash);
     }
     return current;
   }
 
   /** Final policy barrier after bounded source capture and response gates. */
-  #responseForHandoff(request: ResidentRequest, response: ResidentResponse,
-    sourceCurrent: ReadonlyMap<string, boolean>): ResidentResponse {
+  #responseForHandoff(request: HandoffRequest, response: ResidentResponse,
+    sourceCurrent: ReadonlyMap<string, boolean>, authority?: ResponseAuthority): ResidentResponse {
     if (response.status !== "advice") {
       if (request.requestRoute === "shared" && request.operation === "collect" && request.finish === undefined && request.reportWorkState === true &&
           (response.status === "empty" || response.status === "pending")) {
         return this.#collectionWorkState(request.root, request.advicee, request.composed === true);
       }
-      if (request.requestRoute !== "ticketed" || request.operation !== "collect") return response;
+      if (request.requestRoute !== "edit" || request.operation !== "collect" ||
+          (response.status !== "pending" && response.status !== "empty")) return response;
       const now = this.#now();
       this.#expirePending(now);
       this.#pruneNoticeCooldowns(now);
-      const ticket = this.#ticketFor(request.ticket, request.root, request.advicee,
-        request.composed === true);
-      if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
-      return this.#ticketCollectGate(ticket, request.dispatch, now) ??
-        this.#ticketCollectionStatus(ticket, request.root, request.advicee,
-          request.composed === true, now);
+      if (authority === undefined) return { requestRoute: "edit", status: "unavailable", reason: "lost" };
+      return this.#collectorGate(authority, request.dispatch, now) ?? this.#editCollectionStatus(authority, now);
     }
     const now = this.#now();
     this.#expirePending(now);
     this.#pruneNoticeCooldowns(now);
-    const sharedCollect = request.operation === "collect" && request.requestRoute !== "ticketed";
+    const validateAdviceCredentials = request.operation === "collect";
     let invalidCredential = false;
-    if (sharedCollect) for (const advice of this.#advice) {
+    if (validateAdviceCredentials) for (const advice of this.#advice) {
       if (advice.delivery?.token !== response.token || invalidCredential) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
       const observed = this.#ledger.transition({ kind: "deliveryCredentialObserveCheck",
@@ -3337,11 +3157,11 @@ export class ResidentServer {
       invalidCredential = observed.commands[0]?.kind === "deliveryCredentialInvalid";
     }
     const credentialGate = this.#ledger.transition({ kind: "deliveryFinalCredentialCheck",
-      sharedCollect, invalidSeen: invalidCredential });
+      sharedCollect: validateAdviceCredentials, invalidSeen: invalidCredential });
     if (credentialGate.rejection !== undefined || credentialGate.commands.length !== 1) throw new Error("canonical final credential gate refused");
     if (credentialGate.commands[0]?.kind !== "deliveryBatchProceed") {
       this.releaseComposedSubmission(response.token);
-      return { status: "empty" };
+      return request.requestRoute === "edit" ? { requestRoute: "edit", status: "unavailable", reason: "credential" } : { status: "empty" };
     }
     const handoff: Array<Advice> = [];
     for (const advice of [...this.#advice]) {
@@ -3363,13 +3183,9 @@ export class ResidentServer {
       advice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
       handoff.push(advice);
     }
-    const ticket = request.requestRoute === "ticketed" && request.operation === "collect"
-      ? this.#ticketFor(request.ticket, request.root, request.advicee,
-          request.composed === true)
-      : undefined;
-    if (request.requestRoute === "ticketed" && request.operation === "collect" && ticket === undefined) {
+    if (request.requestRoute === "edit" && authority === undefined) {
       this.releaseDelivery(response.token);
-      return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
+      return { requestRoute: "edit", status: "unavailable", reason: "lost" };
     }
     if (request.operation === "collect") {
       const composed = request.composed === true;
@@ -3386,11 +3202,11 @@ export class ResidentServer {
         finding,
         facts: this.#findingSelectionFacts(advice, partition, generation, now, composed),
       })));
-      const claudeSurface = composed && ticket === undefined && request.advicee.host === "claude-code"
-        ? request.mode === "turn-end" ? "stop" : "background" : undefined;
+      const claudeStop = composed && authority === undefined && request.advicee.host === "claude-code"
+        && request.mode === "turn-end";
       const accepted = new Set(selectFittingCurrentFindingIndices(offers,
-        ticket === undefined ? claudeSurface === undefined ? "codex" :
-          claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
+        authority === undefined ? !claudeStop ? "codex" :
+          "claude-stop" : authority.claudeFeedbackMode,
         undefined, this.#collectionFindingOffer));
       let index = 0;
       for (const advice of handoff) {
@@ -3402,12 +3218,11 @@ export class ResidentServer {
     const findings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
     const notices = this.#noticesForToken(response.token);
     if (request.operation === "collect" && request.requestRoute === "shared" && request.composed === true &&
-        request.advicee.host === "claude-code") {
-      const surface = request.mode === "turn-end" ? "stop" : "background";
+        request.advicee.host === "claude-code" && request.mode === "turn-end") {
       const fit = this.#ledger.transition({ kind: "collectionFitCheck",
         items: findings.length + notices.length,
-        bytes: encodedComposedClaudeOutputBytes(findings,
-          notices.map((notice) => notice.value), surface) });
+        bytes: encodedClaudeStopOutputBytes(findings,
+          notices.map((notice) => notice.value)) });
       if (fit.rejection !== undefined || fit.commands.length !== 1) {
         throw new Error("canonical final response fit refused");
       }
@@ -3422,42 +3237,40 @@ export class ResidentServer {
     for (const notice of notices) {
       if (notice.delivery !== undefined) notice.delivery.leaseUntil = now + DELIVERY_LEASE_MS;
     }
-    if (ticket !== undefined && request.operation === "collect") {
-      const gate = this.#ticketCollectGate(ticket, request.dispatch, now);
+    if (authority !== undefined && request.operation === "collect") {
+      const gate = this.#collectorGate(authority, request.dispatch, now);
       if (gate !== undefined) {
         this.releaseDelivery(response.token);
         return gate;
       }
     }
-    const admittedBlock = ticket?.claudeFeedbackMode === "block-current-findings";
-    const currentBlock = admittedBlock && ticket !== undefined &&
-      this.#currentClaudeFeedbackMode(ticket.root, ticket.userConfigPath) === "block-current-findings";
-    if (ticket !== undefined && request.operation === "collect" && request.requestRoute === "ticketed" &&
-        this.#ledger.transition({ kind: "ticketFinalAuthorityCheck", admittedBlock,
-      currentBlock }).commands[0]?.kind !== "ticketFinalProceed") {
+    const admittedBlock = authority?.claudeFeedbackMode === "block-current-findings";
+    const currentBlock = admittedBlock && authority !== undefined &&
+      this.#currentClaudeFeedbackMode(authority.root, authority.userConfigPath) === "block-current-findings";
+    if (authority !== undefined && request.operation === "collect" && request.requestRoute === "edit" &&
+        this.#ledger.transition({ kind: "collectorFinalAuthorityCheck", admittedBlock,
+      currentBlock }).commands[0]?.kind !== "collectorFinalProceed") {
       // A revoked opt-in cannot turn the old selection into an advisory lease.
       this.releaseDelivery(response.token);
-      return this.#ticketCollectionStatus(ticket, request.root, request.advicee,
-        request.composed === true, now);
+      return this.#editCollectionStatus(authority, now);
     }
     const selected: ResidentResponse = findings.length === 0 && notices.length === 0
       ? { status: "empty" }
-      : ticket === undefined
+      : authority === undefined
         ? { status: "advice", token: response.token, findingCount: findings.length,
             output: combinedReviewOutput(findings, notices.map((notice) => notice.value)) }
-        : { requestRoute: "ticketed", status: "advice", token: response.token, findingCount: findings.length,
-            output: combinedClaudeOutput(findings, notices.map((notice) => notice.value), ticket.claudeFeedbackMode) };
-    if (request.requestRoute !== "ticketed" || request.operation !== "collect") return selected;
-    if (ticket === undefined) return { requestRoute: "ticketed", status: "unavailable", reason: "lost" };
-    return selected.status === "advice" ? { ...selected, requestRoute: "ticketed" }
-      : this.#ticketCollectionStatus(ticket, request.root, request.advicee,
-          request.composed === true, now);
+        : { requestRoute: "edit", status: "advice", token: response.token, findingCount: findings.length,
+            output: combinedClaudeOutput(findings, notices.map((notice) => notice.value), authority.claudeFeedbackMode) };
+    if (request.requestRoute !== "edit" || request.operation !== "collect") return selected;
+    if (authority === undefined) return { requestRoute: "edit", status: "unavailable", reason: "lost" };
+    return selected.status === "advice" ? { ...selected, requestRoute: "edit" }
+      : this.#editCollectionStatus(authority, now);
   }
 
   /** Replace a provisional Stop reservation with the exact final IPC batch. */
   #reconcileFinishHandoff(request: ResidentRequest, provisional: ResidentResponse,
     final: ResidentResponse, canWrite: boolean): ResidentResponse {
-    if (request.operation !== "collect" || request.requestRoute === "ticketed" || request.finish === undefined ||
+    if (request.operation !== "collect" || request.finish === undefined ||
         provisional.status !== "advice" || provisional.findingCount === 0) return final;
     const group = adviceePartition(request.root, request.advicee);
     if (!this.#composedDelivery.revokeProvisionalFinishOutput(group, request.finish.token, provisional.token)) {
@@ -3498,9 +3311,14 @@ export class ResidentServer {
     let bytes = 0;
     let encoded = "";
     let handled = false;
+    let handledResponse = false;
     let request: ResidentRequest | undefined;
+    const context: ResponseContext = { controller: new AbortController() };
     socket.setTimeout(1_500, () => socket.destroy());
     socket.once("close", () => {
+      context.controller.abort();
+      if (!handledResponse && context.token !== undefined) this.releaseDelivery(context.token);
+      delete context.authority;
       this.#connections -= 1;
       this.#scheduleIdleCheck();
       const closedPath = process.env.REVIEW_RESIDENT_COLLECT_DISCONNECT_PATH;
@@ -3531,12 +3349,26 @@ export class ResidentServer {
         socket.end(`${encodeCurrentResidentResponse({ status: "unsupported" })}\n`);
         return;
       }
+      if (decoded.operation === "admit-and-collect") socket.setTimeout(EDIT_REQUEST_DEADLINE_MS);
       this.#pruneCollectionTokenIds();
-      void this.handle(decoded).then(async (response) => {
+      void this.handle(decoded, context).then(async (response) => {
+        if (response.status === "advice") context.token = response.token;
+        if (socket.destroyed) {
+          this.#reconcileFinishHandoff(decoded, response, { status: "empty" }, false);
+          if (context.token !== undefined) this.releaseDelivery(context.token);
+          if (response.status === "cleaned") this.#scheduleRetirementClose();
+          return;
+        }
         await this.#responseGate(decoded.operation, response);
         await this.#beforeResponseHandoff?.();
-        const sourceCurrent = await this.#handoffSourceCurrent(response);
-        const selected = this.#responseForHandoff(decoded, response, sourceCurrent);
+        if (socket.destroyed) {
+          this.#reconcileFinishHandoff(decoded, response, { status: "empty" }, false);
+          if (response.status === "cleaned") this.#scheduleRetirementClose();
+          return;
+        }
+        const sourceCurrent = await this.#handoffSourceCurrent(response, decoded.operation === "admit-and-collect" ? context.controller.signal : undefined);
+        const selected = this.#responseForHandoff(decoded.operation === "admit-and-collect"
+          ? this.#editCollectionRequest(decoded) : decoded, response, sourceCurrent, context.authority);
         const handoff = this.#reconcileFinishHandoff(decoded, response, selected, !socket.destroyed);
         this.#pruneCollectionTokenIds();
         if (socket.destroyed) {
@@ -3544,11 +3376,13 @@ export class ResidentServer {
           if (handoff.status === "cleaned") this.#scheduleRetirementClose();
           return;
         }
+        handledResponse = true;
         socket.end(`${encodeCurrentResidentResponse(handoff)}\n`, () => {
           if (socket.errored !== null && handoff.status === "advice") this.releaseDelivery(handoff.token);
         });
         if (handoff.status === "cleaned") this.#scheduleRetirementClose();
       }).catch(() => {
+        if (context.token !== undefined) this.releaseDelivery(context.token);
         if (!socket.destroyed) socket.end(`${encodeCurrentResidentResponse({ status: "unsupported" })}\n`);
       });
     });
@@ -3638,7 +3472,6 @@ export class ResidentServer {
     }
     for (const key of [...this.#noticeCooldowns.keys()]) this.#releaseNoticeCooldown(key);
     this.#joinedReviews.clear();
-    this.#ticketUnits.clear();
     // Running work may be interrupted by process exit or finish later. Clear
     // its logical ownership after native effects settle. Issued Jev permits
     // remain reserved through an interruption attempt.

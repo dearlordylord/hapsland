@@ -1,33 +1,8 @@
 {
   "traces": [
     {
-      "name": "oldest admission evicts by identity and cleanup closes once",
+      "name": "registry-free cleanup closes once",
       "events": [
-        {
-          "kind": "ticketOpen",
-          "id": 1,
-          "expect": "ticketOpened"
-        },
-        {
-          "kind": "ticketOpen",
-          "id": 2,
-          "expect": "ticketOpened"
-        },
-        {
-          "kind": "ticketOpen",
-          "id": 3,
-          "expect": "ticketOpened"
-        },
-        {
-          "kind": "ticketRetentionCheck",
-          "limit": 2,
-          "expect": "ticketEvicted:1"
-        },
-        {
-          "kind": "ticketRetentionCheck",
-          "limit": 2,
-          "expect": "ticketKept"
-        },
         {
           "kind": "cleanupCheck",
           "facts": {
@@ -42,21 +17,6 @@
             "cacheMatchesLedger": true
           },
           "expect": "cleanupReady"
-        },
-        {
-          "kind": "ticketRetentionCheck",
-          "limit": 0,
-          "expect": "ticketEvicted:2"
-        },
-        {
-          "kind": "ticketRetentionCheck",
-          "limit": 0,
-          "expect": "ticketEvicted:3"
-        },
-        {
-          "kind": "ticketRetentionCheck",
-          "limit": 0,
-          "expect": "ticketKept"
         },
         {
           "kind": "cleanupCommit",
@@ -82,7 +42,6 @@
           "expect": "cleanupBusy"
         }
       ],
-      "tickets": [],
       "closed": true
     },
     {
@@ -144,7 +103,6 @@
           "expect": "cleanupCommitted"
         }
       ],
-      "tickets": [],
       "closed": true
     },
     {
@@ -190,7 +148,6 @@
           "expect": "cleanupBusy"
         }
       ],
-      "tickets": [],
       "closed": false,
       "rounds": [
         1,

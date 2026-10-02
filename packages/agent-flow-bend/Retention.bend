@@ -9,10 +9,6 @@ type CleanupGate is Data:
   CleanupBusy{}
   CleanupReady{}
 
-type TicketRetention is Data:
-  KeepTickets{}
-  EvictOldest{}
-
 type DiscardScope is Data:
   NamedOnly{}
   AllUnfinished{}
@@ -35,10 +31,6 @@ def cleanup_commit(ledger_empty: Bool) -> CleanupGate:
 # or an edit attempt waiting for its post-edit observation.
 def cleanup_live_state(rounds_empty: Bool, pending_permits_empty: Bool) -> Bool:
   Bool.and(rounds_empty, pending_permits_empty)
-
-def ticket_retention(count: Nat, limit: Nat, has_oldest: Bool) -> TicketRetention:
-  Bool.pick(TicketRetention, Bool.and(Nat.is_gt(count, limit), has_oldest),
-    EvictOldest{}, KeepTickets{})
 
 def discard_scope(named_count: Nat, cancelled_count: Nat,
     has_unnamed: Bool) -> DiscardScope:

@@ -90,7 +90,7 @@ describe("resident session analytics", () => {
     const server = new ResidentServer(residentPaths(join(f.root, "runtime")));
     try {
       const observation = await f.observation("finding");
-      expect(server.admit(observation, dispatch, false, true).status).toBe("accepted"); await server.whenIdle();
+      expect(server.admit(observation, dispatch, true).status).toBe("accepted"); await server.whenIdle();
       expect(f.read().controlledTotals).toMatchObject({ requestsStarted: 1, requestsSucceeded: 1, reviewsWithFindings: 1, findings: 1 });
       expect(f.read().details.find((detail) => detail.kind === "request-findings")?.ruleIds).toEqual(["r6_bare_domain_value"]);
       const response = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,

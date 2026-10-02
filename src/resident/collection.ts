@@ -133,25 +133,20 @@ export const combinedClaudeOutput = (
 export const encodedClaudeHostOutputBytes = (output: ClaudeHostOutput): number =>
   Buffer.byteLength(encodeClaudeHostOutputLine(output), "utf8");
 
-export type ComposedClaudeSurface = "background" | "stop";
-
 /** Match the final JSONL object written by the composed Claude hook. */
-export const composedClaudeHostOutput = (
+export const claudeStopHostOutput = (
   output: CodexDirectEventOutput,
   findingCount: number,
-  surface: ComposedClaudeSurface,
-): CodexDirectEventOutput | { readonly decision: "block"; readonly reason: string } |
+): { readonly decision: "block"; readonly reason: string } |
   { readonly systemMessage: string } => {
-  if (surface === "background") return output;
   const message = output.hookSpecificOutput.additionalContext;
   return findingCount > 0 ? { decision: "block", reason: message } : { systemMessage: message };
 };
 
-export const encodedComposedClaudeOutputBytes = (
+export const encodedClaudeStopOutputBytes = (
   findings: ReadonlyArray<Finding>, notices: ReadonlyArray<OperationalNotice>,
-  surface: ComposedClaudeSurface,
-): number => Buffer.byteLength(`${JSON.stringify(composedClaudeHostOutput(
-  combinedReviewOutput(findings, notices), findings.length, surface,
+): number => Buffer.byteLength(`${JSON.stringify(claudeStopHostOutput(
+  combinedReviewOutput(findings, notices), findings.length,
 ))}\n`, "utf8");
 
 const fitsBendBatch = (items: number, bytes: number): boolean => {
@@ -253,7 +248,7 @@ const selectBendFindings = (
 /** Final writer barrier: every offered finding carries its own current facts. */
 export const selectFittingCurrentFindingIndices = (
   offers: ReadonlyArray<{ readonly finding: Finding; readonly facts: FindingSelectionFacts }>,
-  mode: ClaudeOutputMode | "codex" | "claude-background" | "claude-stop",
+  mode: ClaudeOutputMode | "codex" | "claude-stop",
   onLimited?: (index: number) => void,
   canonicalOffer?: CanonicalFindingOffer,
 ): ReadonlyArray<number> => {
@@ -266,13 +261,13 @@ export const selectFittingCurrentFindingIndices = (
       const next = [...staged, finding];
       const prospectiveBytes = mode === "codex"
         ? encodedHostOutputBytes(combinedReviewOutput(next, []))
-        : mode === "claude-background" || mode === "claude-stop"
-          ? encodedComposedClaudeOutputBytes(next, [], mode === "claude-stop" ? "stop" : "background")
+        : mode === "claude-stop"
+          ? encodedClaudeStopOutputBytes(next, [])
         : encodedClaudeHostOutputBytes(combinedClaudeOutput(next, [], mode));
       const soloBytes = mode === "codex"
         ? encodedHostOutputBytes(combinedReviewOutput([finding], []))
-        : mode === "claude-background" || mode === "claude-stop"
-          ? encodedComposedClaudeOutputBytes([finding], [], mode === "claude-stop" ? "stop" : "background")
+        : mode === "claude-stop"
+          ? encodedClaudeStopOutputBytes([finding], [])
         : encodedClaudeHostOutputBytes(combinedClaudeOutput([finding], [], mode));
       const decision = (canonicalOffer ?? standaloneFindingOffer)({ selectionPartition: first.partition,
         selectionRound: first.round, facts, selectedCount: staged.length,
@@ -348,24 +343,24 @@ export const selectFittingFindings = (
 ): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
   (findings) => encodedHostOutputBytes(combinedReviewOutput(findings, [])), facts, onLimited, canonicalOffer);
 
-export const selectFittingComposedClaudeFindings = (
+export const selectFittingClaudeStopFindings = (
   retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>,
-  surface: ComposedClaudeSurface, facts?: FindingSelectionFacts,
+  facts?: FindingSelectionFacts,
   onLimited?: (finding: Finding) => void, canonicalOffer?: CanonicalFindingOffer,
 ): ReadonlyArray<Finding> => selectBendFindings(retained, candidates,
-  (findings) => encodedComposedClaudeOutputBytes(findings, [], surface),
+  (findings) => encodedClaudeStopOutputBytes(findings, []),
   facts, onLimited, canonicalOffer);
 
-export const selectFittingComposedClaudeNotices = (
+export const selectFittingClaudeStopNotices = (
   findings: ReadonlyArray<Finding>, candidates: ReadonlyArray<OperationalNotice>,
-  surface: ComposedClaudeSurface, canonicalOffer?: CanonicalNoticeOffer,
+  canonicalOffer?: CanonicalNoticeOffer,
 ): ReadonlyArray<OperationalNotice> => {
   const selected: Array<OperationalNotice> = [];
   try {
     for (const notice of candidates) {
       const next = [...selected, notice];
       const items = findings.length + next.length;
-      const bytes = encodedComposedClaudeOutputBytes(findings, next, surface);
+      const bytes = encodedClaudeStopOutputBytes(findings, next);
       const offer = (canonicalOffer ?? standaloneNoticeOffer)(items, bytes, true);
       if (offer === "include") selected.push(notice);
       else if (offer === "stop") break;
