@@ -299,5 +299,19 @@ captures are `/tmp/hapsland-jev-square-mixed-flat-1512.png`,
 `/tmp/hapsland-jev-square-mixed-scrolled-390.png`, and
 `/tmp/hapsland-jev-square-inspector-390.png`. This is source-free visualization
 and checked replay evidence; it does not claim live Jev behavior or platform
-release support. Owner review remains a separate decision, presented one at a
-time.
+release support. The user accepted the Jev presentation after viewing the
+published square screenshots ("отлично"). This acceptance covers the displayed
+presentation; the empirical checks above remain separate validation evidence.
+
+Review-image handling: publish user-review images under `/workspace` and delete
+them after the user has viewed or reviewed them, as requested. The four
+published Jev screenshots have been deleted. The `/tmp` capture paths above are
+historical validation references, not active user-review attachments.
+
+Next review: the retained cache, tickets, and notices panel is an unchanged
+existing design, with no new visual diff or code change. Astra recommends
+keeping its expandable shared panel rather than moving it into the diagram;
+the user's placement decision has not yet been made. Current review captures
+are `/workspace/hapsland-review/retained-resources/resident-panel-current.png`
+and `/workspace/hapsland-review/retained-resources/retained-detail-current.png`;
+delete them after the user views or reviews them.
