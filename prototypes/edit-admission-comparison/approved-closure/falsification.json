@@ -1,0 +1,18 @@
+{
+  "law_sha256": "cd88b742c9367ce754e7f1451d1d00c8b6a48a4d4802eb8c4893863599fba3b9",
+  "actual_valid_pending_PRE_cases": 160,
+  "explicit_premises_per_case": 6,
+  "equal_clock_POST_cases": 32,
+  "batch_exits": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "all_pass": true,
+  "method": "Bend computes valid pending PRE premises and exact closure outcome; no universal proof"
+}

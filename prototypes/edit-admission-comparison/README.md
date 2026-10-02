@@ -2,9 +2,9 @@
 
 **Purpose:** Compare the current pre-edit permit fence with proposal A: a short
 synchronous post-edit admission receipt followed by independent resident review.
-**Status:** Isolated prototype; the owner-approved necessary-valid-PRE law and
-positive Receipt completeness law are kernel-checked. Remaining candidates are
-unapproved and open. No production change.
+**Status:** Isolated prototype; three owner-approved slices are kernel-checked:
+necessary valid PRE, positive Receipt completeness, and delayed POST after
+successful closure. Remaining candidates are unapproved and open. No production change.
 **Authority:** Advisory design, falsification and model-proof evidence. The accepted target contract
 and production Bend modules remain authoritative; this prototype does not change them.
 **Expected use:** Inspect the approved proof slice and the remaining candidates
@@ -284,3 +284,47 @@ universal checker intentionally reports three TODOs. Sketches: induct over
 histories for erasure; combine the already checked PRE fence with the explicit
 native-start ordering premise for conditional freshness; inspect accepted/refused
 round effects for boundaries. No proof terms were written for these candidates.
+
+## Approved pending PRE followed by closure and delayed POST
+
+The owner next approved: **if PRE is registered, its round successfully closes,
+and the corresponding POST arrives afterward, reject it and do not open a
+successor round.** PRE alone does not open a round.
+`approved-closure/LAWS.bend` therefore starts with a reachable Current state
+whose wrapper and production admission round are active and whose native tool
+has an actual pending permit. Closure time must be no earlier than the recorded
+fence or the correlated PRE start. The expression closes the state and then
+posts directly, with matching owner/lifetime/tool and no intervening PRE or
+restart. POST time is nondecreasing, so equal-clock Close→POST events are included.
+A rejected inactive/backdated closure is not substituted for successful closure.
+
+`approved-closure/PROOF.bend` proves all three outcomes: acceptance count remains
+the pre-closure count, round ID remains the pre-closure round, and active status
+is false. The state/history equality witness pins reachability to the frozen
+Current reducer; pending presence is inspected independently of the POST reducer.
+The proof uses production closure's permit purge and source-free bookkeeping,
+then the empty-authority POST fact. That helper works for every POST clock; the
+approved statement deliberately names the normal nondecreasing event domain.
+It does not establish the host's native ordering, classify arbitrary Stop calls
+as successful closures, cover a fresh PRE after closure, or cover restart.
+
+Before proof work, `python3 approved-closure/falsify.py` checked 160 concrete
+active/pending-PRE cases with each independent premise explicitly true, including
+32 same-clock POST cases. `controls.bend` separately checks excluded inactive
+and backward-clock rejected closures. Run
+`python3 approved-closure/check-approved.py` for eleven controls, including both
+prior approved gates. Its compiling dropped-closure mutant retains the old
+production admission state and completed identities while the wrapper becomes
+inactive. This deliberately defeats multiple closure defenses, not merely
+retention of a permit that the fence could still reject. A computed witness
+actually reaches two accepted edits, successor round 2 and active status true.
+The exact approved literal and unchanged main proof then fail at
+`approved_at` and `Laws.delayed_post_after_close`; all supporting proof files are
+unchanged and still kernel-check. No equivalent mutation is counted as caught.
+
+`evidence/closure-approved-gate.json` records the checks and source hashes.
+The frozen core, original draft, and both prior approved laws/proofs are unchanged.
+The separate conditional native-freshness chain is deferred: the owner found
+its explanation clear and delegated whether it needed a proof; no separate
+proof was necessary for this closure decision. Other decision candidates remain
+unapproved and unproved.

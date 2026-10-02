@@ -1,0 +1,15 @@
+{
+  "authority": "User explicitly approved pending PRE, successful closure, matching delayed POST rejection/no successor; parent delegated this slice only.",
+  "meaning": "On a reachable active round with a registered pending PRE, successful closure followed by that same POST without new PRE/restart keeps acceptance count and round unchanged and remains inactive.",
+  "law_sha256": "cd88b742c9367ce754e7f1451d1d00c8b6a48a4d4802eb8c4893863599fba3b9",
+  "core_sha256": "2996a23cfc25f8a002a0b35464ee29e32e0e04f9dec9d5951abbbea2462316fa",
+  "premises": "Reachable Current state, active wrapper and admission round, pending native tool, closure time >=prior fence and correlatedPREstart, matching scope/lifetime and POST after closure in event order with nondecreasing clock (same-tick allowed).",
+  "exclusions": [
+    "Native host ordering",
+    "arbitrary Stop invocation",
+    "new PRE after closure",
+    "restart",
+    "other unapproved laws"
+  ],
+  "approval_time": "not separately captured"
+}

@@ -1,0 +1,89 @@
+{
+  "slice": "Pending PRE, successful active closure, matching delayed POST: no count/round/active reopening",
+  "sources": {
+    "authority": "User explicitly approved pending PRE, successful closure, matching delayed POST rejection/no successor; parent delegated this slice only.",
+    "meaning": "On a reachable active round with a registered pending PRE, successful closure followed by that same POST without new PRE/restart keeps acceptance count and round unchanged and remains inactive.",
+    "law_sha256": "cd88b742c9367ce754e7f1451d1d00c8b6a48a4d4802eb8c4893863599fba3b9",
+    "core_sha256": "2996a23cfc25f8a002a0b35464ee29e32e0e04f9dec9d5951abbbea2462316fa",
+    "premises": "Reachable Current state, active wrapper and admission round, pending native tool, closure time >=prior fence and correlatedPREstart, matching scope/lifetime and POST after closure in event order with nondecreasing clock (same-tick allowed).",
+    "exclusions": [
+      "Native host ordering",
+      "arbitrary Stop invocation",
+      "new PRE after closure",
+      "restart",
+      "other unapproved laws"
+    ],
+    "approval_time": "not separately captured"
+  },
+  "proof_sha256": "ea6902c972e3df88339acbf3403667f220c2064da2a27a47544aee2e70a15e5b",
+  "checks": [
+    {
+      "name": "closure-proof",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "closure-rejected-close-controls",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "closure-kernel-disabled",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "prior-two-approved-slices-preserved",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "closure-mirror-baseline",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "closure-at-baseline",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "dropped-closure-mutant-compiles",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "closure-mutant-support-facts",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "closure-mutant-actual-reopen",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "closure-at-mutant",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "closure-proof-mutant",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    }
+  ],
+  "mutant": "Dropped closure keeps old Pstate and completed identities while wrapper goes inactive. Defeats purge+fence+completion defenses; no law or proof file adjusted.",
+  "all_pass": true
+}

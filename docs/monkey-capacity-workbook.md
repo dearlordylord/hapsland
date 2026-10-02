@@ -1014,3 +1014,33 @@ and declarations are preserved as dated observations, not rewritten. Run
 `node --test scripts/native-hook-faults.test.mjs` for the checker controls.
 The accepted closure freshness contract and unapproved conditional proof remain
 unchanged.
+
+## Approved pending-PRE closure proof (2026-10-02)
+
+The owner approved the concrete sequence: an already active round has a registered
+pending PRE; that round successfully closes; its matching POST then arrives,
+without a new PRE or restart. The checked model law requires no additional
+acceptance, no successor round, and inactive status. PRE alone opens no round;
+a rejected inactive or backward-clock closure is not used as a vacuous success.
+POST follows closure in event order and may have the same clock tick.
+
+The isolated [approved closure slice](../prototypes/edit-admission-comparison/approved-closure/LAWS.bend)
+uses a reachable Current-state witness, both active flags, independently inspected
+pending tool, valid closure clock and same owner/lifetime/tool. Its
+[proof](../prototypes/edit-admission-comparison/approved-closure/PROOF.bend)
+kernel-checks all three outcomes. Before proof work, 160 concrete valid-premise
+instances passed, including 32 equal-clock POST cases. Eleven gate controls pass,
+including the prior Receipt eight-control and original nine-control gates.
+A compiling dropped-closure mutant really accepts the old POST and opens round 2;
+it fails both the exact law literal and `Laws.delayed_post_after_close`. It defeats
+multiple closure defenses deliberately; merely retaining a fenced permit was not
+misrepresented as a caught admission bug. No supporting mutant proof adjustment
+was needed. Inactive/backward-clock closure controls are checked separately.
+
+This adds the third approved model slice, not a production change or empirical
+native-event ordering guarantee. The frozen core/draft and both previous
+approved laws/proofs are unchanged. The conditional native-freshness chain is
+now **deferred, not required**: after its explanation the owner delegated whether
+a separate proof was necessary; the closure law addresses the requested boundary.
+The broader native audit proposals remain separate from this formal result and
+from the six already executed PRE-only fault probes.
