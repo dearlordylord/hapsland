@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { expect, it } from "vitest";
@@ -124,4 +127,21 @@ it("refuses request issuance while credentials are unavailable and a later edit 
   expect(run.observations.filter(frame => frame.event.kind === "jevRequestStarted")).toHaveLength(1);
   expect(run.projection.delivery.submissions.batches.map(batch => batch.phase)).toEqual(["submitted"]);
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
+});
+
+
+it("keeps a wide delay exact in the compiled native driver execution lane", () => {
+  const directory = mkdtempSync(join(tmpdir(), "hapsland-minimal-delay-"));
+  try {
+    const binary = join(directory, "delay");
+    const build = spawnSync("bend", [fileURLToPath(new URL("../../monkey-business-bend/conformance/wide-request-delay.bend", import.meta.url)), "-o", binary], { encoding: "utf8", timeout: 5000 });
+    expect(build.error).toBeUndefined();
+    expect(build.status, build.stdout + build.stderr).toBe(0);
+    const native = spawnSync(binary, [], { encoding: "utf8", timeout: 5000 });
+    expect(native.error).toBeUndefined();
+    expect(native.status, native.stdout + native.stderr).toBe(0);
+    expect(native.stdout.trim()).toBe("4294967313");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
