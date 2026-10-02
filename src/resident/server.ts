@@ -434,7 +434,7 @@ export interface ResidentRuntime {
   acknowledge(token: string): ResidentResponse;
   finalize(token: string): Effect.Effect<ResidentResponse>;
   releaseDelivery(token: string): void;
-  beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse;
+  beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): Effect.Effect<ResidentResponse>;
   releaseComposedSubmission(token: string): ResidentResponse;
   whenIdle(): Promise<void>;
   pendingAdviceMetadata(): ReadonlyArray<{
@@ -1009,7 +1009,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               expired: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
                 residentAdviceExpired(advice, handoffNow),
               workCurrent: ownerCurrent && credentialGenerationValid && credentialAuthorized &&
-                residentIsCurrentWork(advice.revision, advice.prepared),
+                (yield* residentIsCurrentWork(advice.revision, advice.prepared)),
               hasFindings: delivery !== undefined && delivery.findings.length > 0 });
             if (route === "ignoreCandidate") continue;
             if (route === "retireCandidate") {
@@ -1169,7 +1169,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
   }
 
-  function beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): ResidentResponse {
+  const beginComposedSubmission = Effect.fn("ResidentRuntime.beginComposedSubmission")(function* (token: string, surface: "edit" | "background" | "stop"): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
     residentExpirePending(now);
     const finishPermit = surface === "stop" && residentComposedDelivery.hasFinishPermit(token);
@@ -1181,7 +1181,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const selectionValid = !finishPermit || residentComposedDelivery.finishSelectionMatches(token,
       advice.map((item) => ({ id: item.id, unit: item.canonicalOperationId,
         findings: item.delivery?.findings ?? [] })));
-    const allValid = selectionValid && advice.every((item) => {
+    let allValid = selectionValid;
+    for (const item of advice) {
+      if (!allValid) break;
       const round = item.round;
       const delivery = item.delivery;
       const unit = item.workUnitId;
@@ -1194,12 +1196,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           delivery.findings.length <= residentPendingCanonicalFindings(item.canonicalOperationId),
         submissionAllowed: residentComposedDelivery.canBeginSubmission(
           adviceePartition(item.observation.root, item.observation.advicee), surface, token),
-        currentWork: residentIsCurrentWork(item.revision, item.prepared),
+        currentWork: (yield* residentIsCurrentWork(item.revision, item.prepared)),
         credentialAuthorized: residentAdviceCredentialAuthority(item),
       } });
       if (decision.rejection !== undefined || decision.commands.length !== 1) throw new Error("canonical submission candidate refused");
-      return decision.commands[0]?.kind === "deliverySubmissionCandidate";
-    });
+      allValid = decision.commands[0]?.kind === "deliverySubmissionCandidate";
+    }
     const batch = residentLedger.transition({ kind: "deliverySubmissionBatchCheck",
       count: advice.length, allValid });
     if (batch.rejection !== undefined || batch.commands.length !== 1) throw new Error("canonical submission batch refused");
@@ -1222,7 +1224,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     }
     return { status: "submitting" };
-  }
+  }, Effect.uninterruptible);
 
   function releaseComposedSubmission(token: string): ResidentResponse {
     residentComposedDelivery.release(token);
@@ -1394,9 +1396,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentRestoreCurrentWork = Effect.fn("ResidentRuntime.restoreCurrentWork")((partition: string, prepared: PreparedUnit) =>
     residentRegisterRevision(partition, prepared, false));
 
-  function residentIsCurrentWork(revision: WorkRevision, prepared: PreparedUnit): boolean {
-    return residentLedger.revision.current(revision, prepared);
-  }
+  const residentIsCurrentWork = Effect.fn("ResidentRuntime.isCurrentWork")((revision: WorkRevision, prepared: PreparedUnit) =>
+    residentLedger.revision.current(revision, prepared));
 
   const residentReleaseCurrentWork = Effect.fn("ResidentRuntime.releaseCurrentWork")((revision: WorkRevision) => residentLedger.revision.release(revision));
 
@@ -1961,7 +1962,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         return;
       }
       yield* residentAwaitBackendGate();
-      if (!residentJobActive(job) || !residentIsCurrentWork(job.revision, job.prepared)) {
+      if (!residentJobActive(job) || !(yield* residentIsCurrentWork(job.revision, job.prepared))) {
         denyReady();
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "stale");
         residentSettleJoined(job.evaluationKey, "unavailable", "stale");
@@ -2069,7 +2070,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const ready = requestReady({
             rootValid: dispatchRootVerified, configurationValid: true,
             credentialReady: !credentialRequired || credential?.status === "present",
-            selected: selected && unitCurrent, currentWork: isCurrentWork(),
+            selected: selected && unitCurrent, currentWork: yield* isCurrentWork(),
             physicalAvailable: isJobActive(),
           });
         if (ready.status !== "issued") return { status: "notAuthorized" as const, reason: undefined };
@@ -2152,7 +2153,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           throw new Error("Bend denied review outcome");
         }
         const currentWork = residentLedger.runtime.snapshot().lifecycle === "active" && residentJobActive(job) &&
-          residentIsCurrentWork(job.revision, job.prepared);
+          (yield* residentIsCurrentWork(job.revision, job.prepared));
         if (issuedRequest === undefined || !requestStarted) {
           throw new Error("Jev result without a matching canonical request command and start");
         }
@@ -2399,8 +2400,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             return resized;
           }),
         }, {
-          isCurrentWork: (prepared) => Effect.sync(() =>
-            residentIsCurrentWork(advice.revision, prepared)),
+          isCurrentWork: (prepared) => residentIsCurrentWork(advice.revision, prepared),
         });
       }),
         advice.round?.controller.signal ?? residentLifetimeController.signal);
@@ -2479,7 +2479,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         return residentResponse({ status: "released" });
       }
       if (request.operation === "begin-submission") {
-        return residentResponse(server.beginComposedSubmission(request.token, request.surface));
+        return residentResponse(yield* server.beginComposedSubmission(request.token, request.surface));
       }
       if (request.operation === "release") return residentResponse(server.releaseComposedSubmission(request.token));
       if (request.operation === "register-edit") {
@@ -2728,7 +2728,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const route = residentCandidateRoute({ kind: "finalCandidateCheck",
         ownerCurrent: true, credentialGeneration: true, credentialAuthorized: true,
         expired: !residentRoundActive(advice.round) || residentAdviceExpired(advice, now),
-        workCurrent: residentIsCurrentWork(advice.revision, advice.prepared) && sourceCurrent.get(advice.id) === true,
+        workCurrent: (yield* residentIsCurrentWork(advice.revision, advice.prepared)) && sourceCurrent.get(advice.id) === true,
         hasFindings: advice.delivery.findings.length > 0 });
       if (route === "retireCandidate") {
         residentRemoveAdvice(advice.id, response.token);

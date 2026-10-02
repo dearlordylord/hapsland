@@ -279,7 +279,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       requireThat(competing.status === "pending", "unreserved background lease was stolen");
       release.resolve();
       const background = asAdvice(await backgroundPending);
-      requireThat(f.server.beginComposedSubmission(background.token, "background").status === "submitting", "background authorization failed");
+      requireThat((await Effect.runPromise(f.server.beginComposedSubmission(background.token, "background"))).status === "submitting", "background authorization failed");
       if (acknowledged) { f.server.acknowledge(background.token); await Effect.runPromise(f.server.finalize(background.token)); }
       requireThat((await f.backgroundBoundary("release-background", worker)).status === "released", "background retirement failed");
       const stop = await f.stop();

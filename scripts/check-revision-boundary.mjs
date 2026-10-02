@@ -33,9 +33,14 @@ for (const operation of ["release"]) {
   }
 }
 
-for (const operation of ["count", "generation", "superseded"]) {
+for (const operation of ["count", "generation", "superseded", "current"]) {
   if (!capacity.includes(`${operation}: Effect.fn("RevisionRecords.${operation}")`) ||
       !capacity.includes(`revisionRead((operations) => operations.${operation}(...args))`)) {
     throw new Error(`revision ${operation} must read through its Effect snapshot`);
   }
+}
+
+const revisionSurface = capacity.slice(capacity.indexOf("    revision: (() =>"), capacity.indexOf("    dispatch: {", capacity.indexOf("    revision: (() =>")));
+if (/\bcommitAll\(|runSync|revisionCommit/.test(revisionSurface)) {
+  throw new Error("revision service restored a synchronous commit bridge");
 }

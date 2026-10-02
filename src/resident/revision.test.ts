@@ -28,11 +28,11 @@ it.effect("reuses one native revision and accounts for independent members", () 
   yield* owner.revision.release({ ...first.revision, token: "foreign-token" });
   expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([2]);
   yield* owner.revision.release(first.revision);
-  expect(owner.revision.current(joined.revision, item)).toBe(true);
+  expect(yield* owner.revision.current(joined.revision, item)).toBe(true);
   expect(owner.canonicalProjection().revision.entries.map((entry) => entry.members)).toEqual([1]);
   yield* owner.revision.release(joined.revision);
   expect(yield* owner.revision.count()).toBe(0);
-  expect(owner.revision.current(first.revision, item)).toBe(false);
+  expect(yield* owner.revision.current(first.revision, item)).toBe(false);
   expect(yield* owner.revision.generation(first.revision.subject)).toBe(0);
 }));
 
@@ -46,9 +46,9 @@ it.effect("replaces only the matching subject and ignores an old generation's re
   expect(replacement.generation).toBeGreaterThan(old.generation);
   expect(yield* owner.revision.superseded(replacement.subject, old)).toBe(true);
   expect(yield* owner.revision.superseded(replacement.subject, independent)).toBe(false);
-  expect(owner.revision.current(old, item)).toBe(false);
-  expect(owner.revision.current(replacement, changed)).toBe(true);
-  expect(owner.revision.current(independent, item)).toBe(true);
+  expect(yield* owner.revision.current(old, item)).toBe(false);
+  expect(yield* owner.revision.current(replacement, changed)).toBe(true);
+  expect(yield* owner.revision.current(independent, item)).toBe(true);
   yield* owner.revision.release(old);
   expect(yield* owner.revision.count()).toBe(2);
   yield* owner.revision.release(independent);
@@ -64,14 +64,14 @@ it.effect("isolates acquisitions and fences stale native tokens when generation 
   const item = prepared();
   const old = (yield* first.revision.register("agent", item, true, "old")).revision;
   expect(yield* second.revision.count()).toBe(0);
-  expect(second.revision.current(old, item)).toBe(false);
+  expect(yield* second.revision.current(old, item)).toBe(false);
   first.clear();
   expect(yield* first.revision.count()).toBe(0);
   const replacement = (yield* first.revision.register("agent", item, true, "replacement")).revision;
   expect(replacement.generation).toBe(old.generation);
-  expect(first.revision.current(old, item)).toBe(false);
+  expect(yield* first.revision.current(old, item)).toBe(false);
   yield* first.revision.release(old);
-  expect(first.revision.current(replacement, item)).toBe(true);
+  expect(yield* first.revision.current(replacement, item)).toBe(true);
   expect(yield* first.revision.count()).toBe(1);
 }));
 
@@ -85,7 +85,7 @@ it.effect("settles a retired advice capture and its revision member in one owner
   const capture = owner.adviceCaptures.start(reservation, revision, 200);
   if (capture === undefined) throw new Error("missing capture");
   owner.adviceCaptures.retire(reservation);
-  expect(owner.revision.current(revision, item)).toBe(true);
+  expect(yield* owner.revision.current(revision, item)).toBe(true);
   expect(owner.snapshot().bytes).toBe(300);
   expect(owner.adviceCaptures.finish(capture)).toBe("retired");
   expect(yield* owner.revision.count()).toBe(0);
@@ -149,4 +149,21 @@ it.effect("reads current generation through a reusable snapshot query", () => Ef
   expect(yield* generation).toBe(replacement.generation);
   yield* owner.revision.release(replacement);
   expect(yield* generation).toBe(0);
+}));
+
+it.effect("checks revision currentness at execution and fences reused generations", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const item = prepared();
+  const first = (yield* owner.revision.register("agent", item, true, "old")).revision;
+  const current = owner.revision.current(first, item);
+  const before = owner.canonicalProjection();
+  expect(yield* current).toBe(true);
+  expect(owner.canonicalProjection()).toEqual(before);
+  owner.clear();
+  const next = (yield* owner.revision.register("agent", item, true, "new")).revision;
+  expect(next.generation).toBe(first.generation);
+  expect(yield* current).toBe(false);
+  expect(yield* owner.revision.current(next, item)).toBe(true);
+  yield* owner.revision.release(first);
+  expect(yield* owner.revision.current(next, item)).toBe(true);
 }));

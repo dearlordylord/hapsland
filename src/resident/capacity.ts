@@ -362,8 +362,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
           return operation(revisionOperations(draftRevision(snapshot.records.revision), owner));
         }));
-      const revisionCommit = <A>(operation: (operations: RevisionOperations) => A): A =>
-        commitAll(revisionChange(operation));
       return {
         count: Effect.fn("RevisionRecords.count")((...args: Parameters<RevisionOperations["count"]>) =>
           revisionRead((operations) => operations.count(...args))),
@@ -373,7 +371,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           commitAllEffect(revisionChange((operations) => operations.register(...args)))),
         superseded: Effect.fn("RevisionRecords.superseded")((...args: Parameters<RevisionOperations["superseded"]>) =>
           revisionRead((operations) => operations.superseded(...args))),
-        current: (...args: Parameters<RevisionOperations["current"]>) => revisionCommit((operations) => operations.current(...args)),
+        current: Effect.fn("RevisionRecords.current")((...args: Parameters<RevisionOperations["current"]>) =>
+          revisionRead((operations) => operations.current(...args))),
         release: Effect.fn("RevisionRecords.release")((...args: Parameters<RevisionOperations["release"]>) =>
           commitAllEffect(revisionChange((operations) => operations.release(...args)))),
       };

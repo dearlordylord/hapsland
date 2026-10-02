@@ -163,7 +163,7 @@ describe("canonical resident capacity", () => {
           expect(response.output.hookSpecificOutput.additionalContext.split("\n").slice(1))
             .toHaveLength(configuredRules.length);
         }
-        expect(server.beginComposedSubmission(response.token, "background").status).toBe("submitting");
+        expect((await Effect.runPromise(server.beginComposedSubmission(response.token, "background"))).status).toBe("submitting");
         expect(server.acknowledge(response.token).status).toBe("acknowledged");
         expect((await Effect.runPromise(server.finalize(response.token))).status).toBe("finalized");
       }
@@ -465,7 +465,7 @@ describe("resident delivery lease", () => {
       if (decision.status !== "advice") throw new Error("missing decision");
       expect(decision.findingCount).toBe(1);
       expect(server.stats().pendingEvaluations).toBe(0);
-      expect(server.beginComposedSubmission(decision.token, "stop").status).toBe("submitting");
+      expect((await Effect.runPromise(server.beginComposedSubmission(decision.token, "stop"))).status).toBe("submitting");
       expect(server.acknowledge(decision.token).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(decision.token))).status).toBe("finalized");
       await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
@@ -496,8 +496,8 @@ describe("resident delivery lease", () => {
       const background = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
       if (background.status !== "advice") throw new Error("missing background finding");
-      expect(server.beginComposedSubmission(background.token, "background").status).toBe("submitting");
-      expect(server.beginComposedSubmission(background.token, "background").status).toBe("empty");
+      expect((await Effect.runPromise(server.beginComposedSubmission(background.token, "background"))).status).toBe("submitting");
+      expect((await Effect.runPromise(server.beginComposedSubmission(background.token, "background"))).status).toBe("empty");
       await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" });
       const request = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
@@ -838,7 +838,7 @@ describe("resident delivery lease", () => {
     if (background.status !== "advice") return;
     expect((await server.handle({ requestRoute: "shared", operation: "claim-background", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "background-worker" })).status).toBe("background-claimed");
-    expect(server.beginComposedSubmission(background.token, "background").status).toBe("submitting");
+    expect((await Effect.runPromise(server.beginComposedSubmission(background.token, "background"))).status).toBe("submitting");
     expect((await server.handle({ requestRoute: "shared", operation: "release-background", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "background-worker" })).status).toBe("released");
     await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
@@ -848,7 +848,7 @@ describe("resident delivery lease", () => {
       finish: { token: "reoffer", deadlineReached: true } });
     expect(stop.status).toBe("advice");
     if (stop.status !== "advice") return;
-    expect(server.beginComposedSubmission(stop.token, "stop").status).toBe("submitting");
+    expect((await Effect.runPromise(server.beginComposedSubmission(stop.token, "stop"))).status).toBe("submitting");
     server.acknowledge(stop.token); (await Effect.runPromise(server.finalize(stop.token)));
     await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "reoffer", close: false });
@@ -885,7 +885,7 @@ describe("resident delivery lease", () => {
       const background = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
       if (background.status !== "advice") throw new Error("missing background finding");
-      expect(server.beginComposedSubmission(background.token, "background").status).toBe("submitting");
+      expect((await Effect.runPromise(server.beginComposedSubmission(background.token, "background"))).status).toBe("submitting");
       expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "deadline" })).status).toBe("advanced");
       const decision = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
@@ -1034,7 +1034,7 @@ describe("resident delivery lease", () => {
       root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
     if (collected.status !== "advice") throw new Error("missing fixture advice");
     writeFileSync(credentialStatePath, credentialState(2));
-    expect(server.beginComposedSubmission(collected.token, "background")).toEqual({ status: "empty" });
+    expect((await Effect.runPromise(server.beginComposedSubmission(collected.token, "background")))).toEqual({ status: "empty" });
     await server.close();
 
     writeFileSync(credentialStatePath, credentialState(1));
@@ -1275,7 +1275,7 @@ describe("resident delivery lease", () => {
       if (selected.status !== "advice") return;
       expect(selected.findingCount).toBe(2);
       now = PENDING_ADVICE_EXPIRY_MS + 1;
-      expect(server.beginComposedSubmission(selected.token, "stop")).toEqual({ status: "empty" });
+      expect((await Effect.runPromise(server.beginComposedSubmission(selected.token, "stop")))).toEqual({ status: "empty" });
       expect(server.acknowledge(selected.token)).toEqual({ status: "empty" });
       expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
     } finally {
@@ -1308,7 +1308,7 @@ describe("resident delivery lease", () => {
     expect(await server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
       token: first.token, surface: "background" })).toEqual({ status: "submitting" });
     clock += DELIVERY_LEASE_MS;
-    expect(server.beginComposedSubmission(first.token, "background")).toEqual({ status: "empty" });
+    expect((await Effect.runPromise(server.beginComposedSubmission(first.token, "background")))).toEqual({ status: "empty" });
     await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "reoffer" });
     const reoffer = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
@@ -1316,7 +1316,7 @@ describe("resident delivery lease", () => {
       finish: { token: "reoffer", deadlineReached: true } });
     expect(reoffer.status).toBe("advice");
     if (reoffer.status === "advice") {
-      expect(server.beginComposedSubmission(reoffer.token, "stop")).toEqual({ status: "submitting" });
+      expect((await Effect.runPromise(server.beginComposedSubmission(reoffer.token, "stop")))).toEqual({ status: "submitting" });
       server.releaseComposedSubmission(reoffer.token);
     }
     await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,

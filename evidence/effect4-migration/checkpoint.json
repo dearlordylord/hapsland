@@ -136,7 +136,8 @@
     "Revision registration is a named atomic Effect over the shared owner; production and fixture callers compose it directly, with deferred execution and sixteen competing members covered",
     "Revision releases and supersession checks compose named atomic Effects; runtime cleanup yields releases in uninterruptible unit cleanup and Effect finalizers",
     "Revision count composes as a named Effect in runtime statistics; count and supersession checks use one Ref snapshot and private Bend query drafts without publishing state",
-    "Revision generation uses a named snapshot-read Effect; finding selection and final handoff offer construction compose generation queries directly as Effects"
+    "Revision generation uses a named snapshot-read Effect; finding selection and final handoff offer construction compose generation queries directly as Effects",
+    "All revision service operations are Effects: current checks read one captured snapshot, synchronous revisionCommit removed, composed submission and revalidation yield checks directly"
   ],
   "verification": [
     {
@@ -1747,12 +1748,25 @@
       "build": true,
       "revisionBoundaryCheck": true,
       "case": "Reusable generation query observes replacement and release at execution, preserves canonical snapshot, and ignores old member release"
+    },
+    {
+      "stage": "revision-current-effects",
+      "affectedTestsPassed": 138,
+      "affectedTestFiles": 6,
+      "supplementaryRevisionTestsPassed": 9,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "probeStrictTypecheck": true,
+      "linuxContractEvidence": "round-contract-revision-current-effects.json",
+      "linuxContractCasesPassed": 18,
+      "case": "Reusable current check observes token replacement after generation-ID reuse without changing canonical state"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Finish revision current checks, including composed submission and revalidation callers; remove the last revision synchronous commit bridge, then remaining domain bridges",
+    "Replace remaining capacity, reuse, delivery, advice/capture and notice synchronous domain commit/read bridges; round, ticket-unit and revision services now compose Effects throughout",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
