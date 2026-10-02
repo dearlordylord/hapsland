@@ -215,6 +215,7 @@ def command_code(command: Canonical.Command) -> Nat:
     case Canonical.ObservationCompleted{}: 16n
     case Canonical.ReviewStarted{}: 17n
     case Canonical.JevInterruptionRecorded{}: 29n
+    case Canonical.JevRequestUnavailable{}: 30n
     case Canonical.JevRequestStartRecorded{}: 18n
     case Canonical.JevRequestOutcomeRecorded{_}: 19n
     case Canonical.ReservationReleased{_}: 20n
