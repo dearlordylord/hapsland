@@ -174,7 +174,7 @@ it("runs original source-free minimal scenarios through the native shared driver
     rmSync(directory, { recursive: true, force: true });
   }
   // Independent contract observations also constrain the native lane directly.
-  expect(nativeTraces.map(trace => trace.filter(row => row[0] === 18).length)).toEqual([1, 0, 0, 0, 0]);
+  expect(nativeTraces.map(trace => trace.filter(row => row[0] === 18).length)).toEqual([1, 0, 0, 0, 0, 0, 0]);
   for (const trace of nativeTraces) {
     expect(trace.some(row => row[0] === 97 || row[0] === 98 || row[0] === 99)).toBe(false);
     expect(trace.filter(row => row[0] === 21).map(row => row.slice(1, 6))).toEqual([
@@ -202,14 +202,29 @@ it("runs original source-free minimal scenarios through the native shared driver
     { outcome: "finding" as const, environment: { currentWork: false, credentialReady: true } },
     { outcome: "finding" as const, environment: { currentWork: true, credentialReady: false } },
     { outcome: "finding" as const, environment: { currentWork: true, credentialReady: true, credentialGeneration: 2 } },
+    { outcome: "finding" as const, lifetime: 2, environment: { currentWork: false, credentialReady: true } },
+    { outcome: "finding" as const, lifetime: 2, environment: { currentWork: true, credentialReady: true, credentialGeneration: 2 } },
   ];
-  const traces = scenarios.map(({ outcome, environment }, index) => {
-    const run = createRun(minimal(outcome));
+  const traces = scenarios.map(({ outcome, environment, lifetime }, index) => {
+    const config = minimal(outcome);
+    const run = createRun(lifetime === undefined ? config : { ...config, inputs: [
+      { at: 0, kind: "canonical", event: { kind: "openRound", partition: 1, lifetime } }, ...config.inputs!,
+    ] });
     if (environment) {
       for (let steps = 0; steps < 100 && !run.observations.some(frame => frame.event.kind === "jevRequestSettled"); steps++) run.step();
       run.applyControl({ kind: "environment", ...environment });
     }
     run.advance({ untilTime: 10 });
+    if (lifetime === 2) {
+      // A stale finding releases its original lifetime's reservation; ownership
+      // cannot be reconstructed using the resident's initial lifetime.
+      expect(run.projection.pendingFindings).toEqual([]);
+      expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+      expect(run.observations.filter(frame => frame.event.kind === "submissionTerminal")).toEqual([]);
+      const retirements = run.observations.filter(frame => frame.event.kind === "retireReview");
+      expect(retirements.length).toBeGreaterThan(0);
+      for (const frame of retirements) expect(frame.event).toMatchObject({ partition: 1, lifetime: 2, round: 1 });
+    }
     expect(run.eventCount).toBe(nativeTraces[index]!.length);
     expect(run.now).toBe(nativeTraces[index]!.at(-1)![1]);
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
@@ -233,3 +248,25 @@ it("runs original source-free minimal scenarios through the native shared driver
   });
   expect(nativeTraces).toEqual(traces);
 }, 30000);
+
+it.each([
+  { currentWork: false, credentialReady: true },
+  { currentWork: true, credentialReady: true, credentialGeneration: 2 },
+])("retires a stale finding against its actual noninitial lifetime: %j", environment => {
+  const config = minimal("finding");
+  const run = createRun({ ...config, inputs: [
+    { at: 0, kind: "canonical", event: { kind: "openRound", partition: 1, lifetime: 2 } }, ...config.inputs!,
+  ] });
+  for (let steps = 0; steps < 100 && !run.observations.some(frame => frame.event.kind === "jevRequestSettled"); steps++) run.step();
+  expect(run.projection.pendingFindings).toHaveLength(1);
+  expect(run.projection.global).toEqual({ items: 1, bytes: 5 });
+  run.applyControl({ kind: "environment", ...environment });
+  run.advance({ untilTime: 10 });
+  expect(run.projection.pendingFindings).toEqual([]);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(run.observations.filter(frame => frame.event.kind === "submissionTerminal")).toEqual([]);
+  const retirements = run.observations.filter(frame => frame.event.kind === "retireReview");
+  expect(retirements.length).toBeGreaterThan(0);
+  for (const frame of retirements) expect(frame.event).toMatchObject({ partition: 1, lifetime: 2, round: 1 });
+  expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
+});

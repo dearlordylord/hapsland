@@ -12,7 +12,7 @@ import ../../agent-flow-bend/CollectionState.bend as Collection
 # A native edge adapter supplies original source-free inputs and graph facts.
 # Policy, command interpretation, callback generation and ordering are shared.
 type Config is Data:
-  Config{outcome: Canonical.RequestOutcome, current: Bool, credential: Bool, generation: Bool, readable: Bool}
+  Config{outcome: Canonical.RequestOutcome, current: Bool, credential: Bool, generation: Bool, readable: Bool, lifetime: Nat}
 
 type Input is Data:
   Edit{}
@@ -55,23 +55,23 @@ def enqueue(actions: List<&2, Driver.Action>, queue: Queue, +now: Nat) -> Queue:
       enqueue(tail, append(queue, Nat.add(now, delay), Event{Driver.Action{event, delay, candidate, job, expiry}}), now)
 
 def context_values(action: Driver.Action, outcome: Canonical.RequestOutcome,
-    current: Bool, credential: Bool, generation: Bool, readable: Bool) -> Driver.Context:
+    current: Bool, credential: Bool, generation: Bool, readable: Bool, lifetime: Nat) -> Driver.Context:
   match action:
     case Driver.Action{_, _, candidate, _, _}:
-      Driver.Context{1n, 1n, 1n, 10n, True{}, 5n, outcome, current, credential, generation, readable,
+      Driver.Context{1n, lifetime, 1n, 10n, True{}, 5n, outcome, current, credential, generation, readable,
         600000n, candidate, True{}, True{}, True{}, True{}, 0n, 30n, False{}, True{}}
 
 def context_active(active: Bool, action: Driver.Action, config: Config) -> Driver.Context:
   match active config:
-    case True{} Config{outcome, current, credential, generation, readable}:
-      context_values(action, outcome, current, credential, generation, readable)
-    case False{} Config{outcome, _, _, _, _}:
-      context_values(action, outcome, True{}, True{}, True{}, True{})
+    case True{} Config{outcome, current, credential, generation, readable, lifetime}:
+      context_values(action, outcome, current, credential, generation, readable, lifetime)
+    case False{} Config{outcome, _, _, _, _, lifetime}:
+      context_values(action, outcome, True{}, True{}, True{}, True{}, lifetime)
 
 def context(action: Driver.Action, config: Config, now: Nat) -> Driver.Context:
   context_active(Nat.is_le(7n, now), action, config)
 
-def graph_facts(queue: Queue, +now: Nat, +operation: Nat) -> Queue:
+def graph_facts(queue: Queue, +now: Nat, +operation: Nat, lifetime: Nat) -> Queue:
   +one = Nat.add(now, Engine.preparation_fact_time(2n, 3n, 6n))
   +q = append(queue, now, Fact{operation, 0n, Graph.Root{1n, 100n, 20n, 0n, [2n]}})
   +q = append(q, now, Fact{operation, 1n, Graph.Next{}})
@@ -79,16 +79,24 @@ def graph_facts(queue: Queue, +now: Nat, +operation: Nat) -> Queue:
   +q = append(q, one, Fact{operation, 3n, Graph.PathChecked{True{}}})
   +q = append(q, one, Fact{operation, 4n, Graph.Captured{100n, 20n, 0n, Nil{}}})
   +q = append(q, one, Fact{operation, 5n, Graph.Next{}})
-  enqueue([Engine.preparation_completed(1n, 1n, 1n, operation, [5n], 2n)], q, now)
+  enqueue([Engine.preparation_completed(1n, lifetime, 1n, operation, [5n], 2n)], q, now)
 
 def handled(queue: Queue, now: Nat, result: Driver.Handled) -> Queue:
   match result:
     case Driver.Handled{_, actions}: enqueue(actions, queue, now)
 
+def context_lifetime(context: Driver.Context) -> Nat:
+  match context:
+    case Driver.Context{_, lifetime, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _}: lifetime
+
+def lifetime(config: Config) -> Nat:
+  match config:
+    case Config{_, _, _, _, _, value}: value
+
 def command(queue: Queue, +now: Nat, +state: Types.State, +event: Canonical.CanonicalEvent,
     command: Canonical.Command, +ctx: Driver.Context) -> Queue:
   match command:
-    case Canonical.Prepare{operation, _}: graph_facts(queue, now, operation)
+    case Canonical.Prepare{operation, _}: graph_facts(queue, now, operation, context_lifetime(ctx))
     case command: handled(queue, now, Engine.handle(state, event, command, ctx))
 
 def commands(list: List<&2, Canonical.Command>, queue: Queue, +now: Nat, +state: Types.State, +event: Canonical.CanonicalEvent,
@@ -284,7 +292,7 @@ def graph_result(transition: Types.GraphTransition, queue: Queue, now: Nat,
 
 def controlled(config: Config) -> Bool:
   match config:
-    case Config{_, current, credential, generation, readable}: Bool.not(current && credential && generation && readable)
+    case Config{_, current, credential, generation, readable, _}: Bool.not(current && credential && generation && readable)
 
 def control_if(apply: Bool, queue: Queue, state: Types.State, context: Driver.Context, now: Nat) -> Queue:
   match apply:
@@ -332,7 +340,7 @@ def input(input: Input, +state: Types.State, queue: Queue, now: Nat,
     case Event{Driver.Action{+event, delay, candidate, job, expiry}}:
       execute(state, Driver.Action{event, delay, candidate, job, expiry}, queue, now, config, ih)
     case Fact{operation, step, event}:
-      graph_result(Engine.graph_step(state, Types.GraphKey{1n, 1n, 1n, operation, 0n}, step,
+      graph_result(Engine.graph_step(state, Types.GraphKey{1n, lifetime(config), 1n, operation, 0n}, step,
         Graph.Limits{1n, 262144n, 20480n, 8n, 1572864n, 16n, 4n, 128n}, event), queue, now, ih)
 
 def sync_if(fresh: Bool, state: Types.State, at: Nat, order: Nat) -> Types.State:
@@ -378,16 +386,26 @@ def loop(fuel: Nat, state_queue: Types.State & Queue, +config: Config) -> List<&
     case 0n: Nil{}
     case 1n+rest: next(state_queue, config, pair => loop(rest, pair, config))
 
-def scenario(config: Config) -> List<&2, List<&2, Nat>>:
+def initial_inputs(initial: Bool, lifetime: Nat) -> Queue:
+  match initial:
+    case True{}: Queue{[Item{0n, 0n, Edit{}}], 1n, 0n}
+    case False{}: Queue{[Item{0n, 0n, Event{Driver.immediate(Canonical.OpenRound{1n, lifetime}, False{})}}, Item{0n, 1n, Edit{}}], 2n, 0n}
+
+def initial_queue(+lifetime: Nat) -> Queue:
+  initial_inputs(Nat.is_eq(lifetime, 1n), lifetime)
+
+def scenario(+config: Config) -> List<&2, List<&2, Nat>>:
   loop(100n, (Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
-    Queue{[Item{0n, 0n, Edit{}}], 1n, 0n}), config)
+    initial_queue(lifetime(config))), config)
 
 def scenarios() -> List<&2, List<&2, List<&2, Nat>>>:
-  [scenario(Config{Canonical.RequestFinding{}, True{}, True{}, True{}, True{}}),
-   scenario(Config{Canonical.RequestClear{}, True{}, True{}, True{}, True{}}),
-   scenario(Config{Canonical.RequestFinding{}, False{}, True{}, True{}, True{}}),
-   scenario(Config{Canonical.RequestFinding{}, True{}, False{}, True{}, True{}}),
-   scenario(Config{Canonical.RequestFinding{}, True{}, True{}, False{}, True{}})]
+  [scenario(Config{Canonical.RequestFinding{}, True{}, True{}, True{}, True{}, 1n}),
+   scenario(Config{Canonical.RequestClear{}, True{}, True{}, True{}, True{}, 1n}),
+   scenario(Config{Canonical.RequestFinding{}, False{}, True{}, True{}, True{}, 1n}),
+   scenario(Config{Canonical.RequestFinding{}, True{}, False{}, True{}, True{}, 1n}),
+   scenario(Config{Canonical.RequestFinding{}, True{}, True{}, False{}, True{}, 1n}),
+   scenario(Config{Canonical.RequestFinding{}, False{}, True{}, True{}, True{}, 2n}),
+   scenario(Config{Canonical.RequestFinding{}, True{}, True{}, False{}, True{}, 2n})]
 
 
 def comma(rest: String) -> String:
