@@ -122,5 +122,12 @@
       "reason": "Pinned assembled commit ancestry fails on migration branch and primary master. Current independent package receipts do not replace the historical accepted release declaration."
     }
   ],
-  "next": "Complete remaining source and requirement audit; preserve missing platform and historical release evidence as unresolved rather than rewriting pins or asserting support."
+  "next": "Complete remaining source and requirement audit; preserve missing platform and historical release evidence as unresolved rather than rewriting pins or asserting support.",
+  "sourceInventory": {
+    "evidence": "source-inventory-current.json",
+    "reproducer": "node evidence/effect4-migration/source-inventory.mjs",
+    "moduleCount": 133,
+    "limitations": "Direct AST syntax only; aliases and dynamic imports need manual review. Tree-sitter reports one unsupported export type * at function-analyzer.ts:3; that eight-line pure language adapter was inspected manually. TypeScript 7 package exposes no legacy JS compiler API; inventory uses existing native Tree-sitter with no added dependency.",
+    "followup": "Inspect native IPC callback runFork service inheritance: request effects read Config and Clock, and callback currently enters default runtime. Full source suite is running on 7c69ca0."
+  }
 }
