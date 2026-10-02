@@ -142,7 +142,8 @@
     "Joined-review append and owner attachment compose named atomic Effects; runtime callers yield directly and defect rollback fixtures preserve no-partial-state checks",
     "Joined-review service now composes Effects throughout; release and settlement are named atomic operations, runtime cleanup and preparation finalizers yield them, synchronous joinedCommit removed",
     "Advice eligibility and content revision compose named atomic Effects; collection revalidation and finalization callers yield directly",
-    "Advice publication composes a named atomic Effect over ticket-unit and joined-review state; preparation and retention callers yield it directly"
+    "Advice publication composes a named atomic Effect over ticket-unit and joined-review state; preparation and retention callers yield it directly",
+    "Advice insertion composes a named atomic Effect; retention caller yields directly and payload/ownership defect fixtures verify rollback through Effect exits"
   ],
   "verification": [
     {
@@ -1815,6 +1816,16 @@
       "build": true,
       "ticketBoundaryCheck": true,
       "case": "Deferred publication leaves pending units unchanged until execution; sixteen competing publications emit joined result once and update owner/subscriber ticket metadata together"
+    },
+    {
+      "stage": "advice-insertion-effect",
+      "affectedTestsPassed": 117,
+      "affectedTestFiles": 3,
+      "supplementaryAdviceTestsPassed": 9,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "cases": "Insertion defers retention until execution and copies findings; failed payload snapshot and invalid canonical owner publish no partial state"
     }
   ],
   "next": [

@@ -1,6 +1,6 @@
 import { it } from "@effect/vitest";
 import { expect } from "vitest";
-import { Effect } from "effect";
+import { Cause, Effect } from "effect";
 import { makeResidentState } from "./capacity.ts";
 import { freezeInput, freezeRules, semanticIdentity, type PreparedUnit, type DirectObservation } from "../direct-event/model.ts";
 import { TYPE_INPUT_CONTRACT } from "../rules/targets.ts";
@@ -44,7 +44,7 @@ const fixture = (existing?: Owner) => Effect.gen(function* () {
 
 it.effect("owns frozen advice content and leases together with canonical state", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const advice = owner.advice.insert(initial);
+  const advice = yield* owner.advice.insert(initial);
   expect(Object.isFrozen(advice)).toBe(true);
   expect(Object.isFrozen(advice.findings)).toBe(true);
   expect(Object.isFrozen(advice.evaluations[0])).toBe(true);
@@ -68,10 +68,10 @@ it.effect("rolls back retention and lease updates when native payload snapshotti
   const { owner, initial } = yield* fixture();
   const before = owner.canonicalProjection();
   const invalid = { ...finding, get message(): string { throw new Error("snapshot failed"); } };
-  expect(() => owner.advice.insert({ ...initial, findings: [finding, invalid] })).toThrow("snapshot failed");
+  expect(yield* defectMessage(owner.advice.insert({ ...initial, findings: [finding, invalid] }))).toContain("snapshot failed");
   expect(owner.canonicalProjection()).toEqual(before);
   expect(owner.advice.values()).toEqual([]);
-  const advice = owner.advice.insert(initial);
+  const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
   owner.advice.reserveLease(advice, "collector");
   const leased = owner.canonicalProjection();
@@ -86,7 +86,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = (yield* owner.ticketUnits.add(ticket));
   (yield* owner.ticketUnits.step(unit, "findingResult", "lost", { revision: initial.revision, adviceId: initial.id }));
-  const advice = owner.advice.insert(initial);
+  const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
   owner.advice.reserveLease(advice, "collector");
   const capture = owner.adviceCaptures.start(advice.reservation, advice.revision, 200);
@@ -109,10 +109,10 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
 
 it.effect("fences a stale capability after the owner clears and advice identity is reused", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const advice = owner.advice.insert(initial);
+  const advice = yield* owner.advice.insert(initial);
   owner.clear();
   const next = yield* fixture(owner);
-  const replacement = owner.advice.insert(next.initial);
+  const replacement = yield* owner.advice.insert(next.initial);
   expect(yield* owner.advice.revise(advice, [], [])).toBe(false);
   expect(yield* owner.advice.eligible(advice, false)).toBe(false);
   expect(owner.advice.remove(advice, "stale")).toBe(false);
@@ -124,14 +124,14 @@ it.effect("fences a stale capability after the owner clears and advice identity 
 it.effect("rejects native retention without canonical finding authority", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
   const before = owner.canonicalProjection();
-  expect(() => owner.advice.insert({ ...initial, canonicalOperationId: 999 })).toThrow("canonical finding owner");
+  expect(yield* defectMessage(owner.advice.insert({ ...initial, canonicalOperationId: 999 }))).toContain("canonical finding owner");
   expect(owner.canonicalProjection()).toEqual(before);
   expect(owner.advice.values()).toEqual([]);
 }));
 
 it.effect("rolls back advice retirement when authorized Stop output prevents submission cleanup", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const advice = owner.advice.insert(initial);
+  const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
   owner.advice.reserveLease(advice, "collector");
   const delivery = owner.delivery();
@@ -156,7 +156,7 @@ it.effect("publishes the owner result and independent joined subscribers togethe
   const joined = owner.joinedReviews(() => 1);
   yield* joined.append({ admission: initial.admissionId, evaluationKey: initial.evaluationKey,
     observation, activityPath: undefined, ticketUnit: subscriber, revision: initial.revision });
-  const advice = owner.advice.insert(initial);
+  const advice = yield* owner.advice.insert(initial);
   const publish = owner.advice.publish(advice, ownerUnit);
   expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("pending");
   expect((yield* owner.ticketUnits.stage(subscriber))?.stage).toBe("pending");
@@ -176,7 +176,7 @@ it.effect("publishes the owner result and independent joined subscribers togethe
 
 it.effect("executes advice eligibility and revision against current retained identity", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const advice = owner.advice.insert(initial);
+  const advice = yield* owner.advice.insert(initial);
   const eligible = owner.advice.eligible(advice, false);
   const revise = owner.advice.revise(advice, [], []);
   expect(advice.collectionEligible).toBe(false);
@@ -188,4 +188,22 @@ it.effect("executes advice eligibility and revision against current retained ide
   owner.advice.remove(advice, "stale");
   expect(yield* eligible).toBe(false);
   expect(yield* revise).toBe(false);
+}));
+
+const defectMessage = <A>(effect: Effect.Effect<A>) => Effect.gen(function* () {
+  const exit = yield* Effect.exit(effect);
+  return exit._tag === "Failure" ? Cause.pretty(exit.cause) : "no defect";
+});
+
+it.effect("defers advice retention and snapshots source payloads at execution", () => Effect.gen(function* () {
+  const { owner, initial } = yield* fixture();
+  const pendingFindings = [...initial.findings];
+  const insert = owner.advice.insert({ ...initial, findings: pendingFindings });
+  expect(owner.advice.values()).toEqual([]);
+  pendingFindings.length = 0;
+  const retained = yield* insert;
+  expect(retained.findings).toEqual([]);
+  pendingFindings.push(finding);
+  expect(retained.findings).toEqual([]);
+  expect(owner.advice.values()).toEqual([retained]);
 }));

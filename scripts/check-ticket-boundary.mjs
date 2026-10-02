@@ -86,3 +86,9 @@ if (!advicePublication.includes("commitAllEffect(") || /\bcommitAll\(/.test(advi
     !server.includes("yield* residentLedger.advice.publish(")) {
   throw new Error("advice publication must atomically compose ticket and joined updates as an Effect");
 }
+
+if (!state.includes('insert: Effect.fn("AdviceRecords.insert")') ||
+    !state.includes('commitAllEffect(adviceChange((operations) => operations.insert(') ||
+    !server.includes('yield* residentLedger.advice.insert(')) {
+  throw new Error("advice retention must compose as an atomic Effect");
+}

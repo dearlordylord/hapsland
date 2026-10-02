@@ -467,7 +467,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       return {
         values: (): ReadonlyArray<Advice> => [...Ref.getUnsafe(state).records.advice.entries.values()]
           .map(({ capability }) => capability).sort((left, right) => left.sequence - right.sequence),
-        insert: (initial: AdviceInitial): Advice => adviceCommit((operations) => operations.insert(initial, (metadata) => {
+        insert: Effect.fn("AdviceRecords.insert")((initial: AdviceInitial): Effect.Effect<Advice> => commitAllEffect(adviceChange((operations) => operations.insert(initial, (metadata) => {
           const content = () => {
             const retained = Ref.getUnsafe(state).records.advice.entries.get(metadata.id);
             return retained?.capability === capability ? retained.content : emptyAdviceContent;
@@ -479,7 +479,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
             get delivery() { return content().delivery; },
           });
           return capability;
-        })),
+        })))),
         publish: Effect.fn("AdviceRecords.publish")((capability: Advice, unit?: TicketUnit, revision: WorkRevision = capability.revision): Effect.Effect<ReadonlyArray<JoinedReviewOutcome>> =>
           commitAllEffect((draft, records) => {
             if (records.advice.entries.get(capability.id)?.capability !== capability) return [[], records];

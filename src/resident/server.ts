@@ -2327,7 +2327,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentReleaseUnit(job);
         return;
       }
-      const advice = residentLedger.advice.insert({
+      const advice = yield* residentLedger.advice.insert({
         id: randomUUID(),
         ...(job.round === undefined ? {} : { round: job.round }),
         ...(job.workUnitId === undefined ? {} : { workUnitId: job.workUnitId }),
