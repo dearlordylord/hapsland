@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
+import { restoreReplay } from "../../monkey-business/src/index.ts";
 import { chromium } from "playwright";
 import { createServer } from "vite";
 const server = await createServer({ server: { host: "127.0.0.1", port: 0, hmr: false } });
@@ -28,6 +29,7 @@ try {
     for (const name of Object.keys(outcomeLabels)) await outcomeSlider(name).press("Home");
     await outcomeSlider(outcome).press("End");
   };
+  if (!process.env.HAPSLAND_SHARED_CONTROL_BROWSER_ONLY) {
   assert.equal(await outcomeSlider("finding").inputValue(), "50");
   assert.equal(await outcomeSlider("clear").inputValue(), "50");
   await panel.locator(".simulation-file-trees summary").click();
@@ -640,6 +642,107 @@ try {
     assert.equal(await panel.getByLabel(label, { exact: true }).inputValue(), value);
   assert.equal(await panel.getByLabel("Advice response", { exact: true }).inputValue(), "delayedRepair");
   await panel.screenshot({ path: "/tmp/astra-ux-square-magnitudes.png" });
+  }
+  // Exercise the actual shared-resident controls through their maintained DOM.
+  const waveClick = async name => {
+    await panel.getByRole("button", { name, exact: true }).click();
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+  };
+  const waveFill = async (label, value) => panel.getByLabel(label, { exact: true }).fill(String(value));
+  const waveReplay = async () => {
+    await waveClick("Export replay");
+    return JSON.parse(await panel.getByLabel("Replay JSON", { exact: true }).inputValue());
+  };
+  const waveRun = async () => restoreReplay(await waveReplay());
+  const waveUntil = async predicate => {
+    for (let step = 0; step < 64; step++) {
+      const current = await waveRun();
+      if (predicate(current)) return current;
+      await waveClick("Single step");
+    }
+    throw new Error("shared control boundary exceeded 64 original transitions");
+  };
+  if (!(await panel.getByLabel("Generated files per artifact · minimum", { exact: true }).isVisible()))
+    await panel.locator(".simulation-file-trees summary").click();
+  await waveFill("Credential generation", 1);
+  await panel.getByLabel("Credential availability", { exact: true }).selectOption("ready");
+  await panel.getByLabel("Source readability", { exact: true }).selectOption("readable");
+  await waveFill("Edit interval (virtual ms)", 1000000);
+  await waveFill("Simulated Jev delay (virtual ms)", 1000);
+  await waveFill("Simulated edit duration (virtual ms)", 0);
+  await waveFill("Generated files per artifact · minimum", 2);
+  await waveFill("Generated files per artifact · maximum", 2);
+  await waveFill("Maximum imports per file", 1);
+  await waveFill("Maximum import depth", 1);
+  await waveFill("Denied import targets (%)", 0);
+  await waveFill("Source bytes per file · minimum", 10);
+  await waveFill("Source bytes per file · maximum", 10);
+  await waveFill("Evidence-tree bytes per file · minimum", 4);
+  await waveFill("Evidence-tree bytes per file · maximum", 4);
+  for (const label of ["Missing import targets (%)", "Unsupported import targets (%)", "Unreadable import targets (%)",
+    "Repeated import edges (%)", "Cyclic import edges (%)", "Deadline fact index", "Local analysis work per file"])
+    await waveFill(label, 0);
+  const graphDrafts = { "Maximum source bytes per file": 20, "Maximum accepted evidence-tree bytes": 32,
+    "Maximum files read": 2, "Maximum total source bytes read": 40, "Maximum outgoing edges per file": 1,
+    "Maximum supporting-reference depth": 2, "Maximum graph work steps": 32 };
+  for (const [label, value] of Object.entries(graphDrafts)) await waveFill(label, value);
+  await setOutcome("clear");
+  await waveClick("Start / reset");
+  await waveFill("Burst count (1–100)", 1);
+  await waveClick("Inject edit burst");
+  const captured = await waveUntil(current => current.observations.some(frame => frame.preparation));
+  const firstGraph = captured.observations.find(frame => frame.preparation).event;
+  assert.equal(firstGraph.graphLimits.files, 2);
+  await waveFill("Maximum files read", 1);
+  await waveClick("Apply graph limits");
+  await waveFill("Missing import targets (%)", 100);
+  await waveFill("Unsupported import targets (%)", 100);
+  await waveFill("Repeated import edges (%)", 100);
+  await waveFill("Cyclic import edges (%)", 100);
+  await waveFill("Local analysis work per file", 1);
+  await waveClick("Apply to future preparations");
+  const issued = await waveUntil(current => current.projection.dispatch.requests.some(request => !request.started));
+  const target = issued.projection.dispatch.requests.find(request => !request.started);
+  const faultPanel = panel.locator(".simulation-jev-interventions");
+  if (!(await faultPanel.getByRole("button", { name: "Never sent", exact: true }).isVisible()))
+    await faultPanel.locator("summary").click();
+  await faultPanel.getByRole("button", { name: "Never sent", exact: true }).click();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+  let controlled = await waveRun();
+  assert.deepEqual(controlled.interventions.at(-1).control.target, Object.fromEntries(["partition", "lifetime", "round", "operation", "request"].map(key => [key, target[key]])));
+  assert.equal(controlled.interventions.at(-1).result, "applied");
+  assert.match(await faultPanel.getByLabel("Jev intervention results").innerText(), /neverSent.*Applied/);
+  await waveClick("Inject edit burst");
+  const second = await waveUntil(current => current.projection.dispatch.requests.some(request => request.operation !== target.operation && request.started));
+  const active = second.projection.dispatch.requests.find(request => request.operation !== target.operation && request.started);
+  const activeField = faultPanel.locator("fieldset").filter({ hasText: `operation ${active.operation} · request ${active.request}` });
+  await activeField.getByRole("button", { name: "Never sent", exact: true }).click();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
+  controlled = await waveRun();
+  assert.equal(controlled.interventions.at(-1).result, "requestAlreadyStarted");
+  assert.match(await faultPanel.getByLabel("Jev intervention results").innerText(), /Refused: an already started request/);
+  for (const name of ["Make credentials unavailable", "Restore credentials", "Rotate credentials"])
+    await waveClick(name);
+  controlled = await waveRun();
+  assert.deepEqual(controlled.interventions.slice(-3).map(report => [report.control.action, report.result]),
+    [["unavailable", "applied"], ["restore", "applied"], ["rotate", "applied"]]);
+  const preparations = controlled.observations.filter(frame => frame.preparation).map(frame => frame.event);
+  assert.ok(preparations.filter(event => event.operation === firstGraph.operation).every(event => event.graphLimits.files === 2));
+  const future = preparations.find(event => event.operation !== firstGraph.operation);
+  assert.equal(future.graphLimits.files, 1);
+  const retained = await waveReplay();
+  assert.deepEqual(retained.controls.findLast(entry => entry.control.kind === "graphLimits").control.limits,
+    { version: 1, sourceBytes: 20, treeBytes: 32, files: 1, readBytes: 40, outgoingEdges: 1, depth: 2, work: 32 });
+  const profile = retained.controls.findLast(entry => entry.control.kind === "fileTrees").control.profile;
+  assert.equal(profile.missingPercent, 100); assert.equal(profile.unsupportedPercent, 100);
+  assert.equal(profile.repeatedEdgePercent, 100); assert.equal(profile.cyclicEdgePercent, 100); assert.equal(profile.localWork, 1);
+  const beforeRestore = restoreReplay(retained).observe();
+  await waveClick("Load replay");
+  await status("Replay reconstructed");
+  const afterRestore = await waveRun();
+  assert.deepEqual(afterRestore.observe(), beforeRestore);
+  assert.equal(afterRestore.interventions.length, controlled.interventions.length);
+  console.log("Shared DOM controls passed: exact Jev target Applied/Refused, credentials unavailable/restore/rotate, seven graph limits, future captured tree faults and ordinary replay.");
   assert.deepEqual(errors, []);
   console.log(
     "Simulation browser controls, existing diagram and inspection passed",
