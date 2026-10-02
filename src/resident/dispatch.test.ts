@@ -128,7 +128,7 @@ it.effect("rolls back canonical identities and retained starts in the same faile
   expect(Exit.isFailure(failed)).toBe(true);
   expect(ledger.canonicalProjection()).toEqual(before);
   expect(yield* ledger.dispatch.read).toBe(beforeRegistry);
-  expect(ledger.knownPartitionId("failed-owner")).toBeUndefined();
+  expect(Effect.runSync(ledger.knownPartitionId("failed-owner"))).toBeUndefined();
   expect(Effect.runSync(ledger.roundId("after-failure"))).toBe(1);
   expect(yield* ledger.partitionId("after-failure")).toBe(1);
 }));

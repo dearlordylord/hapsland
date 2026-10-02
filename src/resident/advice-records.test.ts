@@ -98,10 +98,10 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   expect((yield* owner.ticketUnits.stage(unit))).toMatchObject({ stage: "unavailable", reason: "stale" });
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
-  expect(owner.snapshot().bytes).toBe(300);
+  expect((yield* owner.snapshot()).bytes).toBe(300);
   expect(yield* owner.revision.count()).toBe(1);
   expect(yield* owner.adviceCaptures.finish(capture)).toBe("retired");
-  expect(owner.snapshot().items).toBe(0);
+  expect((yield* owner.snapshot()).items).toBe(0);
   expect(yield* owner.revision.count()).toBe(0);
   expect(yield* owner.advice.revise(advice, [], [])).toBe(false);
   expect(yield* owner.advice.remove(advice, "stale")).toBe(false);
@@ -117,7 +117,7 @@ it.effect("fences a stale capability after the owner clears and advice identity 
   expect(yield* owner.advice.eligible(advice, false)).toBe(false);
   expect(yield* owner.advice.remove(advice, "stale")).toBe(false);
   expect((yield* owner.advice.values())).toEqual([replacement]);
-  expect(owner.snapshot().bytes).toBe(100);
+  expect((yield* owner.snapshot()).bytes).toBe(100);
 }));
 
 
@@ -143,7 +143,7 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
   expect(yield* defectMessage(owner.advice.remove(advice, "stale", "collector"))).toContain("canonical submission forget refused");
   expect(owner.canonicalProjection()).toEqual(before);
   expect((yield* owner.advice.values())).toEqual([advice]);
-  expect(owner.snapshot().bytes).toBe(100);
+  expect((yield* owner.snapshot()).bytes).toBe(100);
   expect((yield* owner.advice.current(advice)).delivery?.token).toBe("collector");
 }));
 
@@ -276,7 +276,7 @@ it.effect("retires advice once across competing deferred removals", () => Effect
   expect(results.filter(Boolean)).toHaveLength(1);
   expect((yield* owner.advice.values())).toEqual([]);
   expect(yield* owner.revision.count()).toBe(0);
-  expect(owner.snapshot().items).toBe(0);
+  expect((yield* owner.snapshot()).items).toBe(0);
 }));
 
 

@@ -108,7 +108,7 @@ it.effect("records transient reservation peaks without a server sampling checkpo
   expect((yield* owner.runtime.snapshot()).peakLedgerBytes).toBe(205);
   owner.release(capture);
   owner.release(concurrent);
-  expect(owner.snapshot().bytes).toBe(0);
+  expect((yield* owner.snapshot()).bytes).toBe(0);
   expect(owner.reserve("other", 1_000_000_000, "preparation")).toBeUndefined();
   expect(owner.resize(concurrent, 1_000)).toBe(false);
   yield* owner.clear();

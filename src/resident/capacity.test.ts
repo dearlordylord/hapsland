@@ -15,7 +15,7 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.resize(issued, 30, "storedResult")).toBe(true);
     expect(Effect.runSync(ledger.reservationSnapshot(issued))?.bytes).toBe(30);
     expect(Effect.runSync(ledger.reservationSnapshot(issued))?.purpose).toBe("storedResult");
-    expect(ledger.snapshot().bytes).toBe(30);
+    expect(Effect.runSync(ledger.snapshot()).bytes).toBe(30);
 
     Effect.runSync(ledger.clear());
     const replacement = ledger.reserve("other-agent", 90, "reviewUnit");
@@ -24,7 +24,7 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.release(issued)).toBe(false);
     expect(ledger.resize(issued, 1)).toBe(false);
     expect(replacement === undefined ? undefined : Effect.runSync(ledger.reservationSnapshot(replacement))?.bytes).toBe(90);
-    expect(ledger.snapshot().bytes).toBe(90);
+    expect(Effect.runSync(ledger.snapshot()).bytes).toBe(90);
   });
 
   it("publishes neither canonical state nor native identities when registration fails", () => {
@@ -51,7 +51,7 @@ describe("resident logical capacity ledger", () => {
       ledger.reserve("nested-agent", 10, "preparation");
     })).toThrow("resident capacity commit cannot be reentered");
     expect(ledger.canonicalProjection()).toEqual(before);
-    expect(ledger.knownPartitionId("nested-agent")).toBeUndefined();
+    expect(Effect.runSync(ledger.knownPartitionId("nested-agent"))).toBeUndefined();
     expect(Effect.runSync(ledger.partitionIdentityCount())).toBe(1);
     // The failed commit releases its fence and does not consume a reservation ID.
     expect(ledger.reserve("agent", 10, "preparation")?.id).toBe(1);
@@ -62,14 +62,14 @@ describe("resident logical capacity ledger", () => {
     for (let index = 0; index < MAX_PARTITION_IDENTITIES; index++) {
       Effect.runSync(ledger.partitionId(`advicee-${index}`));
     }
-    const first = ledger.knownPartitionId("advicee-0");
+    const first = Effect.runSync(ledger.knownPartitionId("advicee-0"));
     expect(first).toBeDefined();
     Effect.runSync(ledger.partitionId("next-advicee"));
     expect(Effect.runSync(ledger.partitionIdentityCount())).toBe(MAX_PARTITION_IDENTITIES);
-    expect(ledger.knownPartitionId("advicee-0")).toBeUndefined();
+    expect(Effect.runSync(ledger.knownPartitionId("advicee-0"))).toBeUndefined();
     expect(Effect.runSync(ledger.minimumFreshStart())).toBeGreaterThan(0);
     const stale = ledger.transition({ kind: "issuePermit",
-      partition: ledger.knownPartitionId("next-advicee")!, lifetime: 1,
+      partition: Effect.runSync(ledger.knownPartitionId("next-advicee"))!, lifetime: 1,
       tool: 1, started: Effect.runSync(ledger.minimumFreshStart()),
       deadline: Effect.runSync(ledger.minimumFreshStart()) + 1000, now: Effect.runSync(ledger.minimumFreshStart()),
       minimumStarted: Effect.runSync(ledger.minimumFreshStart()),
@@ -254,7 +254,7 @@ describe("resident logical capacity ledger", () => {
     if (split !== undefined) expect(() => Effect.runSync(split)).toThrow("invalid canonical preparation completion");
     expect(ledger.canonicalProjection().rounds).toEqual([]);
     expect(ledger.canonicalProjection().work).toEqual([]);
-    expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
+    expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 0, bytes: 0, partitions: {} });
   });
 
   it("fences old callbacks and retirement after a successor round opens", () => {
@@ -284,7 +284,7 @@ describe("resident logical capacity ledger", () => {
       selected: true, currentWork: true, physicalAvailable: true,
     }, oldRound))).toEqual({ status: "stale" });
     expect(ledger.canonicalProjection().rounds).toHaveLength(1);
-    expect(ledger.snapshot()).toMatchObject({ items: 1, bytes: 5 });
+    expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 1, bytes: 5 });
   });
 
   it("enforces the profile's exact item and revised byte boundaries", () => {
@@ -295,14 +295,14 @@ describe("resident logical capacity ledger", () => {
       expect(counts.reserve(`partition-${Math.floor(index / 16)}`, 1, "reviewUnit")).toBeDefined();
     }
     expect(counts.reserve("overflow", 0, "reviewUnit")).toBeUndefined();
-    expect(counts.snapshot()).toMatchObject({ items: 512, bytes: 512 });
+    expect(Effect.runSync(counts.snapshot())).toMatchObject({ items: 512, bytes: 512 });
 
     const bytes = makeCapacityLedger();
     for (let index = 0; index < 128; index += 1) {
       expect(bytes.reserve(`bytes-${index}`, 2 * 1024 * 1024, "reviewUnit")).toBeDefined();
     }
     expect(bytes.reserve("overflow", 1, "reviewUnit")).toBeUndefined();
-    expect(bytes.snapshot()).toMatchObject({ items: 128, bytes: 256 * 1024 * 1024 });
+    expect(Effect.runSync(bytes.snapshot())).toMatchObject({ items: 128, bytes: 256 * 1024 * 1024 });
     const partitionBytes = makeCapacityLedger();
     for (let index = 0; index < 16; index += 1) {
       expect(partitionBytes.reserve("one", 2 * 1024 * 1024, "reviewUnit")).toBeDefined();
@@ -324,7 +324,7 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.reserve("one", 0, "reviewUnit")).toBeUndefined();
     expect(ledger.reserve("two", 20, "reviewUnit")).toBeDefined();
     expect(ledger.reserve("three", 20, "reviewUnit")).toBeDefined();
-    expect(ledger.snapshot()).toMatchObject({ items: 4, bytes: 100 });
+    expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 4, bytes: 100 });
     expect(ledger.reserve("four", 0, "reviewUnit")).toBeUndefined();
   });
 
@@ -345,7 +345,7 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.release(local)).toBe(true);
     expect(ledger.release(local)).toBe(false);
     expect(ledger.release(global)).toBe(true);
-    expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
+    expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 0, bytes: 0, partitions: {} });
   });
 
   it("clears all reservations at a lifecycle terminal", () => {
@@ -353,15 +353,15 @@ describe("resident logical capacity ledger", () => {
     const running = ledger.reserve("one", 10, "reviewUnit");
     expect(running).toBeDefined();
     Effect.runSync(ledger.clear());
-    expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
+    expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 0, bytes: 0, partitions: {} });
     if (running !== undefined) expect(ledger.release(running)).toBe(false);
   });
 
   it("reports partition names that overlap Object.prototype keys", () => {
     const ledger = makeCapacityLedger();
     expect(ledger.reserve("__proto__", 1, "reviewUnit")).toBeDefined();
-    expect(Object.hasOwn(ledger.snapshot().partitions, "__proto__")).toBe(true);
-    expect(ledger.snapshot().partitions["__proto__"]).toEqual({ items: 1, bytes: 1 });
+    expect(Object.hasOwn(Effect.runSync(ledger.snapshot()).partitions, "__proto__")).toBe(true);
+    expect(Effect.runSync(ledger.snapshot()).partitions["__proto__"]).toEqual({ items: 1, bytes: 1 });
   });
 
   it("resizes preparation workspace and atomically replaces it with exact units", () => {
@@ -379,7 +379,7 @@ describe("resident logical capacity ledger", () => {
     const replacements = ledger.replace(workspace, [30, 30, 20, 1]);
     expect(replacements.slice(0, 3).every((item) => item !== undefined)).toBe(true);
     expect(replacements[3]).toBeUndefined();
-    expect(ledger.snapshot()).toMatchObject({ items: 3, bytes: 80 });
+    expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 3, bytes: 80 });
   });
 
   it("shares capacity across advicees and releases each replacement exactly once", () => {
@@ -394,7 +394,7 @@ describe("resident logical capacity ledger", () => {
     expect(one === undefined ? undefined : Effect.runSync(ledger.reservationSnapshot(one))?.purpose).toBe("reviewUnit");
     expect(refused).toBeUndefined();
     expect(three === undefined ? undefined : Effect.runSync(ledger.reservationSnapshot(three))?.purpose).toBe("reviewUnit");
-    expect(ledger.snapshot()).toEqual({ items: 3, bytes: 70,
+    expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 3, bytes: 70,
       partitions: { "agent-a": { items: 2, bytes: 30 }, "agent-b": { items: 1, bytes: 40 } } });
     expect(ledger.replace(first, [5])).toEqual([undefined]);
     expect(ledger.release(first)).toBe(false);
@@ -405,7 +405,7 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.release(one)).toBe(true);
     expect(ledger.release(one)).toBe(false);
     expect(ledger.release(three)).toBe(true);
-    expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
+    expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 0, bytes: 0, partitions: {} });
   });
 
   it("rejects unknown, negative, and unsafe output reservations", () => {
@@ -415,7 +415,7 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.reserve("partition", -1, "reviewUnit")).toBeUndefined();
     expect(ledger.reserve("partition", Number.MAX_SAFE_INTEGER + 1, "reviewUnit")).toBeUndefined();
     expect(ledger.reserve("partition", 2 ** 47, "reviewUnit")).toBeUndefined();
-    expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
+    expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 0, bytes: 0, partitions: {} });
   });
 
   it("releases preparation space when measured replacement input violates the Bend bound", () => {
@@ -424,7 +424,7 @@ describe("resident logical capacity ledger", () => {
     if (workspace === undefined) throw new Error("missing preparation reservation");
     expect(() => ledger.replace(workspace, [2 ** 47])).toThrow(TypeError);
     expect(ledger.release(workspace)).toBe(false);
-    expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
+    expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 0, bytes: 0, partitions: {} });
   });
 
   it("rejects malformed and oversized unknown output before retention", () => {

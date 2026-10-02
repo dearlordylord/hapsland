@@ -2077,6 +2077,17 @@
       "roundContractEvidence": "evidence/effect4-migration/round-contract-request-lifecycle-effects.json",
       "scope": "Request authorization, provider dispatch start and interruption are named atomic Effects. Runtime requestReady, denyReady and reportInterruption compose them. Scoped abort watcher owns native listener cleanup; callback only enters Effect, never mutates canonical state. Scope closes after error settlement and unit cleanup.",
       "limitations": "Linux probe uses deterministic host-labelled fixtures, not installed agent-host or live backend support evidence. Remaining root capacity operations and synchronous runtime facades still require conversion."
+    },
+    {
+      "stage": "capacity-snapshot-partition-read-effects",
+      "testsPassed": 185,
+      "testFiles": 10,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Public capacity snapshot and knownPartitionId are named Ref read Effects; runtime stats, finding selection and request identity readers compose them. Private draft readers remain pure within canonical commits.",
+      "validation": "Nine files passed 157 tests and fresh capacity suite passed 28 after executing the item/byte boundary fixture Effects. Initial shadowed snapshot lambda and missed fixture assertions are corrected; intermediate failed runs do not establish final validation.",
+      "limitations": "Remaining transition/canonicalProjection/reservation APIs and synchronous runtime facades require migration."
     }
   ],
   "next": [

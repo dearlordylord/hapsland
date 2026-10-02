@@ -14,12 +14,12 @@ it.effect("retains retired capture capacity until physical settlement and fences
   expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(300);
   expect(yield* owner.adviceCaptures.start(reservation, revision, 100)).toBeUndefined();
   expect(yield* owner.adviceCaptures.retire(reservation)).toBe(true);
-  expect(owner.snapshot().bytes).toBe(300);
+  expect((yield* owner.snapshot()).bytes).toBe(300);
   expect(() => Effect.runSync(owner.clear())).toThrow("outstanding advice captures");
   expect(yield* owner.adviceCaptures.resize(capture, 250)).toBe(true);
-  expect(owner.snapshot().bytes).toBe(350);
+  expect((yield* owner.snapshot()).bytes).toBe(350);
   expect(yield* owner.adviceCaptures.finish(capture)).toBe("retired");
-  expect(owner.snapshot().items).toBe(0);
+  expect((yield* owner.snapshot()).items).toBe(0);
   expect(yield* owner.adviceCaptures.finish(capture)).toBe("stale");
   expect(yield* owner.adviceCaptures.resize(capture, 200)).toBe(false);
   expect(yield* owner.adviceCaptures.count()).toBe(0);

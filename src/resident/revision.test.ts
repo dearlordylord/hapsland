@@ -86,10 +86,10 @@ it.effect("settles a retired advice capture and its revision member in one owner
   if (capture === undefined) throw new Error("missing capture");
   yield* owner.adviceCaptures.retire(reservation);
   expect(yield* owner.revision.current(revision, item)).toBe(true);
-  expect(owner.snapshot().bytes).toBe(300);
+  expect((yield* owner.snapshot()).bytes).toBe(300);
   expect(yield* owner.adviceCaptures.finish(capture)).toBe("retired");
   expect(yield* owner.revision.count()).toBe(0);
-  expect(owner.snapshot().items).toBe(0);
+  expect((yield* owner.snapshot()).items).toBe(0);
 }));
 
 it.effect("executes deferred registrations atomically across competing members", () => Effect.gen(function* () {

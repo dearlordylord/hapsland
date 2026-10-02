@@ -106,7 +106,7 @@ describe("resident evaluation identity", () => {
       return { key, evaluation };
     });
     const before = ledger.canonicalProjection();
-    const beforeCapacity = ledger.snapshot();
+    const beforeCapacity = Effect.runSync(ledger.snapshot());
     const beforeReuse = Effect.runSync(reuse.snapshot());
     const replacement = prepared(input({ path: "replacement.ts", rules: [] }));
     const replacementKey = reuse.key("partition", replacement);
@@ -116,7 +116,7 @@ describe("resident evaluation identity", () => {
     expect(() => Effect.runSync(reuse.put("p".repeat(MAX_PARTITION_KEY_BYTES + 1), replacementKey,
       { prepared: replacement, findings: [] }))).toThrow("advicee identity exceeds resident metadata bound");
     expect(ledger.canonicalProjection()).toEqual(before);
-    expect(ledger.snapshot()).toEqual(beforeCapacity);
+    expect(Effect.runSync(ledger.snapshot())).toEqual(beforeCapacity);
     expect(Effect.runSync(reuse.snapshot())).toEqual(beforeReuse);
     for (const success of successes) expect(Effect.runSync(reuse.cached(success.key)).evaluation).toBe(success.evaluation);
 
@@ -176,9 +176,9 @@ describe("resident evaluation identity", () => {
     expect(Effect.runSync(reuse.snapshot()).bytes).toBeLessThanOrEqual(SUCCESS_CACHE_BYTE_LIMIT);
     expect(Effect.runSync(reuse.get(keys[0] ?? "missing"))).toBeUndefined();
     expect(Effect.runSync(reuse.hasPending(pending))).toBe(true);
-    expect(ledger.snapshot().bytes).toBe(Effect.runSync(reuse.snapshot()).bytes);
+    expect(Effect.runSync(ledger.snapshot()).bytes).toBe(Effect.runSync(reuse.snapshot()).bytes);
     Effect.runSync(reuse.clear());
-    expect(ledger.snapshot()).toMatchObject({ items: 0, bytes: 0 });
+    expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 0, bytes: 0 });
   });
 
   it("evicts the oldest success for byte pressure and rejects an oversized success", () => {
@@ -196,7 +196,7 @@ describe("resident evaluation identity", () => {
     size = SUCCESS_CACHE_BYTE_LIMIT + 1;
     expect(Effect.runSync(reuse.put("partition", firstKey, { prepared: first, findings: [] }))).toBe(false);
     expect(Effect.runSync(reuse.snapshot())).toMatchObject({ entries: 1, bytes: 70_000 });
-    expect(ledger.snapshot().bytes).toBe(70_000);
+    expect(Effect.runSync(ledger.snapshot()).bytes).toBe(70_000);
     Effect.runSync(reuse.clear());
   });
 
@@ -226,7 +226,7 @@ describe("resident evaluation identity", () => {
     expect(Effect.runSync(reuse.snapshot())).toMatchObject({ entries: 1, bytes: 10, pending: 0 });
     Effect.runSync(reuse.clear());
     expect(ledger.canonicalProjection().reuse).toEqual({ claims: [], cache: [] });
-    expect(ledger.snapshot()).toMatchObject({ items: 0, bytes: 0 });
+    expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 0, bytes: 0 });
   });
 });
 

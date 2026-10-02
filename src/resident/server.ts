@@ -567,7 +567,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     yield* residentExpirePending(now);
     yield* residentPruneNoticeCooldowns(now);
     const dispatch = yield* residentDispatcher.snapshot();
-    const capacity = residentLedger.snapshot();
+    const capacity = (yield* residentLedger.snapshot());
     const reuse = (yield* residentReuse.snapshot());
     return {
       status: "stats",
@@ -1350,7 +1350,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     advice: Advice, partition: string, credentialGeneration: number | null,
     now: number, composed: boolean,
   ): Effect.fn.Return<FindingSelectionFacts> {
-    const partitionId = residentLedger.knownPartitionId(partition);
+    const partitionId = (yield* residentLedger.knownPartitionId(partition));
     if (partitionId === undefined) throw new Error("finding selection lost its resident partition identity");
     const content = yield* residentLedger.advice.current(advice);
     const generation = composed ? yield* residentComposedDelivery.generation(partition) : 0;
@@ -1923,7 +1923,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const decision = yield* residentLedger.readyJevRequest(job.partition,
         job.canonicalOperationId, job.reservation, facts, job.canonicalRound);
       if (decision.status !== "stale") {
-        const canonicalPartition = residentLedger.knownPartitionId(job.partition);
+        const canonicalPartition = (yield* residentLedger.knownPartitionId(job.partition));
         if (canonicalPartition === undefined) throw new Error("issued review lost its partition identity");
         requestIdentity = {
         partition: job.partition,

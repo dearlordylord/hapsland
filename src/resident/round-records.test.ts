@@ -66,7 +66,7 @@ it.effect("rejects missing or mismatched canonical authority without publishing 
   const before = owner.canonicalProjection();
   expect(yield* defectMessage(owner.rounds.bind("agent", 1, activity, "cohort"))).toContain("canonical admission generation");
   expect(owner.canonicalProjection()).toEqual(before);
-  expect(owner.knownPartitionId("agent")).toBeUndefined();
+  expect((yield* owner.knownPartitionId("agent"))).toBeUndefined();
   expect((yield* owner.currentRoundId("agent"))).toBeUndefined();
   expect((yield* owner.rounds.entries())).toEqual([]);
   const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0));

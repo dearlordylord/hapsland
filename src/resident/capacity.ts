@@ -285,6 +285,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    snapshot: Effect.fn("Capacity.snapshot")((...args: Arguments<typeof snapshot>) => Ref.get(state).pipe(Effect.map((current) => snapshot(current, ...args)))),
+    knownPartitionId: Effect.fn("Capacity.knownPartitionId")((...args: Arguments<typeof knownPartitionId>) => Ref.get(state).pipe(Effect.map((snapshot) => knownPartitionId(snapshot, ...args)))),
     readyJevRequest: Effect.fn("Capacity.readyJevRequest")((...args: Arguments<typeof readyJevRequest>) => commitAllEffect((draft, records) => [readyJevRequest(draft, ...args), records])),
     startJevRequest: Effect.fn("Capacity.startJevRequest")((...args: Arguments<typeof startJevRequest>) => commitAllEffect((draft, records) => [startJevRequest(draft, ...args), records])),
     interruptJevRequest: Effect.fn("Capacity.interruptJevRequest")((...args: Arguments<typeof interruptJevRequest>) => commitAllEffect((draft, records) => [interruptJevRequest(draft, ...args), records])),
