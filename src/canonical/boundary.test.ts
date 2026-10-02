@@ -92,6 +92,14 @@ it("strictly validates generated canonical command lists at 2048 cells without r
     return stepCanonical(state, { kind: "checkCompletedEdit", tool: 1 });
   };
   expect(evaluate(linked(2048, command)).commands).toHaveLength(2048);
+  let excessHeadReads = 0;
+  const excessCell = { $: "Con", tail: { $: "Nil" } };
+  Object.defineProperty(excessCell, "head", { enumerable: true, get: () => {
+    excessHeadReads += 1;
+    throw new Error("must not read a head beyond the linked-list bound");
+  } });
+  expect(() => evaluate(linked(2048, command, excessCell))).toThrow(TypeError);
+  expect(excessHeadReads).toBe(0);
   const cyclic: { $: string; head: unknown; tail?: unknown } = { $: "Con", head: command };
   cyclic.tail = cyclic;
   for (const commands of [linked(2049, command), cyclic, { $: "Con", head: command },

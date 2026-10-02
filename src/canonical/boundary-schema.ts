@@ -86,7 +86,7 @@ export const ConsSchema = Schema.Struct({
   tail: Schema.Unknown,
 });
 export const readNil = decoder(NilSchema);
-export const readCons = decoder(ConsSchema);
+const readListCell = decoder(Schema.Union([ConsSchema, NilSchema]));
 
 /** Iterate native list cells, never recursively decode a generated linked list. */
 export const readBendList = <T>(
@@ -96,12 +96,13 @@ export const readBendList = <T>(
 ): T[] => {
   const result: T[] = [];
   let cursor = value;
-  while (readTag(cursor).$ === "Con") {
-    if (result.length >= limit) throw new TypeError("Bend list exceeded bound");
-    const cell = readCons(cursor);
+  while (result.length < limit) {
+    const cell = readListCell(cursor);
+    if (cell.$ === "Nil") return result;
     result.push(decode(cell.head));
     cursor = cell.tail;
   }
+  // At the physical bound, inspect only the terminal shape, never another head.
   readNil(cursor);
   return result;
 };
