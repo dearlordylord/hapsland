@@ -4203,5 +4203,18 @@
     "host": "Codex CLI 0.155.1",
     "archiveSha256": "e46594c28d7d13004dc3e043e8516b27b375e0b26bd7997f9356c02d6a02fd34",
     "limitations": "Fresh Linux pack/install and one controlled synthetic native host case, native trust without bypass; no current macOS acceptance."
+  },
+  "latestClaudeNativeCompletion": {
+    "productionSourceCommit": "0c86f40",
+    "receipt": "claude-native-current.json",
+    "host": "Claude Code 2.1.218",
+    "exitCode": 0,
+    "backendCompletions": 2,
+    "findingSubmission": true,
+    "stopBlock": true,
+    "repairedFile": true,
+    "clearFollowUp": true,
+    "hookFailures": [],
+    "limitations": "Bounded native Linux synthetic source case with controlled backend; no current installed Claude package or macOS acceptance."
   }
 }

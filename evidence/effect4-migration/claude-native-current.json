@@ -2,7 +2,7 @@
   "issue": 105,
   "platform": "linux-arm64",
   "node": "v24.20.0",
-  "candidateCommit": "800f791f023f7f78a9c6d6cd1e72441b727033b7",
+  "candidateCommit": "f124a7d9dcbc8bcffb661f67f6fc740232577ad5",
   "backend": "controlled offline Effect DecisionModel",
   "cases": [
     {
@@ -18,7 +18,7 @@
       "exitCode": 0,
       "signal": null,
       "timedOut": false,
-      "elapsedMs": 22754,
+      "elapsedMs": 24843,
       "hookCounts": {
         "before-edit": 2,
         "edit": 2,
@@ -29,9 +29,9 @@
       "hookSequence": [
         {
           "mode": "prompt",
-          "at": 1606,
+          "at": 1728,
           "ok": true,
-          "elapsedMs": 426,
+          "elapsedMs": 465,
           "finding": false,
           "submitted": false,
           "blocked": false,
@@ -50,9 +50,9 @@
         },
         {
           "mode": "before-edit",
-          "at": 6273,
+          "at": 6678,
           "ok": true,
-          "elapsedMs": 409,
+          "elapsedMs": 418,
           "finding": false,
           "submitted": false,
           "blocked": false,
@@ -74,9 +74,9 @@
         },
         {
           "mode": "edit",
-          "at": 10329,
+          "at": 10713,
           "ok": true,
-          "elapsedMs": 4001,
+          "elapsedMs": 4002,
           "finding": false,
           "submitted": false,
           "blocked": false,
@@ -100,9 +100,9 @@
         },
         {
           "mode": "stop",
-          "at": 12821,
+          "at": 14134,
           "ok": true,
-          "elapsedMs": 486,
+          "elapsedMs": 520,
           "finding": true,
           "submitted": true,
           "blocked": true,
@@ -125,9 +125,9 @@
         },
         {
           "mode": "before-edit",
-          "at": 16711,
+          "at": 18824,
           "ok": true,
-          "elapsedMs": 401,
+          "elapsedMs": 398,
           "finding": false,
           "submitted": false,
           "blocked": false,
@@ -149,9 +149,9 @@
         },
         {
           "mode": "edit",
-          "at": 20766,
+          "at": 22820,
           "ok": true,
-          "elapsedMs": 4023,
+          "elapsedMs": 3963,
           "finding": false,
           "submitted": false,
           "blocked": false,
@@ -175,9 +175,9 @@
         },
         {
           "mode": "stop",
-          "at": 22710,
+          "at": 24809,
           "ok": true,
-          "elapsedMs": 623,
+          "elapsedMs": 416,
           "finding": false,
           "submitted": false,
           "blocked": false,
@@ -248,18 +248,18 @@
       ],
       "backendCompletions": 2,
       "backendCompletionTimes": [
-        11874,
-        22247
+        12260,
+        24310
       ],
       "backendCompletedAfterHostExit": false,
       "clearFollowUp": true,
       "activityStages": [
         "pending",
         "pending",
-        "clear",
+        "findings",
         "pending",
         "pending",
-        "findings"
+        "clear"
       ],
       "findingSubmission": true,
       "stopBlock": true,
@@ -269,5 +269,9 @@
       "hookFailures": [],
       "hostError": false
     }
-  ]
+  ],
+  "postExecutionMetadata": {
+    "productionSourceCommit": "0c86f40",
+    "timing": "After execution; synthetic native exact Claude 2.1.218 case on latest IPC Context and backend monotonic-duration source."
+  }
 }
