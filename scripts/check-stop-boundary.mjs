@@ -28,6 +28,12 @@ if (/Effect\.runSync\(residentDispatcher\.(?:snapshotWhere|hasWorkWhere|discardW
 }
 
 const capacity = readFileSync(resolve(root, "src/resident/capacity.ts"), "utf8");
+if (!/const roundCommit = [\s\S]*?=>\s*commitAllEffect\(/u.test(capacity) ||
+    !server.includes("yield* residentLedger.rounds.bind") ||
+    !server.includes("yield* residentLedger.rounds.replaceWork") ||
+    !server.includes("yield* residentLedger.rounds.retire")) {
+  throw new Error("round mutations must compose atomic Effects without a synchronous commit bridge");
+}
 if (/const runtimeCommit\s*=/u.test(capacity) || server.includes("responseFiber")) {
   throw new Error("runtime mutations and IPC responses must compose Effects without synchronous mutation bridges");
 }

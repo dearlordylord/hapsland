@@ -246,15 +246,15 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     discardPartition: Effect.fn("ResidentState.discardPartitionTickets")((partition) => ticketCommit((operations) => operations.discardPartition(partition))),
     retain: Effect.fn("ResidentState.retainTickets")((limit) => ticketCommit((operations) => operations.retain(limit))),
   };
-  const roundCommit = <A>(operation: (operations: ReturnType<typeof roundRecordOperations>) => A): A =>
-    commitAll((draft, records) => {
+  const roundCommit = <A>(operation: (operations: ReturnType<typeof roundRecordOperations>) => A): Effect.Effect<A> =>
+    commitAllEffect((draft, records) => {
       const rounds = draftRoundRecords(records.rounds);
       const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
       const value = operation(roundRecordOperations(rounds, owner));
       return [value, { ...records, rounds }];
     });
   const rounds: RoundRecords = {
-    bind: (group, generation, activity, cohortId) => roundCommit((operations) => operations.bind(group, generation, activity, (canonicalRound, partition) => {
+    bind: Effect.fn("ResidentState.bindRound")((group, generation, activity, cohortId) => roundCommit((operations) => operations.bind(group, generation, activity, (canonicalRound, partition) => {
       const issuedWork: WorkCohort = Object.freeze({ id: cohortId, controller: new AbortController() });
       const discarded = Object.freeze({ queued: 0, running: 0 });
       const live = () => {
@@ -269,15 +269,15 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           ? { work: [], pendingFindings: [] } : canonicalProjection(Ref.getUnsafe(state)), partition, canonicalRound),
       });
       return capability;
-    })),
+    }))),
     get: (group) => Ref.getUnsafe(state).records.rounds.entries.get(group)?.capability,
     entries: () => [...Ref.getUnsafe(state).records.rounds.entries].map(([group, record]) => [group, record.capability] as const),
     activity: (round) => {
       const record = Ref.getUnsafe(state).records.rounds.entries.get(round.group);
       return record?.capability === round ? record.activity : undefined;
     },
-    replaceWork: (...args) => roundCommit((operations) => operations.replaceWork(...args)),
-    retire: (round) => roundCommit((operations) => operations.retire(round)),
+    replaceWork: Effect.fn("ResidentState.replaceRoundWork")((...args) => roundCommit((operations) => operations.replaceWork(...args))),
+    retire: Effect.fn("ResidentState.retireRound")((round) => roundCommit((operations) => operations.retire(round))),
   };
   const runtimeCommitEffect = <A>(operation: (runtime: ReturnType<typeof runtimeRecordOperations>) => A): Effect.Effect<A> =>
     commitAllEffect((_draft, records) => {

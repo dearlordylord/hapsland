@@ -1,3 +1,4 @@
+import type { Effect } from "effect";
 import type { DirectAdvicee } from "../direct-event/model.ts";
 import type { CapacityLedger } from "./capacity.ts";
 import type { BendWorkView } from "./bend-work.ts";
@@ -66,10 +67,10 @@ export const roundRecordOperations = (
   },
 });
 export interface RoundRecords {
-  readonly bind: (group: string, generation: number, activity: RoundActivity, cohortId: string) => RoundWork;
+  readonly bind: (group: string, generation: number, activity: RoundActivity, cohortId: string) => Effect.Effect<RoundWork>;
   readonly get: (group: string) => RoundWork | undefined;
   readonly entries: () => ReadonlyArray<readonly [string, RoundWork]>;
   readonly activity: (round: RoundWork) => RoundActivity | undefined;
-  readonly replaceWork: ReturnType<typeof roundRecordOperations>["replaceWork"];
-  readonly retire: (round: RoundWork) => boolean;
+  readonly replaceWork: (...args: Parameters<ReturnType<typeof roundRecordOperations>["replaceWork"]>) => Effect.Effect<ReturnType<ReturnType<typeof roundRecordOperations>["replaceWork"]>>;
+  readonly retire: (round: RoundWork) => Effect.Effect<boolean>;
 }

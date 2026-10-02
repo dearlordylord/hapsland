@@ -124,7 +124,9 @@
     "Owner, joined and completion preparation barriers now observe owning-work cancellation inside the dispatcher uninterruptible region; actual resident-close tests prove held barriers retire without external gate release.",
     "Dispatch authorization and credential-resolution barriers are a scoped ResidentDispatchControls service with typed failures; removed both optional Promise callbacks in place.",
     "Credential-generation child-process and exclusion-update races now run in the test after a deterministic scoped dispatch barrier; no file/process mutations inside production fixture callbacks.",
-    "Resident control scope owns both preparation and dispatch layers; authorization/credential typed failure tests prove provider suppression and complete charge release."
+    "Resident control scope owns both preparation and dispatch layers; authorization/credential typed failure tests prove provider suppression and complete charge release.",
+    "Round binding, work-cohort replacement and retirement now return named Effects backed directly by commitAllEffect; production admission, cutoff and close workflows yield these operations without round mutation runSync bridges.",
+    "Round mutation fixtures use Effect exits to verify invariant defects and transaction rollback; sixteen concurrent binders/replacers/retirers preserve one capability, all discarded counts and single retirement."
   ],
   "verification": [
     {
@@ -1596,12 +1598,42 @@
       "stage": "Scoped dispatch controls final",
       "command": "Typecheck, build, all boundary scripts and git diff --check",
       "exitCode": 0
+    },
+    {
+      "stage": "Effect round-record mutations",
+      "command": "Full server, terminal-collection, round-records and advice-records suites",
+      "exitCode": 0,
+      "tests": 123,
+      "files": 4
+    },
+    {
+      "stage": "Effect round-record mutations",
+      "command": "Typecheck, build, all boundary scripts and git diff --check",
+      "exitCode": 0
+    },
+    {
+      "stage": "Effect round-record mutations",
+      "command": "Unchanged original workload",
+      "exitCode": 0,
+      "evidence": "benchmark-round-record-effects-comparison.json",
+      "allBudgetsMet": true
+    },
+    {
+      "stage": "Effect round-record mutations",
+      "command": "Physical-retirement workload",
+      "exitCode": 0,
+      "evidence": "physical-retirement-round-record-effects-comparison.json",
+      "measuredIterations": 8,
+      "currentPhysicalContractValid": true,
+      "comparableBudgetsMet": true,
+      "allNumericFormulasPass": false,
+      "allComparativeBudgetsVerified": false
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Replace remaining synchronous domain commit/read bridges with service operations and finish scoped fixture controls",
+    "Replace remaining synchronous domain commit/read bridges with service operations; round mutations now compose Effects, but round getters/capability views and other domain surfaces remain",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -1615,7 +1647,8 @@
     "Original workload now passes every unchanged budget with automatically observed peak 17625630 bytes (strict baseline 17807985). Deterministic workload reaches eight and passes all ownership fences. Physical-retirement shutdown latency comparison remains unproven because the fixed baseline shuts down before held callbacks complete; final full-migration reruns remain required.",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied",
     "Loaded native library overwrite was reproduced as SIGSEGV/SIGBUS and fixed with atomic publication; the subsequent 112-test server/state/build suite passed. This does not attribute every historical crash or varying timeout, and final full-suite gates remain pending.",
-    "Previous server-sampled peak figures can omit transient capture reservations; retain them as historical diagnostic evidence, not final peak-retention validation"
+    "Previous server-sampled peak figures can omit transient capture reservations; retain them as historical diagnostic evidence, not final peak-retention validation",
+    "Latest round-record Effect physical run preserves all eight settlement invariants and comparable budgets, but shutdown P95 11.475841ms exceeds the unchanged numeric 10.6382545ms formula. Fixed baseline remains physically invalid; retain this miss and do not claim all comparative budgets verified."
   ],
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",

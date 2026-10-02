@@ -655,7 +655,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         lifetime: runtime.lifetime, stage: "incomplete" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-stale" } : { status: "rejected-stale" };
     }
-    const round = generation === undefined ? undefined : residentLedger.rounds.bind(group, generation,
+    const round = generation === undefined ? undefined : yield* residentLedger.rounds.bind(group, generation,
       { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath }, randomUUID());
     const partition = group;
     const canonicalRound = round?.canonicalRound ?? residentLedger.roundId(partition);
@@ -1506,7 +1506,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const namedCounts = (yield* residentDispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed && named(value)));
     const hasUnnamed = (yield* residentDispatcher.hasWorkWhere(({ value }) =>
       value.work === work && !value.completed && !named(value)));
-    const replacement = residentLedger.rounds.replaceWork(round,
+    const replacement = yield* residentLedger.rounds.replaceWork(round,
       { id: randomUUID(), controller: new AbortController() }, {
         named: namedCounts,
         all: (yield* residentDispatcher.snapshotWhere(({ value }) => value.work === work && !value.completed)),
@@ -1564,7 +1564,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     residentReuse.discardPartition(round.group);
     yield* residentLedger.tickets.discardPartition(round.group);
-    residentLedger.rounds.retire(round);
+    yield* residentLedger.rounds.retire(round);
   }, Effect.uninterruptible);
 
   const residentRun = Effect.fn("ResidentRuntime.run")((job: Job, sequence: number) =>

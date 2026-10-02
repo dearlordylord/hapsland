@@ -23,7 +23,7 @@ const fixture = (existing?: Owner) => Effect.gen(function* () {
   const owner = existing ?? (yield* makeResidentState());
   const generation = owner.delivery().admitEdit("agent", "edit", 0);
   if (generation === undefined) throw new Error("fixture edit refused");
-  const round = owner.rounds.bind("agent", generation, { root: observation.root, advicee: observation.advicee, activityPath: undefined }, "cohort");
+  const round = (yield* owner.rounds.bind("agent", generation, { root: observation.root, advicee: observation.advicee, activityPath: undefined }, "cohort"));
   const admissionId = owner.admitObservation("agent");
   owner.observation("agent", admissionId, "startObservation", round.canonicalRound);
   const preparation = owner.beginObservedPreparation("agent", admissionId, 100, round.canonicalRound);
