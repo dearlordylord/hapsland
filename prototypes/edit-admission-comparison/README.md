@@ -2,8 +2,9 @@
 
 **Purpose:** Compare the current pre-edit permit fence with proposal A: a short
 synchronous post-edit admission receipt followed by independent resident review.
-**Status:** Isolated prototype; the first owner-approved necessary-valid-PRE law
-is kernel-checked. Remaining law candidates are unapproved and open. No production change.
+**Status:** Isolated prototype; the owner-approved necessary-valid-PRE law and
+positive Receipt completeness law are kernel-checked. Remaining candidates are
+unapproved and open. No production change.
 **Authority:** Advisory design, falsification and model-proof evidence. The accepted target contract
 and production Bend modules remain authoritative; this prototype does not change them.
 **Expected use:** Inspect the approved proof slice and the remaining candidates
@@ -59,10 +60,12 @@ old ticket transport nor its former registry.
 
 ## Exact approval candidates
 
-The source draft `LAWS.bend` deliberately retains ten open declarations. Only
+The source draft `LAWS.bend` deliberately retains ten open declarations.
 `current_fence_witness` was approved, copied into `approved/LAWS.bend`, and proved
-in `approved/PROOF.bend`. Approval did not cover the entire first family,
-`exact_post`, completeness, the remaining families or adoption of proposal A.
+in `approved/PROOF.bend`. A subsequent approval covers only the positive Receipt
+specialization, `approved-receipt/LAWS.bend`'s `receipt_complete`. Neither approval
+covers the entire first family, Current completeness, negative admission policy,
+the full `exact_post`, remaining families or adoption of proposal A.
 The following table is the candidate inventory, not a list of proved guarantees.
 
 | Family | Declaration(s) | Plain meaning / why it matters |
@@ -171,3 +174,29 @@ The host ordering premise remains external and unproved. No IO, snapshots,
 callbacks, native runtime conformance, real Stop waiting, four-continuation
 allowance or deployment guarantee follows from this admission proof. Remaining
 laws require separate owner approval before proof work.
+
+## Approved positive Receipt admission
+
+The next approved meaning was: **A accepts a correct new post without PRE.**
+`approved-receipt/LAWS.bend` freezes only the positive implication
+`eligible(Receipt) == True` → acceptance count increases by one.
+`approved-receipt/PROOF.bend` proves it for arbitrary histories. A correct receipt
+means matching partition and resident lifetime, arrival strictly after the
+observed closure fence, and an identity absent from retained completed IDs.
+“New” means unseen within this retention/lifetime scope; it does not establish
+when the native edit happened. PRE is neither required nor a proof premise.
+
+This is positive completeness only. It excludes reject-all, but does not prove
+that ineligible receipts are refused. Current completeness, round/active effects,
+review execution and delivery coverage remain outside this approval.
+
+Run `python3 approved-receipt/falsify.py` for 896 bounded implication probes
+(14 histories, 23 batches), checked before the universal proof was written.
+Run `python3 approved-receipt/check-approved.py` for eight controls, including
+the first slice's preserved nine-control gate. The new gate checks the kernel,
+a disabled-kernel control, and a no-PRE literal instantiated from the exact law
+and its eligibility premise. Its reject-all mutant replaces the Receipt POST
+branch with unchanged state; it compiles, then fails both the literal and
+`Laws.receipt_complete`. Predicate, law and proof sources remain unchanged in
+that mutant; no supporting proof adjustment is needed.
+`evidence/receipt-approved-gate.json` records the result and source hashes.

@@ -1,0 +1,16 @@
+{
+  "authority": "User approved next positive assertion; parent narrowed implementation to Receipt completeness only.",
+  "approved_meaning": "A accepts a correct new post without PRE.",
+  "correct": "Matching partition/lifetime, arrival strictly after observed closure fence, tool identity unseen in retained history; not native freshness.",
+  "law": "receipt_complete",
+  "law_sha256": "7850fc49752d0c4613902e5ff245efbffbeaa043c9423ac23ca64b508333e6c6",
+  "core_sha256": "2996a23cfc25f8a002a0b35464ee29e32e0e04f9dec9d5951abbbea2462316fa",
+  "exclusions": [
+    "negative admission policy",
+    "Current exact_post",
+    "round/topology",
+    "native freshness",
+    "review or delivery coverage"
+  ],
+  "approval_time": "not separately captured"
+}

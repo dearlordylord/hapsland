@@ -1,0 +1,72 @@
+{
+  "slice": "Receipt positive completeness only",
+  "sources": {
+    "authority": "User approved next positive assertion; parent narrowed implementation to Receipt completeness only.",
+    "approved_meaning": "A accepts a correct new post without PRE.",
+    "correct": "Matching partition/lifetime, arrival strictly after observed closure fence, tool identity unseen in retained history; not native freshness.",
+    "law": "receipt_complete",
+    "law_sha256": "7850fc49752d0c4613902e5ff245efbffbeaa043c9423ac23ca64b508333e6c6",
+    "core_sha256": "2996a23cfc25f8a002a0b35464ee29e32e0e04f9dec9d5951abbbea2462316fa",
+    "exclusions": [
+      "negative admission policy",
+      "Current exact_post",
+      "round/topology",
+      "native freshness",
+      "review or delivery coverage"
+    ],
+    "approval_time": "not separately captured"
+  },
+  "proof_sha256": "dd22b1c3d2b1ff303155e165755a4b8c303f597914dbcb647ac58930691935c9",
+  "checks": [
+    {
+      "name": "receipt-proof",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "receipt-kernel-disabled",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "first-approved-slice-preserved",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "receipt-mirror-baseline",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "receipt-at-baseline",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "receipt-reject-all-compiles",
+      "exit": 0,
+      "expected": 0,
+      "pass": true
+    },
+    {
+      "name": "receipt-at-mutant",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "name": "receipt-proof-mutant",
+      "exit": 1,
+      "expected": 1,
+      "pass": true
+    }
+  ],
+  "mutant": "Receipt post branch returns state; all law and proof files unchanged",
+  "all_pass": true
+}
