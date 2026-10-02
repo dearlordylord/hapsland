@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isHookInvocation, parseInvocation, type ClientArguments } from "./cli-command.ts";
 import { hookMonotonicMillis, monotonicNow } from "./resident/hook-clock.ts";
 import { readMaskedCredential } from "./credentials/masked-input.ts";
 import * as Schedule from "effect/Schedule";
@@ -79,10 +80,23 @@ import { readActivity, formatActivityHuman, recordActivity } from "./activity/st
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
 import { selectSetupClients, type ClientChoice, type SetupClient } from "./onboarding/client-selection.ts";
 import { stageRelease, type ReleaseSelection } from "./onboarding/distribution.ts";
-import { activateCurrentPackage, activatePackage, clientCommands, dispatchActivePackage, dispatchSelectedPackage, formatCompatibility, formatDoctor, formatFailure, formatProposal, invokeLifecycle, parseClientArguments, profileFields, registeredClients, type ClientCommand } from "./onboarding/client-lifecycle.ts";
+import { activateCurrentPackage, activatePackage, dispatchActivePackage, dispatchSelectedPackage, formatCompatibility, formatDoctor, formatFailure, formatProposal, invokeLifecycle, profileFields, registeredClients } from "./onboarding/client-lifecycle.ts";
 import { runSetup } from "./onboarding/setup.ts";
 import { runFirstReviewDemo } from "./onboarding/first-review-demo.ts";
 import { recordDemoTrace } from "./onboarding/demo-trace.ts";
+
+const directHookStartedAt = monotonicNow();
+let invocation: Awaited<ReturnType<typeof parseInvocation>>;
+try { invocation = await parseInvocation(process.argv.slice(2)); }
+catch (cause) {
+  // Invalid native hook invocations must never emit generic CLI output.
+  if (isHookInvocation(process.argv.slice(2))) process.exit(0);
+  process.stderr.write(`${(cause instanceof Error ? cause.message : "Invalid CLI arguments").slice(0, 1400)}\n`);
+  process.exit(6);
+}
+if (invocation === undefined) process.exit(0);
+const cliOptions = invocation.kind === "automation" ? invocation.options : undefined;
+const cliSwitch = (name: string): boolean => cliOptions !== undefined && name in cliOptions && cliOptions[name as keyof typeof cliOptions] === true;
 
 const readStdin = Effect.try({
   try: () => readFileSync(0, "utf8"),
@@ -244,28 +258,25 @@ const activityPathConfig = Config.NonEmptyString("REVIEW_ACTIVITY_PATH").pipe(
 const userConfigPathConfig = Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH"));
 
 const forcedOperation = (): ReviewOperation["operation"] | undefined => {
-  if (
-    process.argv.includes("--inspect-credentials") ||
-    process.argv.includes("--credentials")
-  ) {
+  if (cliSwitch("credentials")) {
     return "credentials";
   }
-  if (process.argv.includes("--status") || process.argv.includes("--inspect-consent")) {
+  if (cliSwitch("status")) {
     return "status";
   }
-  if (process.argv.includes("--explain") || process.argv.includes("--config-explain")) {
+  if (cliSwitch("explain")) {
     return "explain";
   }
   return undefined;
 };
 
 const forcedInstallationOperation = (): InstallationOperation["operation"] | undefined => {
-  if (process.argv.includes("--doctor")) return "doctor";
-  if (process.argv.includes("--install-preview")) return "install-preview";
-  if (process.argv.includes("--install")) return "install";
-  if (process.argv.includes("--update-preview")) return "update-preview";
-  if (process.argv.includes("--update")) return "update";
-  if (process.argv.includes("--uninstall")) return "uninstall";
+  if (cliSwitch("doctor")) return "doctor";
+  if (cliSwitch("install-preview")) return "install-preview";
+  if (cliSwitch("install")) return "install";
+  if (cliSwitch("update-preview")) return "update-preview";
+  if (cliSwitch("update")) return "update";
+  if (cliSwitch("uninstall")) return "uninstall";
   return undefined;
 };
 
@@ -297,14 +308,14 @@ const decodeInstallationOperation = (
 type EvaluationOperationName = "plan" | "run" | "report";
 
 const forcedEvaluationOperation = (): EvaluationOperationName | undefined => {
-  if (process.argv.includes("--evaluation-plan")) return "plan";
-  if (process.argv.includes("--evaluation-run")) return "run";
-  if (process.argv.includes("--evaluation-report")) return "report";
+  if (cliSwitch("evaluation-plan")) return "plan";
+  if (cliSwitch("evaluation-run")) return "run";
+  if (cliSwitch("evaluation-report")) return "report";
   return undefined;
 };
 
 const forcedStatusFormat = (): "human" | undefined =>
-  process.argv.includes("--status-human") || process.argv.includes("--human")
+  cliSwitch("human")
     ? "human"
     : undefined;
 
@@ -345,27 +356,25 @@ const fileSelectionReadiness = (settings: ReviewSettings) => {
   };
 };
 
-const isCodexHook = process.argv.includes("--codex-hook");
-const isClaudeHook = process.argv.includes("--claude-hook");
-const isOpenCodeHook = process.argv.includes("--opencode-hook");
-const isComposedEditHook = process.argv.includes("--composed-edit-hook");
-const composedKind: ComposedHookKind | undefined = process.argv.includes("--composed-before-edit-hook")
-  ? "before-edit" : process.argv.includes("--composed-background-hook")
-  ? "background" : process.argv.includes("--composed-stop-hook")
-    ? "stop" : process.argv.includes("--composed-prompt-hook") ? "prompt" : undefined;
-const composedHost: ComposedHookHost = process.argv.includes("--composed-host=claude-code")
+const isCodexHook = cliSwitch("codex-hook");
+const isClaudeHook = cliSwitch("claude-hook");
+const isOpenCodeHook = cliSwitch("opencode-hook");
+const isComposedEditHook = cliSwitch("composed-edit-hook");
+const composedKind: ComposedHookKind | undefined = cliSwitch("composed-before-edit-hook")
+  ? "before-edit" : cliSwitch("composed-background-hook")
+  ? "background" : cliSwitch("composed-stop-hook")
+    ? "stop" : cliSwitch("composed-prompt-hook") ? "prompt" : undefined;
+const composedHost: ComposedHookHost = cliOptions?.["composed-host"] === "claude-code"
   ? "claude-code" : "codex-cli";
-const directHookStartedAt = monotonicNow();
 const directHookDeadline = directHookStartedAt +
   (isCodexHook && isComposedEditHook ? 9_000 : 3_900);
-const hookVersionArgument = process.argv.find((argument) => argument.startsWith("--codex-version="));
-const requestedHookVersion = hookVersionArgument?.slice("--codex-version=".length);
+const requestedHookVersion = cliOptions?.["codex-version"];
 if (isCodexHook && (isComposedEditHook || composedKind !== undefined) && requestedHookVersion !== undefined && !isCodexHostVersion(requestedHookVersion)) {
-  throw new Error("unsupported Codex hook version");
+  process.exit(0);
 }
 const codexHookVersion: CodexHostVersion = isCodexHostVersion(requestedHookVersion) ? requestedHookVersion : "0.155.1";
-const isControlledReviewer = process.argv.includes("--controlled-reviewer");
-const isControlledWriter = process.argv.includes("--controlled-writer");
+const isControlledReviewer = cliSwitch("controlled-reviewer");
+const isControlledWriter = cliSwitch("controlled-writer");
 const requestedOperation = forcedOperation();
 const requestedInstallationOperation = forcedInstallationOperation();
 const requestedEvaluationOperation = forcedEvaluationOperation();
@@ -637,12 +646,12 @@ const program = Effect.gen(function* () {
       };
     }
     return yield* runEvaluationCommand(evaluationInput, {
-      allowLive: process.argv.includes("--evaluation-live"),
+      allowLive: cliSwitch("evaluation-live"),
       credentialEnvVar: yield* Config.NonEmptyString("EVALUATION_CREDENTIAL_ENV").pipe(Config.withDefault("TYPESAFE_API_KEY")),
       ...(isControlledReviewer ? { controlled: yield* controlledOptions } : {}),
     });
   }
-  if (process.argv.includes("--setup") || inputRequestsSetup) {
+  if (cliSwitch("setup") || inputRequestsSetup) {
     const operation: SetupOperation = yield* decodeSetupOperation(input);
     return yield* runSetup(operation, {
       statePath,
@@ -650,7 +659,7 @@ const program = Effect.gen(function* () {
       ...(operation.interactive === true ? { readCredential: readMaskedCredential } : {}),
     });
   }
-  if (process.argv.includes("--demo") || inputRequestsFirstReviewDemo) {
+  if (cliSwitch("demo") || inputRequestsFirstReviewDemo) {
     const operation: FirstReviewDemoOperation = yield* decodeFirstReviewDemoOperation(input);
     const demoStatePath = yield* Config.NonEmptyString("REVIEW_DEMO_STATE_PATH").pipe(
       Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "demos")),
@@ -890,7 +899,7 @@ const program = Effect.gen(function* () {
 );
 
 const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
-  if (process.argv.includes("--login")) {
+  if (cliSwitch("login")) {
     const probe = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true });
     if (probe.status !== "available") {
       return {
@@ -904,7 +913,7 @@ const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
             : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry",
       };
     }
-    const inputTask: Effect.Effect<string, unknown> = process.argv.includes("--credential-stdin")
+    const inputTask: Effect.Effect<string, unknown> = cliSwitch("credential-stdin")
       ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, ""))
       : readMaskedCredential();
     const input = yield* inputTask.pipe(Effect.result);
@@ -984,38 +993,10 @@ const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
   };
 });
 
-const isCredentialCommand = process.argv.includes("--login") || process.argv.includes("--logout");
-const printHelp = () => {
-  process.stdout.write(`Hapsland — Claude Code and Codex review integration
-
-  hapsland setup              Select one or both clients (installed clients checked)
-  hapsland setup claude       Guided Claude Code setup
-  hapsland setup codex        Guided Codex CLI setup
-  hapsland update             Update all installed client integrations
-  hapsland update claude      Stage stable release and update Claude hooks
-  hapsland update codex       Stage stable release and update Codex hooks
-  hapsland update codex --channel=next   Opt into a published candidate
-  hapsland update claude --tarball=/absolute/candidate.tgz
-  hapsland --pilot --host=codex          Guided setup in a terminal
-  hapsland --login            Save a Jev key with masked entry
-  hapsland doctor             Check every installed client (read-only)
-  hapsland doctor claude      Check one client
-  hapsland repair             Restore missing Hapsland hooks
-  hapsland reinstall          Replace marked Hapsland hooks; keep user settings
-  hapsland uninstall          Remove Hapsland from installed clients
-  hapsland --doctor           Offline readiness check (JSON request on stdin)
-  hapsland --logout           Remove the saved Jev key
-
-Hapsland uses Jev as its external review backend. With an installed runtime
-and Jev credentials, effective file settings select eligible files by default.
-Set user excludes to ["**/*"] to turn review off.
-For automation, use the versioned --setup operation documented in docs/claude-installation.md and docs/codex-installation.md.
-`);
-};
-
+const isCredentialCommand = cliSwitch("login") || cliSwitch("logout");
 const processConfigurationLayer = ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }));
 
-let clientArguments: ReturnType<typeof parseClientArguments> | undefined;
+let clientArguments: ClientArguments | undefined;
 const flagValue = (name: string): string | undefined => clientArguments?.flags.get(name);
 const positionalHost = () => clientArguments?.host;
 const selectedHost = (): SetupClient => clientArguments?.host ?? "codex";
@@ -1306,18 +1287,16 @@ const diagnoseClientProcess = Effect.fn("HumanDoctor.diagnoseClient")(function* 
   return { diagnosis, status: checked.status, exitCode: result.exitCode };
 });
 
-if (process.argv[2] === "--package-identity") {
+if (cliSwitch("package-identity")) {
   process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", runtime: process.execPath, entrypoint: fileURLToPath(import.meta.url) }) + "\n");
-} else if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  printHelp();
-} else if (process.argv.includes("--pilot") || clientCommands.some(command => command === process.argv[2])) {
+} else if (cliSwitch("pilot") || invocation.kind === "lifecycle") {
   try {
-    const command = (process.argv.includes("--pilot") ? "setup" : process.argv[2]) as ClientCommand;
-    clientArguments = parseClientArguments(command, process.argv.slice(3));
+    const command = invocation.kind === "lifecycle" ? invocation.command : "setup";
+    clientArguments = invocation.client;
     const selectedPackage = clientArguments.flags.get("--target");
     const dispatched = selectedPackage !== undefined && command !== "update"
       ? await Effect.runPromise(dispatchSelectedPackage(selectedPackage, command, clientArguments.host, clientArguments.flags).pipe(Effect.provide(processConfigurationLayer)))
-      : await Effect.runPromise(dispatchActivePackage([command, ...process.argv.slice(3)]).pipe(Effect.provide(processConfigurationLayer)));
+      : await Effect.runPromise(dispatchActivePackage([command, ...(clientArguments.host === undefined ? [] : [clientArguments.host]), ...[...clientArguments.flags].filter(([name]) => name !== "--host").flatMap(([name, value]) => [name, value])]).pipe(Effect.provide(processConfigurationLayer)));
     if (dispatched !== undefined) process.exitCode = dispatched;
     else if (command === "doctor") {
       const hosts = clientArguments.host === undefined ? registeredClients(clientArguments.flags, reportClientFailure) : [selectedHost()];
@@ -1337,9 +1316,6 @@ if (process.argv[2] === "--package-identity") {
     process.stderr.write(`${cause instanceof Error ? cause.message : "Interactive operation failed"}\n`);
     process.exitCode = 6;
   }
-} else if (process.argv[2] !== undefined && !process.argv[2].startsWith("--")) {
-  process.stderr.write(`Unknown command: ${process.argv[2]}. Run hapsland --help.\n`);
-  process.exitCode = 6;
 } else {
 const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
   const watchdog = isClaudeHook || isOpenCodeHook
@@ -1392,7 +1368,7 @@ if (!isDirectEventReady(output)) {
   if (isOpenCodeHook || isClaudeHook || isCodexHook || composedKind !== undefined) {
     // The plugin treats empty stdout as a quiet skip.
   } else
-  if (isCredentialCommand && !process.argv.includes("--json") && !process.argv.includes("--credential-stdin") && process.stdin.isTTY) {
+  if (isCredentialCommand && !cliSwitch("json") && !cliSwitch("credential-stdin") && process.stdin.isTTY) {
     const result = output as Readonly<Record<string, unknown>>;
     if (result.operation === "login" && result.status === "stored") {
       process.stdout.write(`Jev key saved in ${process.platform === "darwin" ? "Keychain" : "Secret Service"}. No Jev request or review was sent.\nNext: run hapsland setup claude or hapsland setup codex, then complete client sign-in and native trust.\n`);

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { access, chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -146,6 +146,13 @@ const runGuidedPilot = (cli, cwd, env, codexHome, codexExecutable, answers, comm
   });
 });
 
+// Observe the real profile without changing it; every journey must use fixture HOME.
+const outsideActivePath = join(homedir(), ".local", "share", "hapsland", "active.json");
+const readOptional = async (path) => {
+  try { return await readFile(path, "utf8"); }
+  catch (cause) { if (cause?.code === "ENOENT") return undefined; throw cause; }
+};
+const outsideActiveBefore = await readOptional(outsideActivePath);
 const temporary = await mkdtemp(join(tmpdir(), "review-setup-package-"));
 try {
   const artifacts = join(temporary, "artifacts");
@@ -398,6 +405,9 @@ else if (operation === "probe") console.log('{"status":"available"}');
   expect(invalidLogin.includes("Enter a nonempty Jev key"), "interactive invalid login omitted a concrete recovery step");
 
   await assertNoProviderCall(capturePath);
+  const fixtureActive = JSON.parse(await readFile(join(publicHome, ".local", "share", "hapsland", "active.json"), "utf8"));
+  expect(fixtureActive.entrypoint.startsWith(installation + "/"), "guided setup activated a package outside the fixture HOME");
+  expect(await readOptional(outsideActivePath) === outsideActiveBefore, "setup-package changed the caller's active-package record");
   process.stdout.write(`${JSON.stringify({
     version: 1,
     operation: "setup-package-conformance",
@@ -407,4 +417,5 @@ else if (operation === "probe") console.log('{"status":"available"}');
   })}\n`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
+  expect(await readOptional(outsideActivePath) === outsideActiveBefore, "setup-package changed the caller's active-package record");
 }

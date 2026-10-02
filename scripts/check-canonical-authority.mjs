@@ -5,6 +5,9 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const read = (path) => readFileSync(resolve(root, path), "utf8");
 const adapter = read("src/canonical/adapter.ts");
+const models = read("src/canonical/models.ts");
+const schemas = read("src/canonical/constructors.ts");
+const scalarSchemas = read("src/canonical/boundary-schema.ts");
 const bend = read("packages/agent-flow-bend/Canonical.bend");
 const generated = read("src/canonical/canonical.generated.js");
 const declaration = read("src/canonical/canonical.generated.d.ts");
@@ -25,23 +28,33 @@ const bendConstructors = (name) => matches(
   /^  ([A-Z][A-Za-z0-9_]*)\{/gm,
 );
 
-const eventType = between(adapter, "export type CanonicalEvent =", "export type CanonicalCommand =");
-const eventKinds = matches(eventType, /readonly kind:\s*([^;]+);/g);
-const declaredEventKinds = new Set([...eventKinds].flatMap((kind) =>
-  [...kind.matchAll(/"([A-Za-z][A-Za-z0-9]*)"/g)].map((match) => match[1])));
-const encoder = between(adapter, "const encode = (event: CanonicalEvent)", "const decodeCommand =");
+// Inspect each schema discriminant independently of the encoder and Bend declarations.
+const schemaKinds = (source) => {
+  const result = new Set();
+  for (const match of source.matchAll(/\bkind:\s*/g)) {
+    let depth = 0;
+    let end = match.index + match[0].length;
+    for (; end < source.length; end++) {
+      const char = source[end];
+      if (char === "(" || char === "[") depth++;
+      if (char === ")" || char === "]") depth--;
+      if ((char === "," || char === "}") && depth === 0) break;
+    }
+    for (const literal of source.slice(match.index, end).matchAll(/"([A-Za-z][A-Za-z0-9]*)"/g)) result.add(literal[1]);
+  }
+  return result;
+};
+const declaredEventKinds = schemaKinds(between(models, "export const CanonicalEventSchema =", "export type CanonicalEvent ="));
+const encoder = between(adapter, "const encode = (input: CanonicalEvent)", "const decodeCommand =");
 const encodedEventKinds = matches(encoder, /case "([A-Za-z][A-Za-z0-9]*)":/g);
 sameSet(encodedEventKinds, declaredEventKinds, "CanonicalEvent kind and encoder case coverage");
 assert.match(encoder, /default:\s*throw new TypeError\("unknown canonical event"\)/);
 
 const bendCommands = bendConstructors("Command");
-const decodedCommands = matches(between(adapter, "const decodeCommand =", "export type CanonicalProjection ="),
+const decodedCommands = matches(between(adapter, "const decodeCommand =", "const known ="),
   /case "Canonical\.([A-Z][A-Za-z0-9_]*)"/g);
 sameSet(decodedCommands, bendCommands, "Bend Command and runtime decoder coverage");
-const commandType = between(adapter, "export type CanonicalCommand =", "export type ProspectiveFacts =");
-const commandKindFields = matches(commandType, /readonly kind:\s*([^;]+);/g);
-const declaredCommandKinds = new Set([...commandKindFields].flatMap((kind) =>
-  [...kind.matchAll(/"([A-Za-z][A-Za-z0-9]*)"/g)].map((match) => match[1])));
+const declaredCommandKinds = schemaKinds(between(models, "export const CanonicalCommandSchema =", "export type CanonicalCommand ="));
 const bendCommandKinds = new Set([...bendCommands].map((name) => name[0].toLowerCase() + name.slice(1)));
 sameSet(declaredCommandKinds, bendCommandKinds, "CanonicalCommand type and Bend Command coverage");
 assert.match(adapter, /default:\s*throw new TypeError\("unknown canonical command"\)/);
@@ -60,6 +73,24 @@ const compilerElidedTags = new Set([
 ]);
 const missingTags = new Set([...consumedTags].filter((name) => !generated.includes(`"${name}"`)));
 sameSet(missingTags, compilerElidedTags, "compiled Bend tag exceptions");
+// Constructor field contracts come from Bend source, independently of TypeScript schemas.
+// This catches malformed shape inventories even when both mapping and schema names compile.
+let auditedConstructors = 0;
+for (const match of schemas.matchAll(/"([A-Za-z]+\.[A-Za-z]+)": Schema\.suspend\(\(\) => Schema\.Struct\(\{([^}]*)\}\)\)/g)) {
+  auditedConstructors++;
+  const [module, name] = match[1].split(".");
+  const source = read(`packages/agent-flow-bend/${module}.bend`);
+  const constructor = new RegExp(`^  ${name}\\{([^}]*)\\}`, "m").exec(source);
+  assert.ok(constructor, `Bend lacks constructor schema ${match[1]}`);
+  const expectedFields = matches(constructor[1], /([a-z_]+):/g);
+  const decodedFields = matches(match[2], /\b([a-z_]+):/g);
+  sameSet(decodedFields, expectedFields, `${match[1]} exact constructor fields`);
+  for (const field of constructor[1].matchAll(/([a-z_]+):\s*(Nat|Bool)(?:[,\s]|$)/g)) {
+    const expected = field[2] === "Nat" ? "Nat" : "Schema.Boolean";
+    assert.match(match[2], new RegExp(`\\b${field[1]}:\\s*${expected}\\b`), `${match[1]}.${field[1]} primitive schema`);
+  }
+}
+assert.ok(auditedConstructors >= 300, "constructor schema audit unexpectedly lost coverage");
 const declaredExports = matches(declaration, /^export declare const (bendCanonical[A-Za-z0-9]+):/gm);
 const compiledExports = matches(generated, /^export const (bendCanonical[A-Za-z0-9]+) =/gm);
 sameSet(declaredExports, compiledExports, "generated declarations and compiled exports");
@@ -67,8 +98,8 @@ assert.deepEqual([...declaredExports].sort(), [
   "bendCanonicalInitial", "bendCanonicalInventory", "bendCanonicalPartitionUsage",
   "bendCanonicalStep", "bendCanonicalTotal",
 ].sort());
-assert.match(adapter, /const MAX_NAT = 2 \*\* 48 - 1;/);
+assert.match(scalarSchemas, /maximum: 2 \*\* 48 - 1/);
 assert.match(adapter, /export const CANONICAL_MAX_BYTES = 2 \*\* 47 - 1;/);
 assert.match(adapter, /export const CANONICAL_MAX_UNITS = 1024;/);
 assert.match(adapter, /default: throw new TypeError\("unknown canonical step"\)/);
-console.log(`checked ${declaredEventKinds.size} event kinds, ${bendCommands.size} command variants, ${consumedTags.size} consumed tags, and ${declaredExports.size} compiled exports`);
+console.log(`checked ${declaredEventKinds.size} event kinds, ${bendCommands.size} command variants, ${consumedTags.size} consumed tags, ${auditedConstructors} exact constructor schemas, and ${declaredExports.size} compiled exports`);

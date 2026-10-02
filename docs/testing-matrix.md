@@ -12,7 +12,7 @@
 | --- | --- | --- | --- |
 | Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
-| Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout |
+| Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout; unsupported hosts retain format-verified declared native artifacts without target-host validation |
 | Direct-event conformance | `npm run conformance:direct-event` | Manifest, selected direct-event tests, retained evidence validation | Version-one event contract and sanitization; no new agent session |
 | Installed host | `npm run conformance:host -- --write-evidence` | Clean package with real Codex CLI and controlled reviewer | Pinned installed Codex profile, distinct from the source-checkout runner |
 | Package setup | `npm run conformance:package`; `npm run conformance:setup-package` | Clean install and first-review setup | Packaging and installation paths; run only when those paths change |
@@ -27,9 +27,22 @@ The selected adoption observations include six controlled offline passes and six
 ## Pull request checks
 
 [Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
-`master`. It installs the frozen Bun lockfile, then runs documentation links,
+`master`. It installs the frozen Bun lockfile and the checksum-pinned Bend 2.0.34
+and Lean 4.34.0 proof toolchain through its existing `npm run docs:install`
+tooling step, then runs documentation links,
 typecheck, `npm test`, and build. It does not invoke live Jev or native agent
 milestones; those remain separate declared checks above.
+
+The [proof toolchain installer](../scripts/install-bend-toolchain.mjs) downloads
+first-party Linux x64/arm64 archives with pinned SHA256 digests and checks the
+progress proof with Bend’s bundled kernel before the bounded harness starts.
+Bend 2.0.34 is pinned to upstream source commit
+`7d8a3eb036042c6549461054d25a10f26d361c5c`; its kernel requires Lean 4.34.0.
+Run the installer once and add its printed bin directories to `PATH` for local
+`npm test`. The explicit `--github-actions` mode in `docs:install` installs this
+proof prerequisite only when `GITHUB_ACTIONS=true`; ordinary local documentation
+installs do not download Bend or Lean. Updating either pin requires proof
+validation and digest review.
 
 The link checker is [Lychee](https://lychee.cli.rs/guides/cli/) 0.24.2
 (`DEPEND ON`), selected because it checks Markdown and raw HTML links and images

@@ -1,9 +1,10 @@
+import { createInstallationPackageFixture } from "../test-support/installation-package.ts";
 import { ConfigProvider, Effect } from "effect";
 import { it as effectIt } from "@effect/vitest";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   installCodexIntegration,
@@ -59,7 +60,7 @@ describe("offline installed integration doctor", () => {
     writeFileSync(fakeCodex, "#!/bin/sh\nprintf 'codex-cli 0.155.1\\n'\n", { mode: 0o700 });
     chmodSync(fakeCodex, 0o700);
     setEnvironment("REVIEW_INSTALL_RUNTIME", process.execPath);
-    setEnvironment("REVIEW_INSTALL_ENTRYPOINT", resolve("src/cli.ts"));
+    setEnvironment("REVIEW_INSTALL_ENTRYPOINT", createInstallationPackageFixture(root));
     setEnvironment("REVIEW_RESIDENT_DIR", runtime);
 
     const request = { codexHome, codexExecutable: fakeCodex };
