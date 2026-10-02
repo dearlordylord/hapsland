@@ -55,14 +55,18 @@ def captured_authority_present(+operation: Nat, canonical: Canonical.State) -> B
     case Canonical.State{_, _, work, _, _, _, Dispatch.State{_, _, _, _, requests}, _, _}:
       captured_work_present(operation, work) || captured_request_present(operation, requests)
 
+def retained_capture_pick(keep: Bool, item: CredentialFacts.Capture, remaining: List<&2, CredentialFacts.Capture>) -> List<&2, CredentialFacts.Capture>:
+  match keep:
+    case True{}: item <> remaining
+    case False{}: remaining
+
 def retained_captures(items: List<&2, CredentialFacts.Capture>, +canonical: Canonical.State) -> List<&2, CredentialFacts.Capture>:
   match items:
     case Nil{}: Nil{}
-    case +item <> +tail:
+    case +item <> tail:
       match item:
         case CredentialFacts.Capture{operation, _}:
-          +remaining = {retained_captures(tail, canonical) : List<&2, CredentialFacts.Capture>}
-          Bool.pick(List<&2, CredentialFacts.Capture>, captured_authority_present(operation, canonical), item <> remaining, remaining)
+          retained_capture_pick(captured_authority_present(operation, canonical), item, retained_captures(tail, canonical))
 
 def retained_credentials(credentials: CredentialFacts.State, canonical: Canonical.State) -> CredentialFacts.State:
   match credentials:
