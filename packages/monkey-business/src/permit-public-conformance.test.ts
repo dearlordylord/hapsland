@@ -62,3 +62,22 @@ it("closed-round authority stays closed after its delayed POST", () => {
   expect(run.observations.at(-1)?.rejection).toBeDefined();
   expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
 });
+it("keeps per-advicee and resident permit ceilings separate and releases each token once", () => {
+  const issue = (partition: number, tool: number, at = 1): RunInput => ({ at, kind: "canonical", event: {
+    kind: "issuePermit", partition, lifetime: 1, tool, started: at, deadline: at + 10,
+    now: at, minimumStarted: 0, facts: { clockValid: true, hookWindow: 10, startedUpper: at,
+      nowLower: at, adviceePermitLimit: 1, residentPermitLimit: 2 },
+  } });
+  const release: RunInput = { at: 2, kind: "canonical", event: { kind: "releasePermit", partition: 1, lifetime: 1, token: 1 } };
+  const run = createRun({ inputs: [issue(1, 1), issue(1, 2), issue(2, 3), issue(3, 4), release, release, issue(3, 5, 3)] });
+  run.advance({ maxEvents: 20 });
+  const rows = run.observations.map(frame => [frame.rejection ? 1 : 0,
+    frame.after.admissions.reduce((count, admission) => count + admission.permits.length, 0)]);
+  // A second release is forbidden; it cannot create phantom capacity.
+  expect(rows).toEqual([[0, 1], [1, 1], [0, 2], [1, 2], [0, 1], [1, 1], [0, 2]]);
+  expect(run.projection.admissions.find(admission => admission.partition === 1)?.permits).toEqual([]);
+  expect(run.projection.admissions.find(admission => admission.partition === 2)?.permits).toHaveLength(1);
+  expect(run.projection.admissions.find(admission => admission.partition === 3)?.permits).toHaveLength(1);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
+});
