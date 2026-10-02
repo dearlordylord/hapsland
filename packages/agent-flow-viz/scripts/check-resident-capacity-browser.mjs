@@ -88,6 +88,25 @@ try {
   await load(full); await assertLedger(full.projection);
   await ensemble.screenshot({ path: '/workspace/hapsland-review/global-capacity/full-flat.png' });
   await ensemble.locator('.resident-capacity-inset').screenshot({ path: '/workspace/hapsland-review/global-capacity/full-detail.png' });
+  const retained = createRun({ sessions, inputs: [{ agent: 'agent-1', generation: 0, recurring: false, revision: 1, at: 0, kind: 'edit', bytes: 70, unitBytes: [35], outcome: 'finding' }], preparationDelay: 10, jevDelay: 20 });
+  retained.advance({ untilTime: 100, maxEvents: 1000 });
+  assert.equal(retained.projection.global.items, 1);
+  assert.equal(retained.projection.global.bytes, 35);
+  assert.ok(retained.projection.charges.some(charge => charge.purpose === 'storedResult'));
+  assert.equal(retained.projection.dispatch.requests.length, 0);
+  assert.equal(retained.projection.dispatch.running.filter(job => job.preparation).length, 0);
+  await load(retained); await assertLedger(retained.projection);
+  for (const pool of await ensemble.locator('.stage-preparation-pool, .stage-jev-pool').all()) assert.equal(await pool.locator('.occupied').count(), 0);
+  for (const layer of await ensemble.locator('.ensemble-layer').all()) {
+    const capacity = layer.locator('.resident-capacity-inset');
+    const execution = layer.locator('.resident-execution-pools');
+    assert.match(await capacity.textContent(), /ONE RESIDENTWork reservations · shared by all agents/);
+    assert.match(await execution.textContent(), /ONE RESIDENTExecution limits · shared by all agents/);
+    for (const panel of [capacity, execution]) assert.equal(await panel.locator(':scope > rect').getAttribute('stroke'), '#168f83');
+  }
+  await ensemble.screenshot({ path: '/workspace/hapsland-review/global-capacity/retained-idle-flat.png' });
+  await ensemble.locator('.resident-capacity-inset').screenshot({ path: '/workspace/hapsland-review/global-capacity/retained-capacity-detail.png' });
+  await ensemble.locator('.resident-execution-pools').screenshot({ path: '/workspace/hapsland-review/global-capacity/retained-execution-detail.png' });
   assert.deepEqual(errors, []);
-  console.log('Resident capacity browser passed: empty/mixed/released/full at custom maxima, exact global totals/maxima and ownership widths, resident mirrors, selected agent, flat/3D/narrow, history/reload, keyboard Admission inspection, retained permits/collectors/execution pools.');
+  console.log('Resident capacity browser passed: empty/mixed/released/full at custom maxima, stored result reserves items/bytes while both execution pools are idle, exact totals/maxima/ownership, shared family with distinct roles, mirrors, selection, flat/3D/narrow, history/reload, keyboard Admission inspection.');
 } finally { await browser?.close(); await server.close(); }

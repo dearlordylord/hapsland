@@ -136,7 +136,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
             h.small([], [current?.event.kind ?? "Ready to start"])])),
           h.p([h.Class("ensemble-scope")], ["Select an agent for its generator controls and stage inspection. Playback, history and replay belong to the whole resident."]),
         ]),
-        h.div([h.Class("ensemble-viewport"), h.Style({ height: `${sceneHeight}px` }), h.AriaLabel("Three-dimensional agent diagram")], [
+        h.div([h.Class("ensemble-viewport"), h.Style({ height: model.flat ? "auto" : `${sceneHeight}px` }), h.AriaLabel("Three-dimensional agent diagram")], [
           h.div([h.Class("ensemble-scene"), h.Style({
             transform: model.flat ? "none" : `translateY(${-35 + Math.max(0, layers.length - 3) * 30}px) scale(${bounded(model.zoom, 20, 200, 72) / 100}) rotateX(${bounded(model.tilt, 0, 65, 48)}deg) rotateZ(${bounded(model.turn, -180, 180, -16)}deg) translateZ(${-(layers.length - 1) * spacing / 2}px)`,
           })], [
@@ -169,7 +169,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
         range("Layer spacing", "spacing", 70, 190, model.spacing), range("Zoom", "zoom", 20, 200, model.zoom)]),
       h.p([h.Class("ensemble-evidence-key")], ["Diagram: blue = state / decision · gray = external work · orange = transition · purple dashed = command. Select a stage to inspect its checked state."]),
       h.div([h.Class("ensemble-resource-key")], [h.span([h.Class("capacity-key")], ["● Resident capacity → Admission & capacity"]), h.span([h.Class("jev-key")], ["● Jev backend → Jev request attempt"]),
-        h.p([], ["Green contacts share the resident’s global capacity ledger. Gold contacts share its Jev request pool. Agent layers show their own checked state at the same resident event; contention is decided by Bend. Jev responses are simulated."])]),
+        h.p([], ["Green contacts share the resident’s global capacity ledger. Gold contacts share its Jev request pool. Agent layers show their own checked state at the same resident event; contention is decided by Bend. Jev responses are simulated. Items and bytes can stay reserved after execution slots are released."])]),
     ]),
     h.div([h.Class("ensemble-inspector-heading")], [h.h2([], [`Resident controls · ${active.agent.agent} selected`]),
       h.p([], [run && !run.agentScopes.length ? "Scripted replay: no event generator is attached. Backend/native profiles, playback, history and replay files apply to the whole resident." : `Edit pace, bursts, size and suspension target ${active.agent.agent}. Backend/native profiles, playback, history and replay files apply to the whole resident.`])]),

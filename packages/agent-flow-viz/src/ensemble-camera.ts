@@ -19,6 +19,8 @@ export const cameraGestures = <Message>(readAngles: () => CameraAngles, toMessag
     let pinch: { viewport: HTMLElement; distance: number; zoom: number } | undefined;
     let suppressClickUntil = 0;
     let suppressedViewport: HTMLElement | undefined;
+    let wheelDelta = 0;
+    let wheelFrame: number | undefined;
     const finish = () => {
       const ending = drag;
       drag = undefined;
@@ -71,9 +73,19 @@ export const cameraGestures = <Message>(readAngles: () => CameraAngles, toMessag
     const wheel = (event: WheelEvent) => {
       const viewport = event.target instanceof Element ? event.target.closest<HTMLElement>(".is-spatial .ensemble-viewport") : null;
       if (!viewport) return;
+      if (!event.cancelable || event.deltaY === 0) return;
       event.preventDefault();
       const pixels = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1);
-      zoom(readAngles().zoom * Math.exp(-pixels * 0.002));
+      if (!Number.isFinite(pixels) || pixels === 0) return;
+      // Bound individual wheel notches and coalesce touchpad bursts once per frame.
+      wheelDelta = Math.max(-80, Math.min(80, wheelDelta + Math.max(-60, Math.min(60, pixels))));
+      if (wheelFrame !== undefined) return;
+      wheelFrame = requestAnimationFrame(() => {
+        wheelFrame = undefined;
+        const delta = wheelDelta;
+        wheelDelta = 0;
+        zoom(readAngles().zoom * Math.exp(-delta * 0.001));
+      });
     };
     const distance = (touches: TouchList) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
     const touchStart = (event: TouchEvent) => {
@@ -109,6 +121,8 @@ export const cameraGestures = <Message>(readAngles: () => CameraAngles, toMessag
       document.removeEventListener("touchend", touchEnd);
       document.removeEventListener("touchcancel", touchEnd);
       pinch = undefined;
+      if (wheelFrame !== undefined) cancelAnimationFrame(wheelFrame);
+      wheelDelta = 0;
       document.removeEventListener("pointerdown", down, true);
       document.removeEventListener("pointermove", move, true);
       document.removeEventListener("pointerup", up, true);

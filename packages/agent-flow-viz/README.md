@@ -342,13 +342,17 @@ tilt; horizontal touch dragging rotates while vertical touch gestures scroll
 the page. Rotation wraps through a full turn. A drag does not activate a stage;
 a click or tap opens its inspector. **Tilt**, **Rotation**, **Layer spacing** and
 **Zoom** also position the layers. Zoom spans 20–200%; wheel or touchpad pinch
-over the viewport and two-finger touch pinch zoom around its center. Page
+over the viewport and two-finger touch pinch zoom around its center. Wheel inputs
+are normalized, bounded and batched once per animation frame for gentle zoom;
+the 3D surface does not expose transient native scrollbars. Page
 scrolling outside the viewport is unchanged; Reset view restores 72%. Agent 1 is
 the front/top plane, matching sidebar order. A colored dot marks the current
 checked event owner independently of selected or hovered agent; unattributed
 resident events show no dot. **Focus selected agent** opens that diagram
-without perspective; **3D layers** returns to the stack. Narrow screens scroll
-the diagram viewport independently of the page.
+without perspective, using the available width and the diagram’s natural aspect
+ratio; **3D layers** returns to the stack. Focus view removes the reserved 3D
+stage height. On narrow screens, focus preserves readable diagram scale with
+horizontal scrolling instead of shrinking all labels into an unreadable overview.
 
 Run `npm run test:ensemble-browser` for shared history/replay, targeted generator
 controls, the combined eight-permit pool, historical resource projections,

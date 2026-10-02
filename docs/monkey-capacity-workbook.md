@@ -949,3 +949,53 @@ dated current-only timing cleanup outcome above. Native PRE reports and the
 three Current proof slices remain; no additional proof was required for these
 UI changes. Global ledger inset prototype acceptance remains the owner's
 separate next decision after the specific before/after review.
+
+## Focus, scroll stability and resource relationship (2026-10-02)
+
+The owner requested expanding the focused agent diagram, fixing wheel zoom
+jumps/native scrollbar conflicts, and investigating the relationship between
+resident capacity and execution pools. This is authorized UX correction and
+relationship review, not a change to capacity policy.
+
+**Inspected implementation relationship:** these are distinct hard limits on
+the same work lifecycle. The [ledger](../packages/agent-flow-bend/Ledger.bend)
+counts logical item/byte reservations, globally and per agent. It includes
+preparation workspaces, review units, retained findings and other charged data;
+it is not a measurement of process memory. [Canonical](../packages/agent-flow-bend/Canonical.bend)
+reserves a workspace before preparation, swaps it for accepted review-unit
+reservations, and can retain a stored finding after review settles.
+[Dispatch](../packages/agent-flow-bend/Dispatch.bend) separately bounds running
+preparation jobs and authorized Jev requests. There is no fixed item-to-slot
+ratio. Both execution pools can be empty while a stored finding still consumes
+ledger capacity; cancellation can release data before an execution permit is
+finally released. These code facts do not establish native timing guarantees.
+
+**Astra advice:** preserve current positions and flow routes, use the same green
+dashed shared-resource family and ONE RESIDENT heading, distinguish Work
+reservations from Execution limits, and explain that items/bytes may remain
+reserved after execution slots are released. Add no conversion arrows or paired
+slots. A larger merged-card placement is not selected by this record. Preserve
+the existing reference from the resident contact to the capacity inset.
+
+**Implementation and validation:** focused desktop diagrams fill the available
+width with their natural aspect ratio instead of a fixed 3D-height reservation.
+Narrow focus preserves a readable minimum width with horizontal scrolling.
+Spatial wheel zoom retains plain-wheel capture only inside the camera,
+normalizes/clamps deltas and batches gentle updates per animation frame. The
+spatial surface has no native internal scrollbar; scrolling outside it and in
+flat focus remains native. The two resource cards now share family styling and
+state their distinct roles; the screen-facing legend explains reservation
+lifetime. TypeScript, camera and ensemble browser checks passed. A focused
+capacity browser also checks a retained storedResult (1 item/35 bytes) with both
+execution pools empty. Astra's final rendered review passed desktop focus, narrow readable scrolling,
+normalized burst zoom, shared-resource roles and the retained-finding/idle-pool
+case. Placement remains a prototype for owner inspection. Physical-device
+gesture support is not claimed by browser emulation. Review captures:
+`/workspace/hapsland-review/focus-gesture/mixed-flat.png`,
+`/workspace/hapsland-review/focus-gesture/focus-narrow.png`, and
+`/workspace/hapsland-review/global-capacity/retained-idle-flat.png`.
+Astra independently reran the camera browser: a burst of 100 huge wheel events
+in one frame changes zoom by less than 9%; range 20–200, no internal spatial
+scrollbar, outside native scroll, keyboard/reset and CDP pinch checks passed.
+The existing execution-pool browser also passed saturation, release, history,
+reload, keyboard and narrow cases after the family styling change.

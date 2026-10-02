@@ -35,9 +35,9 @@ export const executionPoolsView = <Message>(h: HtmlBuilder<Message>, resident: C
       }),
     ]);
   return h.g([h.Class("resident-execution-pools"), h.AriaLabel("One resident execution pools shared by all agents")], [
-    h.rect([h.X("914"),h.Y("562"),h.Width("460"),h.Height("229"),h.Rx("9"),h.Fill("#f7fafc"),h.Stroke("#8b9eaf"),h.StrokeDasharray("5 4")],[]),
-    h.text([h.X("930"),h.Y("586"),h.FontSize("13"),h.FontWeight("750"),h.Fill("#263c53")],["ONE RESIDENT · EXECUTION POOLS"]),
-    h.text([h.X("930"),h.Y("605"),h.FontSize("11"),h.Fill("#62758b")],["Shared by all agents"]),
+    h.rect([h.X("914"),h.Y("562"),h.Width("460"),h.Height("229"),h.Rx("9"),h.Fill("#f7fcfa"),h.Stroke("#168f83"),h.StrokeDasharray("5 4")],[]),
+    h.text([h.X("930"),h.Y("586"),h.FontSize("13"),h.FontWeight("750"),h.Fill("#176d65")],["ONE RESIDENT"]),
+    h.text([h.X("930"),h.Y("605"),h.FontSize("11"),h.Fill("#62758b")],["Execution limits · shared by all agents"]),
     row("preparation","Preparation workers",632,resident.executionLimits.preparation,preparations.map(job=>({partition:job.partition,description:`preparation operation #${job.operation}`}))),
     row("jev","Jev request permits",695,resident.executionLimits.jevRequests,requests.map(request=>({partition:request.partition,description:`request #${request.request} · ${request.started ? "started" : "authorized, not started"}`}))),
     ...agents.map((agent,index)=>h.text([h.X(String(930+(index%3)*126)),h.Y(String(767+Math.floor(index/3)*15)),h.FontSize("10"),h.FontWeight("600"),h.Fill(AGENT_COLORS[index%AGENT_COLORS.length])],[`A${index+1} · ${agent.agent}`])),
