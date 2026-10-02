@@ -43,7 +43,7 @@ try {
   assert.match(await inspector.locator('.stage-resource-details').innerText(),/Resident background collectors\s+2 \/ 3/);
   assert.match(await inspector.locator('.stage-resource-details').innerText(),/Group 1 · collector token 101/);
   assert.match(await inspector.locator('.stage-resource-details').innerText(),/Group 2 · collector token 202/);
-  await click('Select agent 2');await check(run.projection,run.capacityMetadata);
+  await click('Select advicee 2');await check(run.projection,run.capacityMetadata);
   await page.setViewportSize({width:390,height:844});await settle();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   const viewport=ensemble.locator('.ensemble-viewport');await viewport.evaluate(element=>{const box=element.querySelector('.topology-node[aria-label="Inspect Advice collection"]').getBoundingClientRect(),view=element.getBoundingClientRect();element.scrollLeft+=box.left-view.left-(element.clientWidth-box.width)/2;});await settle();
   await viewport.screenshot({path:`${directory}/after-occupied-narrow.png`});

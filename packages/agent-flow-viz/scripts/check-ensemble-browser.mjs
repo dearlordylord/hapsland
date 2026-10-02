@@ -15,14 +15,14 @@ try {
   const inspector = page.locator("#agent-simulation");
   const settle = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const click = async name => { await settle(); await page.getByRole("button", { name, exact: true }).click(); await settle(); };
-  await page.getByLabel("Agent count", { exact: true }).fill("3");
+  await page.getByLabel("Advicee count", { exact: true }).fill("3");
   await click("Start resident");
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 3);
   assert.equal(await ensemble.locator(".ensemble-connector").count(), 4);
   const layerOpacity = () => ensemble.locator(".ensemble-layer").evaluateAll(layers => layers.map(layer => getComputedStyle(layer).opacity));
-  await ensemble.getByRole("button", { name: "Select agent 2", exact: true }).hover();
+  await ensemble.getByRole("button", { name: "Select advicee 2", exact: true }).hover();
   assert.deepEqual(await layerOpacity(), ["0.1", "1", "0.1"]);
-  assert.equal(await ensemble.locator(".ensemble-agent.selected").getAttribute("aria-label"), "Select agent 1", "hover must not change selection");
+  assert.equal(await ensemble.locator(".ensemble-agent.selected").getAttribute("aria-label"), "Select advicee 1", "hover must not change selection");
   assert.equal(await ensemble.locator(".topology-resource.capacity").count(), 3);
   assert.equal(await ensemble.locator(".topology-resource.jev").count(), 3);
   assert.match(await ensemble.locator(".topology-resource.capacity").first().getAttribute("aria-label"), /Admission & capacity.*one shared resident ledger/);
@@ -31,9 +31,9 @@ try {
   await ensemble.locator(".ensemble-heading").hover();
   assert.deepEqual(await layerOpacity(), ["1", "1", "1"], "leaving the card restores the stack");
   await page.keyboard.press("Tab");
-  await ensemble.getByRole("button", { name: "Select agent 3", exact: true }).focus();
+  await ensemble.getByRole("button", { name: "Select advicee 3", exact: true }).focus();
   assert.deepEqual(await layerOpacity(), ["0.1", "0.1", "1"], "keyboard focus also reveals its layer");
-  await page.getByLabel("Agent count", { exact: true }).focus();
+  await page.getByLabel("Advicee count", { exact: true }).focus();
   assert.deepEqual(await layerOpacity(), ["1", "1", "1"]);
   const viewport = ensemble.locator(".ensemble-viewport");
   const bounds = await viewport.boundingBox();
@@ -74,7 +74,7 @@ try {
   const events = [];
   const replays = [];
   for (let i = 0; i < 3; i++) {
-    await click(`Select agent ${i + 1}`);
+    await click(`Select advicee ${i + 1}`);
     events.push(await inspector.locator(".simulation-details pre").textContent());
     await click("Export replay");
     replays.push(JSON.parse(await inspector.getByLabel("Replay JSON", { exact: true }).inputValue()));
@@ -87,12 +87,12 @@ try {
   assert.equal(await ensemble.locator(".shared-jev").count(), 0, "superseded external pool panel is removed");
   assert.equal(await ensemble.locator(".stage-jev-pool").count(), await ensemble.locator(".ensemble-layer").count());
   for (const pool of await ensemble.locator(".stage-jev-pool").all()) assert.equal(await pool.locator(".stage-jev-slot").count(), 8);
-  await click("Select agent 2");
+  await click("Select advicee 2");
   await inspector.getByLabel("Edit interval (virtual ms)", { exact: true }).fill("731");
   await click("Apply edit pace");
   await click("Export replay");
   assert.equal(JSON.parse(await inspector.getByLabel("Replay JSON", { exact: true }).inputValue()).controls.at(-1).control.intervalMs, 731);
-  await click("Select agent 1");
+  await click("Select advicee 1");
   assert.equal(await inspector.getByLabel("Edit interval (virtual ms)", { exact: true }).inputValue(), "100");
   await click("Export replay");
   const sharedReplay = JSON.parse(await inspector.getByLabel("Replay JSON", { exact: true }).inputValue());
@@ -112,18 +112,18 @@ try {
   const chooser = await chooserPromise;
   await chooser.setFiles({ name: "pending-replay.json", mimeType: "application/json", buffer: Buffer.from("late file contents") });
   await page.waitForFunction(() => typeof window.finishReplayRead === "function");
-  await click("Select agent 2");
+  await click("Select advicee 2");
   await click("Start resident");
   const unchangedReplay = await inspector.getByLabel("Replay JSON", { exact: true }).inputValue();
   await page.evaluate(() => { window.finishReplayRead("late file contents"); File.prototype.text = window.originalFileText; });
   await settle();
   assert.equal(await inspector.getByLabel("Replay JSON", { exact: true }).inputValue(), unchangedReplay);
-  await click("Select agent 1");
-  await page.getByLabel("Agent count", { exact: true }).fill("");
+  await click("Select advicee 1");
+  await page.getByLabel("Advicee count", { exact: true }).fill("");
   await click("Start resident");
   assert.match(await ensemble.locator(".ensemble-feedback").textContent(), /integer from 1 to 6/);
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 3);
-  await page.getByLabel("Agent count", { exact: true }).fill("3");
+  await page.getByLabel("Advicee count", { exact: true }).fill("3");
   await click("Play resident");
   await page.waitForFunction(() => [...document.querySelectorAll('.ensemble-agent')].every(node => Number(node.textContent.match(/· (\d+) retained events/)[1]) > 10));
   await click("Pause resident");
@@ -173,7 +173,7 @@ try {
   assert.equal(await ensemble.locator(".topology-resource").count(), 2);
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-focus.png" });
   await click("3D layers");
-  await page.getByLabel("Agent count", { exact: true }).fill("6");
+  await page.getByLabel("Advicee count", { exact: true }).fill("6");
   await click("Start resident");
   assert.equal(await ensemble.locator(".ensemble-layer").count(), 6);
   // At the default camera all six complete layer bounds fit vertically.
@@ -188,7 +188,7 @@ try {
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-six.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   await click("Focus selected agent");
-  assert.ok(await ensemble.getByRole("button", { name: "Select agent 6", exact: true }).isVisible());
+  assert.ok(await ensemble.getByRole("button", { name: "Select advicee 6", exact: true }).isVisible());
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "mobile page should not overflow horizontally");
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-mobile.png" });
   // Real touch events exercise browser pan arbitration and pointer cancellation.

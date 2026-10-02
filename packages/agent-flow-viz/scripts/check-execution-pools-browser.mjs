@@ -39,7 +39,7 @@ try {
   const ownerColors={'agent-1':'#427bc4','agent-2':'#a16acc','agent-3':'#169e8c'};
   for(const slot of partialSlots.filter(slot=>slot.occupied)) assert.equal(slot.fill,ownerColors[slot.label.split(' · ')[0]]);
   await ensemble.screenshot({path:'/tmp/hapsland-execution-pools-mixed-3d-1512.png'});
-  await click('Select agent 2');assert.deepEqual(await assertMirrors(3),partialSlots);
+  await click('Select advicee 2');assert.deepEqual(await assertMirrors(3),partialSlots);
   await click('Focus selected agent');assert.deepEqual(await assertMirrors(3),partialSlots);
   await ensemble.screenshot({path:'/tmp/hapsland-execution-pools-mixed-flat-1512.png'});
   await ensemble.locator('.resident-execution-pools').screenshot({path:'/tmp/hapsland-execution-pools-detail.png'});

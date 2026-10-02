@@ -59,7 +59,7 @@ try {
   mixed.advance({ untilTime: 16, maxEvents: 1000 });
   await load(mixed); await assertLedger(mixed.projection);
   await ensemble.screenshot({ path: '/workspace/hapsland-review/global-capacity/mixed-3d.png' });
-  await click('Select agent 2'); await assertLedger(mixed.projection);
+  await click('Select advicee 2'); await assertLedger(mixed.projection);
   await click('Focus selected agent'); await assertLedger(mixed.projection);
   await ensemble.screenshot({ path: '/workspace/hapsland-review/global-capacity/mixed-flat.png' });
   await ensemble.locator('.resident-capacity-inset').screenshot({ path: '/workspace/hapsland-review/global-capacity/mixed-detail.png' });

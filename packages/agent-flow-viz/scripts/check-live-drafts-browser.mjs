@@ -15,7 +15,7 @@ try {
   };
   await page.getByLabel('Advicee count', { exact: true }).fill('6');
   await click('Start resident');
-  await click('Select agent 2');
+  await click('Select advicee 2');
   await page.getByLabel('Playback speed (virtual ms / wall ms)', { exact: true }).fill('100');
   await click('Apply playback speed');
   await click('Play resident');
@@ -67,9 +67,9 @@ try {
   await page.keyboard.type('789');
   await click('Apply edit duration'); // Click also submits the latest draft without settling delay.
   assert.equal(await input.inputValue(), '789');
-  await click('Select agent 1');
+  await click('Select advicee 1');
   await page.waitForFunction(() => document.querySelector('[aria-label="Simulated edit duration (virtual ms)"]').value === '1');
-  await click('Select agent 2');
+  await click('Select advicee 2');
   await page.waitForFunction(() => document.querySelector('[aria-label="Simulated edit duration (virtual ms)"]').value === '789');
   const viewport = page.locator('.ensemble-viewport');
   await viewport.scrollIntoViewIfNeeded();

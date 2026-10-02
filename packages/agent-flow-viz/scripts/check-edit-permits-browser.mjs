@@ -59,7 +59,7 @@ try {
     const issue = (partition, at, maximum) => ({ at, kind: 'canonical', event: { kind: 'issuePermit', partition, lifetime: 1, tool: partition * 100, started: at, deadline: at + 30, now: at, minimumStarted: 0, facts: { clockValid: true, hookWindow: 30, startedUpper: at, nowLower: at, adviceePermitLimit: maximum, residentPermitLimit: 8 } } });
     const scoped = createRun({ sessions, inputs: [issue(1, 1, 2), issue(2, 2, 3)] }); scoped.advance({ untilTime: 2, maxEvents: 100 });
     await load(scoped); await check(scoped.projection, scoped.capacityMetadata);
-    await click('Select agent 2'); await check(scoped.projection, scoped.capacityMetadata);
+    await click('Select advicee 2'); await check(scoped.projection, scoped.capacityMetadata);
     await ensemble.screenshot({ path: `${directory}/after-heterogeneous-focus.png` });
     await admission(ensemble.locator('.ensemble-layer')).screenshot({ path: `${directory}/after-heterogeneous-detail.png` });
     await click('Previous event'); const prior = JSON.parse(await inspector.locator('.simulation-details pre').textContent());

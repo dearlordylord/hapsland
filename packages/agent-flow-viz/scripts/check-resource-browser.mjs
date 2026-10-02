@@ -12,7 +12,7 @@ try {
   await page.goto(server.resolvedUrls.local[0]);
   const settle=()=>page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
   const click=async name=>{await page.getByRole('button',{name,exact:true}).click();await settle();};
-  await page.getByLabel('Agent count',{exact:true}).fill('3');
+  await page.getByLabel('Advicee count',{exact:true}).fill('3');
   await click('Start resident');
   const resident=page.locator('.shared-resident');
   assert.equal(await page.locator('.resident-capacity-items .resident-capacity-total').first().textContent(), '0 / 32');
@@ -73,7 +73,7 @@ try {
   assert.ok(retained.projection.global.bytes >= 128); // Actual diagnostic storage remains in the shared ledger.
   await resident.screenshot({path:'/tmp/hapsland-capacity-retention-1512.png'});
 
-  await click(`Select agent ${retained.projection.partitions.findIndex(p=>p.partition===1)+1}`);await focus('outcomes');
+  await click(`Select advicee ${retained.projection.partitions.findIndex(p=>p.partition===1)+1}`);await focus('outcomes');
   assert.doesNotMatch(await page.locator('.simulation-stage-inspector').innerText(),/Cached evaluations|Retained tickets|Notice key|Resident resource details|ticket units|Ticket unit/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-outcomes-no-retention-1512.png'});
   await focus('preparation');
@@ -90,7 +90,7 @@ try {
   assert.equal(ownership.projection.delivery.slots.length,1);
   await load(ownership);
   const partitions = ownership.projection.partitions.map(p=>p.partition).sort((a,b)=>a-b);
-  const selectPartition = async partition => { await click(`Select agent ${partitions.indexOf(partition)+1}`); };
+  const selectPartition = async partition => { await click(`Select advicee ${partitions.indexOf(partition)+1}`); };
   await selectPartition(1);await focus('delivery');
   await page.getByLabel('Resource delivery group',{exact:true}).selectOption('1');await settle();
   assert.match(await page.locator('.stage-resource-details').innerText(),/Group 1 · Occupied · round 1 · authorized/);
@@ -158,18 +158,18 @@ try {
   const scopedPermits=createRun({inputs:[{at:0,kind:'canonical',event:{kind:'reserveCapacity',partition:1,bytes:5,purpose:'observationDispatch'}},{at:0,kind:'canonical',event:{kind:'reserveCapacity',partition:2,bytes:5,purpose:'observationDispatch'}},issue(1,1,2),issue(2,2,3)]});scopedPermits.advance({untilTime:2,maxEvents:100});
   await load(scopedPermits);await focus('admission');
   const permitPartitions=scopedPermits.projection.partitions.map(p=>p.partition).sort((a,b)=>a-b);
-  await click(`Select agent ${permitPartitions.indexOf(1)+1}`);
+  await click(`Select advicee ${permitPartitions.indexOf(1)+1}`);
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);
   assert.match(await page.locator('#agent-ensemble .topology-node').filter({hasText:'Admission & capacity'}).textContent(),/Permits · agent 1\/2/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-permits-partition1-1512.png'});
-  await click(`Select agent ${permitPartitions.indexOf(2)+1}`);
+  await click(`Select advicee ${permitPartitions.indexOf(2)+1}`);
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 3/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-permits-partition2-1512.png'});
   await click('Previous event');
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+0 used · limit not recorded/);
   assert.match(await page.locator('#agent-ensemble .topology-node').filter({hasText:'Admission & capacity'}).textContent(),/Permits · agent 0 · max unknown/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-permits-before-partition2-1512.png'});
-  await click(`Select agent ${permitPartitions.indexOf(1)+1}`);
+  await click(`Select advicee ${permitPartitions.indexOf(1)+1}`);
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);
   await click('Return to latest');
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);
