@@ -155,7 +155,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
             ], []))) : []),
           ]),
           ...(!model.flat ? [h.div([h.Class("ensemble-gesture-hint")], ["Drag to rotate · touch: drag sideways, scroll vertically"])] : []),
-          h.div([h.Class("ensemble-orientation")], [model.flat ? `AGENT ${model.active + 1} / INSPECTION VIEW` : "X / Y · SYSTEM FLOW     Z · AGENTS"]),
+          ...(model.flat ? [h.div([h.Class("ensemble-orientation")], [`AGENT ${model.active + 1} / INSPECTION VIEW`])] : []),
         ]),
       ]),
       h.div([h.Class("ensemble-camera")], [range("Tilt", "tilt", 0, 65, model.tilt), range("Rotation", "turn", -180, 180, model.turn),

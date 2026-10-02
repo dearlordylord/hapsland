@@ -1131,3 +1131,20 @@ and `mixed-hover-agent2-1512.png`. After captures:
 `/workspace/hapsland-review/shared-resources-3d/after/mixed-3d-1512.png`,
 `mixed-hover-agent2-1512.png`, and `mixed-390.png`. No broader tests were rerun
 for this copy-only change.
+
+
+### Spatial axis-caption correction (2026-10-02)
+
+Root's screenshot review identified a remaining decorative “X / Y · SYSTEM FLOW
+Z · AGENTS” caption, contrary to the user's earlier removal instruction. The
+whole caption is now omitted in 3D mode; the flat selected-agent inspection
+label remains because it identifies the active inspection scope. The resident-
+pool explanation beside Agent layers remains. This corrects the earlier review
+record's incomplete copy inventory; no resource or interaction semantics change.
+Visualization typecheck and diff check passed. Astra's refreshed rendered review
+passed: the spatial orientation node is absent, the flat “AGENT 1 / INSPECTION
+VIEW” label remains, and mixed ownership, totals and hover are unchanged. The
+existing `after/mixed-3d-1512.png`, `after/mixed-hover-agent2-1512.png` and
+`after/mixed-390.png` captures above are refreshed; flat scope is shown in
+`/workspace/hapsland-review/shared-resources-3d/after/mixed-flat-1512.png`. This
+review covers both copy differences and supersedes the earlier hint-only review.
