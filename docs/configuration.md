@@ -15,6 +15,8 @@ error. User defaults are read from
 `$REVIEW_USER_CONFIG_PATH`, or (when that variable is absent)
 `~/.config/realtime-review-tool/config.jsonc`. There is no nested directory
 inheritance and no automatic `.gitignore` loading.
+An explicitly empty `$REVIEW_USER_CONFIG_PATH` is a configuration error; only an
+absent variable selects the default path.
 
 Both documents are versioned JSONC and may contain `//` or `/* ... */` comments
 and trailing commas. Unknown fields, duplicate object keys, unsupported versions,

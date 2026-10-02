@@ -4070,5 +4070,60 @@
       "physical-retirement-current-final-comparison.json"
     ],
     "limitations": "Synthetic Linux evidence only. Final suite/installed real-host completion and requirement audit pending."
+  },
+  "finalProductionSourceSuite": {
+    "subjectCommit": "64c154d",
+    "typecheck": "pass",
+    "build": "pass",
+    "npmTest": "pass",
+    "passedFiles": 125,
+    "skippedFiles": 1,
+    "passedTests": 1289,
+    "skippedTests": 2,
+    "durationSeconds": 383.77,
+    "limitations": "Predates test-only Bash delivery coverage and validation runner changes; those have separate focused verification."
+  },
+  "currentConformanceFollowup": {
+    "typecheck": "pass",
+    "focusedTestsPassed": 4,
+    "manifest": "pass",
+    "groups": 12,
+    "obligations": 39,
+    "uniqueMappedChecks": 94,
+    "scope": "Delivery-only Bash case and current test-name references; no changed product contract."
+  },
+  "currentInstalledPackageCompletion": {
+    "productionSourceCommit": "64c154d",
+    "receipt": "installed-package-current.json",
+    "verdict": "clean-package-and-real-host-passed",
+    "host": "Codex CLI 0.155.1",
+    "trust": "Native interactive repository and exact hook approval; no trust seeding or bypass",
+    "limitations": "Linux and one bounded synthetic native host case; controlled backend. Separate live Decision contract evidence does not establish arbitrary-source accuracy or macOS support."
+  },
+  "currentPublicLifecycleAndSetup": {
+    "clientLifecycle": "pass",
+    "setupReceipt": "setup-package-current.json",
+    "providerCalls": 0,
+    "fixtureCorrection": "Setup package runner isolates HOME so unrelated pre-existing global active records cannot affect its fixture.",
+    "limitations": "Offline controlled fixtures."
+  },
+  "currentCompatibilityLimitations": {
+    "historicalInstalledReleaseGate": "Fails assembled commit ancestry; same pinned ancestry check also fails on primary master. Historical release subject not rewritten.",
+    "claudeCurrentAttempt": "Initial attempt stopped at the superseded repository consent API; corrected runner uses isolated current file settings. Subsequent exact Claude 2.1.218 case passed.",
+    "macOS": "No native execution on this Linux host.",
+    "performance": "Physical shutdown comparison remains unproven because the fixed baseline returns before physical settlement; current ownership invariants pass."
+  },
+  "currentClaudeNativeCompletion": {
+    "productionSourceCommit": "64c154d",
+    "receipt": "claude-native-current.json",
+    "host": "Claude Code 2.1.218",
+    "exitCode": 0,
+    "backendCompletions": 2,
+    "findingSubmission": true,
+    "stopBlock": true,
+    "repairedFile": true,
+    "clearFollowUp": true,
+    "hookFailures": [],
+    "limitations": "One bounded Linux native synthetic Stop-delivery case, controlled offline DecisionModel. No arbitrary-source accuracy, installed Claude package or macOS acceptance inferred."
   }
 }

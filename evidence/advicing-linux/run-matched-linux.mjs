@@ -112,6 +112,7 @@ for (const entry of cases) {
       `if(result.status===0)process.stdout.write(result.stdout);\n`, { mode: 0o700 });
     const env = { ...process.env,
       REVIEW_STATE_PATH: statePath, REVIEW_ACTIVITY_PATH: activityPath,
+      REVIEW_USER_CONFIG_PATH: join(scratch, 'user.jsonc'),
       REVIEW_RESIDENT_DIR: runtime, REVIEW_CONTROL_JSON: JSON.stringify({
         syntheticR6BrandedRepair: 'finding',
         // The Claude baseline review completes after the legacy five-second
@@ -123,15 +124,9 @@ for (const entry of cases) {
       ...(candidate ? { HAPSLAND_105_BACKGROUND_DELAY_MS: entry.phase === 'background' ? '0' : '20000',
         HAPSLAND_105_COMPOSED_EDIT: '1' } : {}) };
     for (const key of ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'TYPESAFE_API_KEY']) delete env[key];
-    const enable = (operation, proposalDigest) => spawnSync(process.execPath, [cli, `--${operation}`], {
-      cwd: project, env,
-      input: JSON.stringify({ version: 1, operation, cwd: repo, ...(proposalDigest ? { proposalDigest } : {}) }),
-      encoding: 'utf8', timeout: 10_000,
-    });
-    const proposal = enable('enable');
-    if (proposal.status !== 0) throw new Error('consent preview failed');
-    const confirmation = enable('enable-confirm', JSON.parse(proposal.stdout).proposal.digest);
-    if (confirmation.status !== 0 || JSON.parse(confirmation.stdout).status !== 'enabled') throw new Error('consent failed');
+    // Current file-selection contract is enabled by default. Isolate user
+    // settings rather than invoking the superseded per-repository consent API.
+    await writeFile(env.REVIEW_USER_CONFIG_PATH, JSON.stringify({ version: 1 }));
     // Compare delivery with the same ready resident in both phases. Cold
     // startup has a separate host-timeout gate; it can exceed the legacy
     // five-second edit hook and confound the before/after delivery outcome.

@@ -153,12 +153,14 @@ try {
   const repository = join(temporary, "repository");
   const codexHome = join(temporary, "codex-home");
   const stateRoot = join(temporary, "state");
+  const publicHome = join(temporary, "home");
   const capturePath = join(stateRoot, "provider-calls.jsonl");
   await mkdir(artifacts, { recursive: true });
   await mkdir(installation, { recursive: true });
   await mkdir(repository, { recursive: true });
   await mkdir(codexHome, { recursive: true });
   await mkdir(stateRoot, { recursive: true });
+  await mkdir(publicHome, { recursive: true });
 
   let result = await run("npm", ["pack", "--pack-destination", artifacts], {
     cwd: projectRoot,
@@ -199,6 +201,7 @@ try {
   };
   const baseEnvironment = {
     ...process.env,
+    HOME: publicHome,
     REVIEW_STATE_PATH: join(stateRoot, "consent"),
     REVIEW_USER_CONFIG_PATH: join(stateRoot, "user.jsonc"),
     REVIEW_CREDENTIAL_STATE_PATH: join(stateRoot, "credential-state.json"),

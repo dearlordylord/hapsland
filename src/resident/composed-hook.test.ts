@@ -8,6 +8,9 @@ import type { AdviceeCollectionOutcome } from "./client.ts";
 import { residentPaths } from "./paths.ts";
 import { hookMonotonicMillis } from "./hook-clock.ts";
 import * as TestClock from "effect/testing/TestClock";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const input = (kind: "stop" | "background", host: "claude-code" | "codex-cli" = "claude-code") => ({
   kind, host, event: {}, statePath: "/fixture/state", activityPath: "/fixture/activity",
@@ -106,6 +109,40 @@ it.effect("releases a background claim even when interrupted during its acquisit
   yield* Fiber.join(interrupting);
   expect(releases).toBe(1);
 }));
+
+it.effect("collects accepted Bash advice without registering edits or starting review work", () => Effect.gen(function* () {
+  const directory = yield* Effect.acquireRelease(
+    Effect.sync(() => mkdtempSync(join(tmpdir(), "hapsland-bash-delivery-"))),
+    (path) => Effect.sync(() => rmSync(path, { recursive: true, force: true })),
+  );
+  const calls: string[] = [];
+  const advicee = { host: "codex-cli", hostVersion: "0.155.1", sessionId: "session", turnId: "turn", toolUseId: "bash", subagentId: null } as const;
+  const accepted: AdviceeCollectionOutcome = { status: "advice", advice: { ...finding.advice, advicee } };
+  const service = runtime({
+    claimComposedBackgroundEffect: () => Effect.sync(() => { calls.push("claim"); return true; }),
+    collectAdviceeOutcomeEffect: (_root, target, _dispatch, _paths, mode) => Effect.sync(() => {
+      expect(target).toEqual(advicee);
+      expect(mode).toBe("ordinary");
+      calls.push("collect");
+      return accepted;
+    }),
+    beginComposedSubmissionEffect: (_advice, surface) => Effect.sync(() => {
+      expect(surface).toBe("background"); calls.push("submit"); return true;
+    }),
+    acknowledgeAdviceEffect: () => Effect.sync(() => { calls.push("acknowledge"); return true; }),
+    releaseComposedBackgroundEffect: () => Effect.sync(() => { calls.push("release"); return true; }),
+  }, advicee);
+  yield* runComposedHookEffect({ ...input("background", "codex-cli"),
+    event: { hook_event_name: "PostToolUse", tool_name: "Bash" }, activityPath: join(directory, "activity"),
+  }).pipe(
+    Effect.provideService(ComposedHookRuntime, service),
+    Effect.provideService(HookOutput, HookOutput.of({ writeEncoded: unused, write: (value) => Effect.sync(() => {
+      expect(value).toEqual(accepted.advice.output); calls.push("write"); return "written" as const;
+    }) })),
+  );
+  // All admission/prompt/Stop ports remain the failing `unused` implementations.
+  expect(calls).toEqual(["claim", "collect", "submit", "write", "acknowledge", "release"]);
+}).pipe(Effect.scoped));
 
 it.effect("preserves Stop continuation when output observation is interrupted after submission starts", () => Effect.gen(function* () {
   const writing = yield* Deferred.make<void>();

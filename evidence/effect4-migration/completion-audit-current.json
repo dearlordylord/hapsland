@@ -1,0 +1,126 @@
+{
+  "purpose": "Requirement-by-requirement current migration audit",
+  "authority": "Implementation and validation evidence; neither product acceptance nor expanded platform support",
+  "productionSourceCommit": "64c154d",
+  "completion": "unproven",
+  "requirements": [
+    {
+      "requirement": "Full effectful product workflows compose as Effect; runtimes at process/host boundaries",
+      "status": "source-inspected",
+      "evidence": [
+        "docs/architecture.md",
+        "src/resident/server.ts",
+        "src/resident/client.ts",
+        "src/cli.ts",
+        "src/package-doctor.ts"
+      ],
+      "exceptions": "Pure codecs, generated Bend policy, descriptor-anchored Linux capture and native socket callbacks remain boundary adapters. Linux capture is awaited uninterruptibly through physical descriptor cleanup."
+    },
+    {
+      "requirement": "Stable exact mutually compatible Effect 4 cohort requested by user",
+      "status": "pass",
+      "evidence": [
+        "package.json",
+        "bun.lock",
+        "packages/agent-flow-viz/package.json",
+        "packages/agent-flow-viz/bun.lock"
+      ],
+      "cohort": "4.0.0"
+    },
+    {
+      "requirement": "One canonical/native state owner and retained dispatch handoff; Bend remains policy authority",
+      "status": "pass",
+      "evidence": [
+        "src/resident/state.ts",
+        "src/resident/dispatch.test.ts",
+        "src/resident/capacity.test.ts",
+        "scripts/check-canonical-authority.mjs",
+        "scripts/check-production-authority.mjs"
+      ],
+      "verification": "Full production source suite passes; authority and boundary checks included."
+    },
+    {
+      "requirement": "Physical retirement, bounded concurrency, interruption and shutdown fences",
+      "status": "pass",
+      "evidence": [
+        "physical-retirement-current-final.json",
+        "physical-retirement-current-final-comparison.json"
+      ],
+      "limitation": "Comparative shutdown speed is unproven under the original declared baseline rule."
+    },
+    {
+      "requirement": "Decision / DecisionModel / ai-typesafe / probability Jev boundary",
+      "status": "pass",
+      "evidence": [
+        "src/jev-decision.ts",
+        "live-decision-contract-current.json"
+      ],
+      "scope": "Two bounded real fetch attempts and controlled offline suites; no arbitrary-source accuracy claim."
+    },
+    {
+      "requirement": "Build, typecheck, offline full suite and direct-event manifest",
+      "status": "pass",
+      "evidence": [
+        "checkpoint.json",
+        "conformance/direct-event-v1.json"
+      ],
+      "verification": "1289 tests in full suite, then four focused checks covering the new delivery-only case and manifest references; no altered obligations."
+    },
+    {
+      "requirement": "Explicit empty env values rejected; caller configuration preserved",
+      "status": "pass",
+      "evidence": [
+        "src/cli.test.ts",
+        "src/resident/client.test.ts",
+        "scripts/check-configuration-boundary.mjs",
+        "docs/configuration.md"
+      ]
+    },
+    {
+      "requirement": "Clean packed production install and Linux native host delivery",
+      "status": "pass",
+      "evidence": [
+        "installed-package-current.json",
+        "claude-native-current.json"
+      ],
+      "scope": "Installed Codex 0.155.1 with native interactive trust and controlled backend; Claude 2.1.218 native source case with Stop fallback, repair and clear follow-up."
+    },
+    {
+      "requirement": "Public lifecycle/setup and terminal cleanup",
+      "status": "pass",
+      "evidence": [
+        "setup-package-current.json",
+        "client-selection-pty-current.json",
+        "masked-input-pty-current.json",
+        "checkpoint.json"
+      ],
+      "scope": "Offline setup/lifecycle and native Linux PTY Enter/Escape/signal/fiber restoration."
+    },
+    {
+      "requirement": "Original latency, retention, RSS and concurrency budgets",
+      "status": "pass",
+      "evidence": [
+        "benchmark-current-final-comparison.json"
+      ],
+      "limitation": "Separate physical-settlement shutdown comparison remains explicitly unproven."
+    },
+    {
+      "requirement": "Current native macOS host/package conformance identified by advisory adoption gate",
+      "status": "missing",
+      "evidence": [
+        "docs/PRODUCT-RESEARCH-ADVISORY-2026-10-01-functional-runtime.md"
+      ],
+      "reason": "Linux host cannot execute macOS native capture, terminal, Keychain or agent profiles. Historical records do not prove migrated source."
+    },
+    {
+      "requirement": "Historical authoritative installed-release gate",
+      "status": "contradicted",
+      "evidence": [
+        "conformance/installed-release-v1.json",
+        "docs/installed-release-compatibility.md"
+      ],
+      "reason": "Pinned assembled commit ancestry fails on migration branch and primary master. Current independent package receipts do not replace the historical accepted release declaration."
+    }
+  ],
+  "next": "Complete remaining source and requirement audit; preserve missing platform and historical release evidence as unresolved rather than rewriting pins or asserting support."
+}

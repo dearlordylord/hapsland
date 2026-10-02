@@ -1,0 +1,19 @@
+{
+  "platform": "Linux PTY",
+  "cases": [
+    {
+      "case": "enter",
+      "exitCode": 0,
+      "termiosRestored": true,
+      "selection": [
+        "claude"
+      ]
+    },
+    {
+      "case": "escape",
+      "exitCode": 0,
+      "termiosRestored": true,
+      "selection": []
+    }
+  ]
+}
