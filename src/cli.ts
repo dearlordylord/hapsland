@@ -886,9 +886,16 @@ const program = Effect.gen(function* () {
 const readMaskedCredential = (signal?: AbortSignal): Promise<string> => {
   if (signal?.aborted) throw new Error("credential input cancelled");
   const descriptor = openSync("/dev/tty", constants.O_RDONLY | constants.O_NONBLOCK);
-  const original = spawnSync("stty", terminalModeArguments(process.platform, "-g"), {
-    encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
-  });
+  const original = (() => {
+    try {
+      return spawnSync("stty", terminalModeArguments(process.platform, "-g"), {
+        encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
+      });
+    } catch (cause) {
+      closeSync(descriptor);
+      throw cause;
+    }
+  })();
   const originalMode = original.status === 0 ? original.stdout.trim() : "";
   if (originalMode.length === 0) {
     closeSync(descriptor);
@@ -909,12 +916,14 @@ const readMaskedCredential = (signal?: AbortSignal): Promise<string> => {
       }
     }
   };
-  const disabled = spawnSync("stty", terminalModeArguments(process.platform, "-echo"), { stdio: "ignore" });
-  if (disabled.status !== 0) {
-    closeSync(descriptor);
-    throw new Error("masked terminal input is unavailable; retry with --credential-stdin");
+  try {
+    const disabled = spawnSync("stty", terminalModeArguments(process.platform, "-echo"), { stdio: "ignore" });
+    if (disabled.status !== 0) throw new Error("masked terminal input is unavailable; retry with --credential-stdin");
+    process.stderr.write("Jev API key: ");
+  } catch (cause) {
+    try { restore(); } finally { closeSync(descriptor); }
+    throw cause;
   }
-  process.stderr.write("Jev API key: ");
   return new Promise((resolveValue, rejectValue) => {
     const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
     const handlers = new Map<NodeJS.Signals, () => void>();
@@ -927,10 +936,13 @@ const readMaskedCredential = (signal?: AbortSignal): Promise<string> => {
       signal?.removeEventListener("abort", onAbort);
       for (const [signal, handler] of handlers) process.off(signal, handler);
       if (poll !== undefined) clearInterval(poll);
-      try { closeSync(descriptor); } finally { restore(); }
+      let cleanupFailed = false;
+      try { closeSync(descriptor); } catch { cleanupFailed = true; }
+      try { restore(); } catch { cleanupFailed = true; }
       value.fill(0);
-      process.stderr.write("\n");
-      if ("value" in result) resolveValue(result.value);
+      try { process.stderr.write("\n"); } catch { cleanupFailed = true; }
+      if (cleanupFailed || !restored) rejectValue(new Error("credential terminal restoration failed"));
+      else if ("value" in result) resolveValue(result.value);
       else rejectValue(result.error);
     };
     const onAbort = () => finish({ error: new Error("credential input cancelled") });

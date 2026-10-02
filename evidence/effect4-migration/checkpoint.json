@@ -3493,5 +3493,26 @@
       "src/onboarding/setup.ts": "338ef7eb054f0f030172dee9a8b6f2cafe9e1597a76063669f0e9fbe1128c8e0"
     },
     "limitations": "Tests do not directly prove native masked-entry AbortSignal cancellation/restoration. Native Promise, setInterval and synchronous stty retry remain and require scoped Effect/Schedule port and fault-path ownership audit. No actual credentials entered or mutated in this run; full migration remains incomplete."
+  },
+  "maskedCredentialNativeFaultCleanup": {
+    "status": "native masked-input setup/finish fault paths hardened",
+    "scope": "Thrown original stty query closes acquired descriptor. Disable-echo/prompt failure attempts restoration and closes descriptor. Finish attempts descriptor close and restore independently, clears buffer and rejects bounded cleanup failure rather than letting callback throw before Promise settlement. Restoration verification failure prevents returning input for credential persistence.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/cli.test.ts src/onboarding/setup.test.ts src/credentials/terminal.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 3,
+        "tests": 20,
+        "durationSeconds": 20.68
+      }
+    ],
+    "sourceSha256": {
+      "src/cli.ts": "aad31c686b7d45e9a25217e2495756e229c1e62ada4ad7f44d21899d1e984af6"
+    },
+    "limitations": "Tests do not inject actual stty/descriptor/prompt faults or prove native restoration. Promise/setInterval/synchronous stty loop remain; full scoped Effect/Schedule port and actual bounded native fault evidence still required. No real credentials entered."
   }
 }
