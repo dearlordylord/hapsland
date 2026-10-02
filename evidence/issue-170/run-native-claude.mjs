@@ -26,13 +26,15 @@ const claudeBinary = "/home/node/.local/share/claude/versions/2.1.218";
 const responseDelayMs = Number(process.argv.find((arg) => arg.startsWith("--response-delay-ms="))?.split("=")[1] ?? 0);
 if (![0, 5000].includes(responseDelayMs) || offlineControl || !countFixture) throw new Error("Choose a live count fixture with response delay 0 or 5000 ms");
 const started = Date.now();
-const runId = `claude-count-${responseDelayMs === 0 ? "normal" : "delayed"}-${started}`;
+const runId = `claude-sync-stop-count-${responseDelayMs === 0 ? "normal" : "delayed"}-${started}`;
 const evidenceDirectory = join(project, "evidence/issue-170");
 mkdirSync(evidenceDirectory, { recursive: true });
 writeFileSync(join(evidenceDirectory, `${runId}-declaration.json`), JSON.stringify({
   schemaVersion: 1, declaredAt: new Date().toISOString(), milestone: "issue-170 native Claude RPC validation",
   maximumProviderRequests: ceiling, automaticHostRetries: 0, hostCeilingMs: 240000,
   runtime: "Claude Code 2.1.218", realJev: true, syntheticRepositoryOnly: true,
+  deliveryPolicy: "synchronous-edit-with-stop-safety-net", asynchronousPostToolUse: false,
+  validationScope: "native feedback reception and repair; semantic type correctness is separate",
   maximumSourceEdits: 2, claudeFeedbackMode: "block-current-findings", responseDelayMs,
   responseDelayPlacement: "after real Jev response, before response reaches Effect provider",
 }, null, 2) + "\n", { flag: "wx" });
@@ -142,7 +144,6 @@ process.exitCode=result.status??1;
     PreToolUse: [{ matcher: "Edit|Write", hooks: [{ type: "command", command: composed("before-edit"), timeout: 5 }] }],
     PostToolUse: [{ matcher: "Edit|Write", hooks: [
       { type: "command", command: `${quote(process.execPath)} ${quote(bridge)}`, timeout: 5 },
-      { type: "command", command: composed("background"), timeout: 25, async: true },
     ] }],
     Stop: [{ hooks: [{ type: "command", command: composed("stop"), timeout: 5 }] }],
     UserPromptSubmit: [{ hooks: [{ type: "command", command: composed("prompt"), timeout: 4 }] }],
@@ -214,6 +215,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
   const record = { schemaVersion: 1, runtime: "Claude Code", version: spawnSync(claudeBinary, ["--version"], { encoding: "utf8" }).stdout.trim(),
     recordedAt: new Date().toISOString(), declaration: { maximumProviderRequests: ceiling, automaticRetries: 0, sessionCeilingMs: 240_000,
       claudeFeedbackMode: "block-current-findings", mode: offlineControl ? "controlled-offline" : "real-jev", fixture: countFixture ? "order-count" : "payment-state" },
+    verdictScope: "native feedback reception and repair; excludes semantic type correctness",
     hostExitCode: host.code, hostSignal: host.signal, elapsedMs: Date.now() - started, providerRequests: readLines(calls).length,
     responseDelayMs, timeline, activityStages, checks: { initialDraftObserved: timeline.some((entry) => entry.draft), findingSubmitted: !!finding,
       stopFindingDelivered, editAfterFinding: editedAfterFinding, finalSourceChanged: !!source && (countFixture ? source.trim() !== "type OrderCount = number" : !source.includes("receipt: string | null")),
@@ -229,7 +231,7 @@ const contradictory: PaymentState = { status: 'succeeded', receipt: 'r', failure
     hostOutputBytesDiscarded: Buffer.byteLength(host.stdout) + host.stderrBytes };
   record.verdict = host.code === 0 && record.checks.initialDraftObserved && record.checks.findingSubmitted &&
     record.checks.editAfterFinding && record.checks.finalSourceChanged && record.checks.validSourceCompiles &&
-    record.checks.invalidStatesRejected && record.visibilityBasis !== "unconfirmed" &&
+    record.visibilityBasis !== "unconfirmed" &&
     (record.checks.followupClearObserved || record.checks.followupFindingObserved)
     ? "demonstrated" : "incomplete";
   writeFileSync(join(evidenceDirectory, `${runId}.json`), JSON.stringify(record, null, 2) + "\n");

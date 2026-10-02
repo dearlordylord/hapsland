@@ -138,11 +138,10 @@ const inputs = (request: ClaudeInstallationRequest) => {
   let entrypoint = resolve(process.env.REVIEW_INSTALL_ENTRYPOINT ?? process.argv[1] ?? "dist/cli.js");
   try { entrypoint = realpathSync(entrypoint); } catch { /* readiness reports missing path */ }
   const command = `${quote(runtime)} ${quote(entrypoint)} --claude-hook --controlled-writer --composed-edit-hook ${MARKER}`;
-  const composed = (kind: "background" | "stop" | "prompt" | "before-edit") =>
+  const composed = (kind: "stop" | "prompt" | "before-edit") =>
     `${kind === "before-edit" ? "exec " : ""}${quote(runtime)} ${quote(entrypoint)} --composed-${kind}-hook --composed-host=claude-code ${COMPOSED_MARKER}`;
   const group = { matcher: "Edit|Write", hooks: [
     { type: "command", command, timeout: 5 },
-    { type: "command", command: composed("background"), timeout: 25, async: true },
   ] };
   const stopGroup = { hooks: [{ type: "command", command: composed("stop"), timeout: 5 }] };
   const preGroup = { matcher: "Edit|Write", hooks: [{ type: "command", command: composed("before-edit"), timeout: 5 }] };

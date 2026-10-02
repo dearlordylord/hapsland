@@ -73,13 +73,12 @@ import {
   PENDING_ADVICE_EXPIRY_MS,
   combinedClaudeOutput,
   combinedReviewOutput,
-  encodedComposedClaudeOutputBytes,
-  selectFittingComposedClaudeFindings,
+  encodedClaudeStopOutputBytes,
+  selectFittingClaudeStopFindings,
   selectFittingFindings,
   selectFittingCurrentFindingIndices,
   selectFittingClaudeFindings,
   type ClaudeOutputMode,
-  type ComposedClaudeSurface,
   type CollectionMode,
   type FindingSelectionFacts,
   type CanonicalFindingOffer,
@@ -888,8 +887,8 @@ export class ResidentServer {
     ownedTokens?: Set<string>,
   ): Promise<ResidentResponse> {
     const partition = adviceePartition(root, advicee);
-    const claudeSurface: ComposedClaudeSurface | undefined = composed && authority === undefined &&
-      advicee.host === "claude-code" ? mode === "turn-end" ? "stop" : "background" : undefined;
+    const claudeStop = composed && authority === undefined &&
+      advicee.host === "claude-code" && mode === "turn-end";
     const now = this.#now();
     if (signal?.aborted) return { status: "empty" };
     if (composed && mode !== "turn-end" && this.#composedDelivery.isDeciding(partition)) return { status: "empty" };
@@ -951,9 +950,9 @@ export class ResidentServer {
         ? () => this.#recordOperationalFailure(advice.observation, "output-limit")
         : undefined;
       return authority === undefined
-        ? claudeSurface === undefined
+        ? !claudeStop
           ? selectFittingFindings(retained, candidates, facts, onLimited, this.#collectionFindingOffer)
-          : selectFittingComposedClaudeFindings(retained, candidates, claudeSurface,
+          : selectFittingClaudeStopFindings(retained, candidates,
               facts, onLimited, this.#collectionFindingOffer)
         : selectFittingClaudeFindings(retained, candidates, authority.claudeFeedbackMode,
           facts, onLimited, this.#collectionFindingOffer);
@@ -1131,8 +1130,8 @@ export class ResidentServer {
           facts: this.#findingSelectionFacts(advice, partition, credentialGeneration, handoffNow, composed),
         })));
         const accepted = new Set(selectFittingCurrentFindingIndices(offers,
-          authority === undefined ? claudeSurface === undefined ? "codex" :
-            claudeSurface === "stop" ? "claude-stop" : "claude-background" : authority.claudeFeedbackMode,
+          authority === undefined ? !claudeStop ? "codex" :
+            "claude-stop" : authority.claudeFeedbackMode,
           (index) => this.#recordOperationalFailure(offers[index]!.advice.observation,
             "output-limit", handoffNow),
           this.#collectionFindingOffer));
@@ -3203,11 +3202,11 @@ export class ResidentServer {
         finding,
         facts: this.#findingSelectionFacts(advice, partition, generation, now, composed),
       })));
-      const claudeSurface = composed && authority === undefined && request.advicee.host === "claude-code"
-        ? request.mode === "turn-end" ? "stop" : "background" : undefined;
+      const claudeStop = composed && authority === undefined && request.advicee.host === "claude-code"
+        && request.mode === "turn-end";
       const accepted = new Set(selectFittingCurrentFindingIndices(offers,
-        authority === undefined ? claudeSurface === undefined ? "codex" :
-          claudeSurface === "stop" ? "claude-stop" : "claude-background" : authority.claudeFeedbackMode,
+        authority === undefined ? !claudeStop ? "codex" :
+          "claude-stop" : authority.claudeFeedbackMode,
         undefined, this.#collectionFindingOffer));
       let index = 0;
       for (const advice of handoff) {
@@ -3219,12 +3218,11 @@ export class ResidentServer {
     const findings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
     const notices = this.#noticesForToken(response.token);
     if (request.operation === "collect" && request.requestRoute === "shared" && request.composed === true &&
-        request.advicee.host === "claude-code") {
-      const surface = request.mode === "turn-end" ? "stop" : "background";
+        request.advicee.host === "claude-code" && request.mode === "turn-end") {
       const fit = this.#ledger.transition({ kind: "collectionFitCheck",
         items: findings.length + notices.length,
-        bytes: encodedComposedClaudeOutputBytes(findings,
-          notices.map((notice) => notice.value), surface) });
+        bytes: encodedClaudeStopOutputBytes(findings,
+          notices.map((notice) => notice.value)) });
       if (fit.rejection !== undefined || fit.commands.length !== 1) {
         throw new Error("canonical final response fit refused");
       }
