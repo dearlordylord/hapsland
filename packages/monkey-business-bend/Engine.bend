@@ -21,6 +21,7 @@ import ../session-bend/Session.bend as Session
 import ../agent-flow-bend/Canonical.bend as Canonical
 import ../agent-flow-bend/ImportGraph.bend as ImportGraph
 import ../agent-flow-bend/Ledger.bend as Ledger
+import ../agent-flow-bend/Dispatch.bend as Dispatch
 
 type Transition is Data:
   Transition{state: Types.State, result: Canonical.Step}
@@ -43,18 +44,29 @@ def captured_work_present(+operation: Nat, work: List<&2, Canonical.Work>) -> Bo
     case Canonical.Work{_, _, _, candidate, _, _, _} <> tail:
       Nat.is_eq(operation, candidate) || captured_work_present(operation, tail)
 
-def retained_captures(items: List<&2, CredentialFacts.Capture>, +work: List<&2, Canonical.Work>) -> List<&2, CredentialFacts.Capture>:
+def captured_request_present(+operation: Nat, requests: List<&2, Dispatch.Request>) -> Bool:
+  match requests:
+    case Nil{}: False{}
+    case Dispatch.Request{_, _, _, candidate, _, _, _} <> tail:
+      Nat.is_eq(operation, candidate) || captured_request_present(operation, tail)
+
+def captured_authority_present(+operation: Nat, canonical: Canonical.State) -> Bool:
+  match canonical:
+    case Canonical.State{_, _, work, _, _, _, Dispatch.State{_, _, _, _, requests}, _, _}:
+      captured_work_present(operation, work) || captured_request_present(operation, requests)
+
+def retained_captures(items: List<&2, CredentialFacts.Capture>, +canonical: Canonical.State) -> List<&2, CredentialFacts.Capture>:
   match items:
     case Nil{}: Nil{}
     case +item <> +tail:
       match item:
         case CredentialFacts.Capture{operation, _}:
-          Bool.pick(List<&2, CredentialFacts.Capture>, captured_work_present(operation, work), item <> retained_captures(tail, work), retained_captures(tail, work))
+          Bool.pick(List<&2, CredentialFacts.Capture>, captured_authority_present(operation, canonical), item <> retained_captures(tail, canonical), retained_captures(tail, canonical))
 
 def retained_credentials(credentials: CredentialFacts.State, canonical: Canonical.State) -> CredentialFacts.State:
-  match credentials canonical:
-    case CredentialFacts.State{available, generation, issued} Canonical.State{_, _, work, _, _, _, _, _, _}:
-      CredentialFacts.State{available, generation, retained_captures(issued, work)}
+  match credentials:
+    case CredentialFacts.State{available, generation, issued}:
+      CredentialFacts.State{available, generation, retained_captures(issued, canonical)}
 
 def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, +event: Canonical.CanonicalEvent) -> Transition:
   match result:

@@ -16551,7 +16551,29 @@ function $captured_work_present$(_operation_0, _work_0) {
   }
 }
 
-function $retained_captures$(_items_0, _work_0) {
+function $captured_request_present$(_operation_0, _requests_0) {
+  if (_requests_0.$ === "Nil") {
+    return false;
+  } else {
+    const _t_0 = _requests_0["head"];
+    const _candidate_0 = _t_0["operation"];
+    const _tail_0 = _requests_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_operation_0, _candidate_0));
+    const _x_1 = ($captured_request_present$(_operation_0, _tail_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $captured_authority_present$(_operation_0, _canonical_0) {
+  const _work_0 = _canonical_0["work"];
+  const _t_0 = _canonical_0["dispatch"];
+  const _requests_0 = _t_0["requests"];
+  const _x_0 = ($captured_work_present$(_operation_0, _work_0));
+  const _x_1 = ($captured_request_present$(_operation_0, _requests_0));
+  return (_x_0 || _x_1);
+}
+
+function $retained_captures$(_items_0, _canonical_0) {
   if (_items_0.$ === "Nil") {
     return {$: "Nil"};
   } else {
@@ -16559,7 +16581,7 @@ function $retained_captures$(_items_0, _work_0) {
     const _operation_0 = _t_0["operation"];
     const __0 = _t_0["generation"];
     const _tail_0 = _items_0["tail"];
-    return $Bool$pick$(($captured_work_present$(_operation_0, _work_0)), {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": __0}, "tail": ($retained_captures$(_tail_0, _work_0))}, ($retained_captures$(_tail_0, _work_0)));
+    return $Bool$pick$(($captured_authority_present$(_operation_0, _canonical_0)), {$: "Con", "head": {$: "CredentialFacts.Capture", "operation": _operation_0, "generation": __0}, "tail": ($retained_captures$(_tail_0, _canonical_0))}, ($retained_captures$(_tail_0, _canonical_0)));
   }
 }
 
@@ -16567,8 +16589,7 @@ function $retained_credentials$(_credentials_0, _canonical_0) {
   const _available_0 = _credentials_0["available"];
   const _generation_0 = _credentials_0["generation"];
   const _issued_0 = _credentials_0["issued"];
-  const _work_0 = _canonical_0["work"];
-  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": ($retained_captures$(_issued_0, _work_0))};
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0, "issued": ($retained_captures$(_issued_0, _canonical_0))};
 }
 
 function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0, _retiring_0, _event_0) {
@@ -17197,7 +17218,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:3df7286fa85d44b4ed9c8ea6eda16e7413d1d9048e7ee7228dcab1d06dd8e8bc";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:4727e0046d18986010a3ae63da8433d1da7d248e80189b464f8bfc7a9b9669b3";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:21b3255c6e5331343f54a58c07f91ea938d8f08f6dcf4e29830baeb4239152e9";
 
 const facts = value => {
