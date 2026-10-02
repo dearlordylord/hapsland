@@ -285,6 +285,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    roundId: Effect.fn("Capacity.roundId")((partition: string) => commitAllEffect((draft, records) => [roundId(draft, partition), records])),
     collectionTokenId: Effect.fn("Capacity.collectionTokenId")((...args: Arguments<typeof collectionTokenId>) => commitAllEffect((draft, records) => [collectionTokenId(draft, ...args), records])),
     discardUnusedPartition: Effect.fn("Capacity.discardUnusedPartition")((...args: Arguments<typeof discardUnusedPartition>) => commitAllEffect((draft, records) => [discardUnusedPartition(draft, ...args), records])),
     dispatchScope: Effect.fn("Capacity.dispatchScope")((...args: Arguments<typeof dispatchScope>) => commitAllEffect((draft, records) => [dispatchScope(draft, ...args), records])),

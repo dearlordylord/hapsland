@@ -8,7 +8,7 @@ const limits = { globalItems: 8, globalBytes: 1000, partitionItems: 8, partition
 describe("canonical work projection", () => {
   it("reads source stages from the shared ledger without advancing another state", () => {
     const ledger = makeCapacityLedger(limits);
-    const round = ledger.roundId("agent");
+    const round = Effect.runSync(ledger.roundId("agent"));
     const view = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), round);
     const source = ledger.admitObservation("agent");
     expect(view().admit(source)).toBe(source);
@@ -23,11 +23,11 @@ describe("canonical work projection", () => {
 
   it("keeps a retired round view separate from successor work on the same advicee", () => {
     const ledger = makeCapacityLedger(limits);
-    const oldRound = ledger.roundId("agent");
+    const oldRound = Effect.runSync(ledger.roundId("agent"));
     const oldView = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), oldRound);
     ledger.admitObservation("agent", oldRound);
     ledger.retireRound("agent", oldRound);
-    const nextRound = ledger.roundId("agent");
+    const nextRound = Effect.runSync(ledger.roundId("agent"));
     const nextView = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), nextRound);
     const source = ledger.admitObservation("agent", nextRound);
     expect(oldView().unfinished()).toBe(0);
@@ -45,7 +45,7 @@ describe("canonical work projection", () => {
 
   it("uses canonical review identities and pending finding counts", () => {
     const ledger = makeCapacityLedger(limits);
-    const round = ledger.roundId("agent");
+    const round = Effect.runSync(ledger.roundId("agent"));
     const view = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), round);
     const source = ledger.admitObservation("agent");
     ledger.observation("agent", source, "startObservation", round);
@@ -66,7 +66,7 @@ describe("canonical work projection", () => {
       unit.reservation, "finding", true)).toBe("retainFinding");
     expect(view().reviseFinding(unit.operation, 2, 20)).toBe(true);
     ledger.transition({ kind: "findingCountUpdated", partition: Effect.runSync(ledger.partitionId("agent")), lifetime: 1,
-      round: ledger.roundId("agent"), operation: unit.operation, count: 2 });
+      round: Effect.runSync(ledger.roundId("agent")), operation: unit.operation, count: 2 });
     expect(view().pendingFor(unit.operation)).toBe(2);
     expect(view().pendingFindings()).toBe(2);
     expect(view().unfinished()).toBe(1);

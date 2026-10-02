@@ -36,7 +36,7 @@ describe("resident logical capacity ledger", () => {
     })).toThrow("native registration failed");
     expect(ledger.canonicalProjection()).toEqual(before);
     expect(ledger.currentRoundId("agent")).toBeUndefined();
-    const round = ledger.roundId("agent");
+    const round = Effect.runSync(ledger.roundId("agent"));
     expect(round).toBe(1);
     expect(ledger.canonicalProjection().rounds).toEqual([{ partition, lifetime: 1, id: round, deciding: false, waiting: false, uncertain: false }]);
   });
@@ -102,7 +102,7 @@ describe("resident logical capacity ledger", () => {
     for (let index = 0; index < 200; index++) {
       const partition = `agent-${index}`;
       const group = Effect.runSync(ledger.partitionId(partition));
-      const round = ledger.roundId(partition);
+      const round = Effect.runSync(ledger.roundId(partition));
       expect(ledger.transition({ kind: "continuationConsume", group, round }).commands[0]?.kind)
         .toBe("continuationConsumed");
       ledger.retireRound(partition, round);
@@ -239,7 +239,7 @@ describe("resident logical capacity ledger", () => {
 
   it("fences late work callbacks after round retirement without opening a new round", () => {
     const ledger = makeCapacityLedger();
-    const round = ledger.roundId("agent");
+    const round = Effect.runSync(ledger.roundId("agent"));
     const observation = ledger.admitObservation("agent");
     expect(ledger.observation("agent", observation, "startObservation", round)).toBe(true);
     const preparation = ledger.beginObservedPreparation("agent", observation, 10, round);
@@ -254,13 +254,13 @@ describe("resident logical capacity ledger", () => {
 
   it("fences old callbacks and retirement after a successor round opens", () => {
     const ledger = makeCapacityLedger();
-    const oldRound = ledger.roundId("agent");
+    const oldRound = Effect.runSync(ledger.roundId("agent"));
     const oldSource = ledger.admitObservation("agent", oldRound);
     ledger.retireRound("agent", oldRound);
-    const nextRound = ledger.roundId("agent");
+    const nextRound = Effect.runSync(ledger.roundId("agent"));
     const source = ledger.admitObservation("agent", nextRound);
     ledger.retireRound("agent", oldRound);
-    expect(ledger.roundId("agent")).toBe(nextRound);
+    expect(Effect.runSync(ledger.roundId("agent"))).toBe(nextRound);
     expect(ledger.observation("agent", oldSource, "startObservation", oldRound)).toBe(false);
     expect(ledger.observation("agent", source, "startObservation", oldRound)).toBe(false);
     expect(ledger.beginObservedPreparation("agent", source, 10, oldRound)).toBeUndefined();
@@ -489,4 +489,17 @@ effectIt.effect("allocates one collection token identity on execution and prunes
   expect(owner.collectionTokenIdentityCount()).toBe(1);
   yield* prune;
   expect(owner.collectionTokenIdentityCount()).toBe(0);
+}));
+
+effectIt.effect("opens one canonical round for competing deferred identity requests", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const round = owner.roundId("agent");
+  expect(owner.currentRoundId("agent")).toBeUndefined();
+  expect(owner.partitionIdentityCount()).toBe(0);
+  const rounds = yield* Effect.forEach(Array.from({ length: 16 }), () => round, { concurrency: "unbounded" });
+  expect(new Set(rounds).size).toBe(1);
+  expect(rounds[0]).toBeGreaterThan(0);
+  expect(owner.currentRoundId("agent")).toBe(rounds[0]);
+  expect(owner.partitionIdentityCount()).toBe(1);
+  expect(yield* round).toBe(rounds[0]);
 }));

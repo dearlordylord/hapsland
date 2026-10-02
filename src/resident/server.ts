@@ -639,7 +639,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const round = generation === undefined ? undefined : yield* residentLedger.rounds.bind(group, generation,
       { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath }, randomUUID());
     const partition = group;
-    const canonicalRound = round?.canonicalRound ?? residentLedger.roundId(partition);
+    const canonicalRound = round?.canonicalRound ?? (yield* residentLedger.roundId(partition));
     const reservation = residentLedger.reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
     if (reservation === undefined) {
       yield* residentLedger.runtime.rejectCapacity();

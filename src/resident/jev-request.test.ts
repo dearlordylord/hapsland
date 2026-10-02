@@ -465,39 +465,39 @@ describe("canonical Jev request boundary", () => {
       credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
     const reviewUnit = (owner = partition) => {
       const observation = ledger.admitObservation(owner);
-      expect(ledger.observation(owner, observation, "startObservation", ledger.roundId(owner))).toBe(true);
-      const preparation = ledger.beginObservedPreparation(owner, observation, 100, ledger.roundId(owner));
+      expect(ledger.observation(owner, observation, "startObservation", Effect.runSync(ledger.roundId(owner)))).toBe(true);
+      const preparation = ledger.beginObservedPreparation(owner, observation, 100, Effect.runSync(ledger.roundId(owner)));
       if (preparation === undefined) throw new Error("preparation refused");
-      expect(ledger.observation(owner, observation, "completeObservation", ledger.roundId(owner))).toBe(true);
+      expect(ledger.observation(owner, observation, "completeObservation", Effect.runSync(ledger.roundId(owner)))).toBe(true);
       const unit = ledger.completePreparation(owner, preparation.operation,
-        preparation.reservation, [10], ledger.roundId(owner))[0];
+        preparation.reservation, [10], Effect.runSync(ledger.roundId(owner)))[0];
       if (unit === undefined) throw new Error("unit refused");
-      expect(ledger.startReview(owner, unit.operation, ledger.roundId(owner))).toBe(true);
+      expect(ledger.startReview(owner, unit.operation, Effect.runSync(ledger.roundId(owner)))).toBe(true);
       return unit;
     };
     const held = Array.from({ length: 8 }, () => {
       const unit = reviewUnit();
-      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, ledger.roundId(partition));
+      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, Effect.runSync(ledger.roundId(partition)));
       if (ready.status !== "issued") throw new Error("Jev permit refused before saturation");
       expect(ledger.startJevRequest(partition, unit.operation, ready.request)).toBe(true);
       return { unit, request: ready.request };
     });
     const interrupted = held[0]!;
     expect(ledger.interruptJevRequest(partition, interrupted.unit.operation, interrupted.request)).toBe(true);
-    ledger.retireRound(partition, ledger.roundId(partition));
+    ledger.retireRound(partition, Effect.runSync(ledger.roundId(partition)));
     const nextPartition = partition;
     const premature = reviewUnit(nextPartition);
-    expect(ledger.readyJevRequest(nextPartition, premature.operation, premature.reservation, facts, ledger.roundId(nextPartition)).status)
+    expect(ledger.readyJevRequest(nextPartition, premature.operation, premature.reservation, facts, Effect.runSync(ledger.roundId(nextPartition))).status)
       .toBe("unavailable");
     expect(ledger.settleJevRequest(partition, interrupted.unit.operation, interrupted.request,
       interrupted.unit.reservation, "interrupted", false)).not.toBe("stale");
     const replacement = reviewUnit(nextPartition);
-    const ready = ledger.readyJevRequest(nextPartition, replacement.operation, replacement.reservation, facts, ledger.roundId(nextPartition));
+    const ready = ledger.readyJevRequest(nextPartition, replacement.operation, replacement.reservation, facts, Effect.runSync(ledger.roundId(nextPartition)));
     expect(ready.status).toBe("issued");
     if (ready.status !== "issued") return;
     expect(ledger.startJevRequest(nextPartition, replacement.operation, ready.request)).toBe(true);
     const excess = reviewUnit(nextPartition);
-    expect(ledger.readyJevRequest(nextPartition, excess.operation, excess.reservation, facts, ledger.roundId(nextPartition)).status)
+    expect(ledger.readyJevRequest(nextPartition, excess.operation, excess.reservation, facts, Effect.runSync(ledger.roundId(nextPartition))).status)
       .toBe("unavailable");
   });
 
@@ -509,15 +509,15 @@ describe("canonical Jev request boundary", () => {
     const issue = (ledger: typeof first) => {
       const partition = "review-partition";
       const observation = ledger.admitObservation(partition);
-      expect(ledger.observation(partition, observation, "startObservation", ledger.roundId(partition))).toBe(true);
-      const preparation = ledger.beginObservedPreparation(partition, observation, 100, ledger.roundId(partition));
+      expect(ledger.observation(partition, observation, "startObservation", Effect.runSync(ledger.roundId(partition)))).toBe(true);
+      const preparation = ledger.beginObservedPreparation(partition, observation, 100, Effect.runSync(ledger.roundId(partition)));
       if (preparation === undefined) throw new Error("preparation refused");
-      expect(ledger.observation(partition, observation, "completeObservation", ledger.roundId(partition))).toBe(true);
+      expect(ledger.observation(partition, observation, "completeObservation", Effect.runSync(ledger.roundId(partition)))).toBe(true);
       const unit = ledger.completePreparation(partition, preparation.operation,
-        preparation.reservation, [10], ledger.roundId(partition))[0];
+        preparation.reservation, [10], Effect.runSync(ledger.roundId(partition)))[0];
       if (unit === undefined) throw new Error("unit refused");
-      expect(ledger.startReview(partition, unit.operation, ledger.roundId(partition))).toBe(true);
-      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, ledger.roundId(partition));
+      expect(ledger.startReview(partition, unit.operation, Effect.runSync(ledger.roundId(partition)))).toBe(true);
+      const ready = ledger.readyJevRequest(partition, unit.operation, unit.reservation, facts, Effect.runSync(ledger.roundId(partition)));
       if (ready.status !== "issued") throw new Error("request refused");
       expect(ledger.startJevRequest(partition, unit.operation, ready.request)).toBe(true);
       expect(ledger.settleJevRequest(partition, unit.operation, ready.request,
@@ -531,7 +531,7 @@ describe("canonical Jev request boundary", () => {
     expect(first.canonicalLifetime).toBe(1);
     expect(second.canonicalLifetime).toBe(1);
     expect(firstRound).toBe(otherLifetimeRound);
-    first.retireRound("review-partition", first.roundId("review-partition"));
+    first.retireRound("review-partition", Effect.runSync(first.roundId("review-partition")));
     expect(issue(first)).toBeGreaterThan(firstRound);
   });
 });

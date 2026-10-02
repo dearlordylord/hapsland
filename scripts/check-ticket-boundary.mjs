@@ -300,3 +300,8 @@ for (const operation of ["collectionTokenId", "discardUnusedPartition", "dispatc
     throw new Error(`root capacity ${operation} must compose as an atomic Effect`);
   }
 }
+
+if (!state.includes('roundId: Effect.fn("Capacity.roundId")') ||
+    !server.includes('yield* residentLedger.roundId(partition)')) {
+  throw new Error("root round allocation must compose as an atomic Effect");
+}
