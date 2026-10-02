@@ -1,297 +1,97 @@
-# monkey-business
+# Shared Monkey Business engine
 
-**Purpose:** Explain the supported source-free deterministic simulator API.
-**Status:** Maintained package guidance.
-**Authority:** Implementation guidance and validation scope; issues #176–#200 and #152–#157 own requirements, and accepted Hapsland contracts own product behavior.
-**Expected use:** Run headless experiments or consume checked frames in a dashboard.
-**Lifecycle:** Keep current with public API and tests; review whenever supported simulation boundaries or replay identity change.
+**Purpose:** Explain the shared source-free simulation core and its checks.
+**Status:** Maintained implementation guidance.
+**Authority:** Implementation and validation evidence; #176/#179/#180 and the accepted advice/handoff contract own behavior. Candidate laws remain proposals.
+**Expected use:** Extend the common scenario driver or validate its JavaScript/native boundary.
+**Lifecycle:** Update with state, driver, ABI or check changes; review when a dependent scenario replaces remaining host orchestration or a candidate law receives an owner decision.
 
-```ts
-import { createRun, replayRun } from './src/index.ts';
-const run = createRun({ seed: 42 });
-run.subscribe(frame => console.log(frame.time, frame.event.kind));
-run.advance({ maxEvents: 100 });
-const replay = replayRun(run.exportReplay());
-while (replay.step()) {}
-```
+`Engine.bend` composes the actual Canonical and bounded ImportGraph reducers.
+`Types.bend` owns their state and the scheduler. `Scheduler.bend` selects finite
+virtual-time work by exact Nat time and insertion order. The host keeps validated
+source-free facts keyed by those identities, rather than selecting queue order.
+`Preparation.bend` owns artifact graph state and ordinal validation.
+`Driver.bend` interprets the complete base edit/review/output path, generates
+valid Jev lifecycle facts, fences generated callbacks against current facts,
+revalidates findings after environment controls, and schedules certain output.
+Basic retained-finding expiry is already scheduled by this shared driver.
+`Postprocess.bend` generates parent-observation completion, physical dispatch
+release and collection-readiness facts from actual reducer state.
 
-Run `node --experimental-strip-types packages/monkey-business/src/example.ts` from the repository root. Run `npm run typecheck --prefix packages/monkey-business` and `npx vitest run packages/monkey-business/src` for package checks. The core has no UI dependency, credentials, private source, real transport or wall-clock timers.
+TypeScript supplies synthetic boundary facts and presents projections. The remaining host adapters belong to the dependent slices: expanded permit admission and
+round routing (#186), revision/reuse routing (#187–#189), notices (#190), failed or
+uncertain output and lease expiry (#191), response-authority/collector profiles
+(#192–#193), Stop and continuation orchestration (#194–#195), expanded finding/notice
+retention and exact collection-boundary profiles (#196), and quiet cleanup (#197). They still use this same state owner and
+scheduler. Continuous Session/outcome generation is integrated by #180. The optional game is not a dependency.
 
-The shared [Bend engine](../monkey-business-bend/README.md) owns Canonical and
-bounded ImportGraph state, virtual queue selection, and the complete base
-observation → preparation → Jev → authorized output driver. TypeScript validates
-source-free facts, projects checked output, retains observations, and adapts the
-unported scenario-specific Stop/reuse/collector orchestration. All variants use
-the same reducer owner and queue; the dashboard consumes this public Run API.
-The base driver invokes the production decisions directly, including final
-freshness/credential checks, suppression, lease reservation and submission
-authorization. Finding and clear paths use the ordinary replay endpoint.
+Run `node packages/monkey-business-bend/build.mjs` from the repository root to
+regenerate the compiler-emitted JavaScript module. `--check` rejects stale core,
+transitively imported production policy, declaration, build wrapper or module
+content. The wrapper follows the production immediate-Nat ABI: exact u48 Nats,
+u47 bytes and explicit U32 probability words. It threads original trusted states
+without copying the entire graph at each queue operation. No handwritten policy
+is substituted for compiler output. The source digest is the ordinary replay's
+logic identity; incompatible recorded identities are refused in format 1.
 
-Preparation generates a seeded source-free import tree for every synthetic
-review artifact. `fileTrees` configures candidate file count, branching, depth,
-path permissions and source/evidence byte ranges. The defaults generate 3–8
-files, up to 3 imports per file, depth up to 3 (root depth 0), 15% denied import
-targets, 512–4096 source bytes and 256–2048 evidence bytes per file. The root is
-always allowed. Requested file counts must fit branching/depth capacity;
-invalid or reversed ranges fail validation. The bounded generator permits
-pressure inputs above the checked graph caps, without changing those caps.
+`npx vitest run packages/monkey-business/src/complete-minimal-path.test.ts --maxWorkers=1`
+checks literal expectations for graph progress, finding/clear results, request
+lifecycle, final authorization refusals, exact clocks and ordinary replay. Its
+native fixture starts with original source-free edit/configuration/control
+facts, uses the shared driver/scheduler, and compares ordered intermediate events,
+commands, identities, relevant effect facts and graph accounting with the public
+Run API. These checks are deterministic, finite and offline. They establish
+selected execution-lane agreement, not correctness of the compiler or native
+agent integration.
 
-Each artifact has a dedicated stream derived from the run seed, preparation
-operation and artifact index. It does not consume Jev outcome draws. Native
-facts respond to compiled ImportGraph commands until checked completion or
-incompleteness; generated shape does not bypass permission or budget decisions.
-`Observation.event.kind === "preparationGraph"` identifies an inner step;
-`preparation` contains its checked graph before/after projections and command.
-Canonical before/after projections stay unchanged at those steps. Generated
-metadata names candidate files and depth; the graph displays reached files.
-All graph steps fit within the declared preparation interval, including
-zero-delay intervals. `{kind:"fileTrees",profile}` atomically changes future
-preparations; already started preparations retain their captured facts.
-Configuration and recorded controls reproduce exact replay, including endpoints
-inside preparation. Replay format stays at 1 and requires `preparationIdentity`
-covering the import reducer, composition and tree generator.
+`LAWS.bend` proposes four exact primitive statements for arbitrary Nat identities,
+times and finite queue tails: empty insertion retains the selected identity/time;
+a take consumes exactly the head and preserves its tail; NeverSent emits exactly
+one unstarted settlement; duration controls preserve the stream and emit no arrival.
+These statements do not prove full-resident safety,
+unbounded progress or host authenticity. Owner review determines acceptance.
 
-`fileTrees` also accepts optional `missingPercent`, `unreadablePercent`,
-`repeatedEdgePercent`, and `cyclicEdgePercent` (integer percentages), plus
-`deadlineStep` (0 disables; otherwise the fact index at which a synthetic native
-`deadlineReached` fact is supplied). Missing resolution and unreadable capture
-follow checked skip commands. Repeated and cyclic edges terminate without
-recapturing visited targets. Omitted fields preserve the original tree stream.
-`localWork` optionally supplies a nonnegative synthetic analysis-work count per
-capture. Source and tree ranges can supply exact inclusive caps and the adjacent byte;
-`maxImports` permits pressure profiles up to the adapter bound of 128 edges;
-checked Bend determines acceptance against its lower active cap. These are synthetic facts, not measured
-filesystem failures or elapsed native deadlines.
+Run `node packages/monkey-business-bend/verify-proposals.mjs` for literal
+falsification, the general proofs through the kernel verdict, and four false
+mutants. Every checker invocation has a five-second deadline. Each selected
+mutant must fail in its own law's proof section; a shared-helper failure is not
+accepted as law-specific sensitivity. The checker confirms these proposed
+statements; executable native/JavaScript checks independently validate their ABI.
 
-`unitBytes` remains a separate synthetic native result, not a derived or measured
-encoding size. The graph does not execute source parsing or rule selection.
-The accepted [per-rule evidence contract](../../docs/type-function-review-proposal.md#branch-contracts)
-allows incomplete graphs when omitted evidence is irrelevant to a selected rule.
-A terminal graph reason therefore cannot alone determine whether supplied review
-units exist. The simulator lacks rule capability/requirement facts and keeps this
-boundary separate; coupling would require those source-free facts and the existing
-checked rule decision, rather than treating every incomplete graph as unusable.
+The #180 workload owner stores each advicee's Session settings/stream and future
+PRE duration alongside the actual business state. Next/task/finish/advice,
+pace, bursts, sizes and suspension all execute in `Workload.bend`. Suspension
+invalidates recurring arrivals only; issued finite work, repairs and bursts keep
+their committed facts. `pre_issue` and `permit_actions` share the captured PRE
+clock, duration, original permit deadline and early/equality/late POST schedule
+between the public host and native scenarios. The scheduler owns absolute time;
+metadata-only task transitions can advance it without another business frame.
 
-`createRun()` initializes one scripted synthetic edit and finish attempt; the sampled review outcome determines whether advice exists. `inputs` accepts timed `{kind:"canonical",at,event}` facts, synthetic `edit` inputs with preparation reservation `bytes`, `unitBytes`, optional injected Jev `outcome`, and `finish` attempts. `session` enables one ongoing seeded workload; `sessions` enables independent generators feeding one resident state. The two configuration fields are mutually exclusive. Configuration `limits` uses the checked canonical ledger fields; `preparationDelay` and `jevDelay` set integer synthetic durations. These illustrative defaults are not empirical usage measurements.
+`Random.bend` owns u48 root-seed folding, named outcome/fault streams and outcome
+selection. Each workload has its own Session stream; preparation retains its
+captured per-artifact stream, independent of outcome draws. The named fault stream
+is reserved independently for the later injected-fault slice; this slice does not
+invent an injection API. Explicit outcomes consume no weighted-outcome draw.
+`Numeric.bend` implements the **sampler's positive finite binary64 domain**:
+weights in [0,100], totals up to 600, and normalized ratios in [0,1]. Host codecs
+encode raw IEEE64 words; total, normalization, cumulative rounding and draw
+comparison execute in Bend. Two base-2^28 limbs, bounded 55-bit division and
+nearest-even guard/round/sticky handling preserve fractional and subnormal
+weights. Infinity, NaN, signed arithmetic and general binary64 overflow are
+outside this helper's domain. It is not a general floating-point library.
 
-`step()` processes the next checked canonical or inner preparation transition, following workload metadata as necessary. `advance({untilTime,maxEvents})` advances the same ongoing run and returns `timeLimit`, `eventLimit` or `idle`, the number of canonical events and current virtual time. A bound never invents a finish attempt or closes a round. Time is one nonnegative integer clock; equal-time scheduled items follow insertion order, including effects added by transitions. Time bounds do not force the clock to a boundary with no activity. Driver playback speed and pauses do not enter the core.
+The duration-control candidate law universally quantifies over arbitrary
+partition, settings, Session stream, old optional duration and new Nat duration.
+It states that only the future duration field changes and no arrival is emitted;
+it does not prove permit admission or whole-driver progress. Like the earlier
+three candidates it remains unapproved. Its literal and profile-discarding mutant
+are checked by the existing bounded proposal runner.
 
-`applyControl` validates built-in controls at a step boundary and records their time, canonical-event boundary and a shared sequence across controls and explicitly scheduled inputs. Edit pace and arrival suspension replace obsolete recurring arrivals; finite bursts and delayed repairs survive changes. `jevProfile` changes new requests; requests already scheduled keep their due time. Replay stores initial config/inputs, seed, random algorithms, outcome-stream identity and ordered distribution, transitive shared-engine Bend source identity, explicit outcomes and the complete control timeline. `replayRun` reconstructs initial state and rejects incompatible identities; it does not hydrate opaque Bend state. Exported replay is input-oriented: advance the reconstructed run to the desired boundary.
-
-Every observation has ordered `event`, `commands`, checked canonical `before`/`after` projections, optional product `rejection`, integer `time`, `sequence` and separate synthetic `effects`. Frames are compatible with the UI-independent semantic flow projection. Bend owns product decisions. The environment follows preparation, unit, Jev and submission identities; identity mismatches and missing required preparation inputs fail explicitly. Ordinary capacity or product refusals remain observations. Canonical facts supplied directly must correctly describe the synthetic scenario; this interface is not a native-host security boundary.
-
-`subscribe` streams frames. Default retention keeps the last 1,000 observations; `retention:0` streams without history. Retention never changes outcomes or replay availability. Replay inputs and controls remain in memory for export and grow with explicitly scheduled inputs and controls. The internal workload generator retains its configuration rather than an unlimited generated trace. Consumers control their rendered history.
-
-Size facts distinguish source bytes, evidence-tree bytes, preparation reservation bytes, review-unit bytes and encoded output bytes. `sizePreparationInput` maps only reservation/review-unit facts into canonical inputs. `runSizeGraph` separately runs supplied source-free graph events through the checked import-graph adapter and emits identified `model:'import-graph'` frames with replayable events/limits. Its tests cover exact source boundary, tree overflow, exclusion without a read, and deadline incompleteness. Reservation experiments alone do not validate capture or import traversal. Encoded output facts require an explicit `collectionFitCheck`; generated submission does not model actual serialization size.
-
-Coverage excludes actual filesystem measurement, native capture, runtime hooks, real Jev, semantic repair quality and complete resident execution. The synthetic environment covers supported adapters, not empirical performance or a new proof of all product logic. Revisit native gaps at an explicitly bounded validation milestone or when an applicable deterministic adapter becomes available. The dashboard owns presentation and playback; graph observations remain separate from canonical frames.
-
-A multi-agent example is `createRun({seed:7,sessions:[{agent:"alpha",seed:11},{agent:"beta",seed:29}]})`.
-Each generator owns its variation, task/repair feedback and finish state, but all
-inputs enter one virtual clock, queue and compiled canonical state. `agentScopes`
-reports stable agent/partition/seed bindings; observations include `agent` and
-`partition` metadata while their `before`/`after` remain complete resident snapshots.
-Global capacity and the eight Jev request permits are shared across partitions.
-A full permit pool supplies checked `jevRequestUnavailable`; it does not start
-another request or automatically retry the denied unit. Later fresh work may
-acquire released permits. Preparation dispatch has a separate eight-job bound.
-
-Generator controls (`editPace`, `burst`, `sizes`, `suspendArrivals`) can carry
-`agent` to target one generator. Without a target they apply to all generators.
-Backend, environment, output and tree profiles are resident-wide and reject an
-agent target. The version-one replay records the entire resident's generators,
-controls, shared state history and endpoint. `projectAgent(snapshot, partition)`
-filters checked records for one diagram plane, preserving shared global totals
-and execution limits; it is a presentation lens, not a separate resident state.
-Records without an ownership binding are omitted from that local lens.
-
-An ongoing example is `createRun({seed:7,session:{editIntervalMs:100,variationMs:15,editsPerTask:5,taskPauseMs:500,adviceResponse:'delayedRepair',repairDelayMs:300}})`. Advance to a finite boundary, suspend arrivals with `{kind:'suspendArrivals',suspended:true}`, drain finite effects, then resume with `suspended:false`. Suspension emits no Stop and preserves started effects, bursts and repairs. Advice responses are `ignore`, `noAction`, `promptRepair` and `delayedRepair`; attempted repair carries a changed synthetic revision, and its Jev outcome remains a separate supplied fact. Session submissions use the background surface. `workload` metadata exposes revision and repair identity on preparation frames. Size changes affect newly generated arrivals; already scheduled arrival facts remain fixed.
-
-Replay exports `endpoint:{eventCount,now}` for consumers that want to restore the recorded viewing boundary. `restoreReplay(replay)` reconstructs that exact viewing boundary, including metadata-only clock advancement and controls applied there, without emitting another canonical transition. `replayRun` continues to reconstruct initial inputs for independent stepping. Bounded `advance` still stops at its declared canonical-event limit; it does not restore later metadata automatically.
-
-Synthetic edits use issued observation identities through admission, source start and observed preparation, so retained findings remain available to checked finish selection. A synthetic finish attempt owns a virtual `finishDeadline` (default 200). `waitForWork` suspends the task generator; relevant effect/output completion wakes the same attempt, while the deadline polls with its integer clock fact. `finishReady` supplies a checked finish reservation. Unsubmitted retained findings use Stop leases, submission authorization, acknowledged output and checked continuation consumption. Allowance ends Stop and retires the round before the next task. Continuation ends the output attempt and resumes the current round; later fresh work uses existing admission. A refusal grants no finish permission and remains an observed product outcome. Explicit canonical fixtures do not automatically acquire this synthetic finish driver.
-
-Retained advice has a finite synthetic expiry clock. `adviceLifetime` defaults to the resident's 600,000 ms pending-advice lifetime and must be positive; shorter values support bounded retention experiments. At expiry equality the environment supplies `collectionExpiryCheck`, then follows `collectionExpired` with `collectionRetireAdvice`, `submissionForget` and, when the finding still exists, `retireReview`. This removes checked ready advice, submission suppression records, pending work and its charge. Suspended arrivals drain these finite timers too, so draining can advance virtual time by ten minutes. Expiry is scheduled proactively; the native resident checks elapsed age during collection/lifecycle operations. Successful composed submission remains retained during its open round and is suppressed at Stop. When an allow-finish closes that round, the synthetic environment mirrors resident `#closeRound`: retire its advice, forget submission records, release pending findings, then retire the partition. Continuations retain the open round. Round closure cancels obsolete advice expiry timers. Retention is therefore distinct from undelivered backlog. The accepted [handoff contract](../../docs/advicing-target-contract.md#handoff-reoffer-and-continuation-count) permits revalidation/reoffer only for uncertain output; the current generated workload supplies certain output exclusively.
-
-The environment follows issued source admission, checked preparation and review dispatch through available slots, preparation completion/refusal, Jev request issuance/settlement, finding retention, final-candidate and suppression checks, submission reservation/authorization, finish waits/reservations/acknowledgement/continuation, and cancellation observations. Preparation and Jev requests each retain their checked eight-job execution limits. Failed/unavailable request admission ends that unit; a subsequent fresh synthetic edit can reattempt after credentials/capacity recover. There is no invented same-request retry policy. Synthetic `neverSent` settlements omit request start; `interrupted` settlements follow start and a recorded interruption. Every accepted settlement releases its request slot. Bounded recovery tests cover two failure/finding cycles for each failure outcome across three seeds: with ongoing edits, current/readable work, available credentials/capacity, finite request delay and certain output, findings must reach retained advice, ready collection and recorded submission within 2,000 virtual ms. Suspended sessions must drain request/dispatch slots, and exact replay must preserve the endpoint. These are executable bounded liveness checks under those assumptions, not a proof for arbitrary schedules. Decision/refusal/query commands remain observations; direct canonical fixtures can exercise other checked boundaries without acquiring native adapters automatically.
-
-`environment` configuration and `{kind:'environment',currentWork,credentialReady,credentialGeneration?,sourceReadable?}` controls supply synthetic native facts. `credentialReady:false` models temporary authorization unavailability: retained advice can pass revalidation after recovery. `credentialGeneration` defaults to 1; changing it invalidates advice from an earlier generation. `currentWork:false` supplies staleness at generated request settlement and final handoff. `sourceReadable:false` supplies changed/unreadable final source freshness and retires that candidate. These controls apply to generated boundary checks, including queued final checks; explicitly supplied canonical fixture facts remain unchanged. The source fact is an assumed outcome of native validation, not filesystem capture or semantic repair validation. Root/configuration validity and physical native transport availability remain assumed. Restoring environment facts schedules another checked eligibility attempt for retained advice; accepted suppression prevents repeated successful output.
-
-`outputProfile` configuration and `{kind:'outputProfile',outcome,delayMs,leaseMs}` controls set new output attempts. `outcome` is `certain`, `uncertain`, or `failed`; failure is a known preauthorization failure and releases its provisional reservation without a submission claim. Profile timing is captured at authorization. An attempt whose output delay reaches its lease lifetime supplies checked submission expiry and records uncertainty; the original delayed callback still occurs at its original due time as a checked expired acknowledgment, without authorizing a stale writer. Stop revalidates candidate source/credentials and checked suppression before reservation: uncertain background output can be reoffered once in its active round with the existing advice identity and no additional Jev call. Uncertain Stop output consumes that reoffer. Later fresh edits continue independently. These virtual host-output/lease facts model the accepted outcomes; no IPC writer, partial byte stream or model-visible acknowledgment is executed.
-
-`lifecycles` enables additional checked generated orchestration. `permits` takes
-`adviceeLimit`, `residentLimit`, optional `holdMs`, `lifetimeMs` and terminal
-`consume`, `release` or `expire`. Prospective invocations acquire a checked permit
-before synthetic admission; late invocations expire and release capacity, while
-consumption at the inclusive deadline remains valid. `collectors` takes
-`capacity` and optional `lifetimeMs`; generated background candidates acquire
-resident writer claims and follow checked release/expiry. Shared limits are
-resident-wide across agent partitions.
-
-`reuse` takes `entryLimit` and `byteLimit`. Explicit edits may supply one exact
-`evaluationInputs` identity per review unit plus `revisionSubject` and
-`revisionInput`. Configured sessions generate paired identical and changed
-source-free fixtures: prepared identities include unit bytes, fixed synthetic
-rules, fixture, seed and captured tree profile. Paired graph facts use the same
-fixture stream while retaining each emission's operation scope. Identities are
-partition-scoped. Checked pending joins and cache hits avoid additional Jev
-calls; findings still pass retention and collection. These generated routes
-supply `liveAdvice:false`; joining an already-live advice record through
-`reuseJoinAdvice` is not orchestrated by this fixture driver. Changed revisions fence
-late owner and reused-member outcomes. Checked cache evictions release the
-stored-result reservation through the common ledger. A fulfilled native result
-remains available to pending/claimed joiners until checked ownership release;
-unavailable owner results terminate joined work as well. Bounded two-agent timing
-tests cover suspension draining work/dispatch/requests/reuse claims and exact
-replay, including the default 1,000-frame retention. Explicit identity facts
-are assumed native observations, not a validation of real source equivalence.
-
-`quietWindowMs` enables inactivity ticks and checked round retirement after work
-and ownership settle. Quiet closure requires active checked admission; configure
-prospective permits alongside it for generated sessions. `encodedOutputBytes` supplies synthetic candidate bytes
-for checked fit before lease/reservation and submission. `cancellation` defaults
-to `lateCallback`, preserving the stale-result callback scenario; `suppressed`
-supplies a cancellation terminal disposition and releases dispatch/request
-ownership without executing the original result callback. Neither option executes
-native cancellation. Duplicate settled callbacks still fail the environment
-identity guard rather than establishing native duplicate-callback behavior.
-
-`resourceScenarios` selects source-free notice and output-fit fixtures in
-the same resident queue. `notices:true` supplies failure-count/cooldown/lease/registry-pressure
-facts and follows checked storage reservation/release; it does not turn every
-Jev failure into native notice output. `outputFit:true` exercises the exact
-10,240-byte and oversized 10,241-byte fit boundaries and supplies a default
-512-byte synthetic candidate for generated advice handoffs. `outputBytes`
-overrides that candidate size. These selectable
-fixtures and generated handoff tests reproduce ordered resident replay.
-
-Every frame captures known active capacity metadata and later event-supplied
-limits at that frame; absent limits remain unavailable. Per-advicee permit
-limits are captured by partition, alongside any explicitly configured uniform
-initial limit, so another partition's facts do not rewrite an earlier local cap. Actual capture/import
-resolution, native IPC/encoding, credentials/transport and resident shutdown
-remain outside this environment. Multiple generated agents share a checked
-resident state; this does not execute native multi-runtime IPC. Ordinary tests
-remain deterministic, offline and source-free. The simulator executes available
-checked adapters and bounded scenarios, not full native resident orchestration.
-
-
-`restoreReplay(replay, listener)` optionally streams every reconstructed frame to a consumer before restoring the endpoint, allowing dashboard summaries across histories larger than retained observations.
-
-Unspecified review outcomes use `DEFAULT_OUTCOME_WEIGHTS`: finding 50, clear 50, all failures zero. `RunConfig.outcomeWeights` and `{kind:'jevProfile',delayMs,outcomeWeights}` accept six finite weights in [0,100]; their positive total is normalized for sampling. An all-zero mix is rejected before a control is recorded. An explicit edit/config/control `outcome` remains a deterministic single-outcome override and is mutually exclusive with weights at that boundary. Already issued requests keep their sampled result and due time. The dedicated `jev-outcomes` xorshift32 stream uses the run seed and is independent of workload variation/rendering; only sampled request issuance consumes a draw, explicit overrides do not. Replay persists the initial weights, all later raw weights, algorithm, stream and stable outcome order. The distribution describes synthetic inputs, not empirical Jev rates.
-
-The ongoing session generator delegates workload transitions to the shared [Bend engine](../monkey-business-bend/README.md). Its TypeScript adapter keeps the public API and validation; the pre-port implementation survives only as an independent test fixture. The [session package](../session-bend/README.md) projects that same engine for standalone callers and retains the sole Session source for the remaining game consumers until #199. Regenerate the engine with `node packages/monkey-business-bend/build.mjs` and its projection manifest with `node packages/session-bend/build.mjs` after changing the source.
-
-
-Generated sessions may supply `editDurationMs` (0–1,000,000,000 virtual ms).
-This is the supplied PRE-to-POST report delay, independent of edit cadence and
-Jev delay; it does not serialize a native agent's tools or measure native work.
-`applyControl({ kind: "editDuration", agent, durationMs })` changes future edits
-for that agent; omitting `agent` targets all generators. The duration is captured
-at PRE issuance, so in-flight POST timing and the original permit deadline stay
-unchanged. Scripted edits retain the shared lifecycle `holdMs` default unless an
-explicit edit duration is supplied. Bend still decides admission/expiry; a
-late POST cannot revive an expired permit. Replay remains format 1 and records
-session duration and targeted controls. The dashboard starts at 1 ms and places
-this setting beside Edit interval; Start seeds all agents, Apply targets the
-selected agent.
-
-## Shared public scenario boundary and migration coverage
-
-`createRun(config)` creates one resident. Its `step`, bounded `advance`,
-`applyControl`, `schedule`, `observe`, `subscribe` and `exportReplay` operations
-are the shared headless boundary used by dashboard consumers. `observe()`
-returns one synchronous immutable snapshot of virtual time, event count,
-resident projection, retained frames, capacity metadata and advicee scopes.
-Earlier snapshots cannot change when the run advances; retention still limits
-only observations. `replayRun` reconstructs inputs; `restoreReplay` restores
-the recorded endpoint. These are the same version-one API and replay format,
-not a parallel migration facade. Advance options use the existing exact
-synchronous Effect Schema decoding convention and reject excess fields before
-any advancement. UI cameras, layout, playback speed and unapplied form drafts
-remain presentation-owned. The dashboard's retained history reads this boundary;
-there is no visual layout change in this prefactor.
-
-The numeric migration contract preserves actual Run support: nonnegative
-integer scripted absolute times, preparation/Jev delays, replay endpoint time,
-seed and advance bounds reach **2^48−1**. Canonical identities use the same
-immediate Nat domain; byte facts are bounded by **2^47−1**. JS numbers represent
-these integers exactly; the Bend lane uses **Nat**, never U32 for absolute
-clocks. Native probes construct values above U32 with Nat arithmetic because
-Bend's literal syntax accepts at most 2^32−1. Existing live/session profile
-ranges remain unchanged: timing profiles reach 1,000,000,000, session seeds
-reach 2^32−1, and standalone SessionGenerator host clocks accept safe JS
-integers; resident enqueue still requires u48. This does not grant support for
-an effect due beyond u48. Migration must check derived clock arithmetic before
-publishing an effect; it must not truncate clocks to fit a smaller machine
-word. Fractional, negative, nonfinite and adjacent out-of-domain values remain
-invalid. Outcome weights retain finite fractional values in [0,100].
-
-Initial coverage map for #178 (extend this table as complete slices land):
-
-| Boundary | Actual production decision core | Modeled host orchestration | Unexercised native boundary |
-| --- | --- | --- | --- |
-| Admission and ownership | Canonical admission/round/ledger/dispatch | Scripted edits, shared advicee partition bindings, execution slot facts | Runtime hook attribution, real resident IPC and edit execution |
-| Preparation | ImportGraph permission, visited targets, budgets and completion; Canonical preparation reservations | Seeded source-free tree, capture/resolve facts, synthetic byte inputs | Filesystem parsing, actual bytes, source/rule capability capture |
-| Jev | Canonical request permits, phase/identity fences, settlement and retention | Captured request due time/outcome; NeverSent omits start; interruption follows start | HTTP, real credentials, transport and paid reviewer |
-| Advice and output | Canonical collection, freshness, suppression, lease/submission and Stop decisions | Synthetic current-source/credential facts, certain/uncertain/failed callbacks, finite timers | Native writer/encoding, model-visible receipt and repair quality |
-| Reuse and lifetime | Canonical revision/reuse/cache, permits, collectors, notices, quiet and retirement | Source-free identity fixtures and selected lifecycle/resource scenario routes | Native identity verification, full resident shutdown; generated live-advice joining |
-| Workload and scheduling | Existing compiled Session core supplies task/edit/finish transitions | Shared Engine owns queue, clock, active workload state and outcome sampling; host retains input/observation codecs, selected later-slice adapters and replay IO | Original-input native fixtures exercise base edit/review/output and workload/PRE/repair slices; later scenario families extend coverage |
-
-`public-seam.test.ts` independently expects intermediate request completion,
-NeverSent start absence, finding retention, exact viewing boundaries and numeric
-refusal. Existing directed/recovery/shared-resident/environment tests remain
-representative contract regressions. `native-boundary.test.ts` compares the
-actual compiled Canonical through the public Run with native Bend for ordinary
-and duplicate round opening and wide-Nat identities, reproducing public cases
-through ordinary replay. It establishes that selected boundary only; full
-native/JS simulator trace agreement is extended with each later Bend slice.
-All checks are offline, finite and source-free. No native-runtime support,
-complete simulation proof or empirical Jev claim follows from these fixtures.
-
-Continuous tasks, task pause, edit interval/jitter, edits per task and advice
-responses are configurable at dashboard Start alongside existing per-advicee
-pace, burst, sizes and duration controls. Advice responses remain ignore,
-no-action, prompt repair and delayed repair; their original generated revision
-and timing behavior is shared with headless/native consumers. Playback controls
-never consume a business random draw. The #180 public/native conformance cases
-start from original configuration and ordered controls, including endpoint-only
-controls, captured PRE9/10/11 deadline cases, finite draining after suspension,
-wide clocks, equal-time advicees and raw fractional/subnormal outcome weights.
-Native claims remain limited to the fixtures actually exercised.
-
-
-Live `{kind:"jevRequest",target:{partition,lifetime,round,operation,request},outcome}`
-controls intervene on one actual issued request. The shared Bend owner checks the
-full identity and its recorded lifecycle: a started request cannot become never
-sent, and an interrupted request cannot settle as a different outcome. Applied
-interventions replace only that request's pending generated callbacks and keep its
-captured settlement time. Refused interventions leave the original callbacks
-intact. `run.interventions` and `run.observe().interventions` report the ordered
-application or refusal; ordinary version-one controls reproduce the reports in
-replay. `{kind:"credentials",action:"unavailable"|"restore"|"rotate"}` changes
-availability or authority at the same boundary. Bend captures credential generation
-once from actual accepted request issuance; temporary restoration preserves that
-generation, and rotation fences old findings. Explicit raw review fixtures without
-backend issuance retain their stated initial-generation assumption.
-
-`graphLimits` in initial configuration and `{kind:"graphLimits",limits}` expose
-only the seven production-configurable graph settings, using production validation.
-Each generated unit captures its limits alongside its tree facts; later controls
-cannot rewrite that unit's traversal. Bend `TreeFacts` generates source-free trees,
-and `PreparationScenario` responds to actual ImportGraph commands. Root and closure
-rule gates are evidence observations; they do not discard explicitly supplied
-`unitBytes`. The dashboard exposes these settings, omission/deadline/work profiles,
-active request targets, credential interventions and their recorded results.
-
-Opaque advicee registration and callback/command attribution now use the shared
-Bend registry and retained production identities. `Observation.commandScopes`
-aligns with its commands; an unattributed resident-wide command has no advicee
-scope. Display projection preserves global capacity and the fixed eight preparation
-and eight Jev execution slots. Internally duplicated retirement batches coalesce
-while their original effect remains pending; external facts still reach Canonical
-and refusals remain observable. Native/public directed fixtures and finite recovery
-experiments establish their stated synthetic paths, not native runtime support.
+The sole `session-bend/Session.bend` implementation remains an imported dependency
+until #199 transfers `DefenseAuto.bend` and the retained `RoadAuto.bend` consumer.
+`session.mjs` is now a thin projection bridge to this generated engine, not a
+second emitted scheduler. That transfer permits relocating the source and
+removing the remaining package; preserve these game imports until then.
 
 
 The #181/#183/#184 composition adds `Advicees` and `AdviceeScope` for opaque
