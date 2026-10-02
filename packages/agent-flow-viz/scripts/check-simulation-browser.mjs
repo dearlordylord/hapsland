@@ -664,6 +664,7 @@ try {
   };
   if (!(await panel.getByLabel("Generated files per artifact · minimum", { exact: true }).isVisible()))
     await panel.locator(".simulation-file-trees summary").click();
+  await panel.getByLabel("Work freshness", { exact: true }).selectOption("current");
   await waveFill("Credential generation", 1);
   await panel.getByLabel("Credential availability", { exact: true }).selectOption("ready");
   await panel.getByLabel("Source readability", { exact: true }).selectOption("readable");
