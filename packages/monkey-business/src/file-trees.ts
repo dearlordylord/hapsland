@@ -3,6 +3,11 @@ import { initialImportGraph, projectImportGraph, stepImportGraph, type ImportGra
 export type FileTreeProfile = Readonly<{
   minFiles: number; maxFiles: number; maxImports: number; maxDepth: number;
   deniedPercent: number;
+  missingPercent?: number; unreadablePercent?: number; repeatedEdgePercent?: number; cyclicEdgePercent?: number;
+  /** Fact index at which the native deadline fires; zero disables injection. */
+  deadlineStep?: number;
+  /** Synthetic local analysis work supplied with every capture. */
+  localWork?: number;
   minSourceBytes: number; maxSourceBytes: number;
   minTreeBytes: number; maxTreeBytes: number;
 }>;
@@ -11,18 +16,23 @@ export const DEFAULT_FILE_TREE_PROFILE: FileTreeProfile = Object.freeze({
   minSourceBytes: 512, maxSourceBytes: 4096, minTreeBytes: 256, maxTreeBytes: 2048,
 });
 export const FILE_TREE_LABELS: Readonly<Record<keyof FileTreeProfile, string>> = Object.freeze({
+  localWork: "Local analysis work per file",
+  missingPercent: "Missing import targets (%)", unreadablePercent: "Unreadable import targets (%)", repeatedEdgePercent: "Repeated import edges (%)", cyclicEdgePercent: "Cyclic import edges (%)", deadlineStep: "Deadline fact index",
   minFiles: "Minimum generated files", maxFiles: "Maximum generated files", maxImports: "Maximum imports per file", maxDepth: "Maximum import depth", deniedPercent: "Denied import targets (%)",
   minSourceBytes: "Minimum source bytes per file", maxSourceBytes: "Maximum source bytes per file", minTreeBytes: "Minimum evidence-tree bytes per file", maxTreeBytes: "Maximum evidence-tree bytes per file",
 });
 export const validateFileTreeProfile = (profile: FileTreeProfile): FileTreeProfile => {
   if (!profile || typeof profile !== "object") throw new TypeError("file tree profile must be an object");
   const bounds: Record<keyof FileTreeProfile, readonly [number, number]> = {
-    minFiles: [1, 64], maxFiles: [1, 64], maxImports: [0, 16], maxDepth: [0, 12], deniedPercent: [0, 100],
+    localWork: [0, 1048576],
+    missingPercent: [0, 100], unreadablePercent: [0, 100], repeatedEdgePercent: [0, 100], cyclicEdgePercent: [0, 100], deadlineStep: [0, 511],
+    minFiles: [1, 64], maxFiles: [1, 64], maxImports: [0, 128], maxDepth: [0, 12], deniedPercent: [0, 100],
     minSourceBytes: [1, 1048576], maxSourceBytes: [1, 1048576], minTreeBytes: [1, 1048576], maxTreeBytes: [1, 1048576],
   };
   for (const key of Object.keys(bounds) as (keyof FileTreeProfile)[]) {
     const [min, max] = bounds[key];
-    if (!Number.isSafeInteger(profile[key]) || profile[key] < min || profile[key] > max)
+    if (profile[key] === undefined && ["missingPercent", "unreadablePercent", "repeatedEdgePercent", "cyclicEdgePercent", "deadlineStep", "localWork"].includes(key)) continue;
+    if (!Number.isSafeInteger(profile[key]) || profile[key]! < min || profile[key]! > max)
       throw new RangeError(`${FILE_TREE_LABELS[key]} must be an integer in [${min}, ${max}]`);
   }
   for (const [min, max] of [["minFiles", "maxFiles"], ["minSourceBytes", "maxSourceBytes"], ["minTreeBytes", "maxTreeBytes"]] as const)
@@ -64,11 +74,20 @@ export const generateFileTree = (seed: number, operation: number, unit: number, 
     parent.edges.push(target); // Synthetic edge IDs resolve to the same numeric target.
     files.push(makeFile(target, parent.depth + 1));
   }
+  const missing = new Set<number>(), unreadable = new Set<number>();
+  const chance = (percent: number | undefined) => !!percent && draw() * 100 < percent;
+  for (const file of files) {
+    if (file.target !== 1 && chance(profile.missingPercent)) missing.add(file.target);
+    if (file.target !== 1 && chance(profile.unreadablePercent)) unreadable.add(file.target);
+    if (file.edges.length && file.edges.length < profile.maxImports && chance(profile.repeatedEdgePercent)) file.edges.push(file.edges[0]!);
+    if (file.edges.length < profile.maxImports && chance(profile.cyclicEdgePercent)) file.edges.push(1);
+  }
   // Native orchestration follows checked commands; only Bend decides traversal and budgets.
   let state = initialImportGraph();
   const facts: ImportGraphEvent[] = [];
-  let fact: ImportGraphEvent = { kind: "root", target: 1, sourceBytes: files[0]!.sourceBytes, treeBytes: files[0]!.treeBytes, edges: files[0]!.edges };
+  let fact: ImportGraphEvent = { kind: "root", target: 1, sourceBytes: files[0]!.sourceBytes, treeBytes: files[0]!.treeBytes, ...(profile.localWork === undefined ? {} : { localWork: profile.localWork }), edges: files[0]!.edges };
   while (facts.length < 512) {
+    if (profile.deadlineStep && facts.length === profile.deadlineStep) fact = { kind: "deadlineReached" };
     facts.push(fact);
     const result = stepImportGraph(state, fact);
     state = result.state;
@@ -77,11 +96,11 @@ export const generateFileTree = (seed: number, operation: number, unit: number, 
       files, facts, targetNames: Object.fromEntries(files.map(file => [file.target, file.name])), depth: Math.max(...files.map(file => file.depth)),
     };
     switch (result.command.kind) {
-      case "resolveEdge": fact = { kind: "resolved", target: result.command.edge, result: "found" }; break;
+      case "resolveEdge": fact = { kind: "resolved", target: result.command.edge, result: missing.has(result.command.edge) ? "missing" : "found" }; break;
       case "checkPath": fact = { kind: "pathChecked", allowed: files[result.command.target - 1]!.allowed }; break;
       case "readSource": {
         const file = files[result.command.target - 1]!;
-        fact = { kind: "captured", sourceBytes: file.sourceBytes, treeBytes: file.treeBytes, edges: file.edges }; break;
+        fact = unreadable.has(file.target) ? { kind: "captureFailed" } : { kind: "captured", sourceBytes: file.sourceBytes, treeBytes: file.treeBytes, ...(profile.localWork === undefined ? {} : { localWork: profile.localWork }), edges: file.edges }; break;
       }
       default: fact = { kind: "next" };
     }

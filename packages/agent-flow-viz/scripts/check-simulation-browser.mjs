@@ -76,8 +76,9 @@ try {
   );
   assert.match(
     await panel.locator(".simulation-history").innerText(),
-    /0\. 105 ms · agent-1 · openRound/,
+    /0\. 105 ms · agent-1 · issuePermit/,
   );
+  assert.match(await panel.locator(".simulation-details").innerText(), /permitIssued/);
   await panel.getByLabel("Burst count (1–100)", { exact: true }).fill("0");
   await panel.getByLabel("Burst count (1–100)", { exact: true }).press("Enter");
   await status("Burst count must be an integer");
@@ -118,9 +119,10 @@ try {
   );
   const assertCapacity = async () => {
     const projection = JSON.parse(await panel.locator(".simulation-details pre").textContent()).after;
-    assert.equal(await panel.locator(".shared-capacity-bar[role=img]").getAttribute("aria-label"), `Resident capacity ${projection.global.bytes} of ${projection.limits.globalBytes} bytes`);
+    assert.equal(await panel.locator('.shared-capacity-bar[role=img][aria-label$="bytes"]').getAttribute("aria-label"), `Resident capacity ${projection.global.bytes} of ${projection.limits.globalBytes} bytes`);
+    assert.equal(await panel.locator('.shared-capacity-bar[aria-label^="Resident ledger items"]').getAttribute("aria-label"), `Resident ledger items ${projection.global.items} of ${projection.limits.globalItems}`);
     assert.match(await panel.locator(".shared-capacity-total").innerText(), new RegExp(`${projection.global.items} / ${projection.limits.globalItems} items`));
-    assert.equal(await panel.locator(".shared-capacity-bar span").count(), projection.charges.length);
+    assert.equal(await panel.locator('.shared-capacity-bar[aria-label$="bytes"] span').count(), projection.charges.length);
   };
   await assertCapacity();
   await panel.getByRole("button", { name: "Previous event", exact: true }).click();
@@ -567,7 +569,9 @@ try {
   assert.match(await waitingSourceSquare.locator(".topology-facet").first().textContent(), /^50 pending source reads/);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Read & prepare source" }).locator(".topology-facet").count(), 2);
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Ready advice" }).locator(".topology-facet").count(), 3);
-  assert.equal(await panel.locator(".topology-node").filter({ hasText: "Host output" }).locator(".topology-facet").count(), 4);
+  const hostOutputSquare = panel.locator(".topology-node").filter({ hasText: "Host output" });
+  assert.equal(await hostOutputSquare.locator(".topology-facet").count(), 3);
+  assert.match(await hostOutputSquare.textContent(), /Output slot · select group in inspector/);
   const presentationModule = `/@fs${fileURLToPath(new URL("../src/production-flow-presentation.ts", import.meta.url))}`;
   const metrics = await page.evaluate(async ({ core, presentation }) => {
     const { createRun } = await import(core);

@@ -70,6 +70,44 @@ describe("seeded file-tree generation", () => {
     expect(large.some(frame => frame.command.kind === "skipImport" && frame.command.reason === "TreeLimit")).toBe(true);
   });
 
+  it("follows checked missing, unreadable, repeated, cyclic and deadline facts", () => {
+    const base = profile({ minFiles: 3, maxFiles: 3, deniedPercent: 0, minSourceBytes: 1, maxSourceBytes: 1, minTreeBytes: 1, maxTreeBytes: 1 });
+    for (const [change, reason] of [[{ missingPercent: 100 }, "Omitted"], [{ unreadablePercent: 100 }, "Omitted"], [{ deadlineStep: 1 }, "Deadline"]] as const) {
+      const checked = frames(7, { ...base, ...change });
+      expect(checked.at(-1)!.after).toMatchObject({ phase: "incomplete", reason });
+      expect(generateFileTree(7, 3, 0, { ...base, ...change })).toEqual(generateFileTree(7, 3, 0, { ...base, ...change }));
+      if ("missingPercent" in change) expect(checked.some(frame => frame.command.kind === "skipImport" && frame.command.reason === "Missing")).toBe(true);
+      if ("unreadablePercent" in change) expect(checked.some(frame => frame.command.kind === "skipImport" && frame.command.reason === "CaptureUnavailable")).toBe(true);
+      const run = createRun({ seed: 7, fileTrees: { ...base, ...change }, preparationDelay: 20, inputs: [{ kind: "edit", at: 0, bytes: 10, unitBytes: [5] }] });
+      run.advance();
+      expect(restoreReplay(run.exportReplay()).observations).toEqual(run.observations);
+    }
+    const graph = frames(7, { ...base, repeatedEdgePercent: 100, cyclicEdgePercent: 100 });
+    expect(graph.at(-1)!.after).toMatchObject({ phase: "complete", files: 3 });
+    expect(graph.filter(frame => frame.command.kind === "readSource")).toHaveLength(2);
+  });
+
+  it("accepts exact source and evidence budgets and rejects the next byte", () => {
+    const single = profile({ minFiles: 1, maxFiles: 1, minSourceBytes: 262144, maxSourceBytes: 262144, minTreeBytes: 20480, maxTreeBytes: 20480 });
+    expect(frames(7, single).at(-1)!.after).toMatchObject({ phase: "complete", readBytes: 262144, treeBytes: 20480 });
+    expect(frames(7, { ...single, minSourceBytes: 262145, maxSourceBytes: 262145 }).at(-1)!.after).toMatchObject({ phase: "incomplete", reason: "ReadLimit" });
+    expect(frames(7, { ...single, minTreeBytes: 20481, maxTreeBytes: 20481 }).at(-1)!.after).toMatchObject({ phase: "incomplete", reason: "TreeLimit" });
+    expect(frames(7, { ...single, localWork: 128 }).at(-1)!.after).toMatchObject({ phase: "complete", work: 128 });
+    expect(frames(7, { ...single, localWork: 129 }).at(-1)!.after).toMatchObject({ phase: "incomplete", reason: "WorkLimit" });
+    const many = profile({ minFiles: 8, maxFiles: 8, deniedPercent: 0, minSourceBytes: 1, maxSourceBytes: 1, minTreeBytes: 1, maxTreeBytes: 1, maxDepth: 1, maxImports: 16 });
+    expect(frames(7, many).at(-1)!.after).toMatchObject({ phase: "complete", files: 8 });
+    expect(frames(7, { ...many, minFiles: 9, maxFiles: 9 }).at(-1)!.after).toMatchObject({ phase: "incomplete", files: 8, reason: "Omitted" });
+    const depth = { ...many, minFiles: 5, maxFiles: 5, maxImports: 1, maxDepth: 4 };
+    expect(frames(7, depth).at(-1)!.after).toMatchObject({ phase: "complete", files: 5 });
+    expect(frames(7, { ...depth, minFiles: 6, maxFiles: 6, maxDepth: 5 }).at(-1)!.after).toMatchObject({ phase: "incomplete", reason: "DepthLimit" });
+    const edgeBoundary = frames(7, { ...many, minFiles: 17, maxFiles: 17 });
+    expect(edgeBoundary[0]!.after.phase).toBe("ready");
+    expect(frames(7, { ...many, minFiles: 18, maxFiles: 18, maxImports: 17 })[0]!.after).toMatchObject({ phase: "incomplete", reason: "WorkLimit" });
+    const read = { ...many, minFiles: 6, maxFiles: 6, minSourceBytes: 262144, maxSourceBytes: 262144 };
+    expect(frames(7, read).at(-1)!.after).toMatchObject({ phase: "complete", readBytes: 1572864 });
+    expect(frames(7, { ...read, minFiles: 7, maxFiles: 7 }).at(-1)!.after).toMatchObject({ phase: "incomplete", readBytes: 1572864, reason: "Omitted" });
+  });
+
   it("rejects impossible shapes, reversed ranges and invalid numeric settings", () => {
     expect(() => validateFileTreeProfile(profile({ maxImports: 1, maxDepth: 1 }))).toThrow("capacity");
     expect(() => validateFileTreeProfile(profile({ minFiles: 9 }))).toThrow("must not exceed");

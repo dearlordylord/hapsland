@@ -1,3 +1,5 @@
+import { resourceMeter, residentRetentionDetails } from "./resource-details";
+import type { CapacityMetadata } from "../../monkey-business/src/index";
 import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalProjection } from "../../../src/canonical/adapter";
 
@@ -6,7 +8,7 @@ export interface AgentScope { readonly agent: string; readonly partition: number
 
 /** All displayed utilization comes directly from the single checked resident snapshot. */
 export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection: CanonicalProjection,
-  agents: readonly AgentScope[], sequence: number, now: number) => {
+  agents: readonly AgentScope[], sequence: number, now: number, metadata?: CapacityMetadata, inspect?: (stage: "outcomes" | "collection") => Message) => {
   const label = (partition: number) => agents.find(agent => agent.partition === partition)?.agent ?? `partition ${partition}`;
   const color = (partition: number) => AGENT_COLORS[Math.max(0, agents.findIndex(agent => agent.partition === partition)) % AGENT_COLORS.length];
   const requests = projection.dispatch.requests;
@@ -16,6 +18,8 @@ export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection:
     h.div([h.Class("shared-resident-resources")], [
       h.div([h.Class("shared-ledger")], [
         h.h3([], ["Global review capacity"]),
+        h.div([h.Class("resource-meter")], [h.span([], ["Resident ledger items"]), h.strong([], [`${projection.global.items} / ${projection.limits.globalItems}`])]),
+        h.div([h.Class("shared-capacity-bar"), h.Role("img"), h.AriaLabel(`Resident ledger items ${projection.global.items} of ${projection.limits.globalItems}`)], projection.partitions.map(partition => h.span([h.Style({ width: `${partition.items / projection.limits.globalItems * 100}%`, background: color(partition.partition) }), h.Title(`${label(partition.partition)} · ${partition.items} items`)], []))),
         h.p([h.Class("shared-capacity-total")], [`${projection.global.items} / ${projection.limits.globalItems} items · ${projection.global.bytes} / ${projection.limits.globalBytes} bytes`]),
         h.div([h.Class("shared-capacity-bar"), h.Role("img"), h.AriaLabel(`Resident capacity ${projection.global.bytes} of ${projection.limits.globalBytes} bytes`)],
           projection.charges.map(charge => h.span([h.Style({ width: `${charge.bytes / projection.limits.globalBytes * 100}%`, background: color(charge.partition) }),
@@ -39,5 +43,11 @@ export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection:
         h.small([], ["A permit belongs to one agent request. The pool is shared; Jev responses are simulated."]),
       ]),
     ]),
+    h.div([h.Class("shared-secondary-resources")], [
+      resourceMeter(h, "Preparation workers · shared by all agents", projection.dispatch.running.filter(w => w.preparation).length, projection.executionLimits.preparation),
+      resourceMeter(h, "Edit permits · shared by all agents", projection.admissions.reduce((n,a) => n + a.permits.length, 0), metadata?.permits?.residentLimit),
+      resourceMeter(h, "Background collectors · shared by all agents", projection.collection.claims.length, metadata?.collectors?.capacity),
+    ]),
+    residentRetentionDetails(h, projection, metadata, inspect),
   ]);
 };

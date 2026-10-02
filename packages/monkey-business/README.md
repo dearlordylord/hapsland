@@ -41,8 +41,26 @@ Configuration and recorded controls reproduce exact replay, including endpoints
 inside preparation. Replay format stays at 1 and requires `preparationIdentity`
 covering the import reducer, composition and tree generator.
 
+`fileTrees` also accepts optional `missingPercent`, `unreadablePercent`,
+`repeatedEdgePercent`, and `cyclicEdgePercent` (integer percentages), plus
+`deadlineStep` (0 disables; otherwise the fact index at which a synthetic native
+`deadlineReached` fact is supplied). Missing resolution and unreadable capture
+follow checked skip commands. Repeated and cyclic edges terminate without
+recapturing visited targets. Omitted fields preserve the original tree stream.
+`localWork` optionally supplies a nonnegative synthetic analysis-work count per
+capture. Source and tree ranges can supply exact inclusive caps and the adjacent byte;
+`maxImports` permits pressure profiles up to the adapter bound of 128 edges;
+checked Bend determines acceptance against its lower active cap. These are synthetic facts, not measured
+filesystem failures or elapsed native deadlines.
+
 `unitBytes` remains a separate synthetic native result, not a derived or measured
 encoding size. The graph does not execute source parsing or rule selection.
+The accepted [per-rule evidence contract](../../docs/type-function-review-proposal.md#branch-contracts)
+allows incomplete graphs when omitted evidence is irrelevant to a selected rule.
+A terminal graph reason therefore cannot alone determine whether supplied review
+units exist. The simulator lacks rule capability/requirement facts and keeps this
+boundary separate; coupling would require those source-free facts and the existing
+checked rule decision, rather than treating every incomplete graph as unusable.
 
 `createRun()` initializes one scripted synthetic edit and finish attempt; the sampled review outcome determines whether advice exists. `inputs` accepts timed `{kind:"canonical",at,event}` facts, synthetic `edit` inputs with preparation reservation `bytes`, `unitBytes`, optional injected Jev `outcome`, and `finish` attempts. `session` enables one ongoing seeded workload; `sessions` enables independent generators feeding one resident state. The two configuration fields are mutually exclusive. Configuration `limits` uses the checked canonical ledger fields; `preparationDelay` and `jevDelay` set integer synthetic durations. These illustrative defaults are not empirical usage measurements.
 
@@ -91,7 +109,63 @@ The environment follows issued source admission, checked preparation and review 
 
 `outputProfile` configuration and `{kind:'outputProfile',outcome,delayMs,leaseMs}` controls set new output attempts. `outcome` is `certain`, `uncertain`, or `failed`; failure is a known preauthorization failure and releases its provisional reservation without a submission claim. Profile timing is captured at authorization. An attempt whose output delay reaches its lease lifetime supplies checked submission expiry and records uncertainty; the original delayed callback still occurs at its original due time as a checked expired acknowledgment, without authorizing a stale writer. Stop revalidates candidate source/credentials and checked suppression before reservation: uncertain background output can be reoffered once in its active round with the existing advice identity and no additional Jev call. Uncertain Stop output consumes that reoffer. Later fresh edits continue independently. These virtual host-output/lease facts model the accepted outcomes; no IPC writer, partial byte stream or model-visible acknowledgment is executed.
 
-Remaining generated-environment omissions are prospective pre-edit tool permits, native revision registry/supersession, ticket lifecycle, notices, reuse cache, background-waiter claims/expiry, and the quiet-round/inactivity driver. Direct canonical fixtures can exercise those checked decisions, but do not constitute full resident orchestration. Cancellation is observed without interrupting a scheduled synthetic request callback; the callback reaches the checked stale-result fence. Generated request callbacks are supplied once and their identity bindings removed after settlement; an explicitly injected duplicate settled request callback fails the environment identity guard, rather than validating native duplicate-callback handling. Actual capture/import traversal, native IPC/encoding, transport execution and resident shutdown remain outside this environment. Multiple generated agents share a checked resident state; this does not execute native multi-runtime IPC. Session revision numbers describe synthetic repairs, not a complete revision registry. Missing round-close advice cleanup, advice expiry and preparation/review dispatch were implementation gaps corrected here, not product policies.
+`lifecycles` enables additional checked generated orchestration. `permits` takes
+`adviceeLimit`, `residentLimit`, optional `holdMs`, `lifetimeMs` and terminal
+`consume`, `release` or `expire`. Prospective invocations acquire a checked permit
+before synthetic admission; late invocations expire and release capacity, while
+consumption at the inclusive deadline remains valid. `collectors` takes
+`capacity` and optional `lifetimeMs`; generated background candidates acquire
+resident writer claims and follow checked release/expiry. Shared limits are
+resident-wide across agent partitions.
+
+`reuse` takes `entryLimit` and `byteLimit`. Explicit edits may supply one exact
+`evaluationInputs` identity per review unit plus `revisionSubject` and
+`revisionInput`. Configured sessions generate paired identical and changed
+source-free fixtures: prepared identities include unit bytes, fixed synthetic
+rules, fixture, seed and captured tree profile. Paired graph facts use the same
+fixture stream while retaining each emission's operation scope. Identities are
+partition-scoped. Checked pending joins and cache hits avoid additional Jev
+calls; findings still pass retention and collection. These generated routes
+supply `liveAdvice:false`; joining an already-live advice record through
+`reuseJoinAdvice` is not orchestrated by this fixture driver. Changed revisions fence
+late owner and reused-member outcomes. Checked cache evictions release the
+stored-result reservation through the common ledger. A fulfilled native result
+remains available to pending/claimed joiners until checked ownership release;
+unavailable owner results terminate joined work as well. Bounded two-agent timing
+tests cover suspension draining work/dispatch/requests/reuse claims and exact
+replay, including the default 1,000-frame retention. Explicit identity facts
+are assumed native observations, not a validation of real source equivalence.
+
+`quietWindowMs` enables inactivity ticks and checked round retirement after work
+and ownership settle. Quiet closure requires active checked admission; configure
+prospective permits alongside it for generated sessions. `encodedOutputBytes` supplies synthetic candidate bytes
+for checked fit before lease/reservation and submission. `cancellation` defaults
+to `lateCallback`, preserving the stale-result callback scenario; `suppressed`
+supplies a cancellation terminal disposition and releases dispatch/request
+ownership without executing the original result callback. Neither option executes
+native cancellation. Duplicate settled callbacks still fail the environment
+identity guard rather than establishing native duplicate-callback behavior.
+
+`resourceScenarios` selects source-free ticket, notice and output-fit fixtures in
+the same resident queue. `tickets:true` exercises unit statuses, credential/expiry
+gates, retention eviction and forgetting; it does not make every background edit
+a ticket. `notices:true` supplies failure-count/cooldown/lease/registry-pressure
+facts and follows checked storage reservation/release; it does not turn every
+Jev failure into native notice output. `outputFit:true` exercises the exact
+10,240-byte and oversized 10,241-byte fit boundaries and supplies a default
+512-byte synthetic candidate for generated advice handoffs. `outputBytes`
+overrides that candidate size. These selectable
+fixtures and generated handoff tests reproduce ordered resident replay.
+
+Every frame captures known active capacity metadata and later event-supplied
+limits at that frame; absent limits remain unavailable. Per-advicee permit
+limits are captured by partition, alongside any explicitly configured uniform
+initial limit, so another partition's facts do not rewrite an earlier local cap. Actual capture/import
+resolution, native IPC/encoding, credentials/transport and resident shutdown
+remain outside this environment. Multiple generated agents share a checked
+resident state; this does not execute native multi-runtime IPC. Ordinary tests
+remain deterministic, offline and source-free. The simulator executes available
+checked adapters and bounded scenarios, not full native resident orchestration.
 
 
 `restoreReplay(replay, listener)` optionally streams every reconstructed frame to a consumer before restoring the endpoint, allowing dashboard summaries across histories larger than retained observations.

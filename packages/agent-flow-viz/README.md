@@ -39,9 +39,9 @@ reviews time to become advice before the safe deadline; cancellation is requeste
 work still unfinished when Hapsland makes its finish decision. The
 [accepted advicee contract](../../docs/advicing-target-contract.md) explains
 why this bounded wait exists. Rejected events leave every
-place and route inactive while showing the Bend reason. The three capacity
-figures come from the checked Bend projection: preparation running places,
-Jev request permits, and the review capacity ledger's item/byte limits.
+place and route inactive while showing the Bend reason. Capacity figures come from checked Bend records and limits, with frame-captured
+metadata for event-supplied ceilings. Preparation workers, Jev permits and the
+common ledger retain their actual shared scopes.
 It does not connect to a live agent runtime or Jev.
 
 The guided sequences come from the independently authored
@@ -276,7 +276,8 @@ The Monkey Business ensemble at `/#monkey-business` consumes the public
 `monkey-business` run API. It maps checked canonical frames onto the existing places and routes, with
 checked graph frames inside preparation. It adds controls without changing diagram layout or product policy.
 All Jev observations are simulated; no credentials or source files are needed.
-The simulation has one **Global review capacity** bar and per-agent item/byte totals,
+The simulation has one **Global review capacity** panel with item and byte bars
+and per-agent item/byte totals,
 using the same presentation as the canonical examples. It follows the displayed
 checked observation, including paused history inspection.
 
@@ -333,9 +334,10 @@ source reading and preparing counts separate; review dispatch appears with
 review work items. Queue counts describe mixed dispatch entries. Advice keeps
 pending-ready, retained-submitted and leased records separate. Host output shows
 finish slots and pending, submitted and uncertain advice phases. Counts for
-related facets can overlap and are not added into a total. Each fixed-size
-square shows all its facet rows, with at most one complete ID and `+N more` when
-that sample fits. Full IDs remain in tooltips and the live record inspector.
+related facets can overlap and are not added into a total. Selected fixed-size squares replace redundant facet-count rows with compact
+resource indicators. Full facet counts and IDs remain in tooltips and the live
+record inspector; a sampled row shows at most one complete ID and `+N more`
+when that sample fits.
 
 The initial outcome mix has Finding and No finding (clear) weights of `50`
 each; the other four weights are zero. Sliders use relative weights from `0` to
@@ -393,3 +395,57 @@ separately from design acceptance, native enforcement and release support. An
 owner review request should link `/#monkey-business`, name the exact control or
 replay case, describe the panel's added behavior and state the requested design
 decision. The multi-agent layer layout is a new visual change; positions within each reused SVG remain the same.
+
+## Capacity inspection in the shared resident
+
+The shared rail now has separate resident item and byte bars, the existing
+owner-labeled Jev slots, and resident preparation-worker, edit-permit and
+background-collector meters. Admission has partition item/byte/permit indicators;
+scheduling and Jev stages reference their shared pools. The resident resource
+disclosure and selected-stage inspector expose cache entries/bytes, retained
+tickets and notice keys, including notice storage charged to the common ledger.
+These resource details do not add processing stages or flow edges.
+
+Select an agent and a stage to inspect its local records beside the resident
+resources. Advice details mark individual records free or leased. Host output
+requires a delivery-group selection for occupied/free exclusivity. Round details
+require a current round and group for the four consumed/available continuation
+marks. Multiple groups never become an aggregate `N / 1` output-slot meter.
+Selections that no longer identify a current group or round show a selection
+prompt. All views read the same selected history frame; changing agents preserves
+shared totals. Local edit-permit ceilings follow the selected partition's
+recorded facts, with a known configured uniform ceiling as fallback. A later
+fact for another agent does not change that local denominator. Unknown
+historical limits show `limit not recorded` with no fill.
+
+Output details label the resident's **latest supplied simulated encoded bytes**,
+raw candidate size, item count and recorded checked fit decision. Oversized bytes
+remain visible. This is a supplied fact through the selected frame, not a measured
+native encoding or claim that its writer is still active. The optional resource
+exercise selector applies on **Start resident** and is persisted in replay;
+tickets/notices remain selectable source-free exercises. Fit and oversized
+scenarios also gate generated advice handoff through checked fit commands.
+
+Expanded preparation shows four per-artifact budget meters: files read, source
+bytes read, accepted tree bytes and traversal work. The existing tree bar explains
+accepted file contributions. Latest supplied source/outgoing-edge facts show
+numbers and limits separately from the checked terminal reason. Depth remains
+`Fact not recorded` because the current projection does not expose its checked
+value. Generated-file completion is separate from file-cap utilization, and an
+incomplete graph retains its reason even when accepted totals are below the cap.
+
+The simulator uses opt-in checked lifecycle profiles for prospective permits,
+collector claims, paired/changed evaluation fixtures and quiet closure. Its
+source-free identity and native-effect boundaries are documented in the
+[Monkey Business README](../monkey-business/README.md). No renderer calculates
+admission, rule eligibility, reuse or output authorization.
+
+Run `npm run test:resource-browser` for resource metadata/selection, optional
+fixtures, encoded candidate display, import detail and narrow-layout checks.
+`test:ensemble-browser` covers shared pools/history and agent selection;
+`test:simulation-browser` covers the single-agent controls and inspector.
+Keep individual suite outcomes in the working validation record: a passing
+resource or ensemble suite does not imply all guided-browser assertions pass.
+Astra rendered review of the 11 requested case groups found no remaining UX
+blocker after the reviewed corrections. That scoped visual review remains
+separate from executable driver checks and native enforcement.

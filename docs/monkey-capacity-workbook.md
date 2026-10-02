@@ -1,10 +1,10 @@
 # Shared-resident Monkey Business and capacity UX workbook
 
 **Purpose:** Coordinate generated Monkey Business coverage and Bend-governed capacity indicators in the system diagram.
-**Status:** Temporary working proposal; initial review recorded on 2026-10-01. No implementation scope is accepted by the tables alone.
-**Authority:** Advisory findings from the Monkey Business coverage subagent and Astra medium's capacity/UX review. This is not an accepted product contract. Existing specification owners and [dashboard rules](../packages/agent-flow-viz/DASHBOARD-RULES.md) retain decision authority.
-**Expected use:** Select work, record decisions and evidence, and coordinate implementation and UX reviews in the `feat/multi-agent-3d` worktree.
-**Lifecycle:** Delete at the **Shared-resident coverage and capacity UX milestone**: the scope selected from this workbook has been implemented or explicitly deferred, relevant checks are complete, and Astra medium has reviewed the resulting UX. Before deletion, consolidate simulator behavior and evidence boundaries into [Monkey Business README](../packages/monkey-business/README.md), diagram behavior into [visualization README](../packages/agent-flow-viz/README.md), and projection rules into [DASHBOARD-RULES.md](../packages/agent-flow-viz/DASHBOARD-RULES.md). Move accepted product-policy changes to their existing named specification owners; carry still-useful deferred proposals into the project backlog. Update inbound links and delete this workbook. Git history retains its chronology.
+**Status:** Temporary implementation tracking workbook. Astra rendered review and heterogeneous per-agent permit verification are complete. The corrected 142-test execution suite, browser reruns and build passed. The initial 2026-10-01 advisory inventory is preserved.
+**Authority:** Advisory inventory plus subsequent implementation and validation evidence, including Astra medium's capacity/UX review. This is not an accepted product contract. Existing specification owners and [dashboard rules](../packages/agent-flow-viz/DASHBOARD-RULES.md) retain decision authority.
+**Expected use:** Track authorized work, decisions and evidence, and coordinate implementation and UX reviews in the `feat/multi-agent-3d` worktree.
+**Lifecycle:** Retain this requested workbook beyond the final handoff. At the **Next planning-cycle workbook replacement milestone**, after the user has finished using this workbook and a named replacement artifact or accepted backlog contains its still-useful deferred proposals, **consolidate** current simulator behavior and evidence boundaries into [Monkey Business README](../packages/monkey-business/README.md), diagram behavior into [visualization README](../packages/agent-flow-viz/README.md), and projection rules into [DASHBOARD-RULES.md](../packages/agent-flow-viz/DASHBOARD-RULES.md). Move any accepted product-policy decisions to their named specification owners, update inbound links to the replacement/backlog or maintained owners, and **delete** this workbook. Receipt of the final answer alone does not trigger retirement. Git history retains its chronology.
 
 ## Working agreement
 
@@ -97,6 +97,163 @@ Evidence: [square facets](../packages/agent-flow-viz/src/production-flow-present
 | 2026-10-01 | Coverage analysis and Astra medium's review of the existing diagram completed. No visual diff was created. | Advisory inventory |
 | 2026-10-01 | User requested this temporary workbook and required Astra medium advice/review for UX work. | Working agreement |
 | 2026-10-01 | Astra medium reviewed this workbook for capacity grouping and UX advice; clarified simulated byte facts and conditional contract questions. No diagram changed. | Advisory review complete |
-| Pending | Select implementation scope; check the existing preparation contract and record any unresolved modeling choice separately. | Not started |
+| 2026-10-01 | User requested implementation of the suggested parts, with Sol 6.1 implementing, Astra medium advising/reviewing UX, and the parent coordinating. All suggested parts are in scope; exclusions and unresolved contracts remain explicit. | Implementation authorized |
+| 2026-10-01 | Sol 6.1 owns generated resident lifecycles; a separate Sol 6.1 worker owns import traversal scenarios and contract inspection; another owns optional resource scenarios and capacity UX. | Ownership declaration at assignment; outcomes below |
+| 2026-10-01 | Astra medium's implementation advice: keep ledger item/byte meters and Jev slots in the shared rail; add compact resident preparation/permit/collector meters. Replace Admission charge-count lines with local meters without enlarging the squares; retain charge details in inspection. Detailed budgets and retained resources belong in the screen-facing selected-stage inspector. | Before-implementation advice; subsequent review below |
 
 Append accepted scope, subsequent Astra advice/review, concrete visual cases, checks and limitations here as work proceeds. Keep initial recommendations distinguishable from later outcomes.
+
+## Post-implementation import record (2026-10-01)
+
+| Initial inventory item | Outcome | Evidence and limitation |
+|---|---|---|
+| Import traversal | Implemented | Optional missing/unreadable/repeated/cyclic percentage facts and deterministic deadline fact index follow compiled Bend commands. Focused file-tree tests cover distinct skip reasons, no recapture of visited targets, exact source/tree/read/files/outgoing/depth/work caps and adjacent-boundary rejection, deterministic generation and exact resident replay. No native source or deadline measurement. |
+| Preparation result linkage | Deferred | The accepted [branch evidence contract](type-function-review-proposal.md#branch-contracts) permits `incomplete-irrelevant` review inputs; omitted required evidence prevents only the affected rule. Terminal graph incompleteness does not imply an unusable artifact. The synthetic generator lacks source-free rule capability/requirement facts, so supplied `unitBytes` stays independent. A future capability adapter can implement the accepted policy without a new owner decision; no new mapping is accepted here. |
+| Native sockets/IPC, source capture, encoding, credentials/transport, live Jev, runtime hooks and native shutdown | Not implemented; outside scope | Synthetic facts do not execute or empirically validate these native effects. |
+
+Verification: `npx vitest run packages/monkey-business/src/file-trees.test.ts` (7 tests), including 100 seeded property cases; `npm run typecheck --prefix packages/monkey-business`. This evidence covers import changes only; the remaining generated and capacity rows are recorded separately after their own checks and rendered review.
+
+## Scope tracking against the initial inventory
+
+The initial tables remain declarations made before execution. The rows below
+record the current implementation and scoped verification, distinguish synthetic
+fixtures from native execution, and name the explicit deferred boundaries.
+
+| Generated inventory row | Current outcome | Why / required remaining evidence |
+|---|---|---|
+| Pre-edit permits | Implemented; focused checks passed | Generated edit/session adapter follows issue/consume/release/expiry; shared saturation/recovery, late-expiry recovery and inclusive deadline tests pass. Duplicate-tool and local/resident edge fixtures also pass; those direct fixtures are distinguished from generated orchestration. |
+| Background collector claims | Implemented; focused checks passed | Generated candidates follow claim/release/expiry and exact resident replay. Wrong-token/expiry-recovery checks additionally use direct canonical fixtures; they do not imply native writer execution. |
+| Revision supersession and evaluation reuse/cache | Implemented; late-join/unavailable drainage and ledger regressions passed | Generated sessions produce paired/changed captured fixtures; tests show one request for identical pending/cache work, finding retention, changed-revision fences and eviction releasing stored-result charges. Source-free evaluation identity remains assumed native fact. |
+| Quiet-round/inactivity closure | Implemented; settled/reset/ownership checks passed | Generated quiet ticks follow active permit admission. A timed external collector claim blocks closure, activity resets its timer, and expiry restarts the quiet window; generated output leases/retained advice block closure until settlement and retirement. Exact resident replay passed. |
+| Ticket lifecycle | Implemented selectable fixture; resident replay passed | Optional ticket facts execute in the resident Run; tests assert oldest retention eviction, unit statuses, invalid credentials and forgetting. This is not an automatic ticket per background edit. |
+| Operational notices | Implemented selectable failure fixture; resident replay passed | Tests establish count suppression/merge, leased preservation, bounded keys, storage release and recovery; Run integrates ordered facts in one ledger. Not every generated Jev failure creates a native notice. |
+| Encoded output-size checks | Implemented; boundary and generated handoff/replay tests passed | 10,240-byte synthetic candidates authorize; 10,241-byte candidates do not begin/authorize output. No native serialization measurement. |
+| Import traversal | Implemented; focused tests passed | Missing/unreadable/repeated/cyclic/deadline and inclusive budget boundaries described above. |
+| Preparation result linkage | Deferred | Accepted per-rule capabilities remain absent from synthetic artifacts; incomplete graph is not automatically unusable. |
+| Cancellation | Implemented selectable terminal outcome; focused checks passed | Default late callback preserved; suppressed cancellation supplies checked terminal disposition and drains request/dispatch ownership without original callback. Native interruption/duplicate callback behavior remains outside scope. |
+| Native effects / shutdown | Not implemented; excluded | Source-free execution cannot validate native capture, transport, IPC, encoding or shutdown. |
+
+| Capacity inventory row | Current outcome | Concrete scope / remaining evidence |
+|---|---|---|
+| Per-partition ledger items/bytes | Implemented; browser suite passed; Astra rendered review complete | Local occupancy uses selected partition and active checked denominator. |
+| Edit permit per-advicee/resident ceilings | Implemented; browser suite and Astra review complete | Partition-specific 1/2 versus 1/3 ceilings persist separately; historical unknowns do not borrow another agent or future facts. Shared resident ceiling remains independent. |
+| Preparation workers | Implemented; browser saturation/recovery checked; Astra rendered review complete | Parent browser run observed shared 8/8 across agents, selection preserved shared totals, suspension drained to 0/8 and replay restored exact rendering. Queue length remains separate. |
+| Jev request permits | Implemented; browser saturation/recovery checked; Astra rendered review complete | Parent browser run observed one shared 8/8 pool across agents, agent selection preserved totals, suspension drained to 0/8 and replay restored rendering. |
+| Background collectors | Implemented; browser suite passed; Astra rendered review complete | Resident meter and group ownership remain separate. |
+| Advice lease exclusivity | Implemented; browser suite passed; Astra rendered review complete | Per-record free/leased state, no invented denominator. |
+| Stop output exclusivity | Implemented; browser suite passed; Astra rendered review complete | Group occupancy, never aggregate slots divided by one. |
+| Continuation budget | Implemented; browser suite passed; Astra rendered review complete | Selected round's consumed/remaining budget. |
+| Encoded response bound | Implemented; browser suite passed; Astra rendered review complete | Candidate bytes carry synthetic provenance and raw oversized number. |
+| Successful-evaluation cache | Implemented; browser suite passed; Astra rendered review complete | Resident entry/byte meters use checked cached records and active limits; generated cache join/eviction evidence passed. |
+| Ticket retention | Implemented; browser suite passed; Astra rendered review complete | Registry ticket count differs from ticket-unit status count. |
+| Operational-notice keys | Implemented; browser suite passed; Astra rendered review complete | Key occupancy differs from shared ledger byte charges. |
+| Resident item/byte ledger | Implemented; browser suite passed; Astra rendered review complete | One rail owns shared totals; per-agent contributions do not create pools. |
+| Import-graph budgets | Implemented; scoped Astra rendered review complete | Four per-artifact upright meters use checked files/read/tree/work totals and limits. Latest supplied source/edge facts display raw value/limit; missing facts and unrecorded depth remain explicitly unknown. Existing tree view retains contribution ownership, and incomplete reason remains visible below-cap. Astra provided before-advice and reviewed before/after unknown/tree-limit plus expanded desktop/narrow source/read/work/missing/unreadable/cyclic states with no blocking finding. |
+
+| Initial constraint row | Execution disposition |
+|---|---|
+| One resident / independent generators | Preserved architecture; shared 8/8 contention/recovery and exact replay checks passed. |
+| No independent stage maxima | Preserved constraint in implementation; Astra rendered stage review complete. |
+| Six purposes share one ledger | Preserved constraint; reservations still enter checked canonical ledger. |
+| Transient effective maxima | Known initial/event-supplied frame metadata implemented; browser replay and unknown-limit checks passed. Astra rendered review complete. |
+| Import progress vs capacity | Implemented distinction: four bars use checked caps; generated file count is never their denominator. |
+| Response and per-step import facts | Implemented source/edge fact visibility and unrecorded depth; generated output-fit/replay evidence passed; Astra rendered review complete. |
+| Claims/leases/output scopes | Lifecycle ownership fixtures and generated output checks passed; selected group/round UI implemented, Astra rendered review complete. |
+| Compiled Bend authority | Import generator and meters consume checked commands/projections; independent generated-driver read-only review completed for covered scenarios; cache-clear/concurrent cache-commit refusals release reservations; partition-scoped permit metadata passed exact replay and rendered verification. |
+| Deterministic offline validation | Corrected 142-test suite and package typecheck passed, including 12 two-agent timing/drainage cases; resource/ensemble/simulation browser reruns and final build passed. No empirical-native claim. |
+| Astra UX process | All capacity changes received Astra advice and final rendered review; no UX blocker remains in the reviewed cases. |
+| Implementation order / clutter | Scope authorized by user in execution record; placement follows Astra advice and final rendered review is complete. |
+| Preparation artifact contract | Deferred coupling for absent rule-capability facts under accepted per-rule contract; no owner approval requested for retaining current semantics. |
+| Reuse identity / ticket applicability | Preserve partition-scoped exact evaluation identity and selectable ticket fixtures; focused integration tests and independent implementation audit passed. |
+
+## Current verification and explicit boundaries
+
+The corrected execution suite passed **142 tests across 14 files**, plus package
+typecheck, including **40 focused lifecycle tests**, **six optional-resource tests**
+and **seven import tests** (the latter include 100 seeded property cases).
+Prospective permits issue without opening a round; checked consumption atomically
+opens/joins it. Revision registration and quiet activity follow accepted observation
+admission, so an unused permit or refused changed revision cannot alter accepted
+work. Tests cover partition-scoped reuse, changed captured tree profiles,
+member/owner stale fences, finding reuse and eviction/clear/refused concurrent
+commit releasing their ledger reservations. These are source-free deterministic
+checks, not native runtime validation.
+
+The fulfilled native result remains available to late pending/claimed joiners
+until checked ownership release; a fresh checked owner clears its prior result.
+Unavailable owner outcomes also terminate joined work. Twelve bounded two-agent
+timing cases now drain work, request/dispatch ownership and reuse claims after
+arrivals are suspended, with exact shared replay. The default 1,000-frame retention
+case also reproduces its endpoint. Canonical round IDs are taken from each
+partition's checked resident round after permit consumption, rather than treating
+the per-advicee permit generation as that global ID; both agents are admitted
+without `StaleRound`. No product policy was changed by these command-following corrections.
+
+Import checks cover exact source/tree/read/files/outgoing/depth/work boundaries,
+missing/unreadable targets, repeated/cyclic edges and deadline facts. Optional
+resources cover ticket/notice retention and fitting/oversized generated handoff,
+including exact shared replay. Independent read-only review inspected compiled
+command ownership, reservation releases, quiet ownership and replay metadata;
+identified issues were corrected and retested by their implementation owners.
+Per-advicee permit ceilings now retain partition identity: agent 1 at 1/2 and
+agent 2 at 1/3 do not borrow each other's latest fact. Before a partition's fact,
+its denominator remains unknown unless an explicitly configured uniform initial
+limit exists. Historical inspection never borrows future facts. Backend tests,
+resource browser checks and Astra's targeted follow-up review passed this case.
+
+| Browser evidence | Result and scope |
+|---|---|
+| Ensemble suite | Passed; shared history/replay, targeted controls, agent selection and narrow layout. |
+| Parent pool exercise | Passed; three-agent preparation/Jev 8/8 saturation, selecting another agent preserving shared totals, suspension draining to 0/8 and exact replay rendering. |
+| Expanded resource suite | Passed; local 2/2 refusal while global 2/4, global 4/4 refusal, cache eviction and ledger release, retained-resource retirement, free/leased advice, selected-group Stop occupancy, distinct 1/4 and 2/4 round budgets, oversized checked candidate, optional selector, import details, and heterogeneous per-agent permit limits/history. Its explicit rendered ledger-zero assertion passed. |
+| Import screenshot exercise | Passed in an isolated HMR-disabled renderer: exported Run replay at graph terminal; source/read/work limits, missing/unreadable targets and cyclic/repeated edges at 1512/390 px. Numeric/outcome assertions and no 390 px page overflow passed. |
+| Simulation suite | Passed after Host output facet replacement and prospective first-event assertions were updated to the supported behavior. |
+| Usability suite | Passed; keyboard/pointer interaction and responsive layout. |
+| Broader guided browser suite | Failure reproduced on exact baseline; this unrelated suite is not reported as passing. |
+
+Before/after import captures compare original HEAD import components with current
+components in the same current page shell: `/tmp/import-budgets-before-unknown.png`,
+`/tmp/import-budgets-after-unknown.png`,
+`/tmp/import-budgets-before-tree-limit.png` and
+`/tmp/import-budgets-after-tree-limit.png`. Current terminal pairs use
+`/tmp/import-{source-over-limit,read-limit,work-over-limit,missing,unreadable,cyclic}-{1512,390}.png`.
+Raw supplied oversized facts remain separate from accepted totals and checked
+reasons. Rejected roots say `Root was not accepted · ReadLimit/WorkLimit`.
+
+Astra completed review across the eleven requested case groups and all fourteen
+capacity rows, then confirmed the targeted heterogeneous permit-limit case; no UX
+blocker remains in that reviewed scope. The review covers shared/asymmetric
+ownership, pool saturation/recovery, local/global refusals, leases/group slots,
+round budgets, retained-resource occupancy/release, encoded fit, import boundaries,
+history/replay and desktop/narrow interaction. Corrected findings include inspector
+clipping, overlapping output rows, missing running-review counts, ownership colors,
+stale group/round selections, supplied-fact wording, terminal empty-root captions
+and cache-clear ledger release. The released capture visibly shows zero resident
+items/bytes with empty cache, tickets and notices. This scoped UX review is separate
+from the checked execution tests and does not establish native effects or product
+design acceptance.
+
+Generated reuse covers pending/claimed joins and successful clear/finding cache
+hits under partition-scoped evaluation identity. The driver supplies
+`liveAdvice:false`; `reuseJoinAdvice` for already-live advice is not orchestrated.
+Graph-to-unit/per-rule capability linkage remains deferred under the accepted
+contract: incomplete traversal does not alone imply an unusable artifact. Native
+capture, serialization, transport, IPC, credentials/live Jev, runtime hooks and
+shutdown remain excluded. No native enforcement or release/platform claim is made.
+
+Final evidence: `/tmp/hapsland-capacity-final-monkey-tests.log` records 142 passing
+tests. The package typecheck passed. Resource, ensemble and simulation browser
+reruns passed against the corrected source, with logs at
+`/tmp/hapsland-final-resource-browser.log`,
+`/tmp/hapsland-final-ensemble-browser.log` and
+`/tmp/hapsland-final-simulation-browser.log`. The final build passed TypeScript,
+projection, the 59-step showcase/rejection checks, inventory/replay/import/native-
+timing checks and Vite (`/tmp/hapsland-capacity-final-build.log`). Usability passed
+(`/tmp/hapsland-capacity-final-usability.log`). These are scoped executable and
+rendered checks; the unrelated baseline guided-browser failure remains disclosed.
+
+All authorized implementation and scoped verification are complete. No additional
+user or product-policy decision is required for this delivered scope. The explicit
+capability-linkage deferral and live-advice/native exclusions remain boundaries,
+not implied completed coverage. Retain this requested workbook until the lifecycle
+replacement milestone above.

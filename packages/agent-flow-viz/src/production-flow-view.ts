@@ -1,3 +1,5 @@
+import { adviceePermitLimit } from "./resource-details";
+import type { CapacityMetadata } from "../../monkey-business/src/index";
 import { Option } from "effect";
 import { preparationMini, type PreparationSnapshot } from "./preparation-mini";
 import type { HtmlBuilder } from "foldkit/html";
@@ -189,7 +191,12 @@ export const productionFlowView = <Message>(
   preparation: PreparationSnapshot = {},
   numbers?: RecordNumbers,
   infrastructure = false,
+  resident: CanonicalProjection = projection,
+  metadata?: CapacityMetadata,
+  partition?: number,
+  selected?: { readonly group?: number; readonly round?: number },
 ) => {
+  if (selected?.group !== undefined && ![...resident.delivery.slots.map(s => s.group), ...resident.delivery.counters.map(c => c.group), ...resident.collection.claims.map(c => c.group), ...(metadata?.deliveryGroups ?? []).map(binding => binding.group)].includes(selected.group)) selected = { ...selected, group: undefined };
   const commands = last?.rejection === undefined ? last?.commands ?? [] : [];
   const event = last?.rejection === undefined ? last?.event.kind : undefined;
   const consumed = commands.find((command) => command.kind === "permitConsumed");
@@ -336,9 +343,30 @@ export const productionFlowView = <Message>(
               h.FontWeight("700"), h.Fill("#52647d")], [node.owner]),
             h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 49)), h.FontSize("14"),
               h.FontWeight("700"), h.Fill("#1e3048")], [node.title]),
-            ...node.facets.map((facet, index) =>
-              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + index * 13)), h.FontSize(squareFacetFontSize(facet)), h.FontWeight("600"), h.Class("topology-facet"),
+            ...(node.id === "admission" ? [] : node.id === "scheduling" ? node.facets.filter((_, index) => index !== 2) : node.id === "round" ? node.facets.slice(0, 2) : node.id === "collection" ? node.facets.slice(0, 2) : node.id === "delivery" ? node.facets.slice(1) : node.facets).map((facet, index) =>
+              h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69 + (index + (node.id === "delivery" ? 1 : 0)) * 13)), h.FontSize(squareFacetFontSize(facet)), h.FontWeight("600"), h.Class("topology-facet"),
                 h.Fill("#435670")], [squareFacetLine(facet)])),
+            ...(node.id === "collection" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], [`Collectors shared ${resident.collection.claims.length}${metadata?.collectors ? `/${metadata.collectors.capacity}` : " · limit unrecorded"}`])] : []),
+            ...(node.id === "delivery" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("9"), h.Fill("#435670")], [selected?.group === undefined ? "Output slot · select group in inspector" : `Group ${selected.group} · ${resident.delivery.slots.some(s => s.group === selected.group) ? "occupied" : "free"}`])] : []),
+            ...(node.id === "round" ? (() => {
+              if (selected?.round === undefined || !projection.rounds.some(r => r.id === selected.round) || selected.group === undefined || metadata?.continuationBudget === undefined)
+                return [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], ["Continuation budget · select round/group"])];
+              const used = resident.delivery.counters.find(c => c.group === selected.group && c.round === selected.round)?.used ?? 0;
+              return [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], [`Selected round · ${used}/4 used`]), ...Array.from({length:4}, (_, index) => h.rect([h.X(String(point.x + 152 + index*15)), h.Y(String(point.y + 88)), h.Width("10"), h.Height("8"), h.Fill(index < used ? "#427bc4" : "#dce5f0")], []))];
+            })() : []),
+            ...(node.id === "scheduling" || node.id === "jev" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + (node.id === "scheduling" ? 108 : 95))), h.FontSize("9"), h.Fill("#435670")], [node.id === "scheduling" ? `Preparing: agent ${projection.dispatch.running.filter(w => w.preparation).length} · shared ${resident.dispatch.running.filter(w => w.preparation).length}/${resident.executionLimits.preparation}` : `Jev: agent ${projection.dispatch.requests.length} · shared ${resident.dispatch.requests.length}/${resident.executionLimits.jevRequests}`])] : []),
+            ...(node.id === "admission" ? (() => {
+              const usage = partition === undefined ? projection.partitions.length === 1 ? projection.partitions[0] : undefined : resident.partitions.find(p => p.partition === partition);
+              const scopedPartition = partition ?? (projection.partitions.length === 1 ? projection.partitions[0].partition : projection.admissions.length === 1 ? projection.admissions[0].partition : undefined);
+              const scoped = scopedPartition !== undefined;
+              const rows = [{ label: "Items", used: usage?.items ?? 0, max: scoped ? resident.limits.partitionItems : undefined },
+                { label: "Bytes", used: usage?.bytes ?? 0, max: scoped ? resident.limits.partitionBytes : undefined },
+                { label: "Edit permits", used: projection.admissions.filter(a => a.partition === scopedPartition).reduce((n,a) => n + a.permits.length, 0), max: adviceePermitLimit(metadata, scopedPartition) }];
+              return rows.flatMap((row, index) => [
+                h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 65 + index * 13)), h.FontSize("9"), h.Fill("#435670")], [`${row.label} ${row.max === undefined ? `${row.used} · limit not recorded` : `${row.used}/${row.max}`}`]),
+                ...(row.max === undefined ? [] : [h.rect([h.X(String(point.x + 154)), h.Y(String(point.y + 59 + index * 13)), h.Width("57"), h.Height("5"), h.Fill("#dce5f0")], []), h.rect([h.X(String(point.x + 154)), h.Y(String(point.y + 59 + index * 13)), h.Width(String(Math.min(57, row.used / row.max * 57))), h.Height("5"), h.Fill("#427bc4")], [])]),
+              ]);
+            })() : []),
             ...(node.id === "preparation" ? [preparationMini(h, point.x, point.y, preparation, numbers)] : []),
             ...(node.id === "preparation" && sourceLabel !== undefined ? [
               h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 264)), h.FontSize("10"),

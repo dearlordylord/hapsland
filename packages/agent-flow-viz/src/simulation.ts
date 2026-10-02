@@ -1,3 +1,4 @@
+import { stageResourceDetails } from "./resource-details";
 import { preparationDetails } from "./preparation-details";
 import { preparationSnapshot } from "./preparation-mini";
 import { reviewCapacityView } from "./review-capacity-view";
@@ -27,6 +28,9 @@ import { productionFlowView } from "./production-flow-view";
 export const SimulationModel = Schema.Struct({
   agentId: Schema.String,
   agentCount: Schema.String,
+  resourceScenario: Schema.String,
+  resourceGroup: Schema.String,
+  resourceRound: Schema.String,
   seed: Schema.String,
   pace: Schema.String,
   burst: Schema.String,
@@ -74,6 +78,9 @@ export type SimulationModel = typeof SimulationModel.Type;
 export const initialSimulation: SimulationModel = {
   agentId: "agent-1",
   agentCount: "1",
+  resourceScenario: "none",
+  resourceGroup: "",
+  resourceRound: "",
   seed: "7",
   pace: "100",
   burst: "5",
@@ -265,6 +272,9 @@ export const changeSimulation = (
       "speed",
       "replay",
       "stage",
+      "resourceScenario",
+      "resourceGroup",
+      "resourceRound",
     ].includes(field)
   )
     return model;
@@ -369,6 +379,8 @@ export const actSimulation = (
       run = createRun({
         // One resident ledger and execution pool serve every independent generator.
         limits: { globalItems: 32, partitionItems: 16, globalBytes: 2000, partitionBytes: 2000 },
+        lifecycles: { permits: { adviceeLimit: 2, residentLimit: 8, holdMs: 1 }, collectors: { capacity: 64 }, reuse: { entryLimit: 8, byteLimit: 131072 }, quietWindowMs: 60000 },
+        resourceScenarios: model.resourceScenario === "none" ? undefined : { tickets: model.resourceScenario === "tickets", notices: model.resourceScenario === "notices", outputFit: model.resourceScenario === "fit" || model.resourceScenario === "oversized", outputBytes: model.resourceScenario === "oversized" ? 10241 : 512 },
         environment: environmentFacts(model),
         outputProfile: outputProfile(model),
         seed: number(model.seed, "Seed", 0, 0xffffffff),
@@ -610,7 +622,7 @@ export const simulationView = <Message>(
   action: (action: string) => Message,
   changed: (field: string, raw: string) => Message,
   showDiagram = true,
-  inspection?: { readonly projection: import("../../../src/canonical/adapter").CanonicalProjection; readonly observations: readonly Observation[] },
+  inspection?: { readonly projection: import("../../../src/canonical/adapter").CanonicalProjection; readonly observations: readonly Observation[]; readonly partition?: number },
 ) => {
   const input = (field: string, label: string, value: string) =>
     h.label(
@@ -651,6 +663,11 @@ export const simulationView = <Message>(
     model.selected < 0
       ? observations.at(-1)
       : observations.find((item) => item.sequence === model.selected);
+  const candidate = current?.capacityMetadata.encodedOutput;
+  const availableGroups = current ? Array.from(new Set([...current.after.delivery.slots.map(s => s.group), ...current.after.delivery.counters.map(c => c.group), ...current.after.collection.claims.map(c => c.group), ...(current.capacityMetadata.deliveryGroups ?? []).map(binding => binding.group)])) : [];
+  const availableRounds = (inspection?.projection ?? current?.after)?.rounds ?? [];
+  const selectedGroup = availableGroups.includes(Number(model.resourceGroup)) && model.resourceGroup !== "" ? model.resourceGroup : "";
+  const selectedRound = availableRounds.some(round => String(round.id) === model.resourceRound) ? model.resourceRound : "";
   // A clipped observation history cannot establish the first ordinal of each kind.
   const numbers = numberRecords(observations[0]?.sequence === 0
     ? observations.filter((item) => item.sequence <= (current?.sequence ?? -1)) : []);
@@ -734,6 +751,7 @@ export const simulationView = <Message>(
         h.p([h.Class("simulation-tree-active")], [activeTrees ? `Applied to new preparations: ${treeSummary(activeTrees)} · source ${activeTrees.minSourceBytes}–${activeTrees.maxSourceBytes} B/file · evidence ${activeTrees.minTreeBytes}–${activeTrees.maxTreeBytes} B/file.` : "Start / reset applies the draft generation settings."]),
         h.p([], ["Changes apply when a preparation starts. In-flight trees stay fixed. Checked graph budgets remain 8 files read, depth 4 and 20 KiB of accepted evidence. Generation may exceed those budgets. Reservation bytes are a separate review admission fact."]),
       ]),
+      h.div([h.Class("simulation-resource-scenario")], [select("resourceScenario", "Optional resource exercise · applies on Start resident", model.resourceScenario, ["none", "tickets", "notices", "fit", "oversized"]), h.p([], ["Tickets are explicit exercises. Notices use simulated failures and cooldown clocks. Output bytes are supplied synthetic facts; native encoding is not measured."])]),
       h.details([h.Class("simulation-outcome-mix")], [
         h.summary([], ["Simulated Jev outcome mix · " + draftMix]),
         h.p([], ["Changes affect new requests. Relative weights determine the displayed probabilities." ]),
@@ -771,10 +789,10 @@ export const simulationView = <Message>(
       ...(run && showDiagram ? [reviewCapacityView(h, current?.after ?? run.projection)] : []),
       h.p([h.Class("simulation-active-effects")], [activeReplay ? `Active facts: work ${(latestControl("environment")?.currentWork ?? activeReplay.config.environment?.currentWork ?? true) ? "current" : "stale"} · credential ${(latestControl("environment")?.credentialReady ?? activeReplay.config.environment?.credentialReady ?? true) ? "ready" : "unavailable"} (generation ${latestControl("environment")?.credentialGeneration ?? activeReplay.config.environment?.credentialGeneration ?? 1}) · source ${(latestControl("environment")?.sourceReadable ?? activeReplay.config.environment?.sourceReadable ?? true) ? "readable" : "unreadable"}. Future host output: ${latestControl("outputProfile")?.outcome ?? activeReplay.config.outputProfile?.outcome ?? "certain"} · delay ${latestControl("outputProfile")?.delayMs ?? activeReplay.config.outputProfile?.delayMs ?? 0} ms · lease ${latestControl("outputProfile")?.leaseMs ?? activeReplay.config.outputProfile?.leaseMs ?? 30000} ms. In-flight output keeps its captured profile.` : "No active synthetic environment."]),
       h.details([], [h.summary([], ["Control history"]), h.pre([], [activeReplay ? JSON.stringify({ initial: activeReplay.config, controls: activeReplay.controls.map((entry) => ({ time: entry.time, ...entry.control })) }, null, 2) : "No run started."])]),
-      h.div([h.Class(`simulation-stage-inspector${model.focus === "preparation" ? " preparation-selected" : ""}`)], [
-      h.details([], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
+      h.div([h.Class(`simulation-stage-inspector${model.focus ? " capacity-selected" : ""}${model.focus === "preparation" ? " preparation-selected" : ""}`)], [
+      h.details([h.Open(true)], [h.summary([], ["Inspect a diagram stage by keyboard"]), h.select([h.AriaLabel("Diagram stage"), h.Value(model.stage), h.OnChange((raw) => changed("stage", raw))], PLACE_ORDER.map((place) => h.option([h.Value(place)], [SQUARES[place].title]))), button("Inspect selected stage", "focus-stage")]),
       ...(model.focus ? [button("Clear lifecycle filter", "focus:")] : []),
-      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(inspection?.projection ?? current.after, numbers) ?? ""]), ...(model.focus === "preparation" ? [preparationDetails(h, preparationSnapshot((inspection?.observations ?? observations).filter(frame => frame.sequence <= current.sequence).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)] : []), h.ul([], locateFlow(inspection?.projection ?? current.after, numbers).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
+      ...(model.focus && current ? [h.details([h.Open(true)], [h.summary([], [`Focused lifecycle and state: ${SQUARES[model.focus as keyof typeof SQUARES]?.title}`]), h.p([], [SQUARES[model.focus as keyof typeof SQUARES]?.detail(inspection?.projection ?? current.after, numbers) ?? ""]), ...(["delivery", "round"].includes(model.focus) ? [h.label([], ["Delivery group", h.select([h.AriaLabel("Resource delivery group"), h.Value(selectedGroup), h.OnChange(raw => changed("resourceGroup", raw))], [h.option([h.Value("")], ["Select group"]), ...availableGroups.map(group => h.option([h.Value(String(group))], [`Group ${group}`]))])])] : []), ...(["round"].includes(model.focus) ? [h.label([], ["Current round", h.select([h.AriaLabel("Resource current round"), h.Value(selectedRound), h.OnChange(raw => changed("resourceRound", raw))], [h.option([h.Value("")], ["Select round"]), ...availableRounds.map(round => h.option([h.Value(String(round.id))], [`Partition ${round.partition} · round ${round.id}`]))])])] : []), stageResourceDetails(h, model.focus, inspection?.projection ?? current.after, current.after, current.capacityMetadata, candidate, inspection?.partition ?? run?.agentScopes.find(a => a.agent === model.agentId)?.partition, selectedGroup === "" ? undefined : Number(selectedGroup), selectedRound === "" ? undefined : Number(selectedRound)), ...(model.focus === "preparation" ? [preparationDetails(h, preparationSnapshot((inspection?.observations ?? observations).filter(frame => frame.sequence <= current.sequence).map(frame => ({ ...frame, origin: "manual" as const }))), numbers)] : []), h.ul([], locateFlow(inspection?.projection ?? current.after, numbers).filter((record) => record.stage === model.focus || model.focus === "jev" && record.key.startsWith("request:")).map((record) => h.li([], [button(record.description, `item:${recordIdentity(record.key)}`)]))), h.p([], [model.item ? `Following ${model.item}; history is filtered to this identity.` : "Select a record to follow its lifecycle."])])] : []),
       ]),
       h.details(
         [h.Class("simulation-details")],
