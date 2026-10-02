@@ -99,3 +99,46 @@ it("preserves unaffected and fresh advicee progress in finite healthy departure 
       departAndResume(action, seed, delay);
     }), { seed: 185, numRuns: 8 });
 }, 15000);
+
+it("releases a departed preparation's physical parent only when its original completion arrives", () => {
+  const run = createRun(scenario());
+  advance(run, 0);
+  const preparing = run.projection.work.find(work => work.partition === 1 && work.kind === "preparing")!;
+  expect(preparing).toMatchObject({ lifetime: 1, round: 1 });
+  const parent = preparing.parent;
+  expect(parent).toBeGreaterThan(0);
+  expect(run.projection.dispatch.running.filter(work => work.preparation)).toHaveLength(2);
+  expect(run.projection.global).toEqual({ items: 2, bytes: 30 });
+  run.applyControl({ kind: "adviceeLifecycle", agent: advicees[0], action: "disconnect" });
+  advance(run, 0, 32);
+  expect(run.projection.global).toEqual({ items: 1, bytes: 20 });
+  expect(run.projection.dispatch.running.find(work => work.operation === parent)).toMatchObject({
+    partition: 1, lifetime: 1, round: 1, cancelled: true, preparation: true,
+  });
+  const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())));
+  expect(restored.observe()).toEqual(run.observe());
+  for (const candidate of [run, restored]) {
+    candidate.applyControl({ kind: "adviceeLifecycle", agent: advicees[0], action: "resume" });
+    candidate.schedule({ at: 1, kind: "edit", agent: advicees[0], generation: 0, recurring: false,
+      revision: 3, bytes: 10, unitBytes: [5], outcome: "finding" });
+    advance(candidate, 2);
+    const original = candidate.observations.find(frame => frame.event.kind === "preparationCompleted"
+      && frame.event.operation === preparing.operation)!;
+    expect(original.event).toMatchObject({ partition: 1, lifetime: 1, round: 1, operation: preparing.operation });
+    expect(original.rejection).toBeDefined();
+    const physical = candidate.observations.find(frame => frame.event.kind === "dispatchSettled"
+      && frame.event.operation === parent && frame.event.lifetime === 1)!;
+    expect(physical.event).toEqual({ kind: "dispatchSettled", partition: 1, lifetime: 1, round: 1, operation: parent });
+    expect(physical.time).toBe(2);
+    expect(candidate.projection.dispatch.running.some(work => work.operation === parent)).toBe(false);
+    expect(candidate.projection.global).toEqual({ items: 2, bytes: 17 });
+    advance(candidate, 30);
+    expect(candidate.observations.filter(frame => frame.event.kind === "submissionTerminal").map(frame => [frame.time, frame.partition]))
+      .toEqual([[22, 2], [23, 1]]);
+    expect(candidate.projection.global).toEqual({ items: 2, bytes: 12 });
+    expect(candidate.projection.dispatch.running).toEqual([]);
+    expect(candidate.projection.dispatch.requests).toEqual([]);
+    expect(candidate.projection.collection.leases).toEqual([]);
+  }
+  expect(restored.observe()).toEqual(run.observe());
+});
