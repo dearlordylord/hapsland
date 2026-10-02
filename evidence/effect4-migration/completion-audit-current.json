@@ -23,7 +23,7 @@
         "package.json",
         "bun.lock",
         "packages/agent-flow-viz/package.json",
-        "packages/agent-flow-viz/bun.lock"
+        "packages/agent-flow-viz/package-lock.json"
       ],
       "cohort": "4.0.0"
     },
@@ -31,7 +31,7 @@
       "requirement": "One canonical/native state owner and retained dispatch handoff; Bend remains policy authority",
       "status": "pass",
       "evidence": [
-        "src/resident/state.ts",
+        "src/resident/capacity.ts",
         "src/resident/dispatch.test.ts",
         "src/resident/capacity.test.ts",
         "scripts/check-canonical-authority.mjs",
