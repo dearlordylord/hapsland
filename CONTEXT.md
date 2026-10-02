@@ -14,6 +14,11 @@ material only beside the plain-language meaning it represents.
 | Runtime installation | The product integration made available to a particular agent runtime for a user. When the runtime executes it and Jev credentials are available, review can run for files allowed by file selection. |
 | Runtime trust | The agent runtime's approval to execute an installed integration. It is separate from Hapsland's file selection and credential availability. |
 | Agent runtime | A program that runs an agent's tool and edit loop and reports its events, such as Codex CLI or Claude Code. |
+| Hook event | An agent-runtime event at which an installed handler may run. |
+| Hook handler | An installed integration that responds to a hook event. |
+| Hook invocation | One execution of a hook handler; an event may invoke zero or more handlers, and repeated events create new invocations. |
+| Edit hook | A hook handler invoked before or after an edit; edits may recur many times within a virtual round. |
+| Stop hook | A hook handler invoked for a finish attempt, following zero or more edits; continuation may lead to more edits and another attempt. |
 | Agent | A coding assistant that edits source in an agent runtime and can receive advice from Hapsland. |
 | Subagent | An agent started by another agent within an agent runtime. It remains an agent for review and advice. |
 | Resident | Hapsland's local background process. An agent runtime starts a short Hapsland command when an edit or Stop event occurs. That command sends the event to the resident. The resident schedules review work, calls Jev, and holds temporary review state in its own memory. |
