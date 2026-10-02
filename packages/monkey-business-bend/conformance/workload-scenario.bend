@@ -231,8 +231,69 @@ def permit_scenario(+duration: Nat) -> List<&2, List<&2, Nat>>:
 def permits() -> List<&2, List<&2, List<&2, Nat>>>:
   [permit_scenario(9n), permit_scenario(10n), permit_scenario(11n)]
 
+def advance_workload(state: Types.State, partition: Nat) -> Types.State:
+  control_state(Engine.workload_action(state, partition, Workload.Next{}))
+
+def endpoint_started(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
+  match transition:
+    case Engine.WorkloadTransition{state, Workload.Emission{time, _, _, 1, _, _, _, _, _, _} <> Nil{}, True{}}:
+      +state = advance_workload(at(state, time, 1001n), 1n)
+      +state = control_state(Engine.workload_action(state, 1n, Workload.Controlled{Workload.Sizes{25n, [7n, 8n]}}))
+      +state = control_state(Engine.workload_action(state, 1n, Workload.Controlled{Workload.Pace{70}}))
+      +state = control_state(Engine.workload_action(state, 1n, Workload.Controlled{Workload.Duration{2n}}))
+      +state = control_state(Engine.workload_action(state, 1n, Workload.Controlled{Workload.Suspend{True{}}}))
+      [Engine.clock(state), Engine.workload_duration(state, 1n, 0n),
+        Bool.pick(Nat, Engine.workload_valid(state, 1n, 0n, True{}), 1n, 0n),
+        Bool.pick(Nat, Engine.workload_valid(state, 1n, 1n, True{}), 1n, 0n),
+        Bool.pick(Nat, Engine.workload_valid(state, 1n, 2n, True{}), 1n, 0n)] <>
+        endpoint_burst(Engine.workload_action(state, 1n, Workload.Controlled{Workload.Burst{1n}}))
+    case _: [[97n]]
+
+def endpoint_burst(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
+  match transition:
+    case Engine.WorkloadTransition{_, events, True{}}: emissions(events)
+    case _: [[97n]]
+
+def endpoint_task(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
+  match transition:
+    case Engine.WorkloadTransition{state, Workload.Emission{time, _, _, 0, _, _, _, _, _, _} <> Nil{}, True{}}:
+      endpoint_started(Engine.workload_action(at(state, time, 1000n), 1n, Workload.Next{}))
+    case _: [[97n]]
+
+def endpoint() -> List<&2, List<&2, Nat>>:
+  endpoint_task(Engine.workload_action(Engine.configure_workload(
+    Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), 1n,
+    Workload.Profile{Session.Settings{10, 0, 1, 100, 0, 20}, 7,
+      [119, 114, 105, 116, 101, 114], 10n, [5n], Some{30n}}), 1n, Workload.Next{}))
+
+def equal_taken(fuel: Nat, taken: Engine.Taken) -> List<&2, List<&2, Nat>>:
+  match fuel taken:
+    case 0n _: []
+    case 1n+rest Engine.Taken{+state, Some{Scheduler.Entry{at, order}}}:
+      [at, order] <> equal_taken(rest, Engine.take(state))
+    case _ _: [[97n]]
+
+def equal_second(transition: Engine.WorkloadTransition, first_time: Nat) -> List<&2, List<&2, Nat>>:
+  match transition:
+    case Engine.WorkloadTransition{state, Workload.Emission{second_time, _, _, 1, _, _, _, _, _, _} <> Nil{}, True{}}:
+      equal_taken(2n, Engine.take(Engine.enqueue(Engine.enqueue(state, first_time, 0n), second_time, 1n)))
+    case _: [[97n]]
+
+def equal_first(transition: Engine.WorkloadTransition) -> List<&2, List<&2, Nat>>:
+  match transition:
+    case Engine.WorkloadTransition{state, Workload.Emission{time, _, _, 1, _, _, _, _, _, _} <> Nil{}, True{}}:
+      equal_second(Engine.workload_action(advance_workload(state, 2n), 2n, Workload.Next{}), time)
+    case _: [[97n]]
+
+def equal_times() -> List<&2, List<&2, Nat>>:
+  equal_first(Engine.workload_action(advance_workload(Engine.configure_workload(
+    Engine.configure_workload(Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
+      1n, profile()), 2n, profile()), 1n), 1n, Workload.Next{}))
+
 def main() -> IO(Unit):
   IO.print(String.append("[", String.append(Minimal.bracket(Minimal.show_rows(trace())),
     String.append(",", String.append(Minimal.bracket(Minimal.show_rows(timings())),
       String.append(",", String.append(Minimal.bracket(Minimal.show_rows(feedback())),
-        String.append(",", String.append(Minimal.bracket(Minimal.show_traces(permits())), "]")))))))))
+        String.append(",", String.append(Minimal.bracket(Minimal.show_traces(permits())),
+          String.append(",", String.append(Minimal.bracket(Minimal.show_rows(endpoint())),
+            String.append(",", String.append(Minimal.bracket(Minimal.show_rows(equal_times())), "]")))))))))))))

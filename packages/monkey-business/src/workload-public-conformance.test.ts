@@ -149,9 +149,11 @@ it("preserves fractional scaling without making zero-weight outcomes reachable",
 });
 
 it("executes an original continuous arrival through the native shared workload and business driver", () => {
-  const [native, timing, feedback, permitTraces] = runWorkloadNative(new URL(
+  const [native, timing, feedback, permitTraces, endpoint, equalTimes] = runWorkloadNative(new URL(
     "../../monkey-business-bend/conformance/workload-scenario.bend", import.meta.url)) as
-    [number[][], number[][], number[][], number[][][]];
+    [number[][], number[][], number[][], number[][][], number[][], number[][]];
+  expect(endpoint).toEqual([[10, 2, 0, 0, 1], [10, 1, 2, 1, 1, 2, 25, 15, 0, 0]]);
+  expect(equalTimes).toEqual([[10, 0], [10, 1]]);
   expect(timing).toEqual([
     [10, 20, 19, 9, 1], [10, 20, 20, 10, 1], [10, 20, 21, 11, 1],
     [10, 20, 10, 0, 1], [4294967313, 4294967323, 4294967322, 9, 1],
