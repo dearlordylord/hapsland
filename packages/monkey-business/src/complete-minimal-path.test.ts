@@ -185,6 +185,12 @@ it("runs original source-free minimal scenarios through the native shared driver
     expect(trace.filter(row => row[0] === 12).map(row => row[1])).toEqual([7]);
     expect(trace.filter(row => row[0] === 8).map(row => row[1])).toEqual([2, 7]);
   }
+  for (const trace of nativeTraces.slice(5)) {
+    const retirements = trace.filter(row => row[0] === 24);
+    expect(retirements.length).toBeGreaterThan(0);
+    expect(retirements.every(row => row[3] === 2)).toBe(true);
+    expect(trace.at(-1)!.slice(15, 17)).toEqual([0, 0]);
+  }
   const eventCodes: Record<string, number> = { openRound: 1, admitObservation: 2, queueDispatch: 3, startObservation: 4,
     beginObservedPreparation: 5, preparationCompleted: 6, completeObservation: 7, dispatchSettled: 8, startReview: 9,
     jevRequestReady: 10, jevRequestStarted: 11, jevRequestSettled: 12, collectionReady: 13, finalCandidateCheck: 14,
