@@ -356,4 +356,13 @@ effectIt.effect("dispatch credentials and paths use the supplied configuration p
   }))));
   expect(absent.credential?.environmentValue).toBeNull();
   expect(absent.demoBudgetPath).toBeNull();
+  for (const key of ["REVIEW_CREDENTIAL_STATE_PATH", "REVIEW_DEMO_BUDGET_PATH"]) {
+    const invalid = yield* acquire.pipe(
+      Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({
+        REVIEW_CREDENTIAL_STATE_PATH: credentialStatePath, [key]: "",
+      }, { preserveEmptyStrings: true }))),
+      Effect.result,
+    );
+    expect(invalid._tag).toBe("Failure");
+  }
 }));

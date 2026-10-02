@@ -275,8 +275,8 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
   };
   const configuration = yield* Config.all({
     credential: Config.option(Config.Redacted(settings.credentialEnvVar)),
-    credentialStatePath: Config.String("REVIEW_CREDENTIAL_STATE_PATH").pipe(Config.withDefault(DEFAULT_CREDENTIAL_STATE_PATH)),
-    demoBudgetPath: Config.option(Config.String("REVIEW_DEMO_BUDGET_PATH")),
+    credentialStatePath: Config.NonEmptyString("REVIEW_CREDENTIAL_STATE_PATH").pipe(Config.withDefault(DEFAULT_CREDENTIAL_STATE_PATH)),
+    demoBudgetPath: Config.option(Config.NonEmptyString("REVIEW_DEMO_BUDGET_PATH")),
   }).pipe(Effect.mapError(() => new ResidentIpcError({ message: "resident dispatch configuration unavailable" })));
   const credentialStatePath = resolve(configuration.credentialStatePath);
   const credentialState = yield* Effect.try({

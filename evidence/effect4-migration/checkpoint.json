@@ -3995,5 +3995,64 @@
       "evaluationTests": 16
     },
     "limitations": "Full current suite and migration completion gates remain pending. The earlier full-suite failure itself did not retain enough diagnostic evidence to establish its exact path."
+  },
+  "fullSuiteStableQuietHookOutput": {
+    "subjectCommit": "ca0e3d3",
+    "typecheck": "pass",
+    "build": "pass",
+    "npmTest": "pass",
+    "passedFiles": 125,
+    "skippedFiles": 1,
+    "passedTests": 1285,
+    "skippedTests": 2,
+    "durationSeconds": 386.63,
+    "limitations": "Predates subsequent explicit-empty path validation and scoped standalone package-doctor port; final current suite remains required."
+  },
+  "emptyPathAndPackageDoctorAudit": {
+    "status": "focused-pass",
+    "scope": "CLI state/activity/user configuration and resident dispatch credential/demo paths reject explicit empty strings. Consent fallback applies to absence only. Removed unused credential-name recipe. Standalone package doctor decodes packaged runtime metadata and scopes version commands through shared native process adapter with unchanged 2000ms/1MiB bounds. Architecture/access/parser probes stay narrow readonly native observations.",
+    "checks": {
+      "typecheck": "pass",
+      "build": "pass",
+      "configurationBoundaryGuard": "pass",
+      "cliClientEvaluationTests": 34,
+      "durationSeconds": 12.44,
+      "extendedClientTests": 14,
+      "extendedClientDurationSeconds": 0.909,
+      "nativePackageDoctor": "ready"
+    },
+    "initialTypecheckFailures": [
+      "Native fixture environment needed explicit NodeJS.ProcessEnv annotation for indexed keys.",
+      "Shared native process adapter requires an explicit child env; passed native process.env."
+    ],
+    "limitations": "Current full suite, exact-host installed package, final performance and completion audit remain pending."
+  },
+  "currentInstalledPackageAttempts": {
+    "subjectCommit": "ca0e3d3",
+    "controlledPackage": "pass",
+    "credentialMode": "controlled-helper",
+    "realCodex": "failed-before-review",
+    "attempts": [
+      {
+        "mode": "plain pipes",
+        "stage": "native-repository-and-hook-trust",
+        "reason": "runner requires terminal"
+      },
+      {
+        "mode": "TTY",
+        "stage": "native-repository-and-hook-trust",
+        "reason": "repository and exact hook trust persisted through native prompts, but terminal process closure exceeded 30s"
+      }
+    ],
+    "limitations": "No current real-host review completion proved; these attempts did not enter model-host review execution. Current source then changed explicit-empty validation and package doctor, requiring fresh installed package validation."
+  },
+  "stableLiveDecisionContract": {
+    "status": "pass",
+    "subjectCommit": "ca0e3d3",
+    "evidence": "live-decision-contract-current.json",
+    "fetchAttempts": 2,
+    "automaticRetries": 0,
+    "perRequestDeadlineMs": 15000,
+    "limitations": "Synthetic source only. Boolean contract observations do not establish host feedback, physical wire cancellation, accuracy across arbitrary source, or platform support."
   }
 }

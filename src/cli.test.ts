@@ -39,6 +39,23 @@ const initializeRepository = (root: string, requestedStatePath?: string) => {
 };
 
 describe("JSON subprocess contract", { timeout: SUBPROCESS_TEST_TIMEOUT }, () => {
+  it.each(["REVIEW_STATE_PATH", "REVIEW_CONSENT_FILE", "REVIEW_ACTIVITY_PATH", "REVIEW_USER_CONFIG_PATH"])("rejects empty %s instead of falling back to another path", (key) => {
+    const root = makeTemporaryDirectory("review-empty-path-");
+    roots.push(root);
+    const env: NodeJS.ProcessEnv = { ...process.env, REVIEW_ACTIVITY_PATH: join(root, "activity"),
+      REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"), REVIEW_CONSENT_FILE: join(root, "consent") };
+    delete env.REVIEW_STATE_PATH;
+    env[key] = "";
+    const result = spawnSync(process.execPath, [join(process.cwd(), "src/cli.ts"), "--install-preview"], {
+      cwd: root, env, encoding: "utf8", timeout: 10_000,
+      input: JSON.stringify({ version: 1, operation: "install-preview", codexHome: join(root, "codex") }),
+    });
+    expect(result.status).toBe(2);
+    expect(JSON.parse(result.stdout)).toMatchObject({ error: { code: "invalid_request" } });
+    expect(existsSync(join(root, "codex"))).toBe(false);
+    expect(existsSync(join(root, "consent"))).toBe(false);
+  });
+
   it("rejects mixed installation host fields and accepts the host-omitted Codex v1 form", () => {
     const root = makeTemporaryDirectory("review-install-schema-");
     roots.push(root);

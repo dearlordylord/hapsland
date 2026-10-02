@@ -332,8 +332,3 @@ export const runEvaluationCommand = Effect.fn("EvaluationCommand.run")(function*
     report: execution.report,
   };
 });
-
-/** Read the credential name through Effect Config without exposing its value. */
-export const configuredCredentialName = Config.String("EVALUATION_CREDENTIAL_ENV").pipe(
-  Config.withDefault("TYPESAFE_API_KEY"),
-);

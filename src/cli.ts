@@ -228,16 +228,20 @@ const FirstReviewDemoOperation = Schema.Struct({
 });
 type FirstReviewDemoOperation = typeof FirstReviewDemoOperation.Type;
 
-const statePathConfig = Config.String("REVIEW_STATE_PATH").pipe(
-  Config.orElse(() => Config.String("REVIEW_CONSENT_FILE")),
-  Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
+const statePathConfig = Config.option(Config.NonEmptyString("REVIEW_STATE_PATH")).pipe(
+  Config.flatMap(Option.match({
+    onSome: Config.succeed,
+    onNone: () => Config.NonEmptyString("REVIEW_CONSENT_FILE").pipe(
+      Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent")),
+    ),
+  })),
 );
 
-const activityPathConfig = Config.String("REVIEW_ACTIVITY_PATH").pipe(
+const activityPathConfig = Config.NonEmptyString("REVIEW_ACTIVITY_PATH").pipe(
   Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "activity")),
 );
 
-const userConfigPathConfig = Config.option(Config.String("REVIEW_USER_CONFIG_PATH"));
+const userConfigPathConfig = Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH"));
 
 const forcedOperation = (): ReviewOperation["operation"] | undefined => {
   if (

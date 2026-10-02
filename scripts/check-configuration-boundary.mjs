@@ -151,8 +151,12 @@ if (/new Promise|\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(clientSelec
 }
 
 const interactiveCli = read("src/cli.ts");
-if (/new Promise|setInterval\(|spawnSync\(|\basync\b/u.test(interactiveCli)) {
+if (/new Promise|setInterval\(|spawnSync\(|\basync\b|process\.env(?:\.|\[)/u.test(interactiveCli)) {
   throw new Error("CLI workflows must compose Effects and use scoped native adapters");
+}
+const packageDoctor = read("src/package-doctor.ts");
+if (/execFileSync\(|spawnSync\(/u.test(packageDoctor) || !packageDoctor.includes("execFileClosedStdin(")) {
+  throw new Error("package doctor must scope its native compatibility subprocesses");
 }
 for (const workflow of ["pilotSetup", "chooseSetupClients", "updateInteractive", "maintenanceInteractive", "diagnoseClientProcess"]) {
   if (!new RegExp(`const ${workflow} = Effect\\.fn\\(`, "u").test(interactiveCli)) {
