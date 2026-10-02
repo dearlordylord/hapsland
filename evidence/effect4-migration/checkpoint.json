@@ -3916,5 +3916,20 @@
     },
     "testSelectionCorrection": "Earlier commands included nonexistent load/jsonc/review-config/reviewer test paths and matched only existing rule/configuration files; final explicit existing configuration/rules/compiler-targets files pass. No coverage inferred for nonexistent names.",
     "limitations": "Remaining direct-event/host Git and native capture adapters need scope audit; full suite/conformance/live/performance/completion audit incomplete."
+  },
+  "scopedGitRootAndPathSelectionPort": {
+    "status": "pass",
+    "scope": "Shared physical Git root discovery and path selection compose scoped Git processes and uninterruptible readonly filesystem observations. Direct Codex/Claude and OpenCode adapters use the same physical-root facts. Strict direct-event commands retain literal pathspecs, 2000ms/65536-byte caps, root/admin inode/device fences and per-directory-only ignores. Generic CLI root discovery retains its original unbounded process time/1MiB output cap but now owns physical close on cancellation.",
+    "checks": {
+      "typecheck": "pass",
+      "configurationBoundaryGuard": "pass",
+      "targetedTests": {
+        "files": 6,
+        "passed": 58,
+        "durationSeconds": 11.63
+      }
+    },
+    "initialTypecheckFailure": "Removed fs realpath import still had two single-file native callers; restored that import. No runtime cast or behavior fallback introduced.",
+    "limitations": "Synthetic/direct-event fixture tests only. Native descriptor capture and macOS helper physical ownership audit remains, followed by final gates."
   }
 }

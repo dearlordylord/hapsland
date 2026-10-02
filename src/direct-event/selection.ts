@@ -1,14 +1,14 @@
-import { execFile } from "node:child_process";
+import { gitOutput } from "../repository/root.ts";
+import * as Schema from "effect/Schema";
 import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
-import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import { matchesAnyGlob } from "../matcher/glob.ts";
 import { admitCandidateFile, selectFile } from "../configuration/decision.ts";
 import { protectedPathReason } from "../policy/file-policy.ts";
 import type { PhysicalRootIdentity } from "./model.ts";
 
-const execFileAsync = promisify(execFile);
+
 
 export type DirectFilePolicy = {
   /** The already-resolved, highest-precedence include list. Empty selects nothing. */
@@ -24,14 +24,9 @@ export const DEFAULT_DIRECT_FILE_POLICY: DirectFilePolicy = {
 
 export type EligiblePath = { readonly relativePath: string; readonly absolutePath: string };
 
-const git = async (root: string, args: ReadonlyArray<string>): Promise<string> => {
-  const result = await execFileAsync(
-    "git",
-    ["--literal-pathspecs", "-C", root, ...args],
-    { timeout: 2_000, maxBuffer: 65_536 },
-  );
-  return result.stdout;
-};
+class PathSelectionError extends Schema.TaggedError<PathSelectionError>()("PathSelectionError", {}) {}
+const fileObservation = Effect.fn("DirectEvent.pathObservation")(<A>(read: () => Promise<A>) =>
+  Effect.tryPromise({ try: read, catch: () => new PathSelectionError() }).pipe(Effect.uninterruptible));
 
 const portableRelative = (root: string, candidate: string): EligiblePath | undefined => {
   if (candidate.length === 0 || candidate.includes("\0")) return undefined;
@@ -58,23 +53,20 @@ const equalToOrWithin = (parent: string, candidate: string): boolean => {
     (path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path));
 };
 
-const hasSymlinkOrNonDirectoryAncestor = async (
-  root: string,
-  path: string,
-): Promise<boolean> => {
+const hasSymlinkOrNonDirectoryAncestor = Effect.fn("DirectEvent.inspectAncestors")(function* (root: string, path: string) {
   let current = root;
   const segments = path.split("/");
   for (let index = 0; index < segments.length; index += 1) {
     const segment = segments[index];
     if (segment === undefined) return true;
     current = join(current, segment);
-    const status = await lstat(current);
+    const status = yield* fileObservation(() => lstat(current));
     if (status.isSymbolicLink()) return true;
     if (index < segments.length - 1 && !status.isDirectory()) return true;
     if (index === segments.length - 1 && !status.isFile()) return true;
   }
   return false;
-};
+});
 
 /**
  * Selects one event-named path without walking source directories. Only tracked
@@ -95,22 +87,14 @@ export const eligibleNamedPath = Effect.fn("DirectEvent.eligibleNamedPath")(func
   const gitAdmin = rootIdentity !== undefined &&
     equalToOrWithin(rootIdentity.gitDirectory, normalized.absolutePath);
   if (admitCandidateFile({ gitAdmin, physicalSafe: true, gitAllowed: true }) !== "candidateAllowed") return undefined;
-  const safe = yield* Effect.tryPromise({
-    try: async () => {
-      if (await hasSymlinkOrNonDirectoryAncestor(root, normalized.relativePath)) return { physicalSafe: false, gitAllowed: false };
-      if (await realpath(normalized.absolutePath) !== normalized.absolutePath) return { physicalSafe: false, gitAllowed: false };
-      const tracked = (await git(root, ["ls-files", "-z", "--", normalized.relativePath]))
-        .split("\0").includes(normalized.relativePath);
-      if (tracked) return { physicalSafe: true, gitAllowed: true };
-      // Supplying only --exclude-per-directory deliberately omits the user's
-      // global excludes file and .git/info/exclude.
-      const ignored = (await git(root, [
-        "ls-files", "--others", "--ignored",
-        "--exclude-per-directory=.gitignore", "-z", "--", normalized.relativePath,
-      ])).split("\0").includes(normalized.relativePath);
-      return { physicalSafe: true, gitAllowed: !ignored };
-    },
-    catch: () => new Error("path selection unavailable"),
+  const safe = yield* Effect.gen(function* () {
+    if (yield* hasSymlinkOrNonDirectoryAncestor(root, normalized.relativePath)) return { physicalSafe: false, gitAllowed: false };
+    if ((yield* fileObservation(() => realpath(normalized.absolutePath))) !== normalized.absolutePath) return { physicalSafe: false, gitAllowed: false };
+    const tracked = (yield* gitOutput(root, ["ls-files", "-z", "--", normalized.relativePath])).split("\0").includes(normalized.relativePath);
+    if (tracked) return { physicalSafe: true, gitAllowed: true };
+    // Only per-directory ignores participate; global excludes and .git/info/exclude are omitted.
+    const ignored = (yield* gitOutput(root, ["ls-files", "--others", "--ignored", "--exclude-per-directory=.gitignore", "-z", "--", normalized.relativePath])).split("\0").includes(normalized.relativePath);
+    return { physicalSafe: true, gitAllowed: !ignored };
   }).pipe(Effect.catch(() => Effect.succeed({ physicalSafe: false, gitAllowed: false })));
   return admitCandidateFile({ gitAdmin: false, ...safe }) === "candidateAllowed" ? normalized : undefined;
 });

@@ -106,6 +106,11 @@ for (const path of ["src/rules/loader.ts", "src/configuration/load.ts"]) {
     throw new Error(`${path} must compose Effects directly without an async facade`);
   }
 }
+for (const path of ["src/repository/root.ts", "src/direct-event/adapter.ts", "src/direct-event/selection.ts", "src/hosts/opencode/adapter.ts"]) {
+  if (/\basync\b|promisify\(execFile\)|Effect\.run(?:Sync|Promise|Fork)\(/u.test(read(path))) {
+    throw new Error(`${path} Git observations must compose scoped Effect process adapters`);
+  }
+}
 
 const doctor = read("src/onboarding/doctor.ts");
 if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||

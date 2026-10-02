@@ -1,13 +1,10 @@
-import { execFile } from "node:child_process";
-import { realpath, stat } from "node:fs/promises";
+import { discoverPhysicalWorkingTreeRoot } from "../../repository/root.ts";
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import { captureStable, MAX_SOURCE_BYTES, type CaptureHooks } from "../../direct-event/capture.ts";
 import { eligibleNamedPath } from "../../direct-event/selection.ts";
-import type { DirectCandidate, DirectObservation, DirectAdvicee, PhysicalRootIdentity } from "../../direct-event/model.ts";
+import type { DirectCandidate, DirectObservation, DirectAdvicee } from "../../direct-event/model.ts";
 
-const exec = promisify(execFile);
 const object = (value: unknown): Record<string, unknown> | undefined =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
 const nonempty = (value: unknown): value is string => typeof value === "string" && value.length > 0;
@@ -24,22 +21,6 @@ const changedUniqueLines = (before: string, after: string, current: string): Rea
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   return lines.every((line) => counts.get(line.trim()) === 1) ? lines : undefined;
-};
-
-const rootFor = async (cwd: string) => {
-  const physicalCwd = await realpath(cwd);
-  const result = await exec("git", ["--literal-pathspecs", "-C", physicalCwd, "rev-parse", "--show-toplevel"],
-    { timeout: 2_000, maxBuffer: 65_536 });
-  const root = await realpath(result.stdout.trim());
-  const gitResult = await exec("git", ["--literal-pathspecs", "-C", root, "rev-parse", "--absolute-git-dir"],
-    { timeout: 2_000, maxBuffer: 65_536 });
-  const gitDirectory = await realpath(gitResult.stdout.trim());
-  const [rootStat, gitStat] = await Promise.all([stat(root, { bigint: true }), stat(gitDirectory, { bigint: true })]);
-  const rootIdentity: PhysicalRootIdentity = {
-    rootDevice: String(rootStat.dev), rootInode: String(rootStat.ino), gitDirectory,
-    gitDevice: String(gitStat.dev), gitInode: String(gitStat.ino),
-  };
-  return { root, rootIdentity, physicalCwd };
 };
 
 /** Exact OpenCode 1.14.44 tool.execute.after shape. The tool call is the advice lifetime. */
@@ -65,7 +46,7 @@ export const adaptOpenCodeDirectEvent = Effect.fn("DirectEvent.adaptOpenCodeDire
       (nonempty(metadata.filediff) && Buffer.byteLength(metadata.filediff) > MAX_ENVELOPE_TEXT)) return undefined;
   if (input.tool === "edit" && (!boundedSource(args.oldString) || !boundedSource(args.newString))) return undefined;
   if (input.tool === "write" && !boundedSource(args.content)) return undefined;
-  const root = yield* Effect.tryPromise(() => rootFor(cwd)).pipe(Effect.option);
+  const root = yield* discoverPhysicalWorkingTreeRoot(cwd).pipe(Effect.option);
   if (root._tag === "None") return undefined;
   const fromRoot = relative(root.value.root, root.value.physicalCwd);
   if (fromRoot === ".." || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot)) return undefined;

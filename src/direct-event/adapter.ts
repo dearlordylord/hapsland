@@ -1,7 +1,6 @@
-import { execFile } from "node:child_process";
-import { realpath, stat } from "node:fs/promises";
+import { realpath } from "node:fs/promises";
+import { discoverPhysicalWorkingTreeRoot } from "../repository/root.ts";
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import { promisify } from "node:util";
 import * as Effect from "effect/Effect";
 import { loadConfiguration } from "../configuration/load.ts";
 import type {
@@ -15,7 +14,7 @@ import type { PostEditLocation, VerifiedPatchHunk } from "./edit-attribution.ts"
 import { MAX_SOURCE_BYTES, captureStable, type CaptureHooks } from "./capture.ts";
 import { eligibleNamedPath, resolvedDirectFilePolicy } from "./selection.ts";
 
-const execFileAsync = promisify(execFile);
+
 export const MAX_CODEX_COMMAND_BYTES = 65_536;
 export const MAX_CODEX_CANDIDATES = 16;
 
@@ -100,57 +99,18 @@ export const nativeDirectCandidates = (command: string): ReadonlyArray<DirectCan
   });
 };
 
-const discoverRoot = async (cwd: string) => {
-  const physicalCwd = await realpath(cwd);
-  const rootResult = await execFileAsync(
-    "git",
-    ["--literal-pathspecs", "-C", physicalCwd, "rev-parse", "--show-toplevel"],
-    { timeout: 2_000, maxBuffer: 65_536 },
-  );
-  const reported = rootResult.stdout.trim();
-  if (reported.length === 0) throw new Error("not a Git working tree");
-  const root = await realpath(reported);
-  const gitResult = await execFileAsync(
-    "git",
-    ["--literal-pathspecs", "-C", root, "rev-parse", "--absolute-git-dir"],
-    { timeout: 2_000, maxBuffer: 65_536 },
-  );
-  const gitDirectory = await realpath(gitResult.stdout.trim());
-  const [rootStatus, gitStatus] = await Promise.all([
-    stat(root, { bigint: true }),
-    stat(gitDirectory, { bigint: true }),
-  ]);
-  return {
-    root,
-    rootIdentity: Object.freeze({
-      rootDevice: String(rootStatus.dev),
-      rootInode: String(rootStatus.ino),
-      gitDirectory,
-      gitDevice: String(gitStatus.dev),
-      gitInode: String(gitStatus.ino),
-    } satisfies PhysicalRootIdentity),
-  };
-};
-
-const canonicalGitRoot = (cwd: string) =>
-  Effect.tryPromise({
-    try: () => discoverRoot(cwd),
-    catch: () => undefined,
-  }).pipe(Effect.option);
-
-export const verifyObservationRoot = (observation: DirectObservation) =>
-  Effect.tryPromise({
-    try: async () => {
-      const current = await discoverRoot(observation.root);
-      return current.root === observation.root &&
-        current.rootIdentity.rootDevice === observation.rootIdentity.rootDevice &&
-        current.rootIdentity.rootInode === observation.rootIdentity.rootInode &&
-        current.rootIdentity.gitDirectory === observation.rootIdentity.gitDirectory &&
-        current.rootIdentity.gitDevice === observation.rootIdentity.gitDevice &&
-        current.rootIdentity.gitInode === observation.rootIdentity.gitInode;
-    },
-    catch: () => new Error("working tree identity unavailable"),
-  }).pipe(Effect.catch(() => Effect.succeed(false)));
+const canonicalGitRoot = Effect.fn("DirectEvent.canonicalGitRoot")((cwd: string) =>
+  discoverPhysicalWorkingTreeRoot(cwd).pipe(Effect.option));
+export const verifyObservationRoot = Effect.fn("DirectEvent.verifyRoot")(function* (observation: DirectObservation) {
+  const current = yield* discoverPhysicalWorkingTreeRoot(observation.root).pipe(Effect.option);
+  if (current._tag === "None") return false;
+  return current.value.root === observation.root &&
+    current.value.rootIdentity.rootDevice === observation.rootIdentity.rootDevice &&
+    current.value.rootIdentity.rootInode === observation.rootIdentity.rootInode &&
+    current.value.rootIdentity.gitDirectory === observation.rootIdentity.gitDirectory &&
+    current.value.rootIdentity.gitDevice === observation.rootIdentity.gitDevice &&
+    current.value.rootIdentity.gitInode === observation.rootIdentity.gitInode;
+});
 
 /** Strictly adapts the bounded native patch profile for the selected host version. */
 export const adaptCodexDirectEvent = Effect.fn("DirectEvent.adaptCodexDirectEvent")(function* (
