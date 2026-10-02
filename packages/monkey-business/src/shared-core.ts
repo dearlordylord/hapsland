@@ -8,7 +8,7 @@ import { issueSharedPre, capturedSharedPermit, configureSharedSeed, sharedClock,
 import { sessionProfile, type SessionConfig, type SessionControl, type SessionInput } from "./session.ts";
 import { doubleWords } from "./numeric-codec.ts";
 import { JEV_OUTCOME_ORDER, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
-import { declareSharedAdvicee, sharedEventScope, sharedCommandScope, configureSharedCredentials, actSharedCredentials, sharedCredentialFacts, interveneSharedRequest } from "../../../src/canonical/simulation-adapter.ts";
+import { issueSharedActions, declareSharedAdvicee, sharedEventScope, sharedCommandScope, configureSharedCredentials, actSharedCredentials, sharedCredentialFacts, interveneSharedRequest } from "../../../src/canonical/simulation-adapter.ts";
 import { readRecord } from "../../../src/canonical/boundary-schema.ts";
 import type { PreparationEvent, PreparationFrame } from "./preparation.ts";
 
@@ -104,6 +104,11 @@ export class SharedCore {
   }
   revalidate(context: unknown) { return revalidateSharedCanonical(this.state, context); }
   fence(event: CanonicalEvent, generated: boolean, context: unknown) { return fenceSharedCanonical(this.state, event, generated, context); }
-  handle(event: CanonicalEvent, index: number, context: unknown) { return driveSharedCommand(this.state, event, index, context); }
+  handle(event: CanonicalEvent, index: number, context: unknown) {
+    const handled = readRecord(driveSharedCommand(this.state, event, index, context));
+    const issued = issueSharedActions(this.state, handled.actions);
+    this.state = issued.state;
+    return { ...handled, actions: issued.actions };
+  }
   retire(operation: number) { this.state = retireSharedGraph(this.state, operation); }
 }

@@ -12,7 +12,7 @@ type GraphEntry is Data:
     position: Nat, graph: ImportGraph.Bounded}
 
 type State is Data:
-  State{canonical: Canonical.State, graphs: List<&2, GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>}
+  State{canonical: Canonical.State, graphs: List<&2, GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>}
 
 type GraphKey is Data:
   GraphKey{partition: Nat, lifetime: Nat, round: Nat, operation: Nat, unit: Nat}

@@ -245,3 +245,9 @@ export const sharedCommandScope = (state: EngineState, index: number, provided?:
   const result = scopeOption(decodeSharedValue(SharedEngine.scope_command(before, state, command, encodeSharedValue(option))));
   return result.$ === "Some" ? result.value : undefined;
 };
+
+export const issueSharedActions = (state: EngineState, actions: unknown) => {
+  sharedCheck(state);
+  const transition = SharedEngine.issue_actions(state, encodeSharedValue(actions));
+  return { state: retain(state, transition.state), actions: decodeSharedValue(transition.actions) };
+};

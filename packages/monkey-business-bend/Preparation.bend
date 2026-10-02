@@ -39,8 +39,8 @@ def install(key: Types.GraphKey, position: Nat, graph: ImportGraph.Bounded) -> T
 
 def settle(state: Types.State, +key: Types.GraphKey, position: Nat, +before: ImportGraph.Bounded, +result: ImportGraph.BoundedStep) -> Types.GraphTransition:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}:
-      Types.GraphTransition{Types.State{canonical, install(key, position, ImportGraph.bounded_state(result)) <> remove(graphs, key), scheduler, workloads, random, advicees, credentials, opening}, before, result}
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}:
+      Types.GraphTransition{Types.State{canonical, install(key, position, ImportGraph.bounded_state(result)) <> remove(graphs, key), scheduler, workloads, random, advicees, credentials, opening, retiring}, before, result}
 
 def expected(found: Maybe<&2, Types.GraphEntry>) -> Nat:
   match found:
@@ -54,9 +54,9 @@ def checked(valid: Bool, state: Types.State, key: Types.GraphKey, position: Nat,
 
 def step(+state: Types.State, +key: Types.GraphKey, +position: Nat, limits: ImportGraph.Limits, event: ImportGraph.GraphEvent) -> Types.GraphTransition:
   match state:
-    case Types.State{canonical, +graphs, scheduler, workloads, random, advicees, credentials, opening}:
+    case Types.State{canonical, +graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}:
       +found = {find(graphs, key) : Maybe<&2, Types.GraphEntry>}
-      checked(Nat.is_eq(position, expected(found)), Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening}, key, position, graph(found, limits), event)
+      checked(Nat.is_eq(position, expected(found)), Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}, key, position, graph(found, limits), event)
 
 def retire_entry(entry: Types.GraphEntry, rest: List<&2, Types.GraphEntry>, operation: Nat) -> List<&2, Types.GraphEntry>:
   match entry:

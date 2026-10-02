@@ -1,9 +1,10 @@
 export declare const PREPARATION_SOURCE_IDENTITY: string;
 export declare const SOURCE_IDENTITY: string;
-export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unknown; scheduler: unknown; workloads: unknown; random: unknown; advicees: unknown; credentials: unknown; opening: unknown }
+export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unknown; scheduler: unknown; workloads: unknown; random: unknown; advicees: unknown; credentials: unknown; opening: unknown; retiring: unknown }
 export interface Transition { $: "Transition"; state: EngineState; result: unknown }
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
 declare const Engine: {
+ issue_actions(state: EngineState, actions: unknown): { state: EngineState; actions: unknown };
  edit_attempt(state: EngineState, partition: bigint, lifetime: bigint): { state: EngineState; plan: unknown };
  scope_event(before: EngineState, after: EngineState, event: unknown, provided: unknown): unknown;
  scope_command(before: EngineState, after: EngineState, command: unknown, provided: unknown): unknown;
