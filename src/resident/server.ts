@@ -1156,9 +1156,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   const releaseDelivery = Effect.fn("ResidentRuntime.releaseDelivery")(function* (token: string) {
-    for (const advice of residentAdvice()) {
-      if (advice.delivery?.token === token &&
-          residentReleaseUnacknowledged(advice.delivery.acknowledged)) yield* residentReleaseAdviceLease(advice);
+    for (const { capability: advice, content } of (yield* residentLedger.advice.snapshots())) {
+      if (content.delivery?.token === token &&
+          residentReleaseUnacknowledged(content.delivery.acknowledged)) yield* residentReleaseAdviceLease(advice);
     }
     for (const notice of residentNoticesForToken(token)) {
       if (notice.delivery?.token === token &&
@@ -1174,17 +1174,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const finishPermit = surface === "stop" && residentComposedDelivery.hasFinishPermit(token);
     if (finishPermit && residentComposedDelivery.isFinishAuthorized(token)) return { status: "empty" };
     if (!residentComposedDelivery.canBeginExistingToken(surface, token)) return { status: "empty" };
-    const advice = residentAdvice().filter((item) =>
-      item.delivery?.token === token && item.delivery.leaseUntil > now &&
-      item.delivery.findings.length > 0);
+    const advice = (yield* residentLedger.advice.snapshots()).filter(({ content }) =>
+      content.delivery?.token === token && content.delivery.leaseUntil > now &&
+      content.delivery.findings.length > 0);
     const selectionValid = !finishPermit || residentComposedDelivery.finishSelectionMatches(token,
-      advice.map((item) => ({ id: item.id, unit: item.canonicalOperationId,
-        findings: item.delivery?.findings ?? [] })));
+      advice.map(({ capability, content }) => ({ id: capability.id, unit: capability.canonicalOperationId,
+        findings: content.delivery?.findings ?? [] })));
     let allValid = selectionValid;
-    for (const item of advice) {
+    for (const { capability: item, content } of advice) {
       if (!allValid) break;
       const round = item.round;
-      const delivery = item.delivery;
+      const delivery = content.delivery;
       const unit = item.workUnitId;
       const decision = residentLedger.transition({ kind: "deliverySubmissionCandidateCheck", facts: {
         roundActive: residentRoundActive(round),
@@ -1209,14 +1209,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return { status: "empty" };
     }
     if (surface === "stop") {
-      const group = adviceePartition(advice[0]!.observation.root, advice[0]!.observation.advicee);
+      const group = adviceePartition(advice[0]!.capability.observation.root, advice[0]!.capability.observation.advicee);
       if (!residentComposedDelivery.authorizeFinishOutput(group, token)) return { status: "empty" };
     }
-    for (const item of advice) {
+    for (const { capability: item, content } of advice) {
       if (finishPermit) continue;
       if (!residentComposedDelivery.beginSubmission(
         item.id, adviceePartition(item.observation.root, item.observation.advicee),
-        token, item.delivery?.findings ?? [], surface, now, item.canonicalOperationId,
+        token, content.delivery?.findings ?? [], surface, now, item.canonicalOperationId,
       )) {
         yield* runtime.releaseComposedSubmission(token);
         return { status: "empty" };

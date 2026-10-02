@@ -153,7 +153,8 @@
     "Advice retirement and expiry compose named Effects; collection, statistics, round close and shutdown callers yield retirement; synchronous adviceCommit removed, all advice mutations now compose Effects",
     "Explicit AdviceRecords.current Effect reads immutable content from one identity-fenced snapshot; lease checking consumes the snapshot directly",
     "Finding selection readiness and source revalidation read advice content through explicit Effect snapshots rather than live capability getters",
-    "Advice batch snapshot Effect captures ordered capability/content pairs in one Ref read; acknowledgement and finalization consume immutable batch content without advice getters"
+    "Advice batch snapshot Effect captures ordered capability/content pairs in one Ref read; acknowledgement and finalization consume immutable batch content without advice getters",
+    "Delivery release and composed submission authorization consume immutable advice batch snapshots, removing live delivery getters from these workflows"
   ],
   "verification": [
     {
@@ -1936,6 +1937,15 @@
       "build": true,
       "ticketBoundaryCheck": true,
       "case": "Reusable batch read observes updates at execution; older frozen batch content survives updates and retirement"
+    },
+    {
+      "stage": "advice-submission-release-snapshots",
+      "testsPassed": 115,
+      "testFiles": 3,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Delivery release and composed submission consumers; other getter callers remain"
     }
   ],
   "next": [

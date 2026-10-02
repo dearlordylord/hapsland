@@ -159,3 +159,9 @@ if (!state.includes('snapshots: Effect.fn("AdviceRecords.snapshots")') ||
     /residentAdvice\(\)|item\.(evaluations|findings)/.test(deliverySettlement)) {
   throw new Error("acknowledgement and finalization must inspect explicit advice batch snapshots");
 }
+
+const submissionSnapshots = server.slice(server.indexOf("  const releaseDelivery ="), server.indexOf("  const releaseComposedSubmission ="));
+if (!submissionSnapshots.includes("yield* residentLedger.advice.snapshots()") ||
+    /residentAdvice\(\)|(?:advice|item)\.delivery/.test(submissionSnapshots)) {
+  throw new Error("delivery release and submission must inspect explicit advice snapshots");
+}
