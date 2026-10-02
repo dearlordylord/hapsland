@@ -115,8 +115,10 @@ def retired_work(found: Maybe<&2, Canonical.Work>, +advice: Nat) -> Handled:
 
 def retirement(state: Canonical.State, candidate: Maybe<&2, Candidate>) -> Handled:
   match candidate:
-    case Some{Candidate{+p, +advice, +r, _, _, _}}:
-      retired_work(Canonical.find_work(p, 1n, r, advice, work_list(state)), advice)
+    case Some{Candidate{_, +advice, _, _, _, _}}:
+      # Advice is the globally unique operation identity; retain the work's real
+      # attribution rather than assuming an initial advicee lifetime.
+      retired_work(find_operation(work_list(state), advice), advice)
     case None{}: Handled{False{}, Nil{}}
 
 def collection_surface(background: Bool) -> Handoff.Surface:

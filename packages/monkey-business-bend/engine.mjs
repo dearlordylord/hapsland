@@ -12795,10 +12795,8 @@ function $Driver$retired_work$(_found_0, _advice_0) {
 function $Driver$retirement$(_state_0, _candidate_0) {
   if (_candidate_0.$ === "Some") {
     const _t_0 = _candidate_0["value"];
-    const _p_0 = _t_0["partition"];
     const _advice_0 = _t_0["advice"];
-    const _r_0 = _t_0["round"];
-    return $Driver$retired_work$(($$$$047agent$045flow$045bend$047Canonical$find_work$(_p_0, 1, _r_0, _advice_0, ($Driver$work_list$(_state_0)))), _advice_0);
+    return $Driver$retired_work$(($Driver$find_operation$(($Driver$work_list$(_state_0)), _advice_0)), _advice_0);
   } else {
     return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
   }
@@ -13509,7 +13507,7 @@ function $Pair$snd$(_p_0) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:3f980f45a41a2f83e772829db39ef566405d519b58b78f49a4a5ab00188c37a6";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:07adfdc2f5a8131fb8cfc6a6e7a39fe17d9770e787a5af65f10e887e553f3ddd";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:c7b1564b7bf08cc99f56c2d298050218c178c53ea42e9cfecdecba373ae47547";
 
 const facts = value => {
