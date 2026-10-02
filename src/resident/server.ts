@@ -3050,10 +3050,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* verifyRemovableSocket(owner.paths).pipe(
         Effect.mapError(() => new ResidentAdapterError({ operation: "verify removable socket" })));
       yield* residentAdapter("remove stale socket", () => rm(owner.paths.socket, { force: true }));
+      const runSocket = Effect.runForkWith(yield* Effect.context());
       const server = createServer((socket) => {
         if (!server.listening) { socket.destroy(); return; }
         // This native callback only starts a fiber in the socket owner scope.
-        Effect.runFork(Effect.forkIn(residentAccept(socket), residentIpcScope, { startImmediately: true }));
+        runSocket(Effect.forkIn(residentAccept(socket), residentIpcScope, { startImmediately: true }));
       });
       server.maxConnections = MAX_IPC_CONNECTIONS;
       yield* Effect.callback<void, ResidentAdapterError>((resume) => {

@@ -62,7 +62,7 @@ while (pending.length > 0) {
         const operation = callee.childForFieldName("property")?.text;
         if (operation === undefined) continue;
         effectCalls[operation] = (effectCalls[operation] ?? 0) + 1;
-        if (["runPromise", "runSync", "runFork"].includes(operation)) runtimeEntries.push({ operation, line });
+        if (["runPromise", "runSync", "runFork", "runForkWith"].includes(operation)) runtimeEntries.push({ operation, line });
       }
     }
   }

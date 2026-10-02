@@ -128,6 +128,7 @@
     "reproducer": "node evidence/effect4-migration/source-inventory.mjs",
     "moduleCount": 133,
     "limitations": "Direct AST syntax only; aliases and dynamic imports need manual review. Tree-sitter reports one unsupported export type * at function-analyzer.ts:3; that eight-line pure language adapter was inspected manually. TypeScript 7 package exposes no legacy JS compiler API; inventory uses existing native Tree-sitter with no added dependency.",
-    "followup": "Inspect native IPC callback runFork service inheritance: request effects read Config and Clock, and callback currently enters default runtime. Full source suite is running on 7c69ca0."
-  }
+    "followup": "Native IPC listener now captures caller Context for runForkWith; regression reproduced unsupported hello before fix and validates ready response plus caller Clock/ConfigProvider after fix. Focused 23 tests and build pass; final suite remains required."
+  },
+  "currentProductionFollowup": "Backend monotonic duration and IPC listener context changed after retained 64c154d source suite/receipts. Focused checks pass; final full suite on latest source is required. The intervening 7c69ca0 full suite fails only five 5000ms installation fixture timeouts, recorded separately."
 }

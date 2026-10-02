@@ -2232,7 +2232,7 @@
       "path": "src/resident/server.ts",
       "parserHasError": false,
       "parserErrors": [],
-      "sha256": "533d8ec117457d7161e5cb4da0d80b5df098f39d346c9bfb89ff49d20046f663",
+      "sha256": "21b24d603dfb3dd31b04a2690eb7d79e28eff7218bc01447eb8383aa67f50f43",
       "nativeImports": [
         "node:crypto",
         "node:fs",
@@ -2255,8 +2255,8 @@
       ],
       "runtimeEntries": [
         {
-          "operation": "runFork",
-          "line": 3056
+          "operation": "runForkWith",
+          "line": 3053
         }
       ],
       "asyncFunctions": [],
@@ -2291,7 +2291,8 @@
         "forkIn": 3,
         "sleep": 4,
         "uninterruptible": 4,
-        "runFork": 1,
+        "runForkWith": 1,
+        "context": 1,
         "forkChild": 1,
         "cached": 1,
         "map": 1

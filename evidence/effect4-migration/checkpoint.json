@@ -4139,5 +4139,35 @@
     },
     "regression": "Deterministic provider shifts epoch clock backward and forward by 60000ms while monotonic time advances 37.5ms; both return durationMs=37.5.",
     "limitations": "Production changed after previously retained full suite and package receipts. Focused tests and build cover the clock change; a final complete source suite is next."
+  },
+  "fullSuiteAfterBackendClock": {
+    "subjectCommit": "7c69ca0",
+    "npmTest": "failed",
+    "passedFiles": 124,
+    "failedFiles": 1,
+    "skippedFiles": 1,
+    "passedTests": 1286,
+    "failedTests": 5,
+    "skippedTests": 2,
+    "durationSeconds": 413.1,
+    "failure": "Five newly appended Codex update/reinstall journeys ran outside existing 30000ms installation group, inheriting default 5000ms test timeout. Recorded output identifies Test timed out in 5000ms. Product deadlines, budgets and assertions are unchanged.",
+    "followup": "Group all appended native update/reinstall journeys under the existing 30000ms installation fixture convention and rerun."
+  },
+  "nativeIpcCallerServices": {
+    "status": "focused-pass",
+    "scope": "Native socket callback captures listener Context and starts the scoped request fiber through runForkWith. Request fibers retain caller Clock and ConfigProvider, and still finalize in the same resident IPC scope.",
+    "regression": "Before fix, synthetic ConfigProvider available at listener was lost at native request: hello returned unsupported. After fix, native request returns ready and response control observes caller epoch 42424 and listener-owned setting.",
+    "checks": {
+      "typecheck": "pass",
+      "build": "pass",
+      "focusedFiles": 4,
+      "focusedTestsPassed": 23,
+      "durationSeconds": 2.49,
+      "productionAuthorityGuard": "pass",
+      "reviewBoundaryGuard": "pass",
+      "directEventManifest": "pass"
+    },
+    "initialFixtureFailure": "Spreading live Clock omitted prototype methods; fixture now delegates every Clock method explicitly. That fixture failure was corrected before the genuine regression was reproduced.",
+    "limitations": "Focused native Linux socket case; latest full suite remains required after production change."
   }
 }
