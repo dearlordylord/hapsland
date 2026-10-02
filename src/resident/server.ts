@@ -612,7 +612,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     for (const notice of (yield* residentNotices.entries()).map(([, value]) => value)) {
       if (notice.pending?.delivery !== undefined) live.add(notice.pending.delivery.token);
     }
-    residentLedger.pruneCollectionTokenIds(live);
+    yield* residentLedger.pruneCollectionTokenIds(live);
   }, Effect.uninterruptible);
 
   const residentRoundSnapshot = Effect.fn("ResidentRuntime.roundSnapshot")(function* (round: RoundWork) {
@@ -3063,7 +3063,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       );
       yield* Scope.close(residentIpcScope, Exit.void);
       if (endpointClosed !== undefined) yield* Fiber.join(endpointClosed);
-      residentLedger.clear();
+      yield* residentLedger.clear();
       if (server !== undefined) {
         residentServer = undefined;
         yield* residentAdapter("remove owned socket", () => rm(owner.paths.socket, { force: true }));

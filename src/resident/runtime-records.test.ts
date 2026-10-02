@@ -65,7 +65,7 @@ it.effect("keeps connection ownership and immutable statistics through physical 
   expect(snapshot.peakLedgerBytes).toBe(0);
   owner.release(reservation);
   yield* owner.runtime.close();
-  owner.clear();
+  yield* owner.clear();
   expect((yield* owner.runtime.snapshot())).toMatchObject({
     lifecycle: "closed", connections: 1, rejectedCapacity: 1,
     peakLedgerBytes: 20, maxMaterializedPreparedUnits: 3,
@@ -111,6 +111,6 @@ it.effect("records transient reservation peaks without a server sampling checkpo
   expect(owner.snapshot().bytes).toBe(0);
   expect(owner.reserve("other", 1_000_000_000, "preparation")).toBeUndefined();
   expect(owner.resize(concurrent, 1_000)).toBe(false);
-  owner.clear();
+  yield* owner.clear();
   expect((yield* owner.runtime.snapshot()).peakLedgerBytes).toBe(205);
 }));

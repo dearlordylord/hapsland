@@ -17,7 +17,7 @@ describe("resident logical capacity ledger", () => {
     expect(Effect.runSync(ledger.reservationSnapshot(issued))?.purpose).toBe("storedResult");
     expect(ledger.snapshot().bytes).toBe(30);
 
-    ledger.clear();
+    Effect.runSync(ledger.clear());
     const replacement = ledger.reserve("other-agent", 90, "reviewUnit");
     expect(replacement?.id).toBe(issued.id);
     expect(Effect.runSync(ledger.reservationSnapshot(issued))).toBeUndefined();
@@ -87,12 +87,12 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.transition({ kind: "collectionClaimBackground", group: partition,
       token: live, active: true, capacity: 1 }).commands[0]?.kind).toBe("collectionBackgroundClaimed");
     for (let index = 0; index < 1000; index++) ledger.collectionTokenId(`finished-${index}`);
-    ledger.pruneCollectionTokenIds(new Set());
+    Effect.runSync(ledger.pruneCollectionTokenIds(new Set()));
     expect(ledger.collectionTokenIdentityCount()).toBe(1);
     expect(ledger.collectionTokenId("live")).toBe(live);
     expect(ledger.transition({ kind: "collectionReleaseBackground", group: partition,
       token: live }).commands[0]?.kind).toBe("collectionBackgroundReleased");
-    ledger.pruneCollectionTokenIds(new Set());
+    Effect.runSync(ledger.pruneCollectionTokenIds(new Set()));
     expect(ledger.collectionTokenIdentityCount()).toBe(0);
     expect(MAX_COLLECTION_TOKEN_IDENTITIES).toBeGreaterThan(1000);
   });
@@ -347,7 +347,7 @@ describe("resident logical capacity ledger", () => {
     const ledger = makeCapacityLedger();
     const running = ledger.reserve("one", 10, "reviewUnit");
     expect(running).toBeDefined();
-    ledger.clear();
+    Effect.runSync(ledger.clear());
     expect(ledger.snapshot()).toEqual({ items: 0, bytes: 0, partitions: {} });
     if (running !== undefined) expect(ledger.release(running)).toBe(false);
   });
@@ -452,7 +452,9 @@ effectIt.effect("reads reservation metadata on execution and fences foreign or r
   expect(owner.resize(reservation, 20, "storedResult")).toBe(true);
   expect(owner.resize(reservation, 21)).toBe(true);
   expect(yield* read).toEqual({ bytes: 21, purpose: "storedResult" });
-  owner.clear();
+  const clear = owner.clear();
+  expect(yield* read).toEqual({ bytes: 21, purpose: "storedResult" });
+  yield* clear;
   const replacement = owner.reserve("fixture", 30, "preparation")!;
   expect(replacement.id).toBe(reservation.id);
   expect(yield* read).toBeUndefined();

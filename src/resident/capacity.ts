@@ -285,6 +285,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    pruneCollectionTokenIds: Effect.fn("Capacity.pruneCollectionTokenIds")((nativeLive: ReadonlySet<string>) => commitAllEffect((draft, records) => [pruneCollectionTokenIds(draft, nativeLive), records])),
     reservationSnapshot: Effect.fn("Capacity.reservationSnapshot")((capability: CapacityReservation) => Ref.get(state).pipe(Effect.map((snapshot) => {
       const record = snapshot.reservations.get(capability.id);
       return record?.capability === capability ? Object.freeze({ bytes: record.bytes, purpose: record.purpose }) : undefined;
@@ -339,13 +340,13 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     rounds,
     ticketUnits,
     tickets,
-    clear: () => commitAll((draft, records) => {
+    clear: Effect.fn("ResidentState.clear")(() => commitAllEffect((draft, records) => {
       const dispatch = records.dispatch;
       if (dispatch.entries.size !== 0) throw new Error("resident state cannot clear outstanding native dispatch jobs");
       if (records.adviceCaptures.size !== 0) throw new Error("resident state cannot clear outstanding advice captures");
       return [clear(draft), { runtime: records.runtime, adviceCaptures: new Map(), advice: initialAdviceRecords(), reuse: initialEvaluationReuse<Pending>(), delivery: initialDelivery(), revision: initialRevision(), ticketUnits: initialTicketUnits(), tickets: initialTicketRecords(), joined: initialJoinedReviews(), rounds: initialRoundRecords(), notices: initialNoticeRecords(),
         dispatch: { ...initialDispatchRegistry<DispatchKey, DispatchValue>(), executorAttached: dispatch.executorAttached } }];
-    }),
+    })),
     revision: (() => {
       const revisionChange = <A>(operation: (operations: RevisionOperations) => A): Parameters<typeof commitAllEffect<A>>[0] =>
         (draft, records) => {

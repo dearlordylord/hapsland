@@ -55,7 +55,7 @@ it.effect("shares notice views and clears native and canonical ownership togethe
   const removals = yield* Effect.forEach(Array.from({ length: 16 }), () => second.remove(pending.id), { concurrency: "unbounded" });
   expect(removals.filter(Boolean)).toHaveLength(1);
   expect((yield* first.entries())[0]?.[1].pending).toBeUndefined();
-  owner.clear();
+  yield* owner.clear();
   expect((yield* first.entries())).toEqual([]);
   expect((yield* second.entries())).toEqual([]);
   expect(owner.canonicalProjection().notices).toEqual([]);

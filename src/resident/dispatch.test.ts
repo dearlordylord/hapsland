@@ -145,7 +145,7 @@ it.effect("refuses to clear a physical job and permits one executor per owner", 
     yield* Deferred.await(started);
     const before = dispatcher.ledger.canonicalProjection();
     const native = yield* dispatcher.ledger.dispatch.read;
-    expect(() => dispatcher.ledger.clear()).toThrow("resident state cannot clear outstanding native dispatch jobs");
+    expect(() => Effect.runSync(dispatcher.ledger.clear())).toThrow("resident state cannot clear outstanding native dispatch jobs");
     expect(dispatcher.ledger.canonicalProjection()).toEqual(before);
     expect(yield* dispatcher.ledger.dispatch.read).toBe(native);
     const duplicate = yield* makeDispatcher<string, number>(dispatcher.ledger,
@@ -156,7 +156,7 @@ it.effect("refuses to clear a physical job and permits one executor per owner", 
     yield* Deferred.succeed(release, undefined);
     yield* dispatcher.whenIdle();
   }
-  dispatcher.ledger.clear();
+  yield* dispatcher.ledger.clear();
   expect((yield* dispatcher.ledger.dispatch.read).entries.size).toBe(0);
   const duplicateAfterClear = yield* makeDispatcher<string, number>(dispatcher.ledger,
     () => ({ operation: 1, round: 1 }), () => Effect.void).pipe(Effect.exit);

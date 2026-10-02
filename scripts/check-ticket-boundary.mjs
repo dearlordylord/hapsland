@@ -280,3 +280,9 @@ if (state.includes("purpose: CapacityPurpose = reservation.purpose") || state.in
 if (/Ref.getUnsafe|get bytes\(\)|get purpose\(\)|readReservation/.test(state)) {
   throw new Error("reservation capabilities must not expose live state getters or unsafe Ref lookup");
 }
+
+if (!state.includes('clear: Effect.fn("ResidentState.clear")(() => commitAllEffect(') ||
+    !state.includes('pruneCollectionTokenIds: Effect.fn("Capacity.pruneCollectionTokenIds")') ||
+    !server.includes('yield* residentLedger.clear()') || !server.includes('yield* residentLedger.pruneCollectionTokenIds(live)')) {
+  throw new Error("resident clearing and token pruning must compose atomic Effects");
+}

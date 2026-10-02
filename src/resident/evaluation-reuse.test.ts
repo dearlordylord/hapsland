@@ -143,7 +143,7 @@ describe("resident evaluation identity", () => {
     const retainedSnapshot = Effect.runSync(snapshotRead);
     expect(retainedSnapshot.pending).toBe(1);
     expect(Effect.runSync(first.snapshot())).toEqual(Effect.runSync(second.snapshot()));
-    ledger.clear();
+    Effect.runSync(ledger.clear());
     expect(Effect.runSync(first.hasPending(key))).toBe(false);
     expect(Effect.runSync(second.pending(key))).toBeUndefined();
     expect(Effect.runSync(pendingRead)).toBeUndefined();

@@ -138,7 +138,7 @@ it.effect("retires canonical and native ownership together and fences identity r
   expect(owner.currentRoundId("agent")).toBeUndefined();
   expect((yield* owner.rounds.entries())).toEqual([]);
   expect(owner.canonicalProjection().rounds).toEqual([]);
-  owner.clear();
+  yield* owner.clear();
   const nextGeneration = (yield* owner.delivery().admitEdit("agent", "next", 0));
   if (nextGeneration === undefined) throw new Error("fixture edit admission refused");
   const next = (yield* owner.rounds.bind("agent", nextGeneration, activity, "next"));
@@ -178,13 +178,13 @@ it.effect("retains round metadata until outstanding physical dispatch work settl
     round.controller.abort();
     (yield* snapshotRound(owner.rounds, round)).work.controller.abort();
     yield* dispatch.close();
-    expect(() => owner.clear()).toThrow("outstanding native dispatch jobs");
+    expect(() => Effect.runSync(owner.clear())).toThrow("outstanding native dispatch jobs");
     expect((yield* owner.rounds.get("agent"))).toBe(round);
     expect((yield* owner.rounds.activity(round))?.root).toBe("/fixture");
     expect((yield* dispatch.snapshot()).running).toBe(1);
     yield* Deferred.succeed(finish, undefined);
     yield* dispatch.whenIdle();
-    owner.clear();
+    yield* owner.clear();
     expect((yield* owner.rounds.entries())).toEqual([]);
     expect((yield* owner.rounds.activity(round))).toBeUndefined();
     expect((yield* owner.rounds.policyWork(round)).unfinished()).toBe(0);

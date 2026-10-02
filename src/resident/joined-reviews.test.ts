@@ -84,7 +84,7 @@ it.effect("clears joined membership with its owner and keeps independent acquisi
   const joined = first.joinedReviews(measure);
   yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, revision });
   expect(yield* second.joinedReviews(measure).hasAdmission(1)).toBe(false);
-  first.clear();
+  yield* first.clear();
   expect(yield* joined.hasAdmission(1)).toBe(false);
   expect(yield* joined.settle("key", "clear")).toEqual([]);
 }));

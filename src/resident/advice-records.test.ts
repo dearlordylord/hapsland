@@ -110,7 +110,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
 it.effect("fences a stale capability after the owner clears and advice identity is reused", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
   const advice = yield* owner.advice.insert(initial);
-  owner.clear();
+  yield* owner.clear();
   const next = yield* fixture(owner);
   const replacement = yield* owner.advice.insert(next.initial);
   expect(yield* owner.advice.revise(advice, [], [])).toBe(false);
