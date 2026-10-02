@@ -33,7 +33,7 @@ it.effect("reuses one native revision and accounts for independent members", () 
   yield* owner.revision.release(joined.revision);
   expect(yield* owner.revision.count()).toBe(0);
   expect(owner.revision.current(first.revision, item)).toBe(false);
-  expect(owner.revision.generation(first.revision.subject)).toBe(0);
+  expect(yield* owner.revision.generation(first.revision.subject)).toBe(0);
 }));
 
 it.effect("replaces only the matching subject and ignores an old generation's release", () => Effect.gen(function* () {
@@ -133,4 +133,20 @@ it.effect("reads revision count at execution without changing the canonical snap
   expect(owner.canonicalProjection()).toEqual(before);
   yield* owner.revision.release(revision);
   expect(yield* count).toBe(0);
+}));
+
+it.effect("reads current generation through a reusable snapshot query", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const item = prepared();
+  const first = (yield* owner.revision.register("agent", item, true, "first")).revision;
+  const generation = owner.revision.generation(first.subject);
+  expect(yield* generation).toBe(first.generation);
+  const replacement = (yield* owner.revision.register("agent", prepared("type Count = string"), true, "second")).revision;
+  const before = owner.canonicalProjection();
+  expect(yield* generation).toBe(replacement.generation);
+  expect(owner.canonicalProjection()).toEqual(before);
+  yield* owner.revision.release(first);
+  expect(yield* generation).toBe(replacement.generation);
+  yield* owner.revision.release(replacement);
+  expect(yield* generation).toBe(0);
 }));

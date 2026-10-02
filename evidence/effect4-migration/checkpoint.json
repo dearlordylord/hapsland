@@ -135,7 +135,8 @@
     "Linux contract probe uses scoped runtime acquisition and current accepted contracts; deterministic preparation holds verify queued and running deadline cleanup for both fixture hosts",
     "Revision registration is a named atomic Effect over the shared owner; production and fixture callers compose it directly, with deferred execution and sixteen competing members covered",
     "Revision releases and supersession checks compose named atomic Effects; runtime cleanup yields releases in uninterruptible unit cleanup and Effect finalizers",
-    "Revision count composes as a named Effect in runtime statistics; count and supersession checks use one Ref snapshot and private Bend query drafts without publishing state"
+    "Revision count composes as a named Effect in runtime statistics; count and supersession checks use one Ref snapshot and private Bend query drafts without publishing state",
+    "Revision generation uses a named snapshot-read Effect; finding selection and final handoff offer construction compose generation queries directly as Effects"
   ],
   "verification": [
     {
@@ -1737,12 +1738,21 @@
       "build": true,
       "revisionBoundaryCheck": true,
       "case": "Reusable count Effect observes execution-time revision state; count and supersession leave canonical snapshot unchanged"
+    },
+    {
+      "stage": "revision-generation-effects",
+      "testsPassed": 131,
+      "testFiles": 5,
+      "typecheck": true,
+      "build": true,
+      "revisionBoundaryCheck": true,
+      "case": "Reusable generation query observes replacement and release at execution, preserves canonical snapshot, and ignores old member release"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Finish revision generation/current reads and remaining synchronous domain commit/read bridges; count and supersession now read Effects from a single snapshot",
+    "Finish revision current checks, including composed submission and revalidation callers; remove the last revision synchronous commit bridge, then remaining domain bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",

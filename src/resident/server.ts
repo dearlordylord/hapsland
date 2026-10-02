@@ -853,11 +853,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         .sort((left, right) => residentCollectionOrder(left, right))
         .map((item) => item.id);
       const token = collectionToken = randomUUID();
-      const fittingFindings = (
+      const fittingFindings = Effect.fn("ResidentRuntime.fittingFindings")(function* (
         retained: ReadonlyArray<Finding>, candidates: ReadonlyArray<Finding>,
         advice: Advice, reportLimit: boolean,
-      ) => {
-        const facts = residentFindingSelectionFacts(advice, partition, credentialGeneration, residentNow(), composed);
+      ) {
+        const facts = yield* residentFindingSelectionFacts(advice, partition, credentialGeneration, residentNow(), composed);
         const onLimited = reportLimit
           ? () => residentRecordOperationalFailure(advice.observation, "output-limit")
           : undefined;
@@ -868,7 +868,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 facts, onLimited, residentCollectionFindingOffer)
           : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode,
             facts, onLimited, residentCollectionFindingOffer);
-      };
+      });
       let handoffFindings: Array<Finding> = [];
       const selected: Array<Advice> = [];
       let selectedFindings: Array<Finding> = [];
@@ -914,7 +914,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           else residentReleaseAdviceLease(advice);
           continue;
         }
-        const fitting = fittingFindings(selectedFindings, advice.findings.filter((finding) =>
+        const fitting = yield* fittingFindings(selectedFindings, advice.findings.filter((finding) =>
           !residentComposedDelivery.suppresses(advice.id,
             adviceePartition(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
         const fittingRoute = residentCandidateRoute({ kind: "postValidationCheck",
@@ -970,7 +970,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             else residentReleaseAdviceLease(advice);
             continue;
           }
-          const fitting = fittingFindings(finalFindings, advice.findings.filter((finding) =>
+          const fitting = yield* fittingFindings(finalFindings, advice.findings.filter((finding) =>
             !residentComposedDelivery.suppresses(advice.id,
               adviceePartition(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
           const fittingRoute = residentCandidateRoute({ kind: "postValidationCheck",
@@ -1024,11 +1024,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             residentLedger.advice.updateDelivery(advice, token, { leaseUntil: handoffNow + DELIVERY_LEASE_MS });
             handoff.push(advice);
           }
-          const offers = handoff.flatMap((advice) => (advice.delivery?.findings ?? []).map((finding) => ({
-            advice,
-            finding,
-            facts: residentFindingSelectionFacts(advice, partition, credentialGeneration, handoffNow, composed),
-          })));
+          const offers = (yield* Effect.forEach(handoff, Effect.fn("ResidentRuntime.handoffOffers")(function* (advice) {
+            const facts = yield* residentFindingSelectionFacts(advice, partition, credentialGeneration, handoffNow, composed);
+            return (advice.delivery?.findings ?? []).map((finding) => ({ advice, finding, facts }));
+          }))).flat();
           const accepted = new Set(selectFittingCurrentFindingIndices(offers,
             ticket === undefined ? claudeSurface === undefined ? "codex" :
               claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
@@ -1343,10 +1342,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
 
-  function residentFindingSelectionFacts(
+  const residentFindingSelectionFacts = Effect.fn("ResidentRuntime.findingSelectionFacts")(function* (
     advice: Advice, partition: string, credentialGeneration: number | null,
     now: number, composed: boolean,
-  ): FindingSelectionFacts {
+  ): Effect.fn.Return<FindingSelectionFacts> {
     const partitionId = residentLedger.knownPartitionId(partition);
     if (partitionId === undefined) throw new Error("finding selection lost its resident partition identity");
     return {
@@ -1354,7 +1353,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       round: composed ? residentComposedDelivery.generation(partition) : 0,
       unit: advice.revision.generation,
       snapshot: advice.revision.generation,
-      currentSnapshot: residentCurrentRevisionGeneration(advice.revision.subject),
+      currentSnapshot: yield* residentLedger.revision.generation(advice.revision.subject),
       credential: advice.credentialGeneration ?? 0,
       currentCredential: credentialGeneration ?? 0,
       ageMs: Math.floor(Math.max(0, now - advice.pendingAt)),
@@ -1362,9 +1361,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         (composed && advice.round !== undefined
           ? advice.round.generation === residentComposedDelivery.generation(partition) : true),
     };
-  }
-
-  function residentCurrentRevisionGeneration(subject: string): number { return residentLedger.revision.generation(subject); }
+  });
 
   const residentRegisterRevision = Effect.fn("ResidentRuntime.registerRevision")(function* (partition: string, prepared: PreparedUnit, addMember: boolean): Effect.fn.Return<WorkRevision> {
     const { revision, replaced } = yield* residentLedger.revision.register(partition, prepared, addMember, randomUUID());
@@ -1377,7 +1374,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentRetireSuperseded = Effect.fn("ResidentRuntime.retireSuperseded")(function* (subject: string, generation: number, includeTickets: boolean) {
     const superseded = (revision: WorkRevision) => residentLedger.revision.superseded(subject, revision);
-    if (residentCurrentRevisionGeneration(subject) !== generation) throw new Error("canonical revision changed");
+    if ((yield* residentLedger.revision.generation(subject)) !== generation) throw new Error("canonical revision changed");
     if (includeTickets) {
       for (const unit of (yield* residentLedger.ticketUnits.values())) {
         const revision = (yield* residentLedger.ticketUnits.current(unit)).revision;
@@ -2764,10 +2761,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           residentReleaseAdviceLease(advice);
         }
       }
-      const offers = handoff.flatMap((advice) => (advice.delivery?.findings ?? []).map((finding) => ({
-        finding,
-        facts: residentFindingSelectionFacts(advice, partition, generation, now, composed),
-      })));
+      const offers = (yield* Effect.forEach(handoff, Effect.fn("ResidentRuntime.finalOffers")(function* (advice) {
+        const facts = yield* residentFindingSelectionFacts(advice, partition, generation, now, composed);
+        return (advice.delivery?.findings ?? []).map((finding) => ({ finding, facts }));
+      }))).flat();
       const claudeSurface = composed && ticket === undefined && request.advicee.host === "claude-code"
         ? request.mode === "turn-end" ? "stop" : "background" : undefined;
       const accepted = new Set(selectFittingCurrentFindingIndices(offers,

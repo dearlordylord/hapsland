@@ -33,7 +33,7 @@ for (const operation of ["release"]) {
   }
 }
 
-for (const operation of ["count", "superseded"]) {
+for (const operation of ["count", "generation", "superseded"]) {
   if (!capacity.includes(`${operation}: Effect.fn("RevisionRecords.${operation}")`) ||
       !capacity.includes(`revisionRead((operations) => operations.${operation}(...args))`)) {
     throw new Error(`revision ${operation} must read through its Effect snapshot`);

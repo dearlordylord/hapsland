@@ -367,7 +367,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       return {
         count: Effect.fn("RevisionRecords.count")((...args: Parameters<RevisionOperations["count"]>) =>
           revisionRead((operations) => operations.count(...args))),
-        generation: (...args: Parameters<RevisionOperations["generation"]>) => revisionCommit((operations) => operations.generation(...args)),
+        generation: Effect.fn("RevisionRecords.generation")((...args: Parameters<RevisionOperations["generation"]>) =>
+          revisionRead((operations) => operations.generation(...args))),
         register: Effect.fn("RevisionRecords.register")((...args: Parameters<RevisionOperations["register"]>) =>
           commitAllEffect(revisionChange((operations) => operations.register(...args)))),
         superseded: Effect.fn("RevisionRecords.superseded")((...args: Parameters<RevisionOperations["superseded"]>) =>
