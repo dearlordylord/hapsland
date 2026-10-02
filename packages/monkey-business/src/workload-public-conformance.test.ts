@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
-import { createRun, restoreReplay, type Run, type RunConfig } from "./index.ts";
+import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Run, type RunConfig } from "./index.ts";
 import type { OutcomeWeights } from "./outcomes.ts";
+import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 const weights = (selected: Partial<OutcomeWeights>): OutcomeWeights => ({
   neverSent: 0, finding: 0, clear: 0, backendFailure: 0, timeout: 0, interrupted: 0,
@@ -111,3 +112,88 @@ it("keeps an issued request's outcome and deadline across a profile control", ()
   expect(run.projection.dispatch.running).toEqual([]);
   expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
 });
+
+it("orders equal-time advicees identically under stepping and bounded advancement", () => {
+  const config: RunConfig = { ...session, session: undefined,
+    sessions: ["first", "second"].map(agent => ({ ...session.session, agent })),
+    lifecycles: { permits: { adviceeLimit: 4, residentLimit: 8, holdMs: 1, lifetimeMs: 100 } },
+  };
+  const batched = createRun(config);
+  batched.advance({ untilTime: 11, maxEvents: 100 });
+  expect(batched.observations.filter(frame => frame.event.kind === "issuePermit")
+    .map(frame => [frame.time, frame.agent])).toEqual([[10, "first"], [10, "second"]]);
+  const stepped = createRun(config);
+  for (let count = 0; count < batched.eventCount; count++) expect(stepped.step()).toBeDefined();
+  expect(stepped.observations).toEqual(batched.observations);
+  for (const run of [batched, stepped]) {
+    run.applyControl({ kind: "suspendArrivals", suspended: true });
+    run.advance({ untilTime: 100, maxEvents: 500 });
+  }
+  expect(stepped.observations).toEqual(batched.observations);
+  expect(batched.observations.filter(frame => frame.commands.some(command => command.kind === "permitConsumed"))
+    .map(frame => [frame.time, frame.agent])).toEqual([[40, "first"], [40, "second"]]);
+  expect(restoreReplay(batched.exportReplay()).observe()).toEqual(batched.observe());
+});
+
+it("preserves fractional scaling without making zero-weight outcomes reachable", () => {
+  const run = createRun({ seed: 7, inputs, outcomeWeights: weights({ finding: .25, clear: .75 }) });
+  const scaled = createRun({ seed: 7, inputs, outcomeWeights: weights({ finding: 25, clear: 75 }) });
+  drain(run);
+  drain(scaled);
+  expect(outcomes(run)).toEqual(outcomes(scaled));
+  expect(new Set(outcomes(run))).toEqual(new Set(["finding", "clear"]));
+  expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
+});
+
+it("executes an original continuous arrival through the native shared workload and business driver", () => {
+  const native: number[][] = runWorkloadNative(new URL(
+    "../../monkey-business-bend/conformance/workload-scenario.bend", import.meta.url));
+  expect(native.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
+  expect(native.filter(row => row[0] === 21).map(row => row.slice(1, 6))).toEqual([
+    [10, 0, 1, 100, 20], [10, 1, 1, 100, 20], [10, 2, 1, 100, 20],
+    [11, 3, 1, 100, 20], [11, 0, 2, 200, 40], [11, 4, 2, 200, 40],
+  ]);
+  expect(native.filter(row => row[0] === 8).map(row => row[1])).toEqual([12, 17]);
+  expect(native.filter(row => row[0] === 12).map(row => row[1])).toEqual([17]);
+  const run = createRun({ retention: 10000, outcome: "clear", preparationDelay: 2, jevDelay: 5,
+    session: { agent: "writer", seed: 7, editIntervalMs: 10, variationMs: 0,
+      editsPerTask: 1, taskPauseMs: 100, bytes: 10, unitBytes: [5] },
+    fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 2, maxFiles: 2,
+      maxImports: 1, maxDepth: 1, deniedPercent: 0,
+      minSourceBytes: 100, maxSourceBytes: 100, minTreeBytes: 20, maxTreeBytes: 20 },
+  });
+  for (let count = 0; count < 100; count++) {
+    const frame = run.step();
+    if (frame?.event.kind === "openRound") break;
+  }
+  run.applyControl({ kind: "suspendArrivals", agent: "writer", suspended: true });
+  run.advance({ untilTime: 20, maxEvents: 200 });
+  const codes: Record<string, number> = { openRound: 1, admitObservation: 2,
+    queueDispatch: 3, startObservation: 4, beginObservedPreparation: 5,
+    preparationCompleted: 6, completeObservation: 7, dispatchSettled: 8,
+    startReview: 9, jevRequestReady: 10, jevRequestStarted: 11, jevRequestSettled: 12 };
+  const graphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 };
+  const publicTrace = run.observations.map(frame => {
+    const counts = [frame.after.global.items, frame.after.global.bytes,
+      frame.after.dispatch.running.length, frame.after.dispatch.requests.length,
+      frame.after.collection.leases.length];
+    if (frame.preparation) return [21, frame.time, graphCodes[frame.preparation.command.kind],
+      frame.preparation.after.files, frame.preparation.after.readBytes, frame.preparation.after.treeBytes, ...counts];
+    return [codes[frame.event.kind], frame.time, ...counts, frame.rejection ? 1 : 0];
+  });
+  expect(native.map(row => row[0] === 21 ? row : [row[0], row[1], ...row.slice(15, 21)]))
+    .toEqual(publicTrace);
+  expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+  expect(outcomes(run)).toEqual(["clear"]);
+  expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
+}, 30000);
+
+it("runs original IEEE64 weight words in the compiled native numeric owner", () => {
+  const native: number[][] = runWorkloadNative(new URL(
+    "../../monkey-business-bend/conformance/workload-numeric.bend", import.meta.url));
+  expect(native[0]).toEqual([2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, 1, 1, 1, 2, 2]);
+  expect(native[1]).toEqual(Array(16).fill(1));
+  const run = createRun({ seed: 7, inputs, outcomeWeights: weights({ finding: .25, clear: .75 }) });
+  drain(run);
+  expect(native[2]).toEqual(outcomes(run).map(outcome => outcome === "finding" ? 1 : outcome === "clear" ? 2 : -1));
+}, 30000);
