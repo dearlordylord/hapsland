@@ -48,3 +48,16 @@ if (/process\.env(?:\[|\.REVIEW_CREDENTIAL_)/u.test(credentials) ||
     !credentials.includes('Schedule.spaced("10 millis")')) {
   throw new Error("credential configuration and lock polling must use redacted Config and Schedule");
 }
+
+const installationLock = read("src/onboarding/installation-lock.ts");
+if (/Effect\.run(?:Sync|Promise|Fork)\(|new Promise|\basync\b|setTimeout\(|Date\.now\(|process\.env/u.test(installationLock) ||
+    !installationLock.includes('Schedule.spaced("25 millis")') ||
+    !installationLock.includes("Effect.acquireUseRelease(")) {
+  throw new Error("installation lock must share caller Config/Clock, Schedule polling and scoped ownership");
+}
+for (const runtime of ["codex", "claude", "opencode"]) {
+  const source = read(`src/onboarding/${runtime}-installation.ts`);
+  if (/export const (?:install|update|uninstall)\w+Integration\s*=\s*async\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(source)) {
+    throw new Error(`${runtime} installation mutation APIs must compose in the caller Effect runtime`);
+  }
+}

@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { createHash } from "node:crypto";
 import { canonicalJson } from "./hook-reconciliation.ts";
 import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -51,7 +52,7 @@ describe("Claude installation lifecycle", () => {
     expect(preview.status).toBe("preview");
     expect(preview).not.toHaveProperty("sourceEgressAuthorized");
     expect(settings(home)).toEqual(original);
-    expect((await installClaudeIntegration({ ...request, proposalDigest: digestOf(preview) })).status).toBe("complete");
+    expect((await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: digestOf(preview) }))).status).toBe("complete");
     const installed = settings(home);
     expect(installed.permissions).toEqual(original.permissions);
     const installedHooks = installed.hooks as typeof original.hooks & { PreToolUse: unknown[]; UserPromptSubmit: unknown[]; SubagentStop: unknown[] };
@@ -72,9 +73,9 @@ describe("Claude installation lifecycle", () => {
     expect(JSON.stringify(post[1])).not.toContain('"async":true');
     expect(JSON.stringify(post[1])).toContain("--review-tool-owned=claude-v1");
     expect((inspectClaudeInstallation(request) as { installed?: boolean }).installed).toBe(true);
-    const removal = await uninstallClaudeIntegration(request);
+    const removal = await Effect.runPromise(uninstallClaudeIntegration(request));
     expect(removal.status).toBe("preview");
-    expect((await uninstallClaudeIntegration({ ...request, proposalDigest: digestOf(removal) })).status).toBe("complete");
+    expect((await Effect.runPromise(uninstallClaudeIntegration({ ...request, proposalDigest: digestOf(removal) }))).status).toBe("complete");
     expect(settings(home)).toEqual(original);
     expect((inspectClaudeInstallation(request) as { installed?: boolean }).installed).toBe(false);
   });
@@ -82,7 +83,7 @@ describe("Claude installation lifecycle", () => {
   it("updates an older owned installation to add SubagentStop", async () => {
     const { home, claudeExecutable } = fixture();
     const request = { claudeHome: home, claudeExecutable };
-    await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+    await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) }));
     const previous = settings(home);
     delete (previous.hooks as Record<string, unknown>).SubagentStop;
     writeFileSync(join(home, "settings.json"), JSON.stringify(previous));
@@ -92,14 +93,14 @@ describe("Claude installation lifecycle", () => {
     writeFileSync(recordPath, JSON.stringify(record));
     const proposal = previewClaudeUpdate(request);
     expect(proposal.status).toBe("preview");
-    expect((await updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+    expect((await Effect.runPromise(updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) }))).status).toBe("complete");
     expect((settings(home).hooks as Record<string, unknown>).SubagentStop).toBeDefined();
   });
 
   it("updates an owned asynchronous PostToolUse group to synchronous delivery while preserving Stop", async () => {
     const { home, claudeExecutable } = fixture();
     const request = { claudeHome: home, claudeExecutable };
-    await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+    await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) }));
     const previous = settings(home);
     const hooks = previous.hooks as Record<string, Array<{ hooks: unknown[] }>>;
     const group = hooks.PostToolUse![0]!;
@@ -112,7 +113,7 @@ describe("Claude installation lifecycle", () => {
     writeFileSync(recordPath, JSON.stringify(record));
     const proposal = previewClaudeUpdate(request);
     expect(proposal.status).toBe("preview");
-    expect((await updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+    expect((await Effect.runPromise(updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) }))).status).toBe("complete");
     const updated = settings(home).hooks as typeof hooks;
     expect(updated.PostToolUse![0]!.hooks).toHaveLength(1);
     expect(JSON.stringify(updated.PostToolUse)).not.toContain("--composed-background-hook");
@@ -125,7 +126,7 @@ describe("Claude installation lifecycle", () => {
     const { home, claudeExecutable } = fixture("2.1.219");
     const request = { claudeHome: home, claudeExecutable };
     expect(previewClaudeInstallation(request).status).toBe("unsupported");
-    expect((await installClaudeIntegration({ ...request, proposalDigest: "0".repeat(64) })).status).toBe("unsupported");
+    expect((await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: "0".repeat(64) }))).status).toBe("unsupported");
     expect((inspectClaudeInstallation(request) as { installed?: boolean }).installed).toBe(false);
     expect(diagnoseClaudeIntegration(request).checks.find((check) => check.stage === "host")?.status).toBe("unsupported");
   });
@@ -135,41 +136,41 @@ describe("Claude installation lifecycle", () => {
     const request = { claudeHome: home, claudeExecutable };
     const proposal = previewClaudeInstallation(request);
     writeFileSync(join(home, "settings.json"), JSON.stringify({ custom: true }));
-    expect((await installClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) })).status).toBe("proposal-mismatch");
+    expect((await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) }))).status).toBe("proposal-mismatch");
     const current = previewClaudeInstallation(request);
-    expect((await installClaudeIntegration({ ...request, proposalDigest: digestOf(current) })).status).toBe("complete");
+    expect((await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: digestOf(current) }))).status).toBe("complete");
     const changed = settings(home);
     const hooks = (changed.hooks as { PostToolUse: Array<{ matcher: string }> }).PostToolUse;
     hooks[0]!.matcher = "Write";
     writeFileSync(join(home, "settings.json"), JSON.stringify(changed));
     expect(inspectClaudeInstallation(request).status).toBe("conflict");
-    expect((await uninstallClaudeIntegration(request)).status).toBe("conflict");
+    expect((await Effect.runPromise(uninstallClaudeIntegration(request))).status).toBe("conflict");
     expect(settings(home)).toEqual(changed);
   });
 
   it.each(["Stop", "SubagentStop"] as const)("rejects a locally modified owned %s hook", async (event) => {
     const { home, claudeExecutable } = fixture();
     const request = { claudeHome: home, claudeExecutable };
-    await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+    await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) }));
     const changed = settings(home);
     const stop = (changed.hooks as Record<typeof event, Array<{ hooks: Array<{ timeout: number }> }>>)[event];
     stop[0]!.hooks[0]!.timeout = 3;
     writeFileSync(join(home, "settings.json"), JSON.stringify(changed));
     expect(inspectClaudeInstallation(request).status).toBe("conflict");
-    expect((await uninstallClaudeIntegration(request)).status).toBe("conflict");
+    expect((await Effect.runPromise(uninstallClaudeIntegration(request))).status).toBe("conflict");
   });
 
   it("updates only the owned hook and keeps host trust separate from source egress", async () => {
     const { home, claudeExecutable, root } = fixture();
     const request = { claudeHome: home, claudeExecutable };
     const initial = previewClaudeInstallation(request);
-    await installClaudeIntegration({ ...request, proposalDigest: digestOf(initial) });
+    await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: digestOf(initial) }));
     const replacement = join(root, "new-cli.js");
     writeFileSync(replacement, "process.stdin.resume();\n");
     process.env.REVIEW_INSTALL_ENTRYPOINT = replacement;
     const preview = previewClaudeUpdate(request);
     expect(preview.status).toBe("preview");
-    expect((await updateClaudeIntegration({ ...request, proposalDigest: digestOf(preview) })).status).toBe("complete");
+    expect((await Effect.runPromise(updateClaudeIntegration({ ...request, proposalDigest: digestOf(preview) }))).status).toBe("complete");
     expect(JSON.stringify(settings(home))).toContain("new-cli.js");
     expect((inspectClaudeInstallation(request) as { installed?: boolean }).installed).toBe(true);
     const doctor = diagnoseClaudeIntegration(request);
@@ -183,7 +184,7 @@ it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit"
   const { home, claudeExecutable } = fixture();
   const request = { claudeHome: home, claudeExecutable };
   writeFileSync(join(home, "settings.json"), JSON.stringify({ permissions: { allow: ["Read"] }, custom: 42 }));
-  await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+  await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) }));
   const changed = settings(home) as { hooks: Record<string, Array<{ hooks: unknown[] }>>; permissions: unknown; custom: number };
   if (missing === "foreground") changed.hooks.PostToolUse![0]!.hooks.splice(0, 1);
   else delete changed.hooks[missing];
@@ -191,7 +192,7 @@ it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit"
   expect(inspectClaudeInstallation(request).status).toBe("conflict");
   const proposal = previewClaudeUpdate(request);
   expect(proposal.status).toBe("preview");
-  expect((await updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+  expect((await Effect.runPromise(updateClaudeIntegration({ ...request, proposalDigest: digestOf(proposal) }))).status).toBe("complete");
   expect(inspectClaudeInstallation(request)).toMatchObject({ installed: true });
   expect(settings(home)).toMatchObject({ permissions: { allow: ["Read"] }, custom: 42 });
   expect(previewClaudeUpdate(request)).toMatchObject({ alreadyCurrent: true, proposal: { changes: [] } });
@@ -200,7 +201,7 @@ it.each(["PostToolUse", "PreToolUse", "Stop", "SubagentStop", "UserPromptSubmit"
 it("explicit Claude reinstall replaces changed and duplicate marked handlers while preserving independent handlers", async () => {
   const { home, claudeExecutable } = fixture();
   const request = { claudeHome: home, claudeExecutable };
-  await installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) });
+  await Effect.runPromise(installClaudeIntegration({ ...request, proposalDigest: digestOf(previewClaudeInstallation(request)) }));
   const changed = settings(home) as { hooks: Record<string, Array<{ hooks: Array<{ command: string; timeout?: number }> }>> };
   changed.hooks.PostToolUse![0]!.hooks[0]!.timeout = 99;
   changed.hooks.PostToolUse![0]!.hooks.push({ command: "independent-handler" });
@@ -209,7 +210,7 @@ it("explicit Claude reinstall replaces changed and duplicate marked handlers whi
   expect(previewClaudeUpdate(request).status).toBe("conflict");
   const reinstall = { ...request, reinstall: true };
   const proposal = previewClaudeInstallation(reinstall);
-  expect((await installClaudeIntegration({ ...reinstall, proposalDigest: digestOf(proposal) })).status).toBe("complete");
+  expect((await Effect.runPromise(installClaudeIntegration({ ...reinstall, proposalDigest: digestOf(proposal) }))).status).toBe("complete");
   expect(inspectClaudeInstallation(request)).toMatchObject({ installed: true });
   expect(JSON.stringify(settings(home))).toContain("independent-handler");
   expect(JSON.stringify(settings(home))).not.toContain('"timeout":99');

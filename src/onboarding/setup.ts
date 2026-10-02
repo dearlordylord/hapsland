@@ -110,10 +110,10 @@ export const runSetup = Effect.fn("Setup.run")(function* (
   const installDigest = text(proposal?.digest);
   const installedAtPreview = installationRecord.installed === true;
   if (installationStatus === "partial" && request.installProposalDigest === installDigest && installDigest !== undefined) {
-    installation = yield* Effect.promise(() => install(installDigest));
+    installation = yield* install(installDigest);
     installationRecord = record(installation) ?? {};
   } else if (installationStatus === "preview" && !installedAtPreview && request.installProposalDigest === installDigest && installDigest !== undefined) {
-    installation = yield* Effect.promise(() => install(installDigest));
+    installation = yield* install(installDigest);
     installationRecord = record(installation) ?? {};
   }
 

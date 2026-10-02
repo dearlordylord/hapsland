@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -44,7 +45,7 @@ describe("offline installed integration doctor", () => {
     expect(preview.proposal?.digest).toBeTypeOf("string");
     const proposalDigest = preview.proposal?.digest;
     if (proposalDigest === undefined) throw new Error("installation preview omitted its digest");
-    const installed = await installCodexIntegration({ ...request, proposalDigest });
+    const installed = await Effect.runPromise(installCodexIntegration({ ...request, proposalDigest }));
     expect(installed).toMatchObject({ status: "installed" });
     const configBefore = readFileSync(join(codexHome, "config.toml"), "utf8");
     const hooksBefore = readFileSync(join(codexHome, "hooks.json"), "utf8");

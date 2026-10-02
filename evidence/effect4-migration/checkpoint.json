@@ -197,7 +197,8 @@
     "Client startup/service and public workflow error channels now name ResidentIpcError, ResidentEndpointError and ReviewConfigError instead of generic Error; user correction rejects empty endpoint environment values while preserving absent-value fallback",
     "Integrated master #171 response authority into scoped resident Effects; removed superseded ticket tests/helpers and preserved common advice/lease/joined/identity rollback invariants; full typecheck and 81 shared-state, 95 server/terminal, 35 Claude/analytics selected cases passed.",
     "Evaluation command planning composes parent ConfigProvider directly; removed internal runSync, redacted credential presence checks, introduced named plan/run/config Effects and bounded typed command failures. Offline injected-config/error and native CLI coverage passed 24 tests in three files.",
-    "Credential resolution/save/logout compose directly as named Effects with redacted caller configuration, Schema-decoded v1 state, Schedule lock polling and helper physical closure before token-fenced lock release; CLI, onboarding and resident callers migrated in place."
+    "Credential resolution/save/logout compose directly as named Effects with redacted caller configuration, Schema-decoded v1 state, Schedule lock polling and helper physical closure before token-fenced lock release; CLI, onboarding and resident callers migrated in place.",
+    "Installation generation lock uses scoped candidate ownership, Clock/Config and Schedule. Named Codex/Claude/OpenCode mutation entrypoints compose directly from CLI/setup; typed lock/use failures map directly to existing conflict results. Deterministic tests cover interrupted candidates, retained generation fences and unchanged deadline; native stale-owner/journal/rollback cases pass."
   ],
   "verification": [
     {
@@ -2501,7 +2502,7 @@
   ],
   "next": [
     "Master integration and credential lifecycle have focused verification; continue the remaining onboarding/interactive/readiness workflow conversion, then run final comprehensive, conformance, live and performance gates on the final source state.",
-    "Convert remaining onboarding Promise workflows to named Effect composition; remove onboarding runPromise bridges and handwritten installation-lock scheduling. Audit native terminal/process adapters and preserve installation ownership, cancellation and physical settlement.",
+    "Convert installation preview/inspection/configuration and remaining doctor/demo Promise workflows to named caller Effect composition; audit synchronous journal execution and native terminal/process adapters without changing accepted ownership/recovery or physical-settlement contracts.",
     "Finish any remaining fixture and service error/resource ownership gaps found by the full requirement audit",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Run final typecheck/test/direct-event/build/package/installed-release/applicable host validation and bounded authorized live Jev validation when credentials are available",
@@ -2742,7 +2743,7 @@
     "remainingWorkflowAudit": [
       {
         "owner": "src/onboarding/installation-lock.ts, codex-installation.ts, claude-installation.ts, opencode-installation.ts",
-        "remaining": "Installation workflows and lock polling expose Promise APIs. Replace in place with named Effects and preserve lock generation fences, journal/revalidation/rollback and accepted unsupported-runtime behavior."
+        "remaining": "Scoped installation lock and named install/update/uninstall entrypoints are implemented and verified. Preview/inspection/diagnosis entrypoints and installation input/hook/journal configuration still use synchronous APIs/direct env reads; move them to caller Config composition in place. Audit and decompose synchronous native journal/mutation execution where needed for full idiomatic ownership, preserving revalidation, recovery, rollback and unsupported-runtime contracts."
       },
       {
         "owner": "src/onboarding/doctor.ts, first-review-demo.ts",
@@ -2911,5 +2912,57 @@
       "scripts/check-configuration-boundary.mjs": "7d1aea334a48d6a843cf8ad787627f335869a8f3c1ec80b9a2e2b9a2cbb23344"
     },
     "limitations": "No live Jev calls or live native credential mutation performed. Native helper tests use synthetic processes on Linux; this is not macOS/runtime support acceptance. Masked terminal input still uses a native Promise bridge and requires scope/interruption audit. Remaining installation, doctor/demo, interactive/process/readiness workflows and final comprehensive/conformance/performance/completion audits remain required."
+  },
+  "installationMutationPort": {
+    "scope": "Replaced async installation mutation entrypoints and manual installation-lock sleep loop in place. Scoped owner candidates are removed when interruption/failure occurs before generation publication; published owners receive their own released marker on every exit. Schedule polling uses unchanged 25ms spacing/1500ms wait with monotonic elapsed Clock and epoch stale/compaction observations. The unchanged v1 generation link/owner/reclaimed/released layout, 16-digit width, 8-generation retention and 5000ms stale threshold remain. CLI/setup yield public mutation Effects directly. Existing synchronous native journal/revalidation/rollback bodies retain their outcomes under typed adapter errors; failures map directly with Effect.catch, not through an Effect-to-Promise or throw bridge. OpenCode install/update remain unsupported, and accepted uninstall cleanup remains.",
+    "extendedTests": {
+      "command": "npx vitest run src/onboarding/installation-lock.test.ts src/onboarding/claude-installation.test.ts src/onboarding/opencode-installation.test.ts src/onboarding/codex-installation.test.ts src/onboarding/setup.test.ts src/onboarding/doctor.test.ts src/cli.test.ts --maxWorkers=1",
+      "filesPassed": 7,
+      "testsPassed": 75,
+      "durationSeconds": 102.59
+    },
+    "finalTests": {
+      "command": "npx vitest run src/onboarding/installation-lock.test.ts src/onboarding/claude-installation.test.ts src/onboarding/opencode-installation.test.ts src/onboarding/codex-installation.test.ts src/onboarding/setup.test.ts src/onboarding/doctor.test.ts src/cli.test.ts --maxWorkers=1",
+      "filesPassed": 7,
+      "testsPassed": 76,
+      "durationSeconds": 101.01,
+      "scope": "Final source after direct typed-failure mapping and sanitizing Config source failures."
+    },
+    "newClockCases": [
+      "Typed use failure releases its exact owner and allows a successor without deleting the old generation fence",
+      "Interruption after publication writes released while retaining the generation",
+      "Cancellation during contention removes only the waiting unpublished candidate",
+      "Unchanged 1500ms busy deadline cleans its losing candidate and leaves current live owner unreleased",
+      "Invalid generation owner target returns typed bounded failure without leaving a candidate",
+      "Config source failure is sanitized before creating any owner"
+    ],
+    "nativeCoverage": "Existing installation tests include killed owner, competing stale reclaimers, replacement and third contender, bounded lock admission, retained/compacted generations, unsupported profiles, immutable proposal digests, partial journal recovery, concurrent edits and rollback preservation. These are synthetic runtime/package fixtures, not actual host support acceptance.",
+    "typecheck": {
+      "command": "npm run typecheck",
+      "status": "pass"
+    },
+    "build": {
+      "command": "npm run build",
+      "status": "pass"
+    },
+    "configurationGuard": {
+      "command": "node scripts/check-configuration-boundary.mjs",
+      "status": "pass",
+      "invariants": [
+        "Installation lock has no private runtime, Promise, manual timers, Date.now or process.env configuration reads",
+        "Mutation entrypoints cannot restore async Promise exports or private runtime executors"
+      ]
+    },
+    "sourceSha256": {
+      "src/onboarding/installation-lock.ts": "0ac94338f7948edd97460f6bb31d7f9a23b1f2457e1dbfb0a4b8cc7ff55e90c2",
+      "src/onboarding/installation-lock.test.ts": "9a533e25a5e24fbb83964490bbaf0282840a167ebed12b5d2236cff983014e0e",
+      "src/onboarding/codex-installation.ts": "68382038e055955a6e35810c8ced0ff1f6c8ba8691b0a14a1ac28faff9016b2c",
+      "src/onboarding/claude-installation.ts": "8f48803497dfff3e01b67f3fcb280995b947ce279339d100c3443c8c1bd3c723",
+      "src/onboarding/opencode-installation.ts": "55b1f6ea33f82460bcd61ae780ff27ec2249ed35815c2360911a49065c7ebe97",
+      "src/onboarding/setup.ts": "b922bea8ed8a3e42392d96a705d006d9548d76db1259d5d7b51e2ac8dc36ca1a",
+      "src/cli.ts": "3d2093b6b008bc318c6b6f1b3fb9d81b90a4bbd25c0b3030551844d7c6c9a401",
+      "scripts/check-configuration-boundary.mjs": "9b77305df82654aa383f2d54d9aaa028f34366459b132e1efc42030a29ffbfe7"
+    },
+    "limitations": "This is installation lock/mutation-entrypoint progress, not full onboarding migration. Preview/inspection/configuration and synchronous native journal execution still require caller-provider/Effect audit and conversion where applicable. Doctor/demo/private CLI runtime bridges and native terminal/process adapters remain. No live Jev or actual agent host validation was performed in this block. Final full suite, direct-event/package/installed/host/live/performance/completion gates remain required."
   }
 }

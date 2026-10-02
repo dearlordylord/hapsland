@@ -1,3 +1,4 @@
+import { Effect, Schema } from "effect";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
@@ -7,6 +8,10 @@ import { atomicInstallationFile } from "./atomic-installation-file.ts";
 
 import { withInstallationLock } from "./installation-lock.ts";
 import { canonicalJson as canonical, reconcileOwnedEvent, removeMarkedHandlers, retainedHookSubset } from "./hook-reconciliation.ts";
+
+class ClaudeInstallationError extends Schema.TaggedError<ClaudeInstallationError>()("ClaudeInstallationError", { reason: Schema.NonEmptyString }) {
+  override get message() { return this.reason; }
+}
 
 const MARKER = "--review-tool-owned=claude-v1";
 const COMPOSED_MARKER = "--review-tool-composed-owned=claude-v1";
@@ -246,43 +251,46 @@ const preview = (kind: Kind, request: ClaudeInstallationRequest) => {
   } catch (cause) { return resultError(operation, cause, request.claudeHome); }
 };
 
-const apply = async (kind: Kind, request: ClaudeInstallationRequest) => {
+const apply = Effect.fn("ClaudeInstallation.apply")(function* (kind: Kind, request: ClaudeInstallationRequest) {
   const operation = kind;
   try {
     const input = inputs(request);
     if (kind !== "uninstall" && !ready(input).supported) return { version: 1 as const, operation, status: "unsupported" as const, host: input.host };
-    return await withInstallationLock(input.paths.lock, async () => {
-      const next = plan(kind, request);
-      if (request.proposalDigest === undefined) return preview(kind, request);
-      if (request.proposalDigest !== next.proposalDigest) return {
-        version: 1 as const, operation, status: "proposal-mismatch" as const,
-        error: { message: "Claude settings changed since preview; obtain a new proposal" },
-      };
-      if (next.noChange) return { version: 1 as const, operation, status: "already-current" as const };
-      // Settings is applied last so a failed record write cannot enable a new hook.
-      try {
-        if (file(input.paths.ownership) !== next.beforeRecord || file(input.paths.settings) !== next.beforeSettings) throw new Error("Claude configuration changed during apply; obtain a fresh preview");
-        atomicInstallationFile(input.paths.ownership, next.afterRecord);
-        if (file(input.paths.settings) !== next.beforeSettings || file(input.paths.ownership) !== next.afterRecord) throw new Error("Claude configuration changed during apply; current settings were preserved");
-        atomicInstallationFile(input.paths.settings, next.afterSettings);
-      } catch (cause) {
+    return yield* withInstallationLock(input.paths.lock, Effect.try({
+      try: () => {
+        const next = plan(kind, request);
+        if (request.proposalDigest === undefined) return preview(kind, request);
+        if (request.proposalDigest !== next.proposalDigest) return {
+          version: 1 as const, operation, status: "proposal-mismatch" as const,
+          error: { message: "Claude settings changed since preview; obtain a new proposal" },
+        };
+        if (next.noChange) return { version: 1 as const, operation, status: "already-current" as const };
+        // Settings is applied last so a failed record write cannot enable a new hook.
         try {
-          if (file(input.paths.settings) === next.beforeSettings && file(input.paths.ownership) === next.afterRecord) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
-        } catch { /* preserve the original error and expose the partial state to inspection */ }
-        throw cause;
-      }
-      return { version: 1 as const, operation, status: "complete" as const,
-        trust: { status: "native-confirmation-required" } };
-    });
+          if (file(input.paths.ownership) !== next.beforeRecord || file(input.paths.settings) !== next.beforeSettings) throw new Error("Claude configuration changed during apply; obtain a fresh preview");
+          atomicInstallationFile(input.paths.ownership, next.afterRecord);
+          if (file(input.paths.settings) !== next.beforeSettings || file(input.paths.ownership) !== next.afterRecord) throw new Error("Claude configuration changed during apply; current settings were preserved");
+          atomicInstallationFile(input.paths.settings, next.afterSettings);
+        } catch (cause) {
+          try {
+            if (file(input.paths.settings) === next.beforeSettings && file(input.paths.ownership) === next.afterRecord) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
+          } catch { /* preserve the original error and expose the partial state to inspection */ }
+          throw cause;
+        }
+        return { version: 1 as const, operation, status: "complete" as const,
+          trust: { status: "native-confirmation-required" } };
+      },
+      catch: (cause) => new ClaudeInstallationError({ reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed" }),
+    })).pipe(Effect.catch((error) => Effect.succeed(resultError(operation, error, request.claudeHome))));
   } catch (cause) { return resultError(operation, cause, request.claudeHome); }
-};
+});
 
 export const previewClaudeInstallation = (request: ClaudeInstallationRequest) => preview("install", request);
-export const installClaudeIntegration = async (request: ClaudeInstallationRequest) => apply("install", request);
+export const installClaudeIntegration = Effect.fn("ClaudeInstallation.install")((request: ClaudeInstallationRequest) => apply("install", request));
 export const previewClaudeUpdate = (request: ClaudeInstallationRequest) => preview("update", request);
-export const updateClaudeIntegration = async (request: ClaudeInstallationRequest) => apply("update", request);
-export const uninstallClaudeIntegration = async (request: ClaudeInstallationRequest) =>
-  request.proposalDigest === undefined ? preview("uninstall", request) : apply("uninstall", request);
+export const updateClaudeIntegration = Effect.fn("ClaudeInstallation.update")((request: ClaudeInstallationRequest) => apply("update", request));
+export const uninstallClaudeIntegration = Effect.fn("ClaudeInstallation.uninstall")((request: ClaudeInstallationRequest) =>
+  request.proposalDigest === undefined ? Effect.sync(() => preview("uninstall", request)) : apply("uninstall", request));
 
 /** Include damaged owned state so an update reports it instead of silently skipping the client. */
 export const hasClaudeRegistration = (request: ClaudeInstallationRequest): boolean => {

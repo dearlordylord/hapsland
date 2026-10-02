@@ -665,10 +665,10 @@ const program = Effect.gen(function* () {
       switch (operation.operation) {
         case "doctor": return diagnoseClaudeIntegration(claudeRequest);
         case "install-preview": return previewClaudeInstallation(claudeRequest);
-        case "install": return yield* Effect.promise(() => installClaudeIntegration(claudeRequest));
+        case "install": return yield* installClaudeIntegration(claudeRequest);
         case "update-preview": return previewClaudeUpdate(claudeRequest);
-        case "update": return yield* Effect.promise(() => updateClaudeIntegration(claudeRequest));
-        case "uninstall": return yield* Effect.promise(() => uninstallClaudeIntegration(claudeRequest));
+        case "update": return yield* updateClaudeIntegration(claudeRequest);
+        case "uninstall": return yield* uninstallClaudeIntegration(claudeRequest);
       }
     }
     if (operation.host === "opencode") {
@@ -682,10 +682,10 @@ const program = Effect.gen(function* () {
       switch (operation.operation) {
         case "doctor": return diagnoseOpenCodeIntegration(opencodeRequest);
         case "install-preview": return previewOpenCodeInstallation(opencodeRequest);
-        case "install": return yield* Effect.promise(() => installOpenCodeIntegration(opencodeRequest));
+        case "install": return yield* installOpenCodeIntegration(opencodeRequest);
         case "update-preview": return previewOpenCodeUpdate(opencodeRequest);
-        case "update": return yield* Effect.promise(() => updateOpenCodeIntegration(opencodeRequest));
-        case "uninstall": return yield* Effect.promise(() => uninstallOpenCodeIntegration(opencodeRequest));
+        case "update": return yield* updateOpenCodeIntegration(opencodeRequest);
+        case "uninstall": return yield* uninstallOpenCodeIntegration(opencodeRequest);
       }
     }
     const request = {
@@ -818,13 +818,13 @@ const program = Effect.gen(function* () {
       case "install-preview":
         return previewCodexInstallation(request);
       case "install":
-        return yield* Effect.promise(() => installCodexIntegration(request));
+        return yield* installCodexIntegration(request);
       case "update-preview":
         return previewCodexUpdate(request);
       case "update":
-        return yield* Effect.promise(() => updateCodexIntegration(request));
+        return yield* updateCodexIntegration(request);
       case "uninstall":
-        return yield* Effect.promise(() => uninstallCodexIntegration(request));
+        return yield* uninstallCodexIntegration(request);
     }
   }
   if (requestedOperation !== undefined || inputRequestsOperation) {

@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
@@ -118,11 +119,11 @@ const applyUninstall = (request: OpenCodeInstallationRequest) => {
   } catch (cause) { return conflict("uninstall", cause); }
 };
 export const previewOpenCodeInstallation = (_request: OpenCodeInstallationRequest) => unsupported("install-preview");
-export const installOpenCodeIntegration = async (_request: OpenCodeInstallationRequest) => unsupported("install");
+export const installOpenCodeIntegration = Effect.fn("OpenCodeInstallation.install")((_request: OpenCodeInstallationRequest) => Effect.succeed(unsupported("install")));
 export const previewOpenCodeUpdate = (_request: OpenCodeInstallationRequest) => unsupported("update-preview");
-export const updateOpenCodeIntegration = async (_request: OpenCodeInstallationRequest) => unsupported("update");
-export const uninstallOpenCodeIntegration = async (request: OpenCodeInstallationRequest) =>
-  request.proposalDigest === undefined ? previewUninstall(request) : applyUninstall(request);
+export const updateOpenCodeIntegration = Effect.fn("OpenCodeInstallation.update")((_request: OpenCodeInstallationRequest) => Effect.succeed(unsupported("update")));
+export const uninstallOpenCodeIntegration = Effect.fn("OpenCodeInstallation.uninstall")((request: OpenCodeInstallationRequest) =>
+  Effect.sync(() => request.proposalDigest === undefined ? previewUninstall(request) : applyUninstall(request)));
 export const inspectOpenCodeInstallation = (request: OpenCodeInstallationRequest) => {
   try {
     const next = planUninstall(request);

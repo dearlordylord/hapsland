@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import {
   chmodSync,
   existsSync,
@@ -203,7 +204,7 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     const settings = JSON.parse(readFileSync(path, "utf8")) as { hooks: Record<typeof event, Array<{ hooks: Array<{ timeout: number }> }>> };
     settings.hooks[event][0]!.hooks[0]!.timeout = 3;
     writeFileSync(path, JSON.stringify(settings));
-    expect((await uninstallCodexIntegration({ codexHome: home, codexExecutable: bin })).status).toBe("conflict");
+    expect((await Effect.runPromise(uninstallCodexIntegration({ codexHome: home, codexExecutable: bin }))).status).toBe("conflict");
   });
   it("updates an older owned installation to add SubagentStop", () => {
     const { root, home, bin } = fixture();

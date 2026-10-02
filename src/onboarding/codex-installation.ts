@@ -1,3 +1,4 @@
+import { Effect, Schema } from "effect";
 import { spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import {
@@ -20,6 +21,10 @@ import { isCodexHostVersion } from "../direct-event/model.ts";
 
 import { withInstallationLock } from "./installation-lock.ts";
 import { canonicalJson as stableJson, reconcileOwnedEvent, removeMarkedHandlers, retainedHookSubset } from "./hook-reconciliation.ts";
+
+class CodexInstallationError extends Schema.TaggedError<CodexInstallationError>()("CodexInstallationError", { reason: Schema.NonEmptyString }) {
+  override get message() { return this.reason; }
+}
 
 const OWNERSHIP_VERSION = 1 as const;
 const RESULT_VERSION = 1 as const;
@@ -1481,7 +1486,7 @@ export const previewCodexUpdate = (request: InstallationRequest): InstallationRe
   }
 };
 
-export const updateCodexIntegration = async (request: InstallationRequest): Promise<InstallationResult> => {
+export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(function* (request: InstallationRequest) {
   const inputs = resolveInputs(request);
   try {
     requireTargetPackageMetadata(inputs);
@@ -1494,333 +1499,342 @@ export const updateCodexIntegration = async (request: InstallationRequest): Prom
   const initialCompatibility = compatibility(inputs);
   if (!initialCompatibility.supported) return unsupportedResult("update", inputs, initialCompatibility);
   try {
-    return await withInstallationLock(inputs.paths.lock, async () => {
-      const currentCompatibility = compatibility(inputs);
-      if (!currentCompatibility.supported) return unsupportedResult("update", inputs, currentCompatibility);
-      const existingJournal = readJournal(inputs.paths.journal);
-      if (existingJournal !== undefined) {
-        try {
-          validateJournalScope(existingJournal, inputs);
-        } catch (cause) {
-          return recoveryConflictResult("update", inputs, existingJournal, cause);
+    return yield* withInstallationLock(inputs.paths.lock, Effect.try<InstallationResult, CodexInstallationError>({
+      try: () => {
+        const currentCompatibility = compatibility(inputs);
+        if (!currentCompatibility.supported) return unsupportedResult("update", inputs, currentCompatibility);
+        const existingJournal = readJournal(inputs.paths.journal);
+        if (existingJournal !== undefined) {
+          try {
+            validateJournalScope(existingJournal, inputs);
+          } catch (cause) {
+            return recoveryConflictResult("update", inputs, existingJournal, cause);
+          }
+          if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "update") {
+            return {
+              version: RESULT_VERSION,
+              operation: "update",
+              status: "partial",
+              host: { adapter: "codex", home: inputs.home },
+              error: { code: "recovery_required", message: "a prior operation is incomplete; recover it with its original operation and proposal digest" },
+              recovery: {
+                proposalDigest: existingJournal.proposalDigest,
+                completedFiles: existingJournal.completed.length,
+                totalFiles: existingJournal.mutations.length,
+                command: existingJournal.operation === "update"
+                  ? updateRecoveryCommand(inputs, existingJournal.proposalDigest)
+                  : {
+                      executable: "hapsland",
+                      arguments: [`--${existingJournal.operation}`],
+                      request: { version: 1, operation: existingJournal.operation, codexHome: inputs.home, proposalDigest: existingJournal.proposalDigest },
+                    },
+              },
+              completed: existingJournal.completed
+                .map((index) => existingJournal.mutations[index]?.description)
+                .filter((value) => value !== undefined),
+              pending: [`resume the journaled ${existingJournal.operation}`],
+            };
+          }
+          try {
+            applyJournal(inputs.paths.journal, existingJournal);
+          } catch (cause) {
+            return recoveryConflictResult("update", inputs, existingJournal, cause);
+          }
+          return {
+            version: RESULT_VERSION,
+            operation: "update",
+            status: "updated",
+            host: { adapter: "codex", home: inputs.home },
+            resumed: true,
+            preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
+            trust: { modified: false, status: "renewal-required", bypassUsed: false },
+            restart: { required: true, processesStopped: false },
+            completed: existingJournal.mutations.map((change) => change.description),
+            pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"],
+          };
         }
-        if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "update") {
+        const plan = makeUpdatePlan(request);
+        if (request.proposalDigest === undefined || request.proposalDigest !== plan.digest) {
+          return {
+            version: RESULT_VERSION,
+            operation: "update",
+            status: "proposal-mismatch",
+            host: { adapter: "codex", home: inputs.home },
+            currentProposalDigest: plan.digest,
+            completed: [],
+            pending: ["preview the update again and approve the matching digest"],
+          };
+        }
+        if (plan.alreadyCurrent) {
+          return {
+            version: RESULT_VERSION,
+            operation: "update",
+            status: "already-current",
+            host: { adapter: "codex", home: inputs.home },
+            preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
+            trust: { modified: false, status: "unchanged", bypassUsed: false },
+            restart: { required: false, processesStopped: false },
+            completed: [],
+            pending: [],
+          };
+        }
+        const journal: Journal = {
+          version: 1,
+          operation: "update",
+          proposalDigest: plan.digest,
+          completed: [],
+          mutations: plan.mutations,
+        };
+        try {
+          applyJournal(inputs.paths.journal, journal);
+        } catch (cause) {
+          const current = readJournal(inputs.paths.journal);
           return {
             version: RESULT_VERSION,
             operation: "update",
             status: "partial",
             host: { adapter: "codex", home: inputs.home },
-            error: { code: "recovery_required", message: "a prior operation is incomplete; recover it with its original operation and proposal digest" },
+            error: { code: "partial_completion", message: cause instanceof Error ? cause.message : "update stopped after partial completion" },
             recovery: {
-              proposalDigest: existingJournal.proposalDigest,
-              completedFiles: existingJournal.completed.length,
-              totalFiles: existingJournal.mutations.length,
-              command: existingJournal.operation === "update"
-                ? updateRecoveryCommand(inputs, existingJournal.proposalDigest)
-                : {
-                    executable: "hapsland",
-                    arguments: [`--${existingJournal.operation}`],
-                    request: { version: 1, operation: existingJournal.operation, codexHome: inputs.home, proposalDigest: existingJournal.proposalDigest },
-                  },
+              proposalDigest: plan.digest,
+              completedFiles: current?.completed.length ?? 0,
+              totalFiles: plan.mutations.length,
+              command: updateRecoveryCommand(inputs, plan.digest),
             },
-            completed: existingJournal.completed
-              .map((index) => existingJournal.mutations[index]?.description)
+            preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
+            completed: (current?.completed ?? [])
+              .map((index) => plan.mutations[index]?.description)
               .filter((value) => value !== undefined),
-            pending: [`resume the journaled ${existingJournal.operation}`],
+            pending: ["rerun update with the same proposal digest to resume safely"],
           };
-        }
-        try {
-          applyJournal(inputs.paths.journal, existingJournal);
-        } catch (cause) {
-          return recoveryConflictResult("update", inputs, existingJournal, cause);
         }
         return {
           version: RESULT_VERSION,
           operation: "update",
           status: "updated",
           host: { adapter: "codex", home: inputs.home },
-          resumed: true,
           preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
           trust: { modified: false, status: "renewal-required", bypassUsed: false },
           restart: { required: true, processesStopped: false },
-          completed: existingJournal.mutations.map((change) => change.description),
+          completed: plan.mutations.map((change) => change.description),
           pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"],
         };
-      }
-      const plan = makeUpdatePlan(request);
-      if (request.proposalDigest === undefined || request.proposalDigest !== plan.digest) {
-        return {
-          version: RESULT_VERSION,
-          operation: "update",
-          status: "proposal-mismatch",
-          host: { adapter: "codex", home: inputs.home },
-          currentProposalDigest: plan.digest,
-          completed: [],
-          pending: ["preview the update again and approve the matching digest"],
-        };
-      }
-      if (plan.alreadyCurrent) {
-        return {
-          version: RESULT_VERSION,
-          operation: "update",
-          status: "already-current",
-          host: { adapter: "codex", home: inputs.home },
-          preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
-          trust: { modified: false, status: "unchanged", bypassUsed: false },
-          restart: { required: false, processesStopped: false },
-          completed: [],
-          pending: [],
-        };
-      }
-      const journal: Journal = {
-        version: 1,
-        operation: "update",
-        proposalDigest: plan.digest,
-        completed: [],
-        mutations: plan.mutations,
-      };
-      try {
-        applyJournal(inputs.paths.journal, journal);
-      } catch (cause) {
-        const current = readJournal(inputs.paths.journal);
-        return {
-          version: RESULT_VERSION,
-          operation: "update",
-          status: "partial",
-          host: { adapter: "codex", home: inputs.home },
-          error: { code: "partial_completion", message: cause instanceof Error ? cause.message : "update stopped after partial completion" },
-          recovery: {
-            proposalDigest: plan.digest,
-            completedFiles: current?.completed.length ?? 0,
-            totalFiles: plan.mutations.length,
-            command: updateRecoveryCommand(inputs, plan.digest),
-          },
-          preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
-          completed: (current?.completed ?? [])
-            .map((index) => plan.mutations[index]?.description)
-            .filter((value) => value !== undefined),
-          pending: ["rerun update with the same proposal digest to resume safely"],
-        };
-      }
-      return {
-        version: RESULT_VERSION,
-        operation: "update",
-        status: "updated",
-        host: { adapter: "codex", home: inputs.home },
-        preserved: ["old grant files", "credentials", "user rules", "independent hooks", "in-flight work"],
-        trust: { modified: false, status: "renewal-required", bypassUsed: false },
-        restart: { required: true, processesStopped: false },
-        completed: plan.mutations.map((change) => change.description),
-        pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"],
-      };
-    });
+      },
+      catch: (cause) => new CodexInstallationError({ reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed" }),
+    })).pipe(Effect.catch((error) => Effect.succeed(conflictResult("update", error.message, inputs.home))));
   } catch (cause) {
     return conflictResult("update", cause instanceof Error ? cause.message : "update failed", inputs.home);
   }
-};
+});
 
-export const installCodexIntegration = async (request: InstallationRequest): Promise<InstallationResult> => {
+export const installCodexIntegration = Effect.fn("CodexInstallation.install")(function* (request: InstallationRequest) {
   const inputs = resolveInputs(request);
   const initialCompatibility = compatibility(inputs);
   if (!initialCompatibility.supported) return unsupportedResult("install", inputs, initialCompatibility);
   try {
-    return await withInstallationLock(inputs.paths.lock, async () => {
-      const currentCompatibility = compatibility(inputs);
-      if (!currentCompatibility.supported) return unsupportedResult("install", inputs, currentCompatibility);
-      const existingJournal = installationJournal(inputs, request);
-      if (existingJournal !== undefined) {
-        try {
-          validateJournalScope(existingJournal, inputs);
-        } catch (cause) {
-          return recoveryConflictResult("install", inputs, existingJournal, cause);
+    return yield* withInstallationLock(inputs.paths.lock, Effect.try<InstallationResult, CodexInstallationError>({
+      try: () => {
+        const currentCompatibility = compatibility(inputs);
+        if (!currentCompatibility.supported) return unsupportedResult("install", inputs, currentCompatibility);
+        const existingJournal = installationJournal(inputs, request);
+        if (existingJournal !== undefined) {
+          try {
+            validateJournalScope(existingJournal, inputs);
+          } catch (cause) {
+            return recoveryConflictResult("install", inputs, existingJournal, cause);
+          }
+          if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "install") {
+            return {
+              version: RESULT_VERSION,
+              operation: "install",
+              status: "partial",
+              host: { adapter: "codex", home: inputs.home },
+              error: { code: "recovery_required", message: "a prior installation is incomplete; rerun install with its original proposal digest" },
+              recovery: { proposalDigest: existingJournal.proposalDigest, completedFiles: existingJournal.completed.length, totalFiles: existingJournal.mutations.length },
+              completed: existingJournal.completed.map((index) => existingJournal.mutations[index]?.description).filter((value) => value !== undefined),
+              pending: ["resume the journaled installation"],
+            };
+          }
+          try {
+            applyJournal(inputs.paths.journal, existingJournal);
+          } catch (cause) {
+            return recoveryConflictResult("install", inputs, existingJournal, cause);
+          }
+          return {
+            version: RESULT_VERSION,
+            operation: "install",
+            status: "installed",
+            host: { adapter: "codex", home: inputs.home },
+            resumed: true,
+                      completed: existingJournal.mutations.map((change) => change.description),
+            pending: ["make Jev credentials available and configure file settings if desired", "approve native Codex trust prompts when shown"],
+          };
         }
-        if (request.proposalDigest !== existingJournal.proposalDigest || existingJournal.operation !== "install") {
+        const plan = makeInstallPlan(request);
+        const host = compatibility(plan.inputs);
+        if (!host.supported) {
+          return unsupportedResult("install", inputs, host);
+        }
+        if (request.proposalDigest === undefined || request.proposalDigest !== plan.digest) {
+          return {
+            version: RESULT_VERSION,
+            operation: "install",
+            status: "proposal-mismatch",
+            host: { adapter: "codex", home: inputs.home },
+            currentProposalDigest: plan.digest,
+            completed: [],
+            pending: ["preview again and approve the matching digest"],
+          };
+        }
+        if (plan.alreadyInstalled) {
+          return {
+            version: RESULT_VERSION,
+            operation: "install",
+            status: "already-installed",
+            host: { adapter: "codex", home: inputs.home },
+                      completed: [],
+            pending: ["make Jev credentials available and configure file settings if desired"],
+          };
+        }
+        const journal: Journal = { version: 1, operation: "install", ...(request.reinstall ? { reinstall: true } : {}), ...(plan.resetJournal?.exists ? { replacedJournalDigest: plan.resetJournal.digest } : {}), proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
+        try {
+          if (plan.resetJournal?.exists) atomicWrite(`${inputs.paths.journal}.reinstall-backup.${randomUUID()}`, plan.resetJournal.content);
+          applyJournal(inputs.paths.journal, journal);
+        } catch (cause) {
+          const current = readJournal(inputs.paths.journal);
           return {
             version: RESULT_VERSION,
             operation: "install",
             status: "partial",
             host: { adapter: "codex", home: inputs.home },
-            error: { code: "recovery_required", message: "a prior installation is incomplete; rerun install with its original proposal digest" },
-            recovery: { proposalDigest: existingJournal.proposalDigest, completedFiles: existingJournal.completed.length, totalFiles: existingJournal.mutations.length },
-            completed: existingJournal.completed.map((index) => existingJournal.mutations[index]?.description).filter((value) => value !== undefined),
-            pending: ["resume the journaled installation"],
+            error: { code: "partial_completion", message: cause instanceof Error ? cause.message : "installation stopped after partial completion" },
+            recovery: { proposalDigest: plan.digest, completedFiles: current?.completed.length ?? 0, totalFiles: plan.mutations.length },
+            completed: (current?.completed ?? []).map((index) => plan.mutations[index]?.description).filter((value) => value !== undefined),
+            pending: ["rerun install with the same proposal digest to resume safely"],
           };
-        }
-        try {
-          applyJournal(inputs.paths.journal, existingJournal);
-        } catch (cause) {
-          return recoveryConflictResult("install", inputs, existingJournal, cause);
         }
         return {
           version: RESULT_VERSION,
           operation: "install",
           status: "installed",
           host: { adapter: "codex", home: inputs.home },
-          resumed: true,
-                    completed: existingJournal.mutations.map((change) => change.description),
+                  completed: plan.mutations.map((change) => change.description),
           pending: ["make Jev credentials available and configure file settings if desired", "approve native Codex trust prompts when shown"],
+          trust: { modified: false, bypassUsed: false },
         };
-      }
-      const plan = makeInstallPlan(request);
-      const host = compatibility(plan.inputs);
-      if (!host.supported) {
-        return unsupportedResult("install", inputs, host);
-      }
-      if (request.proposalDigest === undefined || request.proposalDigest !== plan.digest) {
-        return {
-          version: RESULT_VERSION,
-          operation: "install",
-          status: "proposal-mismatch",
-          host: { adapter: "codex", home: inputs.home },
-          currentProposalDigest: plan.digest,
-          completed: [],
-          pending: ["preview again and approve the matching digest"],
-        };
-      }
-      if (plan.alreadyInstalled) {
-        return {
-          version: RESULT_VERSION,
-          operation: "install",
-          status: "already-installed",
-          host: { adapter: "codex", home: inputs.home },
-                    completed: [],
-          pending: ["make Jev credentials available and configure file settings if desired"],
-        };
-      }
-      const journal: Journal = { version: 1, operation: "install", ...(request.reinstall ? { reinstall: true } : {}), ...(plan.resetJournal?.exists ? { replacedJournalDigest: plan.resetJournal.digest } : {}), proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
-      try {
-        if (plan.resetJournal?.exists) atomicWrite(`${inputs.paths.journal}.reinstall-backup.${randomUUID()}`, plan.resetJournal.content);
-        applyJournal(inputs.paths.journal, journal);
-      } catch (cause) {
-        const current = readJournal(inputs.paths.journal);
-        return {
-          version: RESULT_VERSION,
-          operation: "install",
-          status: "partial",
-          host: { adapter: "codex", home: inputs.home },
-          error: { code: "partial_completion", message: cause instanceof Error ? cause.message : "installation stopped after partial completion" },
-          recovery: { proposalDigest: plan.digest, completedFiles: current?.completed.length ?? 0, totalFiles: plan.mutations.length },
-          completed: (current?.completed ?? []).map((index) => plan.mutations[index]?.description).filter((value) => value !== undefined),
-          pending: ["rerun install with the same proposal digest to resume safely"],
-        };
-      }
-      return {
-        version: RESULT_VERSION,
-        operation: "install",
-        status: "installed",
-        host: { adapter: "codex", home: inputs.home },
-                completed: plan.mutations.map((change) => change.description),
-        pending: ["make Jev credentials available and configure file settings if desired", "approve native Codex trust prompts when shown"],
-        trust: { modified: false, bypassUsed: false },
-      };
-    });
+      },
+      catch: (cause) => new CodexInstallationError({ reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed" }),
+    })).pipe(Effect.catch((error) => Effect.succeed(conflictResult("install", error.message, inputs.home))));
   } catch (cause) {
     return conflictResult("install", cause instanceof Error ? cause.message : "installation failed", inputs.home);
   }
-};
+});
 
-export const uninstallCodexIntegration = async (request: InstallationRequest): Promise<InstallationResult> => {
+export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall")(function* (request: InstallationRequest) {
   const inputs = resolveInputs(request);
   try {
-    return await withInstallationLock(inputs.paths.lock, async () => {
-      const existingJournal = readJournal(inputs.paths.journal);
-      if (existingJournal !== undefined) {
-        try {
-          validateJournalScope(existingJournal, inputs);
-        } catch (cause) {
-          return recoveryConflictResult("uninstall", inputs, existingJournal, cause);
-        }
-        if (request.proposalDigest === existingJournal.proposalDigest && existingJournal.operation === "uninstall") {
+    return yield* withInstallationLock(inputs.paths.lock, Effect.try<InstallationResult, CodexInstallationError>({
+      try: () => {
+        const existingJournal = readJournal(inputs.paths.journal);
+        if (existingJournal !== undefined) {
           try {
-            applyJournal(inputs.paths.journal, existingJournal);
+            validateJournalScope(existingJournal, inputs);
           } catch (cause) {
             return recoveryConflictResult("uninstall", inputs, existingJournal, cause);
           }
+          if (request.proposalDigest === existingJournal.proposalDigest && existingJournal.operation === "uninstall") {
+            try {
+              applyJournal(inputs.paths.journal, existingJournal);
+            } catch (cause) {
+              return recoveryConflictResult("uninstall", inputs, existingJournal, cause);
+            }
+            return {
+              version: RESULT_VERSION,
+              operation: "uninstall",
+              status: "uninstalled",
+              host: { adapter: "codex", home: inputs.home },
+              resumed: true,
+              completed: existingJournal.mutations.map((change) => change.description),
+              pending: [],
+              remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
+            };
+          }
+          if (existingJournal.operation === "uninstall" && request.proposalDigest === undefined) return {
+            version: RESULT_VERSION, operation: "uninstall", status: "partial",
+            host: { adapter: "codex", home: inputs.home },
+            proposal: { digest: existingJournal.proposalDigest, changes: previewChanges(existingJournal.mutations) },
+            recovery: { operation: "uninstall", proposalDigest: existingJournal.proposalDigest },
+          };
+          throw new Error("another journaled operation requires recovery before uninstall");
+        }
+        const plan = makeUninstallPlan(request);
+        if (plan.alreadyRemoved) {
           return {
             version: RESULT_VERSION,
             operation: "uninstall",
-            status: "uninstalled",
+            status: "already-uninstalled",
             host: { adapter: "codex", home: inputs.home },
-            resumed: true,
-            completed: existingJournal.mutations.map((change) => change.description),
+            proposal: { digest: plan.digest, changes: [] },
+            completed: [],
             pending: [],
             remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
           };
         }
-        if (existingJournal.operation === "uninstall" && request.proposalDigest === undefined) return {
-          version: RESULT_VERSION, operation: "uninstall", status: "partial",
-          host: { adapter: "codex", home: inputs.home },
-          proposal: { digest: existingJournal.proposalDigest, changes: previewChanges(existingJournal.mutations) },
-          recovery: { operation: "uninstall", proposalDigest: existingJournal.proposalDigest },
-        };
-        throw new Error("another journaled operation requires recovery before uninstall");
-      }
-      const plan = makeUninstallPlan(request);
-      if (plan.alreadyRemoved) {
+        if (request.proposalDigest === undefined) {
+          return {
+            version: RESULT_VERSION,
+            operation: "uninstall",
+            status: "preview",
+            host: { adapter: "codex", home: inputs.home },
+            proposal: { digest: plan.digest, changes: previewChanges(plan.mutations), ownedChanges: { hooks: { file: inputs.paths.hooks, groups: readOwnership(inputs.paths.ownership)?.hookGroups ?? {} } } },
+            completed: [],
+            pending: ["rerun uninstall with this proposal digest"],
+            remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
+          };
+        }
+        if (request.proposalDigest !== plan.digest) {
+          return {
+            version: RESULT_VERSION,
+            operation: "uninstall",
+            status: "proposal-mismatch",
+            host: { adapter: "codex", home: inputs.home },
+            currentProposalDigest: plan.digest,
+            completed: [],
+            pending: ["preview uninstall again and approve the matching digest"],
+          };
+        }
+        const journal: Journal = { version: 1, operation: "uninstall", proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
+        try {
+          applyJournal(inputs.paths.journal, journal);
+        } catch (cause) {
+          const current = readJournal(inputs.paths.journal);
+          return {
+            version: RESULT_VERSION,
+            operation: "uninstall",
+            status: "partial",
+            host: { adapter: "codex", home: inputs.home },
+            error: { code: "partial_completion", message: cause instanceof Error ? cause.message : "uninstall stopped after partial completion" },
+            recovery: { proposalDigest: plan.digest, completedFiles: current?.completed.length ?? 0, totalFiles: plan.mutations.length },
+            completed: (current?.completed ?? []).map((index) => plan.mutations[index]?.description).filter((value) => value !== undefined),
+            pending: ["rerun uninstall with the same proposal digest to resume safely"],
+          };
+        }
         return {
           version: RESULT_VERSION,
           operation: "uninstall",
-          status: "already-uninstalled",
+          status: "uninstalled",
           host: { adapter: "codex", home: inputs.home },
-          proposal: { digest: plan.digest, changes: [] },
-          completed: [],
+          completed: plan.mutations.map((change) => change.description),
           pending: [],
           remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
         };
-      }
-      if (request.proposalDigest === undefined) {
-        return {
-          version: RESULT_VERSION,
-          operation: "uninstall",
-          status: "preview",
-          host: { adapter: "codex", home: inputs.home },
-          proposal: { digest: plan.digest, changes: previewChanges(plan.mutations), ownedChanges: { hooks: { file: inputs.paths.hooks, groups: readOwnership(inputs.paths.ownership)?.hookGroups ?? {} } } },
-          completed: [],
-          pending: ["rerun uninstall with this proposal digest"],
-          remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
-        };
-      }
-      if (request.proposalDigest !== plan.digest) {
-        return {
-          version: RESULT_VERSION,
-          operation: "uninstall",
-          status: "proposal-mismatch",
-          host: { adapter: "codex", home: inputs.home },
-          currentProposalDigest: plan.digest,
-          completed: [],
-          pending: ["preview uninstall again and approve the matching digest"],
-        };
-      }
-      const journal: Journal = { version: 1, operation: "uninstall", proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
-      try {
-        applyJournal(inputs.paths.journal, journal);
-      } catch (cause) {
-        const current = readJournal(inputs.paths.journal);
-        return {
-          version: RESULT_VERSION,
-          operation: "uninstall",
-          status: "partial",
-          host: { adapter: "codex", home: inputs.home },
-          error: { code: "partial_completion", message: cause instanceof Error ? cause.message : "uninstall stopped after partial completion" },
-          recovery: { proposalDigest: plan.digest, completedFiles: current?.completed.length ?? 0, totalFiles: plan.mutations.length },
-          completed: (current?.completed ?? []).map((index) => plan.mutations[index]?.description).filter((value) => value !== undefined),
-          pending: ["rerun uninstall with the same proposal digest to resume safely"],
-        };
-      }
-      return {
-        version: RESULT_VERSION,
-        operation: "uninstall",
-        status: "uninstalled",
-        host: { adapter: "codex", home: inputs.home },
-        completed: plan.mutations.map((change) => change.description),
-        pending: [],
-        remaining: ["old grant files", "credentials", "user rules", "already dispatched requests cannot be recalled"],
-      };
-    });
+      },
+      catch: (cause) => new CodexInstallationError({ reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed" }),
+    })).pipe(Effect.catch((error) => Effect.succeed(conflictResult("uninstall", error.message, inputs.home))));
   } catch (cause) {
     return conflictResult("uninstall", cause instanceof Error ? cause.message : "uninstall failed", inputs.home);
   }
-};
+});
 
 export const codexInstallation = {
   marker: OWNED_MARKER,

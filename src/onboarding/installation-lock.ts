@@ -1,10 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { Clock, Config, Effect, Schedule, Schema } from "effect";
 const isNodeError = (value: unknown, code: string) => typeof value === "object" && value !== null && "code" in value && value.code === code;
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
-const sleep = (milliseconds: number) => new Promise((resolvePromise) => setTimeout(resolvePromise, milliseconds));
+export class InstallationLockError extends Schema.TaggedError<InstallationLockError>()(
+  "InstallationLockError", { reason: Schema.NonEmptyString },
+) { override get message() { return this.reason; } }
+const lockError = (cause: unknown) => new InstallationLockError({ reason:
+  cause instanceof Error && cause.message.startsWith("configuration lock ")
+    ? cause.message : "configuration lock unavailable",
+});
 
 const LOCK_STALE_MS = 5_000;
 const LOCK_GENERATION_WIDTH = 16;
@@ -76,7 +83,7 @@ const readCurrentLockGeneration = (path: string): LockGeneration | undefined => 
   };
 };
 
-const removeOwnerDirectoryIfInactive = (ownerDirectory: string) => {
+const removeOwnerDirectoryIfInactive = (ownerDirectory: string, now: number) => {
   const released = existsSync(join(ownerDirectory, "released"));
   const reclaimed = existsSync(join(ownerDirectory, "reclaimed"));
   let record: LockRecord | undefined;
@@ -89,12 +96,12 @@ const removeOwnerDirectoryIfInactive = (ownerDirectory: string) => {
     if (record !== undefined && processIsAlive(record.pid)) return;
     const modifiedAt = statSync(ownerDirectory).mtimeMs;
     const createdAt = record === undefined ? modifiedAt : Date.parse(record.createdAt);
-    if (Date.now() - createdAt < LOCK_STALE_MS) return;
+    if (now - createdAt < LOCK_STALE_MS) return;
   }
   rmSync(ownerDirectory, { recursive: true, force: true });
 };
 
-const compactLockHistory = (path: string, current: LockGeneration) => {
+const compactLockHistory = (path: string, current: LockGeneration, now: number) => {
   const generationsPath = join(path, "generations");
   const names = readdirSync(generationsPath)
     .filter((name) => /^\d{16}$/.test(name))
@@ -121,18 +128,18 @@ const compactLockHistory = (path: string, current: LockGeneration) => {
   const ownersPath = join(path, "owners");
   for (const owner of readdirSync(ownersPath)) {
     if (owner === current.record.owner || retainedOwners.has(owner)) continue;
-    removeOwnerDirectoryIfInactive(join(ownersPath, owner));
+    removeOwnerDirectoryIfInactive(join(ownersPath, owner), now);
   }
 };
 
-const claimStaleGeneration = (generation: LockGeneration, claimer: string): boolean => {
+const claimStaleGeneration = (generation: LockGeneration, claimer: string, now: number): boolean => {
   if (generation.released || generation.reclaimed) return true;
-  if (Date.now() - Date.parse(generation.record.createdAt) < LOCK_STALE_MS ||
+  if (now - Date.parse(generation.record.createdAt) < LOCK_STALE_MS ||
       processIsAlive(generation.record.pid)) return false;
   try {
     writeFileSync(
       join(generation.ownerDirectory, "reclaimed"),
-      `${JSON.stringify({ version: 1, claimer, createdAt: new Date().toISOString() })}\n`,
+      `${JSON.stringify({ version: 1, claimer, createdAt: new Date(now).toISOString() })}\n`,
       { flag: "wx", mode: 0o600 },
     );
   } catch (cause) {
@@ -141,63 +148,88 @@ const claimStaleGeneration = (generation: LockGeneration, claimer: string): bool
   return true;
 };
 
-export const withInstallationLock = async <A>(path: string, use: () => Promise<A>): Promise<A> => {
-  mkdirSync(join(path, "owners"), { recursive: true, mode: 0o700 });
-  mkdirSync(join(path, "generations"), { recursive: true, mode: 0o700 });
-  const deadline = Date.now() + 1_500;
-  const owner = randomUUID();
-  const ownerDirectory = join(path, "owners", owner);
-  mkdirSync(ownerDirectory, { mode: 0o700 });
-  const record: LockRecord = {
-    version: 1,
-    pid: process.pid,
-    createdAt: new Date().toISOString(),
-    owner,
-  };
-  writeFileSync(join(ownerDirectory, "record.json"), `${JSON.stringify(record)}\n`, { flag: "wx", mode: 0o600 });
-  let acquired = false;
-  try {
-    while (!acquired) {
-      try {
-        const current = readCurrentLockGeneration(path);
-        if (current !== undefined && !claimStaleGeneration(current, owner)) {
-          if (Date.now() >= deadline) throw new Error("configuration lock remained busy for 1500ms");
-          await sleep(25);
-          continue;
+const createOwner = Effect.fn("InstallationLock.createOwner")((path: string, now: number) => Effect.try({
+  try: () => {
+    mkdirSync(join(path, "owners"), { recursive: true, mode: 0o700 });
+    mkdirSync(join(path, "generations"), { recursive: true, mode: 0o700 });
+    const owner = randomUUID();
+    const ownerDirectory = join(path, "owners", owner);
+    mkdirSync(ownerDirectory, { mode: 0o700 });
+    const record: LockRecord = { version: 1, pid: process.pid, createdAt: new Date(now).toISOString(), owner };
+    try { writeFileSync(join(ownerDirectory, "record.json"), `${JSON.stringify(record)}\n`, { flag: "wx", mode: 0o600 }); }
+    catch (cause) {
+      try { rmSync(ownerDirectory, { recursive: true, force: true }); } catch { /* Retain primary acquisition failure. */ }
+      throw cause;
+    }
+    // This is native publication ownership, not a second policy state owner.
+    return { owner, ownerDirectory, published: false };
+  }, catch: lockError,
+}));
+
+/** Each candidate is scoped even while waiting to publish its generation. */
+export const withInstallationLock = Effect.fn("InstallationLock.withLock")(<A, E, R>(path: string,
+  use: Effect.Effect<A, E, R>,
+) => Effect.gen(function* () {
+  const now = yield* Clock.currentTimeMillis;
+  const started = yield* Clock.currentTimeNanos;
+  const hold = Number(yield* Config.String("REVIEW_INSTALL_TEST_HOLD_LOCK_MS").pipe(
+    Config.withDefault("0"),
+    Effect.mapError(() => new InstallationLockError({ reason: "configuration lock configuration unavailable" })),
+  ));
+  return yield* Effect.acquireUseRelease(
+    createOwner(path, now),
+    (candidate) => Effect.gen(function* () {
+      const attempt = Effect.fn("InstallationLock.publishGeneration")(function* () {
+        const now = yield* Clock.currentTimeMillis;
+        const elapsed = Number((yield* Clock.currentTimeNanos) - started) / 1_000_000;
+        return yield* Effect.try({
+          try: () => {
+            try {
+              const current = readCurrentLockGeneration(path);
+              if (current !== undefined && !claimStaleGeneration(current, candidate.owner, now)) {
+                if (elapsed >= 1_500) throw new Error("configuration lock remained busy for 1500ms");
+                return false;
+              }
+              if (elapsed >= 1_500) throw new Error("configuration lock acquisition exceeded 1500ms");
+              const next = (current?.number ?? 0n) + 1n;
+              if (next >= 10n ** BigInt(LOCK_GENERATION_WIDTH)) throw new Error("configuration lock generation limit reached");
+              const name = String(next).padStart(LOCK_GENERATION_WIDTH, "0");
+              symlinkSync(`../owners/${candidate.owner}`, join(path, "generations", name));
+              // No interruptible boundary between publication and ownership.
+              candidate.published = true;
+              return true;
+            } catch (cause) {
+              if (!isNodeError(cause, "EEXIST") && !isNodeError(cause, "ENOENT")) throw cause;
+              if (elapsed >= 1_500) throw new Error("configuration lock remained busy for 1500ms");
+              return false;
+            }
+          }, catch: lockError,
+        });
+      });
+      yield* attempt().pipe(Effect.repeat({ schedule: Schedule.spaced("25 millis"), while: (acquired) => !acquired }));
+      const now = yield* Clock.currentTimeMillis;
+      yield* Effect.try({
+        try: () => {
+          const current = readCurrentLockGeneration(path);
+          if (current === undefined || current.record.owner !== candidate.owner) {
+            throw new Error("configuration lock generation was not published as current");
+          }
+          compactLockHistory(path, current, now);
+        }, catch: lockError,
+      });
+      if (Number.isFinite(hold) && hold > 0) yield* Effect.sleep(hold);
+      return yield* use;
+    }),
+    (candidate) => Effect.try({
+      try: () => {
+        if (!candidate.published) {
+          rmSync(candidate.ownerDirectory, { recursive: true, force: true });
+          return;
         }
-        if (Date.now() >= deadline) throw new Error("configuration lock acquisition exceeded 1500ms");
-        const next = (current?.number ?? 0n) + 1n;
-        if (next >= 10n ** BigInt(LOCK_GENERATION_WIDTH)) {
-          throw new Error("configuration lock generation limit reached");
-        }
-        const generationName = String(next).padStart(LOCK_GENERATION_WIDTH, "0");
-        symlinkSync(`../owners/${owner}`, join(path, "generations", generationName));
-        acquired = true;
-      } catch (cause) {
-        if (cause instanceof Error && cause.message === "configuration lock remained busy for 1500ms") throw cause;
-        if (!isNodeError(cause, "EEXIST") && !isNodeError(cause, "ENOENT")) throw cause;
-        if (Date.now() >= deadline) throw new Error("configuration lock remained busy for 1500ms");
-        await sleep(25);
-      }
-    }
-  } catch (cause) {
-    rmSync(ownerDirectory, { recursive: true, force: true });
-    throw cause;
-  }
-  try {
-    const current = readCurrentLockGeneration(path);
-    if (current === undefined || current.record.owner !== owner) {
-      throw new Error("configuration lock generation was not published as current");
-    }
-    compactLockHistory(path, current);
-    const holdMilliseconds = Number(process.env.REVIEW_INSTALL_TEST_HOLD_LOCK_MS ?? "0");
-    if (Number.isFinite(holdMilliseconds) && holdMilliseconds > 0) await sleep(holdMilliseconds);
-    return await use();
-  } finally {
-    try {
-      writeFileSync(join(ownerDirectory, "released"), "\n", { flag: "wx", mode: 0o600 });
-    } catch (cause) {
-      if (!isNodeError(cause, "EEXIST")) throw cause;
-    }
-  }
-};
+        // Release this exact owner; a reclaimed successor keeps its own record.
+        try { writeFileSync(join(candidate.ownerDirectory, "released"), "\n", { flag: "wx", mode: 0o600 }); }
+        catch (cause) { if (!isNodeError(cause, "EEXIST")) throw cause; }
+      }, catch: lockError,
+    }),
+  );
+}));

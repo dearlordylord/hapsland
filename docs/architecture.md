@@ -55,6 +55,8 @@ An IPC connection owns its response context and provisional delivery lease. Shar
 
 Credential resolution, save, and logout compose in the caller's Effect runtime and configuration provider. Save and logout publish a suspended generation before invoking the native credential helper. The state lock remains owned until the helper physically closes, including after timeout or interruption; token checks prevent cleanup from deleting a successor's lock. Lock polling uses an Effect schedule, and persisted version-one state is decoded with Schema. CLI and resident process configuration preserve empty environment values so empty credential paths are rejected rather than replaced by defaults.
 
+Installation mutations compose in the caller's Effect runtime and own a scoped generation lock. Cancelled waiters remove their unpublished owner records; completion releases the exact published owner. Retained generation links fence competing stale-owner reclaimers. Mutation plans, journal revalidation and rollback preserve unrelated configuration and incomplete-operation recovery.
+
 ## What verification establishes
 
 Bend owns the production transition decisions through `Canonical.step`, including admission, rule eligibility, capacity, request permission, freshness-related transitions, and delivery authorization. The import-graph reducer orders traversal and checks budgets. TypeScript observes native facts and executes filesystem, parser, credential, network, and host-output effects.
