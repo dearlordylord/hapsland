@@ -57,7 +57,7 @@ export type SetupOptions = {
   readonly statePath: string;
   readonly userConfigPath?: string;
   /** Supplied only by the installed CLI's masked /dev/tty handoff. */
-  readonly readCredential?: (signal?: AbortSignal) => Promise<string>;
+  readonly readCredential?: () => Effect.Effect<string, unknown>;
 };
 
 export const runSetup = Effect.fn("Setup.run")(function* (
@@ -247,7 +247,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (
         options.readCredential !== undefined &&
         installed
       ) {
-        const valueResult = yield* Effect.tryPromise(options.readCredential).pipe(Effect.result);
+        const valueResult = yield* options.readCredential().pipe(Effect.result);
         if (valueResult._tag === "Success") {
           let value = valueResult.success;
           const saved = yield* saveCredential(value);

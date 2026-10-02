@@ -3514,5 +3514,32 @@
       "src/cli.ts": "aad31c686b7d45e9a25217e2495756e229c1e62ada4ad7f44d21899d1e984af6"
     },
     "limitations": "Tests do not inject actual stty/descriptor/prompt faults or prove native restoration. Promise/setInterval/synchronous stty loop remain; full scoped Effect/Schedule port and actual bounded native fault evidence still required. No real credentials entered."
+  },
+  "maskedCredentialEffectPort": {
+    "status": "masked input is named scoped Effect; Promise/manual interval removed",
+    "scope": "New credentials/masked-input.ts owns fd, original mode, process signal observers and buffers with acquireUseRelease. Signal failure races scheduled read; caller interruption unwinds release. Initial 10ms delay and subsequent 10ms polling, 32768-byte bound and newline handling retained. Previous accumulated and temporary chunk buffers are zeroed. Setup reader contract returns Effect directly; login and guided setup yield reader in parent runtime.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "node scripts/check-configuration-boundary.mjs",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/cli.test.ts src/onboarding/setup.test.ts src/credentials/terminal.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 3,
+        "tests": 20,
+        "durationSeconds": 20.81
+      }
+    ],
+    "sourceSha256": {
+      "src/credentials/masked-input.ts": "fc0337dbe4627331e93b86f140d508de38d3459e3f6fa562f438e6b5f255ed23",
+      "src/cli.ts": "fea421ff2e1124eef9463b5ea0eb0cdfb12849e4ff61673dbf6eec2c2a4b2e22",
+      "src/onboarding/setup.ts": "9f5d0bc637788e6918a08a6be91d7175cc0726b3115ded5fa3e84d43096dd3ed"
+    },
+    "limitations": "Actual native masked input/TTY cancellation and fault injection not exercised by these tests. stty setup/restoration still uses synchronous native subprocesses and five-attempt loop; scoped process/Schedule restoration audit remains. No credentials entered. Full migration and final requirement audit incomplete."
   }
 }

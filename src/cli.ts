@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readMaskedCredential } from "./credentials/masked-input.ts";
 import * as Schedule from "effect/Schedule";
 import { effectiveSessionAnalytics } from "./configuration/resolve.ts";
 import { readAnalytics, formatAnalyticsHuman } from "./activity/analytics.ts";
@@ -11,7 +12,7 @@ import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { closeSync, constants, openSync, readFileSync, readSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
@@ -73,7 +74,6 @@ import {
   runSecretService,
   saveCredential,
 } from "./credentials/secret-service.ts";
-import { terminalModeArguments } from "./credentials/terminal.ts";
 import { readActivity, formatActivityHuman, recordActivity } from "./activity/status.ts";
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./onboarding/doctor.ts";
 import { selectSetupClients, type ClientChoice, type SetupClient } from "./onboarding/client-selection.ts";
@@ -883,93 +883,6 @@ const program = Effect.gen(function* () {
   ),
 );
 
-const readMaskedCredential = (signal?: AbortSignal): Promise<string> => {
-  if (signal?.aborted) throw new Error("credential input cancelled");
-  const descriptor = openSync("/dev/tty", constants.O_RDONLY | constants.O_NONBLOCK);
-  const original = (() => {
-    try {
-      return spawnSync("stty", terminalModeArguments(process.platform, "-g"), {
-        encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
-      });
-    } catch (cause) {
-      closeSync(descriptor);
-      throw cause;
-    }
-  })();
-  const originalMode = original.status === 0 ? original.stdout.trim() : "";
-  if (originalMode.length === 0) {
-    closeSync(descriptor);
-    throw new Error("masked terminal input is unavailable; retry with --credential-stdin");
-  }
-  let restored = false;
-  const restore = () => {
-    if (restored) return;
-    if (originalMode.length === 0) return;
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      spawnSync("stty", terminalModeArguments(process.platform, originalMode), { stdio: "ignore" });
-      const observed = spawnSync("stty", terminalModeArguments(process.platform, "-g"), {
-        encoding: "utf8", stdio: ["ignore", "pipe", "ignore"],
-      });
-      if (observed.status === 0 && observed.stdout.trim() === originalMode) {
-        restored = true;
-        return;
-      }
-    }
-  };
-  try {
-    const disabled = spawnSync("stty", terminalModeArguments(process.platform, "-echo"), { stdio: "ignore" });
-    if (disabled.status !== 0) throw new Error("masked terminal input is unavailable; retry with --credential-stdin");
-    process.stderr.write("Jev API key: ");
-  } catch (cause) {
-    try { restore(); } finally { closeSync(descriptor); }
-    throw cause;
-  }
-  return new Promise((resolveValue, rejectValue) => {
-    const signals = ["SIGINT", "SIGTERM", "SIGHUP"] as const;
-    const handlers = new Map<NodeJS.Signals, () => void>();
-    let settled = false;
-    let value = Buffer.alloc(0);
-    let poll: NodeJS.Timeout | undefined;
-    const finish = (result: { readonly value: string } | { readonly error: Error }) => {
-      if (settled) return;
-      settled = true;
-      signal?.removeEventListener("abort", onAbort);
-      for (const [signal, handler] of handlers) process.off(signal, handler);
-      if (poll !== undefined) clearInterval(poll);
-      let cleanupFailed = false;
-      try { closeSync(descriptor); } catch { cleanupFailed = true; }
-      try { restore(); } catch { cleanupFailed = true; }
-      value.fill(0);
-      try { process.stderr.write("\n"); } catch { cleanupFailed = true; }
-      if (cleanupFailed || !restored) rejectValue(new Error("credential terminal restoration failed"));
-      else if ("value" in result) resolveValue(result.value);
-      else rejectValue(result.error);
-    };
-    const onAbort = () => finish({ error: new Error("credential input cancelled") });
-    signal?.addEventListener("abort", onAbort, { once: true });
-    if (signal?.aborted) { onAbort(); return; }
-    for (const signal of signals) {
-      const handler = () => finish({ error: new Error("credential input cancelled") });
-      handlers.set(signal, handler);
-      process.once(signal, handler);
-    }
-    poll = setInterval(() => {
-      try {
-        const chunk = Buffer.alloc(256);
-        const count = readSync(descriptor, chunk, 0, chunk.length, null);
-        if (count === 0) return;
-        value = Buffer.concat([value, chunk.subarray(0, count)]);
-        if (value.length > 32_768) return finish({ error: new Error("credential input is too long") });
-        const newline = value.findIndex((byte) => byte === 0x0a || byte === 0x0d);
-        if (newline >= 0) finish({ value: value.subarray(0, newline).toString("utf8") });
-      } catch (cause) {
-        if (typeof cause === "object" && cause !== null && "code" in cause && cause.code === "EAGAIN") return;
-        finish({ error: new Error("credential input unavailable") });
-      }
-    }, 10);
-  });
-};
-
 const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
   if (process.argv.includes("--login")) {
     const probe = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true });
@@ -985,9 +898,10 @@ const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
             : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry",
       };
     }
-    const input = yield* (process.argv.includes("--credential-stdin")
+    const inputTask: Effect.Effect<string, unknown> = process.argv.includes("--credential-stdin")
       ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, ""))
-      : Effect.tryPromise((signal) => readMaskedCredential(signal))).pipe(Effect.result);
+      : readMaskedCredential();
+    const input = yield* inputTask.pipe(Effect.result);
     if (input._tag === "Failure") {
       return {
         version: 1,
@@ -1130,11 +1044,7 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
   const run = (step: SetupOperation) => runSetup(step, {
     statePath,
     ...(userConfigPath === undefined ? {} : { userConfigPath }),
-    readCredential: async (signal) => {
-      const value = await readMaskedCredential(signal);
-      credentialEntered = true;
-      return value;
-    },
+    readCredential: () => readMaskedCredential().pipe(Effect.tap(() => Effect.sync(() => { credentialEntered = true; }))),
   });
   const stage = (result: Effect.Success<ReturnType<typeof run>>, name: string) =>
     result.stages.find((item) => item.stage === name);
