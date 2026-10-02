@@ -143,7 +143,7 @@ def event_identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
     case Canonical.JevRequestReady{p, l, r, o, _, _, _, _, _, _}: [p, l, r, o, 0n, 0n, 0n]
     case Canonical.JevRequestStarted{p, l, r, o, req}: [p, l, r, o, req, 0n, 0n]
     case Canonical.JevRequestSettled{p, l, r, o, req, _, _}: [p, l, r, o, req, 0n, 0n]
-    case Canonical.CollectionReady{a, p, l, r, _, _}: [p, l, r, 0n, 0n, a, 0n]
+    case Canonical.CollectionReady{a, p, l, r, parent, _}: [p, l, r, parent, 0n, a, 0n]
     case Canonical.SubmissionSuppressCheck{a, t, r, _}: [0n, 0n, r, 0n, 0n, a, t]
     case Canonical.CollectionReserveLease{a, t}: [0n, 0n, 0n, 0n, 0n, a, t]
     case Canonical.SubmissionBegin{a, p, r, t, _, _, _, _}: [p, 0n, r, 0n, 0n, a, t]
