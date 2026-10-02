@@ -1150,7 +1150,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       })).filter((evaluation) => evaluation.findings.length > 0), remaining);
       yield* residentReleaseAdviceLease(item);
     }
-    for (const item of notices) residentRemovePendingNotice(item.id, token);
+    for (const item of notices) yield* residentRemovePendingNotice(item.id, token);
     return { status: "finalized" };
   }, Effect.uninterruptible);
 
@@ -1325,7 +1325,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return notices;
   }
 
-  function residentRemovePendingNotice(id: string, token?: string): boolean { return residentNotices.remove(id, token); }
+  const residentRemovePendingNotice = Effect.fn("ResidentRuntime.removePendingNotice")((id: string, token?: string) => residentNotices.remove(id, token));
 
   function residentReleaseNoticeCooldown(key: string): void { residentNotices.drop(key); }
 
@@ -2797,7 +2797,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     }
     for (const notice of notices) {
-      residentNotices.renew(notice.id, now + DELIVERY_LEASE_MS);
+      yield* residentNotices.renew(notice.id, now + DELIVERY_LEASE_MS);
     }
     if (ticket !== undefined && request.operation === "collect") {
       const gate = residentTicketCollectGate(ticket, request.dispatch, now);

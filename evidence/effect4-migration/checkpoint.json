@@ -162,7 +162,8 @@
     "Collection token pruning composes a named Effect and reads delivery tokens from advice snapshots; Stop expired-lease cleanup reads batch snapshot content",
     "Pending-advice diagnostics compose a named Effect from batch snapshot content; fixture and runnable-probe callers await diagnostics directly",
     "Advice identity capabilities contain immutable metadata only; all live content getters deleted. Joined activity outcomes compose snapshot reads; fixtures inspect content through explicit Effects",
-    "Advice service values listing is a named Effect snapshot read; all resident runtime and fixture callers execute it through Effect. Advice service boundary rejects synchronous commit and unsafe Ref reads. Focused advice/server/terminal/notice validation passed 132 tests; typecheck, build, boundary and diff checks passed."
+    "Advice service values listing is a named Effect snapshot read; all resident runtime and fixture callers execute it through Effect. Advice service boundary rejects synchronous commit and unsafe Ref reads. Focused advice/server/terminal/notice validation passed 132 tests; typecheck, build, boundary and diff checks passed.",
+    "Notice removal and lease renewal compose named atomic Effects through shared noticeChange draft; resident finalization and handoff yield these operations. Sixteen competing pending-notice removals produce one success. Focused server/operational-notice/notice tests passed 98 cases; updated notice tests passed four cases separately; typecheck, build, ticket boundary and diff checks passed. Remaining notice operations still use the intermediate synchronous bridge."
   ],
   "verification": [
     {

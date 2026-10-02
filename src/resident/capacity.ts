@@ -585,7 +585,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       };
     })(),
     notices: (maximumKeys: number, cooldownMs: number, lifetimeMs: number, measure: (value: unknown) => number) => {
-      const noticeCommit = <A>(operation: (operations: NoticeRecordOperations) => A, identity = ""): A => commitAll((draft, records) => {
+      const noticeChange = <A>(operation: (operations: NoticeRecordOperations) => A, identity = ""): Parameters<typeof commitAllEffect<A>>[0] => (draft, records) => {
         const notices = draftNoticeRecords(records.notices);
         const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
         const operations = noticeRecordOperations(notices, owner, maximumKeys, cooldownMs, lifetimeMs, measure, identity);
@@ -600,16 +600,17 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           Object.freeze(record);
         }
         return [value, { ...records, notices }];
-      });
+      };
+      const noticeCommit = <A>(operation: (operations: NoticeRecordOperations) => A, identity = ""): A => commitAll(noticeChange(operation, identity));
       return {
         entries: (): ReadonlyArray<readonly [string, NoticeCooldownSnapshot]> => [...Ref.getUnsafe(state).records.notices.entries],
         record: (...args: Parameters<NoticeRecordOperations["record"]>) => noticeCommit((operations) => operations.record(...args), randomUUID()),
         prune: (...args: Parameters<NoticeRecordOperations["prune"]>) => noticeCommit((operations) => operations.prune(...args)),
         drop: (...args: Parameters<NoticeRecordOperations["drop"]>) => noticeCommit((operations) => operations.drop(...args)),
-        remove: (...args: Parameters<NoticeRecordOperations["remove"]>) => noticeCommit((operations) => operations.remove(...args)),
+        remove: Effect.fn("NoticeRecords.remove")((...args: Parameters<NoticeRecordOperations["remove"]>) => commitAllEffect(noticeChange((operations) => operations.remove(...args)))),
         release: (...args: Parameters<NoticeRecordOperations["release"]>) => noticeCommit((operations) => operations.release(...args)),
         acknowledge: (...args: Parameters<NoticeRecordOperations["acknowledge"]>) => noticeCommit((operations) => operations.acknowledge(...args)),
-        renew: (...args: Parameters<NoticeRecordOperations["renew"]>) => noticeCommit((operations) => operations.renew(...args)),
+        renew: Effect.fn("NoticeRecords.renew")((...args: Parameters<NoticeRecordOperations["renew"]>) => commitAllEffect(noticeChange((operations) => operations.renew(...args)))),
       };
     },
     joinedReviews: (logicalBytes: (value: unknown) => number): JoinedReviews<Pending> => {

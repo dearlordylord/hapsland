@@ -49,8 +49,9 @@ it.effect("shares notice views and clears native and canonical ownership togethe
   expect(second.entries()).toEqual(first.entries());
   const pending = second.entries()[0]?.[1].pending;
   if (pending === undefined) throw new Error("fixture notice missing");
-  expect(second.remove(pending.id, "wrong-token")).toBe(false);
-  expect(second.remove(pending.id)).toBe(true);
+  expect(yield* second.remove(pending.id, "wrong-token")).toBe(false);
+  const removals = yield* Effect.forEach(Array.from({ length: 16 }), () => second.remove(pending.id), { concurrency: "unbounded" });
+  expect(removals.filter(Boolean)).toHaveLength(1);
   expect(first.entries()[0]?.[1].pending).toBeUndefined();
   owner.clear();
   expect(first.entries()).toEqual([]);
