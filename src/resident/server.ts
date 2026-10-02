@@ -605,7 +605,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   const residentPruneCollectionTokenIds = Effect.fn("ResidentRuntime.pruneCollectionTokenIds")(function* () {
-    const live = residentComposedDelivery.liveCollectionTokenKeys();
+    const live = (yield* residentComposedDelivery.liveCollectionTokenKeys());
     for (const { content } of (yield* residentLedger.advice.snapshots())) {
       if (content.delivery !== undefined) live.add(content.delivery.token);
     }
@@ -1129,7 +1129,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return { status: "empty" };
     }
     if (decision.commands[0]?.kind !== "deliveryFinalReady") throw new Error("invalid canonical finalization");
-    const composed = residentComposedDelivery.hasToken(token);
+    const composed = (yield* residentComposedDelivery.hasToken(token));
     for (const { capability: item, content } of advice) {
       const delivered = content.delivery?.findings ?? [];
       const remaining = composed ? [] : withoutDeliveredFindings(content.findings, delivered);
@@ -1180,8 +1180,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const beginComposedSubmission = Effect.fn("ResidentRuntime.beginComposedSubmission")(function* (token: string, surface: "edit" | "background" | "stop"): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
     yield* residentExpirePending(now);
-    const finishPermit = surface === "stop" && residentComposedDelivery.hasFinishPermit(token);
-    if (finishPermit && residentComposedDelivery.isFinishAuthorized(token)) return { status: "empty" };
+    const finishPermit = surface === "stop" && (yield* residentComposedDelivery.hasFinishPermit(token));
+    if (finishPermit && (yield* residentComposedDelivery.isFinishAuthorized(token))) return { status: "empty" };
     if (!residentComposedDelivery.canBeginExistingToken(surface, token)) return { status: "empty" };
     const advice = (yield* residentLedger.advice.snapshots()).filter(({ content }) =>
       content.delivery?.token === token && content.delivery.leaseUntil > now &&
@@ -2563,7 +2563,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           : collected);
       }
       if ((request.operation === "acknowledge" || request.operation === "finalize") &&
-          !residentComposedDelivery.hasToken(request.token)) return residentResponse({ status: "empty" });
+          !(yield* residentComposedDelivery.hasToken(request.token))) return residentResponse({ status: "empty" });
       if (request.operation === "acknowledge") return residentResponse(yield* server.acknowledge(request.token));
       if (request.operation === "finalize") return residentResponse(yield* server.finalize(request.token));
       if (request.operation === "stats") return residentResponse(yield* server.operations.stats());

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { Effect } from "effect";
 import { makeCapacityLedger, MAX_PARTITION_IDENTITIES } from "./capacity.ts";
 import { BACKGROUND_WAITER_EXPIRY_MS, type ComposedDelivery, EDIT_PERMIT_EXPIRY_MS, VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
 const RECENT_EDIT_IDENTITIES = 1_000;
 import { monotonicNow } from "./hook-clock.ts";
 import { DELIVERY_LEASE_MS } from "./protocol.ts";
 
-const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number => {
+const canonicalFinding = (state: Pick<ComposedDelivery, "canonical">, partition = "agent"): number => {
   const owner = state.canonical.partitionId(partition);
   const round = state.canonical.roundId(partition);
   const observation = state.canonical.transition({ kind: "admitObservation",
@@ -36,6 +37,8 @@ const canonicalFinding = (state: ComposedDelivery, partition = "agent"): number 
 describe("shared Hapsland rounds", () => {
   it("rolls back provisional revocation and nested submissions when Stop closure fails", () => {
     const state = makeCapacityLedger().delivery();
+    const permitRead = state.hasFinishPermit("output");
+    expect(Effect.runSync(permitRead)).toBe(false);
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
     expect(state.beginStop("agent", "attempt")).toBe(true);
@@ -52,8 +55,8 @@ describe("shared Hapsland rounds", () => {
     expect(() => state.finishStop("agent", "attempt", true, Number.POSITIVE_INFINITY)).toThrow(TypeError);
     expect(state.canonical.canonicalProjection()).toEqual(before);
     expect(state.closureCounts("agent")).toEqual(beforeCounts);
-    expect(state.hasFinishPermit("output")).toBe(true);
-    expect(state.hasToken("output")).toBe(true);
+    expect(Effect.runSync(permitRead)).toBe(true);
+    expect(Effect.runSync(state.hasToken("output"))).toBe(true);
     expect(state.finishSelectionMatches("output", selected)).toBe(true);
     expect(state.ownsStop("agent", "attempt")).toBe(beforeOwnsStop);
     expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
@@ -92,8 +95,8 @@ describe("shared Hapsland rounds", () => {
     ledger.clear();
     expect(first.hasPendingEdits("agent")).toBe(false);
     expect(second.ownsStop("agent", "attempt")).toBe(false);
-    expect(first.liveCollectionTokenKeys().size).toBe(0);
-    expect(first.editIdentityMappingCount()).toBe(0);
+    expect(Effect.runSync(first.liveCollectionTokenKeys()).size).toBe(0);
+    expect(Effect.runSync(first.editIdentityMappingCount())).toBe(0);
     expect(first.registerEdit("agent", "fresh", now + 100, now + 110)).toBe(true);
     expect(second.admitEdit("agent", "fresh", now + 120, true)).toBe(1);
   });
@@ -245,7 +248,7 @@ describe("shared Hapsland rounds", () => {
     expect(state.closureCounts("agent").uncertain).toBe(1);
     expect(state.canBeginExistingToken("background", "output")).toBe(false);
     expect(state.closureCounts("agent").uncertain).toBe(1);
-    expect(state.hasToken("output")).toBe(true);
+    expect(Effect.runSync(state.hasToken("output"))).toBe(true);
   });
 
   it("allows four continuation reservations; prompts and expiry cannot reset them", () => {
@@ -328,7 +331,7 @@ describe("shared Hapsland rounds", () => {
       accepted: false, reason: "DuplicateTool",
     });
     expect(diagnostics).toMatchObject([{ phase: "pending" }, { phase: "completed", completedReason: "consumed" }]);
-    expect(state.recentEditCount()).toBe(1);
+    expect(Effect.runSync(state.recentEditCount())).toBe(1);
   });
 
   it("retains at most 1000 completed identities across the resident", () => {
@@ -337,13 +340,13 @@ describe("shared Hapsland rounds", () => {
     for (let index = 0; index < RECENT_EDIT_IDENTITIES; index += 1) {
       expect(state.admitEdit(`agent-${index % 2}`, `edit-${index}`, index + 1)).toBe(1);
     }
-    expect(state.recentEditCount()).toBe(RECENT_EDIT_IDENTITIES);
-    expect(state.editIdentityMappingCount()).toBe(RECENT_EDIT_IDENTITIES);
+    expect(Effect.runSync(state.recentEditCount())).toBe(RECENT_EDIT_IDENTITIES);
+    expect(Effect.runSync(state.editIdentityMappingCount())).toBe(RECENT_EDIT_IDENTITIES);
     expect(state.registerEditDecision("agent-0", "edit-0", 1002, 1003)).toEqual({ accepted: false, reason: "DuplicateTool" });
     expect(diagnostics).toHaveLength(1);
     expect(state.admitEdit("agent-0", `edit-${RECENT_EDIT_IDENTITIES}`, 1001)).toBe(1);
-    expect(state.recentEditCount()).toBe(RECENT_EDIT_IDENTITIES);
-    expect(state.editIdentityMappingCount()).toBe(RECENT_EDIT_IDENTITIES);
+    expect(Effect.runSync(state.recentEditCount())).toBe(RECENT_EDIT_IDENTITIES);
+    expect(Effect.runSync(state.editIdentityMappingCount())).toBe(RECENT_EDIT_IDENTITIES);
     expect(state.registerEditDecision("agent-0", "edit-0", 1004, 1005)).toEqual({ accepted: true });
   }, 20_000);
 
@@ -437,7 +440,7 @@ describe("shared Hapsland rounds", () => {
     const admission = state.canonical.canonicalProjection().admissions.find(
       (item) => item.partition === state.canonical.partitionId("agent"));
     expect(admission).toMatchObject({ active: false, round: 0, permits: [] });
-    expect(state.recentEditCount()).toBe(1);
+    expect(Effect.runSync(state.recentEditCount())).toBe(1);
   });
 
   it("keeps native tool identity across duplicate and cross-advicee callbacks", () => {
@@ -449,7 +452,7 @@ describe("shared Hapsland rounds", () => {
     expect(state.admitEdit("child", "tool-use-original", 117, true)).toBe(1);
     expect(state.admitEdit("child", "tool-use-original", 118, true)).toBeUndefined();
     const child = state.canonical.canonicalProjection().admissions[0];
-    expect(state.recentEditCount()).toBe(1);
+    expect(Effect.runSync(state.recentEditCount())).toBe(1);
     expect(child?.permits).toHaveLength(0);
   });
 
@@ -777,7 +780,7 @@ describe("shared Hapsland rounds", () => {
     expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(false);
     state.beginStop("agent", "close");
     state.finishStop("agent", "close", true);
-    expect(state.hasToken("bg")).toBe(false);
+    expect(Effect.runSync(state.hasToken("bg"))).toBe(false);
   });
 
   it("reoffers an authorized background write only after terminal uncertainty", () => {
@@ -801,7 +804,7 @@ describe("shared Hapsland rounds", () => {
     expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(true);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
     state.release("stop");
-    expect(state.hasToken("bg")).toBe(true);
+    expect(Effect.runSync(state.hasToken("bg"))).toBe(true);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
     expect(state.beginSubmission("advice", "agent", "retry", [finding], "stop", 3)).toBe(true);
   });

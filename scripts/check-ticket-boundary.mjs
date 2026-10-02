@@ -219,3 +219,11 @@ for (const operation of ["route", "claim", "attachPending", "releaseClaim", "get
     throw new Error(`reuse ${operation} must compose as an Effect mutation`);
   }
 }
+
+const deliverySurface = state.slice(state.indexOf("    delivery:"), state.indexOf("    advice:", state.indexOf("    delivery:")));
+if (deliverySurface.includes("Ref.getUnsafe")) throw new Error("delivery reads must capture state through Effect");
+for (const operation of ["recentEditCount", "editIdentityMappingCount", "liveCollectionTokenKeys", "hasFinishPermit", "isFinishAuthorized", "hasToken"]) {
+  if (!deliverySurface.includes(`${operation}: Effect.fn("ComposedDelivery.${operation}")`)) {
+    throw new Error(`delivery ${operation} must compose as an Effect read`);
+  }
+}

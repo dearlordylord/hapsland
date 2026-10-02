@@ -406,15 +406,20 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         }
         return value;
       };
-      const view = () => deliveryView(Ref.getUnsafe(state).records.delivery, capacity);
+      const deliveryRead = <A>(operation: (view: ReturnType<typeof deliveryView>) => A): Effect.Effect<A> =>
+        Ref.get(state).pipe(Effect.map((snapshot) => {
+          const draft = draftCapacity(snapshot, (id) => snapshot.reservations.get(id));
+          const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+          return operation(deliveryView(snapshot.records.delivery, owner));
+        }));
       return {
         canonical: capacity,
         claimBackground: (...args: Parameters<ComposedDelivery["claimBackground"]>) => deliveryCommit((operations) => operations.claimBackground(...args)),
         releaseBackground: (...args: Parameters<ComposedDelivery["releaseBackground"]>) => deliveryCommit((operations) => operations.releaseBackground(...args)),
         advance: (...args: Parameters<ComposedDelivery["advance"]>) => deliveryCommit((operations) => operations.advance(...args)),
-        recentEditCount: (...args: Parameters<ComposedDelivery["recentEditCount"]>) => view().recentEditCount(...args),
-        editIdentityMappingCount: (...args: Parameters<ComposedDelivery["editIdentityMappingCount"]>) => view().editIdentityMappingCount(...args),
-        liveCollectionTokenKeys: (...args: Parameters<ComposedDelivery["liveCollectionTokenKeys"]>) => view().liveCollectionTokenKeys(...args),
+        recentEditCount: Effect.fn("ComposedDelivery.recentEditCount")((...args: Parameters<ComposedDelivery["recentEditCount"]>) => deliveryRead((view) => view.recentEditCount(...args))),
+        editIdentityMappingCount: Effect.fn("ComposedDelivery.editIdentityMappingCount")((...args: Parameters<ComposedDelivery["editIdentityMappingCount"]>) => deliveryRead((view) => view.editIdentityMappingCount(...args))),
+        liveCollectionTokenKeys: Effect.fn("ComposedDelivery.liveCollectionTokenKeys")((...args: Parameters<ComposedDelivery["liveCollectionTokenKeys"]>) => deliveryRead((view) => view.liveCollectionTokenKeys(...args))),
         ensureFromHostTurn: (...args: Parameters<ComposedDelivery["ensureFromHostTurn"]>) => deliveryCommit((operations) => operations.ensureFromHostTurn(...args)),
         registerEdit: (...args: Parameters<ComposedDelivery["registerEdit"]>) => deliveryCommit((operations) => operations.registerEdit(...args)),
         registerEditDecision: (...args: Parameters<ComposedDelivery["registerEditDecision"]>) => deliveryCommit((operations) => operations.registerEditDecision(...args)),
@@ -428,8 +433,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         reserveFinishOutput: (...args: Parameters<ComposedDelivery["reserveFinishOutput"]>) => deliveryCommit((operations) => operations.reserveFinishOutput(...args)),
         decideFinishOutput: (...args: Parameters<ComposedDelivery["decideFinishOutput"]>) => deliveryCommit((operations) => operations.decideFinishOutput(...args)),
         revokeProvisionalFinishOutput: (...args: Parameters<ComposedDelivery["revokeProvisionalFinishOutput"]>) => deliveryCommit((operations) => operations.revokeProvisionalFinishOutput(...args)),
-        hasFinishPermit: (...args: Parameters<ComposedDelivery["hasFinishPermit"]>) => view().hasFinishPermit(...args),
-        isFinishAuthorized: (...args: Parameters<ComposedDelivery["isFinishAuthorized"]>) => view().isFinishAuthorized(...args),
+        hasFinishPermit: Effect.fn("ComposedDelivery.hasFinishPermit")((...args: Parameters<ComposedDelivery["hasFinishPermit"]>) => deliveryRead((view) => view.hasFinishPermit(...args))),
+        isFinishAuthorized: Effect.fn("ComposedDelivery.isFinishAuthorized")((...args: Parameters<ComposedDelivery["isFinishAuthorized"]>) => deliveryRead((view) => view.isFinishAuthorized(...args))),
         finishSelectionMatches: (...args: Parameters<ComposedDelivery["finishSelectionMatches"]>) => deliveryCommit((operations) => operations.finishSelectionMatches(...args)),
         authorizeFinishOutput: (...args: Parameters<ComposedDelivery["authorizeFinishOutput"]>) => deliveryCommit((operations) => operations.authorizeFinishOutput(...args)),
         finishStop: (...args: Parameters<ComposedDelivery["finishStop"]>) => deliveryCommit((operations) => operations.finishStop(...args)),
@@ -450,7 +455,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         forget: (...args: Parameters<ComposedDelivery["forget"]>) => deliveryCommit((operations) => operations.forget(...args)),
         suppresses: (...args: Parameters<ComposedDelivery["suppresses"]>) => deliveryCommit((operations) => operations.suppresses(...args)),
         backgroundReofferable: (...args: Parameters<ComposedDelivery["backgroundReofferable"]>) => deliveryCommit((operations) => operations.backgroundReofferable(...args)),
-        hasToken: (...args: Parameters<ComposedDelivery["hasToken"]>) => view().hasToken(...args),
+        hasToken: Effect.fn("ComposedDelivery.hasToken")((...args: Parameters<ComposedDelivery["hasToken"]>) => deliveryRead((view) => view.hasToken(...args))),
         expire: (...args: Parameters<ComposedDelivery["expire"]>) => deliveryCommit((operations) => operations.expire(...args)),
       };
     },
