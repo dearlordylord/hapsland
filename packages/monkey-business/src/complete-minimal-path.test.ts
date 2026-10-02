@@ -185,13 +185,16 @@ it("runs original source-free minimal scenarios through the native shared driver
     { outcome: "finding" as const, environment: { currentWork: true, credentialReady: false } },
     { outcome: "finding" as const, environment: { currentWork: true, credentialReady: true, credentialGeneration: 2 } },
   ];
-  const traces = scenarios.map(({ outcome, environment }) => {
+  const traces = scenarios.map(({ outcome, environment }, index) => {
     const run = createRun(minimal(outcome));
     if (environment) {
       for (let steps = 0; steps < 100 && !run.observations.some(frame => frame.event.kind === "jevRequestSettled"); steps++) run.step();
       run.applyControl({ kind: "environment", ...environment });
     }
     run.advance({ untilTime: 10 });
+    expect(run.eventCount).toBe(nativeTraces[index]!.length);
+    expect(run.now).toBe(nativeTraces[index]!.at(-1)![1]);
+    expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
     return run.observations.map(frame => {
       if (frame.preparation) {
         const { command, after } = frame.preparation;
