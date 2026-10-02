@@ -518,3 +518,10 @@ unfiltered aggregate ledger equality. Evidence logs are
 is `/tmp/hapsland-capacity-outcomes-no-retention-1512.png`; shared rail captures
 are `/tmp/hapsland-capacity-retention-1512.png` and
 `/tmp/hapsland-capacity-resources-390.png`.
+
+
+Astra's final rendered after-review confirmed the refreshed Outcomes inspector
+and flat diagram have no ticket-unit facet, preserve outcome work counts, and
+have no visual blocker. Desktop and narrow shared-rail removal also passed.
+The next preparation-workers image records its existing placement for a separate
+discussion; no preparation design change is included in this decision.
