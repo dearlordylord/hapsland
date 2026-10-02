@@ -285,6 +285,9 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    consumeEditPermit: Effect.fn("Capacity.consumeEditPermit")((...args: Arguments<typeof consumeEditPermit>) => commitAllEffect((draft, records) => [consumeEditPermit(draft, ...args), records])),
+    acknowledgeStopRelease: Effect.fn("Capacity.acknowledgeStopRelease")((...args: Arguments<typeof acknowledgeStopRelease>) => commitAllEffect((draft, records) => [acknowledgeStopRelease(draft, ...args), records])),
+    retireRound: Effect.fn("Capacity.retireRound")((...args: Arguments<typeof retireRound>) => commitAllEffect((draft, records) => [retireRound(draft, ...args), records])),
     minimumFreshStart: Effect.fn("Capacity.minimumFreshStart")((...args: Arguments<typeof minimumFreshStart>) => Ref.get(state).pipe(Effect.map((snapshot) => minimumFreshStart(snapshot, ...args)))),
     partitionIdentityCount: Effect.fn("Capacity.partitionIdentityCount")((...args: Arguments<typeof partitionIdentityCount>) => Ref.get(state).pipe(Effect.map((snapshot) => partitionIdentityCount(snapshot, ...args)))),
     partitionIdentityBytes: Effect.fn("Capacity.partitionIdentityBytes")((...args: Arguments<typeof partitionIdentityBytes>) => Ref.get(state).pipe(Effect.map((snapshot) => partitionIdentityBytes(snapshot, ...args)))),

@@ -24,7 +24,7 @@ const makeFixture = (run: (entry: { readonly key: string; readonly value: number
 it.effect("uses the queued job's originating round after a successor opens", () => Effect.gen(function* () {
   const ledger = yield* makeResidentState<never, string, { operation: number; round: number }>();
   const oldRound = Effect.runSync(ledger.roundId("agent"));
-  ledger.retireRound("agent", oldRound);
+  Effect.runSync(ledger.retireRound("agent", oldRound));
   const round = Effect.runSync(ledger.roundId("agent"));
   const operation = ledger.admitObservation("agent", round);
   const seen: number[] = [];

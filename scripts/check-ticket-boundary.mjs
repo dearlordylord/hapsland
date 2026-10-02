@@ -312,3 +312,9 @@ for (const operation of ["minimumFreshStart", "partitionIdentityCount", "partiti
     throw new Error(`root capacity ${operation} must read a snapshot through Effect`);
   }
 }
+
+for (const operation of ["retireRound", "consumeEditPermit", "acknowledgeStopRelease"]) {
+  if (!state.includes(`${operation}: Effect.fn("Capacity.${operation}")`)) {
+    throw new Error(`root capacity ${operation} must compose as an atomic Effect`);
+  }
+}

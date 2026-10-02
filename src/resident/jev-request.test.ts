@@ -484,7 +484,7 @@ describe("canonical Jev request boundary", () => {
     });
     const interrupted = held[0]!;
     expect(ledger.interruptJevRequest(partition, interrupted.unit.operation, interrupted.request)).toBe(true);
-    ledger.retireRound(partition, Effect.runSync(ledger.roundId(partition)));
+    Effect.runSync(ledger.retireRound(partition, Effect.runSync(ledger.roundId(partition))));
     const nextPartition = partition;
     const premature = reviewUnit(nextPartition);
     expect(ledger.readyJevRequest(nextPartition, premature.operation, premature.reservation, facts, Effect.runSync(ledger.roundId(nextPartition))).status)
@@ -531,7 +531,7 @@ describe("canonical Jev request boundary", () => {
     expect(first.canonicalLifetime).toBe(1);
     expect(second.canonicalLifetime).toBe(1);
     expect(firstRound).toBe(otherLifetimeRound);
-    first.retireRound("review-partition", Effect.runSync(first.roundId("review-partition")));
+    Effect.runSync(first.retireRound("review-partition", Effect.runSync(first.roundId("review-partition"))));
     expect(issue(first)).toBeGreaterThan(firstRound);
   });
 });

@@ -26,7 +26,7 @@ describe("canonical work projection", () => {
     const oldRound = Effect.runSync(ledger.roundId("agent"));
     const oldView = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), oldRound);
     ledger.admitObservation("agent", oldRound);
-    ledger.retireRound("agent", oldRound);
+    Effect.runSync(ledger.retireRound("agent", oldRound));
     const nextRound = Effect.runSync(ledger.roundId("agent"));
     const nextView = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), nextRound);
     const source = ledger.admitObservation("agent", nextRound);

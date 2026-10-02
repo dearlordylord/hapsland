@@ -105,7 +105,7 @@ describe("resident logical capacity ledger", () => {
       const round = Effect.runSync(ledger.roundId(partition));
       expect(ledger.transition({ kind: "continuationConsume", group, round }).commands[0]?.kind)
         .toBe("continuationConsumed");
-      ledger.retireRound(partition, round);
+      Effect.runSync(ledger.retireRound(partition, round));
       expect(ledger.canonicalProjection().delivery.counters).toEqual([]);
       Effect.runSync(ledger.discardUnusedPartition(partition));
     }
@@ -244,7 +244,7 @@ describe("resident logical capacity ledger", () => {
     expect(ledger.observation("agent", observation, "startObservation", round)).toBe(true);
     const preparation = ledger.beginObservedPreparation("agent", observation, 10, round);
     expect(preparation).toBeDefined();
-    ledger.retireRound("agent", round);
+    Effect.runSync(ledger.retireRound("agent", round));
     expect(ledger.observation("agent", observation, "completeObservation", round)).toBe(false);
     expect(ledger.beginObservedPreparation("agent", observation, 10, round)).toBeUndefined();
     expect(ledger.canonicalProjection().rounds).toEqual([]);
@@ -256,10 +256,10 @@ describe("resident logical capacity ledger", () => {
     const ledger = makeCapacityLedger();
     const oldRound = Effect.runSync(ledger.roundId("agent"));
     const oldSource = ledger.admitObservation("agent", oldRound);
-    ledger.retireRound("agent", oldRound);
+    Effect.runSync(ledger.retireRound("agent", oldRound));
     const nextRound = Effect.runSync(ledger.roundId("agent"));
     const source = ledger.admitObservation("agent", nextRound);
-    ledger.retireRound("agent", oldRound);
+    Effect.runSync(ledger.retireRound("agent", oldRound));
     expect(Effect.runSync(ledger.roundId("agent"))).toBe(nextRound);
     expect(ledger.observation("agent", oldSource, "startObservation", oldRound)).toBe(false);
     expect(ledger.observation("agent", source, "startObservation", oldRound)).toBe(false);
@@ -503,4 +503,12 @@ effectIt.effect("opens one canonical round for competing deferred identity reque
   expect(yield* read).toBe(rounds[0]);
   expect((yield* owner.partitionIdentityCount())).toBe(1);
   expect(yield* round).toBe(rounds[0]);
+  const retire = owner.retireRound("agent", rounds[0]!);
+  expect(yield* read).toBe(rounds[0]);
+  yield* retire;
+  expect(yield* read).toBeUndefined();
+  const replacement = yield* round;
+  expect(replacement).toBeGreaterThan(rounds[0]!);
+  yield* retire;
+  expect(yield* read).toBe(replacement);
 }));
