@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { makeCapacityLedger, MAX_COLLECTION_TOKEN_IDENTITIES, MAX_PARTITION_IDENTITIES, encodedBytesWithin } from "./capacity.ts";
+import { it as effectIt } from "@effect/vitest";
+import { Effect } from "effect";
+import { makeCapacityLedger, makeResidentState, MAX_COLLECTION_TOKEN_IDENTITIES, MAX_PARTITION_IDENTITIES, encodedBytesWithin } from "./capacity.ts";
 
 describe("resident logical capacity ledger", () => {
   it("keeps reservation metadata private and fences a reused numeric ID", () => {
@@ -431,3 +433,21 @@ describe("resident logical capacity ledger", () => {
     expect(encodedBytesWithin(1n, maximum)).toBeUndefined();
   });
 });
+
+effectIt.effect("reads reservation metadata on execution and fences foreign or recycled capabilities", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const reservation = owner.reserve("fixture", 10, "preparation")!;
+  const read = owner.reservationSnapshot(reservation);
+  const initial = yield* read;
+  expect(initial).toEqual({ bytes: 10, purpose: "preparation" });
+  expect(Object.isFrozen(initial)).toBe(true);
+  expect(owner.resize(reservation, 20)).toBe(true);
+  expect(yield* read).toEqual({ bytes: 20, purpose: "preparation" });
+  expect(initial?.bytes).toBe(10);
+  expect(yield* owner.reservationSnapshot({ ...reservation })).toBeUndefined();
+  owner.clear();
+  const replacement = owner.reserve("fixture", 30, "preparation")!;
+  expect(replacement.id).toBe(reservation.id);
+  expect(yield* read).toBeUndefined();
+  expect(yield* owner.reservationSnapshot(replacement)).toEqual({ bytes: 30, purpose: "preparation" });
+}));

@@ -1273,13 +1273,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }
 
   const pendingAdviceMetadata = Effect.fn("ResidentRuntime.pendingAdviceMetadata")(function* (): Effect.fn.Return<Effect.Success<ReturnType<ResidentRuntime["pendingAdviceMetadata"]>>> {
-    return (yield* residentLedger.advice.snapshots()).map(({ capability: advice, content }) => ({
+    return yield* Effect.forEach((yield* residentLedger.advice.snapshots()), Effect.fn("ResidentRuntime.adviceMetadata")(function* ({ capability: advice, content }) {
+      const reservation = yield* residentLedger.reservationSnapshot(advice.reservation);
+      if (reservation === undefined) throw new Error("advice metadata lost reservation ownership");
+      return {
       id: advice.id,
       partition: advice.partition,
       sequence: advice.sequence,
       pendingAt: advice.pendingAt,
       collectionEligible: content.collectionEligible,
-      retainedBytes: advice.reservation.bytes,
+      retainedBytes: reservation.bytes,
       generation: advice.revision.generation,
       evaluationIdentities: content.evaluations.map(({ prepared }) => prepared.identity),
       path: advice.prepared.input.path,
@@ -1290,6 +1293,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         : content.delivery.acknowledged
           ? "leased-acknowledged"
           : "leased-unacknowledged",
+      } as const;
     }));
   });
 
@@ -1297,6 +1301,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const reuse = (yield* residentReuse.snapshot());
     const notices = yield* residentNotices.entries();
     const runtimeState = yield* residentLedger.runtime.snapshot();
+    let noticeBytes = 0;
+    for (const [, cooldown] of notices) {
+      const reservation = yield* residentLedger.reservationSnapshot(cooldown.reservation);
+      if (reservation === undefined) throw new Error("notice accounting lost reservation ownership");
+      noticeBytes += reservation.bytes;
+    }
     return {
       peakLedgerBytes: runtimeState.peakLedgerBytes,
       maxMaterializedPreparedUnits: runtimeState.maxMaterializedPreparedUnits,
@@ -1305,10 +1315,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       pendingEvaluations: reuse.pending,
       operationalNoticeKeys: notices.length,
       pendingOperationalNotices: notices.filter(([, cooldown]) => cooldown.pending !== undefined).length,
-      operationalNoticeBytes: notices.map(([, value]) => value).reduce(
-        (total, cooldown) => total + cooldown.reservation.bytes,
-        0,
-      ),
+      operationalNoticeBytes: noticeBytes,
     };
   });
 

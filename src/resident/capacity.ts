@@ -287,6 +287,10 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    reservationSnapshot: Effect.fn("Capacity.reservationSnapshot")((capability: CapacityReservation) => Ref.get(state).pipe(Effect.map((snapshot) => {
+      const record = snapshot.reservations.get(capability.id);
+      return record?.capability === capability ? Object.freeze({ bytes: record.bytes, purpose: record.purpose }) : undefined;
+    }))),
     runtime: {
       snapshot: Effect.fn("RuntimeRecords.snapshot")(() => Ref.get(state).pipe(Effect.map((snapshot) => runtimeRecordView(snapshot.records.runtime)))),
       openConnection: Effect.fn("ResidentState.openConnection")((maximum: number) => runtimeCommitEffect((operations) => operations.openConnection(maximum))),

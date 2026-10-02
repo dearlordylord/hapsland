@@ -267,3 +267,8 @@ const runtimeSurface = state.slice(state.indexOf("    runtime:"), state.indexOf(
 if (!state.includes('snapshot: Effect.fn("RuntimeRecords.snapshot")') || runtimeSurface.includes("Ref.getUnsafe")) {
   throw new Error("runtime records must read snapshots through Effect");
 }
+
+if (!state.includes('reservationSnapshot: Effect.fn("Capacity.reservationSnapshot")') ||
+    /advice\.reservation\.bytes|cooldown\.reservation\.bytes/.test(server)) {
+  throw new Error("resident accounting must inspect reservation snapshots through Effect");
+}
