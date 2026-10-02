@@ -27,6 +27,7 @@ export type ResidentControlledOptions = {
 export type ResidentDispatchContext = {
   readonly statePath: string;
   readonly activityPath?: string;
+  readonly sessionAnalytics?: boolean;
   readonly userConfigPath: string | null;
   readonly demoBudgetPath?: string | null;
   readonly credential: {
@@ -198,6 +199,7 @@ const dispatch = (value: unknown): value is ResidentDispatchContext => {
   const credential = item?.credential === null ? null : record(item?.credential);
   return item !== undefined && string(item.statePath) && item.statePath.startsWith("/") &&
     (item.activityPath === undefined || (string(item.activityPath) && item.activityPath.startsWith("/"))) &&
+    (item.sessionAnalytics === undefined || typeof item.sessionAnalytics === "boolean") &&
     (item.userConfigPath === null || (string(item.userConfigPath) && item.userConfigPath.startsWith("/"))) &&
     (item.demoBudgetPath === undefined || item.demoBudgetPath === null ||
       (string(item.demoBudgetPath) && item.demoBudgetPath.startsWith("/"))) &&

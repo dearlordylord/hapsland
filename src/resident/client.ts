@@ -1,3 +1,4 @@
+import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
@@ -261,6 +262,7 @@ export const makeResidentDispatchContext = async (
   return {
     statePath: resolve(statePath),
     activityPath: resolve(activityPath),
+    sessionAnalytics: effectiveSessionAnalytics(settings.configuration.policy),
     userConfigPath: userConfigPath === undefined ? null : resolve(userConfigPath),
     demoBudgetPath: process.env.REVIEW_DEMO_BUDGET_PATH === undefined
       ? null

@@ -268,8 +268,11 @@ without that facility are unsupported rather than falling back to path-only sour
 Offline readiness diagnosis and headless activity inspection are documented in
 [`docs/status.md`](./docs/status.md). Doctor checks the selected installed integration
 without prompts, repairs, source reads, or Jev calls. Status uses an explicit host session
-ID and bounded source-free resident activity, labels legacy receipts separately, and never
-treats silence or missing instrumentation as a clear review.
+ID and bounded source-free resident activity, and never treats silence or missing
+instrumentation as a clear review. Optional [session analytics](./docs/status.md#optional-session-analytics)
+are disabled by default; user configuration can enable Jev outcome totals and recent
+rule-ID history. The shared activity store expires inactive sessions after 30 days and
+is capped at 20 MiB.
 
 The maintainer-only semantic evaluation protocol and its sanitized offline milestone
 evidence are documented in [`docs/evaluation.md`](./docs/evaluation.md) and

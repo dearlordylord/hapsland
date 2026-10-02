@@ -1,3 +1,5 @@
+import { recordAnalytics, type AnalyticsKind } from "../activity/analytics.ts";
+import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import { recordRoundClosure, type RoundCloseReason } from "../activity/status.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import * as ConfigProvider from "effect/ConfigProvider";
@@ -176,6 +178,8 @@ type IngressJob = {
   readonly partition: string;
   readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
+  analyticsEnabled?: boolean;
+  analyticsDiscardReported?: boolean;
   readonly ticket?: TicketRecord;
 };
 
@@ -263,6 +267,8 @@ type UnitJob = {
   readonly partition: string;
   readonly reservation: CapacityReservation;
   readonly dispatch: ResidentDispatchContext;
+  analyticsEnabled?: boolean;
+  analyticsDiscardReported?: boolean;
   readonly prepared: PreparedUnit;
   readonly sourceHash?: string;
   revision: WorkRevision;
@@ -288,6 +294,9 @@ export type JevRequestObservation = {
 
 type Advice = Omit<UnitJob, "dispatch" | "kind" | "work" | "completed"> & {
   readonly id: string;
+  readonly analyticsPath: string | undefined;
+  readonly analyticsEnabled: boolean;
+  readonly analyticsControlled: boolean;
   evaluations: ReadonlyArray<EvaluatedUnit>;
   findings: ReadonlyArray<Finding>;
   readonly sequence: number;
@@ -780,6 +789,7 @@ export class ResidentServer {
     const reservation = this.#reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
     if (reservation === undefined) {
       this.#rejectedCapacity += 1;
+      this.#recordAnalytics({ observation, dispatch }, "capacity-rejected");
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
@@ -823,6 +833,7 @@ export class ResidentServer {
       this.#ledger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound);
       this.#ledger.release(reservation);
       this.#rejectedCapacity += 1;
+      this.#recordAnalytics({ observation, dispatch }, "capacity-rejected");
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
@@ -1288,6 +1299,23 @@ export class ResidentServer {
     if (!this.#composedDelivery.markSubmitted(token,
       advice.flatMap((item) => (item.delivery?.findings ?? []).map(() => item.canonicalOperationId)))) {
       return { status: "empty" };
+    }
+    const analyticsGroups = new Map<string, Advice[]>();
+    for (const item of advice) {
+      if (!item.analyticsEnabled || item.delivery === undefined || item.delivery.acknowledged) continue;
+      const key = JSON.stringify([item.analyticsPath, item.analyticsControlled]);
+      const group = analyticsGroups.get(key) ?? [];
+      group.push(item);
+      analyticsGroups.set(key, group);
+    }
+    for (const group of analyticsGroups.values()) {
+      const first = group[0];
+      if (first === undefined) continue;
+      const findings = group.flatMap((item) => item.delivery?.findings ?? []);
+      recordAnalytics({ enabled: true, statePath: first.analyticsPath,
+        root: first.observation.root, advicee: first.observation.advicee, lifetime: this.lifetime,
+        kind: "submitted", controlled: first.analyticsControlled,
+        findings: findings.length, ruleIds: findings.map((finding) => finding.ruleId) });
     }
     for (const item of advice) {
       if (item.delivery !== undefined) item.delivery.acknowledged = true;
@@ -1959,6 +1987,7 @@ export class ResidentServer {
       // An issued Jev permit remains reserved until its native Effect settles.
       if (job.requestId === undefined) this.#releaseUnit(job);
     } else this.#ledger.release(job.reservation);
+    this.#recordDiscardedAnalytics(job);
     recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
       advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete" });
   }
@@ -2031,6 +2060,25 @@ export class ResidentServer {
     }
   }
 
+  #recordDiscardedAnalytics(job: Job): void {
+    if (job.analyticsDiscardReported) return;
+    job.analyticsDiscardReported = true;
+    this.#recordAnalytics(job, "work-discarded");
+  }
+
+  #recordAnalytics(job: Pick<Job, "observation" | "dispatch"> & { readonly analyticsEnabled?: boolean },
+    kind: AnalyticsKind, findings: ReadonlyArray<Finding> = []): void {
+    const enabled = job.analyticsEnabled ?? job.dispatch.sessionAnalytics === true;
+    if (!enabled || job.dispatch.activityPath === undefined) return;
+    recordAnalytics({
+      enabled,
+      statePath: job.dispatch.activityPath, root: job.observation.root,
+      advicee: job.observation.advicee, lifetime: this.lifetime,
+      kind, controlled: job.dispatch.controlled !== null,
+      findings: findings.length, ruleIds: findings.map((finding) => finding.ruleId),
+    });
+  }
+
   #observeJevRequest(observation: JevRequestObservation): void {
     try { this.#jevRequestObserver?.(observation); } catch {
       // Fixture observation must not change request execution.
@@ -2076,9 +2124,12 @@ export class ResidentServer {
         { signal: job.work?.controller.signal ?? this.#lifetimeController.signal });
       this.#ledger.release(job.reservation);
       if (settings === undefined || this.#lifecycle !== "active" || !this.#jobActive(job)) {
+        this.#recordAnalytics(job, "preparation-failed");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
         return;
       }
+
+      job.analyticsEnabled = effectiveSessionAnalytics(settings.configuration.policy);
 
       // A candidate path is captured and analyzed only while its maximum
       // supported logical workspace is charged. Processing candidates one at
@@ -2090,6 +2141,7 @@ export class ResidentServer {
           job.partition, job.canonicalObservationId, captureWorkspaceBytes(candidate.path), job.canonicalRound);
         if (preparation === undefined) {
           this.#rejectedCapacity += 1;
+          this.#recordAnalytics(job, "capacity-rejected");
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
           continue;
         }
@@ -2127,6 +2179,8 @@ export class ResidentServer {
           return offer === "preparedAdmitted" && outcome.status === "ready" ? [outcome] : [];
         });
         if (ready.length === 0) {
+          this.#recordAnalytics(job, prepared.observation.status === "incomplete"
+            ? "incomplete-candidate" : "skipped-candidate");
           recordActivity({
             statePath: job.dispatch.activityPath,
             root: job.observation.root,
@@ -2142,6 +2196,7 @@ export class ResidentServer {
             residentUnitWorstOutcomeBytes(outcome.prepared) <= MAX_IPC_FRAME_BYTES - 1024) === "preparedAdmitted";
           if (!accepted) {
             this.#rejectedCapacity += 1;
+            this.#recordAnalytics(job, "capacity-rejected");
             rejectedDeliverable = true;
           }
           return accepted;
@@ -2169,6 +2224,10 @@ export class ResidentServer {
               return { kind: "owner" as const, outcome, evaluationKey };
           }
         });
+        for (const item of planned) {
+          if (item.kind === "cached") this.#recordAnalytics(job, "cache-hit", item.cached.evaluation.findings);
+          else if (item.kind === "joined") this.#recordAnalytics(job, "joined-review");
+        }
         if (this.#afterReuseBoundary !== undefined && planned.some((item) => item.kind === "owner")) {
           await this.#afterReuseBoundary("ownerClaimed");
         }
@@ -2257,6 +2316,7 @@ export class ResidentServer {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "capacity");
             if (item.kind === "owner") this.#releaseReuseClaim(item.evaluationKey, "capacity");
             this.#rejectedCapacity += 1;
+            this.#recordAnalytics(job, "capacity-rejected");
             this.#recordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable" });
             continue;
@@ -2290,6 +2350,7 @@ export class ResidentServer {
             partition: job.partition,
             reservation,
             dispatch: job.dispatch,
+            analyticsEnabled: job.analyticsEnabled,
             prepared: item.outcome.prepared,
             ...(sourceHash === undefined ? {} : { sourceHash }),
             revision,
@@ -2334,6 +2395,7 @@ export class ResidentServer {
             this.#releaseReuseClaim(item.evaluationKey, "capacity");
             this.#releaseUnit(unit);
             this.#rejectedCapacity += 1;
+            this.#recordAnalytics(job, "capacity-rejected");
             this.#recordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "unavailable", unitIdentity: item.evaluationKey });
           }
@@ -2360,6 +2422,7 @@ export class ResidentServer {
       await this.#afterPrepare?.();
       return;
     } catch {
+      this.#recordAnalytics(job, "preparation-failed");
       if (process.env.REVIEW_RESIDENT_DEBUG === "1") console.error("resident preparation unavailable");
       this.#ledger.release(job.reservation);
       if (this.#lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
@@ -2380,8 +2443,14 @@ export class ResidentServer {
     let requestIdentity: Pick<JevRequestObservation, "partition" | "canonicalPartition" |
       "lifetime" | "canonicalLifetime" | "round" | "hapslandRound" | "operation"> | undefined;
     const observeRequest = (stage: JevRequestObservation["stage"], request?: number,
-      outcome?: JevRequestObservation["outcome"]) => {
+      outcome?: JevRequestObservation["outcome"], findings: ReadonlyArray<Finding> = []) => {
       if (requestIdentity === undefined) throw new Error("Jev request observation lacks canonical identity");
+      if (stage === "started") this.#recordAnalytics(job, "request-started");
+      if (stage === "settled" && outcome !== undefined) {
+        const kinds = { clear: "request-clear", finding: "request-findings", backendFailure: "request-failed",
+          timeout: "request-timeout", interrupted: "request-interrupted", neverSent: "request-never-sent" } as const;
+        this.#recordAnalytics(job, kinds[outcome], findings);
+      }
       this.#observeJevRequest({ ...requestIdentity, stage,
         ...(request === undefined ? {} : { request }),
         ...(outcome === undefined ? {} : { outcome }) });
@@ -2440,6 +2509,7 @@ export class ResidentServer {
       await this.#awaitBackendGate();
       if (!this.#jobActive(job) || !this.#isCurrentWork(job.revision, job.prepared)) {
         denyReady();
+        this.#recordAnalytics(job, "review-unavailable");
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit, "stale");
         this.#settleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: this.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
@@ -2464,6 +2534,7 @@ export class ResidentServer {
           job.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
+        job.analyticsEnabled = effectiveSessionAnalytics(settings.configuration.policy);
         if (job.dispatch.controlled !== null && controlled === undefined) return denyReady();
         const credentialRequired = controlled === undefined || controlled.requireCredential === true;
         if (credentialRequired && job.dispatch.credential?.name !== settings.credentialEnvVar) return denyReady("credential");
@@ -2610,6 +2681,7 @@ export class ResidentServer {
       }),
         { signal: job.work?.controller.signal ?? this.#lifetimeController.signal });
       if (result?.status === "notAuthorized") {
+        this.#recordAnalytics(job, "review-unavailable");
         if (job.ticketUnit !== undefined) unitUnavailable(job.ticketUnit,
           result.reason === "credential" ? "credential" : "lost");
         this.#settleJoined(job.evaluationKey, "unavailable",
@@ -2643,7 +2715,7 @@ export class ResidentServer {
           result.findings.length === 0 ? "clear" : "finding", currentWork);
         requestSettled = true;
         observeRequest("settled", issuedRequest,
-          result.findings.length === 0 ? "clear" : "finding");
+          result.findings.length === 0 ? "clear" : "finding", result.findings);
         if (disposition === "ignored" || disposition === "stale") {
           this.#releaseReuseClaim(job.evaluationKey);
           this.#releaseUnit(job);
@@ -2854,6 +2926,9 @@ export class ResidentServer {
       job.canonicalOperationId, evaluation.findings.length, job.canonicalRound);
     const advice: Advice = {
       id: randomUUID(),
+      analyticsPath: job.dispatch.activityPath,
+      analyticsEnabled: job.analyticsEnabled ?? job.dispatch.sessionAnalytics === true,
+      analyticsControlled: job.dispatch.controlled !== null,
       ...(job.round === undefined ? {} : { round: job.round }),
       ...(job.workUnitId === undefined ? {} : { workUnitId: job.workUnitId }),
       admissionId: job.admissionId,
@@ -3550,6 +3625,7 @@ export class ResidentServer {
     this.#roundActivity.clear();
     this.#lifecycle = "closed";
     for (const job of this.#dispatcher.close()) {
+      this.#recordDiscardedAnalytics(job);
       if (job.kind === "unit") {
         this.#releaseReuseClaim(job.evaluationKey);
         this.#releaseUnit(job);

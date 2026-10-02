@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { effectiveSessionAnalytics } from "./configuration/resolve.ts";
+import { readAnalytics, formatAnalyticsHuman } from "./activity/analytics.ts";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
@@ -548,6 +550,10 @@ const runOperation = (
         sessionId: operation.sessionId ?? "",
         resident,
       });
+      const analytics = readAnalytics({
+        enabled: settings !== undefined && effectiveSessionAnalytics(settings.configuration.policy),
+        statePath: activityPath, root, sessionId: operation.sessionId ?? "",
+      });
       const output = {
         version: 1,
         operation: "status",
@@ -566,10 +572,11 @@ const runOperation = (
           },
         },
         activity: residentActivity,
+        analytics,
         activitySource: "resident-v1",
       };
       return operation.format === "human"
-        ? `readiness: ${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}`
+        ? `readiness: ${readinessStatus} (configuration=${configurationStatus}, files=${output.readiness.fileSelection}, credentials=${credentials ? "present" : "absent"})\n${formatActivityHuman(operation.sessionId ?? "<session id required>", residentActivity)}\n${formatAnalyticsHuman(analytics)}`
         : output;
     }
     const settings = yield* loadReviewSettings(
