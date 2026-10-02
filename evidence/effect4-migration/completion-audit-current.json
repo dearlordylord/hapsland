@@ -2,7 +2,7 @@
   "purpose": "Requirement-by-requirement current migration audit",
   "authority": "Implementation and validation evidence; neither product acceptance nor expanded platform support",
   "productionSourceCommit": "0c86f40",
-  "completion": "unproven",
+  "completion": "complete",
   "requirements": [
     {
       "requirement": "Full effectful product workflows compose as Effect; runtimes at process/host boundaries",
@@ -107,23 +107,16 @@
     },
     {
       "requirement": "Current native macOS host/package conformance identified by advisory adoption gate",
-      "status": "missing",
+      "status": "deferred-by-owner",
       "evidence": [
         "docs/PRODUCT-RESEARCH-ADVISORY-2026-10-01-functional-runtime.md"
       ],
-      "reason": "Linux host cannot execute macOS native capture, terminal, Keychain or agent profiles. Historical records do not prove migrated source."
-    },
-    {
-      "requirement": "Historical authoritative installed-release gate",
-      "status": "contradicted",
-      "evidence": [
-        "conformance/installed-release-v1.json",
-        "docs/installed-release-compatibility.md"
-      ],
-      "reason": "Pinned assembled commit ancestry fails on migration branch and primary master. Current independent package receipts do not replace the historical accepted release declaration."
+      "reason": "Linux host cannot execute macOS native capture, terminal, Keychain or agent profiles. Historical records do not prove migrated source.",
+      "followupIssue": "https://github.com/dearlordylord/hapsland/issues/172",
+      "requiredForCurrentMigration": false
     }
   ],
-  "next": "Native macOS validation on an available arm64 host remains missing. Historical installed-release ancestry gate remains unresolved; all current Linux implementation checks are complete.",
+  "next": "Ready to merge the local refactor/effect4-migration branch. Perform macOS validation later under #172.",
   "sourceInventory": {
     "evidence": "source-inventory-current.json",
     "reproducer": "node evidence/effect4-migration/source-inventory.mjs",
@@ -301,7 +294,38 @@
   },
   "localVerification": "Complete for final production source 0c86f40: typecheck/build, full suite, scoped native IPC context, unchanged budget workloads, fresh installed Codex, exact Claude, fresh public setup/lifecycle, stable visualization build/browser and unchanged live Decision source hashes.",
   "remainingVerification": [
-    "Native macOS arm64 package/capture/credential/host checks; no machine access supplied yet.",
-    "Historical pinned installed-release gate ancestry fails on original task baseline, current branch and master. Current Linux receipts do not replace historical release acceptance."
-  ]
+    "Native macOS arm64 validation is deferred to #172 and does not block this migration goal.",
+    "Historical installed-release ancestry failure predates the migration. Its earlier support declaration is unchanged; no new release/platform acceptance is claimed."
+  ],
+  "acceptanceDecision": {
+    "authority": "Explicit owner instruction in this session: move macOS validation to a separate task and consider the Effect migration goal closed.",
+    "followupIssue": "https://github.com/dearlordylord/hapsland/issues/172",
+    "scope": "Full idiomatic stable Effect 4 implementation and Linux verification; native macOS validation is deferred, not claimed passed.",
+    "mergePreparation": "Fresh origin/master e9ecab69146f9ab270a960a9e9fcda3e311efd32 integrated at 3c725907ff70211da44f3f0b3080d1608d83dc88. It adds documentation navigation and link-check tooling; no product source or dependency-lock change."
+  },
+  "historicalReleaseVerification": {
+    "requirement": "Historical authoritative installed-release gate",
+    "status": "contradicted",
+    "evidence": [
+      "conformance/installed-release-v1.json",
+      "docs/installed-release-compatibility.md"
+    ],
+    "reason": "Pinned assembled commit ancestry fails on migration branch and primary master. Current independent package receipts do not replace the historical accepted release declaration.",
+    "requiredForCurrentMigration": false,
+    "scope": "Verification of an earlier pinned support declaration; not the current implementation/merge gate. Fresh master testing matrix lists current migration-relevant gates separately."
+  },
+  "mergedMasterVerification": {
+    "typecheck": "pass",
+    "build": "pass",
+    "documentationChecks": "pass",
+    "documentationFixtureTests": 1,
+    "documentationErrors": 0,
+    "productionSourceInventoryHashes": "All 133 module hashes match the tested source exactly.",
+    "fullSuiteApplicability": "1292 tests/126 files pass on unchanged production source; two credential-gated live tests remain separately evidenced. No rerun of unchanged source tests required."
+  },
+  "handoffLifecycle": {
+    "source": "/tmp/hapsland-effect4-migration-handoff.md",
+    "action": "delete after migration context is incorporated into durable architecture, executable tests and this audit",
+    "replacement": "docs/architecture.md and evidence/effect4-migration/completion-audit-current.json"
+  }
 }

@@ -4226,5 +4226,19 @@
     "scope": "Registry update twice, single snapshot and no repeated approval; active package dispatch, partial repair recovery, both-client doctor/repair/reinstall/uninstall, missing active package recovery and settings preservation.",
     "liveDecisionReceiptApplicability": "Recorded Jev Decision provider/question source hashes match current files exactly.",
     "limitations": "Offline synthetic lifecycle fixtures; no new current macOS evidence."
+  },
+  "migrationCompletion": {
+    "status": "complete",
+    "ownerScopeDecision": "macOS validation moved to separate follow-up task by explicit user instruction.",
+    "followupIssue": "https://github.com/dearlordylord/hapsland/issues/172",
+    "productionSourceCommit": "0c86f40",
+    "freshMasterIntegratedCommit": "3c725907ff70211da44f3f0b3080d1608d83dc88",
+    "sourceHashesUnchanged": 133,
+    "typecheck": "pass",
+    "build": "pass",
+    "documentationGate": "pass: one fixture test, zero broken links",
+    "currentFullSuite": "1292 tests pass, two gated live tests skipped; unchanged production source",
+    "audit": "completion-audit-current.json",
+    "limitations": "No current macOS acceptance, no repair of historical release pins, no primary-worktree user edits discarded, no branch publication or primary-master merge performed."
   }
 }
