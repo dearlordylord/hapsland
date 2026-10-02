@@ -149,10 +149,10 @@ per-record free/leased states. Stop output is an exclusive selected-group slot,
 not an aggregate slot count divided by one. Continuation marks display the selected
 current round and delivery group's checked consumed budget; absent or stale
 selection requires selection rather than silently choosing another record.
-Cache entry/byte totals and retained ticket count are separate resource details.
-Ticket units are not retained tickets. Diagnostic operational-notice retention
-is omitted from the main delivery diagram, while actual storage charges remain
-in the common ledger. Cache storage also consumes common ledger charges.
+Cache, ticket retention, and diagnostic operational-notice retention are
+intentionally omitted from the main diagram and its stage inspectors. Actual
+storage charges remain in common ledger totals; backend state and exercises
+remain. The empty retained-resource disclosure and its links must not return.
 
 Encoded output details show the latest supplied resident candidate fact through
 the selected replay frame, with synthetic provenance and the recorded Bend
@@ -184,5 +184,5 @@ ledger, not additional capacity granted per agent. Native constants are unchange
 retain their supplied maxima; existing replay values remain explicit and are not
 rewritten. Optional scenarios create at most three tickets and two notice
 identities independently of these maxima, so ordinary demos do not imply that a
-handful of records saturates native retention. The retained-resource inset remains
-a preview, not an accepted placement.
+handful of records saturates native retention. The retained-resource inset proposal is rejected; retained resource details
+are omitted from the diagram.

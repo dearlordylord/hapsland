@@ -298,8 +298,6 @@ p { line-height: 1.5; }
 .resource-meter-track { grid-column:1/-1; height:8px; background:#eaf0f6; border-radius:3px; overflow:hidden; }
 .resource-meter-track span { display:block; height:100%; background:#427bc4; }
 .shared-secondary-resources { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; margin-top:12px; border-top:1px solid #dce3ec; }
-.resident-resource-details { padding-top:10px; font-size:.82rem; }
-.resident-resource-details summary { cursor:pointer; font-weight:600; }
 .continuation-marks { display:flex; gap:5px; flex-wrap:wrap; }
 .continuation-marks span { padding:5px; border:1px solid #bac9dc; border-radius:3px; font-size:.75rem; }
 .continuation-marks .used { background:#427bc4; color:white; }

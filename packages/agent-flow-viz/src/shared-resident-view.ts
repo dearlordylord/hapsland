@@ -1,4 +1,4 @@
-import { resourceMeter, residentRetentionDetails } from "./resource-details";
+import { resourceMeter } from "./resource-details";
 import type { CapacityMetadata } from "../../monkey-business/src/index";
 import type { HtmlBuilder } from "foldkit/html";
 import type { CanonicalProjection } from "../../../src/canonical/adapter";
@@ -8,13 +8,12 @@ export interface AgentScope { readonly agent: string; readonly partition: number
 
 /** All displayed utilization comes directly from the single checked resident snapshot. */
 export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection: CanonicalProjection,
-  agents: readonly AgentScope[], sequence: number, now: number, metadata?: CapacityMetadata, inspect?: (stage: "outcomes" | "collection") => Message) => {
+  agents: readonly AgentScope[], sequence: number, now: number, metadata?: CapacityMetadata) => {
   const label = (partition: number) => agents.find(agent => agent.partition === partition)?.agent ?? `partition ${partition}`;
   const color = (partition: number) => AGENT_COLORS[Math.max(0, agents.findIndex(agent => agent.partition === partition)) % AGENT_COLORS.length];
   return h.section([h.Class("shared-resident"), h.AriaLabel("Shared resident resources")], [
     h.div([h.Class("shared-resident-heading")], [h.strong([], ["ONE RESIDENT"]),
       h.span([], [`${agents.length} agent${agents.length === 1 ? "" : "s"} · ${sequence < 0 ? "initial state" : `event ${sequence}`} · ${now} ms`])]),
-    ...(metadata?.demoAgentCount === undefined ? [] : [h.p([h.Class("demo-limit-provenance"), h.Title("Demo resident limits; native cache 8 entries / 128 KiB, tickets 256. All retained storage shares the resident ledger.")], [`Demo limits · sized for ${metadata.demoAgentCount} agents`])]),
     h.div([h.Class("shared-resident-resources")], [
       h.div([h.Class("shared-ledger")], [
         h.h3([], ["Global review capacity"]),
@@ -37,6 +36,5 @@ export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection:
       resourceMeter(h, "Edit permits · shared by all agents", projection.admissions.reduce((n,a) => n + a.permits.length, 0), metadata?.permits?.residentLimit),
       resourceMeter(h, "Background collectors · shared by all agents", projection.collection.claims.length, metadata?.collectors?.capacity),
     ]),
-    residentRetentionDetails(h, projection, metadata, inspect),
   ]);
 };

@@ -10,17 +10,6 @@ export const resourceMeter = <Message>(h: HtmlBuilder<Message>, label: string, u
   h.div([h.Class("resource-meter")], [h.span([], [label]), h.strong([], [maximum === undefined ? `${used} used · limit not recorded` : `${used} / ${maximum}`]),
     ...(maximum === undefined ? [] : [h.div([h.Class("resource-meter-track"), h.Role("img"), h.AriaLabel(`${label}: ${used} of ${maximum}`)], [h.span([h.Style({ width: `${Math.min(100, maximum > 0 ? used / maximum * 100 : 0)}%` })], [])])])]);
 
-export const residentRetentionDetails = <Message>(h: HtmlBuilder<Message>, s: CanonicalProjection, metadata?: CapacityMetadata, inspect?: (stage: "outcomes" | "collection") => Message) => {
-  const m = metadata;
-  return h.details([h.Class("resident-resource-details")], [h.summary([], ["Resident resource details · cache and tickets"]),
-    ...(inspect ? [h.button([h.Type("button"), h.OnClick(inspect("outcomes"))], ["Inspect cached evaluations and tickets"])] : []),
-    h.p([], ["Cache and tickets are retained resident resources. Cache storage also uses the common ledger."]),
-    resourceMeter(h, "Cached evaluations · entries", s.reuse.cache.length, m?.reuse?.entryLimit),
-    resourceMeter(h, "Cached evaluations · bytes", s.reuse.cache.reduce((n, c) => n + c.bytes, 0), m?.reuse?.byteLimit),
-    resourceMeter(h, "Retained tickets", s.tickets.length, m?.tickets?.retention),
-  ]);
-};
-
 export const stageResourceDetails = <Message>(h: HtmlBuilder<Message>, stage: string, local: CanonicalProjection, resident: CanonicalProjection, metadata?: CapacityMetadata, candidate?: { bytes: number; items: number; decision?: "fits" | "limited" }, partition?: number, selectedGroup?: number, selectedRound?: number, agents?: readonly AgentScope[]) => {
   const rows = [];
   const knownGroups = [...resident.delivery.slots.map(s => s.group), ...resident.delivery.counters.map(c => c.group), ...resident.collection.claims.map(c => c.group), ...(metadata?.deliveryGroups ?? []).map(binding => binding.group)];
@@ -30,7 +19,6 @@ export const stageResourceDetails = <Message>(h: HtmlBuilder<Message>, stage: st
     const usage = resident.partitions.find(p => p.partition === scopedPartition);
     rows.push(h.p([], ["Selected agent / partition · common ledger"]), resourceMeter(h, "Items", usage?.items ?? 0, resident.limits.partitionItems), resourceMeter(h, "Bytes", usage?.bytes ?? 0, resident.limits.partitionBytes), resourceMeter(h, "Edit permits", local.admissions.filter(a => a.partition === scopedPartition).reduce((n, a) => n + a.permits.length, 0), adviceePermitLimit(metadata, scopedPartition)));
   }
-  if (stage === "outcomes") rows.push(residentRetentionDetails(h, resident, metadata));
   if (stage === "scheduling" || stage === "preparation") rows.push(resourceMeter(h, "Resident preparation workers · shared by all agents", resident.dispatch.running.filter(w => w.preparation).length, resident.executionLimits.preparation));
   if (stage === "effect") rows.push(h.p([], ["One resident Jev permit pool, mirrored across agent layers. Occupied positions are request permits; Jev responses are simulated."]), h.ul([h.Class("jev-owner-details")], [...resident.dispatch.requests].sort((left, right) => left.request - right.request).map(request => h.li([], [`${agents?.find(agent => agent.partition === request.partition)?.agent ?? `partition ${request.partition}`} · request #${request.request} · ${request.started ? "started" : "authorized, not started"}`]))));
   if (["authorization", "effect", "jev"].includes(stage)) rows.push(resourceMeter(h, "Resident Jev permits · shared by all agents", resident.dispatch.requests.length, resident.executionLimits.jevRequests));

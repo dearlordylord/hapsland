@@ -113,7 +113,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
         button(model.flat ? "3D layers" : "Focus selected agent", "fleet:flat", model.flat), button("Reset view", "fleet:camera"),
       ]),
       h.p([h.Class("ensemble-feedback"), h.Role("status")], [model.resident.selected >= 0 && !current ? "Selected event is unavailable in retained history. Return to latest to inspect the resident." : model.feedback]),
-      ...(projection ? [sharedResidentView(h, projection, scopes, current?.sequence ?? -1, current?.time ?? run?.now ?? 0, current ? current.capacityMetadata : model.resident.selected < 0 ? run?.capacityMetadata : undefined, stage => action(`fleet:inspect:${model.active}:${stage}`))] : []),
+      ...(projection ? [sharedResidentView(h, projection, scopes, current?.sequence ?? -1, current?.time ?? run?.now ?? 0, current ? current.capacityMetadata : model.resident.selected < 0 ? run?.capacityMetadata : undefined)] : []),
       h.div([h.Class("ensemble-layout")], [
         h.aside([h.Class("ensemble-agents"), h.AriaLabel("Agent layers")], [
           h.p([h.Class("ensemble-sidebar-label")], ["AGENT LAYERS"]),

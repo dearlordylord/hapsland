@@ -62,8 +62,7 @@ export const SQUARES: Record<Place, Square> = {
         : `${waiting.length} waiting · ${compact(first.operation)}→${blocker.kind === "reviewing" || blocker.kind === "atJev" ? compact(blocker.operation).replace("Review ", "") : workLabel(blocker, n).split("/")[0]}${waiting.length > 1 ? ` +${waiting.length - 1}` : ""}`;
       return [facet("finding work", work(s, "pendingFinding", n)),
         facet("findings waiting for work", waiting
-          .map((item) => `${recordLabel("review", item.operation, n)} from edit observation #${item.observation} waits for ${item.unfinished.map((other) => workLabel(other, n)).join(", ")}`), sample),
-        facet("ticket units", s.tickets.flatMap((x) => x.units).map((x) => `Ticket unit #${x.id}:${x.stage}`))];
+          .map((item) => `${recordLabel("review", item.operation, n)} from edit observation #${item.observation} waits for ${item.unfinished.map((other) => workLabel(other, n)).join(", ")}`), sample)];
     } }),
   advice: square({ title: "Ready advice", owner: "BEND STATE", x: 32, y: 350,
     facets: (s, n) => {

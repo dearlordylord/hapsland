@@ -404,11 +404,10 @@ decision. The multi-agent layer layout is a new visual change; positions within 
 
 The shared rail has separate resident item and byte bars and resident preparation-worker, edit-permit and
 background-collector meters. Admission has partition item/byte/permit indicators;
-scheduling and Jev stages reference their shared pools. The resident resource
-disclosure and selected-stage inspector expose cache entries/bytes, retained
-tickets. Operational-failure diagnostic notice retention is omitted from the
-main delivery diagram; its actual storage charges remain in shared ledger totals.
-These resource details do not add processing stages or flow edges.
+scheduling and Jev stages reference their shared pools. Cache, ticket retention,
+and operational-failure diagnostic notice retention are intentionally omitted
+from the main diagram. Their actual storage charges remain in shared ledger
+totals; backend state and selectable exercises remain available.
 
 Select an agent and a stage to inspect its local records beside the resident
 resources. Advice details mark individual records free or leased. Host output
@@ -464,5 +463,5 @@ ledger, not additional capacity granted per agent. Native constants are unchange
 retain their supplied maxima; existing replay values remain explicit and are not
 rewritten. Optional scenarios create at most three tickets and two notice
 identities independently of these maxima, so ordinary demos do not imply that a
-handful of records saturates native retention. The retained-resource inset remains
-a preview, not an accepted placement.
+handful of records saturates native retention. The retained-resource inset proposal is rejected; retained resource details
+are omitted from the diagram.

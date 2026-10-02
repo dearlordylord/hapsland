@@ -486,3 +486,35 @@ narrow cache/ticket details or Collection panel. The outside-git preview was als
 updated to two resource cards; its placement remains unaccepted. Source and
 maintained documentation are stable for the authorized removal. Review of the
 reuse-cache term is the next separate owner decision.
+
+
+## Owner decision: cache and ticket retention omitted from the diagram (2026-10-01)
+
+The owner authorized removing both remaining retained-resource families, cache
+and tickets, from the main diagram. The entire resident retention disclosure,
+inspection link, Outcomes retention rows, unused helper/style/callback, and
+retention-only demo provenance label are removed. Actual Outcomes records and
+shared ledger charges remain, along with Jev permits, preparation/edit permits,
+collector claims/advice leases, host output slots, and round budgets. Backend
+cache/ticket/diagnostic state, checked events, selectable exercise controls, and
+effective replay configuration remain. This is a visualization decision, not
+implementation of issue 170. The retained-in-diagram inset proposal is now
+rejected. Earlier table rows and advice are historical evidence of the scope at
+that time, not current visible-feature claims.
+
+Astra advised this bounded removal before editing and requested desktop shared
+rail/Outcomes inspection plus ordinary narrow rail after-review. Browser evidence
+checks absence of all three retained families while comparing the rendered
+aggregate ledger to the unchanged populated projection and its exact replay.
+
+
+The scope also removes the pre-existing Outcomes ticket-unit facet, following
+owner clarification; finding work and findings waiting for work remain. Final
+visualization typecheck/build and resource browser pass, including negative
+checks for retention labels and ticket-unit labels, exact populated replay, and
+unfiltered aggregate ledger equality. Evidence logs are
+`/tmp/hapsland-retention-removal-build.log` and
+`/tmp/hapsland-retention-removal-browser.log`. The refreshed Outcomes screenshot
+is `/tmp/hapsland-capacity-outcomes-no-retention-1512.png`; shared rail captures
+are `/tmp/hapsland-capacity-retention-1512.png` and
+`/tmp/hapsland-capacity-resources-390.png`.

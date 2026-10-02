@@ -18,11 +18,9 @@ try {
   assert.match(await resident.innerText(),/Resident ledger items\s+0 \/ 32/);
   assert.match(await resident.innerText(),/Preparation workers · shared by all agents\s+0 \/ 8/);
   assert.match(await resident.innerText(),/Edit permits · shared by all agents\s+0 \/ 8/);
-  await resident.locator('.resident-resource-details summary').click();
-  assert.match(await resident.innerText(),/Cached evaluations · entries\s+0 \/ 6/);
-  assert.match(await resident.innerText(),/Retained tickets\s+0 used · limit not recorded/);
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-initial-1512.png'});
   await click('Focus selected agent');
+  await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-current-flat-1512.png'});
   await click('Step resident');
   await page.locator('#agent-ensemble').getByRole('button',{name:'Inspect Admission & capacity',exact:true}).click();await settle();
   assert.match(await page.locator('.stage-resource-details').innerText(),/Items\s+0 \/ 16/);
@@ -44,7 +42,6 @@ try {
   assert.equal(configured.config.resourceScenarios.ticketRetention,48);
   assert.equal(configured.config.lifecycles.reuse.entryLimit,6);
   assert.equal(configured.config.lifecycles.reuse.byteLimit,49152);
-  assert.match(await resident.innerText(),/Demo limits · sized for 3 agents/);
   await resident.screenshot({path:'/tmp/hapsland-demo-limits-390.png'});
   await page.getByLabel('Diagram stage',{exact:true}).selectOption('round');
   await click('Inspect selected stage');
@@ -65,15 +62,18 @@ try {
   assert.equal(retained.projection.tickets.length,2);
   assert.equal(retained.projection.notices.length,1);
   await load(retained);
-  if (!await page.locator('.resident-resource-details').first().evaluate(el=>el.open)) await page.locator('.resident-resource-details').first().locator('summary').click();await settle();
   const retainedText = await resident.innerText();
-  assert.match(retainedText,/Cached evaluations · entries\s+1 \/ 2/);
-  assert.match(retainedText,/Retained tickets\s+2 \/ 2/);
+  assert.doesNotMatch(retainedText,/Cached evaluations|Retained tickets|Resident resource details|Demo limits/);
+  assert.equal(await resident.locator('.shared-capacity-total').innerText(), `${retained.projection.global.items} / ${retained.projection.limits.globalItems} items · ${retained.projection.global.bytes} / ${retained.projection.limits.globalBytes} bytes`);
+  assert.deepEqual(restoreReplay(retained.exportReplay()).projection,retained.projection);
   assert.doesNotMatch(retainedText,/Operational notice keys|Notice key|Notice ledger storage|Inspect notice collection/);
   assert.ok(retained.projection.global.bytes >= 128); // Actual diagnostic storage remains in the shared ledger.
   await resident.screenshot({path:'/tmp/hapsland-capacity-retention-1512.png'});
 
-  await click(`Select agent ${retained.projection.partitions.findIndex(p=>p.partition===1)+1}`);await focus('preparation');
+  await click(`Select agent ${retained.projection.partitions.findIndex(p=>p.partition===1)+1}`);await focus('outcomes');
+  assert.doesNotMatch(await page.locator('.simulation-stage-inspector').innerText(),/Cached evaluations|Retained tickets|Notice key|Resident resource details|ticket units|Ticket unit/);
+  await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-outcomes-no-retention-1512.png'});
+  await focus('preparation');
   assert.equal(await page.locator('.simulation-stage-inspector .import-budget-meters [role="img"]').count(),4);
   assert.match(await page.locator('.simulation-stage-inspector .import-budget-meters').innerText(),/Latest supplied source bytes/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-import-budgets-1512.png'});
@@ -127,16 +127,12 @@ try {
   assert.equal(retained.projection.reuse.cache.length,2);
   assert.ok(retained.observations.some(f=>f.commands.some(c=>c.kind==='cachePrepared'&&c.evicted.length>0)));
   await load(retained);
-  if(!await page.locator('.resident-resource-details').first().evaluate(el=>el.open)) await page.locator('.resident-resource-details').first().locator('summary').click();
-  assert.match(await resident.innerText(),/Cached evaluations · entries\s+2 \/ 2/);
   await resident.screenshot({path:'/tmp/hapsland-capacity-cache-eviction-1512.png'});
   retained.advance({untilTime:180020,maxEvents:1000});
   retained.schedule({at:180021,kind:'canonical',event:{kind:'cacheClear'}});retained.advance({untilTime:180021,maxEvents:1000});
   assert.equal(retained.projection.notices.length,0);assert.equal(retained.projection.tickets.length,0);assert.equal(retained.projection.reuse.cache.length,0);assert.equal(retained.projection.global.bytes,0);
   await load(retained);
-  if(!await page.locator('.resident-resource-details').first().evaluate(el=>el.open)) await page.locator('.resident-resource-details').first().locator('summary').click();
   assert.equal(await resident.locator(".shared-capacity-total").innerText(), `0 / ${retained.projection.limits.globalItems} items · 0 / ${retained.projection.limits.globalBytes} bytes`);
-  assert.match(await resident.innerText(),/Retained tickets\s+0 \/ 2/);
   assert.doesNotMatch(await resident.innerText(),/Operational notice keys|Notice key|Notice ledger storage/);
   await resident.screenshot({path:'/tmp/hapsland-capacity-retention-released-1512.png'});
 
@@ -174,5 +170,5 @@ try {
   await click('Return to latest');
   assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+1 \/ 2/);
   assert.deepEqual(errors,[]);
-  console.log('Capacity browser checks passed: initial and retained resources, known/absent maxima, local Admission, candidate absence and checked fit, group slot exclusivity, distinct round budgets, optional controls, keyboard inspection, narrow viewport.');
+  console.log('Capacity browser checks passed: retained-family omission with actual ledger and replay preservation, known/absent maxima, local Admission, candidate absence and checked fit, group slot exclusivity, distinct round budgets, optional controls, keyboard inspection, narrow viewport.');
 } finally {await browser?.close();await server.close();}
