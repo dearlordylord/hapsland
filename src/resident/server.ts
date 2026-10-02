@@ -861,17 +861,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         advice: Advice, reportLimit: boolean,
       ) {
         const facts = yield* residentFindingSelectionFacts(advice, partition, credentialGeneration, residentNow(), composed);
-        const onLimited = reportLimit
-          ? () => residentRecordOperationalFailure(advice.observation, "output-limit")
-          : undefined;
-        return ticket === undefined
+        let limited = 0;
+        const onLimited = reportLimit ? () => { limited++; } : undefined;
+        const fitting = ticket === undefined
           ? claudeSurface === undefined
             ? selectFittingFindings(retained, candidates, facts, onLimited, residentCollectionFindingOffer)
             : selectFittingComposedClaudeFindings(retained, candidates, claudeSurface,
                 facts, onLimited, residentCollectionFindingOffer)
           : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode,
             facts, onLimited, residentCollectionFindingOffer);
-      });
+        for (let index = 0; index < limited; index++) yield* residentRecordOperationalFailure(advice.observation, "output-limit");
+        return fitting;
+      }, Effect.uninterruptible);
       let handoffFindings: Array<Finding> = [];
       const selected: Array<Advice> = [];
       let selectedFindings: Array<Finding> = [];
@@ -1033,12 +1034,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             const { delivery } = yield* residentLedger.advice.current(advice);
             return (delivery?.findings ?? []).map((finding) => ({ advice, finding, facts }));
           }))).flat();
+          const limitedIndices: Array<number> = [];
           const accepted = new Set(selectFittingCurrentFindingIndices(offers,
             ticket === undefined ? claudeSurface === undefined ? "codex" :
               claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
-            (index) => residentRecordOperationalFailure(offers[index]!.advice.observation,
-              "output-limit", handoffNow),
+            (index) => { limitedIndices.push(index); },
             residentCollectionFindingOffer));
+          for (const index of limitedIndices) yield* residentRecordOperationalFailure(offers[index]!.advice.observation, "output-limit", handoffNow);
           let index = 0;
           for (const advice of handoff) {
             const { delivery } = yield* residentLedger.advice.current(advice);
@@ -1327,10 +1329,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
 
   const residentPruneNoticeCooldowns = Effect.fn("ResidentRuntime.pruneNoticeCooldowns")((now: number, exceptKey?: string) => residentNotices.prune(now, exceptKey));
 
-  function residentRecordOperationalFailure(observation: DirectObservation, kind: OperationalNoticeKind, now = residentNow()): void {
+  const residentRecordOperationalFailure = Effect.fn("ResidentRuntime.recordOperationalFailure")(function* (observation: DirectObservation, kind: OperationalNoticeKind, now?: number): Effect.fn.Return<void> {
     if (residentLedger.runtime.snapshot().lifecycle !== "active" || !addressableAdvicee(observation.advicee)) return;
-    residentNotices.record(adviceePartition(observation.root, observation.advicee), kind, now);
-  }
+    yield* residentNotices.record(adviceePartition(observation.root, observation.advicee), kind, now ?? residentNow());
+  });
 
 
   const residentFindingSelectionFacts = Effect.fn("ResidentRuntime.findingSelectionFacts")(function* (
@@ -1706,7 +1708,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         // Workspace has been released and all accepted unit reservations are
         // fixed, so best-effort notice retention cannot displace fresh work.
         if (rejectedDeliverable) {
-          residentRecordOperationalFailure(job.observation, "capacity");
+          yield* residentRecordOperationalFailure(job.observation, "capacity");
           recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         }
         for (const item of planned) {
@@ -1767,7 +1769,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "capacity");
             if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey, "capacity");
             yield* residentLedger.runtime.rejectCapacity();
-            residentRecordOperationalFailure(job.observation, "capacity");
+            yield* residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
             continue;
           }
@@ -1840,7 +1842,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             yield* residentReleaseReuseClaim(item.evaluationKey, "capacity");
             yield* residentReleaseUnit(unit);
             yield* residentLedger.runtime.rejectCapacity();
-            residentRecordOperationalFailure(job.observation, "capacity");
+            yield* residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: item.evaluationKey });
           }
         }
@@ -2123,7 +2125,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           result.reason === "credential" ? "credential" : "lost");
         yield* residentSettleJoined(job.evaluationKey, "unavailable",
           result.reason === "credential" ? "credential" : "lost");
-        if (result.reason === "credential") residentRecordOperationalFailure(job.observation, "credential");
+        if (result.reason === "credential") yield* residentRecordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
           advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable", unitIdentity: job.evaluationKey });
@@ -2225,12 +2227,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (failure === "failureBackend") {
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "backend");
         yield* residentSettleJoined(job.evaluationKey, "unavailable", "backend");
-        residentRecordOperationalFailure(job.observation, "backend");
+        yield* residentRecordOperationalFailure(job.observation, "backend");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureCredential") {
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "credential");
         yield* residentSettleJoined(job.evaluationKey, "unavailable", "credential");
-        residentRecordOperationalFailure(job.observation, "credential");
+        yield* residentRecordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureLost") {
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "lost");

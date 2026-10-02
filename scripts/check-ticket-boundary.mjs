@@ -190,6 +190,11 @@ for (const operation of ["remove", "renew", "release", "acknowledge", "drop", "p
 }
 
 const noticeSurface = state.slice(state.indexOf("    notices:"), state.indexOf("    joinedReviews:", state.indexOf("    notices:")));
-if (noticeSurface.includes("Ref.getUnsafe") || !noticeSurface.includes('entries: Effect.fn("NoticeRecords.entries")')) {
+if (/Ref.getUnsafe|noticeCommit|\bcommitAll\(/.test(noticeSurface) || !noticeSurface.includes('entries: Effect.fn("NoticeRecords.entries")')) {
   throw new Error("notice listing must read a snapshot through Effect");
+}
+
+if (!noticeSurface.includes('record: Effect.fn("NoticeRecords.record")') ||
+    !server.includes('yield* residentNotices.record(')) {
+  throw new Error("notice recording must compose an atomic Effect");
 }

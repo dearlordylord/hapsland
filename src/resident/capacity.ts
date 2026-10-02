@@ -601,11 +601,11 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         }
         return [value, { ...records, notices }];
       };
-      const noticeCommit = <A>(operation: (operations: NoticeRecordOperations) => A, identity = ""): A => commitAll(noticeChange(operation, identity));
       return {
         entries: Effect.fn("NoticeRecords.entries")(() => Ref.get(state).pipe(Effect.map((snapshot): ReadonlyArray<readonly [string, NoticeCooldownSnapshot]> =>
           Object.freeze([...snapshot.records.notices.entries].map(([key, value]) => Object.freeze([key, value] as const)))))),
-        record: (...args: Parameters<NoticeRecordOperations["record"]>) => noticeCommit((operations) => operations.record(...args), randomUUID()),
+        record: Effect.fn("NoticeRecords.record")((...args: Parameters<NoticeRecordOperations["record"]>) =>
+          Effect.suspend(() => commitAllEffect(noticeChange((operations) => operations.record(...args), randomUUID())))),
         prune: Effect.fn("NoticeRecords.prune")((...args: Parameters<NoticeRecordOperations["prune"]>) => commitAllEffect(noticeChange((operations) => operations.prune(...args)))),
         drop: Effect.fn("NoticeRecords.drop")((...args: Parameters<NoticeRecordOperations["drop"]>) => commitAllEffect(noticeChange((operations) => operations.drop(...args)))),
         remove: Effect.fn("NoticeRecords.remove")((...args: Parameters<NoticeRecordOperations["remove"]>) => commitAllEffect(noticeChange((operations) => operations.remove(...args)))),
