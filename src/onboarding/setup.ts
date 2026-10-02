@@ -227,10 +227,10 @@ export const runSetup = Effect.fn("Setup.run")(function* (
         pending.push("select a credential source");
       }
     } else {
-      let resolution = yield* Effect.promise(() => resolveCredential({
+      let resolution = yield* resolveCredential({
         envVar: settings.credentialEnvVar,
         environmentOnly,
-      }));
+      });
       let interactiveOutcome:
         | { readonly status: "cancelled" }
         | {
@@ -250,13 +250,13 @@ export const runSetup = Effect.fn("Setup.run")(function* (
         const valueResult = yield* Effect.tryPromise(options.readCredential).pipe(Effect.result);
         if (valueResult._tag === "Success") {
           let value = valueResult.success;
-          const saved = yield* Effect.promise(() => saveCredential(value));
+          const saved = yield* saveCredential(value);
           value = "";
           if (saved.status === "stored") {
-            resolution = yield* Effect.promise(() => resolveCredential({
+            resolution = yield* resolveCredential({
               envVar: settings.credentialEnvVar,
               environmentOnly: false,
-            }));
+            });
           } else {
             interactiveOutcome = {
               status: saved.status,

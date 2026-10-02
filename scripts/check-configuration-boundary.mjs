@@ -38,3 +38,13 @@ if (/Effect\.run(?:Sync|Promise|Fork)\(/u.test(evaluation) || evaluation.include
 if (!evaluation.includes("Config.Redacted(name)")) {
   throw new Error("evaluation credential presence must be read through redacted Effect Config");
 }
+
+const credentials = read("src/credentials/secret-service.ts");
+if (/Effect\.run(?:Sync|Promise|Fork)\(|new Promise|\basync\b|setTimeout\(/u.test(credentials)) {
+  throw new Error("credential workflows must compose in the caller Effect runtime");
+}
+if (/process\.env(?:\[|\.REVIEW_CREDENTIAL_)/u.test(credentials) ||
+    !credentials.includes("Config.Redacted(options.envVar)") ||
+    !credentials.includes('Schedule.spaced("10 millis")')) {
+  throw new Error("credential configuration and lock polling must use redacted Config and Schedule");
+}

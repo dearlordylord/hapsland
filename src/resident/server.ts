@@ -2019,13 +2019,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           Effect.mapError(() => new ResidentAdapterError({ operation: "authorization barrier" })));
         const credential = !credentialRequired || dispatchCredential === null
           ? undefined
-          : yield* residentAdapter("resolve dispatch credential", () => resolveCredential({
+          : yield* resolveCredential({
               envVar: dispatchCredential.name,
               environmentOnly: dispatchCredential.environmentOnly,
               environmentValue: dispatchCredential.environmentValue,
               expectedGeneration: dispatchCredential.generation,
               statePath: dispatchCredential.statePath,
-            }));
+            });
         if (credentialRequired && credential?.status !== "present") {
           return (yield* denyReady("credential"));
         }

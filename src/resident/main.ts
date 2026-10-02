@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as Config from "effect/Config";
+import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -56,6 +57,7 @@ const run = Effect.fn("ResidentProcess.run")(function* () {
 });
 
 await Effect.runPromise(Effect.scoped(run().pipe(Effect.provide(ownershipControlsLayer), Effect.raceFirst(stopped))).pipe(
+  Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))),
   Effect.catch((error) => Effect.sync(() => {
     // Launcher diagnostics contain operation labels, never captured source,
     // provider responses or credentials from an infrastructure error.

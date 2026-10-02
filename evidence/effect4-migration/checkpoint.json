@@ -196,7 +196,8 @@
     "Resident path construction is pure and explicit; default endpoint paths resolve through Config at Effect execution time with injected provider isolation, exact precedence and preserved empty-string native semantics",
     "Client startup/service and public workflow error channels now name ResidentIpcError, ResidentEndpointError and ReviewConfigError instead of generic Error; user correction rejects empty endpoint environment values while preserving absent-value fallback",
     "Integrated master #171 response authority into scoped resident Effects; removed superseded ticket tests/helpers and preserved common advice/lease/joined/identity rollback invariants; full typecheck and 81 shared-state, 95 server/terminal, 35 Claude/analytics selected cases passed.",
-    "Evaluation command planning composes parent ConfigProvider directly; removed internal runSync, redacted credential presence checks, introduced named plan/run/config Effects and bounded typed command failures. Offline injected-config/error and native CLI coverage passed 24 tests in three files."
+    "Evaluation command planning composes parent ConfigProvider directly; removed internal runSync, redacted credential presence checks, introduced named plan/run/config Effects and bounded typed command failures. Offline injected-config/error and native CLI coverage passed 24 tests in three files.",
+    "Credential resolution/save/logout compose directly as named Effects with redacted caller configuration, Schema-decoded v1 state, Schedule lock polling and helper physical closure before token-fenced lock release; CLI, onboarding and resident callers migrated in place."
   ],
   "verification": [
     {
@@ -2499,8 +2500,8 @@
     }
   ],
   "next": [
-    "Master integration full typecheck/build/test passed; continue broader named Effect credential/onboarding/configuration workflow conversion, then run final direct-event/package/installed/host/live/performance gates on the final source state.",
-    "Convert remaining product credential and onboarding Promise workflows to named Effect composition; remove onboarding runPromise bridges and handwritten lock scheduling while preserving credential/installation ownership and physical settlement.",
+    "Master integration and credential lifecycle have focused verification; continue the remaining onboarding/interactive/readiness workflow conversion, then run final comprehensive, conformance, live and performance gates on the final source state.",
+    "Convert remaining onboarding Promise workflows to named Effect composition; remove onboarding runPromise bridges and handwritten installation-lock scheduling. Audit native terminal/process adapters and preserve installation ownership, cancellation and physical settlement.",
     "Finish any remaining fixture and service error/resource ownership gaps found by the full requirement audit",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Run final typecheck/test/direct-event/build/package/installed-release/applicable host validation and bounded authorized live Jev validation when credentials are available",
@@ -2740,10 +2741,6 @@
     },
     "remainingWorkflowAudit": [
       {
-        "owner": "src/credentials/secret-service.ts",
-        "remaining": "Credential resolution/save/logout and state-lock polling still compose Promise workflows; native helper spawn/timeout needs scoped cancellation and physical completion ownership."
-      },
-      {
         "owner": "src/onboarding/installation-lock.ts, codex-installation.ts, claude-installation.ts, opencode-installation.ts",
         "remaining": "Installation workflows and lock polling expose Promise APIs. Replace in place with named Effects and preserve lock generation fences, journal/revalidation/rollback and accepted unsupported-runtime behavior."
       },
@@ -2810,7 +2807,7 @@
   },
   "credentialNativeProcessPort": {
     "scope": "Named Effect native process adapter with acquireUseRelease, Effect timeout, retained physical close acknowledgement and typed sanitized spawn failure. Input is sent only after ownership publication. Native output parsing preserves existing status protocol and credential bytes; retained buffers are cleared after decoding.",
-    "status": "adapter-verified-workflow-integration-pending",
+    "status": "adapter-verified-and-integrated-see-credentialWorkflowPort",
     "tests": {
       "command": "npx vitest run src/credentials/secret-service.test.ts src/credentials/secret-service-process.test.ts --maxWorkers=1",
       "filesPassed": 2,
@@ -2837,7 +2834,82 @@
       "src/credentials/secret-service-process.ts": "d421d3a40a9d1f414b3ecc6519a59ebb510438a267d6fcd2e868af9a9e5eac9c",
       "src/credentials/secret-service-process.test.ts": "58dbbea83ca5d30f2b1a58a28318a07eb25f18cb905d12c2dbee3fd9d7bd22b0"
     },
-    "limitations": "New adapter is not yet connected to production credential workflows. Existing Promise helper and lifecycle exports remain pending in-place replacement; this is not completion of the credential migration. Tests use synthetic native helpers on this Linux host, not a live Secret Service or cross-platform support validation. Full workflow, conformance, performance and completion audits remain required.",
+    "limitations": "Historical adapter checkpoint before workflow integration; its tests were synthetic native helpers on this Linux host. Current integration and remaining limitations are recorded separately in credentialWorkflowPort.",
     "next": "Replace runSecretService in place with Config-resolved Effect adapter; migrate state-lock polling/acquisition and resolve/save/logout composition, then port CLI, onboarding, resident and native test callsites. Preserve v1 generation fences, stale-owner tombstones, mutation invalidation-before-helper, domain statuses and lock ownership until physical helper closure."
+  },
+  "credentialWorkflowPort": {
+    "scope": "In-place replacement of Promise helper, credential resolution/save/logout and custom state-lock sleep loop. Named Effects share parent ConfigProvider; credential values are redacted during configuration. Schedule polls lock acquisition with unchanged 10ms spacing/1000ms wait, monotonic elapsed time and epoch stale-lock measurement. acquireUseRelease retains token-fenced ownership through helper physical closure. CLI credential command no longer starts an internal settings runtime; onboarding and resident compose the same Effects directly. CLI/resident process providers preserve empty env values so configured empty paths are invalid. Version-one state uses Schema without changing generation/status rules. Exclusive temporary state file and descriptor are released on partial write or rename failure.",
+    "initialFocusedTests": {
+      "command": "npx vitest run src/credentials/secret-service.test.ts src/credentials/secret-service-process.test.ts src/credentials/cli.test.ts src/onboarding/setup.test.ts src/cli.test.ts --maxWorkers=1",
+      "filesPassed": 4,
+      "filesFailed": 1,
+      "testsPassed": 50,
+      "testsFailed": 1,
+      "durationSeconds": 44.62,
+      "reason": "Legacy environment-precedence test mutated env after ConfigProvider snapshot acquisition. Native fixture now explicitly supplies a fresh env provider at each executor boundary; production continues to honor the parent provider."
+    },
+    "secondFocusedTests": {
+      "filesPassed": 4,
+      "filesFailed": 1,
+      "testsPassed": 53,
+      "testsFailed": 1,
+      "durationSeconds": 44.35,
+      "reason": "New empty-path test incorrectly used fromUnknown without preserveEmptyStrings. It hid empty state path and wrote default state through a synthetic helper returning available. Fixed provider options before rerun; native credential contents were not changed."
+    },
+    "fixtureIsolationCorrection": {
+      "generatedState": {
+        "version": 1,
+        "generation": 1,
+        "savedUseSuspended": false
+      },
+      "cleanup": "Removed generated default state only after exact content and modification timestamp matched the failed fixture. The observed result implies previous decoded state was generation-zero/not-suspended; removing the record restores those same resolver-visible semantics. Prior file absence was not independently recorded, so byte-for-byte restoration of prior filesystem existence is not claimed. The corrected native CLI empty-path fixture also isolates HOME and asserts no default state/helper invocation.",
+      "postCleanupCheck": "Generated global default state absent after corrected tests."
+    },
+    "extendedTests": {
+      "command": "npx vitest run src/credentials/secret-service.test.ts src/credentials/secret-service-process.test.ts src/credentials/cli.test.ts src/onboarding/setup.test.ts src/cli.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts --maxWorkers=1",
+      "filesPassed": 7,
+      "testsPassed": 149,
+      "durationSeconds": 111.25
+    },
+    "finalCliTests": {
+      "command": "npx vitest run src/credentials/cli.test.ts src/credentials/secret-service-process.test.ts --maxWorkers=1",
+      "filesPassed": 2,
+      "testsPassed": 14,
+      "durationSeconds": 6.39,
+      "scope": "After adding native CLI empty-path rejection test; production source unchanged since extended test/build checkpoint."
+    },
+    "newEvidence": [
+      "Injected provider authority and explicit hook environment absence",
+      "Configured empty helper/state paths rejected when provider preserves empty strings",
+      "Interrupted save physically closes helper before lock release and leaves generation suspended",
+      "Native CLI empty env paths neither invoke synthetic helper nor write default state",
+      "Failed final state rename retains indeterminate result and removes exclusive temporary state file"
+    ],
+    "typecheck": {
+      "command": "npm run typecheck",
+      "status": "pass"
+    },
+    "build": {
+      "command": "npm run build",
+      "status": "pass"
+    },
+    "configurationGuard": {
+      "command": "node scripts/check-configuration-boundary.mjs",
+      "status": "pass",
+      "invariant": "Credential workflow contains no private runtime, Promise facade, manual timer polling or direct credential config env read; it uses redacted Config and Schedule."
+    },
+    "sourceSha256": {
+      "src/credentials/secret-service.ts": "2453acc0581a3a575cf3e3f9daa9eb2528e2b948b7adaf5f6fe0f7381e2a5fcc",
+      "src/credentials/secret-service-process.ts": "d421d3a40a9d1f414b3ecc6519a59ebb510438a267d6fcd2e868af9a9e5eac9c",
+      "src/credentials/secret-service.test.ts": "9cacb027148cb5d00fc0f546eb34a1e7f57418e576e9ff6c8cba82a4c5b87655",
+      "src/credentials/secret-service-process.test.ts": "483968b48da28a74e9d332213073b4ec4fd38c64edb81c88cf52261e7349a4ea",
+      "src/credentials/cli.test.ts": "0aca737c8bb0a2a936d060a8d8e26ecac75eda5f9d6f97b1abf55c229f1b0034",
+      "src/cli.ts": "05bdb2c70e3c9d24748b7f2da1e7abbeca37e6db8a95b70ede3204b8c84b3896",
+      "src/onboarding/setup.ts": "d340e77e96f1c10573ee550789d3ba1435b7d448cdfd3bfc492004fb6f7bb2ec",
+      "src/resident/main.ts": "4179715e5cb409d19adff7d1fcc4c4d8c38b89c9abadec0dd258ff72c48f56fb",
+      "src/resident/server.ts": "0abad381b53acf02dffd75d8a7067a59565cb97d8adee18c80a2f8ea8ba2a447",
+      "scripts/check-configuration-boundary.mjs": "7d1aea334a48d6a843cf8ad787627f335869a8f3c1ec80b9a2e2b9a2cbb23344"
+    },
+    "limitations": "No live Jev calls or live native credential mutation performed. Native helper tests use synthetic processes on Linux; this is not macOS/runtime support acceptance. Masked terminal input still uses a native Promise bridge and requires scope/interruption audit. Remaining installation, doctor/demo, interactive/process/readiness workflows and final comprehensive/conformance/performance/completion audits remain required."
   }
 }

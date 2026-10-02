@@ -1,9 +1,10 @@
 import { expect, it } from "@effect/vitest";
-import { Effect, Fiber } from "effect";
-import { mkdtempSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
+import { ConfigProvider, Effect, Fiber } from "effect";
+import { existsSync, mkdtempSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runSecretServiceProcess } from "./secret-service-process.ts";
+import { readCredentialState, resolveCredential, runSecretService, saveCredential } from "./secret-service.ts";
 
 const fixture = (body: string) => Effect.acquireRelease(
   Effect.sync(() => {
@@ -88,4 +89,42 @@ it.live("external abort preserves the cancelled domain result and waits for clos
   controller.abort();
   expect(yield* Fiber.join(running)).toEqual({ status: "cancelled" });
   assertClosed(pid);
+}));
+
+it.effect("credential resolution honors the caller provider and explicit hook absence", () => Effect.gen(function* () {
+  const { directory } = yield* fixture("");
+  const options = { envVar: "FIXTURE_KEY", environmentOnly: true, statePath: join(directory, "state") };
+  const provider = ConfigProvider.layer(ConfigProvider.fromUnknown({ FIXTURE_KEY: "synthetic-key" }));
+  expect(yield* resolveCredential(options).pipe(Effect.provide(provider)))
+    .toEqual({ status: "present", source: "environment", value: "synthetic-key", generation: 0 });
+  expect(yield* resolveCredential({ ...options, environmentValue: null }).pipe(Effect.provide(provider)))
+    .toEqual({ status: "missing", source: "environment", generation: 0 });
+}));
+
+it.effect("explicitly empty helper and state paths fail without using a default", () => Effect.gen(function* () {
+  const { directory, helper } = yield* fixture('process.stdout.write(JSON.stringify({status:"available"})+"\\n");');
+  expect(yield* runSecretService("probe").pipe(Effect.provide(ConfigProvider.layer(
+    ConfigProvider.fromUnknown({ REVIEW_CREDENTIAL_HELPER: "" }, { preserveEmptyStrings: true }),
+  )))).toEqual({ status: "unavailable" });
+  expect(yield* saveCredential("synthetic-key").pipe(Effect.provide(ConfigProvider.layer(
+    ConfigProvider.fromUnknown({ REVIEW_CREDENTIAL_HELPER: helper, REVIEW_CREDENTIAL_STATE_PATH: "" }, { preserveEmptyStrings: true }),
+  )))).toMatchObject({ status: "unavailable", stateLock: "unavailable" });
+  expect(existsSync(join(directory, "state"))).toBe(false);
+}));
+
+it.live("interrupted save closes the helper before releasing its lock and leaves generation suspended", () => Effect.gen(function* () {
+  const { directory, helper, pidPath } = yield* fixture(hangingBody);
+  const statePath = join(directory, "state");
+  const provider = ConfigProvider.layer(ConfigProvider.fromUnknown({ REVIEW_CREDENTIAL_HELPER: helper }));
+  const ready = yield* Effect.forkChild(runningPid(directory, pidPath), { startImmediately: true });
+  const saving = yield* Effect.forkChild(saveCredential("synthetic-key", statePath).pipe(Effect.provide(provider)),
+    { startImmediately: true });
+  const pid = yield* Fiber.join(ready);
+  expect(existsSync(`${statePath}.lock`)).toBe(true);
+  expect(readCredentialState(statePath)).toEqual({ version: 1, generation: 1, savedUseSuspended: true });
+  yield* Fiber.interrupt(saving);
+  expect((yield* Fiber.await(saving))._tag).toBe("Failure");
+  assertClosed(pid);
+  expect(existsSync(`${statePath}.lock`)).toBe(false);
+  expect(readCredentialState(statePath)).toEqual({ version: 1, generation: 1, savedUseSuspended: true });
 }));

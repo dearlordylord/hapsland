@@ -53,6 +53,8 @@ Effect 4 services compose the resident, client, source preparation, Jev evaluati
 
 An IPC connection owns its response context and provisional delivery lease. Shared review work belongs to the resident lifetime, so disconnecting a collector does not cancel another collector's evaluation. Cancellation stops further authorized work, but issued requests and capture workspace retain their accounting until native work physically settles. Shutdown waits for that settlement before releasing ownership artifacts. Claude edit feedback uses one bounded admission-and-collection request with immutable response authority; it retains no edit tickets or duplicate outcome registry. The [advicee contract](advicing-target-contract.md) owns the delivery rules.
 
+Credential resolution, save, and logout compose in the caller's Effect runtime and configuration provider. Save and logout publish a suspended generation before invoking the native credential helper. The state lock remains owned until the helper physically closes, including after timeout or interruption; token checks prevent cleanup from deleting a successor's lock. Lock polling uses an Effect schedule, and persisted version-one state is decoded with Schema. CLI and resident process configuration preserve empty environment values so empty credential paths are rejected rather than replaced by defaults.
+
 ## What verification establishes
 
 Bend owns the production transition decisions through `Canonical.step`, including admission, rule eligibility, capacity, request permission, freshness-related transitions, and delivery authorization. The import-graph reducer orders traversal and checks budgets. TypeScript observes native facts and executes filesystem, parser, credential, network, and host-output effects.

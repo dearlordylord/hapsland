@@ -1,4 +1,5 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from "node:fs";
+import { ConfigProvider, Effect } from "effect";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
@@ -10,6 +11,10 @@ import {
   runSecretService,
   saveCredential,
 } from "./secret-service.ts";
+
+const run = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect.pipe(
+  Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))),
+));
 
 const originalEnvironment = { ...process.env };
 let root: string;
@@ -115,25 +120,25 @@ int main(void) {
   it("bounds a nonprompting lookup by killing its helper", async () => {
     process.env.TEST_SECRET_MODE = "hang";
     const started = Date.now();
-    await expect(runSecretService("get", { deadlineMs: 40 })).resolves.toEqual({ status: "timed-out" });
+    await expect(run(runSecretService("get", { deadlineMs: 40 }))).resolves.toEqual({ status: "timed-out" });
     expect(Date.now() - started).toBeLessThan(500);
   });
 
   it("cancels a live native lookup and waits for helper termination", async () => {
     process.env.TEST_SECRET_MODE = "hang";
     const controller = new AbortController();
-    const lookup = runSecretService("get", { deadlineMs: 5_000, signal: controller.signal });
+    const lookup = run(runSecretService("get", { deadlineMs: 5_000, signal: controller.signal }));
     controller.abort();
     await expect(lookup).resolves.toEqual({ status: "cancelled" });
   });
 
   it("preserves an interaction-required native outcome without attempting UI", async () => {
     process.env.TEST_SECRET_MODE = "interaction-required";
-    await expect(resolveCredential({
+    await expect(run(resolveCredential({
       envVar: "TYPESAFE_API_KEY",
       environmentOnly: false,
       statePath: lifecycle,
-    })).resolves.toMatchObject({ status: "interaction-required", source: "saved" });
+    }))).resolves.toMatchObject({ status: "interaction-required", source: "saved" });
   });
 
   it("keeps the macOS helper lookup noninteractive and scoped by service and account", () => {
@@ -152,13 +157,13 @@ int main(void) {
 
   it("maps helper stdin EPIPE to a sanitized indeterminate result", async () => {
     process.env.TEST_SECRET_MODE = "epipe";
-    await expect(runSecretService("set", { input: "x".repeat(32_768) })).resolves.toEqual({ status: "indeterminate" });
+    await expect(run(runSecretService("set", { input: "x".repeat(32_768) }))).resolves.toEqual({ status: "indeterminate" });
   });
 
   it("retains the deadline for a live helper that closes credential stdin", async () => {
     process.env.TEST_SECRET_MODE = "close-stdin-hang";
     const started = Date.now();
-    await expect(runSecretService("set", { input: "x".repeat(32_768), deadlineMs: 200 }))
+    await expect(run(runSecretService("set", { input: "x".repeat(32_768), deadlineMs: 200 })))
       .resolves.toEqual({ status: "timed-out" });
     expect(Date.now() - started).toBeLessThan(1_000);
   });
@@ -171,33 +176,33 @@ int main(void) {
   });
 
   it("uses the default environment key before saved storage", async () => {
-    await saveCredential("saved-marker", lifecycle);
+    await run(saveCredential("saved-marker", lifecycle));
     process.env.TYPESAFE_API_KEY = "environment-marker";
-    await expect(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle }))
+    await expect(run(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle })))
       .resolves.toMatchObject({ status: "present", source: "environment", value: "environment-marker" });
   });
 
   it("honors an explicitly absent hook environment instead of the resident launch environment", async () => {
-    await saveCredential("saved-marker", lifecycle);
+    await run(saveCredential("saved-marker", lifecycle));
     process.env.TYPESAFE_API_KEY = "stale-resident-environment-marker";
-    await expect(resolveCredential({
+    await expect(run(resolveCredential({
       envVar: "TYPESAFE_API_KEY",
       environmentOnly: false,
       environmentValue: null,
       statePath: lifecycle,
-    })).resolves.toMatchObject({ status: "present", source: "saved", value: "saved-marker" });
+    }))).resolves.toMatchObject({ status: "present", source: "saved", value: "saved-marker" });
   });
 
   it("treats an explicit environment selection as environment-only", async () => {
-    await saveCredential("saved-marker", lifecycle);
-    await expect(resolveCredential({ envVar: "ALT_KEY", environmentOnly: true, statePath: lifecycle }))
+    await run(saveCredential("saved-marker", lifecycle));
+    await expect(run(resolveCredential({ envVar: "ALT_KEY", environmentOnly: true, statePath: lifecycle })))
       .resolves.toMatchObject({ status: "missing", source: "environment" });
   });
 
   it("preserves the old credential when replacement fails", async () => {
-    const initial = await saveCredential("old-marker", lifecycle);
+    const initial = await run(saveCredential("old-marker", lifecycle));
     process.env.TEST_SECRET_MODE = "fail-set";
-    const failed = await saveCredential("new-marker", lifecycle);
+    const failed = await run(saveCredential("new-marker", lifecycle));
     delete process.env.TEST_SECRET_MODE;
     expect(failed.status).toBe("unavailable");
     expect(failed.state.generation).toBe(initial.state.generation + 1);
@@ -209,7 +214,8 @@ int main(void) {
     const moduleUrl = new URL("./secret-service.ts", import.meta.url).href;
     const child = spawn(process.execPath, ["--input-type=module", "-e", `
       const { saveCredential } = await import(${JSON.stringify(moduleUrl)});
-      await saveCredential("killed-owner-marker", ${JSON.stringify(lifecycle)});
+      const { Effect } = await import("effect");
+      await Effect.runPromise(saveCredential("killed-owner-marker", ${JSON.stringify(lifecycle)}));
     `], {
       detached: true,
       stdio: "ignore",
@@ -223,7 +229,7 @@ int main(void) {
     expect(existsSync(ready)).toBe(true);
     expect(existsSync(`${lifecycle}.lock/owner.json`)).toBe(true);
 
-    const busy = await saveCredential("contending-marker", lifecycle);
+    const busy = await run(saveCredential("contending-marker", lifecycle));
     expect(busy).toMatchObject({ status: "busy", stateLock: "busy" });
     expect(child.pid).toBeTypeOf("number");
     process.kill(-(child.pid as number), "SIGKILL");
@@ -238,9 +244,10 @@ int main(void) {
       const contender = spawn(process.execPath, ["--input-type=module", "-e", `
         const { existsSync, writeFileSync } = await import("node:fs");
         const { saveCredential } = await import(${JSON.stringify(moduleUrl)});
+      const { Effect } = await import("effect");
         writeFileSync(${JSON.stringify(readyPath)}, "ready");
         while (!existsSync(${JSON.stringify(gate)})) await new Promise((resolve) => setTimeout(resolve, 5));
-        const result = await saveCredential(${JSON.stringify(name)}, ${JSON.stringify(lifecycle)});
+        const result = await Effect.runPromise(saveCredential(${JSON.stringify(name)}, ${JSON.stringify(lifecycle)}));
         writeFileSync(${JSON.stringify(resultPath)}, JSON.stringify(result));
       `], {
         stdio: "ignore",
@@ -281,7 +288,7 @@ int main(void) {
     const safelyStale = new Date(Date.now() - 31_000);
     utimesSync(ownerlessLock, safelyStale, safelyStale);
 
-    const result = await saveCredential("ownerless-recovery-marker", lifecycle);
+    const result = await run(saveCredential("ownerless-recovery-marker", lifecycle));
     expect(result).toMatchObject({ status: "stored", stateLock: "recovered" });
     expect(readFileSync(vault, "utf8")).toBe("ownerless-recovery-marker");
   });
@@ -291,66 +298,66 @@ int main(void) {
     const blockedState = join(blockedParent, "state.json");
     writeFileSync(blockedParent, "blocked");
 
-    await expect(saveCredential("unwritten-marker", blockedState)).resolves.toMatchObject({
+    await expect(run(saveCredential("unwritten-marker", blockedState))).resolves.toMatchObject({
       status: "unavailable",
       stateLock: "unavailable",
     });
-    await expect(logoutCredential(blockedState)).resolves.toMatchObject({
+    await expect(run(logoutCredential(blockedState))).resolves.toMatchObject({
       status: "unavailable",
       stateLock: "unavailable",
     });
   });
 
   it("invalidates old generations after replacement", async () => {
-    const old = await saveCredential("old-marker", lifecycle);
-    const replacement = await saveCredential("new-marker", lifecycle);
+    const old = await run(saveCredential("old-marker", lifecycle));
+    const replacement = await run(saveCredential("new-marker", lifecycle));
     expect(replacement.state.generation).toBe(old.state.generation + 1);
-    await expect(resolveCredential({
+    await expect(run(resolveCredential({
       envVar: "TYPESAFE_API_KEY",
       environmentOnly: false,
       expectedGeneration: old.state.generation,
       statePath: lifecycle,
-    })).resolves.toMatchObject({ status: "suspended", generation: replacement.state.generation });
+    }))).resolves.toMatchObject({ status: "suspended", generation: replacement.state.generation });
   });
 
   it("rejects a lookup whose generation changes in another process", async () => {
-    await saveCredential("saved-marker", lifecycle);
+    await run(saveCredential("saved-marker", lifecycle));
     process.env.TEST_SECRET_MODE = "slow-get";
     const mutation = spawn(process.execPath, ["-e", `
       const fs = require("node:fs");
       setTimeout(() => fs.writeFileSync(process.argv[1], JSON.stringify({version:1,generation:99,savedUseSuspended:false})), 30);
     `, lifecycle], { stdio: "ignore" });
     const mutationExited = new Promise<void>((resolveExit) => mutation.once("exit", () => resolveExit()));
-    await expect(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle }))
+    await expect(run(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle })))
       .resolves.toMatchObject({ status: "suspended", generation: 99 });
     await mutationExited;
   });
 
   it("reports commit-then-timeout replacement as indeterminate and suspends use", async () => {
-    await saveCredential("old-marker", lifecycle);
+    await run(saveCredential("old-marker", lifecycle));
     process.env.TEST_SECRET_MODE = "commit-hang-set";
-    const result = await saveCredential("new-marker", lifecycle);
+    const result = await run(saveCredential("new-marker", lifecycle));
     expect(result.status).toBe("indeterminate");
     expect(result.state.savedUseSuspended).toBe(true);
     expect(readFileSync(vault, "utf8")).toBe("new-marker");
     delete process.env.TEST_SECRET_MODE;
-    await expect(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle }))
+    await expect(run(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle })))
       .resolves.toMatchObject({ status: "suspended" });
   }, 20_000);
 
   it("maps a native create failure after possible commit to indeterminate and suspends use", async () => {
-    await saveCredential("old-marker", lifecycle);
+    await run(saveCredential("old-marker", lifecycle));
     process.env.TEST_SECRET_MODE = "fail-after-create";
-    const result = await saveCredential("new-marker", lifecycle);
+    const result = await run(saveCredential("new-marker", lifecycle));
     expect(result.status).toBe("indeterminate");
     expect(result.state.savedUseSuspended).toBe(true);
     expect(readFileSync(vault, "utf8")).toBe("new-marker");
   });
 
   it("suspends saved use and advances generation when deletion fails", async () => {
-    const stored = await saveCredential("saved-marker", lifecycle);
+    const stored = await run(saveCredential("saved-marker", lifecycle));
     process.env.TEST_SECRET_MODE = "fail-delete";
-    const logout = await logoutCredential(lifecycle);
+    const logout = await run(logoutCredential(lifecycle));
     expect(logout.status).toBe("unavailable");
     expect(logout.state).toEqual({
       version: 1,
@@ -360,26 +367,27 @@ int main(void) {
     expect(readCredentialState(lifecycle).savedUseSuspended).toBe(true);
     expect(readFileSync(vault, "utf8")).toBe("saved-marker");
     delete process.env.TEST_SECRET_MODE;
-    await expect(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle }))
+    await expect(run(resolveCredential({ envVar: "TYPESAFE_API_KEY", environmentOnly: false, statePath: lifecycle })))
       .resolves.toMatchObject({ status: "suspended" });
   });
 
   it("reports indeterminate when deletion commits but the final state write fails", async () => {
-    await saveCredential("saved-marker", lifecycle);
+    await run(saveCredential("saved-marker", lifecycle));
     process.env.TEST_SECRET_MODE = "delete-break-state";
-    const logout = await logoutCredential(lifecycle);
+    const logout = await run(logoutCredential(lifecycle));
     expect(logout).toMatchObject({
       status: "indeterminate",
       stateLock: "acquired",
       state: { savedUseSuspended: true },
     });
     expect(existsSync(vault)).toBe(false);
+    expect(readdirSync(root).filter((name) => name.startsWith("state.json.") && name.endsWith(".tmp"))).toEqual([]);
   });
 
   it("publishes a suspended generation before native deletion completes", async () => {
-    const stored = await saveCredential("saved-marker", lifecycle);
+    const stored = await run(saveCredential("saved-marker", lifecycle));
     process.env.TEST_SECRET_MODE = "slow-fail-delete";
-    const deleting = logoutCredential(lifecycle);
+    const deleting = run(logoutCredential(lifecycle));
     await new Promise((resolveWait) => setTimeout(resolveWait, 40));
     expect(readCredentialState(lifecycle)).toEqual({
       version: 1,

@@ -3,9 +3,11 @@ import * as Schedule from "effect/Schedule";
 import { effectiveSessionAnalytics } from "./configuration/resolve.ts";
 import { readAnalytics, formatAnalyticsHuman } from "./activity/analytics.ts";
 import * as Config from "effect/Config";
+import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Option from "effect/Option";
+import * as Redacted from "effect/Redacted";
 import * as Schema from "effect/Schema";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -488,11 +490,11 @@ const runOperation = (
       ).pipe(Effect.result);
       const settings = configuration._tag === "Success" ? configuration.success : undefined;
       const credentialEnvVar = settings?.credentialEnvVar ?? DEFAULT_CREDENTIAL_ENV_VAR;
-      const credentialResolution = yield* Effect.promise(() => resolveCredential({
+      const credentialResolution = yield* resolveCredential({
         envVar: credentialEnvVar,
         environmentOnly: settings !== undefined &&
           settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
-      }));
+      });
       const credentials = credentialResolution.status === "present";
       const configurationStatus = settings === undefined ? "invalid" : "ready";
       const selectionOff = settings !== undefined && !fileSelectionReadiness(settings).selected;
@@ -546,11 +548,11 @@ const runOperation = (
     const credentialEnvVar = settings.credentialEnvVar;
     switch (operation.operation) {
       case "credentials": {
-        const resolution = yield* Effect.promise(() => resolveCredential({
+        const resolution = yield* resolveCredential({
           envVar: credentialEnvVar,
           environmentOnly:
             settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
-        }));
+        });
         return {
           version: 1,
           operation: "credentials",
@@ -754,11 +756,11 @@ const program = Effect.gen(function* () {
           const doctorEnvironmentCredential = yield* Config.option(Config.String(settings.credentialEnvVar)).pipe(
             Effect.map((value) => Option.isSome(value) && value.value.length > 0),
           );
-          const credential = yield* Effect.promise(() => resolveCredential({
+          const credential = yield* resolveCredential({
             envVar: settings.credentialEnvVar,
             environmentOnly:
               settings.configuration.policy.credentialEnvVar.origin.layer !== "built-in",
-          }));
+          });
           const credentialReady = credential.status === "present";
           const credentialAction = credentialReady
             ? undefined
@@ -951,9 +953,9 @@ const readMaskedCredential = (): Promise<string> => {
   });
 };
 
-const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>> => {
+const runCredentialCommand = Effect.fn("Cli.credentialCommand")(function* () {
   if (process.argv.includes("--login")) {
-    const probe = await runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true });
+    const probe = yield* runSecretService("probe", { deadlineMs: 2_000, allowInteraction: true });
     if (probe.status !== "available") {
       return {
         version: 1,
@@ -966,12 +968,10 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
             : "reinstall an archive containing the native helper for this platform if it is missing, or make the native credential store available; then retry",
       };
     }
-    let value: string;
-    try {
-      value = process.argv.includes("--credential-stdin")
-        ? readFileSync(0, "utf8").replace(/\r?\n$/, "")
-        : await readMaskedCredential();
-    } catch {
+    const input = yield* (process.argv.includes("--credential-stdin")
+      ? Effect.try(() => readFileSync(0, "utf8").replace(/\r?\n$/, ""))
+      : Effect.tryPromise(() => readMaskedCredential())).pipe(Effect.result);
+    if (input._tag === "Failure") {
       return {
         version: 1,
         operation: "login",
@@ -980,7 +980,8 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
         action: "retry in a terminal or explicitly use --credential-stdin",
       };
     }
-    const result = await saveCredential(value);
+    let value = input.success;
+    const result = yield* saveCredential(value);
     value = "";
     return {
       version: 1,
@@ -1000,7 +1001,7 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
       generation: result.state.generation,
     };
   }
-  const result = await logoutCredential();
+  const result = yield* logoutCredential();
   let environmentName: string = DEFAULT_CREDENTIAL_ENV_VAR;
   try {
     const repository = spawnSync("git", ["rev-parse", "--show-toplevel"], {
@@ -1008,10 +1009,16 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
     });
     const root = repository.status === 0 ? repository.stdout.trim() : "";
     if (root.length > 0) {
-      environmentName = (await Effect.runPromise(loadReviewSettings(root))).credentialEnvVar;
+      environmentName = yield* loadReviewSettings(root).pipe(
+        Effect.map((settings) => settings.credentialEnvVar),
+        Effect.catch(() => Effect.succeed(DEFAULT_CREDENTIAL_ENV_VAR)),
+      );
     }
   } catch { /* The global default remains the only known environment override. */ }
-  const environmentActive = (process.env[environmentName]?.length ?? 0) > 0;
+  const environmentActive = yield* Config.option(Config.Redacted(environmentName)).pipe(
+    Effect.map((value) => Option.isSome(value) && Redacted.value(value.value).length > 0),
+    Effect.catch(() => Effect.succeed(false)),
+  );
   return {
     version: 1,
     operation: "logout",
@@ -1038,7 +1045,7 @@ const runCredentialCommand = async (): Promise<Readonly<Record<string, unknown>>
         : undefined,
     },
   };
-};
+});
 
 const isCredentialCommand = process.argv.includes("--login") || process.argv.includes("--logout");
 const printHelp = () => {
@@ -1380,9 +1387,10 @@ const runReviewProgram = Effect.fn("ReviewCli.run")(function* () {
   if (timedOut && watchdog !== undefined) yield* Fiber.join(watchdog);
   return output;
 }, Effect.scoped);
+const processConfigurationLayer = ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }));
 const output = isCredentialCommand
-  ? await runCredentialCommand()
-  : await Effect.runPromise(runReviewProgram().pipe(Effect.provide(directHookSubmissionLayer), Effect.provide(composedHookRuntimeLayer), Effect.provide(hookOutputLayer), Effect.provide(residentStartupLayer)));
+  ? await Effect.runPromise(runCredentialCommand().pipe(Effect.provide(processConfigurationLayer)))
+  : await Effect.runPromise(runReviewProgram().pipe(Effect.provide(processConfigurationLayer), Effect.provide(directHookSubmissionLayer), Effect.provide(composedHookRuntimeLayer), Effect.provide(hookOutputLayer), Effect.provide(residentStartupLayer)));
 if (composedKind === undefined && !isCodexHook && !isClaudeHook && !isOpenCodeHook && typeof output === "object" && output !== null) {
   const record = output as Readonly<Record<string, unknown>>;
   process.exitCode = record.status === "unsupported"
