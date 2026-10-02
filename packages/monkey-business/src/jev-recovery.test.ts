@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { createRun, restoreReplay, DEFAULT_FILE_TREE_PROFILE, type Observation } from "./index.ts";
 import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
@@ -107,46 +107,54 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
   expect(native).toEqual(emitted);
 }, 30000);
 
-it("agrees on compact native recovery after 2050 terminal requests without growing issuance history", () => {
-  const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-terminal-native.bend", import.meta.url)) as number[];
-  // Fixed original script: 2050 clear edits at cycle*10, PRE2/Jev1, then
-  // unavailable/restore/rotate and a finding edit one millisecond later.
-  expect(native).toEqual([2051, 2050, 1, 1, 0, 12306, 38978, 20497, 1, 5, 0, 0, 0, 2, 1]);
-  const run = createRun({ inputs: [], jevDelay: 1, preparationDelay: 2, retention: 1,
-    fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 2, maxFiles: 2, maxImports: 1, maxDepth: 1, deniedPercent: 0,
-      minSourceBytes: 100, maxSourceBytes: 100, minTreeBytes: 20, maxTreeBytes: 20 } });
-  const totals = [0, 0, 0, 0, 0, 0, 0];
-  const unsubscribe = run.subscribe(frame => {
-    if (frame.event.kind === "jevRequestStarted") totals[0] = (totals[0] ?? 0) + 1;
-    if (frame.event.kind === "jevRequestSettled" && frame.event.outcome === "clear") totals[1] = (totals[1] ?? 0) + 1;
-    if (frame.event.kind === "jevRequestSettled" && frame.event.outcome === "finding") totals[2] = (totals[2] ?? 0) + 1;
-    if (frame.event.kind === "submissionTerminal") totals[3] = (totals[3] ?? 0) + 1;
-    if (frame.rejection) totals[4] = (totals[4] ?? 0) + 1;
-    if (frame.preparation) totals[5] = (totals[5] ?? 0) + 1;
-    totals[6] = (totals[6] ?? 0) + 1;
-  });
-  try {
-    for (let cycle = 0; cycle < 2050; cycle++) {
-      run.schedule({ at: cycle * 10, kind: "edit", bytes: 10, unitBytes: [5], outcome: "clear" });
-      run.advance({ untilTime: cycle * 10 + 9, maxEvents: 100 });
-      expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
-      expect(run.projection.dispatch.requests).toEqual([]);
-      expect(run.projection.dispatch.running).toEqual([]);
+describe("compact native terminal recovery", () => {
+  let native: readonly number[] = [];
+  // Compile and execute once in a separately bounded setup phase. The runner
+  // retains its 5s Bend emission/execution and 15s external C compilation bounds.
+  beforeAll(() => {
+    native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-terminal-native.bend", import.meta.url)) as number[];
+  }, 30000);
+
+  it("agrees on compact native recovery after 2050 terminal requests without growing issuance history", () => {
+    // Fixed original script: 2050 clear edits at cycle*10, PRE2/Jev1, then
+    // unavailable/restore/rotate and a finding edit one millisecond later.
+    expect(native).toEqual([2051, 2050, 1, 1, 0, 12306, 38978, 20497, 1, 5, 0, 0, 0, 2, 1]);
+    const run = createRun({ inputs: [], jevDelay: 1, preparationDelay: 2, retention: 1,
+      fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 2, maxFiles: 2, maxImports: 1, maxDepth: 1, deniedPercent: 0,
+        minSourceBytes: 100, maxSourceBytes: 100, minTreeBytes: 20, maxTreeBytes: 20 } });
+    const totals = [0, 0, 0, 0, 0, 0, 0];
+    const unsubscribe = run.subscribe(frame => {
+      if (frame.event.kind === "jevRequestStarted") totals[0] = (totals[0] ?? 0) + 1;
+      if (frame.event.kind === "jevRequestSettled" && frame.event.outcome === "clear") totals[1] = (totals[1] ?? 0) + 1;
+      if (frame.event.kind === "jevRequestSettled" && frame.event.outcome === "finding") totals[2] = (totals[2] ?? 0) + 1;
+      if (frame.event.kind === "submissionTerminal") totals[3] = (totals[3] ?? 0) + 1;
+      if (frame.rejection) totals[4] = (totals[4] ?? 0) + 1;
+      if (frame.preparation) totals[5] = (totals[5] ?? 0) + 1;
+      totals[6] = (totals[6] ?? 0) + 1;
+    });
+    try {
+      for (let cycle = 0; cycle < 2050; cycle++) {
+        run.schedule({ at: cycle * 10, kind: "edit", bytes: 10, unitBytes: [5], outcome: "clear" });
+        run.advance({ untilTime: cycle * 10 + 9, maxEvents: 100 });
+        expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+        expect(run.projection.dispatch.requests).toEqual([]);
+        expect(run.projection.dispatch.running).toEqual([]);
+      }
+      run.applyControl({ kind: "credentials", action: "unavailable" });
+      run.applyControl({ kind: "credentials", action: "restore" });
+      run.applyControl({ kind: "credentials", action: "rotate" });
+      run.schedule({ at: run.now + 1, kind: "edit", bytes: 10, unitBytes: [5], outcome: "finding" });
+      run.advance({ untilTime: run.now + 20, maxEvents: 100 });
+    } finally {
+      unsubscribe();
     }
-    run.applyControl({ kind: "credentials", action: "unavailable" });
-    run.applyControl({ kind: "credentials", action: "restore" });
-    run.applyControl({ kind: "credentials", action: "rotate" });
-    run.schedule({ at: run.now + 1, kind: "edit", bytes: 10, unitBytes: [5], outcome: "finding" });
-    run.advance({ untilTime: run.now + 20, maxEvents: 100 });
-  } finally {
-    unsubscribe();
-  }
-  const state = run.projection;
-  expect([...totals, run.now, state.global.items, state.global.bytes, state.dispatch.running.length,
-    state.dispatch.requests.length, state.collection.leases.length]).toEqual(native.slice(0, 13));
-  expect(run.interventions.map(report => report.result)).toEqual(["applied", "applied", "applied"]);
-  expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
-}, 30000);
+    const state = run.projection;
+    expect([...totals, run.now, state.global.items, state.global.bytes, state.dispatch.running.length,
+      state.dispatch.requests.length, state.collection.leases.length]).toEqual(native.slice(0, 13));
+    expect(run.interventions.map(report => report.result)).toEqual(["applied", "applied", "applied"]);
+    expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
+  }, 30000);
+});
 
 it("compares original targeted Jev interventions with native reports and full public traces", () => {
   const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-targets-native.bend", import.meta.url)) as number[][][];
