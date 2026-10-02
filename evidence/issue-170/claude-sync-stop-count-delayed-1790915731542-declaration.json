@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "declaredAt": "2026-10-02T04:35:31.542Z",
+  "milestone": "issue-170 native Claude RPC validation",
+  "maximumProviderRequests": 8,
+  "automaticHostRetries": 0,
+  "hostCeilingMs": 240000,
+  "runtime": "Claude Code 2.1.218",
+  "realJev": true,
+  "syntheticRepositoryOnly": true,
+  "deliveryPolicy": "synchronous-edit-with-stop-safety-net",
+  "asynchronousPostToolUse": false,
+  "validationScope": "native feedback reception and repair; semantic type correctness is separate",
+  "maximumSourceEdits": 2,
+  "claudeFeedbackMode": "block-current-findings",
+  "responseDelayMs": 5000,
+  "responseDelayPlacement": "after real Jev response, before response reaches Effect provider"
+}
