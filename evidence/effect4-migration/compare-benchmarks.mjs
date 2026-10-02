@@ -12,6 +12,12 @@ const [contract, baseline, measured] = await Promise.all([
   read(new URL("./benchmark-contract.json", import.meta.url)),
   read(resolve(baselinePath)), read(resolve(measuredPath)),
 ]);
+const expectedWorkload = physical
+  ? (await read(new URL("./physical-retirement-contract.json", import.meta.url))).workload
+  : contract.workload;
+if (JSON.stringify(measured.workload) !== JSON.stringify(expectedWorkload)) {
+  throw new Error("Measured workload differs from the pre-execution declaration");
+}
 if (JSON.stringify(baseline.workload) !== JSON.stringify(measured.workload)) {
   throw new Error("Baseline and measured workloads differ");
 }
