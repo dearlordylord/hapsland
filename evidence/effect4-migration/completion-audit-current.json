@@ -1,7 +1,7 @@
 {
   "purpose": "Requirement-by-requirement current migration audit",
   "authority": "Implementation and validation evidence; neither product acceptance nor expanded platform support",
-  "productionSourceCommit": "64c154d",
+  "productionSourceCommit": "0c86f40",
   "completion": "unproven",
   "requirements": [
     {
@@ -14,7 +14,8 @@
         "src/cli.ts",
         "src/package-doctor.ts"
       ],
-      "exceptions": "Pure codecs, generated Bend policy, descriptor-anchored Linux capture and native socket callbacks remain boundary adapters. Linux capture is awaited uninterruptibly through physical descriptor cleanup."
+      "exceptions": "Pure codecs, generated Bend policy, descriptor-anchored Linux capture and native socket callbacks remain boundary adapters. Linux capture is awaited uninterruptibly through physical descriptor cleanup.",
+      "verification": "133-module source inventory, original six responsibility map, scoped native-adapter exceptions, authority guards, caller-context native IPC regression and current full suite."
     },
     {
       "requirement": "Stable exact mutually compatible Effect 4 cohort requested by user",
@@ -64,7 +65,7 @@
         "checkpoint.json",
         "conformance/direct-event-v1.json"
       ],
-      "verification": "1289 tests in full suite, then four focused checks covering the new delivery-only case and manifest references; no altered obligations."
+      "verification": "Current source: typecheck/build pass, 1292 tests pass in full suite; direct-event manifest unchanged obligations and references validated."
     },
     {
       "requirement": "Explicit empty env values rejected; caller configuration preserved",
@@ -130,7 +131,7 @@
     "limitations": "Direct AST syntax only; aliases and dynamic imports need manual review. Tree-sitter reports one unsupported export type * at function-analyzer.ts:3; that eight-line pure language adapter was inspected manually. TypeScript 7 package exposes no legacy JS compiler API; inventory uses existing native Tree-sitter with no added dependency.",
     "followup": "Native IPC listener now captures caller Context for runForkWith; regression reproduced unsupported hello before fix and validates ready response plus caller Clock/ConfigProvider after fix. Focused 23 tests and build pass; final suite remains required."
   },
-  "currentProductionFollowup": "Backend monotonic duration and IPC listener context changed after retained 64c154d source suite/receipts. Focused checks pass; final full suite on latest source is required. The intervening 7c69ca0 full suite fails only five 5000ms installation fixture timeouts, recorded separately.",
+  "currentProductionFollowup": "Latest production source typechecks and builds. Full suite passes 1292 tests in 126 files, with one file/two credential-gated live tests skipped. Original and physical-retirement workloads rerun with unchanged declarations; independent fresh installed-package native-host run is in progress.",
   "responsibilityMap": [
     {
       "original": "ResidentServer",

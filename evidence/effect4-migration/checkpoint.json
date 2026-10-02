@@ -4169,5 +4169,17 @@
     },
     "initialFixtureFailure": "Spreading live Clock omitted prototype methods; fixture now delegates every Clock method explicitly. That fixture failure was corrected before the genuine regression was reproduced.",
     "limitations": "Focused native Linux socket case; latest full suite remains required after production change."
+  },
+  "fullSuiteAfterNativeIpcContext": {
+    "productionSourceCommit": "0c86f40",
+    "typecheck": "pass",
+    "build": "pass",
+    "npmTest": "pass",
+    "passedFiles": 126,
+    "skippedFiles": 1,
+    "passedTests": 1292,
+    "skippedTests": 2,
+    "durationSeconds": 389.15,
+    "limitations": "Offline full suite, including new native IPC context regression. Two live tests are credential gated; separate two-attempt live Decision contract receipt remains applicable to unchanged Jev provider source."
   }
 }
