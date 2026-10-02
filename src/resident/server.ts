@@ -713,10 +713,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return Number.isNaN(elapsed) ? 0 : Math.floor(elapsed);
   }
 
-  function residentPendingCanonicalFindings(operation: number): number {
-    return residentLedger.canonicalProjection().pendingFindings.find((item) =>
+  const residentPendingCanonicalFindings = Effect.fn("ResidentRuntime.pendingCanonicalFindings")(function* (operation: number) {
+    return (yield* residentLedger.canonicalProjection()).pendingFindings.find((item) =>
       item.operation === operation)?.count ?? 0;
-  }
+  });
 
   function residentAdviceExpired(advice: Pick<Advice, "pendingAt">, now: number): boolean {
     const result = residentLedger.transition({ kind: "collectionExpiryCheck",
@@ -1208,7 +1208,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         hasUnit: unit !== undefined,
         hasDelivery: delivery !== undefined,
         pendingCapacity: round !== undefined && unit !== undefined && delivery !== undefined &&
-          delivery.findings.length <= residentPendingCanonicalFindings(item.canonicalOperationId),
+          delivery.findings.length <= (yield* residentPendingCanonicalFindings(item.canonicalOperationId)),
         submissionAllowed: (yield* residentComposedDelivery.canBeginSubmission(
           adviceePartition(item.observation.root, item.observation.advicee), surface, token)),
         currentWork: (yield* residentIsCurrentWork(item.revision, item.prepared)),
@@ -2263,7 +2263,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       // native job. Typed adapter failures have a truthful unavailable outcome;
       // invariant defects and scope interruption remain visible in the fiber.
       Effect.onError(() => Effect.gen(function* () {
-        if (!readyReported && residentLedger.canonicalProjection().work.some((entry) =>
+        if (!readyReported && (yield* residentLedger.canonicalProjection()).work.some((entry) =>
           entry.operation === job.canonicalOperationId && entry.kind === "reviewing")) {
           (yield* denyReady());
         }
@@ -2557,11 +2557,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const selected = selectedAdvice.map(({ capability: advice, content }) => ({ id: advice.id,
             unit: advice.canonicalOperationId, findings: content.delivery?.findings ?? [] }));
           const selectedCount = selected.reduce((count, item) => count + item.findings.length, 0);
+          const pendingFindings = (yield* residentLedger.canonicalProjection()).pendingFindings;
           const bindingValid = collected.status !== "advice" || collected.findingCount === 0 ||
             (round !== undefined && selectedCount === collected.findingCount &&
               selectedAdvice.every(({ capability: advice, content }) => advice.round === round &&
                 advice.workUnitId !== undefined && content.delivery !== undefined &&
-                content.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
+                content.delivery.findings.length <= (pendingFindings.find((item) => item.operation === advice.canonicalOperationId)?.count ?? 0)));
           const output = (yield* residentComposedDelivery.decideFinishOutput(group, request.finish.token,
             collected.status === "advice" ? collected.token : "", selected, residentNow(),
             collected.status === "advice" && collected.findingCount === 0,
@@ -2766,7 +2767,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const { delivery } = yield* residentLedger.advice.current(advice);
         if (delivery !== undefined && (advice.round === undefined ||
             advice.workUnitId === undefined ||
-            delivery.findings.length > residentPendingCanonicalFindings(advice.canonicalOperationId))) {
+            delivery.findings.length > (yield* residentPendingCanonicalFindings(advice.canonicalOperationId)))) {
           yield* residentReleaseAdviceLease(advice);
         }
       }
@@ -2863,10 +2864,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       count + (content.delivery?.findings.length ?? 0), 0);
     const selected = selectedAdvice.map(({ capability: advice, content }) => ({ id: advice.id, unit: advice.canonicalOperationId,
       findings: content.delivery?.findings ?? [] }));
+    const pendingFindings = (yield* residentLedger.canonicalProjection()).pendingFindings;
     const bindingValid = final.status !== "advice" || final.findingCount === 0 ||
       (round !== undefined && selectedCount === final.findingCount && selectedAdvice.every(({ capability: advice, content }) =>
         advice.round === round && advice.workUnitId !== undefined && content.delivery !== undefined &&
-        content.delivery.findings.length <= residentPendingCanonicalFindings(advice.canonicalOperationId)));
+        content.delivery.findings.length <= (pendingFindings.find((item) => item.operation === advice.canonicalOperationId)?.count ?? 0)));
     const output = (yield* residentComposedDelivery.decideFinishOutput(group, request.finish.token,
       final.status === "advice" ? final.token : "", selected, residentNow(),
       final.status === "advice" && final.findingCount === 0,

@@ -40,7 +40,7 @@ it.effect("serializes concurrent round binding, replacement and retirement witho
     { concurrency: "unbounded" });
   expect(retired.filter(Boolean)).toHaveLength(1);
   expect((yield* owner.rounds.entries())).toEqual([]);
-  expect(owner.canonicalProjection().rounds).toEqual([]);
+  expect((yield* owner.canonicalProjection()).rounds).toEqual([]);
 }));
 
 it.effect("binds immutable handles and activity to the canonical admission generation", () => Effect.gen(function* () {
@@ -63,17 +63,17 @@ it.effect("binds immutable handles and activity to the canonical admission gener
 
 it.effect("rejects missing or mismatched canonical authority without publishing identities", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* defectMessage(owner.rounds.bind("agent", 1, activity, "cohort"))).toContain("canonical admission generation");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.knownPartitionId("agent"))).toBeUndefined();
   expect((yield* owner.currentRoundId("agent"))).toBeUndefined();
   expect((yield* owner.rounds.entries())).toEqual([]);
   const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0));
   if (generation === undefined) throw new Error("fixture edit admission refused");
-  const admitted = owner.canonicalProjection();
+  const admitted = (yield* owner.canonicalProjection());
   expect(yield* defectMessage(owner.rounds.bind("agent", generation + 1, activity, "cohort"))).toContain("canonical admission generation");
-  expect(owner.canonicalProjection()).toEqual(admitted);
+  expect((yield* owner.canonicalProjection())).toEqual(admitted);
   expect((yield* owner.rounds.entries())).toEqual([]);
 }));
 
@@ -81,10 +81,10 @@ it.effect("rolls back native binding and preserves a prior activity snapshot on 
   const owner = yield* makeResidentState();
   const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0));
   if (generation === undefined) throw new Error("fixture edit admission refused");
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   const broken = { ...activity, get root(): string { throw new Error("activity construction failed"); } };
   expect(yield* defectMessage(owner.rounds.bind("agent", generation, broken, "failed-cohort"))).toContain("activity construction failed");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.rounds.get("agent"))).toBeUndefined();
   const round = (yield* owner.rounds.bind("agent", generation, activity, "cohort"));
   const snapshot = (yield* owner.rounds.activity(round));
@@ -120,13 +120,13 @@ it.effect("publishes no replacement or discarded counts when native cohort const
   if (generation === undefined) throw new Error("fixture edit admission refused");
   const round = (yield* owner.rounds.bind("agent", generation, activity, "cohort"));
   const first = (yield* snapshotRound(owner.rounds, round)).work;
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* defectMessage(owner.rounds.replaceWork(round,
     { get id(): string { throw new Error("cohort construction failed"); }, controller: new AbortController() }, counts,
   ))).toContain("cohort construction failed");
   expect((yield* snapshotRound(owner.rounds, round)).work).toBe(first);
   expect((yield* snapshotRound(owner.rounds, round)).discarded).toEqual({ queued: 0, running: 0 });
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
 }));
 
 it.effect("retires canonical and native ownership together and fences identity reuse after clear", () => Effect.gen(function* () {
@@ -137,7 +137,7 @@ it.effect("retires canonical and native ownership together and fences identity r
   expect((yield* owner.rounds.retire(first))).toBe(true);
   expect((yield* owner.currentRoundId("agent"))).toBeUndefined();
   expect((yield* owner.rounds.entries())).toEqual([]);
-  expect(owner.canonicalProjection().rounds).toEqual([]);
+  expect((yield* owner.canonicalProjection()).rounds).toEqual([]);
   yield* owner.clear();
   const nextGeneration = (yield* owner.delivery().admitEdit("agent", "next", 0));
   if (nextGeneration === undefined) throw new Error("fixture edit admission refused");
@@ -151,11 +151,11 @@ it.effect("retires canonical and native ownership together and fences identity r
   expect(yield* owner.rounds.snapshot({ ...next })).toBeUndefined();
   expect((yield* owner.rounds.policyWork({ ...next })).unfinished()).toBe(0);
   expect((yield* owner.rounds.policyWork(first)).unfinished()).toBe(0);
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect((yield* owner.rounds.retire(first))).toBe(false);
   expect((yield* owner.rounds.replaceWork(first, { id: "forged", controller: new AbortController() }, counts))).toBeUndefined();
   expect((yield* owner.rounds.activity(first))).toBeUndefined();
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.rounds.get("agent"))).toBe(next);
   expect((yield* snapshotRound(owner.rounds, next)).work.id).toBe("next");
 }));

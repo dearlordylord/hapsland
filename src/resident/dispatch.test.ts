@@ -110,7 +110,7 @@ it.effect("carries keyed FIFO sequence metadata across concurrent starts", () =>
 
 it.effect("rolls back canonical identities and retained starts in the same failed registry commit", () => Effect.gen(function* () {
   const ledger = yield* makeResidentState<never, string, number>();
-  const before = ledger.canonicalProjection();
+  const before = (yield* ledger.canonicalProjection());
   const beforeRegistry = yield* ledger.dispatch.read;
   const failed = yield* ledger.dispatch.modify((current, owner) => {
     const partition = owner.partitionId("failed-owner");
@@ -126,7 +126,7 @@ it.effect("rolls back canonical identities and retained starts in the same faile
     throw new Error("native draft validation failed");
   }).pipe(Effect.exit);
   expect(Exit.isFailure(failed)).toBe(true);
-  expect(ledger.canonicalProjection()).toEqual(before);
+  expect((yield* ledger.canonicalProjection())).toEqual(before);
   expect(yield* ledger.dispatch.read).toBe(beforeRegistry);
   expect(Effect.runSync(ledger.knownPartitionId("failed-owner"))).toBeUndefined();
   expect(Effect.runSync(ledger.roundId("after-failure"))).toBe(1);
@@ -143,10 +143,10 @@ it.effect("refuses to clear a physical job and permits one executor per owner", 
   try {
     yield* dispatcher.enqueue("agent", 1);
     yield* Deferred.await(started);
-    const before = dispatcher.ledger.canonicalProjection();
+    const before = (yield* dispatcher.ledger.canonicalProjection());
     const native = yield* dispatcher.ledger.dispatch.read;
     expect(() => Effect.runSync(dispatcher.ledger.clear())).toThrow("resident state cannot clear outstanding native dispatch jobs");
-    expect(dispatcher.ledger.canonicalProjection()).toEqual(before);
+    expect((yield* dispatcher.ledger.canonicalProjection())).toEqual(before);
     expect(yield* dispatcher.ledger.dispatch.read).toBe(native);
     const duplicate = yield* makeDispatcher<string, number>(dispatcher.ledger,
       () => ({ operation: 1, round: 1 }), () => Effect.void).pipe(Effect.exit);
@@ -165,11 +165,11 @@ it.effect("refuses to clear a physical job and permits one executor per owner", 
 
 it.effect("rolls back canonical publication if native registration cannot commit", () => Effect.gen(function* () {
   const ledger = makeCapacityLedger();
-  const before = ledger.canonicalProjection();
+  const before = (yield* ledger.canonicalProjection());
   expect(() => ledger.transition({ kind: "openRound", partition: 1, lifetime: 1 }, () => {
     throw new Error("registration failed");
   })).toThrow("registration failed");
-  expect(ledger.canonicalProjection()).toEqual(before);
+  expect((yield* ledger.canonicalProjection())).toEqual(before);
 }));
 
 it.effect("subscriber interruption does not own the shared job and idle waits for physical settlement", () => Effect.gen(function* () {
@@ -267,15 +267,15 @@ it.effect("matches direct Bend commands and projections across saturation and te
     jobs.push(job);
     trace({ kind: "queueDispatch", partition, lifetime: 1, round, operation });
     expect(yield* dispatch.enqueue("agent", job)).toBe(true);
-    expect(ledger.canonicalProjection()).toEqual(projectCanonical(direct));
+    expect((yield* ledger.canonicalProjection())).toEqual(projectCanonical(direct));
     expect(yield* dispatch.hasWorkWhere((entry) => entry.value.operation === operation)).toBe(true);
   }
   expect(started).toEqual(expectedStarts);
   trace({ kind: "closeDispatch" });
   expect(yield* dispatch.close()).toEqual(jobs.slice(8));
-  expect(ledger.canonicalProjection()).toEqual(projectCanonical(direct));
+  expect((yield* ledger.canonicalProjection())).toEqual(projectCanonical(direct));
   yield* Deferred.succeed(hold, undefined);
   yield* dispatch.whenIdle();
   for (const job of jobs.slice(0, 8)) trace({ kind: "dispatchSettled", partition, lifetime: 1, round, operation: job.operation });
-  expect(ledger.canonicalProjection()).toEqual(projectCanonical(direct));
+  expect((yield* ledger.canonicalProjection())).toEqual(projectCanonical(direct));
 }));

@@ -285,6 +285,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    canonicalProjection: Effect.fn("Capacity.canonicalProjection")((...args: Arguments<typeof canonicalProjection>) => Ref.get(state).pipe(Effect.map((current) => canonicalProjection(current, ...args)))),
     replace: Effect.fn("Capacity.replace")((...args: Arguments<typeof replace>) =>
       commitAllEffect((draft, records) => [replace(draft, ...args), records]).pipe(Effect.map((result) => {
         if ("invalidMeasurement" in result) throw new TypeError("invalid measured review unit size");

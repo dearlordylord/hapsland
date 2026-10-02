@@ -9,7 +9,7 @@ describe("canonical work projection", () => {
   it("reads source stages from the shared ledger without advancing another state", () => {
     const ledger = makeCapacityLedger(limits);
     const round = Effect.runSync(ledger.roundId("agent"));
-    const view = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), round);
+    const view = () => workView(Effect.runSync(ledger.canonicalProjection()), Effect.runSync(ledger.partitionId("agent")), round);
     const source = Effect.runSync(ledger.admitObservation("agent"));
     expect(view().admit(source)).toBe(source);
     expect(view().startSource(source)).toBe(true);
@@ -24,11 +24,11 @@ describe("canonical work projection", () => {
   it("keeps a retired round view separate from successor work on the same advicee", () => {
     const ledger = makeCapacityLedger(limits);
     const oldRound = Effect.runSync(ledger.roundId("agent"));
-    const oldView = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), oldRound);
+    const oldView = () => workView(Effect.runSync(ledger.canonicalProjection()), Effect.runSync(ledger.partitionId("agent")), oldRound);
     Effect.runSync(ledger.admitObservation("agent", oldRound));
     Effect.runSync(ledger.retireRound("agent", oldRound));
     const nextRound = Effect.runSync(ledger.roundId("agent"));
-    const nextView = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), nextRound);
+    const nextView = () => workView(Effect.runSync(ledger.canonicalProjection()), Effect.runSync(ledger.partitionId("agent")), nextRound);
     const source = Effect.runSync(ledger.admitObservation("agent", nextRound));
     expect(oldView().unfinished()).toBe(0);
     expect(oldView().startSource(source)).toBe(false);
@@ -46,7 +46,7 @@ describe("canonical work projection", () => {
   it("uses canonical review identities and pending finding counts", () => {
     const ledger = makeCapacityLedger(limits);
     const round = Effect.runSync(ledger.roundId("agent"));
-    const view = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), round);
+    const view = () => workView(Effect.runSync(ledger.canonicalProjection()), Effect.runSync(ledger.partitionId("agent")), round);
     const source = Effect.runSync(ledger.admitObservation("agent"));
     Effect.runSync(ledger.observation("agent", source, "startObservation", round));
     const preparation = Effect.runSync(ledger.beginObservedPreparation("agent", source, 100, round))!;

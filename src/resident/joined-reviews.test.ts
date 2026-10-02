@@ -62,11 +62,11 @@ it.effect("rolls back unit attachment when native subscriber construction fails"
   const joined = owner.joinedReviews(measure);
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = (yield* owner.ticketUnits.add(ticket));
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* defectMessage(joined.append({ admission: 1, evaluationKey: "key", activityPath: undefined, ticketUnit: unit, revision,
     observation: { get root(): string { throw new Error("fixture subscriber construction failed"); }, advicee: advicee() },
   }))).toContain("subscriber construction failed");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect(yield* joined.hasAdmission(1)).toBe(false);
 }));
@@ -78,9 +78,9 @@ it.effect("clears joined membership with its owner and keeps independent acquisi
   expect(second.residentLifetime).not.toBe(first.residentLifetime);
   const input = residentTicketInput(first.residentLifetime);
   (yield* first.tickets.open(input));
-  const before = second.canonicalProjection();
+  const before = (yield* second.canonicalProjection());
   expect(yield* second.tickets.open(input).pipe(Effect.sandbox, Effect.flip, Effect.map(Cause.pretty))).toContain("ticket admission identity refused");
-  expect(second.canonicalProjection()).toEqual(before);
+  expect((yield* second.canonicalProjection())).toEqual(before);
   const joined = first.joinedReviews(measure);
   yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, revision });
   expect(yield* second.joinedReviews(measure).hasAdmission(1)).toBe(false);
@@ -97,9 +97,9 @@ it.effect("rolls back owner and subscriber attachment together when the native c
   const unit = (yield* owner.ticketUnits.add(ticket));
   (yield* reuse.claim("key"));
   yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unit });
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* defectMessage(joined.attachOwner("key", undefined, revision))).toContain("native evaluation handles");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect((yield* reuse.hasPending("key"))).toBe(true);
   expect((yield* joined.releaseOwner("key", "lost")).map((review) => review.admission)).toEqual([1]);

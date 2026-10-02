@@ -30,27 +30,27 @@ describe("resident logical capacity ledger", () => {
   it("publishes neither canonical state nor native identities when registration fails", () => {
     const ledger = makeCapacityLedger();
     const partition = Effect.runSync(ledger.partitionId("agent"));
-    const before = ledger.canonicalProjection();
+    const before = Effect.runSync(ledger.canonicalProjection());
     expect(() => ledger.transition({ kind: "openRound", partition, lifetime: 1 }, () => {
       throw new Error("native registration failed");
     })).toThrow("native registration failed");
-    expect(ledger.canonicalProjection()).toEqual(before);
+    expect(Effect.runSync(ledger.canonicalProjection())).toEqual(before);
     expect(Effect.runSync(ledger.currentRoundId("agent"))).toBeUndefined();
     const round = Effect.runSync(ledger.roundId("agent"));
     expect(round).toBe(1);
-    expect(ledger.canonicalProjection().rounds).toEqual([{ partition, lifetime: 1, id: round, deciding: false, waiting: false, uncertain: false }]);
+    expect(Effect.runSync(ledger.canonicalProjection()).rounds).toEqual([{ partition, lifetime: 1, id: round, deciding: false, waiting: false, uncertain: false }]);
   });
 
   it("rejects a reentrant mutation and rolls back the enclosing commit", () => {
     const ledger = makeCapacityLedger();
     const partition = Effect.runSync(ledger.partitionId("agent"));
-    const before = ledger.canonicalProjection();
+    const before = Effect.runSync(ledger.canonicalProjection());
     expect(() => ledger.transition({ kind: "openRound", partition, lifetime: 1 }, () => {
       // Read-only inspection observes the published state, not the staged draft.
-      expect(ledger.canonicalProjection()).toEqual(before);
+      expect(Effect.runSync(ledger.canonicalProjection())).toEqual(before);
       Effect.runSync(ledger.reserve("nested-agent", 10, "preparation"));
     })).toThrow("resident capacity commit cannot be reentered");
-    expect(ledger.canonicalProjection()).toEqual(before);
+    expect(Effect.runSync(ledger.canonicalProjection())).toEqual(before);
     expect(Effect.runSync(ledger.knownPartitionId("nested-agent"))).toBeUndefined();
     expect(Effect.runSync(ledger.partitionIdentityCount())).toBe(1);
     // The failed commit releases its fence and does not consume a reservation ID.
@@ -77,7 +77,7 @@ describe("resident logical capacity ledger", () => {
         startedUpper: Effect.runSync(ledger.minimumFreshStart()), nowLower: Effect.runSync(ledger.minimumFreshStart()),
         adviceePermitLimit: 32, residentPermitLimit: 4096 } });
     expect(stale.rejection).toBe("StaleInvocation");
-    expect(ledger.canonicalProjection().admissions).toEqual([]);
+    expect(Effect.runSync(ledger.canonicalProjection()).admissions).toEqual([]);
   });
 
   it("prunes completed collection tokens but retains canonical live tokens", () => {
@@ -106,7 +106,7 @@ describe("resident logical capacity ledger", () => {
       expect(ledger.transition({ kind: "continuationConsume", group, round }).commands[0]?.kind)
         .toBe("continuationConsumed");
       Effect.runSync(ledger.retireRound(partition, round));
-      expect(ledger.canonicalProjection().delivery.counters).toEqual([]);
+      expect(Effect.runSync(ledger.canonicalProjection()).delivery.counters).toEqual([]);
       Effect.runSync(ledger.discardUnusedPartition(partition));
     }
     expect(Effect.runSync(ledger.partitionIdentityCount())).toBe(0);
@@ -225,14 +225,14 @@ describe("resident logical capacity ledger", () => {
     expect(issued.commands[0]).toEqual({ kind: "permitIssued", token: 1, round: 1 });
     const charge = Effect.runSync(ledger.reserve("agent", 10, "observationDispatch"));
     expect(charge).toBeDefined();
-    expect(ledger.canonicalProjection()).toMatchObject({
+    expect(Effect.runSync(ledger.canonicalProjection())).toMatchObject({
       global: { items: 1, bytes: 10 },
       admissions: [{ partition, permits: [{ token: 1, tool: 7, round: 1 }] }],
     });
     expect(ledger.transition({ kind: "consumePermit", partition, lifetime: 1,
       token: 1, tool: 7, now: 120 }).commands[0]).toEqual({ kind: "permitConsumed", round: 1 });
     if (charge !== undefined) expect(Effect.runSync(ledger.release(charge))).toBe(true);
-    expect(ledger.canonicalProjection()).toMatchObject({
+    expect(Effect.runSync(ledger.canonicalProjection())).toMatchObject({
       global: { items: 0, bytes: 0 }, admissions: [{ partition, active: true, permits: [] }],
     });
   });
@@ -252,8 +252,8 @@ describe("resident logical capacity ledger", () => {
     expect(Effect.runSync(completion)).toBe(false);
     expect(Effect.runSync(latePreparation)).toBeUndefined();
     if (split !== undefined) expect(() => Effect.runSync(split)).toThrow("invalid canonical preparation completion");
-    expect(ledger.canonicalProjection().rounds).toEqual([]);
-    expect(ledger.canonicalProjection().work).toEqual([]);
+    expect(Effect.runSync(ledger.canonicalProjection()).rounds).toEqual([]);
+    expect(Effect.runSync(ledger.canonicalProjection()).work).toEqual([]);
     expect(Effect.runSync(ledger.snapshot())).toEqual({ items: 0, bytes: 0, partitions: {} });
   });
 
@@ -283,7 +283,7 @@ describe("resident logical capacity ledger", () => {
       rootValid: true, configurationValid: true, credentialReady: true,
       selected: true, currentWork: true, physicalAvailable: true,
     }, oldRound))).toEqual({ status: "stale" });
-    expect(ledger.canonicalProjection().rounds).toHaveLength(1);
+    expect(Effect.runSync(ledger.canonicalProjection()).rounds).toHaveLength(1);
     expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 1, bytes: 5 });
   });
 
@@ -521,16 +521,16 @@ effectIt.effect("opens one canonical round for competing deferred identity reque
 effectIt.effect("defers observation admission and rolls back an invalid round", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const admission = owner.admitObservation("agent");
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* owner.currentRoundId("agent")).toBeUndefined();
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   const admissions = yield* Effect.forEach(Array.from({ length: 16 }), () => admission, { concurrency: "unbounded" });
   expect(new Set(admissions).size).toBe(16);
   const round = yield* owner.currentRoundId("agent");
   if (round === undefined) throw new Error("fixture round missing");
-  const retained = owner.canonicalProjection();
+  const retained = (yield* owner.canonicalProjection());
   const failed = yield* Effect.exit(owner.admitObservation("agent", round + 1));
   expect(Exit.isFailure(failed)).toBe(true);
-  expect(owner.canonicalProjection()).toEqual(retained);
+  expect((yield* owner.canonicalProjection())).toEqual(retained);
   expect(yield* owner.currentRoundId("agent")).toBe(round);
 }));

@@ -44,7 +44,8 @@ export interface DispatchState<K, A> {
 
 /** Scoped execution of Bend commands, with native handles registered at commit. */
 export const makeDispatcher = <K, A>(
-  ledger: Pick<CapacityLedger, "canonicalProjection"> & {
+  ledger: {
+    readonly canonicalProjection: () => Effect.Effect<ReturnType<CapacityLedger["canonicalProjection"]>>;
     readonly dispatchIdentity: (...args: Parameters<CapacityLedger["dispatchIdentity"]>) => Effect.Effect<ReturnType<CapacityLedger["dispatchIdentity"]>>;
     readonly dispatch: DispatchState<K, A>;
   },
@@ -58,10 +59,10 @@ export const makeDispatcher = <K, A>(
     if (current.executorAttached) throw new Error("resident dispatch executor is already attached");
     return [undefined, { ...current, executorAttached: true }] as const;
   });
-  const liveOperations = () => {
-    const dispatch = ledger.canonicalProjection().dispatch;
+  const liveOperations = Effect.fn("ResidentDispatch.liveOperations")(function* () {
+    const dispatch = (yield* ledger.canonicalProjection()).dispatch;
     return [...dispatch.queued, ...dispatch.running].map((entry) => entry.operation);
-  };
+  });
   const assertHandles = (next: DispatchRegistry<K, A>, live: readonly number[]) => {
     if (live.some((id) => !next.entries.has(id)) || (next.terminal
       ? next.entries.size !== next.terminalRunning.size || [...next.entries.keys()].some((id) => !next.terminalRunning.has(id))
@@ -132,7 +133,7 @@ export const makeDispatcher = <K, A>(
       for (const { entry, sequence } of starts) {
         const settle = Effect.gen(function* () {
           const current = yield* registry.read;
-          const stillCanonical = ledger.canonicalProjection().dispatch.running.some((item) => item.operation === entry.operation);
+          const stillCanonical = (yield* ledger.canonicalProjection()).dispatch.running.some((item) => item.operation === entry.operation);
           if (current.terminal && !stillCanonical) {
             yield* registry.modify((old) => {
               const entries = new Map(old.entries); entries.delete(entry.operation);
@@ -158,14 +159,14 @@ export const makeDispatcher = <K, A>(
   });
   const snapshotWhere = Effect.fn("ResidentDispatch.snapshotWhere")(function* (predicate: Match<K, A>) {
     const current = yield* registry.read;
-    const dispatch = ledger.canonicalProjection().dispatch;
+    const dispatch = (yield* ledger.canonicalProjection()).dispatch;
     const matches = (id: number) => { const entry = current.entries.get(id); return entry !== undefined && predicate(entry); };
     return { queued: dispatch.queued.filter((entry) => matches(entry.operation)).length,
       running: dispatch.running.filter((entry) => matches(entry.operation)).length };
   });
   const hasWorkWhere = Effect.fn("ResidentDispatch.hasWorkWhere")(function* (predicate: Match<K, A>) {
     const current = yield* registry.read;
-    return liveOperations().some((id) => { const entry = current.entries.get(id); return entry !== undefined && predicate(entry); });
+    return (yield* liveOperations()).some((id) => { const entry = current.entries.get(id); return entry !== undefined && predicate(entry); });
   });
   const close = Effect.fn("ResidentDispatch.close")(function* () {
     return yield* Effect.uninterruptible(Effect.gen(function* () {
@@ -192,14 +193,14 @@ export const makeDispatcher = <K, A>(
       }));
     }),
     snapshot: Effect.fn("ResidentDispatch.snapshot")(function* () {
-      const dispatch = ledger.canonicalProjection().dispatch;
+      const dispatch = (yield* ledger.canonicalProjection()).dispatch;
       return { queued: dispatch.queued.length, running: dispatch.running.length };
     }),
     hasWork: Effect.fn("ResidentDispatch.hasWork")(function* (key: K) { return yield* hasWorkWhere((entry) => entry.key === key); }),
     hasWorkWhere, snapshotWhere,
     discardWhere: Effect.fn("ResidentDispatch.discardWhere")(function* (predicate: Match<K, A>) {
       const current = yield* registry.read;
-      const operations = liveOperations().filter((id) => { const entry = current.entries.get(id); return entry !== undefined && predicate(entry); });
+      const operations = (yield* liveOperations()).filter((id) => { const entry = current.entries.get(id); return entry !== undefined && predicate(entry); });
       return yield* Effect.uninterruptible(Effect.gen(function* () {
         const discarded = yield* commit({ kind: "discardDispatch", operations });
         if (discarded === undefined) return yield* Effect.die(new Error("canonical dispatch discard refused"));

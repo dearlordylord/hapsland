@@ -29,7 +29,7 @@ it.effect("publishes canonical cleanup, ticket eviction and retirement together"
   const outcome = yield* owner.runtime.cleanup(() => 10);
   expect(outcome).toBe("cleaned");
   expect((yield* owner.runtime.snapshot()).lifecycle).toBe("retiring");
-  expect(owner.canonicalProjection().dispatch.closed).toBe(true);
+  expect((yield* owner.canonicalProjection()).dispatch.closed).toBe(true);
   expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBeUndefined();
   expect((yield* owner.ticketUnits.stage(unit))).toBeUndefined();
   expect((yield* owner.runtime.scheduleRetirement())).toBe(true);
@@ -41,10 +41,10 @@ it.effect("busy ownership does not retire the runtime or evict tickets", () => E
   const owner = yield* makeResidentState();
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const reservation = (yield* owner.reserve("fixture", 10, "preparation"))!;
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   const outcome = yield* owner.runtime.cleanup(() => 10);
   expect(outcome).toBe("busy");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBe(ticket);
   expect((yield* owner.runtime.snapshot()).lifecycle).toBe("active");
   expect((yield* owner.runtime.scheduleRetirement())).toBe(false);
@@ -90,10 +90,10 @@ it.effect("rolls back staged ticket eviction and retirement if native validation
   // Seed a mismatched canonical admission to exercise failure after the first
   // eviction has staged; normal ticket admission validates this invariant.
   owner.transition({ kind: "ticketOpen", id: ticket.generation + 1 });
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   const outcome = yield* Effect.exit(owner.runtime.cleanup(() => 10));
   expect(outcome._tag).toBe("Failure");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBe(ticket);
   expect((yield* owner.ticketUnits.stage(unit))?.stage).toBe("pending");
   expect((yield* owner.runtime.snapshot()).lifecycle).toBe("active");

@@ -69,9 +69,9 @@ it.effect("rolls back canonical progress when native metadata fails validation",
   const owner = yield* makeResidentState();
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
   const unit = (yield* owner.ticketUnits.add(ticket));
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* defectMessage(owner.ticketUnits.step(unit, "findingResult", "lost", { revision }))).toContain("native ticket unit metadata");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect((yield* owner.ticketUnits.stage(unit))?.stage).toBe("pending");
   expect((yield* owner.ticketUnits.step(unit, "findingResult", "lost", { revision, adviceId: "advice" }))).toBe(true);

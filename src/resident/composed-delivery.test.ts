@@ -829,16 +829,16 @@ effectIt.effect("serializes background claims and defers release until execution
   const owner = yield* makeResidentState();
   const delivery = owner.delivery();
   yield* delivery.admitEdit("agent", "edit", 0);
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   const claim = delivery.claimBackground("agent", "winner", 0);
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   const claims = yield* Effect.forEach(Array.from({ length: 16 }), (_, index) =>
     delivery.claimBackground("agent", `worker-${index}`, 0), { concurrency: "unbounded" });
   expect(claims.filter(Boolean)).toHaveLength(1);
   const winner = claims.findIndex(Boolean);
-  const retained = owner.canonicalProjection();
+  const retained = (yield* owner.canonicalProjection());
   const release = delivery.releaseBackground("agent", `worker-${winner}`);
-  expect(owner.canonicalProjection()).toEqual(retained);
+  expect((yield* owner.canonicalProjection())).toEqual(retained);
   expect(yield* claim).toBe(false);
   yield* release;
   expect(yield* claim).toBe(true);
@@ -850,9 +850,9 @@ effectIt.effect("retains exactly one owner among competing Stop claims", () => E
   const owner = yield* makeResidentState();
   const delivery = owner.delivery();
   yield* delivery.admitEdit("agent", "edit", 0);
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   const stop = delivery.beginStop("agent", "deferred");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   const claims = yield* Effect.forEach(Array.from({ length: 16 }), (_, index) =>
     delivery.beginStop("agent", `stop-${index}`), { concurrency: "unbounded" });
   expect(claims.filter(Boolean)).toHaveLength(1);

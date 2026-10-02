@@ -19,7 +19,7 @@ it.effect("publishes one ticket for competing nonce admissions without consuming
   expect(admitted).toHaveLength(1);
   expect(results.filter(Exit.isFailure)).toHaveLength(15);
   expect(yield* owner.tickets.get("shared")).toBe(admitted[0]!.value);
-  expect(owner.canonicalProjection().tickets.map((ticket) => ticket.id)).toEqual([1]);
+  expect((yield* owner.canonicalProjection()).tickets.map((ticket) => ticket.id)).toEqual([1]);
   const next = yield* owner.tickets.open(residentTicketInput(owner.residentLifetime, "next"));
   expect(next.generation).toBe(2);
 }));
@@ -32,9 +32,9 @@ it.effect("owns an immutable ticket snapshot and rolls back rejected nonce admis
   expect(first.ticket.nonce).toBe("first");
   expect(Object.isFrozen(first)).toBe(true);
   expect(Object.isFrozen(first.ticket)).toBe(true);
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* owner.tickets.open(residentTicketInput(owner.residentLifetime, "first")).pipe(Effect.sandbox, Effect.flip, Effect.map(Cause.pretty))).toContain("identity refused");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   const second = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime, "second")));
   expect(second.generation).toBe(first.generation + 1);
   expect((yield* owner.tickets.get("first"))).toBe(first);
@@ -43,9 +43,9 @@ it.effect("owns an immutable ticket snapshot and rolls back rejected nonce admis
 it.effect("rolls back canonical opening and identity allocation if native construction fails", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const input = residentTicketInput(owner.residentLifetime);
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* owner.tickets.open({ ...input, get root(): string { throw new Error("fixture construction failure"); } }).pipe(Effect.sandbox, Effect.flip, Effect.map(Cause.pretty))).toContain("construction failure");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.tickets.get("ticket"))).toBeUndefined();
   expect((yield* owner.tickets.open(input)).generation).toBe(1);
 }));
@@ -60,10 +60,10 @@ it.effect("evicts the oldest canonical ticket and its native unit bindings toget
   expect((yield* owner.tickets.get("first"))).toBeUndefined();
   expect((yield* owner.ticketUnits.stage(firstUnit))).toBeUndefined();
   expect((yield* owner.ticketUnits.values())).toEqual([secondUnit]);
-  expect(owner.canonicalProjection().tickets.map((ticket) => ticket.id)).toEqual([second.generation]);
+  expect((yield* owner.canonicalProjection()).tickets.map((ticket) => ticket.id)).toEqual([second.generation]);
   (yield* owner.tickets.retain(0));
   expect((yield* owner.ticketUnits.values())).toEqual([]);
-  expect(owner.canonicalProjection().tickets).toEqual([]);
+  expect((yield* owner.canonicalProjection()).tickets).toEqual([]);
 }));
 
 it.effect("retires only the selected partition and fences stale ticket capabilities after clear", () => Effect.gen(function* () {

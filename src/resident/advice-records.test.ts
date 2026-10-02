@@ -54,30 +54,30 @@ it.effect("owns frozen advice content and leases together with canonical state",
   expect(yield* owner.advice.reserveLease(advice, "collector")).toBe(true);
   const first = (yield* owner.advice.current(advice)).delivery;
   expect(Object.isFrozen(first)).toBe(true);
-  expect(owner.canonicalProjection().collection.leases).toEqual([{ advice: initial.canonicalOperationId, owner: yield* owner.collectionTokenId("collector") }]);
+  expect((yield* owner.canonicalProjection()).collection.leases).toEqual([{ advice: initial.canonicalOperationId, owner: yield* owner.collectionTokenId("collector") }]);
   expect(yield* owner.advice.updateDelivery(advice, "wrong", { acknowledged: true })).toBe(false);
   expect(yield* owner.advice.updateDelivery(advice, "collector", { findings: [finding], leaseUntil: 10, acknowledged: true })).toBe(true);
   expect((yield* owner.advice.current(advice)).delivery?.acknowledged).toBe(true);
   expect(first?.acknowledged).toBe(false);
   yield* owner.advice.checkLease(advice, 10, false, false, false);
   expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
-  expect(owner.canonicalProjection().collection.leases).toEqual([]);
+  expect((yield* owner.canonicalProjection()).collection.leases).toEqual([]);
 }));
 
 it.effect("rolls back retention and lease updates when native payload snapshotting fails", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   const invalid = { ...finding, get message(): string { throw new Error("snapshot failed"); } };
   expect(yield* defectMessage(owner.advice.insert({ ...initial, findings: [finding, invalid] }))).toContain("snapshot failed");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.advice.values())).toEqual([]);
   const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
   yield* owner.advice.reserveLease(advice, "collector");
-  const leased = owner.canonicalProjection();
+  const leased = (yield* owner.canonicalProjection());
   const delivery = (yield* owner.advice.current(advice)).delivery;
   expect(yield* defectMessage(owner.advice.updateDelivery(advice, "collector", { findings: [finding, invalid] }))).toContain("snapshot failed");
-  expect(owner.canonicalProjection()).toEqual(leased);
+  expect((yield* owner.canonicalProjection())).toEqual(leased);
   expect((yield* owner.advice.current(advice)).delivery).toBe(delivery);
 }));
 
@@ -97,7 +97,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
   expect((yield* owner.ticketUnits.stage(unit))).toMatchObject({ stage: "unavailable", reason: "stale" });
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
-  expect(owner.canonicalProjection().collection.leases).toEqual([]);
+  expect((yield* owner.canonicalProjection()).collection.leases).toEqual([]);
   expect((yield* owner.snapshot()).bytes).toBe(300);
   expect(yield* owner.revision.count()).toBe(1);
   expect(yield* owner.adviceCaptures.finish(capture)).toBe("retired");
@@ -123,9 +123,9 @@ it.effect("fences a stale capability after the owner clears and advice identity 
 
 it.effect("rejects native retention without canonical finding authority", () => Effect.gen(function* () {
   const { owner, initial } = yield* fixture();
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* defectMessage(owner.advice.insert({ ...initial, canonicalOperationId: 999 }))).toContain("canonical finding owner");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.advice.values())).toEqual([]);
 }));
 
@@ -139,9 +139,9 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
   (yield* delivery.finishGate(advice.partition, "stop", 0, true));
   expect((yield* delivery.reserveFinishOutput(advice.partition, "stop", "collector", [{ id: advice.id, unit: advice.canonicalOperationId, findings: [finding] }], 1))).toBe(true);
   expect((yield* delivery.authorizeFinishOutput(advice.partition, "collector"))).toBe(true);
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* defectMessage(owner.advice.remove(advice, "stale", "collector"))).toContain("canonical submission forget refused");
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.advice.values())).toEqual([advice]);
   expect((yield* owner.snapshot()).bytes).toBe(100);
   expect((yield* owner.advice.current(advice)).delivery?.token).toBe("collector");
@@ -217,7 +217,7 @@ it.effect("arbitrates competing collectors only when lease Effects execute", () 
   expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
   const results = yield* Effect.all(attempts, { concurrency: 16 });
   expect(results.filter(Boolean)).toHaveLength(1);
-  expect(owner.canonicalProjection().collection.leases).toHaveLength(1);
+  expect((yield* owner.canonicalProjection()).collection.leases).toHaveLength(1);
 }));
 
 it.effect("validates delivery token when a deferred update executes", () => Effect.gen(function* () {
@@ -248,7 +248,7 @@ it.effect("checks expiry against the lease retained at execution", () => Effect.
   expect((yield* owner.advice.current(advice)).delivery).toBeDefined();
   yield* owner.advice.checkLease(advice, 20, false, false, false);
   expect((yield* owner.advice.current(advice)).delivery).toBeUndefined();
-  expect(owner.canonicalProjection().collection.leases).toEqual([]);
+  expect((yield* owner.canonicalProjection()).collection.leases).toEqual([]);
 }));
 
 it.effect("releases only the lease owned at execution", () => Effect.gen(function* () {
@@ -263,7 +263,7 @@ it.effect("releases only the lease owned at execution", () => Effect.gen(functio
   expect(yield* release).toBe(false);
   expect((yield* owner.advice.current(advice)).delivery?.token).toBe("new");
   expect(yield* owner.advice.releaseLease(advice, "new")).toBe(true);
-  expect(owner.canonicalProjection().collection.leases).toEqual([]);
+  expect((yield* owner.canonicalProjection()).collection.leases).toEqual([]);
 }));
 
 

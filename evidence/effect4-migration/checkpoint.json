@@ -2099,6 +2099,16 @@
       "scope": "Public reserve, resize, release and replace are named atomic Effects. Runtime admission and preparation/evaluation/shutdown cleanup compose releases; capture failure finalizer returns release Effect directly. Replacement retains committed invalid-measurement result and subsequent defect contract.",
       "validation": "Four files passed 106 tests; corrected partitionBytes fixture execution and converted replacement, then fresh capacity suite passed 28 tests. Typecheck/build and all boundary checks passed after replacement conversion.",
       "limitations": "Canonical transition/projection, root synchronous commit/read bridges, fixture construction and runtime facades remain."
+    },
+    {
+      "stage": "canonical-projection-read-effects",
+      "testsPassed": 261,
+      "testFiles": 15,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Public canonicalProjection is a named Ref read Effect. Dispatcher live operations, snapshots, settlement checks and discard selection compose it; runtime pending finding and error settlement readers compose it. Finish binding decisions read one immutable pending-findings projection before pure every checks. Private commit draft projection remains pure.",
+      "limitations": "Root transition still synchronous; read/commit bridge deletion, fixture constructors, runtime facades and final validation remain."
     }
   ],
   "next": [

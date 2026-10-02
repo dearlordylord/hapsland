@@ -105,7 +105,7 @@ describe("resident evaluation identity", () => {
       expect(Effect.runSync(reuse.put("partition", key, evaluation))).toBe(true);
       return { key, evaluation };
     });
-    const before = ledger.canonicalProjection();
+    const before = Effect.runSync(ledger.canonicalProjection());
     const beforeCapacity = Effect.runSync(ledger.snapshot());
     const beforeReuse = Effect.runSync(reuse.snapshot());
     const replacement = prepared(input({ path: "replacement.ts", rules: [] }));
@@ -115,13 +115,13 @@ describe("resident evaluation identity", () => {
     // failure must roll back that eviction and its reservation release as well.
     expect(() => Effect.runSync(reuse.put("p".repeat(MAX_PARTITION_KEY_BYTES + 1), replacementKey,
       { prepared: replacement, findings: [] }))).toThrow("advicee identity exceeds resident metadata bound");
-    expect(ledger.canonicalProjection()).toEqual(before);
+    expect(Effect.runSync(ledger.canonicalProjection())).toEqual(before);
     expect(Effect.runSync(ledger.snapshot())).toEqual(beforeCapacity);
     expect(Effect.runSync(reuse.snapshot())).toEqual(beforeReuse);
     for (const success of successes) expect(Effect.runSync(reuse.cached(success.key)).evaluation).toBe(success.evaluation);
 
     expect(Effect.runSync(reuse.put("partition", replacementKey, { prepared: replacement, findings: [] }))).toBe(true);
-    expect(ledger.canonicalProjection().reuse.cache.at(-1)?.id).toBe(SUCCESS_CACHE_ENTRY_LIMIT + 1);
+    expect(Effect.runSync(ledger.canonicalProjection()).reuse.cache.at(-1)?.id).toBe(SUCCESS_CACHE_ENTRY_LIMIT + 1);
     expect(Effect.runSync(reuse.get(successes[0]?.key ?? "missing"))).toBeUndefined();
     expect(Effect.runSync(reuse.snapshot())).toEqual({ entries: SUCCESS_CACHE_ENTRY_LIMIT, bytes: 80, pending: 0 });
   });
@@ -151,7 +151,7 @@ describe("resident evaluation identity", () => {
     expect(retainedSnapshot.pending).toBe(1);
     expect(Effect.runSync(second.snapshot())).toEqual({ entries: 0, bytes: 0, pending: 0 });
     expect(Effect.runSync(first.route(key, false))).toBe("owner");
-    expect(ledger.canonicalProjection().reuse.claims).toEqual([{ id: 1, attached: false }]);
+    expect(Effect.runSync(ledger.canonicalProjection()).reuse.claims).toEqual([{ id: 1, attached: false }]);
   });
 
   it("evicts successful LRU entries without disturbing pending joins", () => {
@@ -212,20 +212,20 @@ describe("resident evaluation identity", () => {
     expect(Effect.runSync(reuse.attachPending(firstKey, "active request"))).toBe(true);
     expect(Effect.runSync(reuse.route(firstKey, false))).toBe("joinedPending");
     expect(Effect.runSync(reuse.route(firstKey, true))).toBe("joinedAdvice");
-    expect(ledger.canonicalProjection().reuse.claims).toMatchObject([{ attached: true }]);
+    expect(Effect.runSync(ledger.canonicalProjection()).reuse.claims).toMatchObject([{ attached: true }]);
     Effect.runSync(reuse.releaseClaim(firstKey));
     expect(Effect.runSync(reuse.put("partition-a", firstKey, { prepared: first, findings: [] }))).toBe(true);
     expect(Effect.runSync(reuse.put("partition-b", secondKey, { prepared: second, findings: [] }))).toBe(true);
     expect(Effect.runSync(reuse.route(firstKey, false))).toBe("cached");
-    const beforeExpiry = ledger.canonicalProjection().reuse.cache;
+    const beforeExpiry = Effect.runSync(ledger.canonicalProjection()).reuse.cache;
     expect(beforeExpiry.map(({ partition }) => partition)).toEqual([
       Effect.runSync(ledger.partitionId("partition-b")), Effect.runSync(ledger.partitionId("partition-a")),
     ]);
     Effect.runSync(reuse.discardPartition("partition-b"));
-    expect(ledger.canonicalProjection().reuse.cache).toMatchObject([{ partition: Effect.runSync(ledger.partitionId("partition-a")) }]);
+    expect(Effect.runSync(ledger.canonicalProjection()).reuse.cache).toMatchObject([{ partition: Effect.runSync(ledger.partitionId("partition-a")) }]);
     expect(Effect.runSync(reuse.snapshot())).toMatchObject({ entries: 1, bytes: 10, pending: 0 });
     Effect.runSync(reuse.clear());
-    expect(ledger.canonicalProjection().reuse).toEqual({ claims: [], cache: [] });
+    expect(Effect.runSync(ledger.canonicalProjection()).reuse).toEqual({ claims: [], cache: [] });
     expect(Effect.runSync(ledger.snapshot())).toMatchObject({ items: 0, bytes: 0 });
   });
 });
@@ -234,16 +234,16 @@ effectIt.effect("serializes competing reuse claims without publishing before exe
   const owner = yield* makeResidentState<string>();
   const reuse = owner.reuse(() => 10);
   const claim = reuse.claim("competing");
-  expect(owner.canonicalProjection().reuse.claims).toEqual([]);
+  expect((yield* owner.canonicalProjection()).reuse.claims).toEqual([]);
   const results = yield* Effect.forEach(Array.from({ length: 16 }), () => claim, { concurrency: "unbounded" });
   expect(results.filter(Boolean)).toHaveLength(1);
-  expect(owner.canonicalProjection().reuse.claims).toHaveLength(1);
+  expect((yield* owner.canonicalProjection()).reuse.claims).toHaveLength(1);
   expect(yield* reuse.hasPending("competing")).toBe(true);
   expect(yield* reuse.attachPending("competing", "retained native request")).toBe(true);
   expect(yield* reuse.pending("competing")).toBe("retained native request");
   yield* reuse.releaseClaim("competing");
   expect(yield* reuse.hasPending("competing")).toBe(false);
-  expect(owner.canonicalProjection().reuse.claims).toEqual([]);
+  expect((yield* owner.canonicalProjection()).reuse.claims).toEqual([]);
   expect(yield* claim).toBe(true);
   yield* reuse.clear();
   expect(yield* reuse.snapshot()).toEqual({ entries: 0, bytes: 0, pending: 0 });

@@ -48,10 +48,10 @@ it.effect("publishes no capture when workspace capacity is refused", () => Effec
   const owner = yield* makeResidentState({ globalItems: 1, globalBytes: 200, partitionItems: 1, partitionBytes: 200 });
   const reservation = (yield* owner.reserve("partition", 100, "storedResult"));
   if (reservation === undefined) throw new Error("missing fixture reservation");
-  const before = owner.canonicalProjection();
+  const before = (yield* owner.canonicalProjection());
   expect(yield* owner.adviceCaptures.start(reservation, revision, 101)).toBeUndefined();
   expect(yield* owner.adviceCaptures.count()).toBe(0);
-  expect(owner.canonicalProjection()).toEqual(before);
+  expect((yield* owner.canonicalProjection())).toEqual(before);
   expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(100);
   expect(yield* owner.adviceCaptures.retire(reservation)).toBe(false);
 }));
