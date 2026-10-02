@@ -3366,5 +3366,29 @@
       "src/cli.ts": "875a9ee43a9cca784709f475667b1d9e53488f457bae968a646764cbc1cfba91"
     },
     "limitations": "CLI tests do not exercise actual interactive TTY cancellation; no physical restoration claim. Native lifecycle invocation remains synchronous, other interactive setup/maintenance and masked entry remain Promise workflows. Full suite at 3cf71c6 predates this edit; remaining full migration gates still required."
+  },
+  "interactiveMaintenanceCompositionPort": {
+    "status": "repair/reinstall/uninstall interactive maintenance is named Effect workflow",
+    "scope": "Runtime entry at CLI boundary provides process ConfigProvider. Confirmation receives AbortSignal; typed confirmation failure maps to per-host report and continues; decline preserves skip behavior. Preview/digest/explicit acceptance and existing synchronous lifecycle path retained.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "node scripts/check-configuration-boundary.mjs",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 8,
+        "durationSeconds": 7.78
+      }
+    ],
+    "sourceSha256": {
+      "src/cli.ts": "0fb6de5c025f2e56349aa888d54f5646e553929065402d76ee5a9072ab6f971f"
+    },
+    "limitations": "No actual interactive TTY or cancellation test in this run. Native lifecycle execution and registration/inspection remain synchronous; pilot/selection and masked credential entry remain pending. Full migration and final gates incomplete."
   }
 }

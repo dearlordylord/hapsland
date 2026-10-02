@@ -1297,7 +1297,7 @@ const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
 
 const reportClientFailure = (host: SetupClient, cause: unknown) => { process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`); process.exitCode = 6; };
 
-const maintenanceInteractive = async (command: "repair" | "reinstall" | "uninstall") => {
+const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function* (command: "repair" | "reinstall" | "uninstall") {
   if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error(`${command} needs a terminal. Use the version-one installation JSON interface for automation.`);
   const hosts = clientArguments?.host === undefined ? registeredClients(clientArguments?.flags ?? new Map(), reportClientFailure) : [selectedHost()];
   if (hosts.length === 0) {
@@ -1324,7 +1324,15 @@ const maintenanceInteractive = async (command: "repair" | "reinstall" | "uninsta
       if (recovered !== undefined && command === "repair") process.stderr.write(`Resume interrupted ${operation}; after completion rerun hapsland repair ${host} if needed.\n`);
       process.stderr.write(`${host} ${command} preview:\n${formatProposal(preview.proposal).join("\n")}\n`);
       if (reinstall) process.stderr.write("Replace marked Hapsland handlers; preserve independent hooks, review settings and saved credentials.\n");
-      if (!await askConfirmation(`Apply ${command} to ${host}?`)) { process.stderr.write(`${host}: skipped.\n`); continue; }
+      const confirmation = yield* Effect.tryPromise({
+        try: (signal) => askConfirmation(`Apply ${command} to ${host}?`, signal),
+        catch: (cause) => cause instanceof Error ? cause : new Error("confirmation failed"),
+      }).pipe(Effect.result);
+      if (confirmation._tag === "Failure") {
+        reportClientFailure(host, confirmation.failure);
+        continue;
+      }
+      if (!confirmation.success) { process.stderr.write(`${host}: skipped.\n`); continue; }
       const result = invoke(preview.proposal.digest);
       if (result.status === "partial" && operation !== "uninstall") activateCurrentPackage(fileURLToPath(import.meta.url));
       if (!["complete", "installed", "already-installed", "updated", "already-current", "uninstalled", "already-uninstalled", "removed", "already-removed"].includes(result.status)) throw new Error(formatFailure(result, host));
@@ -1333,7 +1341,7 @@ const maintenanceInteractive = async (command: "repair" | "reinstall" | "uninsta
       process.stderr.write(`Finish current work and restart ${host}${operation === "uninstall" ? "." : "; review native trust prompts."}\n`);
     } catch (cause) { process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "operation failed"}\n`); process.exitCode = 6; }
   }
-};
+});
 
 if (process.argv[2] === "--package-identity") {
   process.stdout.write(JSON.stringify({ name: "@hapsland/hapsland", runtime: process.execPath, entrypoint: fileURLToPath(import.meta.url) }) + "\n");
@@ -1363,7 +1371,7 @@ if (process.argv[2] === "--package-identity") {
         } catch (cause) { reportClientFailure(host, cause); }
       }
     } else if (command === "update") await Effect.runPromise(updateInteractive().pipe(Effect.provide(processConfigurationLayer)));
-    else if (command === "repair" || command === "reinstall" || command === "uninstall") await maintenanceInteractive(command);
+    else if (command === "repair" || command === "reinstall" || command === "uninstall") await Effect.runPromise(maintenanceInteractive(command).pipe(Effect.provide(processConfigurationLayer)));
     else if (clientArguments.host === undefined) await chooseSetupClients();
     else await pilotSetup(selectedHost());
   } catch (cause) {
