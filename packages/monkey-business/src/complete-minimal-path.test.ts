@@ -155,23 +155,40 @@ it("runs original source-free minimal scenarios through the native shared driver
     beginObservedPreparation: 5, preparationCompleted: 6, completeObservation: 7, dispatchSettled: 8, startReview: 9,
     jevRequestReady: 10, jevRequestStarted: 11, jevRequestSettled: 12, collectionReady: 13, finalCandidateCheck: 14,
     submissionSuppressCheck: 15, collectionReserveLease: 16, submissionBegin: 17, submissionTerminal: 18,
-    collectionLeaseCheck: 19, collectionReleaseLease: 20 };
+    collectionLeaseCheck: 19, collectionReleaseLease: 20, collectionRetireAdvice: 22, submissionForget: 23, retireReview: 24 };
   const commandCodes: Record<string, number> = { roundStarted: 1, observationAdmitted: 2, dispatchStarted: 3, prepare: 4,
     unitAdmitted: 5, jevRequestIssued: 6, retainFinding: 7, collectionEligible: 8, retainCandidate: 9,
     submissionUnsuppressed: 10, collectionLeaseReserved: 11, submissionBegun: 12, submissionRecorded: 13,
     observationStarted: 14, preparationReleased: 15, observationCompleted: 16, reviewStarted: 17,
     jevRequestStartRecorded: 18, jevRequestOutcomeRecorded: 19, reservationReleased: 20, collectionLeaseKept: 21,
-    collectionLeaseReleased: 22, settleClear: 23, reviewRecorded: 24 };
+    collectionLeaseReleased: 22, settleClear: 23, reviewRecorded: 24, retireCandidate: 25, releaseCandidate: 26, collectionAdviceRetired: 27, submissionForgotten: 28 };
   const graphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 };
-  const traces = (["finding", "clear"] as const).map(outcome => {
+  const scenarios = [
+    { outcome: "finding" as const }, { outcome: "clear" as const },
+    { outcome: "finding" as const, environment: { currentWork: false, credentialReady: true } },
+    { outcome: "finding" as const, environment: { currentWork: true, credentialReady: false } },
+    { outcome: "finding" as const, environment: { currentWork: true, credentialReady: true, credentialGeneration: 2 } },
+  ];
+  const traces = scenarios.map(({ outcome, environment }) => {
     const run = createRun(minimal(outcome));
+    if (environment) {
+      for (let steps = 0; steps < 100 && !run.observations.some(frame => frame.event.kind === "jevRequestSettled"); steps++) run.step();
+      run.applyControl({ kind: "environment", ...environment });
+    }
     run.advance({ untilTime: 10 });
     return run.observations.map(frame => {
       if (frame.preparation) {
         const { command, after } = frame.preparation;
         return [21, frame.time, graphCodes[command.kind] ?? 99, after.files, after.readBytes, after.treeBytes];
       }
-      return [eventCodes[frame.event.kind] ?? 99, frame.time, ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(key => ((frame.event as unknown as Record<string, unknown>)[key] ?? (key === "operation" ? (frame.event as unknown as Record<string, unknown>).observation : undefined) ?? 0)), ...frame.commands.map(command => { if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`); return commandCodes[command.kind]!; })];
+      const event = frame.event as unknown as Record<string, unknown>;
+      const facts = event.kind === "finalCandidateCheck"
+        ? [event.ownerCurrent, event.credentialGeneration, event.credentialAuthorized, event.expired, event.workCurrent, event.hasFindings].map(Number)
+        : event.kind === "jevRequestReady"
+          ? [event.rootValid, event.configurationValid, event.credentialReady, event.selected, event.currentWork, event.physicalAvailable].map(Number)
+          : event.kind === "jevRequestSettled" ? [Number(event.currentWork), 0, 0, 0, 0, 0]
+            : event.kind === "submissionTerminal" ? [Number(event.certain), 0, 0, 0, 0, 0] : [0, 0, 0, 0, 0, 0];
+      return [eventCodes[frame.event.kind] ?? 99, frame.time, ...["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(key => ((frame.event as unknown as Record<string, unknown>)[key] ?? (key === "operation" ? (frame.event as unknown as Record<string, unknown>).observation : undefined) ?? 0)), ...facts, ...frame.commands.map(command => { if (commandCodes[command.kind] === undefined) throw new Error(`unmapped command ${command.kind}`); return commandCodes[command.kind]!; })];
     });
   });
   expect(nativeTraces).toEqual(traces);

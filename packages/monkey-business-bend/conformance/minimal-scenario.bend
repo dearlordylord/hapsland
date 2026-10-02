@@ -9,6 +9,9 @@ import ../../agent-flow-bend/Ledger.bend as Ledger
 
 # A native edge adapter supplies original source-free inputs and graph facts.
 # Policy, command interpretation, callback generation and ordering are shared.
+type Config is Data:
+  Config{outcome: Canonical.RequestOutcome, current: Bool, credential: Bool, generation: Bool, readable: Bool}
+
 type Input is Data:
   Edit{}
   Event{action: Driver.Action}
@@ -54,11 +57,22 @@ def enqueue(actions: List<&2, Driver.Action>, queue: Queue, +now: Nat) -> Queue:
     case Driver.Action{event, +delay, candidate, job, expiry} <> tail:
       enqueue(tail, append(queue, Nat.add(now, delay), Event{Driver.Action{event, delay, candidate, job, expiry}}), now)
 
-def context(action: Driver.Action, outcome: Canonical.RequestOutcome) -> Driver.Context:
+def context_values(action: Driver.Action, outcome: Canonical.RequestOutcome,
+    current: Bool, credential: Bool, generation: Bool, readable: Bool) -> Driver.Context:
   match action:
-    case Driver.Action{_, _, candidate, job, _}:
-      Driver.Context{1n, 1n, 1n, 10n, True{}, 5n, outcome, True{}, True{}, True{}, True{},
-        600000n, candidate, True{}, True{}, True{}, True{}, 0n, 30n}
+    case Driver.Action{_, _, candidate, _, _}:
+      Driver.Context{1n, 1n, 1n, 10n, True{}, 5n, outcome, current, credential, generation, readable,
+        600000n, candidate, True{}, True{}, True{}, True{}, 0n, 30n, False{}}
+
+def context_active(active: Bool, action: Driver.Action, config: Config) -> Driver.Context:
+  match active config:
+    case True{} Config{outcome, current, credential, generation, readable}:
+      context_values(action, outcome, current, credential, generation, readable)
+    case False{} Config{outcome, _, _, _, _}:
+      context_values(action, outcome, True{}, True{}, True{}, True{})
+
+def context(action: Driver.Action, config: Config, now: Nat) -> Driver.Context:
+  context_active(Nat.is_le(7n, now), action, config)
 
 def graph_facts(queue: Queue, +now: Nat, +operation: Nat) -> Queue:
   +one = Nat.add(now, 1n)
@@ -108,6 +122,9 @@ def event_code(event: Canonical.CanonicalEvent) -> Nat:
     case Canonical.SubmissionTerminal{_, _, _}: 18n
     case Canonical.CollectionLeaseCheck{_, _, _, _, _, _}: 19n
     case Canonical.CollectionReleaseLease{_, _}: 20n
+    case Canonical.CollectionRetireAdvice{_}: 22n
+    case Canonical.SubmissionForget{_}: 23n
+    case Canonical.RetireReview{_, _, _, _}: 24n
     case _: 99n
 
 def event_identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
@@ -131,7 +148,25 @@ def event_identity(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
     case Canonical.SubmissionTerminal{a, t, _}: [0n, 0n, 0n, 0n, 0n, a, t]
     case Canonical.CollectionLeaseCheck{a, t, _, _, _, _}: [0n, 0n, 0n, 0n, 0n, a, t]
     case Canonical.CollectionReleaseLease{a, t}: [0n, 0n, 0n, 0n, 0n, a, t]
+    case Canonical.CollectionRetireAdvice{a}: [0n, 0n, 0n, 0n, 0n, a, 0n]
+    case Canonical.SubmissionForget{a}: [0n, 0n, 0n, 0n, 0n, a, 0n]
+    case Canonical.RetireReview{p, l, r, o}: [p, l, r, o, 0n, 0n, 0n]
     case _: [0n, 0n, 0n, 0n, 0n, 0n, 0n]
+
+def boolean(value: Bool) -> Nat:
+  match value:
+    case True{}: 1n
+    case False{}: 0n
+
+def event_facts(event: Canonical.CanonicalEvent) -> List<&2, Nat>:
+  match event:
+    case Canonical.FinalCandidateCheck{owner, generation, credential, expired, current, findings}:
+      [boolean(owner), boolean(generation), boolean(credential), boolean(expired), boolean(current), boolean(findings)]
+    case Canonical.JevRequestReady{_, _, _, _, root, configuration, credential, selected, current, physical}:
+      [boolean(root), boolean(configuration), boolean(credential), boolean(selected), boolean(current), boolean(physical)]
+    case Canonical.JevRequestSettled{_, _, _, _, _, _, current}: [boolean(current), 0n, 0n, 0n, 0n, 0n]
+    case Canonical.SubmissionTerminal{_, _, certain}: [boolean(certain), 0n, 0n, 0n, 0n, 0n]
+    case _: [0n, 0n, 0n, 0n, 0n, 0n]
 
 def command_code(command: Canonical.Command) -> Nat:
   match command:
@@ -159,6 +194,10 @@ def command_code(command: Canonical.Command) -> Nat:
     case Canonical.CollectionLeaseReleased{}: 22n
     case Canonical.SettleClear{}: 23n
     case Canonical.ReviewRecorded{_}: 24n
+    case Canonical.RetireCandidate{}: 25n
+    case Canonical.ReleaseCandidate{}: 26n
+    case Canonical.CollectionAdviceRetired{}: 27n
+    case Canonical.SubmissionForgotten{}: 28n
     case _: 99n
 
 def command_codes(items: List<&2, Canonical.Command>) -> List<&2, Nat>:
@@ -201,54 +240,58 @@ def graph_result(transition: Types.GraphTransition, queue: Queue, now: Nat,
       graph_row(graph, command, now) <> ih((state, queue))
 
 def canonical_result(transition: Engine.Transition, +before: Types.State,
-    +action: Driver.Action, queue: Queue, +now: Nat, outcome: Canonical.RequestOutcome,
+    +action: Driver.Action, queue: Queue, +now: Nat, config: Config,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match transition action:
     case Engine.Transition{+state, Canonical.Advanced{_, +list}} Driver.Action{+event, delay, candidate, job, expiry}:
-      +q = commands(list, queue, now, state, event, context(Driver.Action{event, delay, candidate, job, expiry}, outcome))
+      +q = commands(list, queue, now, state, event, context(Driver.Action{event, delay, candidate, job, expiry}, config, now))
       +q = enqueue(Engine.after(before, state, event), q, now)
-      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), command_codes(list))) <> ih((state, q))
+      (event_code(event) <> now <> List.append(&2, Nat, event_identity(event), List.append(&2, Nat, event_facts(event), command_codes(list)))) <> ih((state, q))
     case _ _: [ [98n, now] ]
 
 def input(input: Input, +state: Types.State, queue: Queue, now: Nat,
-    outcome: Canonical.RequestOutcome,
+    config: Config,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match input:
     case Edit{}: edit_plan(Engine.edit(state, 1n, 1n), state, queue, now, ih)
     case Event{Driver.Action{+event, delay, candidate, job, expiry}}:
-      canonical_result(Engine.step(state, event), state, Driver.Action{event, delay, candidate, job, expiry}, queue, now, outcome, ih)
+      canonical_result(Engine.step(state, event), state, Driver.Action{event, delay, candidate, job, expiry}, queue, now, config, ih)
     case Fact{operation, step, event}:
       graph_result(Engine.graph_step(state, Types.GraphKey{1n, 1n, 1n, operation, 0n}, step,
         Graph.Limits{1n, 262144n, 20480n, 8n, 1572864n, 16n, 4n, 128n}, event), queue, now, ih)
 
 def selected_if(in_budget: Bool, +items: List<&2, Item>, state: Types.State, sequence: Nat,
-    at: Nat, +order: Nat, outcome: Canonical.RequestOutcome,
+    at: Nat, +order: Nat, config: Config,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match in_budget:
     case False{}: Nil{}
-    case True{}: input(lookup(items, order), state, Queue{remove(items, order), sequence}, at, outcome, ih)
+    case True{}: input(lookup(items, order), state, Queue{remove(items, order), sequence}, at, config, ih)
 
 def selected(entries: List<&2, Scheduler.Entry>, state: Types.State, +items: List<&2, Item>, sequence: Nat,
-    outcome: Canonical.RequestOutcome,
+    config: Config,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match entries:
     case Nil{}: Nil{}
     case Scheduler.Entry{+at, +order} <> _:
-      selected_if(Nat.is_le(at, 10n), items, state, sequence, at, order, outcome, ih)
+      selected_if(Nat.is_le(at, 10n), items, state, sequence, at, order, config, ih)
 
-def next(state_queue: Types.State & Queue, +outcome: Canonical.RequestOutcome,
+def next(state_queue: Types.State & Queue, +config: Config,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match state_queue:
-    case (state, Queue{+items, sequence}): selected(Engine.order(keys(items)), state, items, sequence, outcome, ih)
+    case (state, Queue{+items, sequence}): selected(Engine.order(keys(items)), state, items, sequence, config, ih)
 
-def loop(fuel: Nat, state_queue: Types.State & Queue, +outcome: Canonical.RequestOutcome) -> List<&2, List<&2, Nat>>:
+def loop(fuel: Nat, state_queue: Types.State & Queue, +config: Config) -> List<&2, List<&2, Nat>>:
   match fuel:
     case 0n: Nil{}
-    case 1n+rest: next(state_queue, outcome, pair => loop(rest, pair, outcome))
+    case 1n+rest: next(state_queue, config, pair => loop(rest, pair, config))
 
-def scenario(outcome: Canonical.RequestOutcome) -> List<&2, List<&2, Nat>>:
+def scenario(config: Config) -> List<&2, List<&2, Nat>>:
   loop(100n, (Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
-    Queue{[Item{0n, 0n, Edit{}}], 1n}), outcome)
+    Queue{[Item{0n, 0n, Edit{}}], 1n}), config)
 
 def main() -> List<&2, List<&2, List<&2, Nat>>>:
-  [scenario(Canonical.RequestFinding{}), scenario(Canonical.RequestClear{})]
+  [scenario(Config{Canonical.RequestFinding{}, True{}, True{}, True{}, True{}}),
+   scenario(Config{Canonical.RequestClear{}, True{}, True{}, True{}, True{}}),
+   scenario(Config{Canonical.RequestFinding{}, False{}, True{}, True{}, True{}}),
+   scenario(Config{Canonical.RequestFinding{}, True{}, False{}, True{}, True{}}),
+   scenario(Config{Canonical.RequestFinding{}, True{}, True{}, False{}, True{}})]
