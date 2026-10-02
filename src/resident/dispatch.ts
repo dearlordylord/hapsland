@@ -44,7 +44,10 @@ export interface DispatchState<K, A> {
 
 /** Scoped execution of Bend commands, with native handles registered at commit. */
 export const makeDispatcher = <K, A>(
-  ledger: Pick<CapacityLedger, "canonicalProjection" | "dispatchIdentity"> & { readonly dispatch: DispatchState<K, A> },
+  ledger: Pick<CapacityLedger, "canonicalProjection"> & {
+    readonly dispatchIdentity: (...args: Parameters<CapacityLedger["dispatchIdentity"]>) => Effect.Effect<ReturnType<CapacityLedger["dispatchIdentity"]>>;
+    readonly dispatch: DispatchState<K, A>;
+  },
   operation: (value: A) => { readonly operation: number; readonly round: number },
   run: (entry: DispatchEntry<K, A>) => Effect.Effect<void, unknown>,
 ): Effect.Effect<Dispatcher<K, A>, never, Scope.Scope> => Effect.gen(function* () {
@@ -177,9 +180,9 @@ export const makeDispatcher = <K, A>(
   return {
     enqueue: Effect.fn("ResidentDispatch.enqueue")(function* (key: K, value: A) {
       if (typeof key !== "string") return yield* Effect.die(new TypeError("dispatch partition must be a string"));
-      const identity = ledger.dispatchIdentity(key, operation(value).round);
-      const entry = { key, value, operation: operation(value).operation, ...identity };
       return yield* Effect.uninterruptible(Effect.gen(function* () {
+        const identity = yield* ledger.dispatchIdentity(key, operation(value).round);
+        const entry = { key, value, operation: operation(value).operation, ...identity };
         const admitted = yield* commit({ kind: "queueDispatch", partition: entry.partition, lifetime: 1,
           round: entry.round, operation: entry.operation }, entry);
         if (admitted === undefined) return false;

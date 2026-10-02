@@ -286,3 +286,7 @@ if (!state.includes('clear: Effect.fn("ResidentState.clear")(() => commitAllEffe
     !server.includes('yield* residentLedger.clear()') || !server.includes('yield* residentLedger.pruneCollectionTokenIds(live)')) {
   throw new Error("resident clearing and token pruning must compose atomic Effects");
 }
+
+if (!state.includes('dispatchIdentity: Effect.fn("Capacity.dispatchIdentity")')) {
+  throw new Error("dispatch identity allocation must compose as an atomic Effect");
+}

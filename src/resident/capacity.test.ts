@@ -460,3 +460,14 @@ effectIt.effect("reads reservation metadata on execution and fences foreign or r
   expect(yield* read).toBeUndefined();
   expect(yield* owner.reservationSnapshot(replacement)).toEqual({ bytes: 30, purpose: "preparation" });
 }));
+
+effectIt.effect("defers dispatch identity allocation and shares one partition across competing executions", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const identity = owner.dispatchIdentity("agent", 7);
+  expect(owner.partitionIdentityCount()).toBe(0);
+  const identities = yield* Effect.forEach(Array.from({ length: 16 }), () => identity, { concurrency: "unbounded" });
+  expect(identities).toEqual(Array.from({ length: 16 }, () => ({ partition: 1, round: 7 })));
+  expect(owner.partitionIdentityCount()).toBe(1);
+  expect(yield* owner.dispatchIdentity("other", 8)).toEqual({ partition: 2, round: 8 });
+  expect(owner.partitionIdentityCount()).toBe(2);
+}));
