@@ -167,7 +167,7 @@ export const withInstallationLock = Effect.fn("InstallationLock.withLock")(<A, E
   use: Effect.Effect<A, E, R>,
 ) => Effect.gen(function* () {
   const now = yield* Clock.currentTimeMillis;
-  const started = yield* Clock.currentTimeNanos;
+  const started = yield* Clock.monotonicTimeNanos;
   const hold = Number(yield* Config.String("REVIEW_INSTALL_TEST_HOLD_LOCK_MS").pipe(
     Config.withDefault("0"),
     Effect.mapError(() => new InstallationLockError({ reason: "configuration lock configuration unavailable" })),
@@ -177,7 +177,7 @@ export const withInstallationLock = Effect.fn("InstallationLock.withLock")(<A, E
     (candidate) => Effect.gen(function* () {
       const attempt = Effect.fn("InstallationLock.publishGeneration")(function* () {
         const now = yield* Clock.currentTimeMillis;
-        const elapsed = Number((yield* Clock.currentTimeNanos) - started) / 1_000_000;
+        const elapsed = Number((yield* Clock.monotonicTimeNanos) - started) / 1_000_000;
         return yield* Effect.try({
           try: () => {
             try {

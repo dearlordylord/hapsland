@@ -3838,5 +3838,28 @@
     "nativeEvidence": "Inherited stdin/stdout/stderr and child exit 7; failed startup bounded; interrupted live child no longer exists after interrupt returns; exact selected flags and child dispatch environment.",
     "initialTypecheckFailure": "Conditional union Effects did not infer through shared result pipe; each branch now applies Effect.result before yielding, preserving typed per-client failures. No runtime cast or error-to-throw bridge.",
     "limitations": "Synthetic Linux child/CLI tests, not active-package real release acceptance. External deadline migration/full suite/conformance/live/performance/completion audit still required."
+  },
+  "stableClockMonotonicAccessorCorrection": {
+    "status": "pass",
+    "scope": "Installed stable Effect4 currentTimeNanos is wall time with re-anchoring; earlier monotonic claims using that accessor were incorrect. Credential/install lock elapsed budgets, demo durations, client request/launch/startup now use monotonicTimeNanos. Epoch timestamps remain currentTimeMillis. Source guard rejects wall nanos in elapsed-budget modules.",
+    "checks": {
+      "typecheck": "pass",
+      "configurationBoundaryGuard": "pass",
+      "initialRun": {
+        "filesPassed": 4,
+        "filesFailed": 1,
+        "testsPassed": 62,
+        "testsFailed": 1,
+        "durationSeconds": 23.92
+      },
+      "correctedClockTests": {
+        "files": 2,
+        "passed": 13,
+        "durationSeconds": 1.32
+      }
+    },
+    "initialFailure": "New test counted tracing reads of currentTimeNanosUnsafe as workflow reads; adjusted the observation to count the effectful wall accessor. No production change needed for that test correction.",
+    "evidence": "Injected enormous wall nanos jump does not finish a waiting lock at 1499ms; at 1500ms monotonic time it reports the original bounded busy error and cleans its candidate.",
+    "remaining": "Coordinate externally supplied hook deadline origin and caller Clock next; current full suite/conformance/live/performance/completion audit incomplete."
   }
 }

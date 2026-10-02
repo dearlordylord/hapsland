@@ -32,7 +32,7 @@ import {
   type ResidentResponse,
 } from "./protocol.ts";
 
-const monotonicMillis = Clock.currentTimeNanos.pipe(
+const monotonicMillis = Clock.monotonicTimeNanos.pipe(
   Effect.map((now) => Number(now / 1_000_000n)),
 );
 

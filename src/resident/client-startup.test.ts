@@ -94,7 +94,7 @@ it.effect("waits for native spawn acknowledgement through interruption", () => E
 it.effect("launch claim expiry follows the caller Effect clock", () => Effect.gen(function* () {
   const calls = yield* Ref.make(0);
   const startup = yield* makeResidentStartup.pipe(Effect.provideService(ResidentLauncher, ResidentLauncher.of({
-    now: Clock.currentTimeNanos.pipe(Effect.map((now) => Number(now / 1_000_000n))),
+    now: Clock.monotonicTimeNanos.pipe(Effect.map((now) => Number(now / 1_000_000n))),
     spawn: () => Ref.update(calls, (count) => count + 1),
   })));
   yield* startup.launch(paths, 10_000);

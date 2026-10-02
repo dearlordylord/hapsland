@@ -111,7 +111,7 @@ export class DemoExecutionError extends Schema.TaggedError<DemoExecutionError>()
 export type DemoExecutor = (options: DemoExecutionOptions) => Effect.Effect<DemoExecution, DemoExecutionError>;
 const demoIo = Effect.fn("FirstReviewDemo.nativeIo")(<A>(operation: string, execute: () => Promise<A>) =>
   Effect.tryPromise({ try: execute, catch: () => new DemoExecutionError({ operation }) }).pipe(Effect.uninterruptible));
-const monotonicMillis = Clock.currentTimeNanos.pipe(Effect.map((now) => Number(now / 1_000_000n)));
+const monotonicMillis = Clock.monotonicTimeNanos.pipe(Effect.map((now) => Number(now / 1_000_000n)));
 
 const digestSelection = (record: Omit<DemoRecord, "selectionDigest">): string =>
   createHash("sha256").update([

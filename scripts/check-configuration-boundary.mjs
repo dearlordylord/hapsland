@@ -50,6 +50,12 @@ if (/process\.env(?:\[|\.REVIEW_CREDENTIAL_)/u.test(credentials) ||
 }
 
 const installationLock = read("src/onboarding/installation-lock.ts");
+for (const path of ["src/onboarding/installation-lock.ts", "src/credentials/secret-service.ts",
+  "src/onboarding/first-review-demo.ts", "src/resident/client.ts"]) {
+  if (/Clock\.currentTimeNanos/u.test(read(path))) {
+    throw new Error(`${path} elapsed budgets must use monotonicTimeNanos, not wall-clock nanos`);
+  }
+}
 if (/Effect\.run(?:Sync|Promise|Fork)\(|new Promise|\basync\b|setTimeout\(|Date\.now\(|process\.env/u.test(installationLock) ||
     !installationLock.includes('Schedule.spaced("25 millis")') ||
     !installationLock.includes("Effect.acquireUseRelease(")) {

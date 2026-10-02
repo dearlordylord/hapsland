@@ -266,7 +266,7 @@ const withStateLock = Effect.fn("Credentials.withStateLock")((statePath: string,
 ) => Effect.gen(function* () {
   const lock = `${statePath}.lock`;
   const createdAt = yield* Clock.currentTimeMillis;
-  const started = yield* Clock.currentTimeNanos;
+  const started = yield* Clock.monotonicTimeNanos;
   const owner: StateLockOwner = {
     version: 1, pid: process.pid, machineIdentity, bootIdentity,
     processBirthIdentity: processBirthIdentity(process.pid) ?? null,
@@ -275,7 +275,7 @@ const withStateLock = Effect.fn("Credentials.withStateLock")((statePath: string,
   let recovered = false;
   const attempt = Effect.fn("Credentials.acquireStateLock")(() => Effect.gen(function* () {
     const now = yield* Clock.currentTimeMillis;
-    const elapsed = Number((yield* Clock.currentTimeNanos) - started) / 1_000_000;
+    const elapsed = Number((yield* Clock.monotonicTimeNanos) - started) / 1_000_000;
     return yield* Effect.sync(() => {
       try { mkdirSync(dirname(statePath), { recursive: true, mode: 0o700 }); }
       catch { return "unavailable" as const; }

@@ -1,5 +1,5 @@
 import { expect, it } from "@effect/vitest";
-import { ConfigProvider, Deferred, Effect, Fiber } from "effect";
+import { Clock, ConfigProvider, Deferred, Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -88,6 +88,41 @@ it.effect("invalid published owner targets fail without leaving a new candidate"
   expect(result).toMatchObject({ _tag: "Failure", failure: { _tag: "InstallationLockError",
     reason: "configuration lock generation has an invalid owner target" } });
   expect(readdirSync(join(path, "owners"))).toEqual([]);
+}).pipe(Effect.provide(configuration)));
+
+it.effect("wall-clock nanos jumps cannot expire a waiting lock before its 1500ms monotonic budget", () => Effect.gen(function* () {
+  const path = yield* fixture;
+  const base = yield* Clock.Clock;
+  let wallNanos = 0n;
+  let wallReads = 0;
+  let finished = false;
+  const clock: Clock.Clock = {
+    currentTimeMillis: base.currentTimeMillis,
+    currentTimeMillisUnsafe: () => base.currentTimeMillisUnsafe(),
+    currentTimeNanos: Effect.sync(() => { wallReads += 1; return wallNanos; }),
+    currentTimeNanosUnsafe: () => wallNanos,
+    monotonicTimeNanos: base.monotonicTimeNanos,
+    monotonicTimeNanosUnsafe: () => base.monotonicTimeNanosUnsafe(),
+    sleep: (duration) => base.sleep(duration),
+  };
+  const entered = yield* Deferred.make<void>();
+  const holding = yield* Effect.forkChild(withInstallationLock(path,
+    Deferred.succeed(entered, undefined).pipe(Effect.andThen(Effect.never))), { startImmediately: true });
+  yield* Deferred.await(entered);
+  const waiting = yield* Effect.forkChild(withInstallationLock(path, Effect.succeed("must-not-enter")).pipe(
+    Effect.provideService(Clock.Clock, clock), Effect.result,
+    Effect.tap(() => Effect.sync(() => { finished = true; })),
+  ), { startImmediately: true });
+  wallNanos = 1_000_000_000_000_000_000n;
+  yield* TestClock.adjust("1499 millis");
+  expect(finished).toBe(false);
+  yield* TestClock.adjust("1 millis");
+  expect(yield* Fiber.join(waiting)).toMatchObject({ _tag: "Failure", failure: {
+    reason: "configuration lock remained busy for 1500ms",
+  } });
+  expect(wallReads).toBe(0);
+  expect(readdirSync(join(path, "owners"))).toHaveLength(1);
+  yield* Fiber.interrupt(holding);
 }).pipe(Effect.provide(configuration)));
 
 it.effect("configuration source failures are sanitized before creating any owner", () => Effect.gen(function* () {
