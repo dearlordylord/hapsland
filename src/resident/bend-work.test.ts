@@ -10,7 +10,7 @@ describe("canonical work projection", () => {
     const ledger = makeCapacityLedger(limits);
     const round = Effect.runSync(ledger.roundId("agent"));
     const view = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), round);
-    const source = ledger.admitObservation("agent");
+    const source = Effect.runSync(ledger.admitObservation("agent"));
     expect(view().admit(source)).toBe(source);
     expect(view().startSource(source)).toBe(true);
     expect(view().unfinished()).toBe(1);
@@ -25,11 +25,11 @@ describe("canonical work projection", () => {
     const ledger = makeCapacityLedger(limits);
     const oldRound = Effect.runSync(ledger.roundId("agent"));
     const oldView = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), oldRound);
-    ledger.admitObservation("agent", oldRound);
+    Effect.runSync(ledger.admitObservation("agent", oldRound));
     Effect.runSync(ledger.retireRound("agent", oldRound));
     const nextRound = Effect.runSync(ledger.roundId("agent"));
     const nextView = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), nextRound);
-    const source = ledger.admitObservation("agent", nextRound);
+    const source = Effect.runSync(ledger.admitObservation("agent", nextRound));
     expect(oldView().unfinished()).toBe(0);
     expect(oldView().startSource(source)).toBe(false);
     expect(nextView().unfinished()).toBe(1);
@@ -47,7 +47,7 @@ describe("canonical work projection", () => {
     const ledger = makeCapacityLedger(limits);
     const round = Effect.runSync(ledger.roundId("agent"));
     const view = () => workView(ledger.canonicalProjection(), Effect.runSync(ledger.partitionId("agent")), round);
-    const source = ledger.admitObservation("agent");
+    const source = Effect.runSync(ledger.admitObservation("agent"));
     ledger.observation("agent", source, "startObservation", round);
     const preparation = ledger.beginObservedPreparation("agent", source, 100, round)!;
     const unit = ledger.completePreparation("agent", preparation.operation, preparation.reservation, [20], round)[0]!;

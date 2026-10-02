@@ -646,13 +646,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
-    let canonicalObservationId: number;
-    try {
-      canonicalObservationId = residentLedger.admitObservation(partition, canonicalRound);
-    } catch {
+    const admission = yield* Effect.exit(residentLedger.admitObservation(partition, canonicalRound));
+    if (Exit.isFailure(admission)) {
       residentLedger.release(reservation);
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
+    const canonicalObservationId = admission.value;
     const ticket: TicketRecord | undefined = ticketed ? yield* residentLedger.tickets.open({
       ticket: { nonce: randomUUID(), lifetime: runtime.lifetime },
       partition,

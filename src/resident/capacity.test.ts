@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { it as effectIt } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Exit } from "effect";
 import { makeCapacityLedger, makeResidentState, MAX_COLLECTION_TOKEN_IDENTITIES, MAX_PARTITION_IDENTITIES, encodedBytesWithin } from "./capacity.ts";
 
 describe("resident logical capacity ledger", () => {
@@ -240,7 +240,7 @@ describe("resident logical capacity ledger", () => {
   it("fences late work callbacks after round retirement without opening a new round", () => {
     const ledger = makeCapacityLedger();
     const round = Effect.runSync(ledger.roundId("agent"));
-    const observation = ledger.admitObservation("agent");
+    const observation = Effect.runSync(ledger.admitObservation("agent"));
     expect(ledger.observation("agent", observation, "startObservation", round)).toBe(true);
     const preparation = ledger.beginObservedPreparation("agent", observation, 10, round);
     expect(preparation).toBeDefined();
@@ -255,10 +255,10 @@ describe("resident logical capacity ledger", () => {
   it("fences old callbacks and retirement after a successor round opens", () => {
     const ledger = makeCapacityLedger();
     const oldRound = Effect.runSync(ledger.roundId("agent"));
-    const oldSource = ledger.admitObservation("agent", oldRound);
+    const oldSource = Effect.runSync(ledger.admitObservation("agent", oldRound));
     Effect.runSync(ledger.retireRound("agent", oldRound));
     const nextRound = Effect.runSync(ledger.roundId("agent"));
-    const source = ledger.admitObservation("agent", nextRound);
+    const source = Effect.runSync(ledger.admitObservation("agent", nextRound));
     Effect.runSync(ledger.retireRound("agent", oldRound));
     expect(Effect.runSync(ledger.roundId("agent"))).toBe(nextRound);
     expect(ledger.observation("agent", oldSource, "startObservation", oldRound)).toBe(false);
@@ -511,4 +511,21 @@ effectIt.effect("opens one canonical round for competing deferred identity reque
   expect(replacement).toBeGreaterThan(rounds[0]!);
   yield* retire;
   expect(yield* read).toBe(replacement);
+}));
+
+effectIt.effect("defers observation admission and rolls back an invalid round", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const admission = owner.admitObservation("agent");
+  const before = owner.canonicalProjection();
+  expect(yield* owner.currentRoundId("agent")).toBeUndefined();
+  expect(owner.canonicalProjection()).toEqual(before);
+  const admissions = yield* Effect.forEach(Array.from({ length: 16 }), () => admission, { concurrency: "unbounded" });
+  expect(new Set(admissions).size).toBe(16);
+  const round = yield* owner.currentRoundId("agent");
+  if (round === undefined) throw new Error("fixture round missing");
+  const retained = owner.canonicalProjection();
+  const failed = yield* Effect.exit(owner.admitObservation("agent", round + 1));
+  expect(Exit.isFailure(failed)).toBe(true);
+  expect(owner.canonicalProjection()).toEqual(retained);
+  expect(yield* owner.currentRoundId("agent")).toBe(round);
 }));

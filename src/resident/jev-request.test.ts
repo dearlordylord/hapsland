@@ -464,7 +464,7 @@ describe("canonical Jev request boundary", () => {
     const facts = { rootValid: true, configurationValid: true,
       credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
     const reviewUnit = (owner = partition) => {
-      const observation = ledger.admitObservation(owner);
+      const observation = Effect.runSync(ledger.admitObservation(owner));
       expect(ledger.observation(owner, observation, "startObservation", Effect.runSync(ledger.roundId(owner)))).toBe(true);
       const preparation = ledger.beginObservedPreparation(owner, observation, 100, Effect.runSync(ledger.roundId(owner)));
       if (preparation === undefined) throw new Error("preparation refused");
@@ -508,7 +508,7 @@ describe("canonical Jev request boundary", () => {
       credentialReady: true, selected: true, currentWork: true, physicalAvailable: true };
     const issue = (ledger: typeof first) => {
       const partition = "review-partition";
-      const observation = ledger.admitObservation(partition);
+      const observation = Effect.runSync(ledger.admitObservation(partition));
       expect(ledger.observation(partition, observation, "startObservation", Effect.runSync(ledger.roundId(partition)))).toBe(true);
       const preparation = ledger.beginObservedPreparation(partition, observation, 100, Effect.runSync(ledger.roundId(partition)));
       if (preparation === undefined) throw new Error("preparation refused");

@@ -318,3 +318,8 @@ for (const operation of ["retireRound", "consumeEditPermit", "acknowledgeStopRel
     throw new Error(`root capacity ${operation} must compose as an atomic Effect`);
   }
 }
+
+if (!state.includes('admitObservation: Effect.fn("Capacity.admitObservation")') ||
+    !server.includes('Effect.exit(residentLedger.admitObservation(partition, canonicalRound))')) {
+  throw new Error("observation admission and refusal cleanup must compose Effects");
+}

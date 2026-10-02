@@ -15,7 +15,7 @@ const makeFixture = (run: (entry: { readonly key: string; readonly value: number
       return identity;
     }, run);
     const enqueue = (key: string, value: number) => Effect.gen(function* () {
-      ids.set(value, { operation: ledger.admitObservation(key), round: Effect.runSync(ledger.roundId(key)) });
+      ids.set(value, { operation: Effect.runSync(ledger.admitObservation(key)), round: Effect.runSync(ledger.roundId(key)) });
       return yield* dispatch.enqueue(key, value);
     });
     return { ...dispatch, enqueue, ledger };
@@ -26,7 +26,7 @@ it.effect("uses the queued job's originating round after a successor opens", () 
   const oldRound = Effect.runSync(ledger.roundId("agent"));
   Effect.runSync(ledger.retireRound("agent", oldRound));
   const round = Effect.runSync(ledger.roundId("agent"));
-  const operation = ledger.admitObservation("agent", round);
+  const operation = Effect.runSync(ledger.admitObservation("agent", round));
   const seen: number[] = [];
   const dispatch = yield* makeDispatcher<string, { operation: number; round: number }>(ledger, (job) => job,
     ({ value }) => Effect.sync(() => { seen.push(value.operation); }));
@@ -261,7 +261,7 @@ it.effect("matches direct Bend commands and projections across saturation and te
   trace({ kind: "openRound", partition, lifetime: 1 });
   const jobs: Array<{ operation: number; round: number }> = [];
   for (let index = 0; index < 12; index += 1) {
-    const operation = ledger.admitObservation("agent", round);
+    const operation = Effect.runSync(ledger.admitObservation("agent", round));
     trace({ kind: "admitObservation", partition, lifetime: 1, round });
     const job = { operation, round };
     jobs.push(job);

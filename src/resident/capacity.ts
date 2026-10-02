@@ -285,6 +285,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    admitObservation: Effect.fn("Capacity.admitObservation")((...args: Arguments<typeof admitObservation>) => commitAllEffect((draft, records) => [admitObservation(draft, ...args), records])),
     consumeEditPermit: Effect.fn("Capacity.consumeEditPermit")((...args: Arguments<typeof consumeEditPermit>) => commitAllEffect((draft, records) => [consumeEditPermit(draft, ...args), records])),
     acknowledgeStopRelease: Effect.fn("Capacity.acknowledgeStopRelease")((...args: Arguments<typeof acknowledgeStopRelease>) => commitAllEffect((draft, records) => [acknowledgeStopRelease(draft, ...args), records])),
     retireRound: Effect.fn("Capacity.retireRound")((...args: Arguments<typeof retireRound>) => commitAllEffect((draft, records) => [retireRound(draft, ...args), records])),

@@ -144,7 +144,7 @@ it.effect("retires canonical and native ownership together and fences identity r
   const next = (yield* owner.rounds.bind("agent", nextGeneration, activity, "next"));
   expect(next.canonicalRound).toBe(first.canonicalRound);
   const beforeObservation = yield* owner.rounds.policyWork(next);
-  owner.admitObservation("agent", next.canonicalRound);
+  (yield* owner.admitObservation("agent", next.canonicalRound));
   expect(beforeObservation.unfinished()).toBe(0);
   expect((yield* owner.rounds.policyWork(next)).unfinished()).toBe(1);
   expect(yield* owner.rounds.snapshot(first)).toBeUndefined();
@@ -172,7 +172,7 @@ it.effect("retains round metadata until outstanding physical dispatch work settl
     yield* Deferred.await(finish);
   }));
   yield* Effect.gen(function* () {
-    const operation = owner.admitObservation("agent", round.canonicalRound);
+    const operation = (yield* owner.admitObservation("agent", round.canonicalRound));
     expect(yield* dispatch.enqueue("agent", { operation, round: round.canonicalRound })).toBe(true);
     yield* Deferred.await(started);
     round.controller.abort();
