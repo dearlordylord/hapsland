@@ -1,3 +1,4 @@
+import { NOUL_MESSAGES } from "../src/rules/bundled.ts";
 import { runClient } from "../src/test-support/client-runtime.ts";
 // Bounded real-host observation of TypeScript, Rust and Bend cross-file review.
 // Raw host streams, source, provider bodies, and credentials stay in a disposable directory.
@@ -148,14 +149,14 @@ const result=spawnSync(process.execPath,[${JSON.stringify(join(project, "src/cli
   {input,encoding:'utf8',env:process.env,timeout:30000,maxBuffer:1048576});
 let output; try { output=JSON.parse(result.stdout) } catch {}
 const message=output?.reason??output?.hookSpecificOutput?.additionalContext??output?.systemMessage??'';
-const ruleIds=[...message.matchAll(/\\[([a-z0-9_]+), p=/g)].map(match=>match[1]);
+const ruleIds=Object.entries(${JSON.stringify(NOUL_MESSAGES)}).filter(([,text])=>message.includes(text)).map(([id])=>id);
 const source=${JSON.stringify(rootFile)};
 const value=existsSync(source)?readFileSync(source,'utf8'):'';
 if(kind==='edit' && native)appendFileSync(process.env.HAPSLAND_NATIVE_EDITS,JSON.stringify(native)+'\\n',{mode:0o600});
 appendFileSync(process.env.HAPSLAND_NATIVE_LOG,JSON.stringify({kind,at,...identity,monoMs:entryMono,doneAt:Date.now(),
   event:native?.hook_event_name??null,tool:native?.tool_name??null,exitCode:result.status,
   toolUseHash:native?.tool_use_id?createHash('sha256').update(native.tool_use_id).digest('hex'):null,
-  decision:output?.decision??null, finding:ruleIds.length>0, ruleIds,
+  decision:output?.decision??null, finding:message.split('\\n').some(line=>/^.+ :: .+: /.test(line)), ruleIds, ruleIdSource:'configured-message-match',
   sourceHash:value?createHash('sha256').update(value).digest('hex'):null,
   initial:value===${JSON.stringify(initial)}, sourceBytes:Buffer.byteLength(value)})+'\\n',{mode:0o600});
 if(result.status===0)process.stdout.write(result.stdout??'');
@@ -235,7 +236,7 @@ globalThis.fetch=async (...args)=>{
   }
   delete env.OPENAI_API_KEY;
   const prompt = scenario === 'adoption'
-    ? `Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this initial draft:\n${initial}\nAfter the edit run npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, repair PaymentState to constrain meaningless combinations, using this final design:\n${fixture.good}\nThen run npm test; if review is pending run npm test again. Keep the import/module lines exactly unchanged, including unused imported names; modify only the PaymentState declaration. For the repair use ${host === "codex" ? "apply_patch with relative paths" : "Edit"}. Leave the supporting file unchanged. Use at most two source-edit tool calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Name the delivered rule ID. Be truthful.`
+    ? `Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this initial draft:\n${initial}\nAfter the edit run npm test. If Hapsland review is pending, run npm test again to receive advice. Only if Hapsland delivers actionable advice, repair PaymentState to constrain meaningless combinations, using this final design:\n${fixture.good}\nThen run npm test; if review is pending run npm test again. Keep the import/module lines exactly unchanged, including unused imported names; modify only the PaymentState declaration. For the repair use ${host === "codex" ? "apply_patch with relative paths" : "Edit"}. Leave the supporting file unchanged. Use at most two source-edit tool calls. Stay inside the repository; do not inspect integration settings, credentials or environment variables. Finish with HAPSLAND_ADVICE_APPLIED only if you personally received and used Hapsland advice, otherwise HAPSLAND_ADVICE_NOT_APPLIED. Quote the delivered finding message. Be truthful.`
     : scenario === 'stale-result'
       ? `This is a controlled integration check. Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this first draft:\n${initial}\nImmediately make a second source edit, replacing only the PaymentState declaration with this exact final design and keeping imports unchanged:\n${fixture.good}\nDo not wait for or act on Hapsland advice between the two edits. After the second edit, run the shell command sleep 16, then npm test, and finish. The second edit is a planned user edit, not an advice-driven repair. Do not make further source edits. Do not inspect integration settings, credentials or environment variables. End with HAPSLAND_ADVICE_NOT_APPLIED.`
       : `This is a controlled integration check. Use ${host === 'codex' ? 'apply_patch' : 'Write'} to create ${fixture.entry} with exactly this draft:\n${initial}\nThen run npm test. ${scenario === 'reviewer-unavailable' ? 'Run the shell command sleep 8 so the unavailable review can finish.' : ''} Do not change the source again. Do not inspect integration settings, credentials or environment variables. If no actionable Hapsland advice reaches you, end with HAPSLAND_ADVICE_NOT_APPLIED. Report only what you actually received.`;
@@ -370,7 +371,7 @@ globalThis.fetch=async (...args)=>{
     crossFileExpanded: requestShapes.some((item) => item.expandedEdges > 0 || item.expandedEvidence && item.supportDeclarationPresent),
     findingDelivered: !!finding, editAfterFinding: !!repair,
     agentAcknowledgesAdvice: text.includes('HAPSLAND_ADVICE_APPLIED') && !text.includes('HAPSLAND_ADVICE_NOT_APPLIED'),
-    agentNamesRule: !!finding && finding.ruleIds.some((id) => text.includes(id)),
+    agentQuotesFinding: !!finding && finding.ruleIds.some((id) => text.includes(NOUL_MESSAGES[id])),
     sourceChanged: !!source && source !== initial,
     finalDesignConstrained: language === 'typescript' ? source.includes("status: 'succeeded'") && !source.includes('receipt: Receipt | null')
       : language === 'rust' ? source.includes('pub enum PaymentState')
@@ -433,7 +434,7 @@ globalThis.fetch=async (...args)=>{
     rawHostStreamRetained: false, sourceRetained: false, providerBodyRetained: false, credentialsRetained: false,
     hostBytesDiscarded: Buffer.byteLength(result.stdout) + result.stderrBytes };
   record.verdict = result.code === 0 && Object.entries(record.checks)
-    .filter(([name]) => name !== "agentNamesRule").every(([, value]) => value) ? "demonstrated" : "incomplete";
+    .filter(([name]) => name !== "agentQuotesFinding").every(([, value]) => value) ? "demonstrated" : "incomplete";
   const output = join(evidenceRoot, `${runId}.json`);
   mkdirSync(evidenceRoot, { recursive: true });
   writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);

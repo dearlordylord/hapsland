@@ -162,7 +162,7 @@ describe("resident advice collection policy", () => {
     const findingOutput = combinedClaudeOutput([finding(0)], [notice], "block-current-findings");
     expect(findingOutput).toMatchObject({ decision: "block" });
     if (!("decision" in findingOutput)) throw new Error("expected block output");
-    expect(findingOutput.reason).toContain("Informational notices:");
+    expect(findingOutput.reason).toContain("Check these findings. Fix valid issues and verify; otherwise explain why.");
     expect(findingOutput.reason).toContain("Jev was unavailable");
     const tooLarge = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES));
     const selected = Effect.runSync(selectFittingClaudeFindings([], [tooLarge], "block-current-findings"));

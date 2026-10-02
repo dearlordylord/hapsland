@@ -1,3 +1,4 @@
+import { Socket } from 'node:net';
 // Source-free transport accounting for the declared synthetic comparison.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmdirSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -59,3 +60,26 @@ globalThis.fetch = async (...args) => {
     throw new Error('Quality provider transport failed');
   }
 };
+
+// Opt-in, source-free IPC tracing for delivery investigation.
+if (process.env.QUALITY_DELIVERY_TRACE) {
+  const trace = value => { try { appendFileSync(process.env.QUALITY_DELIVERY_TRACE, JSON.stringify({at:Date.now(),pid:process.pid,invocation:process.env.QUALITY_INVOCATION,...value})+'\n'); } catch {} };
+  trace({trace:'process-start',elapsedMs:performance.now()});
+  const write = Socket.prototype.write, emit = Socket.prototype.emit;
+  const buffers = new WeakMap();
+  Socket.prototype.write = function(chunk,...args) {
+    try { const value=JSON.parse(String(chunk)); if(value.operation) trace({trace:'ipc-request',operation:value.operation,mode:value.mode??null,token:value.token??value.finish?.token??null}); } catch {}
+    return write.call(this,chunk,...args);
+  };
+  Socket.prototype.emit = function(event,...args) {
+    if(event==='data') {
+      let buffered=(buffers.get(this)??'')+String(args[0]);
+      const lines=buffered.split('\n'); buffers.set(this,lines.pop());
+      for(const line of lines) try { const value=JSON.parse(line); if(value.status) trace({trace:'ipc-response',status:value.status,findingCount:value.findingCount??null,token:value.token??null}); } catch {}
+    }
+    return emit.call(this,event,...args);
+  };
+  const stdoutWrite=process.stdout.write;
+  process.stdout.write=function(chunk,...args) { trace({trace:'stdout-write',bytes:Buffer.byteLength(String(chunk)),elapsedMs:performance.now()}); return stdoutWrite.call(this,chunk,...args); };
+  process.on('exit',code=>trace({trace:'process-exit',code,elapsedMs:performance.now()}));
+}
