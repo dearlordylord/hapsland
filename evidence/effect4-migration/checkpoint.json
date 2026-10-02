@@ -3443,5 +3443,33 @@
       "src/cli.ts": "6b936f7d250065b4ff29cc9efb20bd48d9e70a2856549022439524273df15480"
     },
     "limitations": "No actual TTY/platform restoration or native cleanup-failure test; masked credential entry, lifecycle execution, installation Config and coordinated hook deadline/full gates remain incomplete."
+  },
+  "clientSelectionNativePtyValidation": {
+    "sourceCommit": "5e5fe11",
+    "status": "pass",
+    "command": "python3 evidence/effect4-migration/client-selection-pty.py",
+    "platform": "Linux PTY; Node experimental strip-types",
+    "cases": [
+      {
+        "case": "Enter",
+        "selection": [
+          "claude"
+        ],
+        "exitCode": 0,
+        "termiosRestored": true
+      },
+      {
+        "case": "Escape",
+        "selection": [],
+        "exitCode": 0,
+        "termiosRestored": true
+      }
+    ],
+    "scope": "Actual native stdin/stderr PTY, keypress decoding, selector render/selection and exact pre/post termios comparison. Render deadline 10 seconds; completion deadline 5 seconds; child killed/reaped on failed evidence run. Synthetic choices, no package mutation or credentials.",
+    "sourceSha256": {
+      "evidence/effect4-migration/client-selection-pty.py": "be59e9befa314109cde6520ae230fbe6899f5931ef46244ae6bac3610a6cd5aa",
+      "src/onboarding/client-selection.ts": "1eedded929ccd9b772e45bd72ff43e0ba3985987b75789a82f78867f436526e4"
+    },
+    "limitations": "No actual macOS/Windows or terminal emulator/platform support claim, no native terminal failure/restoration fault injection. Fiber interruption is covered by synthetic terminal test, not this PTY run. Full migration remains incomplete."
   }
 }
