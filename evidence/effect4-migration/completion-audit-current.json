@@ -130,5 +130,154 @@
     "limitations": "Direct AST syntax only; aliases and dynamic imports need manual review. Tree-sitter reports one unsupported export type * at function-analyzer.ts:3; that eight-line pure language adapter was inspected manually. TypeScript 7 package exposes no legacy JS compiler API; inventory uses existing native Tree-sitter with no added dependency.",
     "followup": "Native IPC listener now captures caller Context for runForkWith; regression reproduced unsupported hello before fix and validates ready response plus caller Clock/ConfigProvider after fix. Focused 23 tests and build pass; final suite remains required."
   },
-  "currentProductionFollowup": "Backend monotonic duration and IPC listener context changed after retained 64c154d source suite/receipts. Focused checks pass; final full suite on latest source is required. The intervening 7c69ca0 full suite fails only five 5000ms installation fixture timeouts, recorded separately."
+  "currentProductionFollowup": "Backend monotonic duration and IPC listener context changed after retained 64c154d source suite/receipts. Focused checks pass; final full suite on latest source is required. The intervening 7c69ca0 full suite fails only five 5000ms installation fixture timeouts, recorded separately.",
+  "responsibilityMap": [
+    {
+      "original": "ResidentServer",
+      "current": [
+        "src/resident/server.ts",
+        "src/resident/main.ts",
+        "src/resident/socket-frame.ts"
+      ],
+      "owner": "ResidentRuntimeService acquisition; process scope and listener-captured request Context",
+      "verification": [
+        "src/resident/runtime.test.ts",
+        "src/resident/ipc-context.test.ts",
+        "src/resident/socket-frame.test.ts",
+        "src/resident/server.test.ts"
+      ]
+    },
+    {
+      "original": "CapacityLedger",
+      "current": [
+        "src/resident/capacity.ts",
+        "src/canonical/adapter.ts"
+      ],
+      "owner": "One private Ref publishes canonical state and matching native records atomically",
+      "verification": [
+        "src/resident/capacity.test.ts",
+        "src/resident/runtime-records.test.ts"
+      ]
+    },
+    {
+      "original": "ComposedDelivery",
+      "current": [
+        "src/resident/composed-delivery.ts",
+        "src/resident/hook-output.ts",
+        "src/resident/composed-hook.ts"
+      ],
+      "owner": "Delivery drafts in shared state; scoped output service and named host workflows",
+      "verification": [
+        "src/resident/composed-delivery.test.ts",
+        "src/resident/hook-output.test.ts",
+        "src/resident/composed-hook.test.ts"
+      ]
+    },
+    {
+      "original": "EvaluationReuse",
+      "current": [
+        "src/resident/evaluation-reuse.ts",
+        "src/resident/joined-reviews.ts"
+      ],
+      "owner": "Canonical claims, identity, cache payloads and bytes in shared state; evaluation outside commit",
+      "verification": [
+        "src/resident/evaluation-reuse.test.ts",
+        "src/resident/joined-reviews.test.ts"
+      ]
+    },
+    {
+      "original": "DispatchQueue / DispatchCycles",
+      "current": [
+        "src/resident/dispatch.ts"
+      ],
+      "owner": "Retained canonical starts and acknowledgements in shared state; scoped fibers execute commands",
+      "verification": [
+        "src/resident/dispatch.test.ts",
+        "physical-retirement-current-final.json"
+      ]
+    },
+    {
+      "original": "BendWorkTracker",
+      "current": [
+        "src/resident/bend-work.ts"
+      ],
+      "owner": "Pure explicit projection operations; generated Bend remains sole policy authority",
+      "verification": [
+        "src/resident/bend-work.test.ts",
+        "scripts/check-canonical-authority.mjs"
+      ]
+    }
+  ],
+  "advisoryDispositions": [
+    {
+      "candidate": "Explicit canonical/native event and command transactions",
+      "classification": "BORROW",
+      "disposition": "implemented and tested"
+    },
+    {
+      "candidate": "Effect Context, Layer, Ref, Scope, fibers, Deferred, Latch, Schedule, Clock, Config, Schema",
+      "classification": "DEPEND ON",
+      "disposition": "Used in named workflow/services and deterministic tests; stable exact existing cohort."
+    },
+    {
+      "candidate": "Generic Cache, semaphore, Pool or RPC as canonical policy/IPC replacement",
+      "classification": "REJECT",
+      "disposition": "Canonical LRU, byte capacity, dispatch fairness and version-one wire contracts retain their owners."
+    },
+    {
+      "candidate": "platform-node generic OS implementation",
+      "classification": "DEPEND ON",
+      "disposition": "Conditional advisory candidate not adopted. Existing native adapters compose scoped Effects and preserve descriptor flags, physical process closure and socket framing. No new platform dependency or extra supply-chain closure introduced."
+    },
+    {
+      "candidate": "OTLP, Prometheus, OpenTelemetry SDK and devtools export",
+      "classification": "OPTIONAL INTEGRATION",
+      "disposition": "Deferred; no exporter endpoint, listener, credential/source telemetry or new egress introduced."
+    },
+    {
+      "candidate": "Durable workflow, cluster, SQL, persistent source queues and implicit retry/fallback plans",
+      "classification": "REJECT",
+      "disposition": "No accepted resident requirement calls for these facilities. Existing declared retry/accounting behavior remains."
+    }
+  ],
+  "nativeAdapterExceptions": [
+    {
+      "paths": [
+        "src/direct-event/capture.ts"
+      ],
+      "reason": "Descriptor-anchored native read requires O_NOFOLLOW, bigint inode/device checks and bounded double reads. Effect acquisition/finalizers own returned buffers and wait uninterruptibly for issued native reads and descriptor closure."
+    },
+    {
+      "paths": [
+        "src/onboarding/host-process.ts",
+        "src/credentials/secret-service-process.ts",
+        "src/resident/socket-frame.ts"
+      ],
+      "reason": "Native callbacks expose physical close, socket readiness/frame bytes and process stdout outcomes. Named Effect adapters own cancellation and resource cleanup; no independent application runner."
+    },
+    {
+      "paths": [
+        "src/onboarding/atomic-installation-file.ts",
+        "src/onboarding/demo-budget.ts",
+        "src/credentials/secret-service.ts"
+      ],
+      "reason": "Synchronous file transactions and native identity facts retain exclusive-write, permission, rename and token fences. Effect workflows own locks, helper invocation, deadlines and finalization."
+    },
+    {
+      "paths": [
+        "src/activity/status.ts",
+        "src/activity/storage.ts",
+        "src/activity/analytics.ts",
+        "src/onboarding/demo-trace.ts"
+      ],
+      "reason": "Bounded source-free native artifact/diagnostic writes remain synchronous sink adapters. Callers compose workflows as Effect; persisted timestamps intentionally use epoch time."
+    },
+    {
+      "paths": [
+        "src/direct-event/languages/native-parser.ts",
+        "src/parser-main.ts"
+      ],
+      "reason": "Native binding discovery and parser process I/O remain host boundaries; language analysis, codecs and generated policy remain pure."
+    }
+  ]
 }
