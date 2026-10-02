@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const read = (path) => readFileSync(resolve(root, path), "utf8");
-const adapter = read("src/canonical/adapter.ts");
+const adapter = read("src/canonical/canonical-boundary.ts");
 const models = read("src/canonical/models.ts");
 const schemas = read("src/canonical/constructors.ts");
 const scalarSchemas = read("src/canonical/boundary-schema.ts");
@@ -45,7 +45,7 @@ const schemaKinds = (source) => {
   return result;
 };
 const declaredEventKinds = schemaKinds(between(models, "export const CanonicalEventSchema =", "export type CanonicalEvent ="));
-const encoder = between(adapter, "const encode = (input: CanonicalEvent)", "const decodeCommand =");
+const encoder = between(adapter, "const encodeCanonicalEvent = (input: CanonicalEvent)", "const decodeCommand =");
 const encodedEventKinds = matches(encoder, /case "([A-Za-z][A-Za-z0-9]*)":/g);
 sameSet(encodedEventKinds, declaredEventKinds, "CanonicalEvent kind and encoder case coverage");
 assert.match(encoder, /default:\s*throw new TypeError\("unknown canonical event"\)/);
