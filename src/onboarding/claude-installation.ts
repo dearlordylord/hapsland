@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Config, Effect, Schema } from "effect";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
@@ -137,10 +137,10 @@ const host = (request: ClaudeInstallationRequest) => {
   return { supported: observed === PROFILE || observed === `${PROFILE} (Claude Code)`, observed, required: `Claude Code ${PROFILE}` };
 };
 
-const inputs = (request: ClaudeInstallationRequest) => {
+const inputs = (request: ClaudeInstallationRequest, configured: { runtime: string; entrypoint: string }) => {
   const home = resolve(request.claudeHome ?? join(homedir(), ".claude"));
-  const runtime = resolve(process.env.REVIEW_INSTALL_RUNTIME ?? process.execPath);
-  let entrypoint = resolve(process.env.REVIEW_INSTALL_ENTRYPOINT ?? process.argv[1] ?? "dist/cli.js");
+  const runtime = resolve(configured.runtime);
+  let entrypoint = resolve(configured.entrypoint);
   try { entrypoint = realpathSync(entrypoint); } catch { /* readiness reports missing path */ }
   const command = `${quote(runtime)} ${quote(entrypoint)} --claude-hook --controlled-writer --composed-edit-hook ${MARKER}`;
   const composed = (kind: "stop" | "prompt" | "before-edit") =>
@@ -154,6 +154,13 @@ const inputs = (request: ClaudeInstallationRequest) => {
   return { home, runtime, entrypoint, command, group, preGroup, stopGroup, promptGroup,
     paths: paths(home), host: host(request) };
 };
+
+const resolveInputs = Effect.fn("ClaudeInstallation.inputs")(function* (request: ClaudeInstallationRequest) {
+  const runtime = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(Config.withDefault(process.execPath));
+  const entrypoint = yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(Config.withDefault(process.argv[1] ?? "dist/cli.js"));
+  return yield* Effect.try({ try: () => inputs(request, { runtime, entrypoint }),
+    catch: () => new ClaudeInstallationError({ reason: "installation inputs unavailable" }) });
+}, Effect.mapError(() => new ClaudeInstallationError({ reason: "Claude installation configuration is invalid" })));
 
 const ready = (input: ReturnType<typeof inputs>) => {
   const runtime = spawnSync(input.runtime, ["-e", "process.stdout.write(process.version)"], { encoding: "utf8", timeout: 2_000 });
@@ -169,8 +176,7 @@ const ready = (input: ReturnType<typeof inputs>) => {
 };
 
 type Kind = "install" | "update" | "uninstall";
-const plan = (kind: Kind, request: ClaudeInstallationRequest) => {
-  const input = inputs(request);
+const plan = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<typeof inputs>) => {
   const beforeSettings = file(input.paths.settings);
   const beforeRecord = file(input.paths.ownership);
   const originalSettings = parseObject(beforeSettings, "Claude settings.json");
@@ -229,15 +235,14 @@ const resultError = (operation: string, cause: unknown, home?: string) => ({
   version: 1 as const, operation, status: "conflict" as const, home, error: { message: error(cause) },
 });
 
-const preview = (kind: Kind, request: ClaudeInstallationRequest) => {
+const preview = (kind: Kind, request: ClaudeInstallationRequest, input: ReturnType<typeof inputs>) => {
   const operation = kind === "install" ? "install-preview" : kind === "update" ? "update-preview" : "uninstall";
   try {
-    const input = inputs(request);
     const compatibility = ready(input);
     if (kind !== "uninstall" && !compatibility.supported) return {
       version: 1 as const, operation, status: "unsupported" as const, host: { adapter: "claude", home: input.home, compatibility },
     };
-    const next = plan(kind, request);
+    const next = plan(kind, request, input);
     return { version: 1 as const, operation, status: "preview" as const,
       host: { adapter: "claude", home: input.home, compatibility },
       proposal: { digest: next.proposalDigest, changes: [
@@ -254,12 +259,12 @@ const preview = (kind: Kind, request: ClaudeInstallationRequest) => {
 const apply = Effect.fn("ClaudeInstallation.apply")(function* (kind: Kind, request: ClaudeInstallationRequest) {
   const operation = kind;
   try {
-    const input = inputs(request);
+    const input = yield* resolveInputs(request);
     if (kind !== "uninstall" && !ready(input).supported) return { version: 1 as const, operation, status: "unsupported" as const, host: input.host };
     return yield* withInstallationLock(input.paths.lock, Effect.try({
       try: () => {
-        const next = plan(kind, request);
-        if (request.proposalDigest === undefined) return preview(kind, request);
+        const next = plan(kind, request, input);
+        if (request.proposalDigest === undefined) return preview(kind, request, input);
         if (request.proposalDigest !== next.proposalDigest) return {
           version: 1 as const, operation, status: "proposal-mismatch" as const,
           error: { message: "Claude settings changed since preview; obtain a new proposal" },
@@ -285,12 +290,18 @@ const apply = Effect.fn("ClaudeInstallation.apply")(function* (kind: Kind, reque
   } catch (cause) { return resultError(operation, cause, request.claudeHome); }
 });
 
-export const previewClaudeInstallation = (request: ClaudeInstallationRequest) => preview("install", request);
+export const previewClaudeInstallation = Effect.fn("ClaudeInstallation.preview")(function* (request: ClaudeInstallationRequest) {
+  return preview("install", request, yield* resolveInputs(request));
+});
 export const installClaudeIntegration = Effect.fn("ClaudeInstallation.install")((request: ClaudeInstallationRequest) => apply("install", request));
-export const previewClaudeUpdate = (request: ClaudeInstallationRequest) => preview("update", request);
+export const previewClaudeUpdate = Effect.fn("ClaudeInstallation.previewUpdate")(function* (request: ClaudeInstallationRequest) {
+  return preview("update", request, yield* resolveInputs(request));
+});
 export const updateClaudeIntegration = Effect.fn("ClaudeInstallation.update")((request: ClaudeInstallationRequest) => apply("update", request));
-export const uninstallClaudeIntegration = Effect.fn("ClaudeInstallation.uninstall")((request: ClaudeInstallationRequest) =>
-  request.proposalDigest === undefined ? Effect.sync(() => preview("uninstall", request)) : apply("uninstall", request));
+export const uninstallClaudeIntegration = Effect.fn("ClaudeInstallation.uninstall")(function* (request: ClaudeInstallationRequest) {
+  if (request.proposalDigest !== undefined) return yield* apply("uninstall", request);
+  return preview("uninstall", request, yield* resolveInputs(request));
+});
 
 /** Include damaged owned state so an update reports it instead of silently skipping the client. */
 export const hasClaudeRegistration = (request: ClaudeInstallationRequest): boolean => {
@@ -300,9 +311,8 @@ export const hasClaudeRegistration = (request: ClaudeInstallationRequest): boole
   return settings.includes(MARKER) || settings.includes(COMPOSED_MARKER);
 };
 
-export const inspectClaudeInstallation = (request: ClaudeInstallationRequest) => {
+const inspect = (request: ClaudeInstallationRequest, input: ReturnType<typeof inputs>) => {
   try {
-    const input = inputs(request);
     const settings = parseObject(file(input.paths.settings), "Claude settings.json");
     const record = readRecord(input.paths.ownership);
     const current = owned(settings);
@@ -326,10 +336,14 @@ export const inspectClaudeInstallation = (request: ClaudeInstallationRequest) =>
   } catch (cause) { return resultError("inspect-installation", cause, request.claudeHome); }
 };
 
-export const diagnoseClaudeIntegration = (request: ClaudeInstallationRequest) => {
-  const input = inputs(request);
+export const inspectClaudeInstallation = Effect.fn("ClaudeInstallation.inspect")(function* (request: ClaudeInstallationRequest) {
+  return inspect(request, yield* resolveInputs(request));
+});
+
+export const diagnoseClaudeIntegration = Effect.fn("ClaudeInstallation.diagnose")(function* (request: ClaudeInstallationRequest) {
+  const input = yield* resolveInputs(request);
   const compatibility = ready(input);
-  const inspection = inspectClaudeInstallation(request);
+  const inspection = inspect(request, input);
   const checks = [
     { stage: "host", status: compatibility.host.supported ? "ready" : "unsupported", observed: compatibility.host },
     { stage: "runtime", status: compatibility.runtime.observed === compatibility.runtime.required ? "ready" : "unsupported", observed: compatibility.runtime },
@@ -340,4 +354,4 @@ export const diagnoseClaudeIntegration = (request: ClaudeInstallationRequest) =>
   return { version: 1 as const, operation: "doctor" as const,
     status: checks.some((check) => check.status === "conflict" || check.status === "unsupported" || check.status === "missing") ? "not-ready" as const : "unknown" as const,
     offline: true as const, readOnly: true as const, providerCalls: 0 as const, checks };
-};
+});

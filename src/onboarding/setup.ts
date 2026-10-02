@@ -75,19 +75,19 @@ export const runSetup = Effect.fn("Setup.run")(function* (
   } : {};
   const codexRequest = request.host === "codex" ? installationRequest(request) : {};
   const claudeInstalled = request.host === "claude" && hasClaudeRegistration(claudeRequest);
-  const preview = () => {
+  const preview = Effect.fn("Setup.previewInstallation")(function* () {
     if (request.host !== "claude") return previewCodexInstallation(codexRequest);
-    if (!claudeInstalled) return previewClaudeInstallation(claudeRequest);
-    const target = previewClaudeUpdate(claudeRequest);
+    if (!claudeInstalled) return yield* previewClaudeInstallation(claudeRequest);
+    const target = yield* previewClaudeUpdate(claudeRequest);
     const changes = list(record(record(target)?.proposal)?.changes);
     return { ...target, installed: target.status === "preview" && changes.length === 0 };
-  };
+  });
   const install = (proposalDigest: string) => request.host === "claude"
     ? claudeInstalled
       ? updateClaudeIntegration({ ...claudeRequest, proposalDigest })
       : installClaudeIntegration({ ...claudeRequest, proposalDigest })
     : installCodexIntegration({ ...codexRequest, proposalDigest });
-  let installation: unknown = preview();
+  let installation: unknown = yield* preview();
   let installationRecord = record(installation) ?? {};
   const previewHost = record(installationRecord.host);
   const compatibility = record(previewHost?.compatibility);

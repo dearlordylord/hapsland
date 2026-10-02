@@ -3767,5 +3767,21 @@
     },
     "nextImplementationBoundary": "Claude inputs resolve runtime/entrypoint configuration synchronously; preview/inspect/doctor call it and setup plus CLI consume synchronous APIs. Port together with native test boundaries; do not add private runtime/shim. Existing apply must reuse one resolved input under lock and preserve plan revalidation.",
     "limitations": "Guard is structural regression evidence, not complete idiomatic migration proof. No production source changed this turn. Claude/Codex Config and remaining final gates incomplete."
+  },
+  "claudeConfigurationApiPort": {
+    "status": "pass",
+    "scope": "Claude preview/update/inspect/doctor are named Effects; runtime and entrypoint use caller Config.NonEmptyString; setup and CLI compose directly; apply resolves inputs once before journal planning. Version-one outputs unchanged for valid configuration.",
+    "checks": {
+      "typecheck": "pass",
+      "configurationBoundaryGuard": "pass",
+      "targetedTests": {
+        "files": 3,
+        "passed": 36,
+        "durationSeconds": 31.44
+      }
+    },
+    "initialFailure": "13 Claude tests initially failed because default environment provider captured an earlier fixture; test runtime boundaries now supply a fresh provider with preserveEmptyStrings. Production workflows do not replace caller configuration.",
+    "additionalEvidence": "Both empty runtime and empty entrypoint fail before files/lock directories are written; caller provider overrides ambient empty values.",
+    "remaining": "Native Claude host/runtime probes still use spawnSync; native scoped process port and current full suite/conformance remain required."
   }
 }

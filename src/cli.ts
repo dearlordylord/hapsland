@@ -663,10 +663,10 @@ const program = Effect.gen(function* () {
           ? {} : { proposalDigest: operation.proposalDigest }),
       };
       switch (operation.operation) {
-        case "doctor": return diagnoseClaudeIntegration(claudeRequest);
-        case "install-preview": return previewClaudeInstallation(claudeRequest);
+        case "doctor": return yield* diagnoseClaudeIntegration(claudeRequest);
+        case "install-preview": return yield* previewClaudeInstallation(claudeRequest);
         case "install": return yield* installClaudeIntegration(claudeRequest);
-        case "update-preview": return previewClaudeUpdate(claudeRequest);
+        case "update-preview": return yield* previewClaudeUpdate(claudeRequest);
         case "update": return yield* updateClaudeIntegration(claudeRequest);
         case "uninstall": return yield* uninstallClaudeIntegration(claudeRequest);
       }
@@ -1121,9 +1121,9 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
 
 const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function* () {
   if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.");
-  const choices: ClientChoice[] = (["claude", "codex"] as const).map(host => {
+  const choices: ClientChoice[] = yield* Effect.forEach(["claude", "codex"] as const, Effect.fn("InteractiveSetup.clientChoice")(function* (host) {
     const fields = hostFields(host);
-    const inspection = fields.host === "claude" ? inspectClaudeInstallation(fields) : inspectCodexInstallation(fields);
+    const inspection = fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : inspectCodexInstallation(fields);
     const decoded = Schema.decodeUnknownSync(Schema.Struct({ status: Schema.String, installed: Schema.optionalKey(Schema.Boolean) }))(inspection);
     let status: ClientChoice["status"] = decoded.installed === true ? "installed"
       : ["conflict", "partial"].includes(decoded.status) ? "needs attention" : "not installed";
@@ -1133,9 +1133,9 @@ const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function*
       if (target.status === "preview") status = "installed";
       else if (target.status === "unsupported") status = "unavailable";
     }
-    if (fields.host === "claude" && status === "not installed" && previewClaudeInstallation(fields).status === "unsupported") status = "unavailable";
+    if (fields.host === "claude" && status === "not installed" && (yield* previewClaudeInstallation(fields)).status === "unsupported") status = "unavailable";
     return { host, name: host === "claude" ? "Claude Code" : "Codex CLI", status };
-  });
+  }));
   const hosts = yield* selectSetupClients(choices);
   if (hosts.length === 0) { process.stderr.write("No clients selected. No changes made.\n"); return; }
   for (const host of hosts) {
@@ -1244,7 +1244,7 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
       const fields = hostFields(host);
       const reinstall = command === "reinstall";
       const installed = fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields);
-      const inspection = fields.host === "claude" ? inspectClaudeInstallation(fields) : inspectCodexInstallation(fields);
+      const inspection = fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : inspectCodexInstallation(fields);
       const recovered = Schema.decodeUnknownSync(Schema.Struct({ recovery: Schema.optionalKey(Schema.Struct({ operation: Schema.String })) }))(inspection).recovery?.operation;
       const operation = command === "repair" && (recovered === "install" || recovered === "update" || recovered === "uninstall") ? recovered : command === "uninstall" ? "uninstall" : fields.host === "claude" && installed && !reinstall ? "update" : "install";
       const invoke = (digest?: string) => {
