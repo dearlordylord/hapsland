@@ -14,12 +14,12 @@ import {
 
 export const SimulationModel = Schema.Struct({
   resident: ResidentModel, count: Schema.String, active: Schema.Number,
-  tilt: Schema.String, turn: Schema.String, spacing: Schema.String, zoom: Schema.String,
+  tilt: Schema.String, turn: Schema.String, spacing: Schema.String, zoom: Schema.String, cameraEpoch: Schema.Number,
   flat: Schema.Boolean, playing: Schema.Boolean, feedback: Schema.String,
 });
 export type SimulationModel = typeof SimulationModel.Type;
 export const initialSimulation: SimulationModel = {
-  resident: initialResident, count: "1", active: 0, tilt: "48", turn: "-16", spacing: "130", zoom: "72",
+  resident: initialResident, count: "1", active: 0, tilt: "48", turn: "-16", spacing: "130", zoom: "72", cameraEpoch: 0,
   flat: false, playing: false, feedback: "Choose the number of agents, then start one shared resident.",
 };
 const displayScopes = (model: ResidentModel) => {
@@ -50,7 +50,7 @@ export const actSimulation = (model: SimulationModel, action: string): Simulatio
     return scope ? reconcile({ ...model, active: index }, selectSimulationAgent(model.resident, scope.agent)) : model;
   }
   if (action === "fleet:flat") return { ...model, flat: !model.flat };
-  if (action === "fleet:camera") return { ...model, tilt: "48", turn: "-16", spacing: "130", zoom: "72", flat: false };
+  if (action === "fleet:camera") return { ...model, cameraEpoch: model.cameraEpoch + 1, tilt: "48", turn: "-16", spacing: "130", zoom: "72", flat: false };
   if (action === "fleet:play" || action === "fleet:step") {
     const ready = simulationRun() ? model : actSimulation(model, "fleet:start");
     return reconcile(ready, actResident(ready.resident, action === "fleet:step" ? "step" : "play"));
@@ -77,8 +77,9 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
   const button = (label: string, name: string, selected = false) => h.button([
     h.Type("button"), h.Class(selected ? "selected" : ""), h.OnClick(action(name)),
   ], [label]);
+  // Pointer/key edits own the native thumb; gesture/reset epochs synchronize external changes.
   const range = (name: string, field: string, min: number, max: number, value: string) => h.label([], [name,
-    h.input([h.Type("range"), h.AriaLabel(name), h.Min(String(min)), h.Max(String(max)), h.Value(value), h.OnInput(raw => changed(field, raw))]),
+    h.input([h.Type("range"), h.AriaLabel(name), h.Min(String(min)), h.Max(String(max)), h.Key(`camera:${field}:${model.cameraEpoch}`), { _tag: "Prop", key: "defaultValue", value }, h.OnInput(raw => changed(field, raw))]),
   ]);
   const run = simulationRun();
   const observations = run?.observations ?? [];
@@ -114,7 +115,7 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
       ]),
       h.div([h.Class("ensemble-toolbar")], [
         h.form([h.OnSubmit(action("fleet:start")), h.Class("ensemble-start")], [h.label([], ["Agents",
-          h.input([h.Type("number"), h.AriaLabel("Agent count"), h.Min("1"), h.Max("6"), h.Step("1"), h.Value(model.count), h.OnInput(raw => changed("count", raw))])]),
+          h.input([h.Type("number"), h.AriaLabel("Agent count"), h.Min("1"), h.Max("6"), h.Step("1"), h.Key(`agent-count:${model.resident.draftEpoch}`), h.Attribute("value", model.count), h.OnInput(raw => changed("count", raw))])]),
           h.button([h.Type("submit"), h.Class("ensemble-primary")], ["Start resident"])]),
         button(model.playing ? "Pause resident" : "Play resident", "fleet:play"), button("Step resident", "fleet:step"),
         h.span([h.Class("ensemble-toolbar-divider")], []),

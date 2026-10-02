@@ -36,7 +36,8 @@ export const Message = defineMessageUnion({
   SimulationAction: { action: Schema.String },
   SimulationChanged: { field: Schema.String, raw: Schema.String },
   SimulationTick: { deltaMs: Schema.Number },
-  SimulationCameraMoved: { tilt: Schema.Number, turn: Schema.Number, zoom: Schema.Number },
+  SimulationCameraZoomed: { factor: Schema.Number },
+  SimulationCameraRotated: { dx: Schema.Number, dy: Schema.Number },
   SelectedImportScenario: { index: Schema.Number },
   MovedImportCursor: { cursor: Schema.Number },
   SelectedTimeline: { index: Schema.Number },
@@ -105,7 +106,12 @@ const seekHistory = (model: Model, requested: number): Model => {
 export const update = (model: Model, message: Message) => Message.match<Update.Return<Model, Message>>(message, {
   SimulationAction: ({ action }) => ({ model: { ...model, simulation: actSimulation(model.simulation, action) } }),
   SimulationChanged: ({ field, raw }) => ({ model: { ...model, simulation: changeSimulation(model.simulation, field, raw) } }),
-  SimulationCameraMoved: ({ tilt, turn, zoom }) => ({ model: { ...model, simulation: { ...model.simulation, tilt: String(tilt), turn: String(turn), zoom: String(zoom) } } }),
+  // Gesture messages carry changes, never stale snapshots of the rest of the camera.
+  SimulationCameraZoomed: ({ factor }) => ({ model: { ...model, simulation: { ...model.simulation, cameraEpoch: model.simulation.cameraEpoch + 1, zoom: String(Math.round(Math.max(20, Math.min(200, Number(model.simulation.zoom) * factor)) * 10) / 10) } } }),
+  SimulationCameraRotated: ({ dx, dy }) => ({ model: { ...model, simulation: { ...model.simulation, cameraEpoch: model.simulation.cameraEpoch + 1,
+    turn: String(Math.round((((Number(model.simulation.turn) + dx * 0.35 + 180) % 360 + 360) % 360 - 180) * 10) / 10),
+    tilt: String(Math.round(Math.max(0, Math.min(65, Number(model.simulation.tilt) - dy * 0.25)) * 10) / 10),
+  } } }),
   SimulationTick: ({ deltaMs }) => ({ model: { ...model, simulation: tickSimulation(model.simulation, deltaMs) } }),
   SelectedImportScenario: ({ index }) => ({ model: { ...model,
     importScenario: index >= 0 && index < IMPORT_GRAPH_SCENARIOS.length ? index : 0, importCursor: 0 } }),

@@ -1,22 +1,20 @@
 import { Effect, Queue, Stream } from "effect";
 
-export interface CameraAngles { readonly tilt: number; readonly turn: number; readonly zoom: number }
+export type CameraMovement = { readonly kind: "zoom"; readonly factor: number } | { readonly kind: "orbit"; readonly dx: number; readonly dy: number };
 interface Drag {
   readonly viewport: HTMLElement;
   readonly pointerId: number;
   readonly touch: boolean;
-  readonly x: number;
-  readonly y: number;
-  readonly initial: CameraAngles;
+  x: number;
+  y: number;
   moved: boolean;
 }
-const wrap = (angle: number) => ((angle + 180) % 360 + 360) % 360 - 180;
 
 /** Browser pointer gestures are presentation inputs; the subscription owns listeners and capture. */
-export const cameraGestures = <Message>(readAngles: () => CameraAngles, toMessage: (angles: CameraAngles) => Message): Stream.Stream<Message> =>
+export const cameraGestures = <Message>(toMessage: (movement: CameraMovement) => Message): Stream.Stream<Message> =>
   Stream.callback<Message>(queue => Effect.acquireRelease(Effect.sync(() => {
     let drag: Drag | undefined;
-    let pinch: { viewport: HTMLElement; distance: number; zoom: number } | undefined;
+    let pinch: { viewport: HTMLElement; distance: number } | undefined;
     let suppressClickUntil = 0;
     let suppressedViewport: HTMLElement | undefined;
     let wheelDelta = 0;
@@ -33,7 +31,7 @@ export const cameraGestures = <Message>(readAngles: () => CameraAngles, toMessag
       const viewport = event.target instanceof Element ? event.target.closest<HTMLElement>(".is-spatial .ensemble-viewport") : null;
       if (!viewport) return;
       suppressClickUntil = 0;
-      drag = { viewport, pointerId: event.pointerId, touch: event.pointerType === "touch", x: event.clientX, y: event.clientY, initial: readAngles(), moved: false };
+      drag = { viewport, pointerId: event.pointerId, touch: event.pointerType === "touch", x: event.clientX, y: event.clientY, moved: false };
     };
     const move = (event: PointerEvent) => {
       if (pinch || !drag || event.pointerId !== drag.pointerId) return;
@@ -48,11 +46,9 @@ export const cameraGestures = <Message>(readAngles: () => CameraAngles, toMessag
         drag.viewport.classList.add("is-dragging");
       }
       event.preventDefault();
-      Queue.offerUnsafe(queue, toMessage({
-        zoom: readAngles().zoom,
-        turn: Math.round(wrap(drag.initial.turn + dx * 0.35) * 10) / 10,
-        tilt: Math.round(Math.max(0, Math.min(65, drag.initial.tilt - dy * 0.25)) * 10) / 10,
-      }));
+      drag.x = event.clientX;
+      drag.y = event.clientY;
+      Queue.offerUnsafe(queue, toMessage({ kind: "orbit", dx, dy }));
     };
     const up = (event: PointerEvent) => {
       if (event.pointerId !== drag?.pointerId) return;
@@ -69,7 +65,7 @@ export const cameraGestures = <Message>(readAngles: () => CameraAngles, toMessag
       event.stopImmediatePropagation();
       suppressClickUntil = 0;
     };
-    const zoom = (value: number) => Queue.offerUnsafe(queue, toMessage({ ...readAngles(), zoom: Math.round(Math.max(20, Math.min(200, value)) * 10) / 10 }));
+    const zoom = (factor: number) => Queue.offerUnsafe(queue, toMessage({ kind: "zoom", factor }));
     const wheel = (event: WheelEvent) => {
       const viewport = event.target instanceof Element ? event.target.closest<HTMLElement>(".is-spatial .ensemble-viewport") : null;
       if (!viewport) return;
@@ -84,7 +80,7 @@ export const cameraGestures = <Message>(readAngles: () => CameraAngles, toMessag
         wheelFrame = undefined;
         const delta = wheelDelta;
         wheelDelta = 0;
-        zoom(readAngles().zoom * Math.exp(-delta * 0.001));
+        zoom(Math.exp(-delta * 0.001));
       });
     };
     const distance = (touches: TouchList) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
@@ -94,12 +90,14 @@ export const cameraGestures = <Message>(readAngles: () => CameraAngles, toMessag
       if (!viewport) return;
       event.preventDefault();
       finish();
-      pinch = { viewport, distance: distance(event.touches), zoom: readAngles().zoom };
+      pinch = { viewport, distance: distance(event.touches) };
     };
     const touchMove = (event: TouchEvent) => {
       if (!pinch || event.touches.length !== 2) return;
       event.preventDefault();
-      zoom(pinch.zoom * distance(event.touches) / Math.max(1, pinch.distance));
+      const nextDistance = distance(event.touches);
+      zoom(nextDistance / Math.max(1, pinch.distance));
+      pinch.distance = nextDistance;
     };
     const touchEnd = () => { pinch = undefined; };
     document.addEventListener("wheel", wheel, { passive: false });

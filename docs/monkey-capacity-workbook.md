@@ -1128,3 +1128,55 @@ control preserves existing Monkey semantics; it does not establish native
 expiry parity. A future admission-fidelity review must consider this explicit
 boundary separately, without changing the approved Current laws or silently
 rewriting accepted test expectations.
+
+## Draft-input and camera stability correction (2026-10-02)
+
+The owner reported that editing the duration number rolled back during playback
+and that zoom repeatedly moved backward while enlarging. Astra independently
+reproduced the input symptom: after180ms-spaced keystrokes the field displayed
+the previous prefix before eventually converging. Her initial zoom run was
+monotonic, so that run is not evidence of a reproduced camera rollback.
+
+Inspected mechanisms: Foldkit's controlled Value postpatch synchronizes the DOM
+to the rendered model, allowing queued older renders to overwrite a newer
+native draft. Runtime messages themselves are serialized; subscription read()
+refreshes despite the camera stream's flat-only keep-alive condition. Camera
+messages nevertheless carried absolute angle/zoom snapshots from an asynchronous
+subscription reference, which can be stale when consumed.
+
+Authorized correction scope: native form draft ownership with synchronous input
+messages, keyed replacement only at explicit reset/load/agent switch; camera
+zoom factors and orbit deltas applied to the current reducer state. Avoid timer
+masking or changing simulation policy. Astra's stability criteria are immediate
+typed-prefix preservation during playback and monotonic same-direction zoom
+samples across frames, with Apply/reset/load and outside scrolling preserved.
+Implementation and after-review are in progress.
+
+### Confirmed slider reproduction and completed regression checks
+
+The sustained Zoom-slider test also reproduced backward movement during playback:
+the slider had reached160 before an older render returned it to79/84. Thus the
+numeric draft and direct slider symptoms share controlled-value postpatch
+overwrite. The initial monotonic wheel run does not erase that distinct
+reproduction.
+
+Numeric/text draft fields and the agent-count input now retain native editing
+state; explicit Start/load/agent/preset replacement changes a draft epoch.
+Camera ranges retain pointer/key edits and reinitialize for external camera
+gestures/reset. Their default value is assigned after min/max to avoid clipping
+a newly created range. Camera gestures emit zoom factors and orbit deltas that
+apply to current reducer state; obsolete full-camera messages are deleted.
+
+The new live browser regression passed sustained playback typing, incomplete
+numeric buffers, immediate Enter/click Apply, agent-count/backspace, explicit
+agent/Start replacement and monotonic zoom. Recorded automated samples were
+wheel72→142 across40samples and slider79→157 across16pointer steps, with stable
+final commit. Existing camera and edit-duration browsers passed bounds, reset,
+outside scroll, pinch, target scope, overlap and replay load. Typecheck and diff
+check passed. Astra independently confirmed typed prefixes1/12/123/1234 and
+48monotonic wheel samples72→110 with fixed page scroll. Her final independent slider check passed16native pointer steps73→157
+during playback, with157retained after350ms, wheel synchronization to163
+and Reset to72. No physical-device timing claim is made. Review artifacts:
+`/workspace/hapsland-review/input-zoom-stability/typing.png`, `samples.json`,
+`slider-after.png` and `slider-samples.json`; before artifacts remain separately
+named for comparison.

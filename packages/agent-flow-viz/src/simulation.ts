@@ -35,6 +35,7 @@ export const SimulationModel = Schema.Struct({
   seed: Schema.String,
   pace: Schema.String,
   editDuration: Schema.String,
+  draftEpoch: Schema.Number,
   burst: Schema.String,
   delay: Schema.String,
   weightNeverSent: Schema.String,
@@ -86,6 +87,7 @@ export const initialSimulation: SimulationModel = {
   seed: "7",
   pace: "100",
   editDuration: "1",
+  draftEpoch: 0,
   burst: "5",
   delay: "50",
   weightNeverSent: String(DEFAULT_OUTCOME_WEIGHTS.neverSent),
@@ -313,7 +315,7 @@ export const actSimulation = (
       return { ...model, selected: -1, playing: false, suspended: false, revision: model.revision + 1, feedback: "Replay reset to initial inputs. Resume or Single step to replay recorded controls to its endpoint." };
     }
     if (action === "trees:balanced" || action === "trees:pressure") return {
-      ...model, ...treeDrafts(action === "trees:balanced" ? DEFAULT_FILE_TREE_PROFILE : {
+      ...model, draftEpoch: model.draftEpoch + 1, ...treeDrafts(action === "trees:balanced" ? DEFAULT_FILE_TREE_PROFILE : {
         ...DEFAULT_FILE_TREE_PROFILE, minFiles: 10, maxFiles: 16, maxDepth: 4, minTreeBytes: 2048, maxTreeBytes: 5120,
       }), feedback: "Tree generation drafted. Start / reset or Apply to future preparations to use it.",
     };
@@ -365,7 +367,7 @@ export const actSimulation = (
         capacity: { pace: "10", delay: "5000", outcome: "finding", bytes: "1000000", feedback: "Capacity pressure drafted. Start / reset, Resume, then inject a burst and inspect refusal events." },
       };
       const { outcome, ...fields } = presets[action.slice(7)];
-      return { ...model, ...weightDrafts(singleOutcomeWeights(outcome)), currentWork: "current", credentialReady: "ready", credentialGeneration: "1", sourceReadable: "readable", outputOutcome: "certain", outputDelay: "1", outputLease: "1000", ...fields };
+      return { ...model, draftEpoch: model.draftEpoch + 1, ...weightDrafts(singleOutcomeWeights(outcome)), currentWork: "current", credentialReady: "ready", credentialGeneration: "1", sourceReadable: "readable", outputOutcome: "certain", outputDelay: "1", outputLease: "1000", ...fields };
 
     }
     if (action === "speed") return { ...model, appliedSpeed: speedValue(model.speed), feedback: "Playback speed applied. Draft edits do not change playback." };
@@ -406,7 +408,7 @@ export const actSimulation = (
       replaySource = undefined;
       totals = { checked: 0, admitted: 0, refused: 0, failed: 0, advice: 0, uncertain: 0, released: 0 };
       run.subscribe(countFrame);
-      loadedFields = { appliedSpeed: validSpeed, bookmark: -1 };
+      loadedFields = { appliedSpeed: validSpeed, bookmark: -1, draftEpoch: model.draftEpoch + 1 };
       playing = false;
       suspended = false;
       wallBudget = 0;
@@ -446,6 +448,7 @@ export const actSimulation = (
           );
       suspended = latest("suspendArrivals")?.suspended === true;
       loadedFields = {
+        draftEpoch: model.draftEpoch + 1,
         agentCount: String(Math.max(1, restored.agentScopes.length, restored.projection.partitions.length)),
         agentId: inputs.config.sessions?.[0]?.agent ?? inputs.config.session?.agent ?? "agent-1",
         ...treeDrafts(latest("fileTrees")?.profile ?? inputs.config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE),
@@ -636,6 +639,8 @@ export const simulationView = <Message>(
   showDiagram = true,
   inspection?: { readonly projection: import("../../../src/canonical/adapter").CanonicalProjection; readonly observations: readonly Observation[]; readonly partition?: number; readonly agents?: readonly import("./shared-resident-view").AgentScope[] },
 ) => {
+  // Native dirty inputs own their visible draft. A controlled Value would replay older
+  // queued models into the focused field; only explicit draft replacement changes its key.
   const input = (field: string, label: string, value: string) =>
     h.label(
       [],
@@ -643,7 +648,8 @@ export const simulationView = <Message>(
         label,
         h.input([
           h.Type("text"),
-          h.Value(value),
+          h.Key(`draft:${field}:${model.draftEpoch}`),
+          h.Attribute("value", value),
           h.OnInput((raw) => changed(field, raw)),
         ]),
       ],
@@ -669,7 +675,7 @@ export const simulationView = <Message>(
   }
   catch (error) { treeDraftStatus = `Cannot apply: ${error instanceof Error ? error.message : String(error)}`; }
   const treeInput = (field: typeof treeFields[keyof typeof treeFields], label: string, min: number, max: number, shortLabel = label) => h.label([], [shortLabel,
-    h.input([h.Type("number"), h.AriaLabel(label), h.Min(String(min)), h.Max(String(max)), h.Step("1"), h.Value(model[field]), h.OnInput(raw => changed(field, raw))]),
+    h.input([h.Type("number"), h.AriaLabel(label), h.Min(String(min)), h.Max(String(max)), h.Step("1"), h.Key(`draft:${field}:${model.draftEpoch}`), h.Attribute("value", model[field]), h.OnInput(raw => changed(field, raw))]),
   ]);
   const current =
     model.selected < 0
@@ -728,7 +734,7 @@ export const simulationView = <Message>(
         [h.Class("simulation-controls")],
         [
           ...(run && !run.agentScopes.length ? [h.p([], ["Scripted events · no generator controls"])] : [controlForm("pace", [input("pace", "Edit interval (virtual ms)", model.pace), submit("Apply edit pace")]),
-          controlForm("editDuration", [h.label([], ["Simulated edit duration (virtual ms)", h.input([h.Type("number"), h.AriaLabel("Simulated edit duration (virtual ms)"), h.Min("0"), h.Max("1000000000"), h.Step("1"), h.Value(model.editDuration), h.OnInput(raw => changed("editDuration", raw))])]), submit("Apply edit duration")]),
+          controlForm("editDuration", [h.label([], ["Simulated edit duration (virtual ms)", h.input([h.Type("number"), h.AriaLabel("Simulated edit duration (virtual ms)"), h.Min("0"), h.Max("1000000000"), h.Step("1"), h.Key(`edit-duration:${model.draftEpoch}`), h.Attribute("value", model.editDuration), h.OnInput(raw => changed("editDuration", raw))])]), submit("Apply edit duration")]),
           h.p([], ["Time between PRE and POST. Start applies it to all agents; Apply changes future edits for the selected agent. Edits already in progress keep their duration."]),
           controlForm("burst", [input("burst", "Burst count (1–100)", model.burst), submit("Inject edit burst")]),
           button(
@@ -881,7 +887,7 @@ export const selectSimulationAgent = (model: SimulationModel, agent: string): Si
   const replay = run?.exportReplay();
   const session = replay?.config.sessions?.find(session => session.agent === agent) ?? replay?.config.session;
   const latest = <Kind extends Control["kind"]>(kind: Kind) => replay?.controls.findLast(entry => entry.control.kind === kind && (!entry.control.agent || entry.control.agent === agent))?.control as Extract<Control, { kind: Kind }> | undefined;
-  return { ...model, agentId: agent, item: "",
+  return { ...model, agentId: agent, item: "", draftEpoch: model.draftEpoch + 1,
     editDuration: String(latest("editDuration")?.durationMs ?? session?.editDurationMs ?? replay?.config.lifecycles?.permits?.holdMs ?? 1),
     pace: String(latest("editPace")?.intervalMs ?? session?.editIntervalMs ?? 100),
     bytes: String(latest("sizes")?.reservationBytes ?? session?.bytes ?? 100),

@@ -7,13 +7,12 @@ import "./style.css";
 
 const subscriptions = Subscription.make<Model, Message>()((entry) => ({
   ensembleCamera: entry(
-    { flat: Schema.Boolean, tilt: Schema.String, turn: Schema.String, zoom: Schema.String },
+    { flat: Schema.Boolean },
     {
-      modelToDependencies: model => ({ flat: model.simulation.flat, tilt: model.simulation.tilt, turn: model.simulation.turn, zoom: model.simulation.zoom }),
+      modelToDependencies: model => ({ flat: model.simulation.flat }),
       keepAliveEquivalence: (before, after) => before.flat === after.flat,
-      dependenciesToStream: ({ flat }, read) => flat ? Stream.never : cameraGestures(
-        () => ({ tilt: Number(read().tilt), turn: Number(read().turn), zoom: Number(read().zoom) }),
-        angles => Message.SimulationCameraMoved(angles),
+      dependenciesToStream: ({ flat }: { readonly flat: boolean }) => flat ? Stream.never : cameraGestures(
+        movement => movement.kind === "zoom" ? Message.SimulationCameraZoomed({ factor: movement.factor }) : Message.SimulationCameraRotated({ dx: movement.dx, dy: movement.dy }),
       ),
     },
   ),
