@@ -42,6 +42,7 @@ it.each(["finding", "clear"] as const)("executes a complete %s path with checked
   expect(frames.filter(frame => frame.event.kind === "submissionTerminal")).toHaveLength(outcome === "finding" ? 1 : 0);
   expect(run.projection.delivery.submissions.batches.map(batch => batch.phase)).toEqual(outcome === "finding" ? ["submitted"] : []);
   expect(run.projection.dispatch.running).toEqual([]);
+  expect(run.projection.collection.leases).toEqual([]);
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
 });
 
