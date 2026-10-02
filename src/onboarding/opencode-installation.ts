@@ -109,27 +109,39 @@ const previewUninstall = (input: ReturnType<typeof inputs>) => {
       pending: ["apply this proposal digest to remove the owned integration"] };
   } catch (cause) { return conflict(operation, cause); }
 };
-const applyUninstall = (request: OpenCodeInstallationRequest, input: ReturnType<typeof inputs>) => {
+class OpenCodeInstallationError extends Schema.TaggedError<OpenCodeInstallationError>()("OpenCodeInstallationError", {
+  message: Schema.String,
+}) {}
+const applyUninstall = Effect.fn("OpenCodeInstallation.applyUninstall")((request: OpenCodeInstallationRequest, input: ReturnType<typeof inputs>) =>
+  Effect.acquireUseRelease(
+    Effect.try({
+      try: () => {
+        mkdirSync(dirname(input.paths.lock), { recursive: true, mode: 0o700 });
+        try { mkdirSync(input.paths.lock); } catch { throw new Error("OpenCode installation is locked"); }
+        return input.paths.lock;
+      },
+      catch: (cause) => new OpenCodeInstallationError({ message: message(cause) }),
+    }),
+    () => Effect.try({ try: () => {
+  const next = planUninstall(input);
+  if (request.proposalDigest === undefined) return previewUninstall(input);
+  if (request.proposalDigest !== next.proposalDigest) return { version: 1 as const, operation: "uninstall" as const,
+    status: "proposal-mismatch" as const, error: { message: "OpenCode configuration changed since preview" } };
+  if (next.noChange) return { version: 1 as const, operation: "uninstall" as const, status: "already-current" as const };
   try {
-    mkdirSync(dirname(input.paths.lock), { recursive: true, mode: 0o700 });
-    try { mkdirSync(input.paths.lock); } catch { throw new Error("OpenCode installation is locked"); }
-    try {
-      const next = planUninstall(input);
-      if (request.proposalDigest === undefined) return previewUninstall(input);
-      if (request.proposalDigest !== next.proposalDigest) return { version: 1 as const, operation: "uninstall" as const,
-        status: "proposal-mismatch" as const, error: { message: "OpenCode configuration changed since preview" } };
-      if (next.noChange) return { version: 1 as const, operation: "uninstall" as const, status: "already-current" as const };
-      try {
-        atomicInstallationFile(input.paths.plugin, undefined);
-        atomicInstallationFile(input.paths.ownership, undefined);
-      } catch (cause) {
-        if (read(input.paths.plugin) === next.beforePlugin) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
-        throw cause;
-      }
-      return { version: 1 as const, operation: "uninstall" as const, status: "complete" as const };
-    } finally { rmSync(input.paths.lock, { recursive: true, force: true }); }
-  } catch (cause) { return conflict("uninstall", cause); }
-};
+    atomicInstallationFile(input.paths.plugin, undefined);
+    atomicInstallationFile(input.paths.ownership, undefined);
+  } catch (cause) {
+    if (read(input.paths.plugin) === next.beforePlugin) atomicInstallationFile(input.paths.ownership, next.beforeRecord);
+    throw cause;
+  }
+  return { version: 1 as const, operation: "uninstall" as const, status: "complete" as const };
+    }, catch: (cause) => new OpenCodeInstallationError({ message: message(cause) }) }),
+    (lock) => Effect.try({
+      try: () => rmSync(lock, { recursive: true, force: true }),
+      catch: (cause) => new OpenCodeInstallationError({ message: message(cause) }),
+    }),
+  ).pipe(Effect.catch((cause) => Effect.succeed(conflict("uninstall", cause)))));
 export const previewOpenCodeInstallation = (_request: OpenCodeInstallationRequest) => unsupported("install-preview");
 export const installOpenCodeIntegration = Effect.fn("OpenCodeInstallation.install")((_request: OpenCodeInstallationRequest) => Effect.succeed(unsupported("install")));
 export const previewOpenCodeUpdate = (_request: OpenCodeInstallationRequest) => unsupported("update-preview");
@@ -140,7 +152,9 @@ const resolveInputs = Effect.fn("OpenCodeInstallation.inputs")(function* (reques
 });
 export const uninstallOpenCodeIntegration = Effect.fn("OpenCodeInstallation.uninstall")(function* (request: OpenCodeInstallationRequest) {
   const input = yield* resolveInputs(request);
-  return yield* Effect.sync(() => request.proposalDigest === undefined ? previewUninstall(input) : applyUninstall(request, input));
+  return request.proposalDigest === undefined
+    ? yield* Effect.sync(() => previewUninstall(input))
+    : yield* applyUninstall(request, input);
 }, Effect.catch((cause: OpenCodeConfigurationError) => Effect.succeed(conflict("uninstall", cause))));
 const inspect = (input: ReturnType<typeof inputs>) => {
   try {

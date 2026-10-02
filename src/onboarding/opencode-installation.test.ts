@@ -81,6 +81,25 @@ describe("OpenCode unsupported installation and owned cleanup", () => {
     expect(readFileSync(plugin, "utf8")).toBe(before);
   });
 
+  it("preserves another lock owner and releases its own lock after cleanup", async () => {
+    const { home, request } = fixture();
+    seedOwnedPlugin(home);
+    const preview = await Effect.runPromise(uninstallOpenCodeIntegration(request));
+    if (preview.status !== "preview") throw new Error("removal preview unavailable");
+    const lock = join(home, ".realtime-review-tool", "opencode-installation.lock");
+    mkdirSync(lock);
+    writeFileSync(join(lock, "owner"), "other owner");
+    const approved = { ...request, proposalDigest: preview.proposal.digest };
+    expect(await Effect.runPromise(uninstallOpenCodeIntegration(approved))).toMatchObject({
+      status: "conflict", error: { message: "OpenCode installation is locked" },
+    });
+    expect(readFileSync(join(lock, "owner"), "utf8")).toBe("other owner");
+    expect(existsSync(join(home, "plugins", "hapsland.mjs"))).toBe(true);
+    rmSync(lock, { recursive: true });
+    expect((await Effect.runPromise(uninstallOpenCodeIntegration(approved))).status).toBe("complete");
+    expect(existsSync(lock)).toBe(false);
+  });
+
   it("refuses a modified owned file and never removes it", async () => {
     const { home, request } = fixture();
     seedOwnedPlugin(home);

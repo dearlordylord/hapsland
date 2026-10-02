@@ -3241,5 +3241,28 @@
       "src/cli.ts": "79285ee1a898f9546c64d1e714427ef79cf60f373ed54ee2d68bb8320556422b"
     },
     "remaining": "Native synchronous host compatibility and uninstall lock/journal boundaries still need full idiomatic ownership audit. Codex/Claude installation Config and preview/inspect APIs, interactive CLI, coordinated hook deadline port and final gates remain incomplete."
+  },
+  "openCodeUninstallLockPort": {
+    "status": "OpenCode uninstall lock owned by acquireUseRelease",
+    "contract": "Existing exclusive mkdir, immediate contention failure, under-lock file revalidation, proposal digest and mutation/rollback behavior retained. Native acquisition/use/release failures have a typed installation error and map to existing conflict response. Release runs only for acquired lock.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/opencode-installation.test.ts src/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 2,
+        "tests": 13,
+        "durationSeconds": 8.06
+      }
+    ],
+    "ownershipEvidence": "Occupied lock with synthetic owner marker remains untouched and owned plugin is retained. After external release, same approved proposal completes and own lock is absent. Existing modified-file protection and caller Config empty-runtime tests pass.",
+    "sourceSha256": {
+      "src/onboarding/opencode-installation.ts": "a4b92f9b7756f096d226cd409626f83ed24a8ab682b33fda6ac0bd3439b5ddf4",
+      "src/onboarding/opencode-installation.test.ts": "08cb9d950dee22144efdabd5bfb42370645ef07f5aaeb8fe45536400cd514613"
+    },
+    "limitations": "Mutation remains synchronous native filesystem boundary; no asynchronous filesystem cancellation claim or injected native release-failure evidence. Native host compatibility port, Codex/Claude Config, interactive flows and final gates remain incomplete."
   }
 }
