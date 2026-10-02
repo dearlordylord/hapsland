@@ -4,7 +4,7 @@
 **Status:** Temporary model/proof evidence; the rejected post-only A experiments have been deleted.
 **Authority:** Owner-approved model laws and implementation evidence, not a replacement for the accepted product contract.
 **Expected use:** Run the Current gates, inspect their explicit assumptions, and retain useful controls until production-aligned replacement checks exist.
-**Lifecycle:** At the edit-admission design decision milestone, consolidate accepted requirements into `docs/advicing-target-contract.md` and production law/test owners; delete this prototype after replacement checks pass. Move unresolved runtime evidence to the workbook.
+**Lifecycle:** At the edit-admission design decision milestone, consolidate accepted requirements into `docs/advicing-target-contract.md` and production law/test owners; delete this prototype after replacement checks pass. Unresolved runtime validation remains scoped below until verified or transferred to the replacement checks.
 
 ## Retained checked properties
 
@@ -63,4 +63,12 @@ Pinned proof-only mathlib remains at `7601039f3fe561cb30e4bb7adefbcfba708c1f6c`.
 Bend is 2.0.34 and every checker invocation uses `bend-check`'s five-second limit.
 `lawcheck`/`bend-falsify` are unavailable; literal substitution is the disclosed
 fallback, not a claimed invocation of those tools. No native PRE fault evidence
-was deleted; those reports remain separately scoped in the workbook.
+was deleted; the source-free reports remain in `evidence/native-negative/` with their original bounded claims.
+
+## Remaining validation boundary
+
+The six PRE-only native probes do not establish tool-start provenance or
+registration followed by cancellation, late IPC/retry, closure or restart.
+These remain separate empirical checks before stronger runtime support claims.
+The three Current model proofs do not require further arrival-only comparison
+experiments; that alternative was rejected and removed.

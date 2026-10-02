@@ -148,8 +148,7 @@ ledger on each layer; Admission retains its agent-local meters. The top rail
 contains no duplicate global item/byte ledger. These resource cards have different
 units and lifecycles: retained data may remain charged after execution slots are
 released. Common styling expresses shared resident ownership, not a fixed ratio
-or a resource-conversion edge. Edit permits retain their current placement
-until separately reviewed. The accepted collector meter lives inside Advice
+or a resource-conversion edge. Admission shows separate agent-local and resident-wide edit-permit rows. The accepted collector meter lives inside Advice
 collection, mirrors the resident-wide claims used/recorded maximum across
 layers, and has no top-rail duplicate. It remains separate from advice leases;
 collector group/token ownership is available in details, without inferred
@@ -169,8 +168,10 @@ from zero occupancy. A visual bar may clamp fill while retaining the raw numeric
 value and explicit over-limit fact; clamping must not hide an oversized candidate.
 
 Collector claims are resident occupancy plus group ownership. Advice leases are
-per-record free/leased states. Stop output is an exclusive selected-group slot,
-not an aggregate slot count divided by one. Continuation marks display the selected
+per-record free/leased states. Stop output is an exclusive selected-group slot, shown inside Host output as
+a single filled1/1 or empty0/1 cell for an explicitly selected known group,
+not an aggregate slot count divided by one. Unknown selection has a prompt and
+no cell. Continuation marks display the selected
 current round and delivery group's checked consumed budget; absent or stale
 selection requires selection rather than silently choosing another record.
 Cache retention, and diagnostic operational-notice retention are
