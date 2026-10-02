@@ -61,3 +61,14 @@ for (const operation of ["append", "attachOwner"]) {
     throw new Error(`joined ${operation} must compose as an Effect`);
   }
 }
+
+const joinedSurface = state.slice(state.indexOf("    joinedReviews:"), state.indexOf("    reuse:", state.indexOf("    joinedReviews:")));
+if (/\bcommitAll\(|Ref.getUnsafe|joinedCommit/.test(joinedSurface)) {
+  throw new Error("joined review service restored a synchronous or unsafe bridge");
+}
+for (const operation of ["releaseOwner", "settle"]) {
+  if (!joinedSurface.includes(`${operation}: Effect.fn("JoinedReviews.${operation}")`) ||
+      !server.includes(`yield* residentJoined.${operation}(`)) {
+    throw new Error(`joined ${operation} must compose as an Effect`);
+  }
+}

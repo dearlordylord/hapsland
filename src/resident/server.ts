@@ -1497,8 +1497,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     if (job.kind === "unit") {
       if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "lost");
-      residentSettleJoined(job.evaluationKey, "unavailable", "lost");
-      residentReleaseReuseClaim(job.evaluationKey);
+      yield* residentSettleJoined(job.evaluationKey, "unavailable", "lost");
+      yield* residentReleaseReuseClaim(job.evaluationKey);
       // An issued Jev permit remains reserved until its native Effect settles.
       if (job.requestId === undefined) yield* residentReleaseUnit(job);
     } else residentLedger.release(job.reservation);
@@ -1767,7 +1767,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               const admitted = reservations[remaining];
               if (admitted !== undefined) residentLedger.release(admitted.reservation);
               const pending = retained[remaining];
-              if (pending?.kind === "owner") residentReleaseReuseClaim(pending.evaluationKey);
+              if (pending?.kind === "owner") yield* residentReleaseReuseClaim(pending.evaluationKey);
             }
             return;
           }
@@ -1775,7 +1775,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const admitted = reservations[index];
           if (admitted === undefined) {
             if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "capacity");
-            if (item.kind === "owner") residentReleaseReuseClaim(item.evaluationKey, "capacity");
+            if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey, "capacity");
             yield* residentLedger.runtime.rejectCapacity();
             residentRecordOperationalFailure(job.observation, "capacity");
             recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
@@ -1791,7 +1791,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               : (yield* residentLedger.rounds.policyWork(job.round)).spawn(job.workObservationId, admitted.operation);
           if (job.round !== undefined && workUnitId === undefined) {
             if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "lost");
-            if (item.kind === "owner") residentReleaseReuseClaim(item.evaluationKey);
+            if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey);
             residentLedger.release(reservation);
             yield* residentReleaseCurrentWork(revision);
             continue;
@@ -1847,7 +1847,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           unassignedClaims.delete(item.evaluationKey);
           if (!(yield* residentDispatcher.enqueue(job.partition, unit))) {
             if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "capacity");
-            residentReleaseReuseClaim(item.evaluationKey, "capacity");
+            yield* residentReleaseReuseClaim(item.evaluationKey, "capacity");
             yield* residentReleaseUnit(unit);
             yield* residentLedger.runtime.rejectCapacity();
             residentRecordOperationalFailure(job.observation, "capacity");
@@ -1885,10 +1885,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable" });
       })),
-      Effect.ensuring(Effect.sync(() => {
+      Effect.ensuring(Effect.gen(function* () {
         residentLedger.release(job.reservation);
         for (const workspace of activeWorkspaces) residentLedger.release(workspace);
-        for (const key of unassignedClaims) residentReleaseReuseClaim(key);
+        for (const key of unassignedClaims) yield* residentReleaseReuseClaim(key);
         if (!job.completed) residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound);
       })),
     );
@@ -1952,12 +1952,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return Effect.gen(function* () {
       if (job.round !== undefined && job.workUnitId !== undefined &&
           !(yield* residentLedger.rounds.policyWork(job.round)).startUnit(job.workUnitId)) {
-        residentReleaseReuseClaim(job.evaluationKey);
+        yield* residentReleaseReuseClaim(job.evaluationKey);
         yield* residentReleaseUnit(job);
         return;
       }
       if (!residentLedger.startReview(job.partition, job.canonicalOperationId, job.canonicalRound)) {
-        residentReleaseReuseClaim(job.evaluationKey);
+        yield* residentReleaseReuseClaim(job.evaluationKey);
         yield* residentReleaseUnit(job);
         return;
       }
@@ -1965,9 +1965,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (!residentJobActive(job) || !(yield* residentIsCurrentWork(job.revision, job.prepared))) {
         denyReady();
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "stale");
-        residentSettleJoined(job.evaluationKey, "unavailable", "stale");
+        yield* residentSettleJoined(job.evaluationKey, "unavailable", "stale");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "incomplete", unitIdentity: job.evaluationKey });
-        residentReleaseReuseClaim(job.evaluationKey);
+        yield* residentReleaseReuseClaim(job.evaluationKey);
         yield* residentReleaseUnit(job);
         return;
       }
@@ -2131,18 +2131,18 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (result?.status === "notAuthorized") {
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit,
           result.reason === "credential" ? "credential" : "lost");
-        residentSettleJoined(job.evaluationKey, "unavailable",
+        yield* residentSettleJoined(job.evaluationKey, "unavailable",
           result.reason === "credential" ? "credential" : "lost");
         if (result.reason === "credential") residentRecordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
           advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable", unitIdentity: job.evaluationKey });
-        residentReleaseReuseClaim(job.evaluationKey);
+        yield* residentReleaseReuseClaim(job.evaluationKey);
         yield* residentReleaseUnit(job);
         return;
       }
       if (!residentJobActive(job) && issuedRequest === undefined) {
-        residentReleaseReuseClaim(job.evaluationKey); yield* residentReleaseUnit(job); return;
+        yield* residentReleaseReuseClaim(job.evaluationKey); yield* residentReleaseUnit(job); return;
       }
       if (result?.status === "evaluated") {
         if (residentJobActive(job) && residentLedger.runtime.snapshot().lifecycle === "active" &&
@@ -2164,7 +2164,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         observeRequest("settled", issuedRequest,
           result.findings.length === 0 ? "clear" : "finding");
         if (disposition === "ignored" || disposition === "stale") {
-          residentReleaseReuseClaim(job.evaluationKey);
+          yield* residentReleaseReuseClaim(job.evaluationKey);
           yield* residentReleaseUnit(job);
           return;
         }
@@ -2174,7 +2174,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         });
         const evaluation = { prepared: job.prepared, findings: result.findings };
         residentReuse.put(job.partition, job.evaluationKey, evaluation);
-        residentReleaseReuseClaim(job.evaluationKey);
+        yield* residentReleaseReuseClaim(job.evaluationKey);
         recordActivity({
           statePath: job.dispatch.activityPath,
           root: job.observation.root,
@@ -2202,7 +2202,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               yield* residentLedger.ticketUnits.clear(job.ticketUnit, job.revision);
             } else yield* residentLedger.ticketUnits.fail(job.ticketUnit, "stale");
           }
-          residentSettleJoined(job.evaluationKey,
+          yield* residentSettleJoined(job.evaluationKey,
             disposition === "settleClear" ? "clear" : "unavailable",
             "stale");
           job.completed = true;
@@ -2234,17 +2234,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
       if (failure === "failureBackend") {
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "backend");
-        residentSettleJoined(job.evaluationKey, "unavailable", "backend");
+        yield* residentSettleJoined(job.evaluationKey, "unavailable", "backend");
         residentRecordOperationalFailure(job.observation, "backend");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureCredential") {
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "credential");
-        residentSettleJoined(job.evaluationKey, "unavailable", "credential");
+        yield* residentSettleJoined(job.evaluationKey, "unavailable", "credential");
         residentRecordOperationalFailure(job.observation, "credential");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure === "failureLost") {
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "lost");
-        residentSettleJoined(job.evaluationKey, "unavailable", "lost");
+        yield* residentSettleJoined(job.evaluationKey, "unavailable", "lost");
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable", unitIdentity: job.evaluationKey });
       } else if (failure !== "failureNone") {
         throw new Error("Bend denied review failure disposition");
@@ -2268,7 +2268,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           observeRequest("settled", issuedRequest, observed);
         }
         if (job.ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(job.ticketUnit, "backend");
-        residentSettleJoined(job.evaluationKey, "unavailable", "backend");
+        yield* residentSettleJoined(job.evaluationKey, "unavailable", "backend");
         if (runtimeConfiguration.debug) console.error("resident evaluation unavailable");
         if (residentLedger.runtime.snapshot().lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
@@ -2278,25 +2278,25 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       Effect.ensuring(Effect.gen(function* () {
         signal.removeEventListener("abort", reportInterruption);
         if (!job.completed) {
-          residentReleaseReuseClaim(job.evaluationKey);
+          yield* residentReleaseReuseClaim(job.evaluationKey);
           yield* residentReleaseUnit(job);
         }
       })),
     );
   }));
 
-  function residentReleaseReuseClaim(key: string, reason: ResidentUnavailableReason = "lost"): void {
-    for (const review of residentJoined.releaseOwner(key, reason)) {
+  const residentReleaseReuseClaim = Effect.fn("ResidentRuntime.releaseReuseClaim")(function* (key: string, reason: ResidentUnavailableReason = "lost") {
+    for (const review of (yield* residentJoined.releaseOwner(key, reason))) {
       recordActivity({ statePath: review.activityPath, root: review.observation.root,
         advicee: review.observation.advicee, lifetime: runtime.lifetime,
         stage: "unavailable", unitIdentity: review.evaluationKey });
     }
-  }
+  }, Effect.uninterruptible);
 
-  function residentSettleJoined(key: string, state: "pending" | "clear" | "unavailable", reason?: ResidentUnavailableReason,
-    adviceId?: string): void {
-    residentRecordJoinedOutcomes(residentJoined.settle(key, state, reason, adviceId), adviceId);
-  }
+  const residentSettleJoined = Effect.fn("ResidentRuntime.settleJoined")(function* (key: string, state: "pending" | "clear" | "unavailable", reason?: ResidentUnavailableReason,
+    adviceId?: string) {
+    residentRecordJoinedOutcomes(yield* residentJoined.settle(key, state, reason, adviceId), adviceId);
+  }, Effect.uninterruptible);
 
   function residentRecordJoinedOutcomes(outcomes: ReadonlyArray<JoinedReviewOutcome>, adviceId?: string): void {
     for (const { review, stage } of outcomes) {
@@ -3033,7 +3033,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
       for (const job of (yield* residentDispatcher.close())) {
         if (job.kind === "unit") {
-          residentReleaseReuseClaim(job.evaluationKey);
+          yield* residentReleaseReuseClaim(job.evaluationKey);
           yield* residentReleaseUnit(job);
         }
         else residentLedger.release(job.reservation);

@@ -26,7 +26,7 @@ it.effect("attaches one owner and independently settles all joining ticket units
   expect(reuse.pending("key")).toBe(pending);
   expect((yield* owner.ticketUnits.current(first)).revision).toBe(revision);
   expect((yield* owner.ticketUnits.current(second)).revision).toBe(revision);
-  const outcomes = joined.settle("key", "finding", undefined, "advice");
+  const outcomes = yield* joined.settle("key", "finding", undefined, "advice");
   expect(outcomes.map((outcome) => outcome.stage)).toEqual(["findings", "findings"]);
   expect(outcomes.map((outcome) => Object.keys(outcome.review.observation))).toEqual([["root", "advicee"], ["root", "advicee"]]);
   expect(Object.isFrozen(outcomes[0]?.review)).toBe(true);
@@ -35,7 +35,7 @@ it.effect("attaches one owner and independently settles all joining ticket units
   expect((yield* owner.ticketUnits.current(second)).adviceId).toBe("advice");
   expect(yield* joined.hasAdmission(1)).toBe(false);
   expect(yield* joined.hasAdmission(2)).toBe(false);
-  expect(joined.settle("key", "finding", undefined, "advice")).toEqual([]);
+  expect(yield* joined.settle("key", "finding", undefined, "advice")).toEqual([]);
 }));
 
 it.effect("releases unbound subscribers with the claim while retaining attached subscribers", () => Effect.gen(function* () {
@@ -48,12 +48,12 @@ it.effect("releases unbound subscribers with the claim while retaining attached 
   reuse.claim("key");
   yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unbound });
   yield* joined.append({ admission: 2, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: attached, revision });
-  expect(joined.releaseOwner("key", "backend").map((review) => review.admission)).toEqual([1]);
+  expect((yield* joined.releaseOwner("key", "backend")).map((review) => review.admission)).toEqual([1]);
   expect(reuse.hasPending("key")).toBe(false);
   expect((yield* owner.ticketUnits.stage(unbound))).toMatchObject({ stage: "unavailable", reason: "backend" });
   expect(yield* joined.hasAdmission(1)).toBe(false);
   expect(yield* joined.hasAdmission(2)).toBe(true);
-  expect(joined.settle("key", "clear").map((outcome) => outcome.stage)).toEqual(["clear"]);
+  expect((yield* joined.settle("key", "clear")).map((outcome) => outcome.stage)).toEqual(["clear"]);
   expect((yield* owner.ticketUnits.stage(attached))?.stage).toBe("clear");
 }));
 
@@ -86,7 +86,7 @@ it.effect("clears joined membership with its owner and keeps independent acquisi
   expect(yield* second.joinedReviews(measure).hasAdmission(1)).toBe(false);
   first.clear();
   expect(yield* joined.hasAdmission(1)).toBe(false);
-  expect(joined.settle("key", "clear")).toEqual([]);
+  expect(yield* joined.settle("key", "clear")).toEqual([]);
 }));
 
 it.effect("rolls back owner and subscriber attachment together when the native claim is invalid", () => Effect.gen(function* () {
@@ -102,7 +102,7 @@ it.effect("rolls back owner and subscriber attachment together when the native c
   expect(owner.canonicalProjection()).toEqual(before);
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
   expect(reuse.hasPending("key")).toBe(true);
-  expect(joined.releaseOwner("key", "lost").map((review) => review.admission)).toEqual([1]);
+  expect((yield* joined.releaseOwner("key", "lost")).map((review) => review.admission)).toEqual([1]);
 }));
 
 it.effect("retires superseded subscribers without changing another subject's membership", () => Effect.gen(function* () {
@@ -145,7 +145,7 @@ it.effect("reads joined admission membership at execution", () => Effect.gen(fun
   expect(yield* member).toBe(false);
   yield* append;
   expect(yield* member).toBe(true);
-  joined.releaseOwner("deferred", "lost");
+  yield* joined.releaseOwner("deferred", "lost");
   expect(yield* member).toBe(false);
 }));
 
@@ -153,3 +153,22 @@ const defectMessage = <A>(effect: Effect.Effect<A>) => Effect.gen(function* () {
   const exit = yield* Effect.exit(effect);
   return exit._tag === "Failure" ? Cause.pretty(exit.cause) : "no defect";
 });
+
+it.effect("settles competing joined batches once and defers release until execution", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const joined = owner.joinedReviews(measure);
+  yield* Effect.all(Array.from({ length: 16 }, (_, admission) => joined.append({
+    admission, evaluationKey: "batch", observation, activityPath: undefined,
+  })), { concurrency: 16 });
+  const batches = yield* Effect.all(Array.from({ length: 16 }, () => joined.settle("batch", "unavailable")), { concurrency: 16 });
+  const outcomes = batches.flat();
+  expect(outcomes).toHaveLength(16);
+  expect(new Set(outcomes.map(({ review }) => review.admission)).size).toBe(16);
+  expect(batches.filter((batch) => batch.length > 0)).toHaveLength(1);
+  yield* joined.append({ admission: 42, evaluationKey: "release", observation, activityPath: undefined });
+  const release = joined.releaseOwner("release", "lost");
+  expect(yield* joined.hasAdmission(42)).toBe(true);
+  expect((yield* release).map((review) => review.admission)).toEqual([42]);
+  expect(yield* release).toEqual([]);
+  expect(yield* joined.hasAdmission(42)).toBe(false);
+}));

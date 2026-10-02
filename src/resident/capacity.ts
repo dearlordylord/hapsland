@@ -624,8 +624,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           reuseOps.snapshot();
           return [value, { ...records, joined, ticketUnits, revision, reuse }];
         };
-      const joinedCommit = <A>(operation: (joined: ReturnType<typeof joinedReviewOperations>, reuse: EvaluationReuse<Pending>) => A): A =>
-        commitAll(joinedChange(operation));
       return {
         append: Effect.fn("JoinedReviews.append")((review: Parameters<JoinedReviews<Pending>["append"]>[0]) =>
           commitAllEffect(joinedChange((joined) => joined.append(review)))),
@@ -637,13 +635,15 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           joined.attach(key, revision);
           return true;
         }))),
-        releaseOwner: (key, reason) => joinedCommit((joined, reuse) => {
+        releaseOwner: Effect.fn("JoinedReviews.releaseOwner")((...args: Parameters<JoinedReviews<Pending>["releaseOwner"]>) => commitAllEffect(joinedChange((joined, reuse) => {
+          const [key, reason] = args;
           reuse.releaseClaim(key);
           return joined.releaseUnattached(key, reason);
-        }),
+        }))),
         retireSuperseded: Effect.fn("JoinedReviews.retireSuperseded")((subject: string) =>
           commitAllEffect(joinedChange((joined) => joined.retireSuperseded(subject)))),
-        settle: (...args) => joinedCommit((joined) => joined.settle(...args)),
+        settle: Effect.fn("JoinedReviews.settle")((...args: Parameters<JoinedReviews<Pending>["settle"]>) =>
+          commitAllEffect(joinedChange((joined) => joined.settle(...args)))),
       };
     },
     reuse: (logicalBytes: (value: unknown) => number) => {
