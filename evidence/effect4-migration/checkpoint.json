@@ -3194,5 +3194,24 @@
       "src/resident/client.ts": "c09fd298501a75942324e32a7a4e1d4823287671133f30bf6cfbb5bdd5f5aee5"
     },
     "remaining": "Externally supplied hook performance deadlines, installation Config, interactive/native terminal flows, final suite/conformance/live/performance and requirement audit remain incomplete."
+  },
+  "openCodeOwnershipSchemaPort": {
+    "status": "ownership record decoded with Effect Schema; unchecked record casts removed",
+    "contract": "Version 1 fields and existing malformed/unsupported-shape error classifications unchanged; unsupported OpenCode permit lifecycle remains unsupported",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/opencode-installation.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 3
+      }
+    ],
+    "sourceSha256": {
+      "src/onboarding/opencode-installation.ts": "76227ae487511c9b660f1b3c6fbf8f3284cd256823845308c18485b71ea6bdd6"
+    },
+    "remaining": "OpenCode installation Config and native mutation ownership still require audit/port. External hook deadlines require coordinated CLI/composed-hook/client/output Clock migration. Full migration and final validation remain incomplete."
   }
 }

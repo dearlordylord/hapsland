@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync } from "node:fs";
@@ -17,7 +17,15 @@ export interface OpenCodeInstallationRequest {
   readonly proposalDigest?: string;
 }
 
-type OwnedRecord = { version: 1; adapter: "opencode"; home: string; pluginDigest: string; runtime: string; entrypoint: string };
+const OwnedRecord = Schema.Struct({
+  version: Schema.Literal(1),
+  adapter: Schema.Literal("opencode"),
+  home: Schema.String,
+  pluginDigest: Schema.String,
+  runtime: Schema.String,
+  entrypoint: Schema.String,
+});
+interface OwnedRecord extends Schema.Schema.Type<typeof OwnedRecord> {}
 const paths = (home: string) => ({
   plugin: join(home, "plugins", "hapsland.mjs"),
   ownership: join(home, ".realtime-review-tool", "opencode-installation-v1.json"),
@@ -37,12 +45,9 @@ const record = (content: string | undefined): OwnedRecord | undefined => {
   let value: unknown;
   try { value = JSON.parse(content); } catch { throw new Error("OpenCode ownership record is malformed"); }
   if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("OpenCode ownership record is malformed");
-  const r = value as Record<string, unknown>;
-  if (r.version !== 1 || r.adapter !== ADAPTER || typeof r.home !== "string" ||
-      typeof r.pluginDigest !== "string" || typeof r.runtime !== "string" || typeof r.entrypoint !== "string") {
-    throw new Error("OpenCode ownership record has an unsupported shape");
-  }
-  return r as OwnedRecord;
+  const decoded = Schema.decodeUnknownOption(OwnedRecord)(value);
+  if (decoded._tag === "None") throw new Error("OpenCode ownership record has an unsupported shape");
+  return decoded.value;
 };
 const inputs = (request: OpenCodeInstallationRequest) => {
   const home = resolve(request.opencodeConfigHome ?? join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "opencode"));
