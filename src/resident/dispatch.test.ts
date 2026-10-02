@@ -130,7 +130,7 @@ it.effect("rolls back canonical identities and retained starts in the same faile
   expect(yield* ledger.dispatch.read).toBe(beforeRegistry);
   expect(ledger.knownPartitionId("failed-owner")).toBeUndefined();
   expect(ledger.roundId("after-failure")).toBe(1);
-  expect(ledger.partitionId("after-failure")).toBe(1);
+  expect(yield* ledger.partitionId("after-failure")).toBe(1);
 }));
 
 it.effect("refuses to clear a physical job and permits one executor per owner", () => Effect.gen(function* () {
@@ -256,7 +256,7 @@ it.effect("matches direct Bend commands and projections across saturation and te
       started.push({ operation: value.operation, sequence });
       yield* Deferred.await(hold);
     }));
-  const partition = ledger.partitionId("agent");
+  const partition = yield* ledger.partitionId("agent");
   const round = ledger.roundId("agent");
   trace({ kind: "openRound", partition, lifetime: 1 });
   const jobs: Array<{ operation: number; round: number }> = [];

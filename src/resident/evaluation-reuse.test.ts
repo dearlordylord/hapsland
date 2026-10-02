@@ -219,10 +219,10 @@ describe("resident evaluation identity", () => {
     expect(Effect.runSync(reuse.route(firstKey, false))).toBe("cached");
     const beforeExpiry = ledger.canonicalProjection().reuse.cache;
     expect(beforeExpiry.map(({ partition }) => partition)).toEqual([
-      ledger.partitionId("partition-b"), ledger.partitionId("partition-a"),
+      Effect.runSync(ledger.partitionId("partition-b")), Effect.runSync(ledger.partitionId("partition-a")),
     ]);
     Effect.runSync(reuse.discardPartition("partition-b"));
-    expect(ledger.canonicalProjection().reuse.cache).toMatchObject([{ partition: ledger.partitionId("partition-a") }]);
+    expect(ledger.canonicalProjection().reuse.cache).toMatchObject([{ partition: Effect.runSync(ledger.partitionId("partition-a")) }]);
     expect(Effect.runSync(reuse.snapshot())).toMatchObject({ entries: 1, bytes: 10, pending: 0 });
     Effect.runSync(reuse.clear());
     expect(ledger.canonicalProjection().reuse).toEqual({ claims: [], cache: [] });

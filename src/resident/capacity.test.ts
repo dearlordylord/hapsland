@@ -29,7 +29,7 @@ describe("resident logical capacity ledger", () => {
 
   it("publishes neither canonical state nor native identities when registration fails", () => {
     const ledger = makeCapacityLedger();
-    const partition = ledger.partitionId("agent");
+    const partition = Effect.runSync(ledger.partitionId("agent"));
     const before = ledger.canonicalProjection();
     expect(() => ledger.transition({ kind: "openRound", partition, lifetime: 1 }, () => {
       throw new Error("native registration failed");
@@ -43,7 +43,7 @@ describe("resident logical capacity ledger", () => {
 
   it("rejects a reentrant mutation and rolls back the enclosing commit", () => {
     const ledger = makeCapacityLedger();
-    const partition = ledger.partitionId("agent");
+    const partition = Effect.runSync(ledger.partitionId("agent"));
     const before = ledger.canonicalProjection();
     expect(() => ledger.transition({ kind: "openRound", partition, lifetime: 1 }, () => {
       // Read-only inspection observes the published state, not the staged draft.
@@ -60,11 +60,11 @@ describe("resident logical capacity ledger", () => {
   it("forgets idle advicee identities at the metadata limit and fences older starts", () => {
     const ledger = makeCapacityLedger();
     for (let index = 0; index < MAX_PARTITION_IDENTITIES; index++) {
-      ledger.partitionId(`advicee-${index}`);
+      Effect.runSync(ledger.partitionId(`advicee-${index}`));
     }
     const first = ledger.knownPartitionId("advicee-0");
     expect(first).toBeDefined();
-    ledger.partitionId("next-advicee");
+    Effect.runSync(ledger.partitionId("next-advicee"));
     expect(ledger.partitionIdentityCount()).toBe(MAX_PARTITION_IDENTITIES);
     expect(ledger.knownPartitionId("advicee-0")).toBeUndefined();
     expect(ledger.minimumFreshStart()).toBeGreaterThan(0);
@@ -82,7 +82,7 @@ describe("resident logical capacity ledger", () => {
 
   it("prunes completed collection tokens but retains canonical live tokens", () => {
     const ledger = makeCapacityLedger();
-    const partition = ledger.partitionId("agent");
+    const partition = Effect.runSync(ledger.partitionId("agent"));
     const live = ledger.collectionTokenId("live");
     expect(ledger.transition({ kind: "collectionClaimBackground", group: partition,
       token: live, active: true, capacity: 1 }).commands[0]?.kind).toBe("collectionBackgroundClaimed");
@@ -101,7 +101,7 @@ describe("resident logical capacity ledger", () => {
     const ledger = makeCapacityLedger();
     for (let index = 0; index < 200; index++) {
       const partition = `agent-${index}`;
-      const group = ledger.partitionId(partition);
+      const group = Effect.runSync(ledger.partitionId(partition));
       const round = ledger.roundId(partition);
       expect(ledger.transition({ kind: "continuationConsume", group, round }).commands[0]?.kind)
         .toBe("continuationConsumed");
@@ -217,7 +217,7 @@ describe("resident logical capacity ledger", () => {
 
   it("keeps permit and capacity transitions in one canonical resident state", () => {
     const ledger = makeCapacityLedger();
-    const partition = ledger.partitionId("agent");
+    const partition = Effect.runSync(ledger.partitionId("agent"));
     const issued = ledger.transition({ kind: "issuePermit", partition, lifetime: 1,
       tool: 7, started: 100, deadline: 300, now: 110, minimumStarted: 0,
       facts: { clockValid: true, hookWindow: 2500, startedUpper: 100, nowLower: 101,
@@ -468,6 +468,10 @@ effectIt.effect("defers dispatch identity allocation and shares one partition ac
   const identities = yield* Effect.forEach(Array.from({ length: 16 }), () => identity, { concurrency: "unbounded" });
   expect(identities).toEqual(Array.from({ length: 16 }, () => ({ partition: 1, round: 7 })));
   expect(owner.partitionIdentityCount()).toBe(1);
+  const partition = owner.partitionId("other");
+  expect(owner.partitionIdentityCount()).toBe(1);
+  const allocated = yield* Effect.forEach(Array.from({ length: 16 }), () => partition, { concurrency: "unbounded" });
+  expect(allocated).toEqual(Array.from({ length: 16 }, () => 2));
   expect(yield* owner.dispatchIdentity("other", 8)).toEqual({ partition: 2, round: 8 });
   expect(owner.partitionIdentityCount()).toBe(2);
 }));

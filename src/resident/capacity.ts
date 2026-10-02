@@ -285,6 +285,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    partitionId: Effect.fn("Capacity.partitionId")((partition: string) => commitAllEffect((draft, records) => [partitionId(draft, partition), records])),
     dispatchIdentity: Effect.fn("Capacity.dispatchIdentity")((...args: Arguments<typeof dispatchIdentity>) => commitAllEffect((draft, records) => [dispatchIdentity(draft, ...args), records])),
     pruneCollectionTokenIds: Effect.fn("Capacity.pruneCollectionTokenIds")((nativeLive: ReadonlySet<string>) => commitAllEffect((draft, records) => [pruneCollectionTokenIds(draft, nativeLive), records])),
     reservationSnapshot: Effect.fn("Capacity.reservationSnapshot")((capability: CapacityReservation) => Ref.get(state).pipe(Effect.map((snapshot) => {

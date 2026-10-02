@@ -1922,15 +1922,19 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       readyReported = true;
       const decision = residentLedger.readyJevRequest(job.partition,
         job.canonicalOperationId, job.reservation, facts, job.canonicalRound);
-      if (decision.status !== "stale") requestIdentity = {
+      if (decision.status !== "stale") {
+        const canonicalPartition = residentLedger.knownPartitionId(job.partition);
+        if (canonicalPartition === undefined) throw new Error("issued review lost its partition identity");
+        requestIdentity = {
         partition: job.partition,
-        canonicalPartition: residentLedger.partitionId(job.partition),
+        canonicalPartition,
         lifetime: residentLedger.residentLifetime,
         canonicalLifetime: residentLedger.canonicalLifetime,
         round: decision.round,
         hapslandRound: job.round?.generation ?? null,
         operation: job.canonicalOperationId,
-      };
+        };
+      }
       if (decision.status === "issued") {
         issuedRequest = decision.request;
         job.requestId = decision.request;

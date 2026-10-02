@@ -290,3 +290,7 @@ if (!state.includes('clear: Effect.fn("ResidentState.clear")(() => commitAllEffe
 if (!state.includes('dispatchIdentity: Effect.fn("Capacity.dispatchIdentity")')) {
   throw new Error("dispatch identity allocation must compose as an atomic Effect");
 }
+
+if (!state.includes('partitionId: Effect.fn("Capacity.partitionId")') || server.includes('residentLedger.partitionId(')) {
+  throw new Error("root partition allocation must execute as an Effect; observers use owned identities");
+}
