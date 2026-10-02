@@ -1209,7 +1209,7 @@ const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function*
     if (fields.host === "claude" && status === "not installed" && previewClaudeInstallation(fields).status === "unsupported") status = "unavailable";
     return { host, name: host === "claude" ? "Claude Code" : "Codex CLI", status };
   });
-  const hosts = yield* Effect.tryPromise(() => selectSetupClients(choices));
+  const hosts = yield* selectSetupClients(choices);
   if (hosts.length === 0) { process.stderr.write("No clients selected. No changes made.\n"); return; }
   for (const host of hosts) {
     const result = yield* pilotSetup(host).pipe(

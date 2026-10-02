@@ -3418,5 +3418,30 @@
       "src/cli.ts": "290eeca77c9b5b617ee29008d174d64b49f12fcb5c03f73c0b2ca71d8ec5aa6a"
     },
     "limitations": "Client selector and masked credential reader remain native Promise boundaries without complete interruption ownership; native doctor/lifecycle and installation preview/inspect remain synchronous. Actual TTY tests, final full suite and completion gates remain required."
+  },
+  "clientSelectionOwnershipPort": {
+    "status": "client selector is scoped named Effect; CLI directly yields it",
+    "scope": "Native terminal port snapshots original raw mode; acquireUseRelease owns listener removal/raw restoration/pause on success, failure and interruption. Keypress state remains callback adapter state. Selection default/toggle/order/Escape/Ctrl-C behavior preserved.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/client-selection.test.ts src/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 2,
+        "tests": 10,
+        "durationSeconds": 7.82
+      }
+    ],
+    "testCorrection": "Initial new success test failed because Effect.callback cancellation cleanup did not run on success (1 failed,9 passed). Listener ownership moved to outer release; corrected tests pass.",
+    "ownershipEvidence": "Synthetic terminal port tests successful toggled selection and interrupted fiber; listeners removed, raw mode restored to original false/true and input paused before completion.",
+    "sourceSha256": {
+      "src/onboarding/client-selection.ts": "1eedded929ccd9b772e45bd72ff43e0ba3985987b75789a82f78867f436526e4",
+      "src/onboarding/client-selection.test.ts": "844499b6b1d7980c325b12e6183584fbe602790e8459372ddfe3c759a1b44b2a",
+      "src/cli.ts": "6b936f7d250065b4ff29cc9efb20bd48d9e70a2856549022439524273df15480"
+    },
+    "limitations": "No actual TTY/platform restoration or native cleanup-failure test; masked credential entry, lifecycle execution, installation Config and coordinated hook deadline/full gates remain incomplete."
   }
 }
