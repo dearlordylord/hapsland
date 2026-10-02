@@ -159,7 +159,8 @@
     "Collection candidate lease/findings checks and post-update eligibility inspect explicit advice snapshots; both fitting passes read current findings through Effects",
     "Collection ownership/current-token checks, collection work count, reused finding activity count and final transport token checks inspect explicit advice snapshots",
     "Both Stop finish selection and binding checks consume explicit advice batch snapshot content rather than capability delivery getters",
-    "Collection token pruning composes a named Effect and reads delivery tokens from advice snapshots; Stop expired-lease cleanup reads batch snapshot content"
+    "Collection token pruning composes a named Effect and reads delivery tokens from advice snapshots; Stop expired-lease cleanup reads batch snapshot content",
+    "Pending-advice diagnostics compose a named Effect from batch snapshot content; fixture and runnable-probe callers await diagnostics directly"
   ],
   "verification": [
     {
@@ -1996,6 +1997,17 @@
       "build": true,
       "ticketBoundaryCheck": true,
       "scope": "Collection token pruning and expired Stop leases; advice diagnostics/getter removal/list conversion remain"
+    },
+    {
+      "stage": "advice-diagnostics-effect",
+      "affectedTestsPassed": 116,
+      "affectedTestFiles": 3,
+      "supplementaryJevRequestTestsPassed": 10,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "probeStrictTypecheck": true,
+      "scope": "Diagnostic snapshot conversion; capability getters/list reader remain pending removal"
     }
   ],
   "next": [

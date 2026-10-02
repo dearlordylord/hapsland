@@ -242,7 +242,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
     const f = await fixture(host);
     try {
       await f.admit({ "type.ts": finding() }); await f.server.whenIdle();
-      requireThat(f.server.pendingAdviceMetadata().length === 1, "stale fixture had no finding to discard");
+      requireThat((await Effect.runPromise(f.server.pendingAdviceMetadata())).length === 1, "stale fixture had no finding to discard");
       await put(f.root, "type.ts", 'type OrderCount = number & { readonly __brand: "OrderCount" }\n');
       const stop = await f.stop();
       requireThat(!stop.blocked && f.server.stats().pendingAdvice === 0, "stale finding escaped revalidation");
@@ -253,7 +253,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
     const f = await fixture(host);
     try {
       await f.admit({ "first.ts": finding("FirstCount"), "second.ts": finding("SecondCount") }); await f.server.whenIdle();
-      requireThat(f.server.pendingAdviceMetadata().length === 2, "multi-unit fixture did not produce two records");
+      requireThat((await Effect.runPromise(f.server.pendingAdviceMetadata())).length === 2, "multi-unit fixture did not produce two records");
       const selected = asAdvice(await f.collect());
       requireThat(selected.findingCount === 2, "multi-unit collection did not include both findings");
       (await Effect.runPromise(f.server.releaseDelivery(selected.token)));

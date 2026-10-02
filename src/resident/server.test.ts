@@ -81,7 +81,7 @@ describe("virtual round quiescence", () => {
     try {
       expect(server.admit(observation, dispatch, false, true).status).toBe("accepted");
       await server.whenIdle();
-      expect(server.pendingAdviceMetadata()).toEqual([]);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
       expect(server.sweepQuietRounds(1_000)).toBe(0);
       expect(server.sweepQuietRounds(1_000 + VIRTUAL_ROUND_QUIET_MS - 1)).toBe(0);
       expect(server.sweepQuietRounds(1_000 + VIRTUAL_ROUND_QUIET_MS)).toBe(1);
@@ -210,7 +210,7 @@ describe("canonical resident capacity", () => {
       release.resolve();
       await server.whenIdle();
       expect(captured).toEqual(["safe.ts"]);
-      expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["safe.ts"]);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["safe.ts"]);
     } finally {
       release.resolve();
       await server.close();
@@ -243,10 +243,10 @@ describe("canonical resident capacity", () => {
       await firstStarted.promise;
       await secondStarted.promise;
       for (let attempt = 0; attempt < 200 &&
-          !server.pendingAdviceMetadata().some((item) => item.path === "second.ts"); attempt += 1) {
+          !(await Effect.runPromise(server.pendingAdviceMetadata())).some((item) => item.path === "second.ts"); attempt += 1) {
         await new Promise<void>((resolveTimeout) => setTimeout(resolveTimeout, 5));
       }
-      expect(server.pendingAdviceMetadata().map((item) => item.path)).toEqual(["second.ts"]);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata())).map((item) => item.path)).toEqual(["second.ts"]);
       expect(await server.collect(root, observation.advicee, allFindingsDispatch(statePath)))
         .toMatchObject({ status: "empty" });
       firstGate.resolve();
@@ -277,9 +277,9 @@ describe("canonical resident capacity", () => {
       expect(server.admit(observation, allFindingsDispatch(statePath)).status).toBe("accepted");
       clock = 101;
       await server.whenIdle();
-      expect(server.pendingAdviceMetadata().map((item) => item.path).sort())
+      expect((await Effect.runPromise(server.pendingAdviceMetadata())).map((item) => item.path).sort())
         .toEqual(["first.ts", "second.ts"]);
-      expect(server.pendingAdviceMetadata()).toHaveLength(2);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(2);
       expect(server.stats().retainedBytes).toBeGreaterThan(0);
       expect(server.stats().rejectedCapacity).toBe(0);
     } finally {
@@ -307,7 +307,7 @@ describe("canonical resident capacity", () => {
       expect(server.stats().retainedBytes).toBeGreaterThan(0);
       clock = 101;
       await server.whenIdle();
-      const metadata = server.pendingAdviceMetadata();
+      const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
       expect(metadata).toHaveLength(2);
       expect(new Set(metadata.map((item) => item.partition)).size).toBe(2);
       expect(new Set(metadata.map((item) => item.path))).toEqual(new Set(["agent-a.ts", "agent-b.ts"]));
@@ -341,7 +341,7 @@ describe("resident delivery lease", () => {
       await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
         finish: { token: "held", deadlineReached: true } });
-      expect(server.pendingAdviceMetadata()).toHaveLength(1);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(1);
       await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "held", close: true, reason: "no-advice" });
       release.resolve();
@@ -388,7 +388,7 @@ describe("resident delivery lease", () => {
       expect(activity.roundClosures?.[0]?.discarded?.running).toBeGreaterThan(0);
       gate.resolve();
       await server.whenIdle();
-      expect(server.pendingAdviceMetadata()).toEqual([]);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
     } finally {
       gate.resolve();
       await server.close();
@@ -1003,7 +1003,7 @@ describe("resident delivery lease", () => {
     } };
     expect(server.admit(observation, dispatch)).toEqual({ status: "accepted" });
     await server.whenIdle();
-    expect(server.pendingAdviceMetadata()).toHaveLength(1);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(1);
     writeFileSync(credentialStatePath, JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
     const rotated = { ...dispatch, credential: { ...dispatch.credential!, generation: 2 } };
     const result = await server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
@@ -1277,7 +1277,7 @@ describe("resident delivery lease", () => {
       now = PENDING_ADVICE_EXPIRY_MS + 1;
       expect((await Effect.runPromise(server.beginComposedSubmission(selected.token, "stop")))).toEqual({ status: "empty" });
       expect((await Effect.runPromise(server.acknowledge(selected.token)))).toEqual({ status: "empty" });
-      expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["b.ts"]);
     } finally {
       await server.close();
     }
@@ -1807,7 +1807,7 @@ describe("resident delivery lease", () => {
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
 
-    const metadata = server.pendingAdviceMetadata();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     const stats = server.stats();
     expect(metadata.length).toBeGreaterThanOrEqual(8);
     expect(metadata.length).toBeLessThanOrEqual(16);
@@ -1926,7 +1926,7 @@ describe("resident delivery lease", () => {
     );
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    const [first, second] = server.pendingAdviceMetadata();
+    const [first, second] = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(first).toBeDefined();
     expect(second).toBeDefined();
     if (first === undefined || second === undefined) return;
@@ -2022,7 +2022,7 @@ describe("resident delivery lease", () => {
     releaseOldEvaluation.resolve();
     await server.whenIdle();
 
-    const metadata = server.pendingAdviceMetadata();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(metadata).toHaveLength(1);
     expect(metadata[0]?.generation).toBe(2);
     expect(server.stats().currentWork).toBe(1);
@@ -2072,7 +2072,7 @@ describe("resident delivery lease", () => {
       expect(server.admit(duplicate, dispatch).status).toBe("accepted");
     }
     await server.whenIdle();
-    const metadata = server.pendingAdviceMetadata();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(metadata).toHaveLength(1);
     expect(new Set(metadata.map(({ generation }) => generation))).toEqual(new Set([1]));
     expect(new Set(metadata.flatMap(({ evaluationIdentities }) => evaluationIdentities)).size).toBe(1);
@@ -2130,7 +2130,7 @@ describe("resident delivery lease", () => {
     release.resolve();
     await expect(collecting).resolves.toMatchObject({ status: "empty" });
 
-    const metadata = server.pendingAdviceMetadata();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(metadata).toHaveLength(1);
     expect(metadata[0]?.generation).toBe(2);
     await expect(server.collect(
@@ -2180,7 +2180,7 @@ describe("resident delivery lease", () => {
     if (replacement === undefined) return;
     expect(server.admit(replacement, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    const replacementAdvice = server.pendingAdviceMetadata();
+    const replacementAdvice = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(replacementAdvice).toHaveLength(1);
     expect(replacementAdvice[0]?.generation).toBe(2);
     expect(server.stats().currentWork).toBe(1);
@@ -2262,7 +2262,7 @@ describe("resident delivery lease", () => {
     await admitSource("type OrderCount = boolean\n", "seed-B-clear", clearDispatch);
     expect(server.accountingMetrics().successfulCacheEntries).toBe(1);
     await admitSource("type OrderCount = number\n", "A", finding);
-    expect(server.pendingAdviceMetadata()).toHaveLength(1);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(1);
 
     const collectingA = server.collect(
       root,
@@ -2272,15 +2272,15 @@ describe("resident delivery lease", () => {
     await revalidationHeld.promise;
 
     await admitSource("type OrderCount = boolean\n", "cached-B", finding);
-    expect(server.pendingAdviceMetadata()).toHaveLength(0);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(0);
     await admitSource("type OrderCount = string\n", "new-C", finding);
-    const currentC = server.pendingAdviceMetadata();
+    const currentC = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(currentC).toHaveLength(1);
     const cGeneration = currentC[0]?.generation;
 
     releaseRevalidation.resolve();
     await expect(collectingA).resolves.toMatchObject({ status: "empty" });
-    expect(server.pendingAdviceMetadata()).toMatchObject([{ generation: cGeneration }]);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{ generation: cGeneration }]);
     const deliveredC = await server.collect(
       root,
       advicee({ turnId: "C", toolUseId: "C" }),
@@ -2302,7 +2302,7 @@ describe("resident delivery lease", () => {
     const dispatch = findingDispatch(statePath);
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    expect(server.pendingAdviceMetadata()).toHaveLength(2);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(2);
     await put(root, "b.ts", "type BCount = string\n");
 
     const delivered = await server.collect(
@@ -2415,7 +2415,7 @@ describe("resident delivery lease", () => {
     // partition ledger, whose successful cache entries also consume space.
     expect(saturated.pendingAdvice + saturated.rejectedCapacity).toBe(16);
     expect(saturated.pendingAdvice).toBeGreaterThan(0);
-    const beforeItems = server.pendingAdviceMetadata();
+    const beforeItems = (await Effect.runPromise(server.pendingAdviceMetadata()));
 
     const collected = await server.collect(
       root,
@@ -2455,7 +2455,7 @@ describe("resident delivery lease", () => {
     const saturated = server.stats();
     expect(saturated.pendingAdvice + saturated.rejectedCapacity).toBe(64);
     expect(saturated.pendingAdvice).toBeGreaterThan(0);
-    const beforeItems = server.pendingAdviceMetadata().filter(({ partition }) =>
+    const beforeItems = (await Effect.runPromise(server.pendingAdviceMetadata())).filter(({ partition }) =>
       partition.includes('"subagentId":"agent-0"'));
 
     const collected = await server.collect(
@@ -2489,7 +2489,7 @@ describe("resident delivery lease", () => {
     );
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    const before = server.pendingAdviceMetadata();
+    const before = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(before.map(({ path }) => path)).toEqual(["a.ts", "b.ts"]);
     await put(root, "a.ts", "interface Broken { value: Missing }\n");
 
@@ -2502,12 +2502,12 @@ describe("resident delivery lease", () => {
     if (collected.status !== "advice") return;
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
     expect(visits).toEqual(before.map(({ id }) => id));
-    const after = server.pendingAdviceMetadata();
+    const after = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(after.find(({ path }) => path === "a.ts")?.delivery).toBe("available");
     expect(after.find(({ path }) => path === "b.ts")?.delivery).toBe("leased-unacknowledged");
     expect((await Effect.runPromise(server.acknowledge(collected.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(collected.token))).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "a.ts", delivery: "available" }]);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{ path: "a.ts", delivery: "available" }]);
   });
 
   it("reuses successful clear evaluations but never failures or malformed responses", async () => {
@@ -2588,7 +2588,7 @@ describe("resident delivery lease", () => {
       await server.whenIdle();
     };
     await admitSource("type OrderCount = number\n", "A-1");
-    const firstAIdentity = server.pendingAdviceMetadata()[0]?.evaluationIdentities[0];
+    const firstAIdentity = (await Effect.runPromise(server.pendingAdviceMetadata()))[0]?.evaluationIdentities[0];
     const deliveredA = await server.collect(root, advicee({ turnId: "A", toolUseId: "A" }), dispatch);
     expect(deliveredA.status).toBe("advice");
     if (deliveredA.status === "advice") {
@@ -2596,9 +2596,9 @@ describe("resident delivery lease", () => {
       expect((await Effect.runPromise(server.finalize(deliveredA.token))).status).toBe("finalized");
     }
     await admitSource("type OrderCount = string\n", "B");
-    expect(server.pendingAdviceMetadata()).toHaveLength(1);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(1);
     await admitSource("type OrderCount = number\n", "A-2");
-    const restored = server.pendingAdviceMetadata();
+    const restored = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(restored).toHaveLength(1);
     expect(restored[0]?.evaluationIdentities).toEqual([firstAIdentity]);
     expect(readFileSync(capturePath, "utf8").trim().split("\n")).toHaveLength(2);
@@ -2685,7 +2685,7 @@ describe("resident delivery lease", () => {
     expect(server.admit(decoded.observation, decoded.dispatch).status).toBe("accepted");
     await server.whenIdle();
 
-    const metadata = server.pendingAdviceMetadata();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     expect(metadata).toHaveLength(8);
     expect(server.stats().rejectedCapacity).toBe(0);
     expect(server.stats().retainedBytes).toBe(
@@ -2702,12 +2702,12 @@ describe("resident delivery lease", () => {
       { ...observation.advicee, subagentId: `${subagentId.slice(0, -1)}z` },
       dispatch,
     )).toMatchObject({ status: "empty" });
-    expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ id, delivery }) => ({ id, delivery }))).toEqual(
       metadata.map(({ id }) => ({ id, delivery: "available" })),
     );
     const otherRoot = await makeGitFixture();
     expect(await server.collect(otherRoot, observation.advicee, dispatch)).toMatchObject({ status: "empty" });
-    expect(server.pendingAdviceMetadata().map(({ id, delivery }) => ({ id, delivery }))).toEqual(
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ id, delivery }) => ({ id, delivery }))).toEqual(
       metadata.map(({ id }) => ({ id, delivery: "available" })),
     );
   }, 10_000);
@@ -2729,13 +2729,13 @@ describe("resident bounded advice batches", () => {
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
     expect(first.output.hookSpecificOutput.additionalContext.split("\n").slice(1)).toHaveLength(9);
-    expect(server.pendingAdviceMetadata()).toMatchObject([{
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{
       pendingFindings: 9,
       deliveryFindings: 9,
     }]);
     expect((await Effect.runPromise(server.acknowledge(first.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(first.token))).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toEqual([]);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
       retainedBytes: server.accountingMetrics().successfulCacheBytes,
@@ -2763,7 +2763,7 @@ describe("resident bounded advice batches", () => {
     });
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    const metadata = server.pendingAdviceMetadata();
+    const metadata = (await Effect.runPromise(server.pendingAdviceMetadata()));
     bId = metadata.find(({ path }) => path === "b.ts")?.id ?? "";
     expect(bId).not.toBe("");
 
@@ -2782,7 +2782,7 @@ describe("resident bounded advice batches", () => {
     if (collected.status !== "advice") return;
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
-    expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["b.ts"]);
   }, 10_000);
 
   it("filters an earlier item that reaches expiry while a later final revalidation waits", async () => {
@@ -2814,7 +2814,7 @@ describe("resident bounded advice batches", () => {
     clock = 1;
     expect(server.admit(secondObservation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    bId = server.pendingAdviceMetadata().find(({ path }) => path === "b.ts")?.id ?? "";
+    bId = (await Effect.runPromise(server.pendingAdviceMetadata())).find(({ path }) => path === "b.ts")?.id ?? "";
     expect(bId).not.toBe("");
 
     clock = PENDING_ADVICE_EXPIRY_MS - 1;
@@ -2831,7 +2831,7 @@ describe("resident bounded advice batches", () => {
     if (collected.status !== "advice") return;
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
-    expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).map(({ path }) => path)).toEqual(["b.ts"]);
   }, 10_000);
 
   it("filters an earlier item superseded while a later final revalidation waits", async () => {
@@ -2855,7 +2855,7 @@ describe("resident bounded advice batches", () => {
     const dispatch = singleFindingDispatch(statePath);
     expect(server.admit(observation, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    const initial = server.pendingAdviceMetadata();
+    const initial = (await Effect.runPromise(server.pendingAdviceMetadata()));
     const oldAId = initial.find(({ path }) => path === "a.ts")?.id ?? "";
     bId = initial.find(({ path }) => path === "b.ts")?.id ?? "";
     expect(oldAId).not.toBe("");
@@ -2875,7 +2875,7 @@ describe("resident bounded advice batches", () => {
     if (replacement === undefined) return;
     expect(server.admit(replacement, dispatch).status).toBe("accepted");
     await server.whenIdle();
-    expect(server.pendingAdviceMetadata().some(({ id, path }) => path === "a.ts" && id !== oldAId)).toBe(true);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).some(({ id, path }) => path === "a.ts" && id !== oldAId)).toBe(true);
     expect(server.stats().currentWork).toBe(2);
     release.resolve();
 
@@ -2884,7 +2884,7 @@ describe("resident bounded advice batches", () => {
     if (collected.status !== "advice") return;
     expect(collected.output.hookSpecificOutput.additionalContext).not.toContain("a.ts :: ACount");
     expect(collected.output.hookSpecificOutput.additionalContext).toContain("b.ts :: BCount");
-    expect(server.pendingAdviceMetadata().some(({ id }) => id === oldAId)).toBe(false);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).some(({ id }) => id === oldAId)).toBe(false);
     expect(server.stats().currentWork).toBe(2);
   });
 
@@ -2928,7 +2928,7 @@ describe("resident bounded advice batches", () => {
     if (first.status !== "advice") return;
     expect((await Effect.runPromise(server.acknowledge(first.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(first.token))).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toEqual([]);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
 
     expect(server.admit(secondObservation, singleFindingDispatch(statePath)).status).toBe("accepted");
     await cEntered.promise;
@@ -2999,7 +2999,7 @@ describe("resident bounded advice batches", () => {
     releases.get("a.ts")?.();
     await firstAdvicePending.promise;
     await allEntered.promise;
-    expect(server.pendingAdviceMetadata()).toMatchObject([{
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{
       path: "a.ts",
       pendingAt: 10_000,
     }]);
@@ -3087,9 +3087,9 @@ describe("resident bounded advice batches", () => {
     for (let index = 0; index < 6; index += 1) {
       expect(first.output.hookSpecificOutput.additionalContext).toContain(`type-${index}.ts :: Count${index}`);
     }
-    expect(server.pendingAdviceMetadata().filter(({ delivery }) => delivery !== "available")).toHaveLength(6);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).filter(({ delivery }) => delivery !== "available")).toHaveLength(6);
     (await Effect.runPromise(server.releaseDelivery(first.token)));
-    expect(server.pendingAdviceMetadata().every(({ delivery }) => delivery === "available")).toBe(true);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata())).every(({ delivery }) => delivery === "available")).toBe(true);
     const retried = await server.collect(
       root,
       advicee({ turnId: "batch-retry", toolUseId: "batch-retry" }),
@@ -3100,7 +3100,7 @@ describe("resident bounded advice batches", () => {
     expect(retried.output).toEqual(first.output);
     expect((await Effect.runPromise(server.acknowledge(retried.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(retried.token))).status).toBe("finalized");
-    expect(server.pendingAdviceMetadata()).toEqual([]);
+    expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toEqual([]);
 
     const second = await server.collect(root, advicee({ turnId: "batch-2", toolUseId: "batch-2" }), dispatch);
     expect(second.status).toBe("empty");

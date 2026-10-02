@@ -437,7 +437,7 @@ export interface ResidentRuntime {
   beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): Effect.Effect<ResidentResponse>;
   releaseComposedSubmission(token: string): Effect.Effect<ResidentResponse>;
   whenIdle(): Promise<void>;
-  pendingAdviceMetadata(): ReadonlyArray<{
+  pendingAdviceMetadata(): Effect.Effect<ReadonlyArray<{
     readonly id: string;
     readonly partition: string;
     readonly sequence: number;
@@ -450,7 +450,7 @@ export interface ResidentRuntime {
     readonly pendingFindings: number;
     readonly deliveryFindings: number;
     readonly delivery: "available" | "leased-unacknowledged" | "leased-acknowledged";
-  }>;
+  }>>;
   accountingMetrics(): {
     readonly peakLedgerBytes: number;
     readonly maxMaterializedPreparedUnits: number;
@@ -1262,39 +1262,26 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return Effect.runPromise(residentDispatcher.whenIdle());
   }
 
-  function pendingAdviceMetadata(): ReadonlyArray<{
-    readonly id: string;
-    readonly partition: string;
-    readonly sequence: number;
-    readonly pendingAt: number;
-    readonly collectionEligible: boolean;
-    readonly retainedBytes: number;
-    readonly generation: number;
-    readonly evaluationIdentities: ReadonlyArray<string>;
-    readonly path: string;
-    readonly pendingFindings: number;
-    readonly deliveryFindings: number;
-    readonly delivery: "available" | "leased-unacknowledged" | "leased-acknowledged";
-  }> {
-    return residentAdvice().map((advice) => ({
+  const pendingAdviceMetadata = Effect.fn("ResidentRuntime.pendingAdviceMetadata")(function* (): Effect.fn.Return<Effect.Success<ReturnType<ResidentRuntime["pendingAdviceMetadata"]>>> {
+    return (yield* residentLedger.advice.snapshots()).map(({ capability: advice, content }) => ({
       id: advice.id,
       partition: advice.partition,
       sequence: advice.sequence,
       pendingAt: advice.pendingAt,
-      collectionEligible: advice.collectionEligible,
+      collectionEligible: content.collectionEligible,
       retainedBytes: advice.reservation.bytes,
       generation: advice.revision.generation,
-      evaluationIdentities: advice.evaluations.map(({ prepared }) => prepared.identity),
+      evaluationIdentities: content.evaluations.map(({ prepared }) => prepared.identity),
       path: advice.prepared.input.path,
-      pendingFindings: advice.findings.length,
-      deliveryFindings: advice.delivery?.findings.length ?? 0,
-      delivery: advice.delivery === undefined
+      pendingFindings: content.findings.length,
+      deliveryFindings: content.delivery?.findings.length ?? 0,
+      delivery: content.delivery === undefined
         ? "available"
-        : advice.delivery.acknowledged
+        : content.delivery.acknowledged
           ? "leased-acknowledged"
           : "leased-unacknowledged",
     }));
-  }
+  });
 
   function accountingMetrics(): {
     readonly peakLedgerBytes: number;

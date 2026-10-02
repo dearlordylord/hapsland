@@ -252,13 +252,13 @@ describe("canonical Jev request boundary", () => {
       release.resolve();
       await server.whenIdle();
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(8);
-      expect(server.pendingAdviceMetadata()).toHaveLength(8);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(8);
 
       expect(server.admit(await observe([paths[9]!]), dispatch).status).toBe("accepted");
       await server.whenIdle();
       expect(effectsEntered).toBe(9);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(9);
-      expect(server.pendingAdviceMetadata()).toHaveLength(9);
+      expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(9);
       for (const [index, item] of observations.entries()) {
         if (item.stage !== "started" && item.stage !== "settled") continue;
         expect(observations.slice(0, index).some((prior) => prior.stage === "issued" &&
