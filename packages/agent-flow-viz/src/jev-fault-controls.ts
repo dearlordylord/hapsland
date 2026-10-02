@@ -41,14 +41,14 @@ export const jevFaultControls = <Message>(h: HtmlBuilder<Message>, projection: C
     ...(projection.dispatch.requests.length ? projection.dispatch.requests.map(target => {
       const identity = [target.partition, target.lifetime, target.round, target.operation, target.request].join(",");
       return h.fieldset([], [
-        h.legend([], [`Agent ${target.partition} · lifetime ${target.lifetime} · round ${target.round} · operation ${target.operation} · request ${target.request}`]),
+        h.legend([], [`Advicee ${target.partition} · lifetime ${target.lifetime} · round ${target.round} · operation ${target.operation} · request ${target.request}`]),
         h.p([], [target.interrupted ? "Interrupted; awaiting settlement" : target.started ? "Started; awaiting outcome" : "Issued; not started"]),
         h.div([h.Class("simulation-controls")], outcomes.map(([outcome, label]) => button(label, `jev-request:${identity}:${outcome}`))),
       ]);
     }) : [h.p([], ["No active Jev requests."])]),
     h.ol([h.AriaLabel("Jev intervention results")], reports.slice(-12).map(report => {
       const target = report.control.kind === "jevRequest"
-        ? `Agent ${report.control.target.partition}, lifetime ${report.control.target.lifetime}, round ${report.control.target.round}, operation ${report.control.target.operation}, request ${report.control.target.request}: ${report.control.outcome}`
+        ? `Advicee ${report.control.target.partition}, lifetime ${report.control.target.lifetime}, round ${report.control.target.round}, operation ${report.control.target.operation}, request ${report.control.target.request}: ${report.control.outcome}`
         : `Credentials: ${report.control.action}`;
       return h.li([], [`${report.at} virtual ms · action ${report.controlSequence} · ${target} · ${results[report.result]}`]);
     })),

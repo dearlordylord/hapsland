@@ -122,6 +122,7 @@ export type Observation = {
   readonly event: CanonicalEvent | PreparationEvent;
   readonly preparation?: PreparationFrame;
   readonly commands: readonly CanonicalCommand[];
+  readonly commandScopes?: readonly (number | undefined)[];
   readonly before: CanonicalProjection;
   readonly after: CanonicalProjection;
   readonly rejection?: string;
@@ -1366,6 +1367,7 @@ export class Run {
       time: this.clock,
       event: copy(event),
       commands: result.commands,
+      commandScopes: result.commands.map((_command, index) => this.core.commandScope(index, partition)),
       before,
       after: this.projection,
       ...(item.job && "revision" in item.job

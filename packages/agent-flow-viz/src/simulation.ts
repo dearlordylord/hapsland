@@ -187,6 +187,7 @@ const completeReplay = () => {
 };
 class InputError extends Error {}
 const graphFields = {"sourceBytes": "graphSourceBytes", "treeBytes": "graphTreeBytes", "files": "graphFiles", "readBytes": "graphReadBytes", "outgoingEdges": "graphOutgoingEdges", "depth": "graphDepth", "work": "graphWork"} as const;
+const graphModelDrafts = (drafts: GraphLimitDrafts) => Object.fromEntries(Object.entries(graphFields).map(([key, field]) => [field, drafts[key as keyof GraphLimitDrafts]])) as Pick<SimulationModel, typeof graphFields[keyof typeof graphFields]>;
 const graphDrafts = (model: SimulationModel): GraphLimitDrafts => Object.fromEntries(Object.entries(graphFields).map(([key, field]) => [key, model[field]])) as GraphLimitDrafts;
 const treeFields = {
   missingPercent: "treeMissingPercent",
@@ -546,6 +547,7 @@ export const actSimulation = (
         repairDelay: String(inputs.config.sessions?.[0]?.repairDelayMs ?? inputs.config.session?.repairDelayMs ?? 300),
         agentId: inputs.config.sessions?.[0]?.agent ?? inputs.config.session?.agent ?? "agent-1",
         ...treeDrafts(latest("fileTrees")?.profile ?? inputs.config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE),
+        ...graphModelDrafts(graphLimitDrafts(latest("graphLimits")?.limits ?? inputs.config.graphLimits)),
         bookmark: (inputs as Replay & { dashboard?: { bookmark?: number } }).dashboard?.bookmark ?? -1,
         currentWork: (latest("environment")?.currentWork ?? inputs.config.environment?.currentWork ?? true) ? "current" : "stale",
         credentialReady: (latest("environment")?.credentialReady ?? inputs.config.environment?.credentialReady ?? true) ? "ready" : "unavailable",
