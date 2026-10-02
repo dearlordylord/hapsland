@@ -11932,568 +11932,2043 @@ function $$$$047agent$045flow$045bend$047Canonical$main$() {
   return $$$$047agent$045flow$045bend$047Canonical$step$(($$$$047agent$045flow$045bend$047Canonical$initial$({$: "Ledger.Limits", "global_items": 4, "global_bytes": 100, "partition_items": 2, "partition_bytes": 60})), {$: "Canonical.OpenRound", "partition": 1, "lifetime": 1});
 }
 
-function $$$$047agent$045flow$045bend$047ImportGraph$source_cap$(_limits_0) {
-  const _source_bytes_0 = _limits_0["source_bytes"];
-  return _source_bytes_0;
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$tree_cap$(_limits_0) {
-  const _tree_bytes_0 = _limits_0["tree_bytes"];
-  return _tree_bytes_0;
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$file_cap$(_limits_0) {
-  const _files_0 = _limits_0["files"];
-  return _files_0;
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$read_cap$(_limits_0) {
-  const _read_bytes_0 = _limits_0["read_bytes"];
-  return _read_bytes_0;
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$edge_cap$(_limits_0) {
-  const _outgoing_edges_0 = _limits_0["outgoing_edges"];
-  return _outgoing_edges_0;
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$depth_cap$(_limits_0) {
-  const _depth_0 = _limits_0["depth"];
-  return _depth_0;
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0) {
-  const _work_0 = _limits_0["work"];
-  return _work_0;
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$local_budget$(_limits_0, _local_work_0, _local_depth_0, _distinct_targets_0, _graph_work_0) {
-  return $Bool$and$(($Bool$not$(($Nat$is_gt$(_local_depth_0, ($$$$047agent$045flow$045bend$047ImportGraph$depth_cap$(_limits_0)))))), ($Bool$and$(($Bool$not$(($Nat$is_gt$(_distinct_targets_0, ($$$$047agent$045flow$045bend$047ImportGraph$edge_cap$(_limits_0)))))), ($Bool$not$(($Nat$is_gt$(nat_chk(_local_work_0 + _graph_work_0), ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0)))))))));
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$tree_after$(_total_0, _contribution_0, _cap_0) {
-  return $Bool$pick$(($Nat$is_gt$(nat_chk(_total_0 + _contribution_0), _cap_0)), _total_0, nat_chk(_total_0 + _contribution_0));
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$read_after$(_total_0, _contribution_0) {
-  return nat_chk(_total_0 + _contribution_0);
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$initial$(_limits_0) {
-  return {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Idle"}, "pending": {$: "Nil"}, "visited": {$: "Nil"}, "files": 0, "read_bytes": 0, "tree_bytes": 0, "work": 0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0};
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$edge_count$(_edges_0) {
-  if (_edges_0.$ === "Nil") {
-    return 0;
+function $JevEffects$issued$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _request_0, _delay_0) {
+  if (_outcome_0.$ === "Canonical.NeverSent") {
+    return {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": {$: "Canonical.NeverSent"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}};
+  } else if (_outcome_0.$ === "Canonical.RequestInterrupted") {
+    return {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
   } else {
-    const _rest_0 = _edges_0["tail"];
-    const _x_0 = ($$$$047agent$045flow$045bend$047ImportGraph$edge_count$(_rest_0));
-    return nat_chk(1 + _x_0);
+    return {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": 0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
   }
 }
 
-function $$$$047agent$045flow$045bend$047ImportGraph$contains$(_target_0, _visited_0) {
-  if (_visited_0.$ === "Nil") {
-    return false;
-  } else {
-    const _head_0 = _visited_0["head"];
-    const _rest_0 = _visited_0["tail"];
-    const _x_0 = ($Nat$is_eq$(_target_0, _head_0));
-    const _x_1 = ($$$$047agent$045flow$045bend$047ImportGraph$contains$(_target_0, _rest_0));
-    return (_x_0 || _x_1);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$with_depth$(_edges_0, _depth_0) {
-  if (_edges_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _id_0 = _edges_0["head"];
-    const _rest_0 = _edges_0["tail"];
-    return {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": ($$$$047agent$045flow$045bend$047ImportGraph$with_depth$(_rest_0, _depth_0))};
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$pending_after$(_pending_0, _edges_0, _depth_0, _overflow_0) {
-  return $Bool$pick$(_overflow_0, _pending_0, ($List$append$(_pending_0, ($$$$047agent$045flow$045bend$047ImportGraph$with_depth$(_edges_0, nat_chk(_depth_0 + 1))))));
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, _reason_0) {
-  return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": _reason_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": _reason_0}};
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_0, _local_work_0, _edges_0) {
-  const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$source_cap$(_limits_0))));
-  const _x_1 = ($Nat$is_gt$(_source_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$read_cap$(_limits_0))));
-  const _x_2 = ($Nat$is_gt$(($$$$047agent$045flow$045bend$047ImportGraph$edge_count$(_edges_0)), ($$$$047agent$045flow$045bend$047ImportGraph$edge_cap$(_limits_0))));
-  const _x_3 = ($Nat$is_gt$(_local_work_0, ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0))));
-  return $Bool$pick$((_x_0 || _x_1), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$(($Nat$is_gt$(_tree_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$tree_cap$(_limits_0)))), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.TreeLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.WorkLimit"})), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($$$$047agent$045flow$045bend$047ImportGraph$with_depth$(_edges_0, 1)), "visited": {$: "Con", "head": _target_0, "tail": {$: "Nil"}}, "files": 1, "read_bytes": _source_bytes_0, "tree_bytes": _tree_bytes_0, "work": _local_work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$next$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
-  if (_pending_0.$ === "Nil") {
-    return $Bool$pick$(_skipped_tree_0, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": {$: "ImportGraph.TreeLimit"}}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": {$: "ImportGraph.TreeLimit"}}}, ($Bool$pick$(_skipped_excluded_0, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": {$: "ImportGraph.Excluded"}}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": false, "skipped_excluded": true, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": {$: "ImportGraph.Excluded"}}}, ($Bool$pick$(_skipped_other_0, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": {$: "ImportGraph.Omitted"}}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": {$: "ImportGraph.Omitted"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Complete"}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "ImportGraph.UnitComplete"}})))));
-  } else {
-    const _t_0 = _pending_0["head"];
-    const _id_0 = _t_0["id"];
-    const _depth_0 = _t_0["depth"];
-    const _rest_0 = _pending_0["tail"];
-    return $Bool$pick$(($Nat$is_ge$(_work_0, ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0)))), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": _rest_0}, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(_depth_0, ($$$$047agent$045flow$045bend$047ImportGraph$depth_cap$(_limits_0)))), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": _rest_0}, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.DepthLimit"})), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Resolving", "edge": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}}, "pending": _rest_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + 1), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.ResolveEdge", "edge": _id_0}})));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$resolved$(_limits_0, _edge_0, _target_0, _result_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
-  if (_result_0.$ === "ImportGraph.NotFound") {
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Missing"}}};
-  } else if (_result_0.$ === "ImportGraph.Many") {
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Ambiguous"}}};
-  } else if (_result_0.$ === "ImportGraph.Unhandled") {
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Unsupported"}}};
-  } else {
-    return $Bool$pick$(($$$$047agent$045flow$045bend$047ImportGraph$contains$(_target_0, _visited_0)), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Checking", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.CheckPath", "target": _target_0}});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$checked$(_limits_0, _edge_0, _target_0, _allowed_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
-  if (!_allowed_0) {
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": true, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Excluded"}}};
-  } else {
-    const _x_0 = ($$$$047agent$045flow$045bend$047ImportGraph$source_cap$(_limits_0));
-    return $Bool$pick$(($Nat$is_ge$(_files_0, ($$$$047agent$045flow$045bend$047ImportGraph$file_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.FileLimit"}}}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_read_bytes_0 + _x_0), ($$$$047agent$045flow$045bend$047ImportGraph$read_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.ReadLimit"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Capturing", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.ReadSource", "target": _target_0}})));
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$captured$(_limits_0, _edge_0, _target_0, _source_bytes_0, _node_bytes_0, _local_work_0, _edges_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
-  const _depth_0 = _edge_0["depth"];
-  const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$source_cap$(_limits_0))));
-  const _x_1 = ($Nat$is_gt$(nat_chk(_read_bytes_0 + _source_bytes_0), ($$$$047agent$045flow$045bend$047ImportGraph$read_cap$(_limits_0))));
-  const _x_2 = ($Nat$is_gt$(($$$$047agent$045flow$045bend$047ImportGraph$edge_count$(_edges_0)), ($$$$047agent$045flow$045bend$047ImportGraph$edge_cap$(_limits_0))));
-  const _x_3 = ($Nat$is_gt$(nat_chk(_work_0 + _local_work_0), ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0))));
-  return $Bool$pick$((_x_0 || _x_1), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(nat_chk(_tree_bytes_0 + _node_bytes_0), ($$$$047agent$045flow$045bend$047ImportGraph$tree_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($$$$047agent$045flow$045bend$047ImportGraph$pending_after$(_pending_0, _edges_0, _depth_0, true)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047agent$045flow$045bend$047ImportGraph$read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.TreeLimit"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($$$$047agent$045flow$045bend$047ImportGraph$pending_after$(_pending_0, _edges_0, _depth_0, false)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047agent$045flow$045bend$047ImportGraph$read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": ($$$$047agent$045flow$045bend$047ImportGraph$tree_after$(_tree_bytes_0, _node_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$tree_cap$(_limits_0)))), "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$apply$(_state_0, _event_0) {
-  const _t_0 = _state_0["phase"];
-  if (_t_0.$ === "ImportGraph.Idle") {
-    const _pending_0 = _state_0["pending"];
-    const _visited_0 = _state_0["visited"];
-    const _files_0 = _state_0["files"];
-    const _read_bytes_0 = _state_0["read_bytes"];
-    const _tree_bytes_0 = _state_0["tree_bytes"];
-    const _work_0 = _state_0["work"];
-    const _skipped_tree_0 = _state_0["skipped_tree"];
-    const _skipped_excluded_0 = _state_0["skipped_excluded"];
-    const _skipped_other_0 = _state_0["skipped_other"];
-    const _limits_0 = _state_0["limits"];
-    if (_event_0.$ === "ImportGraph.Root") {
-      const _target_0 = _event_0["target"];
-      const _source_bytes_0 = _event_0["source_bytes"];
-      const _tree_bytes_1 = _event_0["tree_bytes"];
-      const _local_work_0 = _event_0["local_work"];
-      const _edges_0 = _event_0["edges"];
-      return $$$$047agent$045flow$045bend$047ImportGraph$root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_1, _local_work_0, _edges_0);
+function $JevEffects$started$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _id_0, _delay_0, _interrupted_0) {
+  if (_outcome_0.$ === "Canonical.NeverSent") {
+    if (_interrupted_0) {
+      return {$: "JevEffects.RefusedStarted"};
     } else {
-      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.ProtocolViolation"});
+      return {$: "JevEffects.RefusedStarted"};
     }
-  } else if (_t_0.$ === "ImportGraph.Ready") {
-    const _pending_1 = _state_0["pending"];
-    const _visited_1 = _state_0["visited"];
-    const _files_1 = _state_0["files"];
-    const _read_bytes_1 = _state_0["read_bytes"];
-    const _tree_bytes_2 = _state_0["tree_bytes"];
-    const _work_1 = _state_0["work"];
-    const _skipped_tree_1 = _state_0["skipped_tree"];
-    const _skipped_excluded_1 = _state_0["skipped_excluded"];
-    const _skipped_other_1 = _state_0["skipped_other"];
-    const _limits_1 = _state_0["limits"];
-    if (_event_0.$ === "ImportGraph.Next") {
-      return $$$$047agent$045flow$045bend$047ImportGraph$next$(_limits_1, _pending_1, _visited_1, _files_1, _read_bytes_1, _tree_bytes_2, _work_1, _skipped_tree_1, _skipped_excluded_1, _skipped_other_1);
+  } else if (_outcome_0.$ === "Canonical.RequestInterrupted") {
+    if (!_interrupted_0) {
+      return {$: "JevEffects.Applied", "facts": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0}, "delay": _delay_0}, "tail": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}}};
     } else {
-      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_1, _pending_1, _visited_1, _files_1, _read_bytes_1, _tree_bytes_2, _work_1, _skipped_tree_1, _skipped_excluded_1, _skipped_other_1, {$: "ImportGraph.ProtocolViolation"});
+      return {$: "JevEffects.Applied", "facts": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
     }
-  } else if (_t_0.$ === "ImportGraph.Resolving") {
-    const _edge_0 = _t_0["edge"];
-    const _pending_2 = _state_0["pending"];
-    const _visited_2 = _state_0["visited"];
-    const _files_2 = _state_0["files"];
-    const _read_bytes_2 = _state_0["read_bytes"];
-    const _tree_bytes_3 = _state_0["tree_bytes"];
-    const _work_2 = _state_0["work"];
-    const _skipped_tree_2 = _state_0["skipped_tree"];
-    const _skipped_excluded_2 = _state_0["skipped_excluded"];
-    const _skipped_other_2 = _state_0["skipped_other"];
-    const _limits_2 = _state_0["limits"];
-    if (_event_0.$ === "ImportGraph.Resolved") {
-      const _target_1 = _event_0["target"];
-      const _result_0 = _event_0["result"];
-      return $$$$047agent$045flow$045bend$047ImportGraph$resolved$(_limits_2, _edge_0, _target_1, _result_0, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_3, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2);
+  } else {
+    if (_interrupted_0) {
+      return {$: "JevEffects.RefusedInterrupted"};
     } else {
-      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_3, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.ProtocolViolation"});
+      return {$: "JevEffects.Applied", "facts": {$: "Con", "head": {$: "JevEffects.ScheduledFact", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _id_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0}, "tail": {$: "Nil"}}};
     }
-  } else if (_t_0.$ === "ImportGraph.Checking") {
-    const _edge_1 = _t_0["edge"];
-    const _target_2 = _t_0["target"];
-    const _pending_3 = _state_0["pending"];
-    const _visited_3 = _state_0["visited"];
-    const _files_3 = _state_0["files"];
-    const _read_bytes_3 = _state_0["read_bytes"];
-    const _tree_bytes_4 = _state_0["tree_bytes"];
-    const _work_3 = _state_0["work"];
-    const _skipped_tree_3 = _state_0["skipped_tree"];
-    const _skipped_excluded_3 = _state_0["skipped_excluded"];
-    const _skipped_other_3 = _state_0["skipped_other"];
-    const _limits_3 = _state_0["limits"];
-    if (_event_0.$ === "ImportGraph.PathChecked") {
-      const _allowed_0 = _event_0["allowed"];
-      return $$$$047agent$045flow$045bend$047ImportGraph$checked$(_limits_3, _edge_1, _target_2, _allowed_0, _pending_3, _visited_3, _files_3, _read_bytes_3, _tree_bytes_4, _work_3, _skipped_tree_3, _skipped_excluded_3, _skipped_other_3);
+  }
+}
+
+function $JevEffects$intervene$(_found_0, _outcome_0, _delay_0) {
+  if (_found_0.$ === "None") {
+    return {$: "JevEffects.RefusedMissing"};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _o_0 = _t_0["operation"];
+    const _id_0 = _t_0["request"];
+    const _t_1 = _t_0["started"];
+    if (!_t_1) {
+      return {$: "JevEffects.Applied", "facts": ($JevEffects$issued$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _id_0, _delay_0))};
     } else {
-      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_3, _pending_3, _visited_3, _files_3, _read_bytes_3, _tree_bytes_4, _work_3, _skipped_tree_3, _skipped_excluded_3, _skipped_other_3, {$: "ImportGraph.ProtocolViolation"});
+      const __1 = _t_0["interrupted"];
+      return $JevEffects$started$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _id_0, _delay_0, __1);
     }
-  } else if (_t_0.$ === "ImportGraph.Capturing") {
-    const _edge_2 = _t_0["edge"];
-    const _target_3 = _t_0["target"];
-    const _pending_4 = _state_0["pending"];
-    const _visited_4 = _state_0["visited"];
-    const _files_4 = _state_0["files"];
-    const _read_bytes_4 = _state_0["read_bytes"];
-    const _tree_bytes_5 = _state_0["tree_bytes"];
-    const _work_4 = _state_0["work"];
-    const _skipped_tree_4 = _state_0["skipped_tree"];
-    const _skipped_excluded_4 = _state_0["skipped_excluded"];
-    const _skipped_other_4 = _state_0["skipped_other"];
-    const _limits_4 = _state_0["limits"];
-    if (_event_0.$ === "ImportGraph.Captured") {
-      const _source_bytes_1 = _event_0["source_bytes"];
-      const _node_bytes_0 = _event_0["node_bytes"];
-      const _local_work_1 = _event_0["local_work"];
-      const _edges_1 = _event_0["edges"];
-      return $$$$047agent$045flow$045bend$047ImportGraph$captured$(_limits_4, _edge_2, _target_3, _source_bytes_1, _node_bytes_0, _local_work_1, _edges_1, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4);
-    } else if (_event_0.$ === "ImportGraph.CaptureFailed") {
-      return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_4, "visited": {$: "Con", "head": _target_3, "tail": _visited_4}, "files": _files_4, "read_bytes": _read_bytes_4, "tree_bytes": _tree_bytes_5, "work": _work_4, "skipped_tree": _skipped_tree_4, "skipped_excluded": _skipped_excluded_4, "skipped_other": true, "limits": _limits_4}, "command": {$: "ImportGraph.SkipImport", "target": _target_3, "reason": {$: "ImportGraph.CaptureUnavailable"}}};
-    } else {
-      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_4, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4, {$: "ImportGraph.ProtocolViolation"});
-    }
-  } else if (_t_0.$ === "ImportGraph.Complete") {
-    const _pending_5 = _state_0["pending"];
-    const _visited_5 = _state_0["visited"];
-    const _files_5 = _state_0["files"];
-    const _read_bytes_5 = _state_0["read_bytes"];
-    const _tree_bytes_6 = _state_0["tree_bytes"];
-    const _work_5 = _state_0["work"];
-    const _skipped_tree_5 = _state_0["skipped_tree"];
-    const _skipped_excluded_5 = _state_0["skipped_excluded"];
-    const _skipped_other_5 = _state_0["skipped_other"];
-    const _limits_5 = _state_0["limits"];
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Complete"}, "pending": _pending_5, "visited": _visited_5, "files": _files_5, "read_bytes": _read_bytes_5, "tree_bytes": _tree_bytes_6, "work": _work_5, "skipped_tree": _skipped_tree_5, "skipped_excluded": _skipped_excluded_5, "skipped_other": _skipped_other_5, "limits": _limits_5}, "command": {$: "ImportGraph.NoCommand"}};
-  } else {
-    const _reason_0 = _t_0["reason"];
-    const _pending_6 = _state_0["pending"];
-    const _visited_6 = _state_0["visited"];
-    const _files_6 = _state_0["files"];
-    const _read_bytes_6 = _state_0["read_bytes"];
-    const _tree_bytes_7 = _state_0["tree_bytes"];
-    const _work_6 = _state_0["work"];
-    const _skipped_tree_6 = _state_0["skipped_tree"];
-    const _skipped_excluded_6 = _state_0["skipped_excluded"];
-    const _skipped_other_6 = _state_0["skipped_other"];
-    const _limits_6 = _state_0["limits"];
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": _reason_0}, "pending": _pending_6, "visited": _visited_6, "files": _files_6, "read_bytes": _read_bytes_6, "tree_bytes": _tree_bytes_7, "work": _work_6, "skipped_tree": _skipped_tree_6, "skipped_excluded": _skipped_excluded_6, "skipped_other": _skipped_other_6, "limits": _limits_6}, "command": {$: "ImportGraph.NoCommand"}};
   }
 }
 
-function $$$$047agent$045flow$045bend$047ImportGraph$deadline$(_state_0) {
-  const _t_0 = _state_0["phase"];
-  if (_t_0.$ === "ImportGraph.Complete") {
-    const _pending_0 = _state_0["pending"];
-    const _visited_0 = _state_0["visited"];
-    const _files_0 = _state_0["files"];
-    const _read_bytes_0 = _state_0["read_bytes"];
-    const _tree_bytes_0 = _state_0["tree_bytes"];
-    const _work_0 = _state_0["work"];
-    const _skipped_tree_0 = _state_0["skipped_tree"];
-    const _skipped_excluded_0 = _state_0["skipped_excluded"];
-    const _skipped_other_0 = _state_0["skipped_other"];
-    const _limits_0 = _state_0["limits"];
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Complete"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}};
-  } else if (_t_0.$ === "ImportGraph.Incomplete") {
-    const _reason_0 = _t_0["reason"];
-    const _pending_1 = _state_0["pending"];
-    const _visited_1 = _state_0["visited"];
-    const _files_1 = _state_0["files"];
-    const _read_bytes_1 = _state_0["read_bytes"];
-    const _tree_bytes_1 = _state_0["tree_bytes"];
-    const _work_1 = _state_0["work"];
-    const _skipped_tree_1 = _state_0["skipped_tree"];
-    const _skipped_excluded_1 = _state_0["skipped_excluded"];
-    const _skipped_other_1 = _state_0["skipped_other"];
-    const _limits_1 = _state_0["limits"];
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": _reason_0}, "pending": _pending_1, "visited": _visited_1, "files": _files_1, "read_bytes": _read_bytes_1, "tree_bytes": _tree_bytes_1, "work": _work_1, "skipped_tree": _skipped_tree_1, "skipped_excluded": _skipped_excluded_1, "skipped_other": _skipped_other_1, "limits": _limits_1}, "command": {$: "ImportGraph.NoCommand"}};
+function $JevEffects$started_never_sent_refused$(_p_0, _l_0, _r_0, _o_0, _id_0, _delay_0, _interrupted_0) {
+  if (!_interrupted_0) {
+    return null;
   } else {
-    const _pending_2 = _state_0["pending"];
-    const _visited_2 = _state_0["visited"];
-    const _files_2 = _state_0["files"];
-    const _read_bytes_2 = _state_0["read_bytes"];
-    const _tree_bytes_2 = _state_0["tree_bytes"];
-    const _work_2 = _state_0["work"];
-    const _skipped_tree_2 = _state_0["skipped_tree"];
-    const _skipped_excluded_2 = _state_0["skipped_excluded"];
-    const _skipped_other_2 = _state_0["skipped_other"];
-    const _limits_2 = _state_0["limits"];
-    return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_2, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.Deadline"});
+    return null;
   }
 }
 
-function $$$$047agent$045flow$045bend$047ImportGraph$step$(_state_0, _event_0) {
-  if (_event_0.$ === "ImportGraph.DeadlineReached") {
-    return $$$$047agent$045flow$045bend$047ImportGraph$deadline$(_state_0);
+function $Driver$immediate$(_event_0, _job_0) {
+  return {$: "Driver.Action", "event": _event_0, "delay": 0, "candidate": {$: "None"}, "job": _job_0, "expiry_advice": {$: "None"}};
+}
+
+function $Driver$candidate_action$(_event_0, _candidate_0) {
+  return {$: "Driver.Action", "event": _event_0, "delay": 0, "candidate": {$: "Some", "value": _candidate_0}, "job": false, "expiry_advice": {$: "None"}};
+}
+
+function $Driver$work_id$(_work_0) {
+  const _operation_0 = _work_0["operation"];
+  return _operation_0;
+}
+
+function $Driver$operation_hit$(_found_0, _head_0, _rest_0) {
+  if (_found_0) {
+    return {$: "Some", "value": _head_0};
   } else {
-    return $$$$047agent$045flow$045bend$047ImportGraph$apply$(_state_0, _event_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$event_budget$(_limits_0) {
-  const _x_0 = ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0));
-  const _x_1 = nat_chk(4 * _x_0);
-  return nat_chk(2 + _x_1);
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$bounded_initial$(_limits_0) {
-  return {$: "ImportGraph.Bounded", "graph": ($$$$047agent$045flow$045bend$047ImportGraph$initial$(_limits_0)), "remaining": ($$$$047agent$045flow$045bend$047ImportGraph$event_budget$(_limits_0))};
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$is_terminal$(_graph_0) {
-  const _t_0 = _graph_0["phase"];
-  if (_t_0.$ === "ImportGraph.Complete") {
-    return true;
-  } else if (_t_0.$ === "ImportGraph.Incomplete") {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$exhausted$(_graph_0) {
-  const _t_0 = _graph_0["phase"];
-  if (_t_0.$ === "ImportGraph.Complete") {
-    const _pending_0 = _graph_0["pending"];
-    const _visited_0 = _graph_0["visited"];
-    const _files_0 = _graph_0["files"];
-    const _read_bytes_0 = _graph_0["read_bytes"];
-    const _tree_bytes_0 = _graph_0["tree_bytes"];
-    const _work_0 = _graph_0["work"];
-    const _skipped_tree_0 = _graph_0["skipped_tree"];
-    const _skipped_excluded_0 = _graph_0["skipped_excluded"];
-    const _skipped_other_0 = _graph_0["skipped_other"];
-    const _limits_0 = _graph_0["limits"];
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Complete"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}};
-  } else if (_t_0.$ === "ImportGraph.Incomplete") {
-    const _reason_0 = _t_0["reason"];
-    const _pending_1 = _graph_0["pending"];
-    const _visited_1 = _graph_0["visited"];
-    const _files_1 = _graph_0["files"];
-    const _read_bytes_1 = _graph_0["read_bytes"];
-    const _tree_bytes_1 = _graph_0["tree_bytes"];
-    const _work_1 = _graph_0["work"];
-    const _skipped_tree_1 = _graph_0["skipped_tree"];
-    const _skipped_excluded_1 = _graph_0["skipped_excluded"];
-    const _skipped_other_1 = _graph_0["skipped_other"];
-    const _limits_1 = _graph_0["limits"];
-    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": _reason_0}, "pending": _pending_1, "visited": _visited_1, "files": _files_1, "read_bytes": _read_bytes_1, "tree_bytes": _tree_bytes_1, "work": _work_1, "skipped_tree": _skipped_tree_1, "skipped_excluded": _skipped_excluded_1, "skipped_other": _skipped_other_1, "limits": _limits_1}, "command": {$: "ImportGraph.NoCommand"}};
-  } else {
-    const _pending_2 = _graph_0["pending"];
-    const _visited_2 = _graph_0["visited"];
-    const _files_2 = _graph_0["files"];
-    const _read_bytes_2 = _graph_0["read_bytes"];
-    const _tree_bytes_2 = _graph_0["tree_bytes"];
-    const _work_2 = _graph_0["work"];
-    const _skipped_tree_2 = _graph_0["skipped_tree"];
-    const _skipped_excluded_2 = _graph_0["skipped_excluded"];
-    const _skipped_other_2 = _graph_0["skipped_other"];
-    const _limits_2 = _graph_0["limits"];
-    return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_2, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.WorkLimit"});
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$wrap$(_result_0, _remaining_0) {
-  const _graph_0 = _result_0["state"];
-  const _command_0 = _result_0["command"];
-  return {$: "ImportGraph.BoundedStep", "state": {$: "ImportGraph.Bounded", "graph": _graph_0, "remaining": _remaining_0}, "command": _command_0};
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$bounded_step_go$(_graph_0, _event_0, _remaining_0) {
-  if (_remaining_0 === 0) {
-    return $$$$047agent$045flow$045bend$047ImportGraph$wrap$(($$$$047agent$045flow$045bend$047ImportGraph$exhausted$(_graph_0)), 0);
-  } else {
-    const _rest_0 = (_remaining_0 - 1);
-    return $$$$047agent$045flow$045bend$047ImportGraph$wrap$(($$$$047agent$045flow$045bend$047ImportGraph$step$(_graph_0, _event_0)), _rest_0);
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$bounded_step$(_state_0, _event_0) {
-  const _graph_0 = _state_0["graph"];
-  const _remaining_0 = _state_0["remaining"];
-  return $$$$047agent$045flow$045bend$047ImportGraph$bounded_step_go$(_graph_0, _event_0, _remaining_0);
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$bounded_terminal$(_state_0) {
-  const _graph_0 = _state_0["graph"];
-  return $$$$047agent$045flow$045bend$047ImportGraph$is_terminal$(_graph_0);
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0) {
-  const _next_0 = _result_0["state"];
-  return _next_0;
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$step_graph$(_result_0) {
-  const _graph_0 = _result_0["state"];
-  return _graph_0;
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$event_value$(_events_0, _fallback_0) {
-  if (_events_0.$ === "Nil") {
-    return _fallback_0;
-  } else {
-    const _event_0 = _events_0["head"];
-    return _event_0;
-  }
-}
-
-function $$$$047agent$045flow$045bend$047ImportGraph$event_rest$(_events_0) {
-  if (_events_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _rest_0 = _events_0["tail"];
     return _rest_0;
   }
 }
 
-function $$$$047agent$045flow$045bend$047ImportGraph$responsive_run$($0, $1, $2, $3) {
+function $Driver$find_operation$(_work_0, _operation_0) {
+  if (_work_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _work_0["head"];
+    const _tail_0 = _work_0["tail"];
+    return $Driver$operation_hit$(($Nat$is_eq$(($Driver$work_id$(_head_0)), _operation_0)), _head_0, ($Driver$find_operation$(_tail_0, _operation_0)));
+  }
+}
+
+function $Driver$dispatch_work$(_found_0, _context_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _o_0 = _t_0["operation"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.AwaitingSourceRead") {
+      const _bytes_0 = _context_0["bytes"];
+      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.StartObservation", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "observation": _o_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.BeginObservedPreparation", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "observation": _o_0, "bytes": _bytes_0}, true)), "tail": {$: "Nil"}}}};
+    } else if (_t_1.$ === "Canonical.Reviewing") {
+      const _current_0 = _context_0["current_work"];
+      const _credential_0 = _context_0["credential_ready"];
+      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.StartReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.JevRequestReady", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "root_valid": true, "configuration_valid": true, "credential_ready": _credential_0, "selected": true, "current_work": _current_0, "physical_available": true}, false)), "tail": {$: "Nil"}}}};
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$issued_actions$(_facts_0) {
+  if (_facts_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _facts_0["head"];
+    const _event_0 = _t_0["event"];
+    const _delay_0 = _t_0["delay"];
+    const _tail_0 = _facts_0["tail"];
+    return {$: "Con", "head": {$: "Driver.Action", "event": _event_0, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": ($Driver$issued_actions$(_tail_0))};
+  }
+}
+
+function $Driver$issued_outcome$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _request_0, _delay_0) {
+  return {$: "Driver.Handled", "handled": true, "actions": ($Driver$issued_actions$(($JevEffects$issued$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _request_0, _delay_0))))};
+}
+
+function $Driver$candidate_check$(_advice_0, _partition_0, _round_0, _credential_0, _generation_0, _current_0, _readable_0, _surface_0) {
+  const _candidate_0 = {$: "Driver.Candidate", "partition": _partition_0, "advice": _advice_0, "round": _round_0, "token": _advice_0, "surface": _surface_0, "selection": false};
+  return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$candidate_action$({$: "Canonical.FinalCandidateCheck", "owner_current": true, "credential_generation": _generation_0, "credential_authorized": _credential_0, "expired": false, "work_current": ($Bool$and$(_current_0, _readable_0)), "has_findings": true}, _candidate_0)), "tail": {$: "Nil"}}};
+}
+
+function $Driver$suppress_value$(_candidate_0) {
+  const __0 = _candidate_0["partition"];
+  const _advice_0 = _candidate_0["advice"];
+  const _round_0 = _candidate_0["round"];
+  const __1 = _candidate_0["token"];
+  const _surface_0 = _candidate_0["surface"];
+  const __2 = _candidate_0["selection"];
+  return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$candidate_action$({$: "Canonical.SubmissionSuppressCheck", "advice": _advice_0, "fingerprint": _advice_0, "round": _round_0, "surface": _surface_0}, {$: "Driver.Candidate", "partition": __0, "advice": _advice_0, "round": _round_0, "token": __1, "surface": _surface_0, "selection": __2})), "tail": {$: "Nil"}}};
+}
+
+function $Driver$suppress$(_candidate_0) {
+  if (_candidate_0.$ === "Some") {
+    const _c_0 = _candidate_0["value"];
+    return $Driver$suppress_value$(_c_0);
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$reserve$(_candidate_0) {
+  if (_candidate_0.$ === "Some") {
+    const _t_0 = _candidate_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _advice_0 = _t_0["advice"];
+    const _round_0 = _t_0["round"];
+    const _token_0 = _t_0["token"];
+    const _surface_0 = _t_0["surface"];
+    const _t_1 = _t_0["selection"];
+    if (!_t_1) {
+      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionReserveLease", "advice": _advice_0, "token": _token_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionBegin", "advice": _advice_0, "group": _p_0, "round": _round_0, "token": _token_0, "surface": _surface_0, "authorize_now": true, "fingerprints": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}, "units": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}}, false)), "tail": {$: "Nil"}}}};
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$output$(_p_0, _advice_0, _token_0, _certain_0, _delay_0, _lease_0) {
+  return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": _certain_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionLeaseCheck", "advice": _advice_0, "token": _token_0, "expired": false, "stop_collector": false, "same_group": true, "reofferable": false}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}}}}};
+}
+
+function $Driver$work_list$(_state_0) {
+  const _work_0 = _state_0["work"];
+  return _work_0;
+}
+
+function $Driver$retained$(_event_0, _lifetime_0) {
+  if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _operation_0 = _event_0["operation"];
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionExpiryCheck", "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": _lifetime_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "Some", "value": _operation_0}}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.ReviewCompleted") {
+    const _operation_1 = _event_0["operation"];
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionExpiryCheck", "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": _lifetime_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "Some", "value": _operation_1}}, "tail": {$: "Nil"}}};
+  } else if (_event_0.$ === "Canonical.ReviewObserved") {
+    const _operation_2 = _event_0["operation"];
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionExpiryCheck", "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": _lifetime_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "Some", "value": _operation_2}}, "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$eligible$(_event_0, _credential_0, _generation_0, _current_0, _readable_0, _surface_0) {
+  if (_event_0.$ === "Canonical.CollectionReady") {
+    const _advice_0 = _event_0["advice"];
+    const _p_0 = _event_0["partition"];
+    const _r_0 = _event_0["round"];
+    return $Driver$candidate_check$(_advice_0, _p_0, _r_0, _credential_0, _generation_0, _current_0, _readable_0, _surface_0);
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$submitted$(_event_0, _p_0, _certain_0, _delay_0, _lease_0) {
+  if (_event_0.$ === "Canonical.SubmissionBegin") {
+    const _advice_0 = _event_0["advice"];
+    const _token_0 = _event_0["token"];
+    const _t_0 = _event_0["authorize_now"];
+    if (_t_0) {
+      return $Driver$output$(_p_0, _advice_0, _token_0, _certain_0, _delay_0, _lease_0);
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else if (_event_0.$ === "Canonical.SubmissionAuthorize") {
+    const _advice_1 = _event_0["advice"];
+    const _token_1 = _event_0["token"];
+    return $Driver$output$(_p_0, _advice_1, _token_1, _certain_0, _delay_0, _lease_0);
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$retired_work$(_found_0, _advice_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["round"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.PendingFinding") {
+      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionRetireAdvice", "advice": _advice_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionForget", "advice": _advice_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.RetireReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _advice_0}, false)), "tail": {$: "Nil"}}}}};
+    } else {
+      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionRetireAdvice", "advice": _advice_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionForget", "advice": _advice_0}, false)), "tail": {$: "Nil"}}}};
+    }
+  } else {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionRetireAdvice", "advice": _advice_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionForget", "advice": _advice_0}, false)), "tail": {$: "Nil"}}}};
+  }
+}
+
+function $Driver$retirement$(_state_0, _candidate_0) {
+  if (_candidate_0.$ === "Some") {
+    const _t_0 = _candidate_0["value"];
+    const _advice_0 = _t_0["advice"];
+    return $Driver$retired_work$(($Driver$find_operation$(($Driver$work_list$(_state_0)), _advice_0)), _advice_0);
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$collection_surface$(_background_0) {
+  if (_background_0) {
+    return {$: "Handoff.Background"};
+  } else {
+    return {$: "Handoff.Edit"};
+  }
+}
+
+function $Driver$running$(_state_0) {
+  const _t_0 = _state_0["dispatch"];
+  const _running_0 = _t_0["running"];
+  return _running_0;
+}
+
+function $Driver$release_if$(_available_0, _p_0, _l_0, _r_0, _o_0) {
+  if (_available_0) {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.DispatchSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Nil"}}};
+  } else {
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$unavailable$(_state_0, _event_0) {
+  if (_event_0.$ === "Canonical.JevRequestReady") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["operation"];
+    return $Driver$release_if$(($$$$047agent$045flow$045bend$047Dispatch$contains$(($Driver$running$(_state_0)), _p_0, _l_0, _r_0, _o_0)), _p_0, _l_0, _r_0, _o_0);
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$refused_preparation$(_event_0) {
+  if (_event_0.$ === "Canonical.BeginObservedPreparation") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _observation_0 = _event_0["observation"];
+    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CompleteObservation", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "observation": _observation_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.DispatchSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _observation_0}, false)), "tail": {$: "Nil"}}}};
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$handle$(_state_0, _event_0, _command_0, _context_0) {
+  if (_command_0.$ === "Canonical.PreparationRefused") {
+    return $Driver$refused_preparation$(_event_0);
+  } else if (_command_0.$ === "Canonical.JevRequestUnavailable") {
+    return $Driver$unavailable$(_state_0, _event_0);
+  } else if (_command_0.$ === "Canonical.ObservationAdmitted") {
+    const _id_0 = _command_0["id"];
+    const _p_0 = _context_0["partition"];
+    const _l_0 = _context_0["lifetime"];
+    const _r_0 = _context_0["round"];
+    const _t_0 = _context_0["job"];
+    if (_t_0) {
+      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.QueueDispatch", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _id_0}, false)), "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else if (_command_0.$ === "Canonical.DispatchStarted") {
+    const _operation_0 = _command_0["operation"];
+    const _p_1 = _context_0["partition"];
+    const _l_1 = _context_0["lifetime"];
+    const _r_1 = _context_0["round"];
+    const __34 = _context_0["bytes"];
+    const _t_1 = _context_0["job"];
+    if (_t_1) {
+      const __35 = _context_0["jev_delay"];
+      const __36 = _context_0["outcome"];
+      const __37 = _context_0["current_work"];
+      const __38 = _context_0["credential_ready"];
+      const __39 = _context_0["credential_generation"];
+      const __40 = _context_0["source_readable"];
+      const __41 = _context_0["advice_lifetime"];
+      const __42 = _context_0["candidate"];
+      const __43 = _context_0["automatic_collection"];
+      const __44 = _context_0["automatic_review"];
+      const __45 = _context_0["automatic_output"];
+      const __46 = _context_0["output_certain"];
+      const __47 = _context_0["output_delay"];
+      const __48 = _context_0["output_lease"];
+      const __49 = _context_0["background"];
+      const __50 = _context_0["automatic_dispatch"];
+      return $Driver$dispatch_work$(($Driver$find_operation$(($Driver$work_list$(_state_0)), _operation_0)), {$: "Driver.Context", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "bytes": __34, "job": true, "jev_delay": __35, "outcome": __36, "current_work": __37, "credential_ready": __38, "credential_generation": __39, "source_readable": __40, "advice_lifetime": __41, "candidate": __42, "automatic_collection": __43, "automatic_review": __44, "automatic_output": __45, "output_certain": __46, "output_delay": __47, "output_lease": __48, "background": __49, "automatic_dispatch": __50});
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else if (_command_0.$ === "Canonical.UnitAdmitted") {
+    const _operation_1 = _command_0["operation"];
+    const _p_2 = _context_0["partition"];
+    const _l_2 = _context_0["lifetime"];
+    const _r_2 = _context_0["round"];
+    const _t_2 = _context_0["automatic_dispatch"];
+    if (_t_2) {
+      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.QueueDispatch", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _operation_1}, false)), "tail": {$: "Nil"}}};
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else if (_command_0.$ === "Canonical.JevRequestIssued") {
+    const _p_3 = _command_0["partition"];
+    const _l_3 = _command_0["lifetime"];
+    const _r_3 = _command_0["round"];
+    const _o_0 = _command_0["operation"];
+    const _request_0 = _command_0["request"];
+    const _delay_0 = _context_0["jev_delay"];
+    const _outcome_0 = _context_0["outcome"];
+    const _t_3 = _context_0["automatic_review"];
+    if (_t_3) {
+      return $Driver$issued_outcome$(_outcome_0, _p_3, _l_3, _r_3, _o_0, _request_0, _delay_0);
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else if (_command_0.$ === "Canonical.RetainFinding") {
+    const _lifetime_0 = _context_0["advice_lifetime"];
+    return $Driver$retained$(_event_0, _lifetime_0);
+  } else if (_command_0.$ === "Canonical.CollectionEligible") {
+    const _current_0 = _context_0["current_work"];
+    const _credential_0 = _context_0["credential_ready"];
+    const _generation_0 = _context_0["credential_generation"];
+    const _readable_0 = _context_0["source_readable"];
+    const _t_4 = _context_0["automatic_collection"];
+    if (_t_4) {
+      const _background_0 = _context_0["background"];
+      return $Driver$eligible$(_event_0, _credential_0, _generation_0, _current_0, _readable_0, ($Driver$collection_surface$(_background_0)));
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else if (_command_0.$ === "Canonical.RetireCandidate") {
+    const _candidate_0 = _context_0["candidate"];
+    return $Driver$retirement$(_state_0, _candidate_0);
+  } else if (_command_0.$ === "Canonical.RetainCandidate") {
+    const _candidate_1 = _context_0["candidate"];
+    return $Driver$suppress$(_candidate_1);
+  } else if (_command_0.$ === "Canonical.ContinueCandidate") {
+    const _candidate_2 = _context_0["candidate"];
+    return $Driver$suppress$(_candidate_2);
+  } else if (_command_0.$ === "Canonical.SubmissionUnsuppressed") {
+    const _candidate_3 = _context_0["candidate"];
+    const _t_5 = _context_0["automatic_output"];
+    if (_t_5) {
+      return $Driver$reserve$(_candidate_3);
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else if (_command_0.$ === "Canonical.SubmissionAuthorized") {
+    const _p_4 = _context_0["partition"];
+    const _t_6 = _context_0["automatic_output"];
+    if (_t_6) {
+      const _certain_0 = _context_0["output_certain"];
+      const _delay_1 = _context_0["output_delay"];
+      const _lease_0 = _context_0["output_lease"];
+      return $Driver$submitted$(_event_0, _p_4, _certain_0, _delay_1, _lease_0);
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else if (_command_0.$ === "Canonical.SubmissionBegun") {
+    const _p_5 = _context_0["partition"];
+    const _t_7 = _context_0["automatic_output"];
+    if (_t_7) {
+      const _certain_2 = _context_0["output_certain"];
+      const _delay_3 = _context_0["output_delay"];
+      const _lease_2 = _context_0["output_lease"];
+      return $Driver$submitted$(_event_0, _p_5, _certain_2, _delay_3, _lease_2);
+    } else {
+      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+    }
+  } else {
+    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
+  }
+}
+
+function $Driver$edit_round$(_found_0, _partition_0, _lifetime_0) {
+  if (_found_0.$ === "None") {
+    return {$: "Driver.EditPlan", "retry": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.OpenRound", "partition": _partition_0, "lifetime": _lifetime_0}, false)), "tail": {$: "Nil"}}};
+  } else {
+    const _t_0 = _found_0["value"];
+    const _p_0 = _t_0["partition"];
+    const _l_0 = _t_0["lifetime"];
+    const _r_0 = _t_0["id"];
+    return {$: "Driver.EditPlan", "retry": false, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.AdmitObservation", "partition": _p_0, "lifetime": _l_0, "round": _r_0}, true)), "tail": {$: "Nil"}}};
+  }
+}
+
+function $Driver$rounds$(_state_0) {
+  const _rounds_0 = _state_0["rounds"];
+  return _rounds_0;
+}
+
+function $Driver$edit$(_state_0, _partition_0, _lifetime_0) {
+  return $Driver$edit_round$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_partition_0, ($Driver$rounds$(_state_0)))), _partition_0, _lifetime_0);
+}
+
+function $Driver$preparation_completed$(_partition_0, _lifetime_0, _round_0, _operation_0, _unit_bytes_0, _delay_0) {
+  return {$: "Driver.Action", "event": {$: "Canonical.PreparationCompleted", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "unit_bytes": _unit_bytes_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": true, "expiry_advice": {$: "None"}};
+}
+
+function $Driver$owns$($0, $1) {
   for (;;) {
     {
-      const _steps_0 = $0;
-      const _state_0 = $1;
-      const _events_0 = $2;
-      const _fallback_0 = $3;
-      if (_steps_0 === 0) {
-        return $$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(($$$$047agent$045flow$045bend$047ImportGraph$bounded_step$(_state_0, ($$$$047agent$045flow$045bend$047ImportGraph$event_value$(_events_0, _fallback_0)))));
+      const _work_0 = $0;
+      const _advice_0 = $1;
+      if (_work_0.$ === "Nil") {
+        return false;
       } else {
-        const _more_0 = (_steps_0 - 1);
-        $0 = _more_0;
-        $1 = ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(($$$$047agent$045flow$045bend$047ImportGraph$bounded_step$(_state_0, ($$$$047agent$045flow$045bend$047ImportGraph$event_value$(_events_0, _fallback_0))))));
-        $2 = ($$$$047agent$045flow$045bend$047ImportGraph$event_rest$(_events_0));
-        $3 = _fallback_0;
+        const _t_0 = _work_0["head"];
+        const _operation_0 = _t_0["operation"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          const _tail_0 = _work_0["tail"];
+          const _x_0 = ($Nat$is_eq$(_operation_0, _advice_0));
+          const _x_1 = ($Driver$owns$(_tail_0, _advice_0));
+          return (_x_0 || _x_1);
+        } else {
+          const _tail_1 = _work_0["tail"];
+          $0 = _tail_1;
+          $1 = _advice_0;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $Driver$candidate_owner$(_state_0, _candidate_0) {
+  if (_candidate_0.$ === "Some") {
+    const _t_0 = _candidate_0["value"];
+    const _advice_0 = _t_0["advice"];
+    return $Driver$owns$(($Driver$work_list$(_state_0)), _advice_0);
+  } else {
+    return false;
+  }
+}
+
+function $Driver$fence$(_state_0, _event_0, _generated_0, _context_0) {
+  if (_event_0.$ === "Canonical.JevRequestSettled") {
+    const _p_0 = _event_0["partition"];
+    const _l_0 = _event_0["lifetime"];
+    const _r_0 = _event_0["round"];
+    const _o_0 = _event_0["operation"];
+    const _request_0 = _event_0["request"];
+    const _outcome_0 = _event_0["outcome"];
+    const __0 = _event_0["current_work"];
+    if (_generated_0) {
+      const _current_0 = _context_0["current_work"];
+      return {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": _current_0};
+    } else {
+      return {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": __0};
+    }
+  } else if (_event_0.$ === "Canonical.JevRequestReady") {
+    const _p_1 = _event_0["partition"];
+    const _l_1 = _event_0["lifetime"];
+    const _r_1 = _event_0["round"];
+    const _o_1 = _event_0["operation"];
+    const _root_0 = _event_0["root_valid"];
+    const _configuration_0 = _event_0["configuration_valid"];
+    const __21 = _event_0["credential_ready"];
+    const _selected_0 = _event_0["selected"];
+    const __22 = _event_0["current_work"];
+    const _physical_0 = _event_0["physical_available"];
+    if (_generated_0) {
+      const _current_1 = _context_0["current_work"];
+      const _credential_0 = _context_0["credential_ready"];
+      return {$: "Canonical.JevRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": _credential_0, "selected": _selected_0, "current_work": _current_1, "physical_available": _physical_0};
+    } else {
+      return {$: "Canonical.JevRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": __21, "selected": _selected_0, "current_work": __22, "physical_available": _physical_0};
+    }
+  } else if (_event_0.$ === "Canonical.FinalCandidateCheck") {
+    const __42 = _event_0["owner_current"];
+    const __43 = _event_0["credential_generation"];
+    const __44 = _event_0["credential_authorized"];
+    const _expired_0 = _event_0["expired"];
+    const __45 = _event_0["work_current"];
+    const _findings_0 = _event_0["has_findings"];
+    if (_generated_0) {
+      const _current_2 = _context_0["current_work"];
+      const _credential_1 = _context_0["credential_ready"];
+      const _generation_0 = _context_0["credential_generation"];
+      const _readable_0 = _context_0["source_readable"];
+      const _candidate_0 = _context_0["candidate"];
+      return {$: "Canonical.FinalCandidateCheck", "owner_current": ($Driver$candidate_owner$(_state_0, _candidate_0)), "credential_generation": _generation_0, "credential_authorized": _credential_1, "expired": _expired_0, "work_current": ($Bool$and$(_current_2, _readable_0)), "has_findings": _findings_0};
+    } else {
+      return {$: "Canonical.FinalCandidateCheck", "owner_current": __42, "credential_generation": __43, "credential_authorized": __44, "expired": _expired_0, "work_current": __45, "has_findings": _findings_0};
+    }
+  } else {
+    return _event_0;
+  }
+}
+
+function $Driver$fact_time_nonzero$(_delay_0, _index_0, _count_0) {
+  const _x_0 = ($Nat$div$(_delay_0, _count_0));
+  const _x_1 = ($Nat$mod$(_delay_0, _count_0));
+  const _x_2 = nat_chk(_x_0 * _index_0);
+  const _x_3 = ($Nat$div$(nat_chk(_x_1 * _index_0), _count_0));
+  return nat_chk(_x_2 + _x_3);
+}
+
+function $Driver$fact_time$(_delay_0, _index_0, _count_0) {
+  if (_count_0 === 0) {
+    return 0;
+  } else {
+    const _p_0 = (_count_0 - 1);
+    return $Driver$fact_time_nonzero$(_delay_0, _index_0, nat_chk(_p_0 + 1));
+  }
+}
+
+function $Driver$handled_actions$(_handled_0) {
+  const _actions_0 = _handled_0["actions"];
+  return _actions_0;
+}
+
+function $Driver$revalidate_work$($0, $1, $2, $3, $4, $5) {
+  for (;;) {
+    {
+      const _work_0 = $0;
+      const _credential_0 = $1;
+      const _generation_0 = $2;
+      const _current_0 = $3;
+      const _readable_0 = $4;
+      const _background_0 = $5;
+      if (_work_0.$ === "Nil") {
+        return {$: "Nil"};
+      } else {
+        const _t_0 = _work_0["head"];
+        const _p_0 = _t_0["partition"];
+        const _r_0 = _t_0["round"];
+        const _o_0 = _t_0["operation"];
+        const _t_1 = _t_0["kind"];
+        if (_t_1.$ === "Canonical.PendingFinding") {
+          const _tail_0 = _work_0["tail"];
+          return $List$append$(($Driver$handled_actions$(($Driver$candidate_check$(_o_0, _p_0, _r_0, _credential_0, _generation_0, _current_0, _readable_0, ($Driver$collection_surface$(_background_0)))))), ($Driver$revalidate_work$(_tail_0, _credential_0, _generation_0, _current_0, _readable_0, _background_0)));
+        } else {
+          const _tail_1 = _work_0["tail"];
+          $0 = _tail_1;
+          $1 = _credential_0;
+          $2 = _generation_0;
+          $3 = _current_0;
+          $4 = _readable_0;
+          $5 = _background_0;
+          continue;
+        }
+      }
+    }
+  }
+}
+
+function $Driver$revalidate$(_state_0, _context_0) {
+  const _current_0 = _context_0["current_work"];
+  const _credential_0 = _context_0["credential_ready"];
+  const _generation_0 = _context_0["credential_generation"];
+  const _readable_0 = _context_0["source_readable"];
+  const _background_0 = _context_0["background"];
+  return $Driver$revalidate_work$(($Driver$work_list$(_state_0)), _credential_0, _generation_0, _current_0, _readable_0, _background_0);
+}
+
+function $AdmissionAttempts$contains$(_pending_0, _partition_0) {
+  if (_pending_0.$ === "Nil") {
+    return false;
+  } else {
+    const _head_0 = _pending_0["head"];
+    const _tail_0 = _pending_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_head_0, _partition_0));
+    const _x_1 = ($AdmissionAttempts$contains$(_tail_0, _partition_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $AdmissionAttempts$remove_hit$(_hit_0, _head_0, _tail_0) {
+  if (_hit_0) {
+    return _tail_0;
+  } else {
+    return {$: "Con", "head": _head_0, "tail": _tail_0};
+  }
+}
+
+function $AdmissionAttempts$remove$(_pending_0, _partition_0) {
+  if (_pending_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _pending_0["head"];
+    const _tail_0 = _pending_0["tail"];
+    return $AdmissionAttempts$remove_hit$(($Nat$is_eq$(_head_0, _partition_0)), _head_0, ($AdmissionAttempts$remove$(_tail_0, _partition_0)));
+  }
+}
+
+function $AdmissionAttempts$consumed$(_pending_0, _event_0) {
+  if (_event_0.$ === "Canonical.OpenRound") {
+    const _partition_0 = _event_0["partition"];
+    return $AdmissionAttempts$remove$(_pending_0, _partition_0);
+  } else {
+    return _pending_0;
+  }
+}
+
+function $AdmissionAttempts$pending_plan$(_already_pending_0, _pending_0, _partition_0, _actions_0) {
+  if (_already_pending_0) {
+    return {$: "AdmissionAttempts.Attempt", "pending": _pending_0, "plan": {$: "Driver.EditPlan", "retry": true, "actions": {$: "Nil"}}};
+  } else {
+    return {$: "AdmissionAttempts.Attempt", "pending": {$: "Con", "head": _partition_0, "tail": _pending_0}, "plan": {$: "Driver.EditPlan", "retry": true, "actions": _actions_0}};
+  }
+}
+
+function $AdmissionAttempts$planned$(_pending_0, _partition_0, _plan_0) {
+  const _t_0 = _plan_0["retry"];
+  if (_t_0) {
+    const _actions_0 = _plan_0["actions"];
+    return $AdmissionAttempts$pending_plan$(($AdmissionAttempts$contains$(_pending_0, _partition_0)), _pending_0, _partition_0, _actions_0);
+  } else {
+    const _actions_1 = _plan_0["actions"];
+    return {$: "AdmissionAttempts.Attempt", "pending": _pending_0, "plan": {$: "Driver.EditPlan", "retry": _t_0, "actions": _actions_1}};
+  }
+}
+
+function $AdmissionAttempts$edit$(_state_0, _pending_0, _partition_0, _lifetime_0) {
+  return $AdmissionAttempts$planned$(_pending_0, _partition_0, ($Driver$edit$(_state_0, _partition_0, _lifetime_0)));
+}
+
+function $Advicees$initial$() {
+  return {$: "Advicees.Registry", "next": 1, "scopes": {$: "Nil"}};
+}
+
+function $Advicees$maximum$() {
+  const _x_0 = nat_chk(65536 * 4294967295);
+  return nat_chk(_x_0 + 65535);
+}
+
+function $Advicees$bounded$(_identity_0) {
+  return $Bool$and$(($Nat$is_gt$(_identity_0, 0)), ($Nat$is_le$(_identity_0, ($Advicees$maximum$()))));
+}
+
+function $Advicees$scope_identity$(_scope_0) {
+  const _identity_0 = _scope_0["identity"];
+  return _identity_0;
+}
+
+function $Advicees$scope_partition$(_scope_0) {
+  const _partition_0 = _scope_0["partition"];
+  return _partition_0;
+}
+
+function $Advicees$found$(_equal_0, _scope_0, _other_0) {
+  if (_equal_0) {
+    return {$: "Some", "value": _scope_0};
+  } else {
+    return _other_0;
+  }
+}
+
+function $Advicees$find_identity$(_scopes_0, _identity_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_identity$(_head_0)), _identity_0)), _head_0, ($Advicees$find_identity$(_tail_0, _identity_0)));
+  }
+}
+
+function $Advicees$find_partition$(_scopes_0, _partition_0) {
+  if (_scopes_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _scopes_0["head"];
+    const _tail_0 = _scopes_0["tail"];
+    return $Advicees$found$(($Nat$is_eq$(($Advicees$scope_partition$(_head_0)), _partition_0)), _head_0, ($Advicees$find_partition$(_tail_0, _partition_0)));
+  }
+}
+
+function $Advicees$lookup_identity$(_registry_0, _identity_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$find_identity$(_scopes_0, _identity_0);
+}
+
+function $Advicees$lookup_partition$(_registry_0, _partition_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$find_partition$(_scopes_0, _partition_0);
+}
+
+function $Advicees$absent$(_scope_0) {
+  if (_scope_0.$ === "None") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $Advicees$declaration$(_valid_0, _registry_0, _identity_0, _seed_0) {
+  if (_valid_0) {
+    const _next_0 = _registry_0["next"];
+    const _scopes_0 = _registry_0["scopes"];
+    const _scope_0 = {$: "Advicees.Scope", "identity": _identity_0, "partition": _next_0, "seed": _seed_0};
+    return {$: "Advicees.Declared", "registry": {$: "Advicees.Registry", "next": nat_chk(_next_0 + 1), "scopes": ($List$append$(_scopes_0, {$: "Con", "head": _scope_0, "tail": {$: "Nil"}}))}, "scope": {$: "Some", "value": _scope_0}, "valid": true};
+  } else {
+    return {$: "Advicees.Declared", "registry": _registry_0, "scope": {$: "None"}, "valid": false};
+  }
+}
+
+function $Advicees$declare$(_registry_0, _identity_0, _seed_0) {
+  const _next_0 = _registry_0["next"];
+  const _scopes_0 = _registry_0["scopes"];
+  return $Advicees$declaration$(($Bool$and$(($Bool$and$(($Advicees$bounded$(_identity_0)), ($Advicees$bounded$(_next_0)))), ($Advicees$absent$(($Advicees$find_identity$(_scopes_0, _identity_0)))))), {$: "Advicees.Registry", "next": _next_0, "scopes": _scopes_0}, _identity_0, _seed_0);
+}
+
+function $Advicees$targeted$(_scope_0) {
+  if (_scope_0.$ === "None") {
+    return {$: "Advicees.Targeted", "scopes": {$: "Nil"}, "valid": false};
+  } else {
+    const _scope_1 = _scope_0["value"];
+    return {$: "Advicees.Targeted", "scopes": {$: "Con", "head": _scope_1, "tail": {$: "Nil"}}, "valid": true};
+  }
+}
+
+function $Advicees$targets$(_registry_0, _identity_0) {
+  const _scopes_0 = _registry_0["scopes"];
+  if (_identity_0.$ === "None") {
+    return {$: "Advicees.Targeted", "scopes": _scopes_0, "valid": true};
+  } else {
+    const _identity_1 = _identity_0["value"];
+    return $Advicees$targeted$(($Advicees$find_identity$(_scopes_0, _identity_1)));
+  }
+}
+
+function $AdviceeScope$select_if$(_owned_0, _id_0, _tail_0) {
+  if (_owned_0) {
+    return {$: "Con", "head": _id_0, "tail": _tail_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $AdviceeScope$select$(_bindings_0, _partition_0) {
+  if (_bindings_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _t_0 = _bindings_0["head"];
+    const _owner_0 = _t_0["owner"];
+    const _id_0 = _t_0["id"];
+    const _tail_0 = _bindings_0["tail"];
+    return $AdviceeScope$select_if$(($Bool$and$(($Nat$is_eq$(_owner_0, _partition_0)), ($Advicees$bounded$(_partition_0)))), _id_0, ($AdviceeScope$select$(_tail_0, _partition_0)));
+  }
+}
+
+function $AdviceeScope$first$(_found_0, _fallback_0) {
+  if (_found_0.$ === "Some") {
+    const _partition_0 = _found_0["value"];
+    return {$: "Some", "value": _partition_0};
+  } else {
+    return _fallback_0;
+  }
+}
+
+function $AdviceeScope$owner_if$(_found_0, _partition_0, _tail_0) {
+  if (_found_0) {
+    return {$: "Some", "value": _partition_0};
+  } else {
+    return _tail_0;
+  }
+}
+
+function $AdviceeScope$work_owner$(_work_0, _operation_0) {
+  if (_work_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _work_0["head"];
+    const _partition_0 = _t_0["partition"];
+    const _id_0 = _t_0["operation"];
+    const _tail_0 = _work_0["tail"];
+    return $AdviceeScope$owner_if$(($Nat$is_eq$(_id_0, _operation_0)), _partition_0, ($AdviceeScope$work_owner$(_tail_0, _operation_0)));
+  }
+}
+
+function $AdviceeScope$entry_owner$(_entries_0, _operation_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _entries_0["head"];
+    const _partition_0 = _t_0["partition"];
+    const _id_0 = _t_0["operation"];
+    const _tail_0 = _entries_0["tail"];
+    return $AdviceeScope$owner_if$(($Nat$is_eq$(_id_0, _operation_0)), _partition_0, ($AdviceeScope$entry_owner$(_tail_0, _operation_0)));
+  }
+}
+
+function $AdviceeScope$request_owner$(_requests_0, _operation_0) {
+  if (_requests_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _requests_0["head"];
+    const _partition_0 = _t_0["partition"];
+    const _id_0 = _t_0["operation"];
+    const _tail_0 = _requests_0["tail"];
+    return $AdviceeScope$owner_if$(($Nat$is_eq$(_id_0, _operation_0)), _partition_0, ($AdviceeScope$request_owner$(_tail_0, _operation_0)));
+  }
+}
+
+function $AdviceeScope$dispatch_owner$(_dispatch_0, _operation_0) {
+  const _queued_0 = _dispatch_0["queued"];
+  const _running_0 = _dispatch_0["running"];
+  const _requests_0 = _dispatch_0["requests"];
+  return $AdviceeScope$first$(($AdviceeScope$entry_owner$(_queued_0, _operation_0)), ($AdviceeScope$first$(($AdviceeScope$entry_owner$(_running_0, _operation_0)), ($AdviceeScope$request_owner$(_requests_0, _operation_0)))));
+}
+
+function $AdviceeScope$charge_owner$(_charges_0, _reservation_0) {
+  if (_charges_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _charges_0["head"];
+    const _id_0 = _t_0["id"];
+    const _partition_0 = _t_0["partition"];
+    const _tail_0 = _charges_0["tail"];
+    return $AdviceeScope$owner_if$(($Nat$is_eq$(_id_0, _reservation_0)), _partition_0, ($AdviceeScope$charge_owner$(_tail_0, _reservation_0)));
+  }
+}
+
+function $AdviceeScope$round_owner$(_rounds_0, _round_0) {
+  if (_rounds_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _rounds_0["head"];
+    const _partition_0 = _t_0["partition"];
+    const _id_0 = _t_0["id"];
+    const _tail_0 = _rounds_0["tail"];
+    return $AdviceeScope$owner_if$(($Nat$is_eq$(_id_0, _round_0)), _partition_0, ($AdviceeScope$round_owner$(_tail_0, _round_0)));
+  }
+}
+
+function $AdviceeScope$batch_owner$(_batches_0, _advice_0) {
+  if (_batches_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _batches_0["head"];
+    const _id_0 = _t_0["advice"];
+    const _group_0 = _t_0["group"];
+    const _tail_0 = _batches_0["tail"];
+    return $AdviceeScope$owner_if$(($Nat$is_eq$(_id_0, _advice_0)), _group_0, ($AdviceeScope$batch_owner$(_tail_0, _advice_0)));
+  }
+}
+
+function $AdviceeScope$notice_owner$(_records_0, _key_0) {
+  if (_records_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _t_0 = _records_0["head"];
+    const _id_0 = _t_0["id"];
+    const _partition_0 = _t_0["partition"];
+    const _tail_0 = _records_0["tail"];
+    return $AdviceeScope$owner_if$(($Nat$is_eq$(_id_0, _key_0)), _partition_0, ($AdviceeScope$notice_owner$(_tail_0, _key_0)));
+  }
+}
+
+function $AdviceeScope$submission_owner$(_submissions_0, _advice_0) {
+  const _batches_0 = _submissions_0["batches"];
+  return $AdviceeScope$batch_owner$(_batches_0, _advice_0);
+}
+
+function $AdviceeScope$delivery_owner$(_delivery_0, _advice_0) {
+  const _submissions_0 = _delivery_0["submissions"];
+  return $AdviceeScope$submission_owner$(_submissions_0, _advice_0);
+}
+
+function $AdviceeScope$collection_advice_owner$(_collection_0, _advice_0) {
+  const _delivery_0 = _collection_0["delivery"];
+  return $AdviceeScope$delivery_owner$(_delivery_0, _advice_0);
+}
+
+function $AdviceeScope$collection_notice_owner$(_collection_0, _key_0) {
+  const _t_0 = _collection_0["notices"];
+  const _records_0 = _t_0["records"];
+  return $AdviceeScope$notice_owner$(_records_0, _key_0);
+}
+
+function $AdviceeScope$ledger_owner$(_ledger_0, _reservation_0) {
+  const _charges_0 = _ledger_0["charges"];
+  return $AdviceeScope$charge_owner$(_charges_0, _reservation_0);
+}
+
+function $AdviceeScope$intrinsic$(_state_0, _reference_0) {
+  const __0 = _state_0["ledger"];
+  const __1 = _state_0["rounds"];
+  const _work_0 = _state_0["work"];
+  const _dispatch_0 = _state_0["dispatch"];
+  const __5 = _state_0["collection"];
+  if (_reference_0.$ === "AdviceeScope.Direct") {
+    const _partition_0 = _reference_0["partition"];
+    return $AdviceeScope$owner_if$(($Advicees$bounded$(_partition_0)), _partition_0, {$: "None"});
+  } else if (_reference_0.$ === "AdviceeScope.Operation") {
+    const _operation_0 = _reference_0["operation"];
+    return $AdviceeScope$first$(($AdviceeScope$work_owner$(_work_0, _operation_0)), ($AdviceeScope$dispatch_owner$(_dispatch_0, _operation_0)));
+  } else if (_reference_0.$ === "AdviceeScope.Reservation") {
+    const _reservation_0 = _reference_0["reservation"];
+    return $AdviceeScope$ledger_owner$(__0, _reservation_0);
+  } else if (_reference_0.$ === "AdviceeScope.Round") {
+    const _round_0 = _reference_0["round"];
+    return $AdviceeScope$round_owner$(__1, _round_0);
+  } else if (_reference_0.$ === "AdviceeScope.Advice") {
+    const _advice_0 = _reference_0["advice"];
+    return $AdviceeScope$first$(($AdviceeScope$work_owner$(_work_0, _advice_0)), ($AdviceeScope$collection_advice_owner$(__5, _advice_0)));
+  } else if (_reference_0.$ === "AdviceeScope.Notice") {
+    const _key_0 = _reference_0["key"];
+    return $AdviceeScope$collection_notice_owner$(__5, _key_0);
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $AdviceeScope$context_owner$(_provided_0) {
+  if (_provided_0.$ === "Some") {
+    const _partition_0 = _provided_0["value"];
+    return $AdviceeScope$owner_if$(($Advicees$bounded$(_partition_0)), _partition_0, {$: "None"});
+  } else {
+    return {$: "None"};
+  }
+}
+
+function $AdviceeScope$resolve$(_before_0, _after_0, _reference_0, _provided_0) {
+  if (_reference_0.$ === "AdviceeScope.Context") {
+    return $AdviceeScope$context_owner$(_provided_0);
+  } else if (_reference_0.$ === "AdviceeScope.Shared") {
+    return {$: "None"};
+  } else {
+    return $AdviceeScope$first$(($AdviceeScope$intrinsic$(_before_0, _reference_0)), ($AdviceeScope$intrinsic$(_after_0, _reference_0)));
+  }
+}
+
+function $AdviceeScope$event_reference$(_value_0) {
+  if (_value_0.$ === "Canonical.ReserveCapacity") {
+    const _partition_0 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_0};
+  } else if (_value_0.$ === "Canonical.ResizeCapacity") {
+    const _reservation_0 = _value_0["reservation"];
+    return {$: "AdviceeScope.Reservation", "reservation": _reservation_0};
+  } else if (_value_0.$ === "Canonical.ReleaseCapacity") {
+    const _reservation_1 = _value_0["reservation"];
+    return {$: "AdviceeScope.Reservation", "reservation": _reservation_1};
+  } else if (_value_0.$ === "Canonical.ReplaceCapacity") {
+    const _reservation_2 = _value_0["reservation"];
+    return {$: "AdviceeScope.Reservation", "reservation": _reservation_2};
+  } else if (_value_0.$ === "Canonical.IssuePermit") {
+    const _partition_1 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_1};
+  } else if (_value_0.$ === "Canonical.CheckCompletedEdit") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RememberCompletedEdit") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.QuietRoundTick") {
+    const _partition_2 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_2};
+  } else if (_value_0.$ === "Canonical.QuietRoundReset") {
+    const _partition_3 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_3};
+  } else if (_value_0.$ === "Canonical.ConsumePermit") {
+    const _partition_4 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_4};
+  } else if (_value_0.$ === "Canonical.ReleasePermit") {
+    const _partition_5 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_5};
+  } else if (_value_0.$ === "Canonical.ExpirePermit") {
+    const _partition_6 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_6};
+  } else if (_value_0.$ === "Canonical.ClosePermitRound") {
+    const _partition_7 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_7};
+  } else if (_value_0.$ === "Canonical.ForgetAdmission") {
+    const _partition_8 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_8};
+  } else if (_value_0.$ === "Canonical.OpenRound") {
+    const _partition_9 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_9};
+  } else if (_value_0.$ === "Canonical.AdmitObservation") {
+    const _partition_10 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_10};
+  } else if (_value_0.$ === "Canonical.StartObservation") {
+    const _partition_11 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_11};
+  } else if (_value_0.$ === "Canonical.CompleteObservation") {
+    const _partition_12 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_12};
+  } else if (_value_0.$ === "Canonical.InterruptObservation") {
+    const _partition_13 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_13};
+  } else if (_value_0.$ === "Canonical.BeginPreparation") {
+    const _partition_14 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_14};
+  } else if (_value_0.$ === "Canonical.BeginObservedPreparation") {
+    const _partition_15 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_15};
+  } else if (_value_0.$ === "Canonical.InterruptPreparation") {
+    const _partition_16 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_16};
+  } else if (_value_0.$ === "Canonical.PreparationCompleted") {
+    const _partition_17 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_17};
+  } else if (_value_0.$ === "Canonical.StartReview") {
+    const _partition_18 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_18};
+  } else if (_value_0.$ === "Canonical.JevRequestReady") {
+    const _partition_19 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_19};
+  } else if (_value_0.$ === "Canonical.JevRequestStarted") {
+    const _partition_20 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_20};
+  } else if (_value_0.$ === "Canonical.JevRequestInterrupted") {
+    const _partition_21 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_21};
+  } else if (_value_0.$ === "Canonical.JevRequestSettled") {
+    const _partition_22 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_22};
+  } else if (_value_0.$ === "Canonical.ReviewCompleted") {
+    const _partition_23 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_23};
+  } else if (_value_0.$ === "Canonical.RetireReview") {
+    const _partition_24 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_24};
+  } else if (_value_0.$ === "Canonical.ReviewObserved") {
+    const _partition_25 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_25};
+  } else if (_value_0.$ === "Canonical.FindingCountUpdated") {
+    const _partition_26 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_26};
+  } else if (_value_0.$ === "Canonical.QueueDispatch") {
+    const _partition_27 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_27};
+  } else if (_value_0.$ === "Canonical.DispatchSettled") {
+    const _partition_28 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_28};
+  } else if (_value_0.$ === "Canonical.DiscardDispatch") {
+    return {$: "AdviceeScope.Shared"};
+  } else if (_value_0.$ === "Canonical.DispatchScopeCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CloseDispatch") {
+    return {$: "AdviceeScope.Shared"};
+  } else if (_value_0.$ === "Canonical.PreparedOfferCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.EmptyPreparedCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReviewFailureCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.StopPolled") {
+    const _partition_29 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_29};
+  } else if (_value_0.$ === "Canonical.StopGroupPolled") {
+    const _group_0 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_0};
+  } else if (_value_0.$ === "Canonical.StopGroupEnded") {
+    const _group_1 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_1};
+  } else if (_value_0.$ === "Canonical.CollectionReady") {
+    const _partition_30 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_30};
+  } else if (_value_0.$ === "Canonical.CollectionCredentialCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionCandidateCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionOrderCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionExpiryCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionFitCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionFindingCheck") {
+    const _partition_31 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_31};
+  } else if (_value_0.$ === "Canonical.CollectionNoticeCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionReserveLease") {
+    const _advice_0 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_0};
+  } else if (_value_0.$ === "Canonical.CollectionReleaseLease") {
+    const _advice_1 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_1};
+  } else if (_value_0.$ === "Canonical.CollectionLeaseCheck") {
+    const _advice_2 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_2};
+  } else if (_value_0.$ === "Canonical.CollectionRetireAdvice") {
+    const _advice_3 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_3};
+  } else if (_value_0.$ === "Canonical.CollectionClaimBackground") {
+    const _group_2 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_2};
+  } else if (_value_0.$ === "Canonical.CollectionReleaseBackground") {
+    const _group_3 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_3};
+  } else if (_value_0.$ === "Canonical.CollectionExpireBackground") {
+    const _group_4 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_4};
+  } else if (_value_0.$ === "Canonical.FinishReserve") {
+    const _group_5 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_5};
+  } else if (_value_0.$ === "Canonical.FinishRelease") {
+    const _group_6 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_6};
+  } else if (_value_0.$ === "Canonical.FinishAuthorize") {
+    const _group_7 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_7};
+  } else if (_value_0.$ === "Canonical.FinishTerminal") {
+    const _group_8 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_8};
+  } else if (_value_0.$ === "Canonical.FinishEnd") {
+    const _group_9 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_9};
+  } else if (_value_0.$ === "Canonical.ContinuationConsume") {
+    const _group_10 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_10};
+  } else if (_value_0.$ === "Canonical.SubmissionBegin") {
+    const _group_11 = _value_0["group"];
+    return {$: "AdviceeScope.Direct", "partition": _group_11};
+  } else if (_value_0.$ === "Canonical.SubmissionAuthorize") {
+    const _advice_4 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_4};
+  } else if (_value_0.$ === "Canonical.SubmissionTerminal") {
+    const _advice_5 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_5};
+  } else if (_value_0.$ === "Canonical.SubmissionRelease") {
+    const _advice_6 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_6};
+  } else if (_value_0.$ === "Canonical.SubmissionForget") {
+    const _advice_7 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_7};
+  } else if (_value_0.$ === "Canonical.SubmissionSuppressCheck") {
+    const _advice_8 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_8};
+  } else if (_value_0.$ === "Canonical.SubmissionReofferCheck") {
+    const _advice_9 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_9};
+  } else if (_value_0.$ === "Canonical.SubmissionExpiryCheck") {
+    const _advice_10 = _value_0["advice"];
+    return {$: "AdviceeScope.Advice", "advice": _advice_10};
+  } else if (_value_0.$ === "Canonical.RevisionRegister") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionRelease") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionCurrentCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionSupersededCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionGenerationCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionCountCheck") {
+    return {$: "AdviceeScope.Shared"};
+  } else if (_value_0.$ === "Canonical.CollectorGateCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectorFinalAuthorityCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseMemberCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CleanupCheck") {
+    return {$: "AdviceeScope.Shared"};
+  } else if (_value_0.$ === "Canonical.CleanupCommit") {
+    return {$: "AdviceeScope.Shared"};
+  } else if (_value_0.$ === "Canonical.DeliveryReleaseCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryAcknowledgeCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryFinalizeCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryFindingDispositionCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliverySubmissionCandidateCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliverySubmissionBatchCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryCredentialObserveCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryFinalCredentialCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ValidationRouteCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PostValidationCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinalCandidateCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundBeginStopCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundActivityCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundBarrierCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundOwnsStopCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundStopTerminalCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundExpireCloseCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundContinuationBudgetCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliverySubmissionAllowedCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryExistingTokenCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryUnreservedStopCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.IncludeLayerCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FileSelectionCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FileProtectionInvalid") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FileProtectionCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CandidateFileCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReviewAdmissionCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RuleEnableCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RuleApplicabilityCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RuleFindingCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RuleRankOrderCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.AdviceOrderCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RuleBudgetCheck") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseRoute") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseClaim") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseAttach") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseRelease") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseTouch") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CachePrepare") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CacheCommit") {
+    const _partition_32 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_32};
+  } else if (_value_0.$ === "Canonical.CacheDiscardPartition") {
+    const _partition_33 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_33};
+  } else if (_value_0.$ === "Canonical.CacheClear") {
+    return {$: "AdviceeScope.Shared"};
+  } else if (_value_0.$ === "Canonical.NoticeAdvance") {
+    const _key_0 = _value_0["key"];
+    return {$: "AdviceeScope.Notice", "key": _key_0};
+  } else if (_value_0.$ === "Canonical.NoticeCommit") {
+    const _partition_34 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_34};
+  } else if (_value_0.$ === "Canonical.NoticePrune") {
+    const _key_1 = _value_0["key"];
+    return {$: "AdviceeScope.Notice", "key": _key_1};
+  } else if (_value_0.$ === "Canonical.NoticeDrop") {
+    const _key_2 = _value_0["key"];
+    return {$: "AdviceeScope.Notice", "key": _key_2};
+  } else if (_value_0.$ === "Canonical.NoticeLease") {
+    const _key_3 = _value_0["key"];
+    return {$: "AdviceeScope.Notice", "key": _key_3};
+  } else if (_value_0.$ === "Canonical.NoticeClearPending") {
+    const _key_4 = _value_0["key"];
+    return {$: "AdviceeScope.Notice", "key": _key_4};
+  } else if (_value_0.$ === "Canonical.NoticeSelect") {
+    const _partition_35 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_35};
+  } else if (_value_0.$ === "Canonical.OutputStarted") {
+    const _partition_36 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_36};
+  } else if (_value_0.$ === "Canonical.OutputTerminal") {
+    const _partition_37 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_37};
+  } else {
+    const _partition_38 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_38};
+  }
+}
+
+function $AdviceeScope$event$(_before_0, _after_0, _value_0, _provided_0) {
+  return $AdviceeScope$resolve$(_before_0, _after_0, ($AdviceeScope$event_reference$(_value_0)), _provided_0);
+}
+
+function $AdviceeScope$command_reference$(_value_0) {
+  if (_value_0.$ === "Canonical.CapacityGranted") {
+    const _id_0 = _value_0["id"];
+    return {$: "AdviceeScope.Reservation", "reservation": _id_0};
+  } else if (_value_0.$ === "Canonical.CapacityRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CapacityResized") {
+    const _id_1 = _value_0["id"];
+    return {$: "AdviceeScope.Reservation", "reservation": _id_1};
+  } else if (_value_0.$ === "Canonical.CapacityUnitAdmitted") {
+    const _reservation_0 = _value_0["reservation"];
+    return {$: "AdviceeScope.Reservation", "reservation": _reservation_0};
+  } else if (_value_0.$ === "Canonical.CapacityUnitRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PermitIssued") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CompletedEditAbsent") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CompletedEditSeen") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CompletedEditRemembered") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.QuietRoundBusy") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.QuietRoundWaiting") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.QuietRoundExpired") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.QuietRoundResetRecorded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PermitConsumed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PermitReleased") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PermitExpired") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PermitKept") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PermitRoundClosed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundStarted") {
+    const _id_2 = _value_0["id"];
+    return {$: "AdviceeScope.Round", "round": _id_2};
+  } else if (_value_0.$ === "Canonical.ObservationAdmitted") {
+    const _id_3 = _value_0["id"];
+    return {$: "AdviceeScope.Operation", "operation": _id_3};
+  } else if (_value_0.$ === "Canonical.ObservationStarted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ObservationCompleted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ObservationInterrupted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.Prepare") {
+    const _operation_0 = _value_0["operation"];
+    return {$: "AdviceeScope.Operation", "operation": _operation_0};
+  } else if (_value_0.$ === "Canonical.PreparationRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.UnitAdmitted") {
+    const _operation_1 = _value_0["operation"];
+    return {$: "AdviceeScope.Operation", "operation": _operation_1};
+  } else if (_value_0.$ === "Canonical.UnitRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PreparationReleased") {
+    const _id_4 = _value_0["id"];
+    return {$: "AdviceeScope.Reservation", "reservation": _id_4};
+  } else if (_value_0.$ === "Canonical.ReviewStarted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.JevRequestIssued") {
+    const _partition_0 = _value_0["partition"];
+    return {$: "AdviceeScope.Direct", "partition": _partition_0};
+  } else if (_value_0.$ === "Canonical.JevRequestUnavailable") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.JevRequestStartRecorded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.JevInterruptionRecorded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.JevRequestOutcomeRecorded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.JevObservationIgnored") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReservationReleased") {
+    const _id_5 = _value_0["id"];
+    return {$: "AdviceeScope.Reservation", "reservation": _id_5};
+  } else if (_value_0.$ === "Canonical.ReviewRecorded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RetainFinding") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FindingCountRecorded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SettleClear") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SettleStaleClear") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RetireStaleFinding") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PreparedSkipped") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PreparedAdmitted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PreparedCapacityRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.EmptyLost") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.EmptyAccepted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FailureBackend") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FailureCredential") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FailureLost") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FailureNone") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DispatchStarted") {
+    const _operation_2 = _value_0["operation"];
+    return {$: "AdviceeScope.Operation", "operation": _operation_2};
+  } else if (_value_0.$ === "Canonical.DispatchDiscarded") {
+    const _operation_3 = _value_0["operation"];
+    return {$: "AdviceeScope.Operation", "operation": _operation_3};
+  } else if (_value_0.$ === "Canonical.DiscardNamedOnly") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DiscardAllUnfinished") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.WaitForWork") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CancelWork") {
+    const _operation_4 = _value_0["operation"];
+    return {$: "AdviceeScope.Operation", "operation": _operation_4};
+  } else if (_value_0.$ === "Canonical.FinishReady") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishLimit") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.StopEnded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionEligible") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionWaiting") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionRetireCredential") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionRetainCredential") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionCandidate") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionSkip") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionBefore") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionEqual") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionAfter") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionExpired") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionCurrent") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionFits") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionLimited") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionFindingSelected") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionFindingRetained") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionFindingLimited") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionFindingExpired") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionNoticeIncluded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionNoticeSkipped") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionNoticeStopped") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionLeaseReserved") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionLeaseRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionLeaseReleased") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionLeaseKept") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionAdviceRetired") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionBackgroundClaimed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionBackgroundRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionBackgroundReleased") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectionBackgroundKept") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishReserved") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishNotices") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishAllowedNoAdvice") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishAllowedDeadline") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishAllowedUnavailable") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishReleased") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishAuthorized") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishRecorded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FinishEnded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ContinuationConsumed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ContinuationRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionBegun") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionAuthorized") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionRecorded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionReleased") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionForgotten") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionSuppresses") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionUnsuppressed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionReofferable") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionNotReofferable") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionExpired") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.SubmissionCurrent") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionReused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionReplaced") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionReleased") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionCurrent") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionStale") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionSuperseded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionNotSuperseded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionGeneration") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RevisionCount") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectorProceed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectorUnavailable") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectorFinalProceed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CollectorFinalRelease") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseKeepMember") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseSetMemberClear") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseSetMemberFinding") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseSetMemberUnavailable") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseSetMemberLost") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CleanupReady") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CleanupBusy") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CleanupCommitted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryReleaseUnacknowledged") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryKeepAcknowledged") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryAckReady") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryAckExpired") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryAckEmpty") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryFinalReady") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryFinalExpired") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryFinalEmpty") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryRetireAdvice") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryKeepRemaining") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryKeepForReoffer") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliverySubmissionCandidate") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliverySubmissionRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryBatchProceed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryBatchRelease") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryCredentialInvalid") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryCredentialValid") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.IgnoreCandidate") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReleaseCandidate") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RetireCandidate") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ContinueCandidate") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RetainCandidate") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundStopBegun") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundStopRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundActive") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundInactive") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundBarrierRaised") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundBarrierClear") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundStopOwned") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundStopNotOwned") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundStopTerminal") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundExpireCloses") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundExpireKeeps") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundContinuationAvailable") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RoundContinuationExhausted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliverySubmissionAllowed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliverySubmissionDenied") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryExistingTokenAllowed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryExistingTokenDenied") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryUnreservedStopAllowed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.DeliveryUnreservedStopDenied") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseJoinAdvice") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseJoinPending") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseJoinClaimed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseCached") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseOwn") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseClaimed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseAttached") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseReleased") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReuseRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CacheAlready") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CacheRejected") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CachePrepared") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CacheCommitted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CacheDiscarded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeSuppressed") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeRejectedFull") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeCreateKey") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeCreatePending") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeMergePending") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeKeepLeased") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeRefused") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeCommitted") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticePruned") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeDropped") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeLeased") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticePendingCleared") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.NoticeSelected") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.IncludeChoice") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FileSelection") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.FileProtection") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.CandidateFile") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReviewAdmission") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RuleGate") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.RuleOrder") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.WriteAuthorized") {
+    const _operation_5 = _value_0["operation"];
+    return {$: "AdviceeScope.Operation", "operation": _operation_5};
+  } else if (_value_0.$ === "Canonical.WriteRecorded") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.WaitForOutput") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.ReofferAtStop") {
+    return {$: "AdviceeScope.Context"};
+  } else if (_value_0.$ === "Canonical.PartitionRetired") {
+    return {$: "AdviceeScope.Context"};
+  } else {
+    return {$: "AdviceeScope.Context"};
+  }
+}
+
+function $AdviceeScope$command$(_before_0, _after_0, _value_0, _provided_0) {
+  return $AdviceeScope$resolve$(_before_0, _after_0, ($AdviceeScope$command_reference$(_value_0)), _provided_0);
+}
+
+function $Numeric$high$(_value_0) {
+  const _high_0 = _value_0["high"];
+  return _high_0;
+}
+
+function $Numeric$low$(_value_0) {
+  const _low_0 = _value_0["low"];
+  return _low_0;
+}
+
+function $Numeric$zero$(_value_0) {
+  return $Bool$and$(($Nat$is_eq$(($Numeric$high$(_value_0)), 0)), ($Nat$is_eq$(($Numeric$low$(_value_0)), 0)));
+}
+
+function $Numeric$greater$(_a_0, _b_0) {
+  const _x_0 = ($Nat$is_gt$(($Numeric$high$(_a_0)), ($Numeric$high$(_b_0))));
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(($Numeric$high$(_a_0)), ($Numeric$high$(_b_0)))), ($Nat$is_gt$(($Numeric$low$(_a_0)), ($Numeric$low$(_b_0))))));
+  return (_x_0 || _x_1);
+}
+
+function $Numeric$ge$(_a_0, _b_0) {
+  return $Bool$not$(($Numeric$greater$(_b_0, _a_0)));
+}
+
+function $Numeric$add_parts$(_ah_0, _bh_0, _lo_0) {
+  const _x_0 = nat_chk(_ah_0 + _bh_0);
+  const _x_1 = ($Nat$div$(_lo_0, 268435456));
+  return {$: "Numeric.Limb", "high": nat_chk(_x_0 + _x_1), "low": ($Nat$mod$(_lo_0, 268435456))};
+}
+
+function $Numeric$add$(_a_0, _b_0) {
+  const _ah_0 = _a_0["high"];
+  const _al_0 = _a_0["low"];
+  const _bh_0 = _b_0["high"];
+  const _bl_0 = _b_0["low"];
+  return $Numeric$add_parts$(_ah_0, _bh_0, nat_chk(_al_0 + _bl_0));
+}
+
+function $Numeric$sub_parts$(_ah_0, _al_0, _bh_0, _bl_0) {
+  const _x_0 = (_ah_0 < _bh_0 ? 0 : _ah_0 - _bh_0);
+  const _x_1 = ($Bool$pick$((_al_0 < _bl_0), 1, 0));
+  const _x_2 = nat_chk(_al_0 + 268435456);
+  return {$: "Numeric.Limb", "high": (_x_0 < _x_1 ? 0 : _x_0 - _x_1), "low": ($Nat$mod$((_x_2 < _bl_0 ? 0 : _x_2 - _bl_0), 268435456))};
+}
+
+function $Numeric$sub$(_a_0, _b_0) {
+  const _ah_0 = _a_0["high"];
+  const _al_0 = _a_0["low"];
+  const _bh_0 = _b_0["high"];
+  const _bl_0 = _b_0["low"];
+  return $Numeric$sub_parts$(_ah_0, _al_0, _bh_0, _bl_0);
+}
+
+function $Numeric$shl$(_value_0) {
+  const _high_0 = _value_0["high"];
+  const _low_0 = _value_0["low"];
+  const _x_0 = nat_chk(_high_0 * 2);
+  const _x_1 = ($Nat$div$(_low_0, 134217728));
+  return {$: "Numeric.Limb", "high": nat_chk(_x_0 + _x_1), "low": ($Nat$mod$(nat_chk(_low_0 * 2), 268435456))};
+}
+
+function $Numeric$shr$(_value_0) {
+  const _high_0 = _value_0["high"];
+  const _low_0 = _value_0["low"];
+  const _x_0 = ($Nat$mod$(_high_0, 2));
+  const _x_1 = ($Nat$div$(_low_0, 2));
+  const _x_2 = nat_chk(_x_0 * 134217728);
+  return {$: "Numeric.Limb", "high": ($Nat$div$(_high_0, 2)), "low": nat_chk(_x_1 + _x_2)};
+}
+
+function $Numeric$sticky$(_value_0, _bit_0) {
+  const _high_0 = _value_0["high"];
+  const _low_0 = _value_0["low"];
+  const _x_0 = ($Bool$pick$(($Bool$and$(_bit_0, ($Nat$is_eq$(($Nat$mod$(_low_0, 2)), 0)))), 1, 0));
+  return {$: "Numeric.Limb", "high": _high_0, "low": nat_chk(_low_0 + _x_0)};
+}
+
+function $Numeric$shr_sticky$(_value_0) {
+  return $Numeric$sticky$(($Numeric$shr$(_value_0)), ($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_value_0)), 2)), 1)));
+}
+
+function $Numeric$shift_right$($0, $1) {
+  for (;;) {
+    {
+      const _count_0 = $0;
+      const _value_0 = $1;
+      if (_count_0 === 0) {
+        return _value_0;
+      } else {
+        const _rest_0 = (_count_0 - 1);
+        $0 = _rest_0;
+        $1 = ($Numeric$shr_sticky$(_value_0));
         continue;
       }
     }
   }
 }
 
-function $Scheduler$precedes$(_a_0, _b_0) {
-  const _at_0 = _a_0["at"];
-  const _order_0 = _a_0["order"];
-  const _bt_0 = _b_0["at"];
-  const _other_0 = _b_0["order"];
-  const _x_0 = (_at_0 < _bt_0);
-  const _x_1 = ($Bool$and$(($Nat$is_eq$(_at_0, _bt_0)), ($Nat$is_le$(_order_0, _other_0))));
+function $Numeric$bounded_shift$(_count_0, _value_0) {
+  return $Numeric$shift_right$(($Bool$pick$(($Nat$is_gt$(_count_0, 56)), 56, _count_0)), _value_0);
+}
+
+function $Numeric$normalize_step$(_done_0, _value_0, _exponent_0, _rest_0) {
+  if (_done_0) {
+    return {$: "Numeric.Value", "mantissa": _value_0, "exponent": _exponent_0};
+  } else {
+    return run_tail(_rest_0(($Numeric$shl$(_value_0))), (_exponent_0 < 1 ? 0 : _exponent_0 - 1));
+  }
+}
+
+function $Numeric$normalize$(_fuel_0, _value_0, _exponent_0) {
+  if (_fuel_0 === 0) {
+    return {$: "Numeric.Value", "mantissa": _value_0, "exponent": _exponent_0};
+  } else {
+    const _rest_0 = (_fuel_0 - 1);
+    const _x_0 = ($Numeric$zero$(_value_0));
+    const _x_1 = ($Nat$is_ge$(($Numeric$high$(_value_0)), 16777216));
+    return $Numeric$normalize_step$((_x_0 || _x_1), _value_0, _exponent_0, run_clo((_x_2) => {
+  return run_clo((_x_3) => {
+  return $Numeric$normalize$(_rest_0, _x_2, _x_3);
+});
+}));
+  }
+}
+
+function $Numeric$decoded$(_high_0, _low_0) {
+  const _x_0 = ($Nat$mod$(_high_0, 1048576));
+  const _x_1 = nat_chk(_x_0 * 16);
+  const _x_2 = ($Nat$div$(_low_0, 268435456));
+  const _x_3 = nat_chk(_x_1 + _x_2);
+  const _x_4 = ($Bool$pick$(($Nat$is_eq$(($Nat$div$(_high_0, 1048576)), 0)), 0, 16777216));
+  const _x_5 = ($Bool$pick$(($Nat$is_eq$(($Nat$div$(_high_0, 1048576)), 0)), 1, ($Nat$div$(_high_0, 1048576))));
+  return $Numeric$normalize$(52, {$: "Numeric.Limb", "high": nat_chk(_x_3 + _x_4), "low": ($Nat$mod$(_low_0, 268435456))}, nat_chk(2048 + _x_5));
+}
+
+function $Numeric$decode$(_words_0) {
+  const _high_0 = _words_0["high"];
+  const _low_0 = _words_0["low"];
+  return $Numeric$decoded$(_high_0, _low_0);
+}
+
+function $Numeric$encoded$(_mantissa_0, _exponent_0) {
+  const _x_0 = ($Numeric$high$(_mantissa_0));
+  const _x_1 = ($Numeric$zero$(_mantissa_0));
+  const _x_2 = (_x_0 < 16777216);
+  const _x_3 = ($Bool$pick$((_x_1 || _x_2), 0, (_exponent_0 < 2048 ? 0 : _exponent_0 - 2048)));
+  const _x_4 = nat_chk(_x_3 * 1048576);
+  const _x_5 = ($Nat$mod$(($Nat$div$(($Numeric$high$(_mantissa_0)), 16)), 1048576));
+  const _x_6 = ($Nat$mod$(($Numeric$high$(_mantissa_0)), 16));
+  const _x_7 = nat_chk(_x_6 * 268435456);
+  const _x_8 = ($Numeric$low$(_mantissa_0));
+  return {$: "Numeric.Words", "high": nat_chk(_x_4 + _x_5), "low": nat_chk(_x_7 + _x_8)};
+}
+
+function $Numeric$increment$(_value_0) {
+  return $Numeric$add$(_value_0, {$: "Numeric.Limb", "high": 0, "low": 1});
+}
+
+function $Numeric$rounded_parts$(_mantissa_0, _exponent_0) {
+  const _x_0 = ($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_mantissa_0)), 33554432)), 1, 0));
+  return $Numeric$encoded$(($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_mantissa_0)), 33554432)), ($Numeric$shr$(_mantissa_0)), _mantissa_0)), nat_chk(_exponent_0 + _x_0));
+}
+
+function $Numeric$rounded$(_value_0, _exponent_0) {
+  const _base_0 = ($Numeric$shr$(($Numeric$shr$(($Numeric$shr$(_value_0))))));
+  const _x_0 = ($Nat$is_gt$(($Nat$mod$(($Numeric$low$(_value_0)), 8)), 4));
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_value_0)), 8)), 4)), ($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_base_0)), 2)), 1))));
+  return $Numeric$rounded_parts$(($Bool$pick$((_x_0 || _x_1), ($Numeric$increment$(_base_0)), _base_0)), _exponent_0);
+}
+
+function $Numeric$round_finite$(_value_0, _exponent_0) {
+  return $Numeric$rounded$(($Bool$pick$((_exponent_0 < 2049), ($Numeric$bounded_shift$((2049 < _exponent_0 ? 0 : 2049 - _exponent_0), _value_0)), _value_0)), ($Bool$pick$((_exponent_0 < 2049), 2049, _exponent_0)));
+}
+
+function $Numeric$add_aligned$(_sum_0, _exponent_0) {
+  const _x_0 = ($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_sum_0)), 268435456)), 1, 0));
+  return $Numeric$round_finite$(($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_sum_0)), 268435456)), ($Numeric$shr_sticky$(_sum_0)), _sum_0)), nat_chk(_exponent_0 + _x_0));
+}
+
+function $Numeric$add_ordered$(_a_0, _ae_0, _b_0, _be_0) {
+  return $Numeric$add_aligned$(($Numeric$add$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_a_0)))))), ($Numeric$bounded_shift$((_ae_0 < _be_0 ? 0 : _ae_0 - _be_0), ($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_b_0)))))))))), _ae_0);
+}
+
+function $Numeric$add_values$(_a_0, _b_0) {
+  const _am_0 = _a_0["mantissa"];
+  const _ae_0 = _a_0["exponent"];
+  const _bm_0 = _b_0["mantissa"];
+  const _be_0 = _b_0["exponent"];
+  return $Bool$pick$(($Numeric$zero$(_am_0)), ($Numeric$round_finite$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_bm_0)))))), _be_0)), ($Bool$pick$(($Numeric$zero$(_bm_0)), ($Numeric$round_finite$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_am_0)))))), _ae_0)), ($Bool$pick$(($Nat$is_ge$(_ae_0, _be_0)), ($Numeric$add_ordered$(_am_0, _ae_0, _bm_0, _be_0)), ($Numeric$add_ordered$(_bm_0, _be_0, _am_0, _ae_0)))))));
+}
+
+function $Numeric$plus$(_a_0, _b_0) {
+  return $Numeric$add_values$(run_loop($Numeric$decode$(_a_0)), run_loop($Numeric$decode$(_b_0)));
+}
+
+function $Numeric$divide_choose$(_take_0, _remainder_0, _denominator_0, _quotient_0, _exponent_0, _rest_0) {
+  if (_take_0) {
+    return run_tail(_rest_0(($Numeric$sub$(_remainder_0, _denominator_0)))(_denominator_0)(($Numeric$add$(($Numeric$shl$(_quotient_0)), {$: "Numeric.Limb", "high": 0, "low": 1}))), _exponent_0);
+  } else {
+    return run_tail(_rest_0(_remainder_0)(_denominator_0)(($Numeric$shl$(_quotient_0))), _exponent_0);
+  }
+}
+
+function $Numeric$divide_loop$(_fuel_0, _remainder_0, _denominator_0, _quotient_0, _exponent_0) {
+  if (_fuel_0 === 0) {
+    return $Numeric$round_finite$(($Numeric$sticky$(_quotient_0, ($Bool$not$(($Numeric$zero$(_remainder_0)))))), _exponent_0);
+  } else {
+    const _rest_0 = (_fuel_0 - 1);
+    return $Numeric$divide_choose$(($Numeric$ge$(($Numeric$shl$(_remainder_0)), _denominator_0)), ($Numeric$shl$(_remainder_0)), _denominator_0, _quotient_0, _exponent_0, run_clo((_x_0) => {
+  return run_clo((_x_1) => {
+  return run_clo((_x_2) => {
+  return run_clo((_x_3) => {
+  return $Numeric$divide_loop$(_rest_0, _x_0, _x_1, _x_2, _x_3);
+});
+});
+});
+}));
+  }
+}
+
+function $Numeric$divide_start$(_numerator_0, _denominator_0, _exponent_0) {
+  return $Numeric$divide_loop$(55, ($Numeric$sub$(_numerator_0, _denominator_0)), _denominator_0, {$: "Numeric.Limb", "high": 0, "low": 1}, _exponent_0);
+}
+
+function $Numeric$divide_values$(_a_0, _b_0) {
+  const _am_0 = _a_0["mantissa"];
+  const _ae_0 = _a_0["exponent"];
+  const _bm_0 = _b_0["mantissa"];
+  const _be_0 = _b_0["exponent"];
+  const _x_0 = nat_chk(_ae_0 + 3071);
+  const _x_1 = (_x_0 < _be_0 ? 0 : _x_0 - _be_0);
+  const _x_2 = ($Bool$pick$(($Numeric$greater$(_bm_0, _am_0)), 1, 0));
+  return $Bool$pick$(($Numeric$zero$(_am_0)), {$: "Numeric.Words", "high": 0, "low": 0}, run_loop($Numeric$divide_start$(($Bool$pick$(($Numeric$greater$(_bm_0, _am_0)), ($Numeric$shl$(_am_0)), _am_0)), _bm_0, (_x_1 < _x_2 ? 0 : _x_1 - _x_2))));
+}
+
+function $Numeric$divide$(_a_0, _b_0) {
+  return $Numeric$divide_values$(run_loop($Numeric$decode$(_a_0)), run_loop($Numeric$decode$(_b_0)));
+}
+
+function $Numeric$ordered$(_left_0, _right_0) {
+  const _lh_0 = _left_0["high"];
+  const _ll_0 = _left_0["low"];
+  const _rh_0 = _right_0["high"];
+  const _rl_0 = _right_0["low"];
+  const _x_0 = (_lh_0 < _rh_0);
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(_lh_0, _rh_0)), (_ll_0 < _rl_0)));
   return (_x_0 || _x_1);
 }
 
-function $Scheduler$inserted$(_before_0, _entry_0, _head_0, _tail_0, _rest_0) {
-  if (_before_0) {
-    return {$: "Con", "head": _entry_0, "tail": {$: "Con", "head": _head_0, "tail": _tail_0}};
-  } else {
-    return {$: "Con", "head": _head_0, "tail": _rest_0};
-  }
+function $Numeric$integer_words$(_value_0) {
+  const _mantissa_0 = _value_0["mantissa"];
+  const _exponent_0 = _value_0["exponent"];
+  return $Numeric$encoded$(_mantissa_0, (_exponent_0 < 32 ? 0 : _exponent_0 - 32));
 }
 
-function $Scheduler$insert$(_queue_0, _entry_0) {
-  if (_queue_0.$ === "Nil") {
-    return {$: "Con", "head": _entry_0, "tail": {$: "Nil"}};
-  } else {
-    const _head_0 = _queue_0["head"];
-    const _tail_0 = _queue_0["tail"];
-    return $Scheduler$inserted$(($Scheduler$precedes$(_entry_0, _head_0)), _entry_0, _head_0, _tail_0, ($Scheduler$insert$(_tail_0, _entry_0)));
-  }
-}
-
-function $Scheduler$initial$() {
-  return {$: "Scheduler.State", "queue": {$: "Nil"}, "now": 0};
-}
-
-function $Scheduler$enqueue$(_state_0, _at_0, _order_0) {
-  const _queue_0 = _state_0["queue"];
-  const _now_0 = _state_0["now"];
-  return {$: "Scheduler.State", "queue": ($Scheduler$insert$(_queue_0, {$: "Scheduler.Entry", "at": _at_0, "order": _order_0})), "now": _now_0};
-}
-
-function $Scheduler$take_queue$(_queue_0, _now_0) {
-  if (_queue_0.$ === "Nil") {
-    return {$: "Scheduler.Taken", "state": {$: "Scheduler.State", "queue": {$: "Nil"}, "now": _now_0}, "entry": {$: "None"}};
-  } else {
-    const _t_0 = _queue_0["head"];
-    const _at_0 = _t_0["at"];
-    const _order_0 = _t_0["order"];
-    const _tail_0 = _queue_0["tail"];
-    return {$: "Scheduler.Taken", "state": {$: "Scheduler.State", "queue": _tail_0, "now": _at_0}, "entry": {$: "Some", "value": {$: "Scheduler.Entry", "at": _at_0, "order": _order_0}}};
-  }
-}
-
-function $Scheduler$take$(_state_0) {
-  const _queue_0 = _state_0["queue"];
-  const _now_0 = _state_0["now"];
-  return $Scheduler$take_queue$(_queue_0, _now_0);
-}
-
-function $Scheduler$peek$(_state_0) {
-  const _t_0 = _state_0["queue"];
-  if (_t_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _t_0["head"];
-    return {$: "Some", "value": _head_0};
-  }
-}
-
-function $Scheduler$entries$(_state_0) {
-  const _queue_0 = _state_0["queue"];
-  return _queue_0;
-}
-
-function $Scheduler$retain$(_remove_0, _entry_0, _rest_0) {
-  if (_remove_0) {
-    return _rest_0;
-  } else {
-    return {$: "Con", "head": _entry_0, "tail": _rest_0};
-  }
-}
-
-function $Scheduler$cancel_one$(_entry_0, _rest_0, _order_0) {
-  const _at_0 = _entry_0["at"];
-  const _id_0 = _entry_0["order"];
-  return $Scheduler$retain$(($Nat$is_eq$(_id_0, _order_0)), {$: "Scheduler.Entry", "at": _at_0, "order": _id_0}, _rest_0);
-}
-
-function $Scheduler$cancel_queue$(_queue_0, _order_0) {
-  if (_queue_0.$ === "Nil") {
-    return {$: "Nil"};
-  } else {
-    const _head_0 = _queue_0["head"];
-    const _tail_0 = _queue_0["tail"];
-    return $Scheduler$cancel_one$(_head_0, ($Scheduler$cancel_queue$(_tail_0, _order_0)), _order_0);
-  }
-}
-
-function $Scheduler$cancel$(_state_0, _order_0) {
-  const _queue_0 = _state_0["queue"];
-  const _now_0 = _state_0["now"];
-  return {$: "Scheduler.State", "queue": ($Scheduler$cancel_queue$(_queue_0, _order_0)), "now": _now_0};
-}
-
-function $Scheduler$clock$(_state_0) {
-  const _now_0 = _state_0["now"];
-  return _now_0;
+function $Numeric$draw$(_word_0) {
+  return $Numeric$integer_words$(run_loop($Numeric$normalize$(52, {$: "Numeric.Limb", "high": ($Nat$div$(_word_0, 268435456)), "low": ($Nat$mod$(_word_0, 268435456))}, 3123)));
 }
 
 function $$$$047session$045bend$047Session$state_random$(_s_0) {
@@ -12980,413 +14455,386 @@ function $$$$047session$045bend$047Session$burst$(_count_0, _s_0) {
   return {$: "Session.Changed", "state": ($$$$047session$045bend$047Session$set_revision$(_s_0, nat_chk(_x_0 + _count_0))), "events": ($$$$047session$045bend$047Session$burst_events$(_count_0, _s_0))};
 }
 
-function $Driver$immediate$(_event_0, _job_0) {
-  return {$: "Driver.Action", "event": _event_0, "delay": 0, "candidate": {$: "None"}, "job": _job_0, "expiry_advice": {$: "None"}};
-}
-
-function $Driver$candidate_action$(_event_0, _candidate_0) {
-  return {$: "Driver.Action", "event": _event_0, "delay": 0, "candidate": {$: "Some", "value": _candidate_0}, "job": false, "expiry_advice": {$: "None"}};
-}
-
-function $Driver$work_id$(_work_0) {
-  const _operation_0 = _work_0["operation"];
-  return _operation_0;
-}
-
-function $Driver$operation_hit$(_found_0, _head_0, _rest_0) {
-  if (_found_0) {
-    return {$: "Some", "value": _head_0};
-  } else {
-    return _rest_0;
-  }
-}
-
-function $Driver$find_operation$(_work_0, _operation_0) {
-  if (_work_0.$ === "Nil") {
-    return {$: "None"};
-  } else {
-    const _head_0 = _work_0["head"];
-    const _tail_0 = _work_0["tail"];
-    return $Driver$operation_hit$(($Nat$is_eq$(($Driver$work_id$(_head_0)), _operation_0)), _head_0, ($Driver$find_operation$(_tail_0, _operation_0)));
-  }
-}
-
-function $Driver$dispatch_work$(_found_0, _context_0) {
-  if (_found_0.$ === "Some") {
-    const _t_0 = _found_0["value"];
-    const _p_0 = _t_0["partition"];
-    const _l_0 = _t_0["lifetime"];
-    const _r_0 = _t_0["round"];
-    const _o_0 = _t_0["operation"];
-    const _t_1 = _t_0["kind"];
-    if (_t_1.$ === "Canonical.AwaitingSourceRead") {
-      const _bytes_0 = _context_0["bytes"];
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.StartObservation", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "observation": _o_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.BeginObservedPreparation", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "observation": _o_0, "bytes": _bytes_0}, true)), "tail": {$: "Nil"}}}};
-    } else if (_t_1.$ === "Canonical.Reviewing") {
-      const _current_0 = _context_0["current_work"];
-      const _credential_0 = _context_0["credential_ready"];
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.StartReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.JevRequestReady", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "root_valid": true, "configuration_valid": true, "credential_ready": _credential_0, "selected": true, "current_work": _current_0, "physical_available": true}, false)), "tail": {$: "Nil"}}}};
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$issued_outcome$(_outcome_0, _p_0, _l_0, _r_0, _o_0, _request_0, _delay_0) {
-  if (_outcome_0.$ === "Canonical.NeverSent") {
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": {$: "Canonical.NeverSent"}, "current_work": true}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}}};
-  } else if (_outcome_0.$ === "Canonical.RequestInterrupted") {
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.JevRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, false)), "tail": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.JevRequestInterrupted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": {$: "Canonical.RequestInterrupted"}, "current_work": true}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}}}}};
-  } else {
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.JevRequestStarted", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0}, false)), "tail": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": true}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}}}};
-  }
-}
-
-function $Driver$candidate_check$(_advice_0, _partition_0, _round_0, _credential_0, _generation_0, _current_0, _readable_0, _surface_0) {
-  const _candidate_0 = {$: "Driver.Candidate", "partition": _partition_0, "advice": _advice_0, "round": _round_0, "token": _advice_0, "surface": _surface_0, "selection": false};
-  return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$candidate_action$({$: "Canonical.FinalCandidateCheck", "owner_current": true, "credential_generation": _generation_0, "credential_authorized": _credential_0, "expired": false, "work_current": ($Bool$and$(_current_0, _readable_0)), "has_findings": true}, _candidate_0)), "tail": {$: "Nil"}}};
-}
-
-function $Driver$suppress_value$(_candidate_0) {
-  const __0 = _candidate_0["partition"];
-  const _advice_0 = _candidate_0["advice"];
-  const _round_0 = _candidate_0["round"];
-  const __1 = _candidate_0["token"];
-  const _surface_0 = _candidate_0["surface"];
-  const __2 = _candidate_0["selection"];
-  return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$candidate_action$({$: "Canonical.SubmissionSuppressCheck", "advice": _advice_0, "fingerprint": _advice_0, "round": _round_0, "surface": _surface_0}, {$: "Driver.Candidate", "partition": __0, "advice": _advice_0, "round": _round_0, "token": __1, "surface": _surface_0, "selection": __2})), "tail": {$: "Nil"}}};
-}
-
-function $Driver$suppress$(_candidate_0) {
-  if (_candidate_0.$ === "Some") {
-    const _c_0 = _candidate_0["value"];
-    return $Driver$suppress_value$(_c_0);
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$reserve$(_candidate_0) {
-  if (_candidate_0.$ === "Some") {
-    const _t_0 = _candidate_0["value"];
-    const _p_0 = _t_0["partition"];
-    const _advice_0 = _t_0["advice"];
-    const _round_0 = _t_0["round"];
-    const _token_0 = _t_0["token"];
-    const _surface_0 = _t_0["surface"];
-    const _t_1 = _t_0["selection"];
-    if (!_t_1) {
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionReserveLease", "advice": _advice_0, "token": _token_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionBegin", "advice": _advice_0, "group": _p_0, "round": _round_0, "token": _token_0, "surface": _surface_0, "authorize_now": true, "fingerprints": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}, "units": {$: "Con", "head": _advice_0, "tail": {$: "Nil"}}}, false)), "tail": {$: "Nil"}}}};
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$output$(_p_0, _advice_0, _token_0, _certain_0, _delay_0, _lease_0) {
-  return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.SubmissionTerminal", "advice": _advice_0, "token": _token_0, "certain": _certain_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionLeaseCheck", "advice": _advice_0, "token": _token_0, "expired": false, "stop_collector": false, "same_group": true, "reofferable": false}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionReleaseLease", "advice": _advice_0, "token": _token_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Nil"}}}}};
-}
-
-function $Driver$work_list$(_state_0) {
-  const _work_0 = _state_0["work"];
-  return _work_0;
-}
-
-function $Driver$retained$(_event_0, _lifetime_0) {
-  if (_event_0.$ === "Canonical.JevRequestSettled") {
-    const _operation_0 = _event_0["operation"];
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionExpiryCheck", "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": _lifetime_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "Some", "value": _operation_0}}, "tail": {$: "Nil"}}};
-  } else if (_event_0.$ === "Canonical.ReviewCompleted") {
-    const _operation_1 = _event_0["operation"];
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionExpiryCheck", "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": _lifetime_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "Some", "value": _operation_1}}, "tail": {$: "Nil"}}};
-  } else if (_event_0.$ === "Canonical.ReviewObserved") {
-    const _operation_2 = _event_0["operation"];
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.CollectionExpiryCheck", "elapsed": _lifetime_0, "lifetime": _lifetime_0}, "delay": _lifetime_0, "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "Some", "value": _operation_2}}, "tail": {$: "Nil"}}};
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$eligible$(_event_0, _credential_0, _generation_0, _current_0, _readable_0, _surface_0) {
-  if (_event_0.$ === "Canonical.CollectionReady") {
-    const _advice_0 = _event_0["advice"];
-    const _p_0 = _event_0["partition"];
-    const _r_0 = _event_0["round"];
-    return $Driver$candidate_check$(_advice_0, _p_0, _r_0, _credential_0, _generation_0, _current_0, _readable_0, _surface_0);
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$submitted$(_event_0, _p_0, _certain_0, _delay_0, _lease_0) {
-  if (_event_0.$ === "Canonical.SubmissionBegin") {
-    const _advice_0 = _event_0["advice"];
-    const _token_0 = _event_0["token"];
-    const _t_0 = _event_0["authorize_now"];
-    if (_t_0) {
-      return $Driver$output$(_p_0, _advice_0, _token_0, _certain_0, _delay_0, _lease_0);
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_event_0.$ === "Canonical.SubmissionAuthorize") {
-    const _advice_1 = _event_0["advice"];
-    const _token_1 = _event_0["token"];
-    return $Driver$output$(_p_0, _advice_1, _token_1, _certain_0, _delay_0, _lease_0);
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$retired_work$(_found_0, _advice_0) {
-  if (_found_0.$ === "Some") {
-    const _t_0 = _found_0["value"];
-    const _p_0 = _t_0["partition"];
-    const _l_0 = _t_0["lifetime"];
-    const _r_0 = _t_0["round"];
-    const _t_1 = _t_0["kind"];
-    if (_t_1.$ === "Canonical.PendingFinding") {
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionRetireAdvice", "advice": _advice_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionForget", "advice": _advice_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.RetireReview", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _advice_0}, false)), "tail": {$: "Nil"}}}}};
-    } else {
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionRetireAdvice", "advice": _advice_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionForget", "advice": _advice_0}, false)), "tail": {$: "Nil"}}}};
-    }
-  } else {
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CollectionRetireAdvice", "advice": _advice_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.SubmissionForget", "advice": _advice_0}, false)), "tail": {$: "Nil"}}}};
-  }
-}
-
-function $Driver$retirement$(_state_0, _candidate_0) {
-  if (_candidate_0.$ === "Some") {
-    const _t_0 = _candidate_0["value"];
-    const _advice_0 = _t_0["advice"];
-    return $Driver$retired_work$(($Driver$find_operation$(($Driver$work_list$(_state_0)), _advice_0)), _advice_0);
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$collection_surface$(_background_0) {
-  if (_background_0) {
-    return {$: "Handoff.Background"};
-  } else {
-    return {$: "Handoff.Edit"};
-  }
-}
-
-function $Driver$running$(_state_0) {
-  const _t_0 = _state_0["dispatch"];
-  const _running_0 = _t_0["running"];
-  return _running_0;
-}
-
-function $Driver$release_if$(_available_0, _p_0, _l_0, _r_0, _o_0) {
-  if (_available_0) {
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.DispatchSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0}, false)), "tail": {$: "Nil"}}};
-  } else {
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$unavailable$(_state_0, _event_0) {
-  if (_event_0.$ === "Canonical.JevRequestReady") {
-    const _p_0 = _event_0["partition"];
-    const _l_0 = _event_0["lifetime"];
-    const _r_0 = _event_0["round"];
-    const _o_0 = _event_0["operation"];
-    return $Driver$release_if$(($$$$047agent$045flow$045bend$047Dispatch$contains$(($Driver$running$(_state_0)), _p_0, _l_0, _r_0, _o_0)), _p_0, _l_0, _r_0, _o_0);
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$refused_preparation$(_event_0) {
-  if (_event_0.$ === "Canonical.BeginObservedPreparation") {
-    const _p_0 = _event_0["partition"];
-    const _l_0 = _event_0["lifetime"];
-    const _r_0 = _event_0["round"];
-    const _observation_0 = _event_0["observation"];
-    return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.CompleteObservation", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "observation": _observation_0}, false)), "tail": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.DispatchSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _observation_0}, false)), "tail": {$: "Nil"}}}};
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$handle$(_state_0, _event_0, _command_0, _context_0) {
-  if (_command_0.$ === "Canonical.PreparationRefused") {
-    return $Driver$refused_preparation$(_event_0);
-  } else if (_command_0.$ === "Canonical.JevRequestUnavailable") {
-    return $Driver$unavailable$(_state_0, _event_0);
-  } else if (_command_0.$ === "Canonical.ObservationAdmitted") {
-    const _id_0 = _command_0["id"];
-    const _p_0 = _context_0["partition"];
-    const _l_0 = _context_0["lifetime"];
-    const _r_0 = _context_0["round"];
-    const _t_0 = _context_0["job"];
-    if (_t_0) {
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.QueueDispatch", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _id_0}, false)), "tail": {$: "Nil"}}};
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.DispatchStarted") {
-    const _operation_0 = _command_0["operation"];
-    const _p_1 = _context_0["partition"];
-    const _l_1 = _context_0["lifetime"];
-    const _r_1 = _context_0["round"];
-    const __34 = _context_0["bytes"];
-    const _t_1 = _context_0["job"];
-    if (_t_1) {
-      const __35 = _context_0["jev_delay"];
-      const __36 = _context_0["outcome"];
-      const __37 = _context_0["current_work"];
-      const __38 = _context_0["credential_ready"];
-      const __39 = _context_0["credential_generation"];
-      const __40 = _context_0["source_readable"];
-      const __41 = _context_0["advice_lifetime"];
-      const __42 = _context_0["candidate"];
-      const __43 = _context_0["automatic_collection"];
-      const __44 = _context_0["automatic_review"];
-      const __45 = _context_0["automatic_output"];
-      const __46 = _context_0["output_certain"];
-      const __47 = _context_0["output_delay"];
-      const __48 = _context_0["output_lease"];
-      const __49 = _context_0["background"];
-      const __50 = _context_0["automatic_dispatch"];
-      return $Driver$dispatch_work$(($Driver$find_operation$(($Driver$work_list$(_state_0)), _operation_0)), {$: "Driver.Context", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "bytes": __34, "job": true, "jev_delay": __35, "outcome": __36, "current_work": __37, "credential_ready": __38, "credential_generation": __39, "source_readable": __40, "advice_lifetime": __41, "candidate": __42, "automatic_collection": __43, "automatic_review": __44, "automatic_output": __45, "output_certain": __46, "output_delay": __47, "output_lease": __48, "background": __49, "automatic_dispatch": __50});
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.UnitAdmitted") {
-    const _operation_1 = _command_0["operation"];
-    const _p_2 = _context_0["partition"];
-    const _l_2 = _context_0["lifetime"];
-    const _r_2 = _context_0["round"];
-    const _t_2 = _context_0["automatic_dispatch"];
-    if (_t_2) {
-      return {$: "Driver.Handled", "handled": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.QueueDispatch", "partition": _p_2, "lifetime": _l_2, "round": _r_2, "operation": _operation_1}, false)), "tail": {$: "Nil"}}};
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.JevRequestIssued") {
-    const _p_3 = _command_0["partition"];
-    const _l_3 = _command_0["lifetime"];
-    const _r_3 = _command_0["round"];
-    const _o_0 = _command_0["operation"];
-    const _request_0 = _command_0["request"];
-    const _delay_0 = _context_0["jev_delay"];
-    const _outcome_0 = _context_0["outcome"];
-    const _t_3 = _context_0["automatic_review"];
-    if (_t_3) {
-      return $Driver$issued_outcome$(_outcome_0, _p_3, _l_3, _r_3, _o_0, _request_0, _delay_0);
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.RetainFinding") {
-    const _lifetime_0 = _context_0["advice_lifetime"];
-    return $Driver$retained$(_event_0, _lifetime_0);
-  } else if (_command_0.$ === "Canonical.CollectionEligible") {
-    const _current_0 = _context_0["current_work"];
-    const _credential_0 = _context_0["credential_ready"];
-    const _generation_0 = _context_0["credential_generation"];
-    const _readable_0 = _context_0["source_readable"];
-    const _t_4 = _context_0["automatic_collection"];
-    if (_t_4) {
-      const _background_0 = _context_0["background"];
-      return $Driver$eligible$(_event_0, _credential_0, _generation_0, _current_0, _readable_0, ($Driver$collection_surface$(_background_0)));
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.RetireCandidate") {
-    const _candidate_0 = _context_0["candidate"];
-    return $Driver$retirement$(_state_0, _candidate_0);
-  } else if (_command_0.$ === "Canonical.RetainCandidate") {
-    const _candidate_1 = _context_0["candidate"];
-    return $Driver$suppress$(_candidate_1);
-  } else if (_command_0.$ === "Canonical.ContinueCandidate") {
-    const _candidate_2 = _context_0["candidate"];
-    return $Driver$suppress$(_candidate_2);
-  } else if (_command_0.$ === "Canonical.SubmissionUnsuppressed") {
-    const _candidate_3 = _context_0["candidate"];
-    const _t_5 = _context_0["automatic_output"];
-    if (_t_5) {
-      return $Driver$reserve$(_candidate_3);
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.SubmissionAuthorized") {
-    const _p_4 = _context_0["partition"];
-    const _t_6 = _context_0["automatic_output"];
-    if (_t_6) {
-      const _certain_0 = _context_0["output_certain"];
-      const _delay_1 = _context_0["output_delay"];
-      const _lease_0 = _context_0["output_lease"];
-      return $Driver$submitted$(_event_0, _p_4, _certain_0, _delay_1, _lease_0);
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else if (_command_0.$ === "Canonical.SubmissionBegun") {
-    const _p_5 = _context_0["partition"];
-    const _t_7 = _context_0["automatic_output"];
-    if (_t_7) {
-      const _certain_2 = _context_0["output_certain"];
-      const _delay_3 = _context_0["output_delay"];
-      const _lease_2 = _context_0["output_lease"];
-      return $Driver$submitted$(_event_0, _p_5, _certain_2, _delay_3, _lease_2);
-    } else {
-      return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-    }
-  } else {
-    return {$: "Driver.Handled", "handled": false, "actions": {$: "Nil"}};
-  }
-}
-
-function $Driver$edit_round$(_found_0, _partition_0, _lifetime_0) {
-  if (_found_0.$ === "None") {
-    return {$: "Driver.EditPlan", "retry": true, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.OpenRound", "partition": _partition_0, "lifetime": _lifetime_0}, false)), "tail": {$: "Nil"}}};
-  } else {
-    const _t_0 = _found_0["value"];
-    const _p_0 = _t_0["partition"];
-    const _l_0 = _t_0["lifetime"];
-    const _r_0 = _t_0["id"];
-    return {$: "Driver.EditPlan", "retry": false, "actions": {$: "Con", "head": ($Driver$immediate$({$: "Canonical.AdmitObservation", "partition": _p_0, "lifetime": _l_0, "round": _r_0}, true)), "tail": {$: "Nil"}}};
-  }
-}
-
-function $Driver$rounds$(_state_0) {
-  const _rounds_0 = _state_0["rounds"];
-  return _rounds_0;
-}
-
-function $Driver$edit$(_state_0, _partition_0, _lifetime_0) {
-  return $Driver$edit_round$(($$$$047agent$045flow$045bend$047Canonical$find_round$(_partition_0, ($Driver$rounds$(_state_0)))), _partition_0, _lifetime_0);
-}
-
-function $Driver$preparation_completed$(_partition_0, _lifetime_0, _round_0, _operation_0, _unit_bytes_0, _delay_0) {
-  return {$: "Driver.Action", "event": {$: "Canonical.PreparationCompleted", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "unit_bytes": _unit_bytes_0}, "delay": _delay_0, "candidate": {$: "None"}, "job": true, "expiry_advice": {$: "None"}};
-}
-
-function $Driver$owns$($0, $1) {
+function $Random$word_bits$($0, $1, $2, $3) {
   for (;;) {
     {
-      const _work_0 = $0;
-      const _advice_0 = $1;
-      if (_work_0.$ === "Nil") {
-        return false;
+      const _fuel_0 = $0;
+      const _value_0 = $1;
+      const _acc_0 = $2;
+      const _power_0 = $3;
+      if (_fuel_0 === 0) {
+        return _acc_0;
       } else {
-        const _t_0 = _work_0["head"];
-        const _operation_0 = _t_0["operation"];
-        const _t_1 = _t_0["kind"];
-        if (_t_1.$ === "Canonical.PendingFinding") {
-          const _tail_0 = _work_0["tail"];
-          const _x_0 = ($Nat$is_eq$(_operation_0, _advice_0));
-          const _x_1 = ($Driver$owns$(_tail_0, _advice_0));
-          return (_x_0 || _x_1);
+        const _rest_0 = (_fuel_0 - 1);
+        const _x_0 = ($Bool$pick$(($Nat$is_eq$(($Nat$mod$(_value_0, 2)), 1)), _power_0, 0));
+        $0 = _rest_0;
+        $1 = ($Nat$div$(_value_0, 2));
+        $2 = ((_acc_0 + _x_0) >>> 0);
+        $3 = (1 >= 32 ? 0 : (_power_0 << 1) >>> 0);
+        continue;
+      }
+    }
+  }
+}
+
+function $Random$word$(_value_0) {
+  return $Random$word_bits$(32, _value_0, 0, 1);
+}
+
+function $Random$folded$(_seed_0) {
+  const _x_0 = ($Random$word$(_seed_0));
+  const _x_1 = ($Random$word$(($Nat$div$(_seed_0, nat_chk(4294967295 + 1)))));
+  return ((_x_0 ^ _x_1) >>> 0);
+}
+
+function $Random$named_initial$(_seed_0, _codes_0) {
+  return $$$$047session$045bend$047Session$nonzero$(($$$$047session$045bend$047Session$seed_hash$(_codes_0, ($Random$folded$(_seed_0)))));
+}
+
+function $Random$initial$(_seed_0) {
+  return $Random$named_initial$(_seed_0, {$: "Con", "head": 106, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 118, "tail": {$: "Con", "head": 45, "tail": {$: "Con", "head": 111, "tail": {$: "Con", "head": 117, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 99, "tail": {$: "Con", "head": 111, "tail": {$: "Con", "head": 109, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 115, "tail": {$: "Nil"}}}}}}}}}}}}});
+}
+
+function $Random$streams$(_seed_0) {
+  return {$: "Random.State", "outcomes": ($Random$initial$(_seed_0)), "faults": ($Random$named_initial$(_seed_0, {$: "Con", "head": 102, "tail": {$: "Con", "head": 97, "tail": {$: "Con", "head": 117, "tail": {$: "Con", "head": 108, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 115, "tail": {$: "Nil"}}}}}}}))};
+}
+
+function $Random$total$($0, $1) {
+  for (;;) {
+    {
+      const _weights_0 = $0;
+      const _acc_0 = $1;
+      if (_weights_0.$ === "Nil") {
+        return _acc_0;
+      } else {
+        const _head_0 = _weights_0["head"];
+        const _tail_0 = _weights_0["tail"];
+        $0 = _tail_0;
+        $1 = ($Numeric$plus$(_acc_0, _head_0));
+        continue;
+      }
+    }
+  }
+}
+
+function $Random$weight_nonzero$(_weight_0) {
+  const _high_0 = _weight_0["high"];
+  const _low_0 = _weight_0["low"];
+  const _x_0 = ($Nat$is_gt$(_high_0, 0));
+  const _x_1 = ($Nat$is_gt$(_low_0, 0));
+  return (_x_0 || _x_1);
+}
+
+function $Random$selected$(_done_0, _index_0, _draw_0, _sum_0, _cumulative_0, _fallback_0, _rest_0) {
+  if (_done_0) {
+    return _index_0;
+  } else {
+    return run_tail(_rest_0(_draw_0)(_sum_0)(_cumulative_0)(nat_chk(_index_0 + 1)), _fallback_0);
+  }
+}
+
+function $Random$choice_step$(_weight_0, _draw_0, _sum_0, _cumulative_0, _index_0, _fallback_0, _rest_0) {
+  const _next_0 = ($Numeric$plus$(_cumulative_0, ($Numeric$divide$(_weight_0, _sum_0))));
+  return $Random$selected$(($Bool$and$(($Random$weight_nonzero$(_weight_0)), ($Numeric$ordered$(_draw_0, _next_0)))), _index_0, _draw_0, _sum_0, _next_0, ($Bool$pick$(($Random$weight_nonzero$(_weight_0)), _index_0, _fallback_0)), _rest_0);
+}
+
+function $Random$choose$(_weights_0, _draw_0, _sum_0, _cumulative_0, _index_0, _fallback_0) {
+  if (_weights_0.$ === "Nil") {
+    return _fallback_0;
+  } else {
+    const _weight_0 = _weights_0["head"];
+    const _tail_0 = _weights_0["tail"];
+    return $Random$choice_step$(_weight_0, _draw_0, _sum_0, _cumulative_0, _index_0, _fallback_0, run_clo((_x_0) => {
+  return run_clo((_x_1) => {
+  return run_clo((_x_2) => {
+  return run_clo((_x_3) => {
+  return run_clo((_x_4) => {
+  return $Random$choose$(_tail_0, _x_0, _x_1, _x_2, _x_3, _x_4);
+});
+});
+});
+});
+}));
+  }
+}
+
+function $Random$sampled$(_random_0, _weights_0) {
+  return {$: "Random.Sampled", "random": _random_0, "outcome": run_loop($Random$choose$(_weights_0, ($Numeric$draw$(_random_0)), ($Random$total$(_weights_0, {$: "Numeric.Words", "high": 0, "low": 0})), {$: "Numeric.Words", "high": 0, "low": 0}, 0, 1))};
+}
+
+function $Random$sample$(_random_0, _weights_0) {
+  return $Random$sampled$(($$$$047session$045bend$047Session$random_step$(_random_0)), _weights_0);
+}
+
+function $Random$outcomes$(_state_0) {
+  const _outcomes_0 = _state_0["outcomes"];
+  return _outcomes_0;
+}
+
+function $Random$set_outcomes$(_state_0, _outcomes_0) {
+  const _faults_0 = _state_0["faults"];
+  return {$: "Random.State", "outcomes": _outcomes_0, "faults": _faults_0};
+}
+
+function $TreeFacts$profile_min_files$(_value_0) {
+  const _item_0 = _value_0["min_files"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_max_files$(_value_0) {
+  const _item_0 = _value_0["max_files"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_max_imports$(_value_0) {
+  const _item_0 = _value_0["max_imports"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_max_depth$(_value_0) {
+  const _item_0 = _value_0["max_depth"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_denied_percent$(_value_0) {
+  const _item_0 = _value_0["denied_percent"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_missing_percent$(_value_0) {
+  const _item_0 = _value_0["missing_percent"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_unreadable_percent$(_value_0) {
+  const _item_0 = _value_0["unreadable_percent"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_repeated_percent$(_value_0) {
+  const _item_0 = _value_0["repeated_percent"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_cyclic_percent$(_value_0) {
+  const _item_0 = _value_0["cyclic_percent"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_unsupported_percent$(_value_0) {
+  const _item_0 = _value_0["unsupported_percent"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_deadline_step$(_value_0) {
+  const _item_0 = _value_0["deadline_step"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_local_work$(_value_0) {
+  const _item_0 = _value_0["local_work"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_min_source$(_value_0) {
+  const _item_0 = _value_0["min_source"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_max_source$(_value_0) {
+  const _item_0 = _value_0["max_source"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_min_tree$(_value_0) {
+  const _item_0 = _value_0["min_tree"];
+  return _item_0;
+}
+
+function $TreeFacts$profile_max_tree$(_value_0) {
+  const _item_0 = _value_0["max_tree"];
+  return _item_0;
+}
+
+function $TreeFacts$file_target$(_value_0) {
+  const _item_0 = _value_0["target"];
+  return _item_0;
+}
+
+function $TreeFacts$file_depth$(_value_0) {
+  const _item_0 = _value_0["depth"];
+  return _item_0;
+}
+
+function $TreeFacts$file_allowed$(_value_0) {
+  const _item_0 = _value_0["allowed"];
+  return _item_0;
+}
+
+function $TreeFacts$file_source_bytes$(_value_0) {
+  const _item_0 = _value_0["source_bytes"];
+  return _item_0;
+}
+
+function $TreeFacts$file_tree_bytes$(_value_0) {
+  const _item_0 = _value_0["tree_bytes"];
+  return _item_0;
+}
+
+function $TreeFacts$file_edges$(_value_0) {
+  const _item_0 = _value_0["edges"];
+  return _item_0;
+}
+
+function $TreeFacts$file_missing$(_value_0) {
+  const _item_0 = _value_0["missing"];
+  return _item_0;
+}
+
+function $TreeFacts$file_unreadable$(_value_0) {
+  const _item_0 = _value_0["unreadable"];
+  return _item_0;
+}
+
+function $TreeFacts$file_unsupported$(_value_0) {
+  const _item_0 = _value_0["unsupported"];
+  return _item_0;
+}
+
+function $TreeFacts$decimal_more$(_more_0, _value_0, _digit_0, _rest_0) {
+  if (!_more_0) {
+    return {$: "Con", "head": _digit_0, "tail": {$: "Nil"}};
+  } else {
+    return $List$append$(_rest_0(_value_0), {$: "Con", "head": _digit_0, "tail": {$: "Nil"}});
+  }
+}
+
+function $TreeFacts$decimal_loop$(_fuel_0, _value_0) {
+  if (_fuel_0 === 0) {
+    return {$: "Nil"};
+  } else {
+    const _rest_0 = (_fuel_0 - 1);
+    const _x_0 = ($Nat$mod$(_value_0, 10));
+    return $TreeFacts$decimal_more$(($Nat$is_ge$(_value_0, 10)), ($Nat$div$(_value_0, 10)), ($Random$word$(nat_chk(48 + _x_0))), run_clo((_x_1) => {
+  return $TreeFacts$decimal_loop$(_rest_0, _x_1);
+}));
+  }
+}
+
+function $TreeFacts$decimal$(_value_0) {
+  return $TreeFacts$decimal_loop$(15, _value_0);
+}
+
+function $TreeFacts$initial$(_seed_0, _operation_0, _unit_0) {
+  return $$$$047session$045bend$047Session$nonzero$(($$$$047session$045bend$047Session$seed_hash$(($List$append$({$: "Con", "head": 105, "tail": {$: "Con", "head": 109, "tail": {$: "Con", "head": 112, "tail": {$: "Con", "head": 111, "tail": {$: "Con", "head": 114, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 45, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 114, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 115, "tail": {$: "Con", "head": 58, "tail": {$: "Nil"}}}}}}}}}}}}}}, ($List$append$(($TreeFacts$decimal$(_operation_0)), ($List$append$({$: "Con", "head": 58, "tail": {$: "Nil"}}, ($TreeFacts$decimal$(_unit_0)))))))), ($Random$folded$(_seed_0)))));
+}
+
+function $TreeFacts$scaled$(_word_0, _range_0) {
+  const _x_0 = ($Nat$div$(_word_0, 65536));
+  const _x_1 = ($Nat$mod$(_word_0, 65536));
+  const _x_2 = nat_chk(_x_0 * _range_0);
+  const _x_3 = ($Nat$div$(nat_chk(_x_1 * _range_0), 65536));
+  return $Nat$div$(nat_chk(_x_2 + _x_3), 65536);
+}
+
+function $TreeFacts$drawn$(_random_0, _min_0, _range_0) {
+  const _x_0 = ($TreeFacts$scaled$(_random_0, _range_0));
+  return {$: "TreeFacts.Draw", "random": _random_0, "value": nat_chk(_min_0 + _x_0)};
+}
+
+function $TreeFacts$between$(_random_0, _min_0, _max_0) {
+  const _x_0 = (_max_0 < _min_0 ? 0 : _max_0 - _min_0);
+  return $TreeFacts$drawn$(($$$$047session$045bend$047Session$random_step$(_random_0)), _min_0, nat_chk(_x_0 + 1));
+}
+
+function $TreeFacts$chance_drawn$(_random_0, _percent_0) {
+  const _x_0 = nat_chk(4294967295 + 1);
+  const _x_1 = nat_chk(_random_0 * 100);
+  const _x_2 = nat_chk(_percent_0 * _x_0);
+  return {$: "TreeFacts.Chance", "random": _random_0, "yes": (_x_1 < _x_2)};
+}
+
+function $TreeFacts$chance_enabled$(_enabled_0, _random_0, _percent_0) {
+  if (!_enabled_0) {
+    return {$: "TreeFacts.Chance", "random": _random_0, "yes": false};
+  } else {
+    return $TreeFacts$chance_drawn$(($$$$047session$045bend$047Session$random_step$(_random_0)), _percent_0);
+  }
+}
+
+function $TreeFacts$chance$(_percent_0, _random_0) {
+  return $TreeFacts$chance_enabled$(($Nat$is_gt$(_percent_0, 0)), _random_0, _percent_0);
+}
+
+function $TreeFacts$allowed$(_root_0, _random_0, _percent_0) {
+  if (_root_0) {
+    return {$: "TreeFacts.Chance", "random": _random_0, "yes": false};
+  } else {
+    return $TreeFacts$chance_drawn$(($$$$047session$045bend$047Session$random_step$(_random_0)), _percent_0);
+  }
+}
+
+function $TreeFacts$made_tree$(_value_0, _target_0, _depth_0, _allowed_0, _source_0) {
+  const _random_0 = _value_0["random"];
+  const _tree_0 = _value_0["value"];
+  return {$: "TreeFacts.Made", "random": _random_0, "file": {$: "TreeFacts.TreeFile", "target": _target_0, "depth": _depth_0, "allowed": _allowed_0, "source_bytes": _source_0, "tree_bytes": _tree_0, "edges": {$: "Nil"}, "missing": false, "unreadable": false, "unsupported": false}};
+}
+
+function $TreeFacts$made_source$(_value_0, _target_0, _depth_0, _allowed_0, _profile_0) {
+  const _random_0 = _value_0["random"];
+  const _source_0 = _value_0["value"];
+  return $TreeFacts$made_tree$(($TreeFacts$between$(_random_0, ($TreeFacts$profile_min_tree$(_profile_0)), ($TreeFacts$profile_max_tree$(_profile_0)))), _target_0, _depth_0, _allowed_0, _source_0);
+}
+
+function $TreeFacts$made_allowed$(_value_0, _target_0, _depth_0, _profile_0) {
+  const _random_0 = _value_0["random"];
+  const _denied_0 = _value_0["yes"];
+  return $TreeFacts$made_source$(($TreeFacts$between$(_random_0, ($TreeFacts$profile_min_source$(_profile_0)), ($TreeFacts$profile_max_source$(_profile_0)))), _target_0, _depth_0, ($Bool$not$(_denied_0)), _profile_0);
+}
+
+function $TreeFacts$make$(_random_0, _target_0, _depth_0, _profile_0) {
+  return $TreeFacts$made_allowed$(($TreeFacts$allowed$(($Nat$is_eq$(_target_0, 1)), _random_0, ($TreeFacts$profile_denied_percent$(_profile_0)))), _target_0, _depth_0, _profile_0);
+}
+
+function $TreeFacts$candidate$(_file_0, _profile_0) {
+  const _x_0 = ($TreeFacts$file_depth$(_file_0));
+  const _x_1 = ($TreeFacts$profile_max_depth$(_profile_0));
+  const _x_2 = ($List$length$(($TreeFacts$file_edges$(_file_0))));
+  const _x_3 = ($TreeFacts$profile_max_imports$(_profile_0));
+  return $Bool$and$((_x_0 < _x_1), (_x_2 < _x_3));
+}
+
+function $TreeFacts$candidates$(_files_0, _profile_0) {
+  if (_files_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _files_0["head"];
+    const _tail_0 = _files_0["tail"];
+    const _rest_0 = ($TreeFacts$candidates$(_tail_0, _profile_0));
+    return $Bool$pick$(($TreeFacts$candidate$(_head_0, _profile_0)), {$: "Con", "head": _head_0, "tail": _rest_0}, _rest_0);
+  }
+}
+
+function $TreeFacts$nth$($0, $1) {
+  for (;;) {
+    {
+      const _index_0 = $0;
+      const _files_0 = $1;
+      if (_index_0 === 0) {
+        if (_files_0.$ === "Nil") {
+          return {$: "TreeFacts.TreeFile", "target": 0, "depth": 0, "allowed": false, "source_bytes": 0, "tree_bytes": 0, "edges": {$: "Nil"}, "missing": false, "unreadable": false, "unsupported": false};
         } else {
-          const _tail_1 = _work_0["tail"];
-          $0 = _tail_1;
-          $1 = _advice_0;
+          const _head_0 = _files_0["head"];
+          return _head_0;
+        }
+      } else {
+        const _rest_0 = (_index_0 - 1);
+        if (_files_0.$ === "Nil") {
+          return {$: "TreeFacts.TreeFile", "target": 0, "depth": 0, "allowed": false, "source_bytes": 0, "tree_bytes": 0, "edges": {$: "Nil"}, "missing": false, "unreadable": false, "unsupported": false};
+        } else {
+          const _tail_0 = _files_0["tail"];
+          $0 = _rest_0;
+          $1 = _tail_0;
           continue;
         }
       }
@@ -13394,135 +14842,893 @@ function $Driver$owns$($0, $1) {
   }
 }
 
-function $Driver$candidate_owner$(_state_0, _candidate_0) {
-  if (_candidate_0.$ === "Some") {
-    const _t_0 = _candidate_0["value"];
-    const _advice_0 = _t_0["advice"];
-    return $Driver$owns$(($Driver$work_list$(_state_0)), _advice_0);
+function $TreeFacts$connected$(_file_0, _target_0) {
+  const _id_0 = _file_0["target"];
+  const _depth_0 = _file_0["depth"];
+  const _allowed_0 = _file_0["allowed"];
+  const _source_0 = _file_0["source_bytes"];
+  const _tree_0 = _file_0["tree_bytes"];
+  const _edges_0 = _file_0["edges"];
+  const _missing_0 = _file_0["missing"];
+  const _unreadable_0 = _file_0["unreadable"];
+  const _unsupported_0 = _file_0["unsupported"];
+  return {$: "TreeFacts.TreeFile", "target": _id_0, "depth": _depth_0, "allowed": _allowed_0, "source_bytes": _source_0, "tree_bytes": _tree_0, "edges": ($List$append$(_edges_0, {$: "Con", "head": _target_0, "tail": {$: "Nil"}})), "missing": _missing_0, "unreadable": _unreadable_0, "unsupported": _unsupported_0};
+}
+
+function $TreeFacts$connect$(_files_0, _parent_0, _target_0) {
+  if (_files_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _files_0["head"];
+    const _tail_0 = _files_0["tail"];
+    return {$: "Con", "head": ($Bool$pick$(($Nat$is_eq$(($TreeFacts$file_target$(_head_0)), _parent_0)), ($TreeFacts$connected$(_head_0, _target_0)), _head_0)), "tail": ($TreeFacts$connect$(_tail_0, _parent_0, _target_0))};
+  }
+}
+
+function $TreeFacts$appended$(_made_0, _files_0) {
+  const _random_0 = _made_0["random"];
+  const _file_0 = _made_0["file"];
+  return {$: "TreeFacts.Files", "random": _random_0, "files": ($List$append$(_files_0, {$: "Con", "head": _file_0, "tail": {$: "Nil"}}))};
+}
+
+function $TreeFacts$chosen$(_draw_0, _parents_0, _files_0, _target_0, _profile_0) {
+  const _random_0 = _draw_0["random"];
+  const _index_0 = _draw_0["value"];
+  const _parent_0 = ($TreeFacts$nth$(_index_0, _parents_0));
+  const _x_0 = ($TreeFacts$file_depth$(_parent_0));
+  return $TreeFacts$appended$(($TreeFacts$make$(_random_0, _target_0, nat_chk(_x_0 + 1), _profile_0)), ($TreeFacts$connect$(_files_0, ($TreeFacts$file_target$(_parent_0)), _target_0)));
+}
+
+function $TreeFacts$append_file$(_random_0, _files_0, _target_0, _profile_0) {
+  const _parents_0 = ($TreeFacts$candidates$(_files_0, _profile_0));
+  const _x_0 = ($List$length$(_parents_0));
+  return $TreeFacts$chosen$(($TreeFacts$between$(_random_0, 0, (_x_0 < 1 ? 0 : _x_0 - 1))), _parents_0, _files_0, _target_0, _profile_0);
+}
+
+function $TreeFacts$grown$(_value_0, _target_0, _profile_0, _rest_0) {
+  const _random_0 = _value_0["random"];
+  const _files_0 = _value_0["files"];
+  return run_tail(_rest_0(_random_0)(_files_0)(_target_0), _profile_0);
+}
+
+function $TreeFacts$grow$(_fuel_0, _random_0, _files_0, _target_0, _profile_0) {
+  if (_fuel_0 === 0) {
+    return {$: "TreeFacts.Files", "random": _random_0, "files": _files_0};
+  } else {
+    const _rest_0 = (_fuel_0 - 1);
+    return $TreeFacts$grown$(($TreeFacts$append_file$(_random_0, _files_0, _target_0, _profile_0)), nat_chk(_target_0 + 1), _profile_0, run_clo((_x_0) => {
+  return run_clo((_x_1) => {
+  return run_clo((_x_2) => {
+  return run_clo((_x_3) => {
+  return $TreeFacts$grow$(_rest_0, _x_0, _x_1, _x_2, _x_3);
+});
+});
+});
+}));
+  }
+}
+
+function $TreeFacts$flagged$(_file_0, _missing_0, _unreadable_0, _unsupported_0, _edges_0) {
+  const _target_0 = _file_0["target"];
+  const _depth_0 = _file_0["depth"];
+  const _allowed_0 = _file_0["allowed"];
+  const _source_0 = _file_0["source_bytes"];
+  const _tree_0 = _file_0["tree_bytes"];
+  return {$: "TreeFacts.TreeFile", "target": _target_0, "depth": _depth_0, "allowed": _allowed_0, "source_bytes": _source_0, "tree_bytes": _tree_0, "edges": _edges_0, "missing": _missing_0, "unreadable": _unreadable_0, "unsupported": _unsupported_0};
+}
+
+function $TreeFacts$first$(_edges_0) {
+  if (_edges_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _head_0 = _edges_0["head"];
+    return _head_0;
+  }
+}
+
+function $TreeFacts$cyclic$(_value_0, _file_0, _missing_0, _unreadable_0, _unsupported_0, _edges_0) {
+  const _random_0 = _value_0["random"];
+  const _yes_0 = _value_0["yes"];
+  return {$: "TreeFacts.Made", "random": _random_0, "file": ($TreeFacts$flagged$(_file_0, _missing_0, _unreadable_0, _unsupported_0, ($Bool$pick$(_yes_0, ($List$append$(_edges_0, {$: "Con", "head": 1, "tail": {$: "Nil"}})), _edges_0))))};
+}
+
+function $TreeFacts$repeated$(_value_0, _file_0, _missing_0, _unreadable_0, _unsupported_0, _profile_0) {
+  const _random_0 = _value_0["random"];
+  const _yes_0 = _value_0["yes"];
+  const _edges_0 = ($Bool$pick$(_yes_0, ($List$append$(($TreeFacts$file_edges$(_file_0)), {$: "Con", "head": ($TreeFacts$first$(($TreeFacts$file_edges$(_file_0)))), "tail": {$: "Nil"}})), ($TreeFacts$file_edges$(_file_0))));
+  const _x_0 = ($List$length$(_edges_0));
+  const _x_1 = ($TreeFacts$profile_max_imports$(_profile_0));
+  return $TreeFacts$cyclic$(($TreeFacts$chance_enabled$(($Bool$and$((_x_0 < _x_1), ($Nat$is_gt$(($TreeFacts$profile_cyclic_percent$(_profile_0)), 0)))), _random_0, ($TreeFacts$profile_cyclic_percent$(_profile_0)))), _file_0, _missing_0, _unreadable_0, _unsupported_0, _edges_0);
+}
+
+function $TreeFacts$unsupported$(_value_0, _file_0, _missing_0, _unreadable_0, _profile_0) {
+  const _random_0 = _value_0["random"];
+  const _no_support_0 = _value_0["yes"];
+  const _x_0 = ($List$length$(($TreeFacts$file_edges$(_file_0))));
+  const _x_1 = ($TreeFacts$profile_max_imports$(_profile_0));
+  return $TreeFacts$repeated$(($TreeFacts$chance_enabled$(($Bool$and$(($Bool$and$(($Nat$is_gt$(($List$length$(($TreeFacts$file_edges$(_file_0)))), 0)), (_x_0 < _x_1))), ($Nat$is_gt$(($TreeFacts$profile_repeated_percent$(_profile_0)), 0)))), _random_0, ($TreeFacts$profile_repeated_percent$(_profile_0)))), _file_0, _missing_0, _unreadable_0, _no_support_0, _profile_0);
+}
+
+function $TreeFacts$unreadable$(_value_0, _file_0, _missing_0, _profile_0) {
+  const _random_0 = _value_0["random"];
+  const _unreadable_0 = _value_0["yes"];
+  return $TreeFacts$unsupported$(($TreeFacts$chance_enabled$(($Bool$and$(($Nat$is_gt$(($TreeFacts$file_target$(_file_0)), 1)), ($Nat$is_gt$(($TreeFacts$profile_unsupported_percent$(_profile_0)), 0)))), _random_0, ($TreeFacts$profile_unsupported_percent$(_profile_0)))), _file_0, _missing_0, _unreadable_0, _profile_0);
+}
+
+function $TreeFacts$missing$(_value_0, _file_0, _profile_0) {
+  const _random_0 = _value_0["random"];
+  const _missing_0 = _value_0["yes"];
+  return $TreeFacts$unreadable$(($TreeFacts$chance_enabled$(($Bool$and$(($Nat$is_gt$(($TreeFacts$file_target$(_file_0)), 1)), ($Nat$is_gt$(($TreeFacts$profile_unreadable_percent$(_profile_0)), 0)))), _random_0, ($TreeFacts$profile_unreadable_percent$(_profile_0)))), _file_0, _missing_0, _profile_0);
+}
+
+function $TreeFacts$decorate$(_random_0, _file_0, _profile_0) {
+  return $TreeFacts$missing$(($TreeFacts$chance_enabled$(($Bool$and$(($Nat$is_gt$(($TreeFacts$file_target$(_file_0)), 1)), ($Nat$is_gt$(($TreeFacts$profile_missing_percent$(_profile_0)), 0)))), _random_0, ($TreeFacts$profile_missing_percent$(_profile_0)))), _file_0, _profile_0);
+}
+
+function $TreeFacts$decorated_tail$(_tail_0, _file_0) {
+  const _random_0 = _tail_0["random"];
+  const _files_0 = _tail_0["files"];
+  return {$: "TreeFacts.Files", "random": _random_0, "files": {$: "Con", "head": _file_0, "tail": _files_0}};
+}
+
+function $TreeFacts$decorated_head$(_made_0, _profile_0, _rest_0) {
+  const _random_0 = _made_0["random"];
+  const _file_0 = _made_0["file"];
+  return $TreeFacts$decorated_tail$(_rest_0(_random_0)(_profile_0), _file_0);
+}
+
+function $TreeFacts$decorations$(_files_0, _random_0, _profile_0) {
+  if (_files_0.$ === "Nil") {
+    return {$: "TreeFacts.Files", "random": _random_0, "files": {$: "Nil"}};
+  } else {
+    const _head_0 = _files_0["head"];
+    const _tail_0 = _files_0["tail"];
+    return $TreeFacts$decorated_head$(($TreeFacts$decorate$(_random_0, _head_0, _profile_0)), _profile_0, run_clo((_x_0) => {
+  return run_clo((_x_1) => {
+  return $TreeFacts$decorations$(_tail_0, _x_0, _x_1);
+});
+}));
+  }
+}
+
+function $TreeFacts$depth$(_files_0) {
+  if (_files_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _head_0 = _files_0["head"];
+    const _tail_0 = _files_0["tail"];
+    const _x_0 = ($TreeFacts$file_depth$(_head_0));
+    const _x_1 = ($TreeFacts$depth$(_tail_0));
+    return (_x_0 > _x_1 ? _x_0 : _x_1);
+  }
+}
+
+function $TreeFacts$finished$(_value_0) {
+  const _files_0 = _value_0["files"];
+  return {$: "TreeFacts.Tree", "files": _files_0, "depth": ($TreeFacts$depth$(_files_0))};
+}
+
+function $TreeFacts$decorated$(_value_0, _profile_0) {
+  const _random_0 = _value_0["random"];
+  const _files_0 = _value_0["files"];
+  return $TreeFacts$finished$(($TreeFacts$decorations$(_files_0, _random_0, _profile_0)));
+}
+
+function $TreeFacts$rooted$(_value_0, _count_0, _profile_0) {
+  const _random_0 = _value_0["random"];
+  const _root_0 = _value_0["file"];
+  return $TreeFacts$decorated$(run_loop($TreeFacts$grow$(_count_0, _random_0, {$: "Con", "head": _root_0, "tail": {$: "Nil"}}, 2, _profile_0)), _profile_0);
+}
+
+function $TreeFacts$counted$(_draw_0, _profile_0) {
+  const _random_0 = _draw_0["random"];
+  const _count_0 = _draw_0["value"];
+  return $TreeFacts$rooted$(($TreeFacts$make$(_random_0, 1, 0, _profile_0)), (_count_0 < 1 ? 0 : _count_0 - 1), _profile_0);
+}
+
+function $TreeFacts$generate$(_seed_0, _operation_0, _unit_0, _profile_0) {
+  return $TreeFacts$counted$(($TreeFacts$between$(($TreeFacts$initial$(_seed_0, _operation_0, _unit_0)), ($TreeFacts$profile_min_files$(_profile_0)), ($TreeFacts$profile_max_files$(_profile_0)))), _profile_0);
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$source_cap$(_limits_0) {
+  const _source_bytes_0 = _limits_0["source_bytes"];
+  return _source_bytes_0;
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$tree_cap$(_limits_0) {
+  const _tree_bytes_0 = _limits_0["tree_bytes"];
+  return _tree_bytes_0;
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$file_cap$(_limits_0) {
+  const _files_0 = _limits_0["files"];
+  return _files_0;
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$read_cap$(_limits_0) {
+  const _read_bytes_0 = _limits_0["read_bytes"];
+  return _read_bytes_0;
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$edge_cap$(_limits_0) {
+  const _outgoing_edges_0 = _limits_0["outgoing_edges"];
+  return _outgoing_edges_0;
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$depth_cap$(_limits_0) {
+  const _depth_0 = _limits_0["depth"];
+  return _depth_0;
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0) {
+  const _work_0 = _limits_0["work"];
+  return _work_0;
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$local_budget$(_limits_0, _local_work_0, _local_depth_0, _distinct_targets_0, _graph_work_0) {
+  return $Bool$and$(($Bool$not$(($Nat$is_gt$(_local_depth_0, ($$$$047agent$045flow$045bend$047ImportGraph$depth_cap$(_limits_0)))))), ($Bool$and$(($Bool$not$(($Nat$is_gt$(_distinct_targets_0, ($$$$047agent$045flow$045bend$047ImportGraph$edge_cap$(_limits_0)))))), ($Bool$not$(($Nat$is_gt$(nat_chk(_local_work_0 + _graph_work_0), ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0)))))))));
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$tree_after$(_total_0, _contribution_0, _cap_0) {
+  return $Bool$pick$(($Nat$is_gt$(nat_chk(_total_0 + _contribution_0), _cap_0)), _total_0, nat_chk(_total_0 + _contribution_0));
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$read_after$(_total_0, _contribution_0) {
+  return nat_chk(_total_0 + _contribution_0);
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$initial$(_limits_0) {
+  return {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Idle"}, "pending": {$: "Nil"}, "visited": {$: "Nil"}, "files": 0, "read_bytes": 0, "tree_bytes": 0, "work": 0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0};
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$edge_count$(_edges_0) {
+  if (_edges_0.$ === "Nil") {
+    return 0;
+  } else {
+    const _rest_0 = _edges_0["tail"];
+    const _x_0 = ($$$$047agent$045flow$045bend$047ImportGraph$edge_count$(_rest_0));
+    return nat_chk(1 + _x_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$contains$(_target_0, _visited_0) {
+  if (_visited_0.$ === "Nil") {
+    return false;
+  } else {
+    const _head_0 = _visited_0["head"];
+    const _rest_0 = _visited_0["tail"];
+    const _x_0 = ($Nat$is_eq$(_target_0, _head_0));
+    const _x_1 = ($$$$047agent$045flow$045bend$047ImportGraph$contains$(_target_0, _rest_0));
+    return (_x_0 || _x_1);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$with_depth$(_edges_0, _depth_0) {
+  if (_edges_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _id_0 = _edges_0["head"];
+    const _rest_0 = _edges_0["tail"];
+    return {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": ($$$$047agent$045flow$045bend$047ImportGraph$with_depth$(_rest_0, _depth_0))};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$pending_after$(_pending_0, _edges_0, _depth_0, _overflow_0) {
+  return $Bool$pick$(_overflow_0, _pending_0, ($List$append$(_pending_0, ($$$$047agent$045flow$045bend$047ImportGraph$with_depth$(_edges_0, nat_chk(_depth_0 + 1))))));
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, _reason_0) {
+  return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": _reason_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": _reason_0}};
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_0, _local_work_0, _edges_0) {
+  const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$source_cap$(_limits_0))));
+  const _x_1 = ($Nat$is_gt$(_source_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$read_cap$(_limits_0))));
+  const _x_2 = ($Nat$is_gt$(($$$$047agent$045flow$045bend$047ImportGraph$edge_count$(_edges_0)), ($$$$047agent$045flow$045bend$047ImportGraph$edge_cap$(_limits_0))));
+  const _x_3 = ($Nat$is_gt$(_local_work_0, ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0))));
+  return $Bool$pick$((_x_0 || _x_1), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$(($Nat$is_gt$(_tree_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$tree_cap$(_limits_0)))), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.TreeLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Nil"}, {$: "Nil"}, 0, 0, 0, 0, false, false, false, {$: "ImportGraph.WorkLimit"})), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($$$$047agent$045flow$045bend$047ImportGraph$with_depth$(_edges_0, 1)), "visited": {$: "Con", "head": _target_0, "tail": {$: "Nil"}}, "files": 1, "read_bytes": _source_bytes_0, "tree_bytes": _tree_bytes_0, "work": _local_work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$next$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
+  if (_pending_0.$ === "Nil") {
+    return $Bool$pick$(_skipped_tree_0, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": {$: "ImportGraph.TreeLimit"}}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": {$: "ImportGraph.TreeLimit"}}}, ($Bool$pick$(_skipped_excluded_0, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": {$: "ImportGraph.Excluded"}}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": false, "skipped_excluded": true, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": {$: "ImportGraph.Excluded"}}}, ($Bool$pick$(_skipped_other_0, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": {$: "ImportGraph.Omitted"}}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.UnitIncomplete", "reason": {$: "ImportGraph.Omitted"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Complete"}, "pending": {$: "Nil"}, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": false, "skipped_excluded": false, "skipped_other": false, "limits": _limits_0}, "command": {$: "ImportGraph.UnitComplete"}})))));
+  } else {
+    const _t_0 = _pending_0["head"];
+    const _id_0 = _t_0["id"];
+    const _depth_0 = _t_0["depth"];
+    const _rest_0 = _pending_0["tail"];
+    return $Bool$pick$(($Nat$is_ge$(_work_0, ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0)))), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": _rest_0}, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(_depth_0, ($$$$047agent$045flow$045bend$047ImportGraph$depth_cap$(_limits_0)))), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, {$: "Con", "head": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}, "tail": _rest_0}, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.DepthLimit"})), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Resolving", "edge": {$: "ImportGraph.Edge", "id": _id_0, "depth": _depth_0}}, "pending": _rest_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + 1), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.ResolveEdge", "edge": _id_0}})));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$resolved$(_limits_0, _edge_0, _target_0, _result_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
+  if (_result_0.$ === "ImportGraph.NotFound") {
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Missing"}}};
+  } else if (_result_0.$ === "ImportGraph.Many") {
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Ambiguous"}}};
+  } else if (_result_0.$ === "ImportGraph.Unhandled") {
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Unsupported"}}};
+  } else {
+    return $Bool$pick$(($$$$047agent$045flow$045bend$047ImportGraph$contains$(_target_0, _visited_0)), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Checking", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.CheckPath", "target": _target_0}});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$checked$(_limits_0, _edge_0, _target_0, _allowed_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
+  if (!_allowed_0) {
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": true, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.Excluded"}}};
+  } else {
+    const _x_0 = ($$$$047agent$045flow$045bend$047ImportGraph$source_cap$(_limits_0));
+    return $Bool$pick$(($Nat$is_ge$(_files_0, ($$$$047agent$045flow$045bend$047ImportGraph$file_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.FileLimit"}}}, ($Bool$pick$(($Nat$is_gt$(nat_chk(_read_bytes_0 + _x_0), ($$$$047agent$045flow$045bend$047ImportGraph$read_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_0, "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": true, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.ReadLimit"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Capturing", "edge": _edge_0, "target": _target_0}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.ReadSource", "target": _target_0}})));
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$captured$(_limits_0, _edge_0, _target_0, _source_bytes_0, _node_bytes_0, _local_work_0, _edges_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0) {
+  const _depth_0 = _edge_0["depth"];
+  const _x_0 = ($Nat$is_gt$(_source_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$source_cap$(_limits_0))));
+  const _x_1 = ($Nat$is_gt$(nat_chk(_read_bytes_0 + _source_bytes_0), ($$$$047agent$045flow$045bend$047ImportGraph$read_cap$(_limits_0))));
+  const _x_2 = ($Nat$is_gt$(($$$$047agent$045flow$045bend$047ImportGraph$edge_count$(_edges_0)), ($$$$047agent$045flow$045bend$047ImportGraph$edge_cap$(_limits_0))));
+  const _x_3 = ($Nat$is_gt$(nat_chk(_work_0 + _local_work_0), ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0))));
+  return $Bool$pick$((_x_0 || _x_1), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.ReadLimit"})), ($Bool$pick$((_x_2 || _x_3), ($$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.WorkLimit"})), ($Bool$pick$(($Nat$is_gt$(nat_chk(_tree_bytes_0 + _node_bytes_0), ($$$$047agent$045flow$045bend$047ImportGraph$tree_cap$(_limits_0)))), {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($$$$047agent$045flow$045bend$047ImportGraph$pending_after$(_pending_0, _edges_0, _depth_0, true)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047agent$045flow$045bend$047ImportGraph$read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": _tree_bytes_0, "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": true, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.SkipImport", "target": _target_0, "reason": {$: "ImportGraph.TreeLimit"}}}, {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": ($$$$047agent$045flow$045bend$047ImportGraph$pending_after$(_pending_0, _edges_0, _depth_0, false)), "visited": {$: "Con", "head": _target_0, "tail": _visited_0}, "files": nat_chk(_files_0 + 1), "read_bytes": ($$$$047agent$045flow$045bend$047ImportGraph$read_after$(_read_bytes_0, _source_bytes_0)), "tree_bytes": ($$$$047agent$045flow$045bend$047ImportGraph$tree_after$(_tree_bytes_0, _node_bytes_0, ($$$$047agent$045flow$045bend$047ImportGraph$tree_cap$(_limits_0)))), "work": nat_chk(_work_0 + _local_work_0), "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}})))));
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$apply$(_state_0, _event_0) {
+  const _t_0 = _state_0["phase"];
+  if (_t_0.$ === "ImportGraph.Idle") {
+    const _pending_0 = _state_0["pending"];
+    const _visited_0 = _state_0["visited"];
+    const _files_0 = _state_0["files"];
+    const _read_bytes_0 = _state_0["read_bytes"];
+    const _tree_bytes_0 = _state_0["tree_bytes"];
+    const _work_0 = _state_0["work"];
+    const _skipped_tree_0 = _state_0["skipped_tree"];
+    const _skipped_excluded_0 = _state_0["skipped_excluded"];
+    const _skipped_other_0 = _state_0["skipped_other"];
+    const _limits_0 = _state_0["limits"];
+    if (_event_0.$ === "ImportGraph.Root") {
+      const _target_0 = _event_0["target"];
+      const _source_bytes_0 = _event_0["source_bytes"];
+      const _tree_bytes_1 = _event_0["tree_bytes"];
+      const _local_work_0 = _event_0["local_work"];
+      const _edges_0 = _event_0["edges"];
+      return $$$$047agent$045flow$045bend$047ImportGraph$root$(_limits_0, _target_0, _source_bytes_0, _tree_bytes_1, _local_work_0, _edges_0);
+    } else {
+      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_0, _pending_0, _visited_0, _files_0, _read_bytes_0, _tree_bytes_0, _work_0, _skipped_tree_0, _skipped_excluded_0, _skipped_other_0, {$: "ImportGraph.ProtocolViolation"});
+    }
+  } else if (_t_0.$ === "ImportGraph.Ready") {
+    const _pending_1 = _state_0["pending"];
+    const _visited_1 = _state_0["visited"];
+    const _files_1 = _state_0["files"];
+    const _read_bytes_1 = _state_0["read_bytes"];
+    const _tree_bytes_2 = _state_0["tree_bytes"];
+    const _work_1 = _state_0["work"];
+    const _skipped_tree_1 = _state_0["skipped_tree"];
+    const _skipped_excluded_1 = _state_0["skipped_excluded"];
+    const _skipped_other_1 = _state_0["skipped_other"];
+    const _limits_1 = _state_0["limits"];
+    if (_event_0.$ === "ImportGraph.Next") {
+      return $$$$047agent$045flow$045bend$047ImportGraph$next$(_limits_1, _pending_1, _visited_1, _files_1, _read_bytes_1, _tree_bytes_2, _work_1, _skipped_tree_1, _skipped_excluded_1, _skipped_other_1);
+    } else {
+      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_1, _pending_1, _visited_1, _files_1, _read_bytes_1, _tree_bytes_2, _work_1, _skipped_tree_1, _skipped_excluded_1, _skipped_other_1, {$: "ImportGraph.ProtocolViolation"});
+    }
+  } else if (_t_0.$ === "ImportGraph.Resolving") {
+    const _edge_0 = _t_0["edge"];
+    const _pending_2 = _state_0["pending"];
+    const _visited_2 = _state_0["visited"];
+    const _files_2 = _state_0["files"];
+    const _read_bytes_2 = _state_0["read_bytes"];
+    const _tree_bytes_3 = _state_0["tree_bytes"];
+    const _work_2 = _state_0["work"];
+    const _skipped_tree_2 = _state_0["skipped_tree"];
+    const _skipped_excluded_2 = _state_0["skipped_excluded"];
+    const _skipped_other_2 = _state_0["skipped_other"];
+    const _limits_2 = _state_0["limits"];
+    if (_event_0.$ === "ImportGraph.Resolved") {
+      const _target_1 = _event_0["target"];
+      const _result_0 = _event_0["result"];
+      return $$$$047agent$045flow$045bend$047ImportGraph$resolved$(_limits_2, _edge_0, _target_1, _result_0, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_3, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2);
+    } else {
+      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_3, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.ProtocolViolation"});
+    }
+  } else if (_t_0.$ === "ImportGraph.Checking") {
+    const _edge_1 = _t_0["edge"];
+    const _target_2 = _t_0["target"];
+    const _pending_3 = _state_0["pending"];
+    const _visited_3 = _state_0["visited"];
+    const _files_3 = _state_0["files"];
+    const _read_bytes_3 = _state_0["read_bytes"];
+    const _tree_bytes_4 = _state_0["tree_bytes"];
+    const _work_3 = _state_0["work"];
+    const _skipped_tree_3 = _state_0["skipped_tree"];
+    const _skipped_excluded_3 = _state_0["skipped_excluded"];
+    const _skipped_other_3 = _state_0["skipped_other"];
+    const _limits_3 = _state_0["limits"];
+    if (_event_0.$ === "ImportGraph.PathChecked") {
+      const _allowed_0 = _event_0["allowed"];
+      return $$$$047agent$045flow$045bend$047ImportGraph$checked$(_limits_3, _edge_1, _target_2, _allowed_0, _pending_3, _visited_3, _files_3, _read_bytes_3, _tree_bytes_4, _work_3, _skipped_tree_3, _skipped_excluded_3, _skipped_other_3);
+    } else {
+      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_3, _pending_3, _visited_3, _files_3, _read_bytes_3, _tree_bytes_4, _work_3, _skipped_tree_3, _skipped_excluded_3, _skipped_other_3, {$: "ImportGraph.ProtocolViolation"});
+    }
+  } else if (_t_0.$ === "ImportGraph.Capturing") {
+    const _edge_2 = _t_0["edge"];
+    const _target_3 = _t_0["target"];
+    const _pending_4 = _state_0["pending"];
+    const _visited_4 = _state_0["visited"];
+    const _files_4 = _state_0["files"];
+    const _read_bytes_4 = _state_0["read_bytes"];
+    const _tree_bytes_5 = _state_0["tree_bytes"];
+    const _work_4 = _state_0["work"];
+    const _skipped_tree_4 = _state_0["skipped_tree"];
+    const _skipped_excluded_4 = _state_0["skipped_excluded"];
+    const _skipped_other_4 = _state_0["skipped_other"];
+    const _limits_4 = _state_0["limits"];
+    if (_event_0.$ === "ImportGraph.Captured") {
+      const _source_bytes_1 = _event_0["source_bytes"];
+      const _node_bytes_0 = _event_0["node_bytes"];
+      const _local_work_1 = _event_0["local_work"];
+      const _edges_1 = _event_0["edges"];
+      return $$$$047agent$045flow$045bend$047ImportGraph$captured$(_limits_4, _edge_2, _target_3, _source_bytes_1, _node_bytes_0, _local_work_1, _edges_1, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4);
+    } else if (_event_0.$ === "ImportGraph.CaptureFailed") {
+      return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Ready"}, "pending": _pending_4, "visited": {$: "Con", "head": _target_3, "tail": _visited_4}, "files": _files_4, "read_bytes": _read_bytes_4, "tree_bytes": _tree_bytes_5, "work": _work_4, "skipped_tree": _skipped_tree_4, "skipped_excluded": _skipped_excluded_4, "skipped_other": true, "limits": _limits_4}, "command": {$: "ImportGraph.SkipImport", "target": _target_3, "reason": {$: "ImportGraph.CaptureUnavailable"}}};
+    } else {
+      return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_4, _pending_4, _visited_4, _files_4, _read_bytes_4, _tree_bytes_5, _work_4, _skipped_tree_4, _skipped_excluded_4, _skipped_other_4, {$: "ImportGraph.ProtocolViolation"});
+    }
+  } else if (_t_0.$ === "ImportGraph.Complete") {
+    const _pending_5 = _state_0["pending"];
+    const _visited_5 = _state_0["visited"];
+    const _files_5 = _state_0["files"];
+    const _read_bytes_5 = _state_0["read_bytes"];
+    const _tree_bytes_6 = _state_0["tree_bytes"];
+    const _work_5 = _state_0["work"];
+    const _skipped_tree_5 = _state_0["skipped_tree"];
+    const _skipped_excluded_5 = _state_0["skipped_excluded"];
+    const _skipped_other_5 = _state_0["skipped_other"];
+    const _limits_5 = _state_0["limits"];
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Complete"}, "pending": _pending_5, "visited": _visited_5, "files": _files_5, "read_bytes": _read_bytes_5, "tree_bytes": _tree_bytes_6, "work": _work_5, "skipped_tree": _skipped_tree_5, "skipped_excluded": _skipped_excluded_5, "skipped_other": _skipped_other_5, "limits": _limits_5}, "command": {$: "ImportGraph.NoCommand"}};
+  } else {
+    const _reason_0 = _t_0["reason"];
+    const _pending_6 = _state_0["pending"];
+    const _visited_6 = _state_0["visited"];
+    const _files_6 = _state_0["files"];
+    const _read_bytes_6 = _state_0["read_bytes"];
+    const _tree_bytes_7 = _state_0["tree_bytes"];
+    const _work_6 = _state_0["work"];
+    const _skipped_tree_6 = _state_0["skipped_tree"];
+    const _skipped_excluded_6 = _state_0["skipped_excluded"];
+    const _skipped_other_6 = _state_0["skipped_other"];
+    const _limits_6 = _state_0["limits"];
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": _reason_0}, "pending": _pending_6, "visited": _visited_6, "files": _files_6, "read_bytes": _read_bytes_6, "tree_bytes": _tree_bytes_7, "work": _work_6, "skipped_tree": _skipped_tree_6, "skipped_excluded": _skipped_excluded_6, "skipped_other": _skipped_other_6, "limits": _limits_6}, "command": {$: "ImportGraph.NoCommand"}};
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$deadline$(_state_0) {
+  const _t_0 = _state_0["phase"];
+  if (_t_0.$ === "ImportGraph.Complete") {
+    const _pending_0 = _state_0["pending"];
+    const _visited_0 = _state_0["visited"];
+    const _files_0 = _state_0["files"];
+    const _read_bytes_0 = _state_0["read_bytes"];
+    const _tree_bytes_0 = _state_0["tree_bytes"];
+    const _work_0 = _state_0["work"];
+    const _skipped_tree_0 = _state_0["skipped_tree"];
+    const _skipped_excluded_0 = _state_0["skipped_excluded"];
+    const _skipped_other_0 = _state_0["skipped_other"];
+    const _limits_0 = _state_0["limits"];
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Complete"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}};
+  } else if (_t_0.$ === "ImportGraph.Incomplete") {
+    const _reason_0 = _t_0["reason"];
+    const _pending_1 = _state_0["pending"];
+    const _visited_1 = _state_0["visited"];
+    const _files_1 = _state_0["files"];
+    const _read_bytes_1 = _state_0["read_bytes"];
+    const _tree_bytes_1 = _state_0["tree_bytes"];
+    const _work_1 = _state_0["work"];
+    const _skipped_tree_1 = _state_0["skipped_tree"];
+    const _skipped_excluded_1 = _state_0["skipped_excluded"];
+    const _skipped_other_1 = _state_0["skipped_other"];
+    const _limits_1 = _state_0["limits"];
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": _reason_0}, "pending": _pending_1, "visited": _visited_1, "files": _files_1, "read_bytes": _read_bytes_1, "tree_bytes": _tree_bytes_1, "work": _work_1, "skipped_tree": _skipped_tree_1, "skipped_excluded": _skipped_excluded_1, "skipped_other": _skipped_other_1, "limits": _limits_1}, "command": {$: "ImportGraph.NoCommand"}};
+  } else {
+    const _pending_2 = _state_0["pending"];
+    const _visited_2 = _state_0["visited"];
+    const _files_2 = _state_0["files"];
+    const _read_bytes_2 = _state_0["read_bytes"];
+    const _tree_bytes_2 = _state_0["tree_bytes"];
+    const _work_2 = _state_0["work"];
+    const _skipped_tree_2 = _state_0["skipped_tree"];
+    const _skipped_excluded_2 = _state_0["skipped_excluded"];
+    const _skipped_other_2 = _state_0["skipped_other"];
+    const _limits_2 = _state_0["limits"];
+    return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_2, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.Deadline"});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$step$(_state_0, _event_0) {
+  if (_event_0.$ === "ImportGraph.DeadlineReached") {
+    return $$$$047agent$045flow$045bend$047ImportGraph$deadline$(_state_0);
+  } else {
+    return $$$$047agent$045flow$045bend$047ImportGraph$apply$(_state_0, _event_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$event_budget$(_limits_0) {
+  const _x_0 = ($$$$047agent$045flow$045bend$047ImportGraph$work_cap$(_limits_0));
+  const _x_1 = nat_chk(4 * _x_0);
+  return nat_chk(2 + _x_1);
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$bounded_initial$(_limits_0) {
+  return {$: "ImportGraph.Bounded", "graph": ($$$$047agent$045flow$045bend$047ImportGraph$initial$(_limits_0)), "remaining": ($$$$047agent$045flow$045bend$047ImportGraph$event_budget$(_limits_0))};
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$is_terminal$(_graph_0) {
+  const _t_0 = _graph_0["phase"];
+  if (_t_0.$ === "ImportGraph.Complete") {
+    return true;
+  } else if (_t_0.$ === "ImportGraph.Incomplete") {
+    return true;
   } else {
     return false;
   }
 }
 
-function $Driver$fence$(_state_0, _event_0, _generated_0, _context_0) {
-  if (_event_0.$ === "Canonical.JevRequestSettled") {
-    const _p_0 = _event_0["partition"];
-    const _l_0 = _event_0["lifetime"];
-    const _r_0 = _event_0["round"];
-    const _o_0 = _event_0["operation"];
-    const _request_0 = _event_0["request"];
-    const _outcome_0 = _event_0["outcome"];
-    const __0 = _event_0["current_work"];
-    if (_generated_0) {
-      const _current_0 = _context_0["current_work"];
-      return {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": _current_0};
-    } else {
-      return {$: "Canonical.JevRequestSettled", "partition": _p_0, "lifetime": _l_0, "round": _r_0, "operation": _o_0, "request": _request_0, "outcome": _outcome_0, "current_work": __0};
-    }
-  } else if (_event_0.$ === "Canonical.JevRequestReady") {
-    const _p_1 = _event_0["partition"];
-    const _l_1 = _event_0["lifetime"];
-    const _r_1 = _event_0["round"];
-    const _o_1 = _event_0["operation"];
-    const _root_0 = _event_0["root_valid"];
-    const _configuration_0 = _event_0["configuration_valid"];
-    const __21 = _event_0["credential_ready"];
-    const _selected_0 = _event_0["selected"];
-    const __22 = _event_0["current_work"];
-    const _physical_0 = _event_0["physical_available"];
-    if (_generated_0) {
-      const _current_1 = _context_0["current_work"];
-      const _credential_0 = _context_0["credential_ready"];
-      return {$: "Canonical.JevRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": _credential_0, "selected": _selected_0, "current_work": _current_1, "physical_available": _physical_0};
-    } else {
-      return {$: "Canonical.JevRequestReady", "partition": _p_1, "lifetime": _l_1, "round": _r_1, "operation": _o_1, "root_valid": _root_0, "configuration_valid": _configuration_0, "credential_ready": __21, "selected": _selected_0, "current_work": __22, "physical_available": _physical_0};
-    }
-  } else if (_event_0.$ === "Canonical.FinalCandidateCheck") {
-    const __42 = _event_0["owner_current"];
-    const __43 = _event_0["credential_generation"];
-    const __44 = _event_0["credential_authorized"];
-    const _expired_0 = _event_0["expired"];
-    const __45 = _event_0["work_current"];
-    const _findings_0 = _event_0["has_findings"];
-    if (_generated_0) {
-      const _current_2 = _context_0["current_work"];
-      const _credential_1 = _context_0["credential_ready"];
-      const _generation_0 = _context_0["credential_generation"];
-      const _readable_0 = _context_0["source_readable"];
-      const _candidate_0 = _context_0["candidate"];
-      return {$: "Canonical.FinalCandidateCheck", "owner_current": ($Driver$candidate_owner$(_state_0, _candidate_0)), "credential_generation": _generation_0, "credential_authorized": _credential_1, "expired": _expired_0, "work_current": ($Bool$and$(_current_2, _readable_0)), "has_findings": _findings_0};
-    } else {
-      return {$: "Canonical.FinalCandidateCheck", "owner_current": __42, "credential_generation": __43, "credential_authorized": __44, "expired": _expired_0, "work_current": __45, "has_findings": _findings_0};
-    }
+function $$$$047agent$045flow$045bend$047ImportGraph$exhausted$(_graph_0) {
+  const _t_0 = _graph_0["phase"];
+  if (_t_0.$ === "ImportGraph.Complete") {
+    const _pending_0 = _graph_0["pending"];
+    const _visited_0 = _graph_0["visited"];
+    const _files_0 = _graph_0["files"];
+    const _read_bytes_0 = _graph_0["read_bytes"];
+    const _tree_bytes_0 = _graph_0["tree_bytes"];
+    const _work_0 = _graph_0["work"];
+    const _skipped_tree_0 = _graph_0["skipped_tree"];
+    const _skipped_excluded_0 = _graph_0["skipped_excluded"];
+    const _skipped_other_0 = _graph_0["skipped_other"];
+    const _limits_0 = _graph_0["limits"];
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Complete"}, "pending": _pending_0, "visited": _visited_0, "files": _files_0, "read_bytes": _read_bytes_0, "tree_bytes": _tree_bytes_0, "work": _work_0, "skipped_tree": _skipped_tree_0, "skipped_excluded": _skipped_excluded_0, "skipped_other": _skipped_other_0, "limits": _limits_0}, "command": {$: "ImportGraph.NoCommand"}};
+  } else if (_t_0.$ === "ImportGraph.Incomplete") {
+    const _reason_0 = _t_0["reason"];
+    const _pending_1 = _graph_0["pending"];
+    const _visited_1 = _graph_0["visited"];
+    const _files_1 = _graph_0["files"];
+    const _read_bytes_1 = _graph_0["read_bytes"];
+    const _tree_bytes_1 = _graph_0["tree_bytes"];
+    const _work_1 = _graph_0["work"];
+    const _skipped_tree_1 = _graph_0["skipped_tree"];
+    const _skipped_excluded_1 = _graph_0["skipped_excluded"];
+    const _skipped_other_1 = _graph_0["skipped_other"];
+    const _limits_1 = _graph_0["limits"];
+    return {$: "ImportGraph.Step", "state": {$: "ImportGraph.Graph", "phase": {$: "ImportGraph.Incomplete", "reason": _reason_0}, "pending": _pending_1, "visited": _visited_1, "files": _files_1, "read_bytes": _read_bytes_1, "tree_bytes": _tree_bytes_1, "work": _work_1, "skipped_tree": _skipped_tree_1, "skipped_excluded": _skipped_excluded_1, "skipped_other": _skipped_other_1, "limits": _limits_1}, "command": {$: "ImportGraph.NoCommand"}};
   } else {
+    const _pending_2 = _graph_0["pending"];
+    const _visited_2 = _graph_0["visited"];
+    const _files_2 = _graph_0["files"];
+    const _read_bytes_2 = _graph_0["read_bytes"];
+    const _tree_bytes_2 = _graph_0["tree_bytes"];
+    const _work_2 = _graph_0["work"];
+    const _skipped_tree_2 = _graph_0["skipped_tree"];
+    const _skipped_excluded_2 = _graph_0["skipped_excluded"];
+    const _skipped_other_2 = _graph_0["skipped_other"];
+    const _limits_2 = _graph_0["limits"];
+    return $$$$047agent$045flow$045bend$047ImportGraph$fail$(_limits_2, _pending_2, _visited_2, _files_2, _read_bytes_2, _tree_bytes_2, _work_2, _skipped_tree_2, _skipped_excluded_2, _skipped_other_2, {$: "ImportGraph.WorkLimit"});
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$wrap$(_result_0, _remaining_0) {
+  const _graph_0 = _result_0["state"];
+  const _command_0 = _result_0["command"];
+  return {$: "ImportGraph.BoundedStep", "state": {$: "ImportGraph.Bounded", "graph": _graph_0, "remaining": _remaining_0}, "command": _command_0};
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$bounded_step_go$(_graph_0, _event_0, _remaining_0) {
+  if (_remaining_0 === 0) {
+    return $$$$047agent$045flow$045bend$047ImportGraph$wrap$(($$$$047agent$045flow$045bend$047ImportGraph$exhausted$(_graph_0)), 0);
+  } else {
+    const _rest_0 = (_remaining_0 - 1);
+    return $$$$047agent$045flow$045bend$047ImportGraph$wrap$(($$$$047agent$045flow$045bend$047ImportGraph$step$(_graph_0, _event_0)), _rest_0);
+  }
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$bounded_step$(_state_0, _event_0) {
+  const _graph_0 = _state_0["graph"];
+  const _remaining_0 = _state_0["remaining"];
+  return $$$$047agent$045flow$045bend$047ImportGraph$bounded_step_go$(_graph_0, _event_0, _remaining_0);
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$bounded_terminal$(_state_0) {
+  const _graph_0 = _state_0["graph"];
+  return $$$$047agent$045flow$045bend$047ImportGraph$is_terminal$(_graph_0);
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0) {
+  const _next_0 = _result_0["state"];
+  return _next_0;
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$step_graph$(_result_0) {
+  const _graph_0 = _result_0["state"];
+  return _graph_0;
+}
+
+function $$$$047agent$045flow$045bend$047ImportGraph$event_value$(_events_0, _fallback_0) {
+  if (_events_0.$ === "Nil") {
+    return _fallback_0;
+  } else {
+    const _event_0 = _events_0["head"];
     return _event_0;
   }
 }
 
-function $Driver$fact_time_nonzero$(_delay_0, _index_0, _count_0) {
-  const _x_0 = ($Nat$div$(_delay_0, _count_0));
-  const _x_1 = ($Nat$mod$(_delay_0, _count_0));
-  const _x_2 = nat_chk(_x_0 * _index_0);
-  const _x_3 = ($Nat$div$(nat_chk(_x_1 * _index_0), _count_0));
-  return nat_chk(_x_2 + _x_3);
-}
-
-function $Driver$fact_time$(_delay_0, _index_0, _count_0) {
-  if (_count_0 === 0) {
-    return 0;
+function $$$$047agent$045flow$045bend$047ImportGraph$event_rest$(_events_0) {
+  if (_events_0.$ === "Nil") {
+    return {$: "Nil"};
   } else {
-    const _p_0 = (_count_0 - 1);
-    return $Driver$fact_time_nonzero$(_delay_0, _index_0, nat_chk(_p_0 + 1));
+    const _rest_0 = _events_0["tail"];
+    return _rest_0;
   }
 }
 
-function $Driver$handled_actions$(_handled_0) {
-  const _actions_0 = _handled_0["actions"];
-  return _actions_0;
-}
-
-function $Driver$revalidate_work$($0, $1, $2, $3, $4, $5) {
+function $$$$047agent$045flow$045bend$047ImportGraph$responsive_run$($0, $1, $2, $3) {
   for (;;) {
     {
-      const _work_0 = $0;
-      const _credential_0 = $1;
-      const _generation_0 = $2;
-      const _current_0 = $3;
-      const _readable_0 = $4;
-      const _background_0 = $5;
-      if (_work_0.$ === "Nil") {
-        return {$: "Nil"};
+      const _steps_0 = $0;
+      const _state_0 = $1;
+      const _events_0 = $2;
+      const _fallback_0 = $3;
+      if (_steps_0 === 0) {
+        return $$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(($$$$047agent$045flow$045bend$047ImportGraph$bounded_step$(_state_0, ($$$$047agent$045flow$045bend$047ImportGraph$event_value$(_events_0, _fallback_0)))));
       } else {
-        const _t_0 = _work_0["head"];
-        const _p_0 = _t_0["partition"];
-        const _r_0 = _t_0["round"];
-        const _o_0 = _t_0["operation"];
-        const _t_1 = _t_0["kind"];
-        if (_t_1.$ === "Canonical.PendingFinding") {
-          const _tail_0 = _work_0["tail"];
-          return $List$append$(($Driver$handled_actions$(($Driver$candidate_check$(_o_0, _p_0, _r_0, _credential_0, _generation_0, _current_0, _readable_0, ($Driver$collection_surface$(_background_0)))))), ($Driver$revalidate_work$(_tail_0, _credential_0, _generation_0, _current_0, _readable_0, _background_0)));
-        } else {
-          const _tail_1 = _work_0["tail"];
-          $0 = _tail_1;
-          $1 = _credential_0;
-          $2 = _generation_0;
-          $3 = _current_0;
-          $4 = _readable_0;
-          $5 = _background_0;
-          continue;
-        }
+        const _more_0 = (_steps_0 - 1);
+        $0 = _more_0;
+        $1 = ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(($$$$047agent$045flow$045bend$047ImportGraph$bounded_step$(_state_0, ($$$$047agent$045flow$045bend$047ImportGraph$event_value$(_events_0, _fallback_0))))));
+        $2 = ($$$$047agent$045flow$045bend$047ImportGraph$event_rest$(_events_0));
+        $3 = _fallback_0;
+        continue;
       }
     }
   }
 }
 
-function $Driver$revalidate$(_state_0, _context_0) {
-  const _current_0 = _context_0["current_work"];
-  const _credential_0 = _context_0["credential_ready"];
-  const _generation_0 = _context_0["credential_generation"];
-  const _readable_0 = _context_0["source_readable"];
-  const _background_0 = _context_0["background"];
-  return $Driver$revalidate_work$(($Driver$work_list$(_state_0)), _credential_0, _generation_0, _current_0, _readable_0, _background_0);
+function $PreparationScenario$resolution$(_file_0) {
+  return $Bool$pick$(($TreeFacts$file_missing$(_file_0)), {$: "ImportGraph.NotFound"}, ($Bool$pick$(($TreeFacts$file_unsupported$(_file_0)), {$: "ImportGraph.Unhandled"}, {$: "ImportGraph.Found"})));
+}
+
+function $PreparationScenario$captured$(_file_0, _work_0) {
+  return $Bool$pick$(($TreeFacts$file_unreadable$(_file_0)), {$: "ImportGraph.CaptureFailed"}, {$: "ImportGraph.Captured", "source_bytes": ($TreeFacts$file_source_bytes$(_file_0)), "node_bytes": ($TreeFacts$file_tree_bytes$(_file_0)), "local_work": _work_0, "edges": ($TreeFacts$file_edges$(_file_0))});
+}
+
+function $PreparationScenario$next_fact$(_command_0, _files_0, _work_0) {
+  if (_command_0.$ === "ImportGraph.ResolveEdge") {
+    const _edge_0 = _command_0["edge"];
+    return {$: "ImportGraph.Resolved", "target": _edge_0, "result": ($PreparationScenario$resolution$(($TreeFacts$nth$((_edge_0 < 1 ? 0 : _edge_0 - 1), _files_0))))};
+  } else if (_command_0.$ === "ImportGraph.CheckPath") {
+    const _target_0 = _command_0["target"];
+    return {$: "ImportGraph.PathChecked", "allowed": ($TreeFacts$file_allowed$(($TreeFacts$nth$((_target_0 < 1 ? 0 : _target_0 - 1), _files_0))))};
+  } else if (_command_0.$ === "ImportGraph.ReadSource") {
+    const _target_1 = _command_0["target"];
+    return $PreparationScenario$captured$(($TreeFacts$nth$((_target_1 < 1 ? 0 : _target_1 - 1), _files_0)), _work_0);
+  } else {
+    return {$: "ImportGraph.Next"};
+  }
+}
+
+function $PreparationScenario$progressed$(_terminal_0, _state_0, _command_0, _files_0, _profile_0, _position_0, _facts_0, _rest_0) {
+  if (_terminal_0) {
+    return {$: "PreparationScenario.Trace", "facts": ($List$reverse$(_facts_0)), "state": _state_0, "terminated": true};
+  } else {
+    return run_tail(_rest_0(_state_0)(($PreparationScenario$next_fact$(_command_0, _files_0, ($TreeFacts$profile_local_work$(_profile_0)))))(_position_0), _facts_0);
+  }
+}
+
+function $PreparationScenario$stepped$(_result_0, _files_0, _profile_0, _position_0, _facts_0, _rest_0) {
+  const _state_0 = _result_0["state"];
+  const _command_0 = _result_0["command"];
+  return $PreparationScenario$progressed$(($$$$047agent$045flow$045bend$047ImportGraph$bounded_terminal$(_state_0)), _state_0, _command_0, _files_0, _profile_0, _position_0, _facts_0, _rest_0);
+}
+
+function $PreparationScenario$supplied$(_state_0, _fact_0, _files_0, _profile_0, _position_0, _facts_0, _rest_0) {
+  return $PreparationScenario$stepped$(($$$$047agent$045flow$045bend$047ImportGraph$bounded_step$(_state_0, _fact_0)), _files_0, _profile_0, nat_chk(_position_0 + 1), {$: "Con", "head": _fact_0, "tail": _facts_0}, _rest_0);
+}
+
+function $PreparationScenario$loop$(_fuel_0, _files_0, _profile_0, _state_0, _fact_0, _position_0, _facts_0) {
+  if (_fuel_0 === 0) {
+    return {$: "PreparationScenario.Trace", "facts": ($List$reverse$(_facts_0)), "state": _state_0, "terminated": false};
+  } else {
+    const _rest_0 = (_fuel_0 - 1);
+    return $PreparationScenario$supplied$(_state_0, ($Bool$pick$(($Bool$and$(($Nat$is_gt$(($TreeFacts$profile_deadline_step$(_profile_0)), 0)), ($Nat$is_eq$(_position_0, ($TreeFacts$profile_deadline_step$(_profile_0)))))), {$: "ImportGraph.DeadlineReached"}, _fact_0)), _files_0, _profile_0, _position_0, _facts_0, run_clo((_x_0) => {
+  return run_clo((_x_1) => {
+  return run_clo((_x_2) => {
+  return run_clo((_x_3) => {
+  return $PreparationScenario$loop$(_rest_0, _files_0, _profile_0, _x_0, _x_1, _x_2, _x_3);
+});
+});
+});
+}));
+  }
+}
+
+function $PreparationScenario$root$(_file_0, _work_0) {
+  return {$: "ImportGraph.Root", "target": ($TreeFacts$file_target$(_file_0)), "source_bytes": ($TreeFacts$file_source_bytes$(_file_0)), "tree_bytes": ($TreeFacts$file_tree_bytes$(_file_0)), "local_work": _work_0, "edges": ($TreeFacts$file_edges$(_file_0))};
+}
+
+function $PreparationScenario$phase_complete$(_phase_0) {
+  if (_phase_0.$ === "ImportGraph.Complete") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function $PreparationScenario$root_available$(_state_0) {
+  const _t_0 = _state_0["graph"];
+  const _files_0 = _t_0["files"];
+  return $Nat$is_gt$(_files_0, 0);
+}
+
+function $PreparationScenario$closure_available$(_state_0) {
+  const _t_0 = _state_0["graph"];
+  const _phase_0 = _t_0["phase"];
+  return $PreparationScenario$phase_complete$(_phase_0);
+}
+
+function $PreparationScenario$rule_gate$(_state_0, _requires_closure_0) {
+  const _x_0 = ($Bool$not$(_requires_closure_0));
+  const _x_1 = ($PreparationScenario$closure_available$(_state_0));
+  return $$$$047agent$045flow$045bend$047RulePolicy$applicable$(true, ($PreparationScenario$root_available$(_state_0)), {$: "RulePolicy.TypeShape"}, true, false, true, true, true, false, true, (_x_0 || _x_1), 2, 2);
+}
+
+function $PreparationScenario$generated$(_trace_0, _tree_0) {
+  const _facts_0 = _trace_0["facts"];
+  const _state_0 = _trace_0["state"];
+  const _terminated_0 = _trace_0["terminated"];
+  return {$: "PreparationScenario.Generated", "tree": _tree_0, "facts": _facts_0, "state": _state_0, "terminated": _terminated_0, "root_gate": ($PreparationScenario$rule_gate$(_state_0, false)), "closure_gate": ($PreparationScenario$rule_gate$(_state_0, true))};
+}
+
+function $PreparationScenario$run$(_tree_0, _profile_0, _limits_0) {
+  const _files_0 = _tree_0["files"];
+  const _depth_0 = _tree_0["depth"];
+  return $PreparationScenario$generated$(run_loop($PreparationScenario$loop$(512, _files_0, _profile_0, ($$$$047agent$045flow$045bend$047ImportGraph$bounded_initial$(_limits_0)), ($PreparationScenario$root$(($TreeFacts$nth$(0, _files_0)), ($TreeFacts$profile_local_work$(_profile_0)))), 0, {$: "Nil"})), {$: "TreeFacts.Tree", "files": _files_0, "depth": _depth_0});
+}
+
+function $PreparationScenario$generate$(_seed_0, _operation_0, _unit_0, _profile_0, _limits_0) {
+  return $PreparationScenario$run$(($TreeFacts$generate$(_seed_0, _operation_0, _unit_0, _profile_0)), _profile_0, _limits_0);
+}
+
+function $FaultTargets$request$(_state_0, _target_0) {
+  const _t_0 = _state_0["dispatch"];
+  const _requests_0 = _t_0["requests"];
+  const _p_0 = _target_0["partition"];
+  const _l_0 = _target_0["lifetime"];
+  const _r_0 = _target_0["round"];
+  const _o_0 = _target_0["operation"];
+  const _id_0 = _target_0["request"];
+  return $$$$047agent$045flow$045bend$047Dispatch$request_phase$(_requests_0, _p_0, _l_0, _r_0, _o_0, _id_0);
+}
+
+function $CredentialFacts$initial$() {
+  return {$: "CredentialFacts.State", "available": true, "generation": 1};
+}
+
+function $CredentialFacts$availability$(_state_0, _available_0) {
+  const _generation_0 = _state_0["generation"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0};
+}
+
+function $CredentialFacts$rotate$(_state_0) {
+  const _available_0 = _state_0["available"];
+  const _generation_0 = _state_0["generation"];
+  return {$: "CredentialFacts.State", "available": _available_0, "generation": nat_chk(_generation_0 + 1)};
+}
+
+function $CredentialFacts$authorized$(_state_0, _issued_generation_0) {
+  const _available_0 = _state_0["available"];
+  const _generation_0 = _state_0["generation"];
+  return $Bool$and$(_available_0, ($Nat$is_eq$(_generation_0, _issued_generation_0)));
+}
+
+function $Scheduler$precedes$(_a_0, _b_0) {
+  const _at_0 = _a_0["at"];
+  const _order_0 = _a_0["order"];
+  const _bt_0 = _b_0["at"];
+  const _other_0 = _b_0["order"];
+  const _x_0 = (_at_0 < _bt_0);
+  const _x_1 = ($Bool$and$(($Nat$is_eq$(_at_0, _bt_0)), ($Nat$is_le$(_order_0, _other_0))));
+  return (_x_0 || _x_1);
+}
+
+function $Scheduler$inserted$(_before_0, _entry_0, _head_0, _tail_0, _rest_0) {
+  if (_before_0) {
+    return {$: "Con", "head": _entry_0, "tail": {$: "Con", "head": _head_0, "tail": _tail_0}};
+  } else {
+    return {$: "Con", "head": _head_0, "tail": _rest_0};
+  }
+}
+
+function $Scheduler$insert$(_queue_0, _entry_0) {
+  if (_queue_0.$ === "Nil") {
+    return {$: "Con", "head": _entry_0, "tail": {$: "Nil"}};
+  } else {
+    const _head_0 = _queue_0["head"];
+    const _tail_0 = _queue_0["tail"];
+    return $Scheduler$inserted$(($Scheduler$precedes$(_entry_0, _head_0)), _entry_0, _head_0, _tail_0, ($Scheduler$insert$(_tail_0, _entry_0)));
+  }
+}
+
+function $Scheduler$initial$() {
+  return {$: "Scheduler.State", "queue": {$: "Nil"}, "now": 0};
+}
+
+function $Scheduler$enqueue$(_state_0, _at_0, _order_0) {
+  const _queue_0 = _state_0["queue"];
+  const _now_0 = _state_0["now"];
+  return {$: "Scheduler.State", "queue": ($Scheduler$insert$(_queue_0, {$: "Scheduler.Entry", "at": _at_0, "order": _order_0})), "now": _now_0};
+}
+
+function $Scheduler$take_queue$(_queue_0, _now_0) {
+  if (_queue_0.$ === "Nil") {
+    return {$: "Scheduler.Taken", "state": {$: "Scheduler.State", "queue": {$: "Nil"}, "now": _now_0}, "entry": {$: "None"}};
+  } else {
+    const _t_0 = _queue_0["head"];
+    const _at_0 = _t_0["at"];
+    const _order_0 = _t_0["order"];
+    const _tail_0 = _queue_0["tail"];
+    return {$: "Scheduler.Taken", "state": {$: "Scheduler.State", "queue": _tail_0, "now": _at_0}, "entry": {$: "Some", "value": {$: "Scheduler.Entry", "at": _at_0, "order": _order_0}}};
+  }
+}
+
+function $Scheduler$take$(_state_0) {
+  const _queue_0 = _state_0["queue"];
+  const _now_0 = _state_0["now"];
+  return $Scheduler$take_queue$(_queue_0, _now_0);
+}
+
+function $Scheduler$peek$(_state_0) {
+  const _t_0 = _state_0["queue"];
+  if (_t_0.$ === "Nil") {
+    return {$: "None"};
+  } else {
+    const _head_0 = _t_0["head"];
+    return {$: "Some", "value": _head_0};
+  }
+}
+
+function $Scheduler$entries$(_state_0) {
+  const _queue_0 = _state_0["queue"];
+  return _queue_0;
+}
+
+function $Scheduler$retain$(_remove_0, _entry_0, _rest_0) {
+  if (_remove_0) {
+    return _rest_0;
+  } else {
+    return {$: "Con", "head": _entry_0, "tail": _rest_0};
+  }
+}
+
+function $Scheduler$cancel_one$(_entry_0, _rest_0, _order_0) {
+  const _at_0 = _entry_0["at"];
+  const _id_0 = _entry_0["order"];
+  return $Scheduler$retain$(($Nat$is_eq$(_id_0, _order_0)), {$: "Scheduler.Entry", "at": _at_0, "order": _id_0}, _rest_0);
+}
+
+function $Scheduler$cancel_queue$(_queue_0, _order_0) {
+  if (_queue_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _queue_0["head"];
+    const _tail_0 = _queue_0["tail"];
+    return $Scheduler$cancel_one$(_head_0, ($Scheduler$cancel_queue$(_tail_0, _order_0)), _order_0);
+  }
+}
+
+function $Scheduler$cancel$(_state_0, _order_0) {
+  const _queue_0 = _state_0["queue"];
+  const _now_0 = _state_0["now"];
+  return {$: "Scheduler.State", "queue": ($Scheduler$cancel_queue$(_queue_0, _order_0)), "now": _now_0};
+}
+
+function $Scheduler$clock$(_state_0) {
+  const _now_0 = _state_0["now"];
+  return _now_0;
 }
 
 function $Workload$partition$(_advicee_0) {
@@ -13825,386 +16031,6 @@ function $Workload$post_actions$(_capture_0, _now_0) {
   return {$: "Driver.Handled", "handled": true, "actions": ($Bool$pick$(($Bool$and$((_terminal_0 !== 2), ($Nat$is_gt$(_duration_0, (_deadline_0 < _now_0 ? 0 : _deadline_0 - _now_0))))), {$: "Con", "head": {$: "Driver.Action", "event": {$: "Canonical.ExpirePermit", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0, "deadline_reached": true}, "delay": (_deadline_0 < _now_0 ? 0 : _deadline_0 - _now_0), "candidate": {$: "None"}, "job": false, "expiry_advice": {$: "None"}}, "tail": {$: "Con", "head": ($Workload$terminal_action$({$: "Workload.PermitCapture", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0, "tool": _tool_0, "deadline": _deadline_0, "duration": _duration_0, "terminal": _terminal_0}, _now_0)), "tail": {$: "Nil"}}}, {$: "Con", "head": ($Workload$terminal_action$({$: "Workload.PermitCapture", "partition": _partition_0, "lifetime": _lifetime_0, "token": _token_0, "tool": _tool_0, "deadline": _deadline_0, "duration": _duration_0, "terminal": _terminal_0}, _now_0)), "tail": {$: "Nil"}}))};
 }
 
-function $Numeric$high$(_value_0) {
-  const _high_0 = _value_0["high"];
-  return _high_0;
-}
-
-function $Numeric$low$(_value_0) {
-  const _low_0 = _value_0["low"];
-  return _low_0;
-}
-
-function $Numeric$zero$(_value_0) {
-  return $Bool$and$(($Nat$is_eq$(($Numeric$high$(_value_0)), 0)), ($Nat$is_eq$(($Numeric$low$(_value_0)), 0)));
-}
-
-function $Numeric$greater$(_a_0, _b_0) {
-  const _x_0 = ($Nat$is_gt$(($Numeric$high$(_a_0)), ($Numeric$high$(_b_0))));
-  const _x_1 = ($Bool$and$(($Nat$is_eq$(($Numeric$high$(_a_0)), ($Numeric$high$(_b_0)))), ($Nat$is_gt$(($Numeric$low$(_a_0)), ($Numeric$low$(_b_0))))));
-  return (_x_0 || _x_1);
-}
-
-function $Numeric$ge$(_a_0, _b_0) {
-  return $Bool$not$(($Numeric$greater$(_b_0, _a_0)));
-}
-
-function $Numeric$add_parts$(_ah_0, _bh_0, _lo_0) {
-  const _x_0 = nat_chk(_ah_0 + _bh_0);
-  const _x_1 = ($Nat$div$(_lo_0, 268435456));
-  return {$: "Numeric.Limb", "high": nat_chk(_x_0 + _x_1), "low": ($Nat$mod$(_lo_0, 268435456))};
-}
-
-function $Numeric$add$(_a_0, _b_0) {
-  const _ah_0 = _a_0["high"];
-  const _al_0 = _a_0["low"];
-  const _bh_0 = _b_0["high"];
-  const _bl_0 = _b_0["low"];
-  return $Numeric$add_parts$(_ah_0, _bh_0, nat_chk(_al_0 + _bl_0));
-}
-
-function $Numeric$sub_parts$(_ah_0, _al_0, _bh_0, _bl_0) {
-  const _x_0 = (_ah_0 < _bh_0 ? 0 : _ah_0 - _bh_0);
-  const _x_1 = ($Bool$pick$((_al_0 < _bl_0), 1, 0));
-  const _x_2 = nat_chk(_al_0 + 268435456);
-  return {$: "Numeric.Limb", "high": (_x_0 < _x_1 ? 0 : _x_0 - _x_1), "low": ($Nat$mod$((_x_2 < _bl_0 ? 0 : _x_2 - _bl_0), 268435456))};
-}
-
-function $Numeric$sub$(_a_0, _b_0) {
-  const _ah_0 = _a_0["high"];
-  const _al_0 = _a_0["low"];
-  const _bh_0 = _b_0["high"];
-  const _bl_0 = _b_0["low"];
-  return $Numeric$sub_parts$(_ah_0, _al_0, _bh_0, _bl_0);
-}
-
-function $Numeric$shl$(_value_0) {
-  const _high_0 = _value_0["high"];
-  const _low_0 = _value_0["low"];
-  const _x_0 = nat_chk(_high_0 * 2);
-  const _x_1 = ($Nat$div$(_low_0, 134217728));
-  return {$: "Numeric.Limb", "high": nat_chk(_x_0 + _x_1), "low": ($Nat$mod$(nat_chk(_low_0 * 2), 268435456))};
-}
-
-function $Numeric$shr$(_value_0) {
-  const _high_0 = _value_0["high"];
-  const _low_0 = _value_0["low"];
-  const _x_0 = ($Nat$mod$(_high_0, 2));
-  const _x_1 = ($Nat$div$(_low_0, 2));
-  const _x_2 = nat_chk(_x_0 * 134217728);
-  return {$: "Numeric.Limb", "high": ($Nat$div$(_high_0, 2)), "low": nat_chk(_x_1 + _x_2)};
-}
-
-function $Numeric$sticky$(_value_0, _bit_0) {
-  const _high_0 = _value_0["high"];
-  const _low_0 = _value_0["low"];
-  const _x_0 = ($Bool$pick$(($Bool$and$(_bit_0, ($Nat$is_eq$(($Nat$mod$(_low_0, 2)), 0)))), 1, 0));
-  return {$: "Numeric.Limb", "high": _high_0, "low": nat_chk(_low_0 + _x_0)};
-}
-
-function $Numeric$shr_sticky$(_value_0) {
-  return $Numeric$sticky$(($Numeric$shr$(_value_0)), ($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_value_0)), 2)), 1)));
-}
-
-function $Numeric$shift_right$($0, $1) {
-  for (;;) {
-    {
-      const _count_0 = $0;
-      const _value_0 = $1;
-      if (_count_0 === 0) {
-        return _value_0;
-      } else {
-        const _rest_0 = (_count_0 - 1);
-        $0 = _rest_0;
-        $1 = ($Numeric$shr_sticky$(_value_0));
-        continue;
-      }
-    }
-  }
-}
-
-function $Numeric$bounded_shift$(_count_0, _value_0) {
-  return $Numeric$shift_right$(($Bool$pick$(($Nat$is_gt$(_count_0, 56)), 56, _count_0)), _value_0);
-}
-
-function $Numeric$normalize_step$(_done_0, _value_0, _exponent_0, _rest_0) {
-  if (_done_0) {
-    return {$: "Numeric.Value", "mantissa": _value_0, "exponent": _exponent_0};
-  } else {
-    return run_tail(_rest_0(($Numeric$shl$(_value_0))), (_exponent_0 < 1 ? 0 : _exponent_0 - 1));
-  }
-}
-
-function $Numeric$normalize$(_fuel_0, _value_0, _exponent_0) {
-  if (_fuel_0 === 0) {
-    return {$: "Numeric.Value", "mantissa": _value_0, "exponent": _exponent_0};
-  } else {
-    const _rest_0 = (_fuel_0 - 1);
-    const _x_0 = ($Numeric$zero$(_value_0));
-    const _x_1 = ($Nat$is_ge$(($Numeric$high$(_value_0)), 16777216));
-    return $Numeric$normalize_step$((_x_0 || _x_1), _value_0, _exponent_0, run_clo((_x_2) => {
-  return run_clo((_x_3) => {
-  return $Numeric$normalize$(_rest_0, _x_2, _x_3);
-});
-}));
-  }
-}
-
-function $Numeric$decoded$(_high_0, _low_0) {
-  const _x_0 = ($Nat$mod$(_high_0, 1048576));
-  const _x_1 = nat_chk(_x_0 * 16);
-  const _x_2 = ($Nat$div$(_low_0, 268435456));
-  const _x_3 = nat_chk(_x_1 + _x_2);
-  const _x_4 = ($Bool$pick$(($Nat$is_eq$(($Nat$div$(_high_0, 1048576)), 0)), 0, 16777216));
-  const _x_5 = ($Bool$pick$(($Nat$is_eq$(($Nat$div$(_high_0, 1048576)), 0)), 1, ($Nat$div$(_high_0, 1048576))));
-  return $Numeric$normalize$(52, {$: "Numeric.Limb", "high": nat_chk(_x_3 + _x_4), "low": ($Nat$mod$(_low_0, 268435456))}, nat_chk(2048 + _x_5));
-}
-
-function $Numeric$decode$(_words_0) {
-  const _high_0 = _words_0["high"];
-  const _low_0 = _words_0["low"];
-  return $Numeric$decoded$(_high_0, _low_0);
-}
-
-function $Numeric$encoded$(_mantissa_0, _exponent_0) {
-  const _x_0 = ($Numeric$high$(_mantissa_0));
-  const _x_1 = ($Numeric$zero$(_mantissa_0));
-  const _x_2 = (_x_0 < 16777216);
-  const _x_3 = ($Bool$pick$((_x_1 || _x_2), 0, (_exponent_0 < 2048 ? 0 : _exponent_0 - 2048)));
-  const _x_4 = nat_chk(_x_3 * 1048576);
-  const _x_5 = ($Nat$mod$(($Nat$div$(($Numeric$high$(_mantissa_0)), 16)), 1048576));
-  const _x_6 = ($Nat$mod$(($Numeric$high$(_mantissa_0)), 16));
-  const _x_7 = nat_chk(_x_6 * 268435456);
-  const _x_8 = ($Numeric$low$(_mantissa_0));
-  return {$: "Numeric.Words", "high": nat_chk(_x_4 + _x_5), "low": nat_chk(_x_7 + _x_8)};
-}
-
-function $Numeric$increment$(_value_0) {
-  return $Numeric$add$(_value_0, {$: "Numeric.Limb", "high": 0, "low": 1});
-}
-
-function $Numeric$rounded_parts$(_mantissa_0, _exponent_0) {
-  const _x_0 = ($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_mantissa_0)), 33554432)), 1, 0));
-  return $Numeric$encoded$(($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_mantissa_0)), 33554432)), ($Numeric$shr$(_mantissa_0)), _mantissa_0)), nat_chk(_exponent_0 + _x_0));
-}
-
-function $Numeric$rounded$(_value_0, _exponent_0) {
-  const _base_0 = ($Numeric$shr$(($Numeric$shr$(($Numeric$shr$(_value_0))))));
-  const _x_0 = ($Nat$is_gt$(($Nat$mod$(($Numeric$low$(_value_0)), 8)), 4));
-  const _x_1 = ($Bool$and$(($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_value_0)), 8)), 4)), ($Nat$is_eq$(($Nat$mod$(($Numeric$low$(_base_0)), 2)), 1))));
-  return $Numeric$rounded_parts$(($Bool$pick$((_x_0 || _x_1), ($Numeric$increment$(_base_0)), _base_0)), _exponent_0);
-}
-
-function $Numeric$round_finite$(_value_0, _exponent_0) {
-  return $Numeric$rounded$(($Bool$pick$((_exponent_0 < 2049), ($Numeric$bounded_shift$((2049 < _exponent_0 ? 0 : 2049 - _exponent_0), _value_0)), _value_0)), ($Bool$pick$((_exponent_0 < 2049), 2049, _exponent_0)));
-}
-
-function $Numeric$add_aligned$(_sum_0, _exponent_0) {
-  const _x_0 = ($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_sum_0)), 268435456)), 1, 0));
-  return $Numeric$round_finite$(($Bool$pick$(($Nat$is_ge$(($Numeric$high$(_sum_0)), 268435456)), ($Numeric$shr_sticky$(_sum_0)), _sum_0)), nat_chk(_exponent_0 + _x_0));
-}
-
-function $Numeric$add_ordered$(_a_0, _ae_0, _b_0, _be_0) {
-  return $Numeric$add_aligned$(($Numeric$add$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_a_0)))))), ($Numeric$bounded_shift$((_ae_0 < _be_0 ? 0 : _ae_0 - _be_0), ($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_b_0)))))))))), _ae_0);
-}
-
-function $Numeric$add_values$(_a_0, _b_0) {
-  const _am_0 = _a_0["mantissa"];
-  const _ae_0 = _a_0["exponent"];
-  const _bm_0 = _b_0["mantissa"];
-  const _be_0 = _b_0["exponent"];
-  return $Bool$pick$(($Numeric$zero$(_am_0)), ($Numeric$round_finite$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_bm_0)))))), _be_0)), ($Bool$pick$(($Numeric$zero$(_bm_0)), ($Numeric$round_finite$(($Numeric$shl$(($Numeric$shl$(($Numeric$shl$(_am_0)))))), _ae_0)), ($Bool$pick$(($Nat$is_ge$(_ae_0, _be_0)), ($Numeric$add_ordered$(_am_0, _ae_0, _bm_0, _be_0)), ($Numeric$add_ordered$(_bm_0, _be_0, _am_0, _ae_0)))))));
-}
-
-function $Numeric$plus$(_a_0, _b_0) {
-  return $Numeric$add_values$(run_loop($Numeric$decode$(_a_0)), run_loop($Numeric$decode$(_b_0)));
-}
-
-function $Numeric$divide_choose$(_take_0, _remainder_0, _denominator_0, _quotient_0, _exponent_0, _rest_0) {
-  if (_take_0) {
-    return run_tail(_rest_0(($Numeric$sub$(_remainder_0, _denominator_0)))(_denominator_0)(($Numeric$add$(($Numeric$shl$(_quotient_0)), {$: "Numeric.Limb", "high": 0, "low": 1}))), _exponent_0);
-  } else {
-    return run_tail(_rest_0(_remainder_0)(_denominator_0)(($Numeric$shl$(_quotient_0))), _exponent_0);
-  }
-}
-
-function $Numeric$divide_loop$(_fuel_0, _remainder_0, _denominator_0, _quotient_0, _exponent_0) {
-  if (_fuel_0 === 0) {
-    return $Numeric$round_finite$(($Numeric$sticky$(_quotient_0, ($Bool$not$(($Numeric$zero$(_remainder_0)))))), _exponent_0);
-  } else {
-    const _rest_0 = (_fuel_0 - 1);
-    return $Numeric$divide_choose$(($Numeric$ge$(($Numeric$shl$(_remainder_0)), _denominator_0)), ($Numeric$shl$(_remainder_0)), _denominator_0, _quotient_0, _exponent_0, run_clo((_x_0) => {
-  return run_clo((_x_1) => {
-  return run_clo((_x_2) => {
-  return run_clo((_x_3) => {
-  return $Numeric$divide_loop$(_rest_0, _x_0, _x_1, _x_2, _x_3);
-});
-});
-});
-}));
-  }
-}
-
-function $Numeric$divide_start$(_numerator_0, _denominator_0, _exponent_0) {
-  return $Numeric$divide_loop$(55, ($Numeric$sub$(_numerator_0, _denominator_0)), _denominator_0, {$: "Numeric.Limb", "high": 0, "low": 1}, _exponent_0);
-}
-
-function $Numeric$divide_values$(_a_0, _b_0) {
-  const _am_0 = _a_0["mantissa"];
-  const _ae_0 = _a_0["exponent"];
-  const _bm_0 = _b_0["mantissa"];
-  const _be_0 = _b_0["exponent"];
-  const _x_0 = nat_chk(_ae_0 + 3071);
-  const _x_1 = (_x_0 < _be_0 ? 0 : _x_0 - _be_0);
-  const _x_2 = ($Bool$pick$(($Numeric$greater$(_bm_0, _am_0)), 1, 0));
-  return $Bool$pick$(($Numeric$zero$(_am_0)), {$: "Numeric.Words", "high": 0, "low": 0}, run_loop($Numeric$divide_start$(($Bool$pick$(($Numeric$greater$(_bm_0, _am_0)), ($Numeric$shl$(_am_0)), _am_0)), _bm_0, (_x_1 < _x_2 ? 0 : _x_1 - _x_2))));
-}
-
-function $Numeric$divide$(_a_0, _b_0) {
-  return $Numeric$divide_values$(run_loop($Numeric$decode$(_a_0)), run_loop($Numeric$decode$(_b_0)));
-}
-
-function $Numeric$ordered$(_left_0, _right_0) {
-  const _lh_0 = _left_0["high"];
-  const _ll_0 = _left_0["low"];
-  const _rh_0 = _right_0["high"];
-  const _rl_0 = _right_0["low"];
-  const _x_0 = (_lh_0 < _rh_0);
-  const _x_1 = ($Bool$and$(($Nat$is_eq$(_lh_0, _rh_0)), (_ll_0 < _rl_0)));
-  return (_x_0 || _x_1);
-}
-
-function $Numeric$integer_words$(_value_0) {
-  const _mantissa_0 = _value_0["mantissa"];
-  const _exponent_0 = _value_0["exponent"];
-  return $Numeric$encoded$(_mantissa_0, (_exponent_0 < 32 ? 0 : _exponent_0 - 32));
-}
-
-function $Numeric$draw$(_word_0) {
-  return $Numeric$integer_words$(run_loop($Numeric$normalize$(52, {$: "Numeric.Limb", "high": ($Nat$div$(_word_0, 268435456)), "low": ($Nat$mod$(_word_0, 268435456))}, 3123)));
-}
-
-function $Random$word_bits$($0, $1, $2, $3) {
-  for (;;) {
-    {
-      const _fuel_0 = $0;
-      const _value_0 = $1;
-      const _acc_0 = $2;
-      const _power_0 = $3;
-      if (_fuel_0 === 0) {
-        return _acc_0;
-      } else {
-        const _rest_0 = (_fuel_0 - 1);
-        const _x_0 = ($Bool$pick$(($Nat$is_eq$(($Nat$mod$(_value_0, 2)), 1)), _power_0, 0));
-        $0 = _rest_0;
-        $1 = ($Nat$div$(_value_0, 2));
-        $2 = ((_acc_0 + _x_0) >>> 0);
-        $3 = (1 >= 32 ? 0 : (_power_0 << 1) >>> 0);
-        continue;
-      }
-    }
-  }
-}
-
-function $Random$word$(_value_0) {
-  return $Random$word_bits$(32, _value_0, 0, 1);
-}
-
-function $Random$folded$(_seed_0) {
-  const _x_0 = ($Random$word$(_seed_0));
-  const _x_1 = ($Random$word$(($Nat$div$(_seed_0, nat_chk(4294967295 + 1)))));
-  return ((_x_0 ^ _x_1) >>> 0);
-}
-
-function $Random$named_initial$(_seed_0, _codes_0) {
-  return $$$$047session$045bend$047Session$nonzero$(($$$$047session$045bend$047Session$seed_hash$(_codes_0, ($Random$folded$(_seed_0)))));
-}
-
-function $Random$initial$(_seed_0) {
-  return $Random$named_initial$(_seed_0, {$: "Con", "head": 106, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 118, "tail": {$: "Con", "head": 45, "tail": {$: "Con", "head": 111, "tail": {$: "Con", "head": 117, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 99, "tail": {$: "Con", "head": 111, "tail": {$: "Con", "head": 109, "tail": {$: "Con", "head": 101, "tail": {$: "Con", "head": 115, "tail": {$: "Nil"}}}}}}}}}}}}});
-}
-
-function $Random$streams$(_seed_0) {
-  return {$: "Random.State", "outcomes": ($Random$initial$(_seed_0)), "faults": ($Random$named_initial$(_seed_0, {$: "Con", "head": 102, "tail": {$: "Con", "head": 97, "tail": {$: "Con", "head": 117, "tail": {$: "Con", "head": 108, "tail": {$: "Con", "head": 116, "tail": {$: "Con", "head": 115, "tail": {$: "Nil"}}}}}}}))};
-}
-
-function $Random$total$($0, $1) {
-  for (;;) {
-    {
-      const _weights_0 = $0;
-      const _acc_0 = $1;
-      if (_weights_0.$ === "Nil") {
-        return _acc_0;
-      } else {
-        const _head_0 = _weights_0["head"];
-        const _tail_0 = _weights_0["tail"];
-        $0 = _tail_0;
-        $1 = ($Numeric$plus$(_acc_0, _head_0));
-        continue;
-      }
-    }
-  }
-}
-
-function $Random$weight_nonzero$(_weight_0) {
-  const _high_0 = _weight_0["high"];
-  const _low_0 = _weight_0["low"];
-  const _x_0 = ($Nat$is_gt$(_high_0, 0));
-  const _x_1 = ($Nat$is_gt$(_low_0, 0));
-  return (_x_0 || _x_1);
-}
-
-function $Random$selected$(_done_0, _index_0, _draw_0, _sum_0, _cumulative_0, _fallback_0, _rest_0) {
-  if (_done_0) {
-    return _index_0;
-  } else {
-    return run_tail(_rest_0(_draw_0)(_sum_0)(_cumulative_0)(nat_chk(_index_0 + 1)), _fallback_0);
-  }
-}
-
-function $Random$choice_step$(_weight_0, _draw_0, _sum_0, _cumulative_0, _index_0, _fallback_0, _rest_0) {
-  const _next_0 = ($Numeric$plus$(_cumulative_0, ($Numeric$divide$(_weight_0, _sum_0))));
-  return $Random$selected$(($Bool$and$(($Random$weight_nonzero$(_weight_0)), ($Numeric$ordered$(_draw_0, _next_0)))), _index_0, _draw_0, _sum_0, _next_0, ($Bool$pick$(($Random$weight_nonzero$(_weight_0)), _index_0, _fallback_0)), _rest_0);
-}
-
-function $Random$choose$(_weights_0, _draw_0, _sum_0, _cumulative_0, _index_0, _fallback_0) {
-  if (_weights_0.$ === "Nil") {
-    return _fallback_0;
-  } else {
-    const _weight_0 = _weights_0["head"];
-    const _tail_0 = _weights_0["tail"];
-    return $Random$choice_step$(_weight_0, _draw_0, _sum_0, _cumulative_0, _index_0, _fallback_0, run_clo((_x_0) => {
-  return run_clo((_x_1) => {
-  return run_clo((_x_2) => {
-  return run_clo((_x_3) => {
-  return run_clo((_x_4) => {
-  return $Random$choose$(_tail_0, _x_0, _x_1, _x_2, _x_3, _x_4);
-});
-});
-});
-});
-}));
-  }
-}
-
-function $Random$sampled$(_random_0, _weights_0) {
-  return {$: "Random.Sampled", "random": _random_0, "outcome": run_loop($Random$choose$(_weights_0, ($Numeric$draw$(_random_0)), ($Random$total$(_weights_0, {$: "Numeric.Words", "high": 0, "low": 0})), {$: "Numeric.Words", "high": 0, "low": 0}, 0, 1))};
-}
-
-function $Random$sample$(_random_0, _weights_0) {
-  return $Random$sampled$(($$$$047session$045bend$047Session$random_step$(_random_0)), _weights_0);
-}
-
-function $Random$outcomes$(_state_0) {
-  const _outcomes_0 = _state_0["outcomes"];
-  return _outcomes_0;
-}
-
-function $Random$set_outcomes$(_state_0, _outcomes_0) {
-  const _faults_0 = _state_0["faults"];
-  return {$: "Random.State", "outcomes": _outcomes_0, "faults": _faults_0};
-}
-
 function $Preparation$same$(_key_0, _entry_0) {
   const _partition_0 = _key_0["partition"];
   const _lifetime_0 = _key_0["lifetime"];
@@ -14280,7 +16106,10 @@ function $Preparation$settle$(_state_0, _key_0, _position_0, _before_0, _result_
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
-  return {$: "Types.GraphTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": {$: "Con", "head": ($Preparation$install$(_key_0, _position_0, ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0)))), "tail": ($Preparation$remove$(_graphs_0, _key_0))}, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0}, "before": _before_0, "result": _result_0};
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return {$: "Types.GraphTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": {$: "Con", "head": ($Preparation$install$(_key_0, _position_0, ($$$$047agent$045flow$045bend$047ImportGraph$bounded_state$(_result_0)))), "tail": ($Preparation$remove$(_graphs_0, _key_0))}, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "before": _before_0, "result": _result_0};
 }
 
 function $Preparation$expected$(_found_0) {
@@ -14307,8 +16136,11 @@ function $Preparation$step$(_state_0, _key_0, _position_0, _limits_0, _event_0) 
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
   const _found_0 = ($Preparation$find$(_graphs_0, _key_0));
-  return $Preparation$checked$(($Nat$is_eq$(_position_0, ($Preparation$expected$(_found_0)))), {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0}, _key_0, _position_0, ($Preparation$graph$(_found_0, _limits_0)), _event_0);
+  return $Preparation$checked$(($Nat$is_eq$(_position_0, ($Preparation$expected$(_found_0)))), {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, _key_0, _position_0, ($Preparation$graph$(_found_0, _limits_0)), _event_0);
 }
 
 function $Preparation$retire_entry$(_entry_0, _rest_0, _operation_0) {
@@ -14452,18 +16284,18 @@ function $Postprocess$actions$(_before_0, _after_0, _event_0) {
 }
 
 function $initial$(_limits_0) {
-  return {$: "Types.State", "canonical": ($$$$047agent$045flow$045bend$047Canonical$initial$(_limits_0)), "graphs": {$: "Nil"}, "scheduler": ($Scheduler$initial$()), "workloads": {$: "Nil"}, "random": ($Random$streams$(1))};
+  return {$: "Types.State", "canonical": ($$$$047agent$045flow$045bend$047Canonical$initial$(_limits_0)), "graphs": {$: "Nil"}, "scheduler": ($Scheduler$initial$()), "workloads": {$: "Nil"}, "random": ($Random$streams$(1)), "advicees": ($Advicees$initial$()), "credentials": ($CredentialFacts$initial$()), "opening": {$: "Nil"}};
 }
 
-function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0) {
+function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _advicees_0, _credentials_0, _opening_0) {
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_1, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0}, "result": {$: "Canonical.Rejected", "state": _state_1, "reason": _reason_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_1, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "result": {$: "Canonical.Rejected", "state": _state_1, "reason": _reason_0}};
   }
 }
 
@@ -14473,7 +16305,10 @@ function $step$(_state_0, _event_0) {
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
-  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)));
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, ($$$$047agent$045flow$045bend$047Canonical$step$(_canonical_0, _event_0)), _advicees_0, _credentials_0, ($AdmissionAttempts$consumed$(_opening_0, _event_0)));
 }
 
 function $canonical$(_state_0) {
@@ -14491,7 +16326,10 @@ function $retire$(_state_0, _operation_0) {
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": ($Preparation$retire_entries$(_graphs_0, _operation_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0};
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": ($Preparation$retire_entries$(_graphs_0, _operation_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
 }
 
 function $handle$(_state_0, _event_0, _command_0, _context_0) {
@@ -14516,13 +16354,16 @@ function $enqueue$(_state_0, _at_0, _order_0) {
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$enqueue$(_scheduler_0, _at_0, _order_0)), "workloads": _workloads_0, "random": _random_0};
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$enqueue$(_scheduler_0, _at_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
 }
 
-function $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, _taken_0) {
+function $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, _taken_0, _advicees_0, _credentials_0, _opening_0) {
   const _scheduler_0 = _taken_0["state"];
   const _entry_0 = _taken_0["entry"];
-  return {$: "Taken", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0}, "entry": _entry_0};
+  return {$: "Taken", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "entry": _entry_0};
 }
 
 function $take$(_state_0) {
@@ -14531,7 +16372,10 @@ function $take$(_state_0) {
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
-  return $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, ($Scheduler$take$(_scheduler_0)));
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return $take_result$(_canonical_0, _graphs_0, _workloads_0, _random_0, ($Scheduler$take$(_scheduler_0)), _advicees_0, _credentials_0, _opening_0);
 }
 
 function $queued$(_state_0) {
@@ -14545,7 +16389,10 @@ function $cancel$(_state_0, _order_0) {
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$cancel$(_scheduler_0, _order_0)), "workloads": _workloads_0, "random": _random_0};
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": ($Scheduler$cancel$(_scheduler_0, _order_0)), "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
 }
 
 function $fence$(_state_0, _event_0, _generated_0, _context_0) {
@@ -14570,7 +16417,10 @@ function $configure_seed$(_state_0, _seed_0) {
   const _graphs_0 = _state_0["graphs"];
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$streams$(_seed_0))};
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$streams$(_seed_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
 }
 
 function $configure_workload$(_state_0, _partition_0, _profile_0) {
@@ -14579,14 +16429,17 @@ function $configure_workload$(_state_0, _partition_0, _profile_0) {
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
-  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": ($Workload$configure$(_workloads_0, _partition_0, _profile_0)), "random": _random_0};
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": ($Workload$configure$(_workloads_0, _partition_0, _profile_0)), "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0};
 }
 
-function $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, _changed_0) {
+function $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, _changed_0, _advicees_0, _credentials_0, _opening_0) {
   const _workloads_0 = _changed_0["advicees"];
   const _events_0 = _changed_0["events"];
   const _valid_0 = _changed_0["valid"];
-  return {$: "WorkloadTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0}, "events": _events_0, "valid": _valid_0};
+  return {$: "WorkloadTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "events": _events_0, "valid": _valid_0};
 }
 
 function $workload_action$(_state_0, _partition_0, _action_0) {
@@ -14595,7 +16448,10 @@ function $workload_action$(_state_0, _partition_0, _action_0) {
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
-  return $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, ($Workload$run$(_workloads_0, _partition_0, ($Scheduler$clock$(_scheduler_0)), _action_0)));
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return $workload_changed$(_canonical_0, _graphs_0, _scheduler_0, _random_0, ($Workload$run$(_workloads_0, _partition_0, ($Scheduler$clock$(_scheduler_0)), _action_0)), _advicees_0, _credentials_0, _opening_0);
 }
 
 function $workload_valid$(_state_0, _partition_0, _generation_0, _recurring_0) {
@@ -14608,10 +16464,10 @@ function $workload_duration$(_state_0, _partition_0, _fallback_0) {
   return $Workload$duration$(_workloads_0, _partition_0, _fallback_0);
 }
 
-function $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _streams_0, _sample_0) {
+function $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _streams_0, _sample_0, _advicees_0, _credentials_0, _opening_0) {
   const _random_0 = _sample_0["random"];
   const _outcome_0 = _sample_0["outcome"];
-  return {$: "OutcomeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$set_outcomes$(_streams_0, _random_0))}, "outcome": _outcome_0};
+  return {$: "OutcomeTransition", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": ($Random$set_outcomes$(_streams_0, _random_0)), "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "outcome": _outcome_0};
 }
 
 function $sample_outcome$(_state_0, _weights_0) {
@@ -14620,7 +16476,10 @@ function $sample_outcome$(_state_0, _weights_0) {
   const _scheduler_0 = _state_0["scheduler"];
   const _workloads_0 = _state_0["workloads"];
   const _random_0 = _state_0["random"];
-  return $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($Random$sample$(($Random$outcomes$(_random_0)), _weights_0)));
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return $sampled_outcome$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, ($Random$sample$(($Random$outcomes$(_random_0)), _weights_0)), _advicees_0, _credentials_0, _opening_0);
 }
 
 function $numeric_add$(_a_0, _b_0) {
@@ -14697,6 +16556,130 @@ function $permit_actions$(_state_0, _capture_0) {
 
 function $session_delay$(_settings_0, _random_0) {
   return $$$$047session$045bend$047Session$sample_delay$(_settings_0, _random_0);
+}
+
+function $intervene_request$(_state_0, _target_0, _outcome_0, _delay_0) {
+  return $JevEffects$intervene$(($FaultTargets$request$(($canonical$(_state_0)), _target_0)), _outcome_0, _delay_0);
+}
+
+function $credential_initial$() {
+  return $CredentialFacts$initial$();
+}
+
+function $credential_availability$(_state_0, _available_0) {
+  return $CredentialFacts$availability$(_state_0, _available_0);
+}
+
+function $credential_rotate$(_state_0) {
+  return $CredentialFacts$rotate$(_state_0);
+}
+
+function $credential_authorized$(_state_0, _issued_generation_0) {
+  return $CredentialFacts$authorized$(_state_0, _issued_generation_0);
+}
+
+function $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, _declared_0, _opening_0) {
+  const _advicees_0 = _declared_0["registry"];
+  const _scope_0 = _declared_0["scope"];
+  const _valid_0 = _declared_0["valid"];
+  return {$: "AdviceeDeclared", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "scope": _scope_0, "valid": _valid_0};
+}
+
+function $declare_advicee$(_state_0, _identity_0, _seed_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return $declared_state$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _credentials_0, ($Advicees$declare$(_advicees_0, _identity_0, _seed_0)), _opening_0);
+}
+
+function $advicee_identity$(_state_0, _identity_0) {
+  const _advicees_0 = _state_0["advicees"];
+  return $Advicees$lookup_identity$(_advicees_0, _identity_0);
+}
+
+function $advicee_partition$(_state_0, _partition_0) {
+  const _advicees_0 = _state_0["advicees"];
+  return $Advicees$lookup_partition$(_advicees_0, _partition_0);
+}
+
+function $advicee_targets$(_state_0, _identity_0) {
+  const _advicees_0 = _state_0["advicees"];
+  return $Advicees$targets$(_advicees_0, _identity_0);
+}
+
+function $credentials$(_state_0) {
+  const _credentials_0 = _state_0["credentials"];
+  return _credentials_0;
+}
+
+function $configure_credentials$(_state_0, _available_0, _generation_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _opening_0 = _state_0["opening"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": {$: "CredentialFacts.State", "available": _available_0, "generation": _generation_0}, "opening": _opening_0};
+}
+
+function $changed_credentials$(_credentials_0, _available_0, _rotation_0) {
+  if (_rotation_0) {
+    return $CredentialFacts$rotate$(_credentials_0);
+  } else {
+    return $CredentialFacts$availability$(_credentials_0, _available_0);
+  }
+}
+
+function $credential_action$(_state_0, _available_0, _rotation_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($changed_credentials$(_credentials_0, _available_0, _rotation_0)), "opening": _opening_0};
+}
+
+function $generate_tree$(_seed_0, _operation_0, _unit_0, _profile_0, _limits_0) {
+  return $PreparationScenario$generate$(_seed_0, _operation_0, _unit_0, _profile_0, _limits_0);
+}
+
+function $scope_event$(_before_0, _after_0, _event_0, _provided_0) {
+  return $AdviceeScope$event$(($canonical$(_before_0)), ($canonical$(_after_0)), _event_0, _provided_0);
+}
+
+function $scope_command$(_before_0, _after_0, _command_0, _provided_0) {
+  return $AdviceeScope$command$(($canonical$(_before_0)), ($canonical$(_after_0)), _command_0, _provided_0);
+}
+
+function $scope_select$(_bindings_0, _partition_0) {
+  return $AdviceeScope$select$(_bindings_0, _partition_0);
+}
+
+function $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, _attempt_0) {
+  const _opening_0 = _attempt_0["pending"];
+  const _plan_0 = _attempt_0["plan"];
+  return {$: "EditAttempt", "state": {$: "Types.State", "canonical": _canonical_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": _credentials_0, "opening": _opening_0}, "plan": _plan_0};
+}
+
+function $edit_attempt$(_state_0, _partition_0, _lifetime_0) {
+  const _canonical_0 = _state_0["canonical"];
+  const _graphs_0 = _state_0["graphs"];
+  const _scheduler_0 = _state_0["scheduler"];
+  const _workloads_0 = _state_0["workloads"];
+  const _random_0 = _state_0["random"];
+  const _advicees_0 = _state_0["advicees"];
+  const _credentials_0 = _state_0["credentials"];
+  const _opening_0 = _state_0["opening"];
+  return $attempted_edit$(_canonical_0, _graphs_0, _scheduler_0, _workloads_0, _random_0, _advicees_0, _credentials_0, ($AdmissionAttempts$edit$(_canonical_0, _opening_0, _partition_0, _lifetime_0)));
 }
 
 function $Nat$is_eq$(_a_0, _b_0) {
@@ -14786,6 +16769,10 @@ function $Nat$mod$(_a_0, _b_0) {
   return $Pair$snd$(nat_divmod(_a_0, _b_0));
 }
 
+function $List$reverse$(_xs_0) {
+  return $List$reverse$go$(_xs_0, {$: "Nil"});
+}
+
 function $Cmp$is_eq$(_c_0) {
   if (_c_0.$ === "EQ") {
     return true;
@@ -14828,9 +16815,27 @@ function $Pair$snd$(_p_0) {
   return _b_0;
 }
 
+function $List$reverse$go$($0, $1) {
+  for (;;) {
+    {
+      const _xs_0 = $0;
+      const _acc_0 = $1;
+      if (_xs_0.$ === "Nil") {
+        return _acc_0;
+      } else {
+        const _h_0 = _xs_0["head"];
+        const _t_0 = _xs_0["tail"];
+        $0 = _t_0;
+        $1 = {$: "Con", "head": _h_0, "tail": _acc_0};
+        continue;
+      }
+    }
+  }
+}
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:cc0a620c95eb2683e47777665801aa9a7a7981c04a1a53faafc604dc4335f583";
-export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:c7b1564b7bf08cc99f56c2d298050218c178c53ea42e9cfecdecba373ae47547";
+
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:85fc95e28d468ccc7884dcfdd6d3636a7fe855fd0c33dccd363b3115269e2a00";
+export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:fc81ee6d1b3e536a954faf66f528cbccc232d9513e4d129263b61eed9f5298ff";
 
 const facts = value => {
   if (typeof value === "bigint") {
@@ -14845,6 +16850,19 @@ const facts = value => {
   return value;
 };
 export default {
+ edit_attempt: (state, partition, lifetime) => run_loop($edit_attempt$(state, facts(partition), facts(lifetime))),
+ scope_event: (before, after, event, provided) => run_loop($scope_event$(before, after, facts(event), facts(provided))),
+ scope_command: (before, after, command, provided) => run_loop($scope_command$(before, after, command, facts(provided))),
+ scope_select: (bindings, partition) => run_loop($scope_select$(facts(bindings), facts(partition))),
+ intervene_request: (state, target, outcome, delay) => run_loop($intervene_request$(state, facts(target), facts(outcome), facts(delay))),
+ declare_advicee: (state, identity, seed) => run_loop($declare_advicee$(state, facts(identity), seed)),
+ advicee_identity: (state, identity) => run_loop($advicee_identity$(state, facts(identity))),
+ advicee_partition: (state, partition) => run_loop($advicee_partition$(state, facts(partition))),
+ advicee_targets: (state, identity) => run_loop($advicee_targets$(state, facts(identity))),
+ credentials: state => run_loop($credentials$(state)),
+ configure_credentials: (state, available, generation) => run_loop($configure_credentials$(state, available, facts(generation))),
+ credential_action: (state, available, rotation) => run_loop($credential_action$(state, available, rotation)),
+ generate_tree: (seed, operation, unit, profile, limits) => run_loop($generate_tree$(facts(seed), facts(operation), facts(unit), facts(profile), facts(limits))),
  initial: limits => run_loop($initial$(facts(limits))),
  step: (state, event) => run_loop($step$(state, facts(event))),
  canonical: state => run_loop($canonical$(state)),
