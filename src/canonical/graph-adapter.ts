@@ -11,7 +11,7 @@ const list = (items: readonly number[]): unknown =>
   items.reduceRight<unknown>((tail, head) => ({ $: "Con", head, tail }), { $: "Nil" });
 const readList = <T>(value: unknown, decode: (value: unknown) => T): T[] =>
   readBendList(value, decode, 128);
-const encode = (input: ImportGraphEvent): unknown => {
+export const encodeImportGraphEvent = (input: ImportGraphEvent): unknown => {
   const event = decodeGraphEvent(input);
   switch (event.kind) {
     case "root": return { $: "ImportGraph.Root", target: event.target, source_bytes: event.sourceBytes, tree_bytes: event.treeBytes, local_work: event.localWork ?? 0, edges: list(event.edges) };
@@ -84,7 +84,10 @@ export const permitLocalGraphFacts = (limits: GraphLimits, localWork: number,
 };
 export const stepImportGraph = (state: unknown, event: ImportGraphEvent): { readonly state: unknown; readonly command: ImportGraphCommand } => {
   projectImportGraph(state);
-  const raw = decodeGraphStep(bendImportGraphStep(state, encode(event)));
+  return decodeImportGraphStep(bendImportGraphStep(state, encodeImportGraphEvent(event)));
+};
+export const decodeImportGraphStep = (value: unknown): { readonly state: unknown; readonly command: ImportGraphCommand } => {
+  const raw = decodeGraphStep(value);
   const projection = projectImportGraph(raw.state);
   const identity = freezeCanonicalData(readRecord(raw.state));
   projections.set(identity, projection);
