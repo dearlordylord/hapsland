@@ -1,6 +1,6 @@
 import { effectiveSessionAnalytics } from "../configuration/resolve.ts";
 import type { RoundCloseReason } from "../activity/status.ts";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import * as Effect from "effect/Effect";
 import { Cause, Clock, Config, Context, Duration, Layer, Option, Redacted, Ref, Schedule, Schema } from "effect";
 import { connect } from "node:net";
@@ -115,35 +115,47 @@ export class ResidentLauncher extends Context.Service<ResidentLauncher, {
   readonly spawn: (paths: ResidentPaths) => Effect.Effect<void, ResidentIpcError>;
 }>()("hapsland/ResidentLauncher") {}
 
-const residentLauncherLayer = Layer.succeed(ResidentLauncher, ResidentLauncher.of({
-  now: monotonicMillis,
-  spawn: Effect.fn("ResidentLauncher.spawn")(function* (paths: ResidentPaths) {
-    const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
-    const source = fileURLToPath(new URL("./main.ts", import.meta.url));
-    const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
-    const diagnostic = `${paths.lock}.startup-error`;
-    return yield* Effect.acquireUseRelease(
-      Effect.try({ try: () => openSync(diagnostic, "a", 0o600), catch: () => new ResidentIpcError({ message: "resident launch failed" }) }),
-      (descriptor) => Effect.callback<void, ResidentIpcError>((resume) => {
-        let child: ReturnType<typeof spawn>;
-        try {
-          child = spawn(process.execPath, [main, paths.directory], {
-            detached: true, stdio: ["ignore", "ignore", descriptor], env: process.env,
-          });
-        } catch { resume(Effect.fail(new ResidentIpcError({ message: "resident launch failed" }))); return; }
-        const started = () => { child.unref(); resume(Effect.void); };
-        const failed = (cause: Error) => {
-          try { writeFileSync(diagnostic, `${String(cause)}\n`, { flag: "a", mode: 0o600 }); } catch { /* launch failure remains visible */ }
-          resume(Effect.fail(new ResidentIpcError({ message: "resident launch failed" })));
-        };
-        child.once("spawn", started);
-        child.once("error", failed);
-        return Effect.sync(() => { child.removeListener("spawn", started); child.removeListener("error", failed); });
-      }),
-      (descriptor) => Effect.sync(() => closeSync(descriptor)),
-    );
-  }, Effect.uninterruptible),
-}));
+const residentLauncherLayer = Layer.sync(ResidentLauncher, () => {
+  // A startup pass may retry while its detached child is still booting. Keep
+  // that native launch unique until physical close; readiness remains a probe.
+  const children = new Map<string, ChildProcess>();
+  return ResidentLauncher.of({
+    now: monotonicMillis,
+    spawn: Effect.fn("ResidentLauncher.spawn")(function* (paths: ResidentPaths) {
+      if (children.has(paths.lock)) return;
+      const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
+      const source = fileURLToPath(new URL("./main.ts", import.meta.url));
+      const main = import.meta.url.endsWith(".js") && existsSync(compiled) ? compiled : source;
+      const diagnostic = `${paths.lock}.startup-error`;
+      return yield* Effect.acquireUseRelease(
+        Effect.try({ try: () => openSync(diagnostic, "a", 0o600), catch: () => new ResidentIpcError({ message: "resident launch failed" }) }),
+        (descriptor) => Effect.callback<void, ResidentIpcError>((resume) => {
+          let child: ReturnType<typeof spawn>;
+          try {
+            child = spawn(process.execPath, [main, paths.directory], {
+              detached: true, stdio: ["ignore", "ignore", descriptor], env: process.env,
+            });
+          } catch { resume(Effect.fail(new ResidentIpcError({ message: "resident launch failed" }))); return; }
+          children.set(paths.lock, child);
+          const release = () => {
+            if (children.get(paths.lock) === child) children.delete(paths.lock);
+          };
+          child.once("close", release);
+          const started = () => { child.unref(); resume(Effect.void); };
+          const failed = (cause: Error) => {
+            release();
+            try { writeFileSync(diagnostic, `${String(cause)}\n`, { flag: "a", mode: 0o600 }); } catch { /* launch failure remains visible */ }
+            resume(Effect.fail(new ResidentIpcError({ message: "resident launch failed" })));
+          };
+          child.once("spawn", started);
+          child.once("error", failed);
+          return Effect.sync(() => { child.removeListener("spawn", started); child.removeListener("error", failed); });
+        }),
+        (descriptor) => Effect.sync(() => closeSync(descriptor)),
+      );
+    }, Effect.uninterruptible),
+  });
+});
 
 export const makeResidentStartup = Effect.gen(function* () {
   const launcher = yield* ResidentLauncher;
