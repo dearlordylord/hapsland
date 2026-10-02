@@ -9,8 +9,8 @@
 ## Current navigation (2026-10-02)
 
 - **Delivered diagram/Monkey scope:** See [scope tracking](#scope-tracking-against-the-initial-inventory). Later owner decisions removed notice/cache/ticket indicators; master also removed the ticket subsystem. Earlier tables are dated inventories, not outstanding tasks.
-- **Admission decision:** Retain PRE and strict post-closure freshness. Bare arrival-only A is rejected. Three model laws are checked: necessary valid PRE for Current, positive receipt admission for A, and rejection/no reopening for a pending PRE's POST after successful closure.
-- **Suggested next law, awaiting approval:** After a completed round, a new correctly registered PRE and its timely matching POST are accepted and open the next round. Freshness here means the PRE start is after the closure fence; native ordering remains an external premise. This positive case prevents Current's soundness and rejection laws from being satisfied by rejecting all edits. Specify expiry, scope, lifetime, identity and successful registration before proving it; duplicate POST behavior is a separate property.
+- **Admission decision:** Retain PRE and strict post-closure freshness. Bare arrival-only A is rejected. Four model laws are checked: necessary valid PRE for Current, positive receipt admission for A, rejection/no reopening for a pending PRE's POST after successful closure, and positive Current reopening after fresh successful PRE registration.
+- **Positive reopening, approved and checked:** A completed round's fresh successfully registered PRE and timely matching POST add one acceptance and open the successor round. The law is conditional on actual registration success; it excludes reject-all reopening POST, not reject-all PRE. Original deadline, scope, lifetime, retained-unseen identity and clock predicates are explicit. Duplicate POST remains separate and unapproved.
 - **Native evidence still bounded:** Six PRE-only probes characterize delayed/failed hooks; actual tool-start provenance, registration followed by cancellation, late IPC/retry and closure/restart remain separate validation work.
 - **Deferred simulator boundary:** Preparation result linkage still lacks source-free per-rule capability facts; do not infer that every incomplete graph makes every rule unusable.
 
@@ -1052,3 +1052,33 @@ now **deferred, not required**: after its explanation the owner delegated whethe
 a separate proof was necessary; the closure law addresses the requested boundary.
 The broader native audit proposals remain separate from this formal result and
 from the six already executed PRE-only fault probes.
+
+
+## Approved fresh-PRE positive reopening proof (2026-10-02)
+
+The owner approved the positive Current counterpart: after a real completed
+round, a fresh PRE is successfully registered and its timely matching POST opens
+the successor. The [approved reopening slice](../prototypes/edit-admission-comparison/approved-reopen/LAWS.bend)
+requires a reachable closed round >0, empty pending authority, retained-unseen
+tool, matched scope/lifetime, PRE start after the fence, valid issue window,
+original deadline and POST strictly before expiry. Actual PRE output is linked
+to independently inspected new-permit facts, not to a desired POST decision.
+No intervening release, expiry, closure or restart is included.
+
+The [proof](../prototypes/edit-admission-comparison/approved-reopen/PROOF.bend)
+kernel-checks count +1, round +1 and active status. Before proof work, 128
+non-vacuous successful-registration instances passed with 13 explicit premises,
+including eight equal start/issue/POST cases and prior completed rounds 1–8.
+Eleven gate controls pass, preserving the preceding three slice gates. Concrete
+negative boundaries remain literal controls, not newly approved universal laws.
+A compiling reject-all-reopening-POST mutant preserves completed-round setup
+and fresh PRE success, then really refuses the POST; the exact law literal
+and own main proof fail while unchanged support facts check.
+
+Scope: successful registration is a premise, not proof that every raw PRE request
+registers. Global reject-all PRE could make that premise false; duplicate POST
+remains a separate unapproved property. This admission projection omits Canonical
+round-slot and ledger capacity, so successful PRE does not promise downstream
+production review or reserve a round slot. No production code, native ordering
+claim, new dependency, or prior frozen law/proof/helper changed. This is the
+fourth approved model slice; the broader native audit proposals remain pending.

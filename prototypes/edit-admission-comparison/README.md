@@ -2,9 +2,10 @@
 
 **Purpose:** Compare the current pre-edit permit fence with proposal A: a short
 synchronous post-edit admission receipt followed by independent resident review.
-**Status:** Isolated prototype; three owner-approved slices are kernel-checked:
-necessary valid PRE, positive Receipt completeness, and delayed POST after
-successful closure. Remaining candidates are unapproved and open. No production change.
+**Status:** Isolated prototype; four owner-approved slices are kernel-checked:
+necessary valid PRE, positive Receipt completeness, delayed POST after successful
+closure, and positive Current reopening after fresh PRE registration. Remaining
+candidates are unapproved and open. No production change.
 **Authority:** Advisory design, falsification and model-proof evidence. The accepted target contract
 and production Bend modules remain authoritative; this prototype does not change them.
 **Expected use:** Inspect the approved proof slice and the remaining candidates
@@ -328,3 +329,55 @@ The separate conditional native-freshness chain is deferred: the owner found
 its explanation clear and delegated whether it needed a proof; no separate
 proof was necessary for this closure decision. Other decision candidates remain
 unapproved and unproved.
+
+## Approved positive Current reopening
+
+The owner approved: **after a completed round, a new PRE registered after closure
+and its timely matching POST are accepted and open the next round.**
+`approved-reopen/LAWS.bend` starts with a reachable closed Current state whose
+round ID is positive. This excludes the initial state and restart's empty round:
+in the frozen Current reducer a positive inactive round arises from completed
+closure, not PRE alone. Both active flags are false and pending authority is empty.
+
+The tool identity is absent from retained completed IDs. Its start is strictly
+after the closure fence; PRE issue is no earlier than start, inside the toy
+prospective window and no later than the original deadline. POST is no earlier
+than issue/start and **strictly before that original deadline**. Equal start,
+issue and POST ticks are allowed. Scope and resident lifetime match the closed
+state. No expiry, release, closure, restart or other PRE intervenes.
+
+Successful registration is independent of the POST outcome: the actual `C.pre`
+result must equal an inspected created-registry shape containing one new permit
+with the exact original tool, start, deadline, token and candidate round, while
+closed bookkeeping is preserved. No existing duplicate's deadline is renewed.
+The law is conditional on successful registration; it does not prove every raw
+PRE request succeeds, and a reject-all PRE implementation could make that success
+premise vacuous. The concrete probes separately compute and check actual successful
+registration, so the positive model control is non-vacuous.
+
+`approved-reopen/PROOF.bend` kernel-checks acceptance count +1, wrapper round +1
+and active status true. This is the small admission projection, not a promise
+that production review always starts: Canonical's global 64-round slots, resident
+ledger and downstream capacities are omitted. PRE does not reserve a round slot.
+Duplicate POST and universal negative admission policy remain separate unapproved
+properties, as does empirical native host ordering.
+
+Run `python3 approved-reopen/falsify.py` for the pre-proof 128 exact-equation
+instances, each with 13 explicit true premises, covering prior completed rounds
+1–8 and eight equal start/issue/POST cases. `controls.bend` checks concrete excluded
+fence, prospective-window, retained-duplicate, issue-deadline and POST-at-deadline
+boundaries; these are literal controls, not additional universal policy proofs.
+Run `python3 approved-reopen/check-approved.py` for eleven controls, preserving
+the prior closure eleven, Receipt eight and original nine controls.
+
+The compiling mutation rejects all Current POSTs once the old round is positive.
+The first real completed-round setup remains intact and all literal PRE-success
+premises stay true. A witness computes refusal at count 1 / round 1 / inactive,
+then the unchanged exact law literal and main proof fail at `approved_at` and
+`Laws.fresh_registered_post_reopens`. Supporting facts still kernel-check without
+mutant adjustments. This catches reject-all **reopening POST after successful
+registration**, not every possible reject-all integration. A local proof-owned
+production scope bridge isolates this slice from unrelated previous closure POST
+proof terms; mathematical facts still come from the pinned proof-only mathlib.
+No prior law, proof or helper was modified. `evidence/reopen-approved-gate.json`
+records the gates and frozen source hashes.
