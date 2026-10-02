@@ -280,13 +280,13 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       release.resolve();
       const background = asAdvice(await backgroundPending);
       requireThat((await Effect.runPromise(f.server.beginComposedSubmission(background.token, "background"))).status === "submitting", "background authorization failed");
-      if (acknowledged) { f.server.acknowledge(background.token); await Effect.runPromise(f.server.finalize(background.token)); }
+      if (acknowledged) { (await Effect.runPromise(f.server.acknowledge(background.token))); await Effect.runPromise(f.server.finalize(background.token)); }
       requireThat((await f.backgroundBoundary("release-background", worker)).status === "released", "background retirement failed");
       const stop = await f.stop();
       requireThat(acknowledged ? !stop.blocked : stop.blocked && stop.findings === 1,
         "Stop must reoffer uncertain background advice once and suppress submitted advice",
         { stop, acknowledged, activity: f.activity(), stats: f.server.stats() });
-      requireThat(f.server.acknowledge(background.token).status !== "acknowledged", "old background token regained ownership");
+      requireThat((await Effect.runPromise(f.server.acknowledge(background.token))).status !== "acknowledged", "old background token regained ownership");
       const finish = await f.stop(true); requireThat(!finish.blocked, "Stop reoffered same finding twice");
       requireThat(await f.calls() === callsBefore, "reoffer reran Jev evaluation");
       return { competingCollection: competing.status, backgroundAcknowledged: acknowledged, stop, finish,

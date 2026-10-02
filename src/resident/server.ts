@@ -431,7 +431,7 @@ export interface ResidentRuntime {
   collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode?: CollectionMode): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
   collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: undefined, composed: true): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
   collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: TicketRecord, composed?: boolean): Promise<ResidentResponse>;
-  acknowledge(token: string): ResidentResponse;
+  acknowledge(token: string): Effect.Effect<ResidentResponse>;
   finalize(token: string): Effect.Effect<ResidentResponse>;
   releaseDelivery(token: string): void;
   beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): Effect.Effect<ResidentResponse>;
@@ -923,7 +923,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           else residentReleaseAdviceLease(advice);
           continue;
         }
-        residentLedger.advice.updateDelivery(advice, token, { findings: fitting });
+        yield* residentLedger.advice.updateDelivery(advice, token, { findings: fitting });
         selectedFindings = [...selectedFindings, ...fitting];
         selected.push(advice);
       }
@@ -980,7 +980,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             continue;
           }
           if (advice.delivery?.token !== token) continue;
-          residentLedger.advice.updateDelivery(advice, token, { findings: fitting });
+          yield* residentLedger.advice.updateDelivery(advice, token, { findings: fitting });
           finalFindings = [...finalFindings, ...fitting];
           final.push(advice);
         }
@@ -1020,7 +1020,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               continue;
             }
             if (route !== "retainCandidate" || delivery === undefined) continue;
-            residentLedger.advice.updateDelivery(advice, token, { leaseUntil: handoffNow + DELIVERY_LEASE_MS });
+            yield* residentLedger.advice.updateDelivery(advice, token, { leaseUntil: handoffNow + DELIVERY_LEASE_MS });
             handoff.push(advice);
           }
           const offers = (yield* Effect.forEach(handoff, Effect.fn("ResidentRuntime.handoffOffers")(function* (advice) {
@@ -1037,7 +1037,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           for (const advice of handoff) {
             const delivery = advice.delivery;
             if (delivery === undefined) continue;
-            residentLedger.advice.updateDelivery(advice, token, { findings: delivery.findings.filter(() => accepted.has(index++)) });
+            yield* residentLedger.advice.updateDelivery(advice, token, { findings: delivery.findings.filter(() => accepted.has(index++)) });
             if (advice.delivery?.findings.length === 0) residentReleaseAdviceLease(advice);
           }
           handoffFindings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
@@ -1071,7 +1071,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return kind;
   }
 
-  function acknowledge(token: string): ResidentResponse {
+  const acknowledge = Effect.fn("ResidentRuntime.acknowledge")(function* (token: string): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
     residentExpirePending(now);
     residentPruneNoticeCooldowns(now);
@@ -1094,11 +1094,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return { status: "empty" };
     }
     for (const item of advice) {
-      residentLedger.advice.updateDelivery(item, token, { acknowledged: true });
+      yield* residentLedger.advice.updateDelivery(item, token, { acknowledged: true });
     }
     for (const item of notices) residentNotices.acknowledge(item.id);
     return { status: "acknowledged" };
-  }
+  }, Effect.uninterruptible);
 
   const finalize = Effect.fn("ResidentRuntime.finalize")(function* (token: string): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
@@ -2576,7 +2576,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
       if ((request.operation === "acknowledge" || request.operation === "finalize") &&
           !residentComposedDelivery.hasToken(request.token)) return residentResponse({ status: "empty" });
-      if (request.operation === "acknowledge") return residentResponse(server.acknowledge(request.token));
+      if (request.operation === "acknowledge") return residentResponse(yield* server.acknowledge(request.token));
       if (request.operation === "finalize") return residentResponse(yield* server.finalize(request.token));
       if (request.operation === "stats") return residentResponse(yield* server.operations.stats());
       if (request.operation === "cleanup") {
@@ -2738,7 +2738,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         continue;
       }
       if (route !== "retainCandidate") continue;
-      residentLedger.advice.updateDelivery(advice, response.token, { leaseUntil: now + DELIVERY_LEASE_MS });
+      yield* residentLedger.advice.updateDelivery(advice, response.token, { leaseUntil: now + DELIVERY_LEASE_MS });
       handoff.push(advice);
     }
     const ticket = request.requestRoute === "ticketed" && request.operation === "collect"
@@ -2773,7 +2773,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       let index = 0;
       for (const advice of handoff) {
         if (advice.delivery === undefined) continue;
-        residentLedger.advice.updateDelivery(advice, response.token, { findings: advice.delivery.findings.filter(() => accepted.has(index++)) });
+        yield* residentLedger.advice.updateDelivery(advice, response.token, { findings: advice.delivery.findings.filter(() => accepted.has(index++)) });
         if (advice.delivery.findings.length === 0) residentReleaseAdviceLease(advice);
       }
     }

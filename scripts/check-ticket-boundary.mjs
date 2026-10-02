@@ -98,3 +98,10 @@ if (!state.includes('reserveLease: Effect.fn("AdviceRecords.reserveLease")') ||
     !server.includes('yield* residentReserveAdviceLease(advice, token)')) {
   throw new Error("advice lease reservation must compose as an atomic Effect");
 }
+
+if (!state.includes('updateDelivery: Effect.fn("AdviceRecords.updateDelivery")') ||
+    !state.includes('commitAllEffect(adviceChange((operations) => operations.updateDelivery(...args)))') ||
+    !server.includes('yield* residentLedger.advice.updateDelivery(') ||
+    !server.includes('yield* server.acknowledge(')) {
+  throw new Error("delivery updates and acknowledgement must compose Effects");
+}

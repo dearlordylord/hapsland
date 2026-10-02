@@ -164,7 +164,7 @@ describe("canonical resident capacity", () => {
             .toHaveLength(configuredRules.length);
         }
         expect((await Effect.runPromise(server.beginComposedSubmission(response.token, "background"))).status).toBe("submitting");
-        expect(server.acknowledge(response.token).status).toBe("acknowledged");
+        expect((await Effect.runPromise(server.acknowledge(response.token))).status).toBe("acknowledged");
         expect((await Effect.runPromise(server.finalize(response.token))).status).toBe("finalized");
       }
     } finally {
@@ -466,7 +466,7 @@ describe("resident delivery lease", () => {
       expect(decision.findingCount).toBe(1);
       expect(server.stats().pendingEvaluations).toBe(0);
       expect((await Effect.runPromise(server.beginComposedSubmission(decision.token, "stop"))).status).toBe("submitting");
-      expect(server.acknowledge(decision.token).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.acknowledge(decision.token))).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(decision.token))).status).toBe("finalized");
       await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish", close: false });
@@ -504,7 +504,7 @@ describe("resident delivery lease", () => {
         root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const,
         finish: { token: "finish", deadlineReached: false } };
       expect((await server.handle(request)).status).toBe("pending");
-      expect(server.acknowledge(background.token).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.acknowledge(background.token))).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(background.token))).status).toBe("finalized");
       expect((await server.handle({ ...request, mode: "turn-end", finish: { token: "finish", deadlineReached: true } })).status).toBe("empty");
       await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
@@ -849,7 +849,7 @@ describe("resident delivery lease", () => {
     expect(stop.status).toBe("advice");
     if (stop.status !== "advice") return;
     expect((await Effect.runPromise(server.beginComposedSubmission(stop.token, "stop"))).status).toBe("submitting");
-    server.acknowledge(stop.token); (await Effect.runPromise(server.finalize(stop.token)));
+    (await Effect.runPromise(server.acknowledge(stop.token))); (await Effect.runPromise(server.finalize(stop.token)));
     await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "reoffer", close: false });
     expect((await collect()).status).toBe("empty");
@@ -892,7 +892,7 @@ describe("resident delivery lease", () => {
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
         finish: { token: "deadline", deadlineReached: true } });
       expect(decision.status).toBe("empty");
-      expect(server.acknowledge(background.token).status).toBe("empty");
+      expect((await Effect.runPromise(server.acknowledge(background.token))).status).toBe("empty");
     } finally {
       await server.close();
     }
@@ -920,7 +920,7 @@ describe("resident delivery lease", () => {
       root, advicee: observation.advicee, marker: "a".repeat(64), onlyIfMissing: true });
     expect(await server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
       token: winner.token, surface: "background" })).toEqual({ status: "submitting" });
-    expect(server.acknowledge(winner.token)).toEqual({ status: "acknowledged" });
+    expect((await Effect.runPromise(server.acknowledge(winner.token)))).toEqual({ status: "acknowledged" });
     expect((await Effect.runPromise(server.finalize(winner.token)))).toEqual({ status: "finalized" });
     await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "reoffer" });
@@ -1276,7 +1276,7 @@ describe("resident delivery lease", () => {
       expect(selected.findingCount).toBe(2);
       now = PENDING_ADVICE_EXPIRY_MS + 1;
       expect((await Effect.runPromise(server.beginComposedSubmission(selected.token, "stop")))).toEqual({ status: "empty" });
-      expect(server.acknowledge(selected.token)).toEqual({ status: "empty" });
+      expect((await Effect.runPromise(server.acknowledge(selected.token)))).toEqual({ status: "empty" });
       expect(server.pendingAdviceMetadata().map(({ path }) => path)).toEqual(["b.ts"]);
     } finally {
       await server.close();
@@ -1434,7 +1434,7 @@ describe("resident delivery lease", () => {
     expect(await server.handle({ requestRoute: "shared", operation: "begin-submission", lifetime: server.lifetime,
       token: first.token, surface: "background" })).toEqual({ status: "submitting" });
     expect(await collect()).toEqual({ status: "pending" });
-    expect(server.acknowledge(first.token)).toEqual({ status: "acknowledged" });
+    expect((await Effect.runPromise(server.acknowledge(first.token)))).toEqual({ status: "acknowledged" });
     expect((await Effect.runPromise(server.finalize(first.token)))).toEqual({ status: "finalized" });
     expect(await collect()).toEqual({ status: "empty" });
     expect(await mark("a".repeat(64))).toEqual({ status: "advanced" });
@@ -1716,7 +1716,7 @@ describe("resident delivery lease", () => {
     expect(afterDisconnect.status).toBe("advice");
     if (afterDisconnect.status !== "advice") return;
 
-    expect(server.acknowledge(afterDisconnect.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(afterDisconnect.token))).status).toBe("acknowledged");
     clock += DELIVERY_LEASE_MS;
     const afterFailedAck = await server.collect(
       root,
@@ -1725,7 +1725,7 @@ describe("resident delivery lease", () => {
     );
     expect(afterFailedAck.status).toBe("advice");
     if (afterFailedAck.status !== "advice") return;
-    expect(server.acknowledge(afterFailedAck.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(afterFailedAck.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(afterFailedAck.token))).status).toBe("finalized");
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
@@ -1942,7 +1942,7 @@ describe("resident delivery lease", () => {
     const secondResult = await collectSecond;
     expect(secondResult.status).toBe("advice");
     if (secondResult.status === "advice") {
-      expect(server.acknowledge(secondResult.token).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.acknowledge(secondResult.token))).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(secondResult.token))).status).toBe("finalized");
     }
     releases.get(first.id)?.();
@@ -2201,7 +2201,7 @@ describe("resident delivery lease", () => {
     );
     expect(delivered.status).toBe("advice");
     if (delivered.status !== "advice") return;
-    expect(server.acknowledge(delivered.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(delivered.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(delivered.token))).status).toBe("finalized");
     expect(server.stats()).toMatchObject({
       pendingAdvice: 0,
@@ -2424,7 +2424,7 @@ describe("resident delivery lease", () => {
     );
     expect(collected.status).toBe("advice");
     if (collected.status !== "advice") return;
-    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(collected.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(collected.token))).status).toBe("finalized");
     expect(server.stats()).toMatchObject({ pendingAdvice: saturated.pendingAdvice - collected.findingCount });
     expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - beforeItems
@@ -2465,7 +2465,7 @@ describe("resident delivery lease", () => {
     );
     expect(collected.status).toBe("advice");
     if (collected.status !== "advice") return;
-    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(collected.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(collected.token))).status).toBe("finalized");
     expect(server.stats()).toMatchObject({ pendingAdvice: saturated.pendingAdvice - collected.findingCount });
     expect(server.stats().retainedBytes).toBe(saturated.retainedBytes - beforeItems
@@ -2505,7 +2505,7 @@ describe("resident delivery lease", () => {
     const after = server.pendingAdviceMetadata();
     expect(after.find(({ path }) => path === "a.ts")?.delivery).toBe("available");
     expect(after.find(({ path }) => path === "b.ts")?.delivery).toBe("leased-unacknowledged");
-    expect(server.acknowledge(collected.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(collected.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(collected.token))).status).toBe("finalized");
     expect(server.pendingAdviceMetadata()).toMatchObject([{ path: "a.ts", delivery: "available" }]);
   });
@@ -2592,7 +2592,7 @@ describe("resident delivery lease", () => {
     const deliveredA = await server.collect(root, advicee({ turnId: "A", toolUseId: "A" }), dispatch);
     expect(deliveredA.status).toBe("advice");
     if (deliveredA.status === "advice") {
-      expect(server.acknowledge(deliveredA.token).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.acknowledge(deliveredA.token))).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(deliveredA.token))).status).toBe("finalized");
     }
     await admitSource("type OrderCount = string\n", "B");
@@ -2733,7 +2733,7 @@ describe("resident bounded advice batches", () => {
       pendingFindings: 9,
       deliveryFindings: 9,
     }]);
-    expect(server.acknowledge(first.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(first.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(first.token))).status).toBe("finalized");
     expect(server.pendingAdviceMetadata()).toEqual([]);
     expect(server.stats()).toMatchObject({
@@ -2926,7 +2926,7 @@ describe("resident bounded advice batches", () => {
     );
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
-    expect(server.acknowledge(first.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(first.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(first.token))).status).toBe("finalized");
     expect(server.pendingAdviceMetadata()).toEqual([]);
 
@@ -3098,7 +3098,7 @@ describe("resident bounded advice batches", () => {
     expect(retried.status).toBe("advice");
     if (retried.status !== "advice") return;
     expect(retried.output).toEqual(first.output);
-    expect(server.acknowledge(retried.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(retried.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(retried.token))).status).toBe("finalized");
     expect(server.pendingAdviceMetadata()).toEqual([]);
 

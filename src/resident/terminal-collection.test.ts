@@ -216,9 +216,9 @@ describe("Claude terminal collection", () => {
     for (let index = 0; index < 16; index += 1) {
       const advice = await collect(server, admission.ticket, data, dispatch);
       if (advice.status !== "advice") break;
-      expect(server.acknowledge(advice.token).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.acknowledge(advice.token))).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(advice.token))).status).toBe("finalized");
-      expect(server.acknowledge(advice.token).status).toBe("empty");
+      expect((await Effect.runPromise(server.acknowledge(advice.token))).status).toBe("empty");
       expect((await Effect.runPromise(server.finalize(advice.token))).status).toBe("empty");
     }
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -403,7 +403,7 @@ describe("Claude terminal collection", () => {
       const outcome = await collect(server, admission.ticket, data, dispatch);
       if (outcome.status !== "advice") break;
       if (outcome.findingCount > 0) delivered = true;
-      expect(server.acknowledge(outcome.token).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.acknowledge(outcome.token))).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(outcome.token))).status).toBe("finalized");
     }
     expect(delivered).toBe(true);
@@ -463,7 +463,7 @@ describe("Claude terminal collection", () => {
     let advice = await collect(server, second.ticket, data, dispatch);
     expect(advice.status).toBe("advice");
     for (let index = 0; index < 16 && advice.status === "advice"; index += 1) {
-      expect(server.acknowledge(advice.token).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.acknowledge(advice.token))).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(advice.token))).status).toBe("finalized");
       advice = await collect(server, second.ticket, data, dispatch);
     }

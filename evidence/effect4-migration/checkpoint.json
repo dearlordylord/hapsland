@@ -144,7 +144,8 @@
     "Advice eligibility and content revision compose named atomic Effects; collection revalidation and finalization callers yield directly",
     "Advice publication composes a named atomic Effect over ticket-unit and joined-review state; preparation and retention callers yield it directly",
     "Advice insertion composes a named atomic Effect; retention caller yields directly and payload/ownership defect fixtures verify rollback through Effect exits",
-    "Advice lease reservation composes a named atomic Effect; collection yields authorization and reservation through the state owner"
+    "Advice lease reservation composes a named atomic Effect; collection yields authorization and reservation through the state owner",
+    "Advice delivery updates and runtime acknowledgement compose named Effects, including final handoff renewal and IPC acknowledgement; defect snapshot rollback remains atomic"
   ],
   "verification": [
     {
@@ -1836,12 +1837,25 @@
       "build": true,
       "ticketBoundaryCheck": true,
       "case": "Sixteen deferred competing lease Effects retain exactly one collector and one canonical lease"
+    },
+    {
+      "stage": "advice-delivery-update-effects",
+      "affectedTestsPassed": 127,
+      "affectedTestFiles": 4,
+      "supplementaryAdviceTestsPassed": 11,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "probeStrictTypecheck": true,
+      "linuxContractEvidence": "round-contract-advice-delivery-update-effects.json",
+      "linuxContractCasesPassed": 18,
+      "case": "Deferred update rejects obsolete lease token after replacement without acknowledging current owner; snapshot failure preserves existing lease"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Finish advice retention/publication/lease/read/retirement and capture Effects, then remaining capacity, reuse, delivery and notice domain bridges",
+    "Finish advice lease release/check/read/retirement and capture Effects, then remaining capacity, reuse, delivery and notice domain bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",

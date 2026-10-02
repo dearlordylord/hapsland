@@ -74,7 +74,7 @@ const collectAndFinalize = async (
 ) => {
   const response = await server.collect(observation.root, observation.advicee, context);
   if (response.status === "advice") {
-    expect(server.acknowledge(response.token).status).toBe("acknowledged");
+    expect((await Effect.runPromise(server.acknowledge(response.token))).status).toBe("acknowledged");
     expect((await Effect.runPromise(server.finalize(response.token))).status).toBe("finalized");
   }
   return response;
@@ -231,7 +231,7 @@ console.log('{"version":1,"status":"interaction-required"}');
       const text = combined.output.hookSpecificOutput.additionalContext;
       expect(text).toContain("type.ts :: OrderCount");
       expect(text).not.toContain("Operational notice");
-      expect(server.acknowledge(combined.token).status).toBe("acknowledged");
+      expect((await Effect.runPromise(server.acknowledge(combined.token))).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(combined.token))).status).toBe("finalized");
     }
 
