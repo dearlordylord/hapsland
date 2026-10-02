@@ -344,3 +344,102 @@ logs: `/tmp/hapsland-demo-all-tests.log`,
 `/tmp/hapsland-demo-capacity-build.log`. Demo provenance is shown only when
 supplied limits match the formula at the selected replay frame. This validates
 scalar demo defaults, not acceptance of the retained-resource inset preview.
+
+
+## Ticket necessity investigation
+
+**Status and authority:** Advisory design audit of current source; not an accepted
+change, implementation, or runtime validation of ticket elimination. The user
+asked to settle ticket necessity before changing hook behavior. Current
+synchronous Claude post-edit collection remains required by the
+[accepted target contract](advicing-target-contract.md), lines 34–40 and 202–218;
+[ADR 0003](adr/0003-claude-direct-edit-blocking-authority.md), lines 3–16, requires
+user opt-in for blocking but does not require a retained ticket registry. No hook,
+IPC, glossary, or product-code change is authorized by this investigation.
+
+**Finding:** A separate retained ticket entity and duplicated ticket-unit outcome
+registry are not intrinsically required by that behavior. Frozen authority for
+the particular synchronous response attempt is required. The current
+`admit → collect` API obtains that authority through a ticket, so deleting its
+lookup without replacing the authority would be incorrect. Collection already
+batches completed admissions in the same advicee/round: edit B may return A's
+still-current advice; the ticket is not a one-edit result container. See target
+contract lines 213–218 and `server.ts` lines 1019–1039, 3159–3166. Current responses
+are `pending`, `empty`, `advice`, or `unavailable`, not a historical ticket-wide
+clear/delivered result (`protocol.ts` lines 114–118).
+
+### Current field ownership and actual gaps
+
+Source: [`TicketRecord`](../src/resident/server.ts), lines 240–247 and 793–807;
+existing ingress/unit facts are at lines 167–179 and 249–271. A field already
+present in a running job is not necessarily available after that job settles.
+
+| Ticket field | Existing fact or required replacement |
+| --- | --- |
+| `ticket.nonce` | No business meaning beyond resident lookup. An active request context needs no additional issued nonce. Keeping an opaque lookup handle is still a capability, even if renamed. |
+| `ticket.lifetime` | Resident/request lifetime already exists; retain the original owner across collection. Restart must produce lost/unavailable, never attach the old attempt to a replacement resident. |
+| `generation` | Independent ticket admission ID; existing `canonicalObservationId` / unit `admissionId` can identify accepted work. Current ticket-unit ownership uses this extra ID, so those references must be removed or moved, not silently orphaned. |
+| `partition` | Already derived from the accepted observation's root/advicee and carried by jobs/advice. Bind the collector to that scope; do not infer it from the latest caller. |
+| `editAuthority` | Existing accepted observation supplies partition plus `toolUseId`; the tool-bound binding must remain immutable for the response attempt (`server.ts` lines 385–389, 3130–3138). |
+| `root` | Already on the accepted observation and request. Retain it in the response context for configuration and source checks. |
+| `userConfigPath` | Admission dispatch already supplies it while work exists. A collector must retain the original reference for the final current-authority read, even if its own edit's work has finished. |
+| `claudeFeedbackMode` | **Missing from common admission/round facts:** admission-time advisory/block authority must be captured by the resident. Reading only current configuration would improperly elevate an originally advisory attempt; reading only the admission snapshot would ignore revocation. |
+| `credentialGeneration` | Dispatch/advice carry generations, but selected advice may come from another admission. The collector's own captured generation and final validity check remain necessary. |
+| `credentialStatePath` | Available in admission dispatch and advice; preserve the collector's original state reference independently of whichever advice is selected. |
+| `credentialRequired` | Admission dispatch/controlled mode can establish this fact; retain the captured value for the response attempt. |
+| `credentialEnvironmentOnly` | Available from admitted credential context; preserve its meaning when checking suspended saved credentials. |
+| `expiresAt` | **No equivalent collection-authority expiry in common round/work facts.** Consumed pre-edit permits, advice relevance expiry, and virtual-round quiet closure have different purposes. A replacement must explicitly preserve an authority deadline; changing its duration is a separate choice. |
+
+The concrete authority gates are ticket identity/scope (`server.ts` lines
+3130–3138), collector expiry/credential (`3146–3174`), and admitted plus current
+block opt-in at final handoff (`3350–3366`). Common collection already checks
+selected advice credentials, source/revision currency, expiry, fitting, leases,
+and submission ownership (`1000–1008`, `1047–1065`, `3260–3289`). These common
+checks replace neither the collector's admission-time block snapshot nor its
+own expiry. Ticket removal must retain both sets of checks.
+
+### Ticket-unit state and bounded alternatives
+
+`TicketState.bend` lines 4–14 explicitly derives collection status from live
+work/advice/activity rather than a ticket-wide outcome. Current collection status
+also ignores the retained unit stages (`server.ts` lines 3159–3166). Ticket-unit
+stages still participate in supersession, joined-result finality, and delivery
+bookkeeping (`1784–1811`, `1865–1869`, `2794–2820`, `1333–1335`); they cannot simply
+be deleted from callbacks. Common revision/member ownership and delivery state
+can own those invariants, but the existing non-ticket joined branch does not
+express every ticket-stage check. Migration needs explicit stale-member and
+late/duplicate callback tests, not an assertion that all stages are unused.
+
+The strongest elimination candidate is **one bounded admission-and-collection
+RPC**, preserving today's synchronous feedback behavior. Its active request
+context holds the frozen authority above; it uses the shared ready-advice batch,
+leases, source/credential revalidation, and final block gate. It issues no ticket
+nonce, retains no independently collectible ticket after the attempt, and needs
+no duplicate ticket-unit outcomes. Review work must continue after hook timeout
+or disconnect; the request context and provisional delivery must clean up
+independently of that work. The original resident/lifetime, IPC timeout bound,
+final handoff and concurrent collector exclusions must remain intact. This is
+source-inspected feasibility, **not implemented or runtime-proven elimination**.
+
+Keeping `admit → poll` with a short-lived opaque authority handle is a smaller
+API change, but still retains a capability lookup; shortening its lifetime and
+removing ticket-unit duplication would be a reduction, not complete elimination
+of a registry. Using only existing tool/admission IDs with no handle does not
+recover the missing authority snapshot: retaining those snapshots under those
+IDs would otherwise recreate the same registry. A signed client-held authority
+could remove lookup retention, but adds a new integrity/restart-key boundary and
+is not presently justified over a bounded active request context.
+
+**Recommendation:** investigate removal of the independent retained ticket and
+unit registries while keeping synchronous hook behavior unchanged. Do not
+promise deletion until a bounded replacement passes: n edits with B collecting
+A's advice; independent concurrent-hook authority snapshots and exclusive leases;
+advisory admission followed by opt-in without elevation; admitted opt-in revoked
+at final handoff; credential rotation/suspension; wrong tool/advicee/root and old
+resident lifetime; collector expiry distinct from advice expiry; stale/joined
+and duplicate callbacks; hook timeout/disconnect with continuing resident work;
+and complete authority/context cleanup. Existing tests such as
+`claude-delivery.test.ts` lines 155 and 249, and `server.test.ts` lines 897 and
+1197 establish current invariants, **not** registry-free behavior. The later
+question of making ordinary Claude edit feedback asynchronous remains a
+separate, unimplemented product decision.
