@@ -10,14 +10,11 @@ export interface RoundWork {
   readonly generation: number;
   readonly canonicalRound: number;
   readonly controller: AbortController;
-  readonly work: WorkCohort;
-  readonly policyWork: () => BendWorkView;
-  readonly discarded: { readonly queued: number; readonly running: number };
 }
 export type RoundRecord = {
   readonly capability: RoundWork;
   readonly work: WorkCohort;
-  readonly discarded: RoundWork["discarded"];
+  readonly discarded: { readonly queued: number; readonly running: number };
   readonly activity: RoundActivity;
 };
 /** Native cancellation handles may outlive canonical closure until its host cleanup acknowledges retirement. */
@@ -32,22 +29,20 @@ export const roundRecordOperations = (
   owner: Pick<CapacityLedger, "roundId" | "retireRound" | "dispatchScope" | "partitionId" | "canonicalProjection">,
 ) => ({
   bind: (group: string, generation: number, activity: RoundActivity,
-    create: (canonicalRound: number, partition: number) => RoundWork): RoundWork => {
+    create: (canonicalRound: number, partition: number) => Omit<RoundRecord, "activity">): RoundWork => {
     const canonicalRound = owner.roundId(group);
     const partition = owner.partitionId(group);
     const admission = owner.canonicalProjection().admissions.find((entry) => entry.partition === partition);
     if (admission?.active !== true || admission.round !== generation) throw new Error("native round binding lacks its canonical admission generation");
     const previous = draft.entries.get(group);
-    const capability = previous?.capability.generation === generation && previous.capability.canonicalRound === canonicalRound
-      ? previous.capability : create(canonicalRound, partition);
-    const record: RoundRecord = previous?.capability === capability
+    const record: RoundRecord = previous?.capability.generation === generation && previous.capability.canonicalRound === canonicalRound
       ? { ...previous, activity: snapshotActivity(activity) }
-      : { capability, work: capability.work, discarded: capability.discarded, activity: snapshotActivity(activity) };
+      : { ...create(canonicalRound, partition), activity: snapshotActivity(activity) };
     draft.entries.set(group, Object.freeze(record));
-    return capability;
+    return record.capability;
   },
   replaceWork: (round: RoundWork, work: WorkCohort, counts: {
-    readonly named: RoundWork["discarded"]; readonly all: RoundWork["discarded"];
+    readonly named: RoundRecord["discarded"]; readonly all: RoundRecord["discarded"];
     readonly cancelled: number; readonly hasUnnamed: boolean;
   }): { readonly matched: boolean; readonly previousWork: WorkCohort } | undefined => {
     const record = draft.entries.get(round.group);
@@ -68,9 +63,11 @@ export const roundRecordOperations = (
 });
 export interface RoundRecords {
   readonly bind: (group: string, generation: number, activity: RoundActivity, cohortId: string) => Effect.Effect<RoundWork>;
-  readonly get: (group: string) => RoundWork | undefined;
-  readonly entries: () => ReadonlyArray<readonly [string, RoundWork]>;
-  readonly activity: (round: RoundWork) => RoundActivity | undefined;
+  readonly get: (group: string) => Effect.Effect<RoundWork | undefined>;
+  readonly entries: () => Effect.Effect<ReadonlyArray<readonly [string, RoundWork]>>;
+  readonly activity: (round: RoundWork) => Effect.Effect<RoundActivity | undefined>;
+  readonly policyWork: (round: RoundWork) => Effect.Effect<BendWorkView>;
+  readonly snapshot: (round: RoundWork) => Effect.Effect<RoundRecord | undefined>;
   readonly replaceWork: (...args: Parameters<ReturnType<typeof roundRecordOperations>["replaceWork"]>) => Effect.Effect<ReturnType<ReturnType<typeof roundRecordOperations>["replaceWork"]>>;
   readonly retire: (round: RoundWork) => Effect.Effect<boolean>;
 }

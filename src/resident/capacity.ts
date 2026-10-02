@@ -254,28 +254,31 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       return [value, { ...records, rounds }];
     });
   const rounds: RoundRecords = {
-    bind: Effect.fn("ResidentState.bindRound")((group, generation, activity, cohortId) => roundCommit((operations) => operations.bind(group, generation, activity, (canonicalRound, partition) => {
+    bind: Effect.fn("ResidentState.bindRound")((group, generation, activity, cohortId) => roundCommit((operations) => operations.bind(group, generation, activity, (canonicalRound) => {
       const issuedWork: WorkCohort = Object.freeze({ id: cohortId, controller: new AbortController() });
       const discarded = Object.freeze({ queued: 0, running: 0 });
-      const live = () => {
-        const record = Ref.getUnsafe(state).records.rounds.entries.get(group);
-        return record?.capability === capability ? record : undefined;
-      };
       const capability: RoundWork = Object.freeze({
         group, generation, canonicalRound, controller: new AbortController(),
-        get work() { return live()?.work ?? issuedWork; },
-        get discarded() { return live()?.discarded ?? discarded; },
-        policyWork: () => workView(live() === undefined
-          ? { work: [], pendingFindings: [] } : canonicalProjection(Ref.getUnsafe(state)), partition, canonicalRound),
       });
-      return capability;
+      return { capability, work: issuedWork, discarded };
     }))),
-    get: (group) => Ref.getUnsafe(state).records.rounds.entries.get(group)?.capability,
-    entries: () => [...Ref.getUnsafe(state).records.rounds.entries].map(([group, record]) => [group, record.capability] as const),
-    activity: (round) => {
-      const record = Ref.getUnsafe(state).records.rounds.entries.get(round.group);
+    get: Effect.fn("ResidentState.getRound")((group) => Ref.get(state).pipe(Effect.map((state) => state.records.rounds.entries.get(group)?.capability))),
+    entries: Effect.fn("ResidentState.roundEntries")(() => Ref.get(state).pipe(Effect.map((state) =>
+      [...state.records.rounds.entries].map(([group, record]) => [group, record.capability] as const)))),
+    activity: Effect.fn("ResidentState.roundActivity")((round) => Ref.get(state).pipe(Effect.map((state) => {
+      const record = state.records.rounds.entries.get(round.group);
       return record?.capability === round ? record.activity : undefined;
-    },
+    }))),
+    snapshot: Effect.fn("ResidentState.roundSnapshot")((round) => Ref.get(state).pipe(Effect.map((state) => {
+      const record = state.records.rounds.entries.get(round.group);
+      return record?.capability === round ? record : undefined;
+    }))),
+    policyWork: Effect.fn("ResidentState.roundPolicyWork")((round) => Ref.get(state).pipe(Effect.map((state) => {
+      const partition = state.partitionIds.get(round.group);
+      const current = state.records.rounds.entries.get(round.group)?.capability === round;
+      return workView(current && partition !== undefined ? canonicalProjection(state)
+        : { work: [], pendingFindings: [] }, partition ?? 0, round.canonicalRound);
+    }))),
     replaceWork: Effect.fn("ResidentState.replaceRoundWork")((...args) => roundCommit((operations) => operations.replaceWork(...args))),
     retire: Effect.fn("ResidentState.retireRound")((round) => roundCommit((operations) => operations.retire(round))),
   };

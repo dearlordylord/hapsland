@@ -640,6 +640,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     residentLedger.pruneCollectionTokenIds(live);
   }
 
+  const residentRoundSnapshot = Effect.fn("ResidentRuntime.roundSnapshot")(function* (round: RoundWork) {
+    const snapshot = yield* residentLedger.rounds.snapshot(round);
+    if (snapshot === undefined) throw new Error("native round snapshot lost its capability");
+    return snapshot;
+  });
+
   const admitEffect = Effect.fn("ResidentRuntime.admit")(function* (observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed = false, composed = false, requirePermit = false): Effect.fn.Return<ResidentResponse> {
     const now = residentNow();
     residentExpirePending(now);
@@ -687,8 +693,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const job = {
       kind: "ingress" as const,
       canonicalRound,
-      ...(round === undefined ? {} : { round, work: round.work,
-        workObservationId: round.policyWork().admit(canonicalObservationId) }),
+      ...(round === undefined ? {} : { round, work: (yield* residentRoundSnapshot(round)).work,
+        workObservationId: (yield* residentLedger.rounds.policyWork(round)).admit(canonicalObservationId) }),
       observation,
       canonicalObservationId,
       partition,
@@ -917,7 +923,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           continue;
         }
         const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
-          advice.round.policyWork().reviseFinding(advice.workUnitId,
+          (yield* residentLedger.rounds.policyWork(advice.round)).reviseFinding(advice.workUnitId,
             validity.findings.length, logicalBytes(validity.findings));
         const workRoute = residentCandidateRoute({ kind: "postValidationCheck",
           workAccepted, expired: false, hasFitting: true });
@@ -973,7 +979,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             continue;
           }
           const workAccepted = advice.round === undefined || advice.workUnitId === undefined ||
-            advice.round.policyWork().reviseFinding(advice.workUnitId,
+            (yield* residentLedger.rounds.policyWork(advice.round)).reviseFinding(advice.workUnitId,
               validity.findings.length, logicalBytes(validity.findings));
           const workRoute = residentCandidateRoute({ kind: "postValidationCheck",
             workAccepted, expired: false, hasFitting: true });
@@ -1261,7 +1267,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const jobs = composed ? { queued: 0, running: 0 }
       : yield* residentDispatcher.snapshotWhere(({ key }) => key === partition);
     const dispatcherWork = jobs.queued + jobs.running;
-    const work = composed ? residentLedger.rounds.get(partition)?.policyWork().unfinished() ?? 0 : dispatcherWork;
+    const round = composed ? yield* residentLedger.rounds.get(partition) : undefined;
+    const work = composed ? round === undefined ? 0 : (yield* residentLedger.rounds.policyWork(round)).unfinished() : dispatcherWork;
     return Number(composed && residentComposedDelivery.hasPendingEdits(partition)) +
       work +
       residentAdvice().filter((item) =>
@@ -1456,7 +1463,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     residentExpirePending(now);
     residentPruneNoticeCooldowns(now);
     let closedCount = 0;
-    for (const [group, round] of residentLedger.rounds.entries()) {
+    for (const [group, round] of (yield* residentLedger.rounds.entries())) {
       const work = (yield* residentDispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed));
       const counts = residentComposedDelivery.closureCounts(group);
       const closed = residentComposedDelivery.tickQuietRound(group, now, {
@@ -1497,7 +1504,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   // one uninterruptible workflow; physical Jev permits still await settlement.
   const residentDiscardUnfinishedWork = Effect.fn("ResidentRuntime.discardUnfinishedWork")(function* (round: RoundWork, cancellation: {
     readonly cancelledSource: ReadonlyArray<number>; readonly cancelledJev: ReadonlyArray<number> }): Effect.fn.Return<boolean> {
-    const work = round.work;
+    const work = (yield* residentRoundSnapshot(round)).work;
     const sourceIds = new Set(cancellation.cancelledSource);
     const unitIds = new Set(cancellation.cancelledJev);
     const named = (job: Job): boolean => job.kind === "ingress"
@@ -1541,21 +1548,23 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     // finishStop can release an unwritten provisional slot after callers took
     // the pre-cleanup snapshot. Report the final Bend reservation count.
     const reservedContinuations = residentComposedDelivery.closureCounts(group).reservedContinuations;
-    const round = residentLedger.rounds.get(group);
-    const activity = round === undefined ? undefined : residentLedger.rounds.activity(round);
+    const round = (yield* residentLedger.rounds.get(group));
+    const snapshot = round === undefined ? undefined : yield* residentRoundSnapshot(round);
+    const activity = snapshot?.activity;
     const work = round === undefined ? { queued: 0, running: 0 }
       : (yield* residentDispatcher.snapshotWhere(({ value }) => value.round === round && !value.completed && !value.work?.controller.signal.aborted));
     if (activity !== undefined) recordRoundClosure({ statePath: activity.activityPath,
       root: activity.root, advicee: activity.advicee, lifetime: runtime.lifetime,
       roundIdentity: `${group}:${round?.canonicalRound ?? generation}`, reason, reservedContinuations,
-      discarded: { queued: work.queued + (round?.discarded.queued ?? 0),
-        running: work.running + (round?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : residentAdvice().filter((advice) => advice.round === round).length,
+      discarded: { queued: work.queued + (snapshot?.discarded.queued ?? 0),
+        running: work.running + (snapshot?.discarded.running ?? 0), pendingAdvice: round === undefined ? 0 : residentAdvice().filter((advice) => advice.round === round).length,
         submitted: counts.submitted, uncertain: counts.uncertain, editPermits: counts.editPermits } });
     if (round === undefined || round.generation !== generation) return;
     // The admission/output fence is already published. Abort Effect fibers and
     // their provider connections before releasing all retained round resources.
+    if (snapshot === undefined) throw new Error("native round closure lost its snapshot");
     round.controller.abort();
-    round.work.controller.abort();
+    snapshot.work.controller.abort();
     const discarded = (yield* residentDispatcher.discardWhere(({ value }) => value.round === round));
     for (const job of discarded) residentDiscardJob(job);
     for (const advice of [...residentAdvice()]) if (advice.round === round) residentRemoveAdvice(advice.id);
@@ -1607,7 +1616,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const activeWorkspaces = new Set<CapacityReservation>();
     return Effect.gen(function* () {
       if (job.round !== undefined && job.workObservationId !== undefined &&
-          !job.round.policyWork().startSource(job.workObservationId)) {
+          !(yield* residentLedger.rounds.policyWork(job.round)).startSource(job.workObservationId)) {
         residentLedger.release(job.reservation);
         return;
       }
@@ -1814,9 +1823,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (ticketUnit !== undefined) unitRevision(ticketUnit, revision);
           const workUnitId = job.round === undefined || job.workObservationId === undefined ? undefined
             : item.kind === "cached"
-              ? job.round.policyWork().cachedFinding(job.workObservationId,
+              ? (yield* residentLedger.rounds.policyWork(job.round)).cachedFinding(job.workObservationId,
                 item.cached.evaluation.findings.length, logicalBytes(item.cached.evaluation.findings), admitted.operation)
-              : job.round.policyWork().spawn(job.workObservationId, admitted.operation);
+              : (yield* residentLedger.rounds.policyWork(job.round)).spawn(job.workObservationId, admitted.operation);
           if (job.round !== undefined && workUnitId === undefined) {
             if (ticketUnit !== undefined) unitUnavailable(ticketUnit, "lost");
             if (item.kind === "owner") residentReleaseReuseClaim(item.evaluationKey);
@@ -1861,9 +1870,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             });
             yield* residentRetainAdvice(unit, {
               prepared: item.outcome.prepared, findings: item.cached.evaluation.findings,
-            }, sequence).pipe(Effect.ensuring(Effect.sync(() => {
+            }, sequence).pipe(Effect.ensuring(Effect.gen(function* () {
               if (!unit.completed && job.round !== undefined && workUnitId !== undefined) {
-                job.round.policyWork().retire(workUnitId);
+                (yield* residentLedger.rounds.policyWork(job.round)).retire(workUnitId);
                 residentReleaseUnit(unit);
               }
             })));
@@ -1894,7 +1903,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         });
       }
       if (job.round !== undefined && job.workObservationId !== undefined &&
-          !job.round.policyWork().completeSource(job.workObservationId)) {
+          !(yield* residentLedger.rounds.policyWork(job.round)).completeSource(job.workObservationId)) {
         throw new Error("Bend denied source completion");
       }
       if (!residentLedger.observation(job.partition, job.canonicalObservationId, "completeObservation", job.canonicalRound)) {
@@ -1979,7 +1988,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     };
     return Effect.gen(function* () {
       if (job.round !== undefined && job.workUnitId !== undefined &&
-          !job.round.policyWork().startUnit(job.workUnitId)) {
+          !(yield* residentLedger.rounds.policyWork(job.round)).startUnit(job.workUnitId)) {
         residentReleaseReuseClaim(job.evaluationKey);
         residentReleaseUnit(job);
         return;
@@ -2175,7 +2184,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (result?.status === "evaluated") {
         if (residentJobActive(job) && residentLedger.runtime.snapshot().lifecycle === "active" &&
             job.round !== undefined && job.workUnitId !== undefined &&
-            !job.round.policyWork().outcome(job.workUnitId, result.findings.length === 0
+            !(yield* residentLedger.rounds.policyWork(job.round)).outcome(job.workUnitId, result.findings.length === 0
               ? { $: "Clear" }
               : { $: "Finding", count: result.findings.length, bytes: logicalBytes(result.findings) })) {
           throw new Error("Bend denied review outcome");
@@ -2223,7 +2232,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         if (disposition !== "retainFinding") {
           if (disposition === "retireStaleFinding" &&
               job.round !== undefined && job.workUnitId !== undefined) {
-            job.round.policyWork().retire(job.workUnitId);
+            (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
           }
           if (job.ticketUnit !== undefined) {
             if (disposition === "settleClear") {
@@ -2343,7 +2352,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const server = runtime;
     return Effect.gen(function* () {
       if (!residentJobActive(job)) {
-        if (job.round !== undefined && job.workUnitId !== undefined) job.round.policyWork().retire(job.workUnitId);
+        if (job.round !== undefined && job.workUnitId !== undefined) (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
         residentReleaseUnit(job);
         return;
       }
@@ -2351,7 +2360,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const existing = residentAdvice().find((item) => item.evaluationKey === job.evaluationKey);
         if (existing !== undefined) residentRecordJoinedOutcomes(
           residentLedger.advice.publish(existing, job.ticketUnit, job.revision), existing.id);
-        if (job.round !== undefined && job.workUnitId !== undefined) job.round.policyWork().retire(job.workUnitId);
+        if (job.round !== undefined && job.workUnitId !== undefined) (yield* residentLedger.rounds.policyWork(job.round)).retire(job.workUnitId);
         residentReleaseUnit(job);
         return;
       }
@@ -2552,9 +2561,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             if (adviceePartition(advice.observation.root, advice.observation.advicee) === group &&
                 advice.delivery !== undefined && advice.delivery.leaseUntil <= residentNow()) residentReleaseAdviceLease(advice);
           }
-          const round = residentLedger.rounds.get(group);
+          const round = (yield* residentLedger.rounds.get(group));
           const totalUnfinished = (yield* residentCollectionWorkCount(request.root, request.advicee, true));
-          const ownUnfinished = round?.policyWork().unfinished() ?? 0;
+          const ownUnfinished = round === undefined ? 0 : (yield* residentLedger.rounds.policyWork(round)).unfinished();
           const extraUnfinished = Math.max(0, totalUnfinished - ownUnfinished);
           const gate = residentComposedDelivery.finishGate(group, request.finish.token,
             extraUnfinished, request.finish.deadlineReached);
@@ -2572,7 +2581,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const collected = yield* residentCollect(request.root, request.advicee, request.dispatch, request.mode ?? "ordinary", undefined, true);
         if (request.finish !== undefined) {
           const group = adviceePartition(request.root, request.advicee);
-          const round = residentLedger.rounds.get(group);
+          const round = (yield* residentLedger.rounds.get(group));
           const selectedAdvice = collected.status === "advice"
             ? residentAdvice().filter((advice) => advice.delivery?.token === collected.token) : [];
           const selected = selectedAdvice.map((advice) => ({ id: advice.id,
@@ -2872,7 +2881,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentAllowFinish(group, request.finish.token, "unavailable");
       return { status: "empty" };
     }
-    const round = residentLedger.rounds.get(group);
+    const round = (yield* residentLedger.rounds.get(group));
     const selectedAdvice = final.status === "advice"
       ? residentAdvice().filter((advice) => advice.delivery?.token === final.token) : [];
     const selectedCount = selectedAdvice.reduce((count, advice) =>
@@ -3056,7 +3065,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* FiberHandle.clear(residentQuietChecks);
       yield* Fiber.interruptAll(residentStopExpiries.values());
       residentStopExpiries.clear();
-      for (const [, round] of residentLedger.rounds.entries()) { round.controller.abort(); round.work.controller.abort(); }
+      for (const [, round] of (yield* residentLedger.rounds.entries())) {
+        round.controller.abort();
+        (yield* residentRoundSnapshot(round)).work.controller.abort();
+      }
       for (const job of (yield* residentDispatcher.close())) {
         if (job.kind === "unit") {
           residentReleaseReuseClaim(job.evaluationKey);

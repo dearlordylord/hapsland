@@ -1,0 +1,103 @@
+{
+  "purpose": "Deterministic saturation and physical-retirement comparison",
+  "authority": "Implementation evidence; no product or support acceptance",
+  "measuredTree": "17be881 plus Effect round reads and snapshot views",
+  "baseline": "4324697adff22db315fc8e5490df6181e030b243",
+  "checks": [
+    {
+      "metric": "admissionP95Ms",
+      "baseline": 4.483244999999442,
+      "measured": 2.5266449999999168,
+      "limit": 8.724867499999164,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "stopP95Ms",
+      "baseline": 12.824685999999929,
+      "measured": 8.05893900000001,
+      "limit": 24.237028999999893,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "saturationP95Ms",
+      "baseline": 592.136493,
+      "measured": 492.5360539999999,
+      "limit": 988.2047395,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "shutdownP95Ms",
+      "baseline": 0.4255030000003899,
+      "measured": 11.8418029999998,
+      "limit": 10.638254500000585,
+      "formulaPasses": false,
+      "comparable": false,
+      "verified": false,
+      "limitation": "Baseline finishes before held physical callbacks complete. Its shutdown duration is not a valid comparison for physically settled retirement."
+    },
+    {
+      "metric": "eventLoopP95Ms",
+      "baseline": 4.923391,
+      "measured": 5.427199,
+      "limit": 12.3850865,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "peakRetainedBytes",
+      "baseline": 2725867,
+      "measured": 2699824,
+      "limit": 2725867,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "peakRssBytes",
+      "baseline": 307941376,
+      "measured": 297779200,
+      "limit": 418481152.0,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    },
+    {
+      "metric": "maximumConcurrentDecisionEffects",
+      "baseline": 8,
+      "measured": 8,
+      "limit": 8,
+      "formulaPasses": true,
+      "comparable": true,
+      "verified": true
+    }
+  ],
+  "comparableBudgetsMet": true,
+  "allComparativeBudgetsVerified": false,
+  "baselinePhysicalContractValid": false,
+  "currentPhysicalContractValid": true,
+  "requiredSaturationReached": true,
+  "limitations": [
+    "Fixed baseline violates non-cooperative physical settlement fences; no valid baseline retirement latency exists for this workload",
+    "Preliminary sampled peaks and unordered runner attempts are retained as diagnostic evidence; final current peak observes every published charge",
+    "Original workload rerun after Effect round reads and immutable snapshots meets all unchanged budgets; final full-migration rerun remains required",
+    "Synthetic offline callbacks; no wire cancellation or live host support claim"
+  ],
+  "currentInvariants": {
+    "exactSaturation": true,
+    "saturatedDidNotStart": true,
+    "roundRetainsPhysicalPermit": true,
+    "reuseFollowsPhysicalSettlement": true,
+    "shutdownPendingWhileHeld": true,
+    "shutdownWaitsForPhysicalCompletion": true,
+    "canonicalRequestsSettled": true,
+    "finalAccountingCleared": true
+  },
+  "allNumericFormulasPass": false
+}

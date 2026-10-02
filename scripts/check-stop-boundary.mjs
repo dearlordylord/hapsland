@@ -34,6 +34,10 @@ if (!/const roundCommit = [\s\S]*?=>\s*commitAllEffect\(/u.test(capacity) ||
     !server.includes("yield* residentLedger.rounds.retire")) {
   throw new Error("round mutations must compose atomic Effects without a synchronous commit bridge");
 }
+const roundSurface = capacity.slice(capacity.indexOf("const rounds: RoundRecords"), capacity.indexOf("const runtimeCommitEffect"));
+if (roundSurface.includes("Ref.getUnsafe") || roundSurface.includes("get work()") || roundSurface.includes("get discarded()")) {
+  throw new Error("round state reads must compose Effects rather than hidden mutable capability getters");
+}
 if (/const runtimeCommit\s*=/u.test(capacity) || server.includes("responseFiber")) {
   throw new Error("runtime mutations and IPC responses must compose Effects without synchronous mutation bridges");
 }
