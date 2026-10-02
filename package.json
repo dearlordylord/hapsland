@@ -72,6 +72,8 @@
   },
   "dependencies": {
     "@effect/ai-typesafe": "4.0.0",
+    "@effect/platform-node": "4.0.0",
+    "@effect/platform-node-shared": "4.0.0",
     "effect": "4.0.0",
     "smol-toml": "1.8.0",
     "tree-sitter": "0.25.1",
