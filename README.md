@@ -171,6 +171,9 @@ review activity.
 
 ## Development
 
+Use the [repository map](./docs/agents/navigation.md) to locate contracts,
+implementation entry points, tests, the website, and research assets.
+
 Install a fresh local snapshot on your own client without publishing:
 
 ```sh

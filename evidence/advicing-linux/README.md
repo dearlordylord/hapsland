@@ -67,9 +67,9 @@ actionable finding inside the target foreground tool window; see
 [the rerun record](claude-reset-rerun-linux.md). The Codex Bash interval
 case is retained in [native timing](native-background-timing-linux.md) for a
 later recheck. Selected [launch-to-exit measurements](linux-final-command-timing.json)
-are observations, not universal latency bounds. The Foldkit
-[timing diagrams](../../packages/agent-flow-viz/README.md#native-timing-evidence-at-the-bottom-of-the-page)
-visualize required and exploratory cases with unknown visibility marked.
+are observations, not universal latency bounds. The timing diagrams reviewed
+at that milestone are no longer part of the current dashboard; the linked
+native timing record supplies the retained observations and visibility limits.
 
 The candidate is not adopted as a new pinned installed release. The owner accepted the timing diagrams and Linux result on 2026-09-27 and
 authorized merge and closure. Manual macOS testing with real installed

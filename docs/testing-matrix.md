@@ -4,12 +4,13 @@
 **Status:** Maintained testing guidance.
 **Authority:** Maintained guidance and implementation or validation evidence; product behavior remains defined by its named contracts.
 **Expected use:** Select the smallest relevant gate before a change, locate the current manual native integration runner, and distinguish source-checkout observations from package or platform support.
-**Lifecycle:** Update this matrix whenever a test scenario, runner, supported language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; keep historical evidence linked but remove obsolete active instructions.
+**Lifecycle:** Update this matrix whenever a test scenario, runner, supported language or runtime profile, or evidence owner changes. Review it when a milestone retires or replaces a runner; delete obsolete instructions and retain evidence only while a current decision, claim, or open review needs its provenance.
 
 ## Which gate to run
 
 | Gate | Entry point | Coverage | Boundary established |
 | --- | --- | --- | --- |
+| Repository documentation | `npm run docs:install` once; `npm run docs:check` | Local Markdown links, raw HTML images and links, and heading anchors in tracked and new non-ignored Markdown | Files and headings exist; no external URL requests or documentation-truth claim |
 | Routine deterministic gate | `npm test` | Bend artifact and authority checks, boundary scripts, Vitest tests for the reducer, adapters, resident, and CLI | Logic and controlled fixtures; no native agent or Jev call |
 | Compile/package source | `npm run typecheck`; `npm run build` | TypeScript typing, Bend artifacts, generated native helper and distributable files | Buildability of this checkout |
 | Direct-event conformance | `npm run conformance:direct-event` | Manifest, selected direct-event tests, retained evidence validation | Version-one event contract and sanitization; no new agent session |
@@ -22,6 +23,35 @@
 `HOST` is `codex` or `claude`; `LANGUAGE` is `typescript`, `rust`, or `bend`. The native runner checks exact host versions, creates a disposable Git repository, records a declaration before execution, and retains source-free JSON under `evidence/native-languages/`. A failed run remains `incomplete`; it is never converted to a passing result by a later run. The [language evidence index](../evidence/native-languages/index.json) identifies the selected adoption runs and earlier incomplete attempts.
 
 The selected adoption observations include six controlled offline passes and six live Jev passes. One earlier controlled Claude Bend session received a finding but did not repair; its separately declared follow-up session passed. The live and offline records stay distinct in the language index.
+
+## Pull request checks
+
+[Offline CI](../.github/workflows/check.yml) runs on pull requests and pushes to
+`master`. It installs the frozen Bun lockfile, then runs documentation links,
+typecheck, `npm test`, and build. It does not invoke live Jev or native agent
+milestones; those remain separate declared checks above.
+
+The link checker is [Lychee](https://lychee.cli.rs/guides/cli/) 0.24.2
+(`DEPEND ON`), selected because it checks Markdown and raw HTML links and images
+with [heading validation](https://lychee.cli.rs/recipes/anchors/) offline.
+[The installer](../scripts/install-doc-link-checker.mjs) pins first-party release
+archive SHA256 digests for Linux/macOS x64/arm64. It downloads only during
+`docs:install`; `docs:check` requires that exact installed version and blocks
+network requests. To update the tool, review the official release, update the
+version and all platform digests together, and rerun `npm run docs:check`. It runs
+[a temporary-repository fixture](../scripts/check-doc-links.test.mjs) before the
+repository check, exercising deleted targets, new documents, raw HTML, and anchors.
+
+[The runner](../scripts/check-doc-links.mjs) gets its inputs from Git, includes
+retained evidence and fixture copies, and omits deleted files as inputs. Links
+to deleted files still fail. Untracked, non-ignored new Markdown is included
+locally. There are no blanket history/evidence exclusions. Optional sibling
+repository navigation uses canonical HTTPS links so a clean checkout does not
+depend on another checkout; remote liveness is outside this offline gate.
+Dynamic JavaScript anchors and documentation accuracy need their own checks.
+The installer and fixture were exercised locally on Linux arm64. Linux x64 is
+the configured CI platform; the macOS archive digests are pinned, but macOS
+installation and execution have not been validated in this change.
 
 ## Native scenario matrix
 

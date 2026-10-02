@@ -6,6 +6,10 @@
 **Expected use:** Apply these instructions when creating or changing repository artifacts.
 **Lifecycle:** Maintained with changes to repository policy, tooling, and product boundaries; review whenever an accepted workflow or product-boundary decision changes these instructions.
 
+Start with the [repository map](docs/agents/navigation.md) to find each task's
+contract, implementation, tests, website, and research assets. Use the
+[testing matrix](docs/testing-matrix.md) to select checks.
+
 ## Review requests and acceptance decisions
 
 When requesting owner review of a diagram or other visual artifact, present the

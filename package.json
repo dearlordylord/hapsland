@@ -46,6 +46,8 @@
     "./resident": "./dist/resident/main.js"
   },
   "scripts": {
+    "docs:install": "node scripts/install-doc-link-checker.mjs",
+    "docs:check": "node --test scripts/check-doc-links.test.mjs && node scripts/check-doc-links.mjs",
     "build": "node scripts/verify-bend-artifacts.mjs && node scripts/check-canonical-authority.mjs && node scripts/check-production-authority.mjs && node scripts/clean-dist.mjs && tsc -p tsconfig.build.json && node scripts/copy-bend-policy.mjs && node scripts/build-capture-helper.mjs",
     "prepack": "npm run build",
     "verify:release-native": "node scripts/verify-native-release.mjs",
