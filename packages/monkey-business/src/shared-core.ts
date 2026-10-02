@@ -6,7 +6,7 @@ import { issueSharedPre, capturedSharedPermit, configureSharedSeed, sharedClock,
 import { sessionProfile, type SessionConfig, type SessionControl, type SessionInput } from "./session.ts";
 import { doubleWords } from "./numeric-codec.ts";
 import { JEV_OUTCOME_ORDER, validateOutcomeWeights, type OutcomeWeights } from "./outcomes.ts";
-import { declareSharedAdvicee, sharedEventScope, configureSharedCredentials, actSharedCredentials, sharedCredentialFacts, interveneSharedRequest } from "../../../src/canonical/simulation-adapter.ts";
+import { declareSharedAdvicee, sharedEventScope, sharedCommandScope, configureSharedCredentials, actSharedCredentials, sharedCredentialFacts, interveneSharedRequest } from "../../../src/canonical/simulation-adapter.ts";
 import { readRecord } from "../../../src/canonical/boundary-schema.ts";
 import type { PreparationEvent, PreparationFrame } from "./preparation.ts";
 
@@ -22,6 +22,7 @@ export class SharedCore {
     this.state = declared.state;
     return declared.scope;
   }
+  commandScope(index: number, provided?: number) { return sharedCommandScope(this.state, index, provided); }
   eventScope(event: CanonicalEvent, provided?: number) { return sharedEventScope(this.state, event, provided); }
   configureCredentials(available: boolean, generation: number) { this.state = configureSharedCredentials(this.state, available, generation); }
   credentials(action: "unavailable" | "restore" | "rotate") {

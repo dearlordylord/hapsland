@@ -579,14 +579,19 @@ export class Run {
       output_certain: this.outputProfile.outcome === "certain", output_delay: this.outputProfile.delayMs, output_lease: this.outputProfile.leaseMs, background: this.generators.has(partition), automatic_dispatch: !(this.config.lifecycles?.reuse && job && "evaluationInputs" in job && job.evaluationInputs) };
   }
   private drive(event: CanonicalEvent, command: CanonicalCommand, index: number, item: Scheduled) {
-    const job = item.job ?? ("operation" in command ? this.jobs.get(command.operation) : undefined);
+    const partition = this.core.commandScope(index, this.inputPartition(item));
+    const job = ("operation" in command ? this.jobs.get(command.operation) : undefined)
+      ?? (partition === this.inputPartition(item) ? item.job : undefined);
     const sampling = command.kind === "jevRequestIssued" && !this.config.lifecycles?.reuse && this.config.lifecycles?.cancellation !== "suppressed" && !(job && "revisionSubject" in job && job.revisionSubject !== undefined);
     const outcome = job?.outcome ?? this.outcome ?? (sampling ? this.core.sample(this.outcomeWeights) : "clear");
-    const context = this.driverContext(event, item, outcome, job);
+    const scoped = { ...item, partition: partition ?? 0 };
+    const context = this.driverContext(event, scoped, outcome, job);
+    if (partition !== undefined) { context.partition = partition; context.background = this.generators.has(partition); }
     const handled = decodeDriver(this.core.handle(event, index, context));
     if (!handled.handled) return { handled: false, outcome: undefined };
     for (const action of handled.actions) {
-      this.event(this.inputPartition(item), action.event, action.delay, action.job ? job : undefined, action.expiryAdvice);
+      const owner = action.candidate?.partition ?? this.core.eventScope(action.event, partition);
+      this.event(owner ?? 0, action.event, action.delay, action.job ? job : undefined, action.expiryAdvice);
       if (action.candidate) {
         const scheduled = this.scheduled.get(this.order - 1);
         if (!scheduled) throw new Error("shared driver action lost source facts");

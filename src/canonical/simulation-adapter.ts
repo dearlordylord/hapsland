@@ -26,6 +26,7 @@ const sharedCheck = (state: EngineState): void => {
 };
 const sharedProjections = new WeakMap<object, CanonicalProjection>();
 const sharedCommands = new WeakMap<object, readonly unknown[]>();
+const sharedPredecessors = new WeakMap<object, EngineState>();
 const sharedProjection = (state: EngineState): CanonicalProjection => {
   const raw = SharedEngine.canonical(state);
   return projectTrustedCanonical(raw);
@@ -52,6 +53,7 @@ export const stepSharedCanonical = (state: EngineState, event: CanonicalEvent) =
   sharedRegister(transition.state);
   sharedProjections.set(transition.state, projection);
   sharedCommands.set(transition.state, commands);
+  sharedPredecessors.set(transition.state, state);
   return { state: transition.state, result, afterActions };
 };
 export const stepSharedGraph = (state: EngineState, key: unknown, position: bigint, limits: unknown, event: unknown) => {
@@ -94,6 +96,8 @@ const retain = (before: EngineState, next: EngineState): EngineState => {
   sharedRegister(next);
   sharedProjections.set(next, projection);
   if (commands !== undefined) sharedCommands.set(next, commands);
+  const predecessor = sharedPredecessors.get(before);
+  if (predecessor) sharedPredecessors.set(next, predecessor);
   return next;
 };
 export const enqueueShared = (state: EngineState, at: number, order: number): EngineState => {
@@ -229,5 +233,15 @@ export const sharedEventScope = (state: EngineState, event: CanonicalEvent, prov
   sharedCheck(state);
   const option = provided === undefined ? { $: "None" } : { $: "Some", value: readNat(provided) };
   const result = scopeOption(decodeSharedValue(SharedEngine.scope_event(state, state, encodeSharedValue(encodeCanonicalEvent(event)), encodeSharedValue(option))));
+  return result.$ === "Some" ? result.value : undefined;
+};
+
+export const sharedCommandScope = (state: EngineState, index: number, provided?: number): number | undefined => {
+  sharedCheck(state);
+  const command = sharedCommands.get(state)?.[index];
+  const before = sharedPredecessors.get(state);
+  if (command === undefined || before === undefined) throw new RangeError("missing shared command attribution");
+  const option = provided === undefined ? { $: "None" } : { $: "Some", value: readNat(provided) };
+  const result = scopeOption(decodeSharedValue(SharedEngine.scope_command(before, state, command, encodeSharedValue(option))));
   return result.$ === "Some" ? result.value : undefined;
 };
