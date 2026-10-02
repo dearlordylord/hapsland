@@ -36,5 +36,11 @@ def consumed(pending: List<&2, Nat>, event: Canonical.CanonicalEvent) -> List<&2
 # and internal action batch, an already-issued retirement publishes no second
 # batch. It leaves the existing pending provenance intact. This says nothing
 # about external duplicate callback acceptance, which remains Canonical-owned.
-def already_issued_batch_coalesces(~pending: List<&2, Nat>, ~operation: Nat, ~actions: List<&2, Driver.Action>) -> &{known(True{}, pending, operation, actions) == Issued{pending, Nil{}} : Issued}:
-  refl
+law already_issued_batch_coalesces:
+  for +pending: List<&2, Nat>
+  for operation: Nat
+  for actions: List<&2, Driver.Action>
+  {known(True{}, pending, operation, actions) == Issued{pending, Nil{}} : Issued}
+
+def already_issued_batch_coalesces(pending, operation, actions):
+  {==}
