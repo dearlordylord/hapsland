@@ -155,6 +155,18 @@ it("runs original source-free minimal scenarios through the native shared driver
   expect(native.error).toBeUndefined();
   expect(native.status, native.stdout + native.stderr).toBe(0);
   const nativeTraces: number[][][] = JSON.parse(native.stdout.replace(/([0-9]+)n/g, "$1"));
+  // Independent contract observations also constrain the native lane directly.
+  expect(nativeTraces.map(trace => trace.filter(row => row[0] === 18).length)).toEqual([1, 0, 0, 0, 0]);
+  for (const trace of nativeTraces) {
+    expect(trace.some(row => row[0] === 97 || row[0] === 98 || row[0] === 99)).toBe(false);
+    expect(trace.filter(row => row[0] === 21).map(row => row.slice(1, 6))).toEqual([
+      [0, 0, 1, 100, 20], [0, 1, 1, 100, 20], [0, 2, 1, 100, 20],
+      [1, 3, 1, 100, 20], [1, 0, 2, 200, 40], [1, 4, 2, 200, 40],
+    ]);
+    expect(trace.filter(row => row[0] === 11)).toHaveLength(1);
+    expect(trace.filter(row => row[0] === 12).map(row => row[1])).toEqual([7]);
+    expect(trace.filter(row => row[0] === 8).map(row => row[1])).toEqual([2, 7]);
+  }
   const eventCodes: Record<string, number> = { openRound: 1, admitObservation: 2, queueDispatch: 3, startObservation: 4,
     beginObservedPreparation: 5, preparationCompleted: 6, completeObservation: 7, dispatchSettled: 8, startReview: 9,
     jevRequestReady: 10, jevRequestStarted: 11, jevRequestSettled: 12, collectionReady: 13, finalCandidateCheck: 14,
