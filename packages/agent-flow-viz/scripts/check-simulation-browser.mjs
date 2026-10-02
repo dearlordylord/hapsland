@@ -119,10 +119,11 @@ try {
   );
   const assertCapacity = async () => {
     const projection = JSON.parse(await panel.locator(".simulation-details pre").textContent()).after;
-    assert.equal(await panel.locator('.shared-capacity-bar[role=img][aria-label$="bytes"]').getAttribute("aria-label"), `Resident capacity ${projection.global.bytes} of ${projection.limits.globalBytes} bytes`);
-    assert.equal(await panel.locator('.shared-capacity-bar[aria-label^="Resident ledger items"]').getAttribute("aria-label"), `Resident ledger items ${projection.global.items} of ${projection.limits.globalItems}`);
-    assert.match(await panel.locator(".shared-capacity-total").innerText(), new RegExp(`${projection.global.items} / ${projection.limits.globalItems} items`));
-    assert.equal(await panel.locator('.shared-capacity-bar[aria-label$="bytes"] span').count(), projection.charges.length);
+    const limits = await panel.locator(".topology-capacities").innerText();
+    assert.ok(limits.includes(`Review capacity ledger: ${projection.global.items}/${projection.limits.globalItems} items; ${projection.global.bytes}/${projection.limits.globalBytes} bytes`));
+    assert.ok(limits.includes(`Preparation running: ${projection.dispatch.running.filter(item => item.preparation).length}/${projection.executionLimits.preparation}`));
+    assert.ok(limits.includes(`Jev in-flight: ${projection.dispatch.requests.length}/${projection.executionLimits.jevRequests}`));
+    assert.equal(await panel.locator(".shared-capacity-bar").count(), 0);
   };
   await assertCapacity();
   await panel.getByRole("button", { name: "Previous event", exact: true }).click();
@@ -571,7 +572,7 @@ try {
   assert.equal(await panel.locator(".topology-node").filter({ hasText: "Ready advice" }).locator(".topology-facet").count(), 3);
   const hostOutputSquare = panel.locator(".topology-node").filter({ hasText: "Host output" });
   assert.equal(await hostOutputSquare.locator(".topology-facet").count(), 3);
-  assert.match(await hostOutputSquare.textContent(), /Output slot · select group in inspector/);
+  assert.match(await hostOutputSquare.textContent(), /Stop slot · select group in inspector/);
   const presentationModule = `/@fs${fileURLToPath(new URL("../src/production-flow-presentation.ts", import.meta.url))}`;
   const metrics = await page.evaluate(async ({ core, presentation }) => {
     const { createRun } = await import(core);
