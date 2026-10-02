@@ -6,6 +6,7 @@ import ../Scheduler.bend as Scheduler
 import ../Driver.bend as Driver
 import ../JevEffects.bend as JevEffects
 import ../FaultTargets.bend as Targets
+import ../CredentialFacts.bend as Credentials
 import ../../agent-flow-bend/Canonical.bend as Canonical
 import ../../agent-flow-bend/Ledger.bend as Ledger
 
@@ -187,5 +188,114 @@ def target_scenarios() -> List<&2, List<&2, List<&2, Nat>>>:
    targeted(AfterStart{}, Canonical.RequestInterrupted{}, 1n), targeted(AfterStart{}, Canonical.NeverSent{}, 1n),
    targeted(BeforeStart{}, Canonical.RequestTimeout{}, 2n), targeted(AfterSettlement{}, Canonical.RequestInterrupted{}, 1n)]
 
+# Three original credential scripts, all retaining the same resident:
+# 0 unavailable before edit -> restore after refusal/release -> fresh edit at11;
+# 1 unavailable after finding -> drain through8 -> restore same finding;
+# 2 rotate after start -> drain through10 -> fresh edit at11.
+def credential_report(+state: Types.State, now: Nat, action: Nat) -> List<&2, Nat>:
+  List.append(&2, Nat, [31n, now, action, 1n], Minimal.state_counts(state))
+
+def captured(found: Maybe<&2, Nat>) -> Nat:
+  match found:
+    case None{}: 0n
+    case Some{generation}: generation
+
+def credential_snapshot_values(credentials: Credentials.State, +state: Types.State, marker: Nat, now: Nat) -> List<&2, Nat>:
+  match credentials:
+    case Credentials.State{_, generation, _}:
+      List.append(&2, Nat, [marker, now], List.append(&2, Nat, Minimal.state_counts(state), [generation,
+        captured(Credentials.captured(Engine.credentials(state), 3n)), captured(Credentials.captured(Engine.credentials(state), 5n)), captured(Credentials.captured(Engine.credentials(state), 7n))]))
+
+def credential_snapshot(+state: Types.State, marker: Nat, now: Nat) -> List<&2, Nat>:
+  credential_snapshot_values(Engine.credentials(state), state, marker, now)
+
+def credential_control(+state: Types.State, queue: Minimal.Queue, +now: Nat, +action: Nat) -> Types.State & Minimal.Queue:
+  +state = Engine.credential_action(state, Bool.not(Nat.is_eq(action, 1n)), Nat.is_eq(action, 3n))
+  +context = Minimal.context(Driver.immediate(Canonical.FinalCandidateCheck{True{}, True{}, True{}, False{}, True{}, True{}}, False{}), config(Canonical.RequestFinding{}, now), now)
+  (state, Minimal.enqueue(Engine.revalidate(state, context), queue, now))
+
+def credential_resumed(pair: Types.State & Minimal.Queue, now: Nat, action: Nat,
+    ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match pair action:
+    case (+state, queue) 3n: credential_snapshot(state, 34n, now) <> ih((state, queue))
+    case (state, queue) _: ih((state, queue))
+
+def credential_after(pair: Types.State & Minimal.Queue, +now: Nat, +action: Nat,
+    ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match pair:
+    case (+state, queue): credential_report(state, now, action) <> credential_resumed(credential_control(state, queue, now, action), now, action, ih)
+
+def credential_input(+input: Minimal.Input, state: Types.State, queue: Minimal.Queue, +now: Nat, +mode: Nat, +stage: Nat,
+    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match input mode stage:
+    case Minimal.Event{Driver.Action{Canonical.DispatchSettled{_, _, _, 3n}, _, _, _, _}} 0n 0n:
+      Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => credential_after(pair, now, 2n, pair => ih((pair, 1n))))
+    case Minimal.Event{Driver.Action{Canonical.JevRequestSettled{_, _, _, 3n, _, _, _}, _, _, _, _}} 1n 0n:
+      Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => credential_after(pair, now, 1n, pair => ih((pair, 1n))))
+    case Minimal.Event{Driver.Action{Canonical.JevRequestStarted{_, _, _, 3n, _}, _, _, _, _}} 2n 0n:
+      Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => credential_after(pair, now, 3n, pair => ih((pair, 1n))))
+    case _ _ _:
+      Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => ih((pair, stage)))
+
+def credential_endpoint(pair: Types.State & Minimal.Queue, +mode: Nat, stage: Nat,
+    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match pair mode stage:
+    case (+state, queue) 1n 1n:
+      credential_after((state, queue), Engine.clock(state), 2n, pair => ih((pair, 2n)))
+    case (+state, queue) 2n 1n:
+      credential_snapshot(state, 32n, Engine.clock(state)) <> ih(((state, queue), 2n))
+    case (+state, _) _ _:
+      [credential_snapshot(state, 33n, Engine.clock(state))]
+
+def credential_limit(mode: Nat, stage: Nat) -> Nat:
+  match mode stage:
+    case 1n 1n: 8n
+    case 2n 1n: 10n
+    case 1n _: 10n
+    case _ _: 20n
+
+def credential_taken(taken: Engine.Taken, +items: List<&2, Minimal.Item>, +sequence: Nat, mode: Nat, stage: Nat,
+    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match taken:
+    case Engine.Taken{state, Some{Scheduler.Entry{at, +order}}}:
+      credential_input(Minimal.lookup(items, order), state, Minimal.Queue{Minimal.remove(items, order), sequence, sequence}, at, mode, stage, ih)
+    case Engine.Taken{+state, None{}}: [credential_snapshot(state, 33n, Engine.clock(state))]
+
+def credential_bounded(in_budget: Bool, state: Types.State, queue: Minimal.Queue, mode: Nat, stage: Nat,
+    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match in_budget queue:
+    case True{} Minimal.Queue{items, sequence, _}: credential_taken(Engine.take(state), items, sequence, mode, stage, ih)
+    case False{} _: credential_endpoint((state, queue), mode, stage, ih)
+
+def credential_selected(entries: List<&2, Scheduler.Entry>, state: Types.State, queue: Minimal.Queue, +mode: Nat, +stage: Nat,
+    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match entries:
+    case Nil{}: credential_endpoint((state, queue), mode, stage, ih)
+    case Scheduler.Entry{at, _} <> _: credential_bounded(Nat.is_le(at, credential_limit(mode, stage)), state, queue, mode, stage, ih)
+
+def credential_next(pair: (Types.State & Minimal.Queue) & Nat, mode: Nat,
+    ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match pair:
+    case ((state, Minimal.Queue{+items, +sequence, synced}), stage):
+      +state = Minimal.sync(items, state, synced)
+      credential_selected(Engine.queued(state), state, Minimal.Queue{items, sequence, sequence}, mode, stage, ih)
+
+def credential_loop(fuel: Nat, pair: (Types.State & Minimal.Queue) & Nat, +mode: Nat) -> List<&2, List<&2, Nat>>:
+  match fuel:
+    case 0n: [[99n]]
+    case 1n+rest: credential_next(pair, mode, pair => credential_loop(rest, pair, mode))
+
+def credential_queue(mode: Nat) -> Minimal.Queue:
+  match mode:
+    case 1n: Minimal.initial_queue(1n)
+    case _: Minimal.append(Minimal.initial_queue(1n), 11n, Minimal.Edit{})
+
+def credential_scenario(+mode: Nat) -> List<&2, List<&2, Nat>>:
+  match mode:
+    case 0n:
+      credential_after((Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), credential_queue(0n)), 0n, 1n, pair => credential_loop(200n, (pair, 0n), 0n))
+    case _:
+      credential_loop(200n, ((Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), credential_queue(mode)), 0n), mode)
+
 def main() -> IO(Unit):
-  IO.print(String.append("{\"recovery\":", String.append(Minimal.bracket(Minimal.show_traces([scenario(Canonical.NeverSent{}), scenario(Canonical.RequestBackendFailure{}), scenario(Canonical.RequestTimeout{}), scenario(Canonical.RequestInterrupted{})])), String.append(",\"targets\":", String.append(Minimal.bracket(Minimal.show_traces(target_scenarios())), "}")))))
+  IO.print(String.append("{\"recovery\":", String.append(Minimal.bracket(Minimal.show_traces([scenario(Canonical.NeverSent{}), scenario(Canonical.RequestBackendFailure{}), scenario(Canonical.RequestTimeout{}), scenario(Canonical.RequestInterrupted{})])), String.append(",\"targets\":", String.append(Minimal.bracket(Minimal.show_traces(target_scenarios())), String.append(",\"credentials\":", String.append(Minimal.bracket(Minimal.show_traces([credential_scenario(0n), credential_scenario(1n), credential_scenario(2n)])), "}")))))))

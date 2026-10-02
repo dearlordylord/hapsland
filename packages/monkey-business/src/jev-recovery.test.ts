@@ -44,7 +44,7 @@ const commandCodes: Record<string, number> = { roundStarted: 1, observationAdmit
   observationStarted: 14, preparationReleased: 15, observationCompleted: 16, reviewStarted: 17,
   jevRequestStartRecorded: 18, jevRequestOutcomeRecorded: 19, reservationReleased: 20, collectionLeaseKept: 21,
   collectionLeaseReleased: 22, settleClear: 23, reviewRecorded: 24, retireCandidate: 25, releaseCandidate: 26,
-  collectionAdviceRetired: 27, submissionForgotten: 28, jevInterruptionRecorded: 29 };
+  collectionAdviceRetired: 27, submissionForgotten: 28, jevInterruptionRecorded: 29, jevRequestUnavailable: 30 };
 const graphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 };
 const code = (codes: Record<string, number>, kind: string): number => {
   const value = codes[kind];
@@ -75,7 +75,7 @@ const row = (frame: Observation): number[] => {
 };
 
 it("compares four original twelve-cycle recovery scripts with the stateful native driver and public replay", () => {
-  const result = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-recovery.bend", import.meta.url)) as { recovery: number[][][]; targets: number[][][] };
+  const result = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-recovery.bend", import.meta.url)) as { recovery: number[][][]; targets: number[][][]; credentials: number[][][] };
   const native = result.recovery;
   const faults = ["neverSent", "backendFailure", "timeout", "interrupted"] as const;
   const expectedTimes = Array.from({ length: 24 }, (_, index) => index * 20 + 7);
@@ -135,6 +135,76 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
     expect(run.projection.dispatch.running).toEqual([]);
     expect(run.observations.filter(frame => frame.rejection)).toEqual([]);
     expect(nativeTrace.filter(row => row[0] !== 30)).toEqual(run.observations.map(row));
+    expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
+  }
+  expect(result.credentials).toHaveLength(3);
+  for (const [mode, nativeTrace] of result.credentials.entries()) {
+    const run = createRun({ outcome: "finding", inputs: mode === 1
+      ? [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5] }]
+      : [0, 11].map(at => ({ at, kind: "edit" as const, bytes: 10, unitBytes: [5] })),
+      preparationDelay: 2, jevDelay: 5,
+      fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 2, maxFiles: 2, maxImports: 1, maxDepth: 1, deniedPercent: 0,
+        minSourceBytes: 100, maxSourceBytes: 100, minTreeBytes: 20, maxTreeBytes: 20 } });
+    const trace: number[][] = [];
+    let recorded = 0;
+    const flush = () => {
+      trace.push(...run.observations.slice(recorded).map(row));
+      recorded = run.observations.length;
+    };
+    const control = (action: "unavailable" | "restore" | "rotate") => {
+      flush();
+      const state = run.projection;
+      run.applyControl({ kind: "credentials", action });
+      trace.push([31, run.now, { unavailable: 1, restore: 2, rotate: 3 }[action], 1,
+        state.global.items, state.global.bytes, state.dispatch.running.length, state.dispatch.requests.length, state.collection.leases.length]);
+    };
+    const reach = (condition: () => boolean) => {
+      for (let transitions = 0; transitions < 100 && !condition(); transitions++) run.step();
+      expect(condition()).toBe(true);
+    };
+    if (mode === 0) {
+      control("unavailable");
+      reach(() => run.observations.some(frame => frame.event.kind === "dispatchSettled" && frame.event.operation === 3));
+      expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "jevRequestUnavailable")).toHaveLength(1);
+      expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+      expect(run.projection.dispatch.running).toEqual([]);
+      control("restore");
+    } else if (mode === 1) {
+      reach(() => run.observations.some(frame => frame.event.kind === "jevRequestSettled"));
+      control("unavailable");
+      run.advance({ untilTime: 8, maxEvents: 100 });
+      expect(run.projection.pendingFindings.map(finding => finding.operation)).toEqual([3]);
+      expect(run.projection.global).toEqual({ items: 1, bytes: 5 });
+      expect(run.observations.filter(frame => frame.event.kind === "submissionTerminal")).toEqual([]);
+      control("restore");
+    } else {
+      reach(() => run.observations.some(frame => frame.event.kind === "jevRequestStarted"));
+      control("rotate");
+      run.advance({ untilTime: 10, maxEvents: 100 });
+      expect(run.projection.pendingFindings).toEqual([]);
+      expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+      expect(run.projection.dispatch.requests).toEqual([]);
+      expect(run.observations.filter(frame => frame.event.kind === "submissionTerminal")).toEqual([]);
+      expect(run.observations.filter(frame => frame.event.kind === "retireReview").map(frame => frame.event)).toEqual([
+        { kind: "retireReview", partition: 1, lifetime: 1, round: 1, operation: 3 },
+      ]);
+      expect(nativeTrace.find(row => row[0] === 34)).toEqual([34, 2, 1, 5, 1, 1, 0, 2, 1, 0, 0]);
+      expect(nativeTrace.find(row => row[0] === 32)).toEqual([32, 7, 0, 0, 0, 0, 0, 2, 0, 0, 0]);
+    }
+    run.advance({ untilTime: mode === 1 ? 10 : 20, maxEvents: 100 });
+    flush();
+    expect(nativeTrace.filter(row => ![32, 33, 34].includes(row[0] ?? 99))).toEqual(trace);
+    expect(nativeTrace.filter(row => row[0] === 18)).toHaveLength(1);
+    expect(nativeTrace.filter(row => row[0] === 11)).toHaveLength(mode === 0 ? 1 : mode === 1 ? 1 : 2);
+    const endpoint = nativeTrace.find(row => row[0] === 33);
+    expect(endpoint).toEqual(mode === 0 ? [33, 17, 1, 5, 0, 0, 0, 1, 0, 1, 0]
+      : mode === 1 ? [33, 7, 1, 5, 0, 0, 0, 1, 1, 0, 0]
+        : [33, 17, 1, 5, 0, 0, 0, 2, 0, 0, 2]);
+    expect(run.observations.filter(frame => frame.rejection)).toEqual([]);
+    expect(run.projection.dispatch.running).toEqual([]);
+    expect(run.projection.dispatch.requests).toEqual([]);
+    expect(run.projection.collection.leases).toEqual([]);
+    expect(run.interventions.every(report => report.result === "applied")).toBe(true);
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
   }
 }, 30000);
