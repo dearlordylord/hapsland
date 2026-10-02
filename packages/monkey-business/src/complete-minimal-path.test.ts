@@ -108,3 +108,19 @@ it("generates native request callbacks from original outcomes without the Starte
   });
   expect(observed).toEqual([[3, 5], [1, 0, 4, 5], [1, 0, 5, 5], [1, 0, 2, 5, 6, 5]]);
 });
+
+it("refuses request issuance while credentials are unavailable and a later edit progresses on the same resident", () => {
+  const run = createRun({ ...minimal("finding"), environment: { currentWork: true, credentialReady: false } });
+  run.advance({ untilTime: 10 });
+  expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "jevRequestUnavailable")).toHaveLength(1);
+  expect(run.observations.filter(frame => frame.event.kind === "jevRequestStarted" || frame.event.kind === "jevRequestSettled")).toEqual([]);
+  expect(run.projection.dispatch.running).toEqual([]);
+  expect(run.projection.delivery.submissions.batches).toEqual([]);
+  run.applyControl({ kind: "environment", currentWork: true, credentialReady: true });
+  run.schedule({ at: 11, kind: "edit", bytes: 10, unitBytes: [5], outcome: "finding" });
+  run.advance({ untilTime: 21 });
+  expect(run.observations.filter(frame => frame.rejection)).toEqual([]);
+  expect(run.observations.filter(frame => frame.event.kind === "jevRequestStarted")).toHaveLength(1);
+  expect(run.projection.delivery.submissions.batches.map(batch => batch.phase)).toEqual(["submitted"]);
+  expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
+});
