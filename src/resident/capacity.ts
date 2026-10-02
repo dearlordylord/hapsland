@@ -285,6 +285,11 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    minimumFreshStart: Effect.fn("Capacity.minimumFreshStart")((...args: Arguments<typeof minimumFreshStart>) => Ref.get(state).pipe(Effect.map((snapshot) => minimumFreshStart(snapshot, ...args)))),
+    partitionIdentityCount: Effect.fn("Capacity.partitionIdentityCount")((...args: Arguments<typeof partitionIdentityCount>) => Ref.get(state).pipe(Effect.map((snapshot) => partitionIdentityCount(snapshot, ...args)))),
+    partitionIdentityBytes: Effect.fn("Capacity.partitionIdentityBytes")((...args: Arguments<typeof partitionIdentityBytes>) => Ref.get(state).pipe(Effect.map((snapshot) => partitionIdentityBytes(snapshot, ...args)))),
+    collectionTokenIdentityCount: Effect.fn("Capacity.collectionTokenIdentityCount")((...args: Arguments<typeof collectionTokenIdentityCount>) => Ref.get(state).pipe(Effect.map((snapshot) => collectionTokenIdentityCount(snapshot, ...args)))),
+    currentRoundId: Effect.fn("Capacity.currentRoundId")((...args: Arguments<typeof currentRoundId>) => Ref.get(state).pipe(Effect.map((snapshot) => currentRoundId(snapshot, ...args)))),
     roundId: Effect.fn("Capacity.roundId")((partition: string) => commitAllEffect((draft, records) => [roundId(draft, partition), records])),
     collectionTokenId: Effect.fn("Capacity.collectionTokenId")((...args: Arguments<typeof collectionTokenId>) => commitAllEffect((draft, records) => [collectionTokenId(draft, ...args), records])),
     discardUnusedPartition: Effect.fn("Capacity.discardUnusedPartition")((...args: Arguments<typeof discardUnusedPartition>) => commitAllEffect((draft, records) => [discardUnusedPartition(draft, ...args), records])),

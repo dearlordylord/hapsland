@@ -35,7 +35,7 @@ describe("resident logical capacity ledger", () => {
       throw new Error("native registration failed");
     })).toThrow("native registration failed");
     expect(ledger.canonicalProjection()).toEqual(before);
-    expect(ledger.currentRoundId("agent")).toBeUndefined();
+    expect(Effect.runSync(ledger.currentRoundId("agent"))).toBeUndefined();
     const round = Effect.runSync(ledger.roundId("agent"));
     expect(round).toBe(1);
     expect(ledger.canonicalProjection().rounds).toEqual([{ partition, lifetime: 1, id: round, deciding: false, waiting: false, uncertain: false }]);
@@ -52,7 +52,7 @@ describe("resident logical capacity ledger", () => {
     })).toThrow("resident capacity commit cannot be reentered");
     expect(ledger.canonicalProjection()).toEqual(before);
     expect(ledger.knownPartitionId("nested-agent")).toBeUndefined();
-    expect(ledger.partitionIdentityCount()).toBe(1);
+    expect(Effect.runSync(ledger.partitionIdentityCount())).toBe(1);
     // The failed commit releases its fence and does not consume a reservation ID.
     expect(ledger.reserve("agent", 10, "preparation")?.id).toBe(1);
   });
@@ -65,16 +65,16 @@ describe("resident logical capacity ledger", () => {
     const first = ledger.knownPartitionId("advicee-0");
     expect(first).toBeDefined();
     Effect.runSync(ledger.partitionId("next-advicee"));
-    expect(ledger.partitionIdentityCount()).toBe(MAX_PARTITION_IDENTITIES);
+    expect(Effect.runSync(ledger.partitionIdentityCount())).toBe(MAX_PARTITION_IDENTITIES);
     expect(ledger.knownPartitionId("advicee-0")).toBeUndefined();
-    expect(ledger.minimumFreshStart()).toBeGreaterThan(0);
+    expect(Effect.runSync(ledger.minimumFreshStart())).toBeGreaterThan(0);
     const stale = ledger.transition({ kind: "issuePermit",
       partition: ledger.knownPartitionId("next-advicee")!, lifetime: 1,
-      tool: 1, started: ledger.minimumFreshStart(),
-      deadline: ledger.minimumFreshStart() + 1000, now: ledger.minimumFreshStart(),
-      minimumStarted: ledger.minimumFreshStart(),
+      tool: 1, started: Effect.runSync(ledger.minimumFreshStart()),
+      deadline: Effect.runSync(ledger.minimumFreshStart()) + 1000, now: Effect.runSync(ledger.minimumFreshStart()),
+      minimumStarted: Effect.runSync(ledger.minimumFreshStart()),
       facts: { clockValid: true, hookWindow: 2500,
-        startedUpper: ledger.minimumFreshStart(), nowLower: ledger.minimumFreshStart(),
+        startedUpper: Effect.runSync(ledger.minimumFreshStart()), nowLower: Effect.runSync(ledger.minimumFreshStart()),
         adviceePermitLimit: 32, residentPermitLimit: 4096 } });
     expect(stale.rejection).toBe("StaleInvocation");
     expect(ledger.canonicalProjection().admissions).toEqual([]);
@@ -88,12 +88,12 @@ describe("resident logical capacity ledger", () => {
       token: live, active: true, capacity: 1 }).commands[0]?.kind).toBe("collectionBackgroundClaimed");
     for (let index = 0; index < 1000; index++) Effect.runSync(ledger.collectionTokenId(`finished-${index}`));
     Effect.runSync(ledger.pruneCollectionTokenIds(new Set()));
-    expect(ledger.collectionTokenIdentityCount()).toBe(1);
+    expect(Effect.runSync(ledger.collectionTokenIdentityCount())).toBe(1);
     expect(Effect.runSync(ledger.collectionTokenId("live"))).toBe(live);
     expect(ledger.transition({ kind: "collectionReleaseBackground", group: partition,
       token: live }).commands[0]?.kind).toBe("collectionBackgroundReleased");
     Effect.runSync(ledger.pruneCollectionTokenIds(new Set()));
-    expect(ledger.collectionTokenIdentityCount()).toBe(0);
+    expect(Effect.runSync(ledger.collectionTokenIdentityCount())).toBe(0);
     expect(MAX_COLLECTION_TOKEN_IDENTITIES).toBeGreaterThan(1000);
   });
 
@@ -109,7 +109,7 @@ describe("resident logical capacity ledger", () => {
       expect(ledger.canonicalProjection().delivery.counters).toEqual([]);
       Effect.runSync(ledger.discardUnusedPartition(partition));
     }
-    expect(ledger.partitionIdentityCount()).toBe(0);
+    expect(Effect.runSync(ledger.partitionIdentityCount())).toBe(0);
   });
 
   it("routes delivery terminal and finding decisions through canonical Bend", () => {
@@ -464,42 +464,43 @@ effectIt.effect("reads reservation metadata on execution and fences foreign or r
 effectIt.effect("defers dispatch identity allocation and shares one partition across competing executions", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const identity = owner.dispatchIdentity("agent", 7);
-  expect(owner.partitionIdentityCount()).toBe(0);
+  expect((yield* owner.partitionIdentityCount())).toBe(0);
   const identities = yield* Effect.forEach(Array.from({ length: 16 }), () => identity, { concurrency: "unbounded" });
   expect(identities).toEqual(Array.from({ length: 16 }, () => ({ partition: 1, round: 7 })));
-  expect(owner.partitionIdentityCount()).toBe(1);
+  expect((yield* owner.partitionIdentityCount())).toBe(1);
   const partition = owner.partitionId("other");
-  expect(owner.partitionIdentityCount()).toBe(1);
+  expect((yield* owner.partitionIdentityCount())).toBe(1);
   const allocated = yield* Effect.forEach(Array.from({ length: 16 }), () => partition, { concurrency: "unbounded" });
   expect(allocated).toEqual(Array.from({ length: 16 }, () => 2));
   expect(yield* owner.dispatchIdentity("other", 8)).toEqual({ partition: 2, round: 8 });
-  expect(owner.partitionIdentityCount()).toBe(2);
+  expect((yield* owner.partitionIdentityCount())).toBe(2);
 }));
 
 effectIt.effect("allocates one collection token identity on execution and prunes only released keys", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const allocate = owner.collectionTokenId("collector");
-  expect(owner.collectionTokenIdentityCount()).toBe(0);
+  expect((yield* owner.collectionTokenIdentityCount())).toBe(0);
   const ids = yield* Effect.forEach(Array.from({ length: 16 }), () => allocate, { concurrency: "unbounded" });
   expect(new Set(ids).size).toBe(1);
-  expect(owner.collectionTokenIdentityCount()).toBe(1);
+  expect((yield* owner.collectionTokenIdentityCount())).toBe(1);
   yield* owner.pruneCollectionTokenIds(new Set(["collector"]));
   expect(yield* allocate).toBe(ids[0]);
   const prune = owner.pruneCollectionTokenIds(new Set());
-  expect(owner.collectionTokenIdentityCount()).toBe(1);
+  expect((yield* owner.collectionTokenIdentityCount())).toBe(1);
   yield* prune;
-  expect(owner.collectionTokenIdentityCount()).toBe(0);
+  expect((yield* owner.collectionTokenIdentityCount())).toBe(0);
 }));
 
 effectIt.effect("opens one canonical round for competing deferred identity requests", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const round = owner.roundId("agent");
-  expect(owner.currentRoundId("agent")).toBeUndefined();
-  expect(owner.partitionIdentityCount()).toBe(0);
+  const read = owner.currentRoundId("agent");
+  expect(yield* read).toBeUndefined();
+  expect((yield* owner.partitionIdentityCount())).toBe(0);
   const rounds = yield* Effect.forEach(Array.from({ length: 16 }), () => round, { concurrency: "unbounded" });
   expect(new Set(rounds).size).toBe(1);
   expect(rounds[0]).toBeGreaterThan(0);
-  expect(owner.currentRoundId("agent")).toBe(rounds[0]);
-  expect(owner.partitionIdentityCount()).toBe(1);
+  expect(yield* read).toBe(rounds[0]);
+  expect((yield* owner.partitionIdentityCount())).toBe(1);
   expect(yield* round).toBe(rounds[0]);
 }));

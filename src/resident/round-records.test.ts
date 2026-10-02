@@ -48,7 +48,7 @@ it.effect("binds immutable handles and activity to the canonical admission gener
   const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0));
   if (generation === undefined) throw new Error("fixture edit admission refused");
   const round = (yield* owner.rounds.bind("agent", generation, activity, "first-cohort"));
-  expect(round.canonicalRound).toBe(owner.currentRoundId("agent"));
+  expect(round.canonicalRound).toBe((yield* owner.currentRoundId("agent")));
   expect((yield* owner.rounds.get("agent"))).toBe(round);
   expect(Object.isFrozen(round)).toBe(true);
   expect(Object.isFrozen((yield* snapshotRound(owner.rounds, round)).work)).toBe(true);
@@ -67,7 +67,7 @@ it.effect("rejects missing or mismatched canonical authority without publishing 
   expect(yield* defectMessage(owner.rounds.bind("agent", 1, activity, "cohort"))).toContain("canonical admission generation");
   expect(owner.canonicalProjection()).toEqual(before);
   expect(owner.knownPartitionId("agent")).toBeUndefined();
-  expect(owner.currentRoundId("agent")).toBeUndefined();
+  expect((yield* owner.currentRoundId("agent"))).toBeUndefined();
   expect((yield* owner.rounds.entries())).toEqual([]);
   const generation = (yield* owner.delivery().admitEdit("agent", "edit", 0));
   if (generation === undefined) throw new Error("fixture edit admission refused");
@@ -135,7 +135,7 @@ it.effect("retires canonical and native ownership together and fences identity r
   if (firstGeneration === undefined) throw new Error("fixture edit admission refused");
   const first = (yield* owner.rounds.bind("agent", firstGeneration, activity, "first"));
   expect((yield* owner.rounds.retire(first))).toBe(true);
-  expect(owner.currentRoundId("agent")).toBeUndefined();
+  expect((yield* owner.currentRoundId("agent"))).toBeUndefined();
   expect((yield* owner.rounds.entries())).toEqual([]);
   expect(owner.canonicalProjection().rounds).toEqual([]);
   yield* owner.clear();

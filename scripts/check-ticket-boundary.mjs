@@ -305,3 +305,10 @@ if (!state.includes('roundId: Effect.fn("Capacity.roundId")') ||
     !server.includes('yield* residentLedger.roundId(partition)')) {
   throw new Error("root round allocation must compose as an atomic Effect");
 }
+
+for (const operation of ["minimumFreshStart", "partitionIdentityCount", "partitionIdentityBytes", "collectionTokenIdentityCount", "currentRoundId"]) {
+  if (!state.includes(`${operation}: Effect.fn("Capacity.${operation}")`) ||
+      !state.includes(`Effect.map((snapshot) => ${operation}(snapshot, ...args))`)) {
+    throw new Error(`root capacity ${operation} must read a snapshot through Effect`);
+  }
+}
