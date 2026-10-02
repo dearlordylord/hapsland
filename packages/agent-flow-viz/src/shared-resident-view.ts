@@ -14,7 +14,7 @@ export const sharedResidentView = <Message>(h: HtmlBuilder<Message>, projection:
   return h.section([h.Class("shared-resident"), h.AriaLabel("Shared resident resources")], [
     h.div([h.Class("shared-resident-heading")], [h.strong([], ["ONE RESIDENT"]),
       h.span([], [`${agents.length} agent${agents.length === 1 ? "" : "s"} · ${sequence < 0 ? "initial state" : `event ${sequence}`} · ${now} ms`])]),
-    ...(metadata?.demoAgentCount === undefined ? [] : [h.p([h.Class("demo-limit-provenance"), h.Title("Demo resident limits; native cache 8 entries / 128 KiB, tickets 256, notice keys 64. All retained storage shares the resident ledger.")], [`Demo limits · sized for ${metadata.demoAgentCount} agents`])]),
+    ...(metadata?.demoAgentCount === undefined ? [] : [h.p([h.Class("demo-limit-provenance"), h.Title("Demo resident limits; native cache 8 entries / 128 KiB, tickets 256. All retained storage shares the resident ledger.")], [`Demo limits · sized for ${metadata.demoAgentCount} agents`])]),
     h.div([h.Class("shared-resident-resources")], [
       h.div([h.Class("shared-ledger")], [
         h.h3([], ["Global review capacity"]),

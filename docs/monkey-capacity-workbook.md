@@ -448,3 +448,41 @@ and complete authority/context cleanup. Existing tests such as
 1197 establish current invariants, **not** registry-free behavior. The later
 question of making ordinary Claude edit feedback asynchronous remains a
 separate, unimplemented product decision.
+
+
+## Owner decision: diagnostic notice retention outside the main diagram (2026-10-01)
+
+The owner authorized removing operational-notice key retention from the main
+advice-delivery diagram. These keys retain operational-failure diagnostics for
+the composed/installed flow, rather than the main review advice delivered to
+agents. The native storage declaration now states this distinction. Historical
+workbook tables and earlier fourteen-row reviews remain evidence of their scope
+at that time; they do not claim all fourteen resources are visible currently.
+
+Astra advised removing notice meters, notice lists, notice-storage copy, and the
+notice-inspection link from resident and Collection/Advice inspectors. Current
+retained-resource details contain cache and tickets. Background collector claims
+and advice lease details remain. Checked diagnostic state, events, optional
+exercises, and native functionality remain; real notice storage still contributes
+to the unfiltered shared ledger. No replacement diagnostic UI is introduced.
+The retained-resource inset remains an unaccepted preview. The next term for
+owner review is the reuse cache, considered separately.
+
+
+Implementation checks for this owner decision passed: visualization typecheck and
+build, the revised resource browser, and nine focused diagnostic/scenario tests.
+Browser assertions explicitly reject notice-key/storage/link text in retained
+resource details and Collection inspection while checking that the actual
+retained fixture still includes diagnostic storage in its shared ledger.
+Collector/advice lease checks remain. Logs:
+`/tmp/hapsland-diagnostic-ui-build.log`,
+`/tmp/hapsland-diagnostic-ui-browser.log`, and
+`/tmp/hapsland-diagnostic-state-tests.log`. Rendered after-review examines the
+cache/ticket disclosure at desktop/narrow widths and the Collection lease panel.
+
+
+Astra's rendered after-review found no blocking issue in the current desktop and
+narrow cache/ticket details or Collection panel. The outside-git preview was also
+updated to two resource cards; its placement remains unaccepted. Source and
+maintained documentation are stable for the authorized removal. Review of the
+reuse-cache term is the next separate owner decision.

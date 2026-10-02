@@ -69,7 +69,8 @@ try {
   const retainedText = await resident.innerText();
   assert.match(retainedText,/Cached evaluations · entries\s+1 \/ 2/);
   assert.match(retainedText,/Retained tickets\s+2 \/ 2/);
-  assert.match(retainedText,/Operational notice keys\s+1 \/ 1/);
+  assert.doesNotMatch(retainedText,/Operational notice keys|Notice key|Notice ledger storage|Inspect notice collection/);
+  assert.ok(retained.projection.global.bytes >= 128); // Actual diagnostic storage remains in the shared ledger.
   await resident.screenshot({path:'/tmp/hapsland-capacity-retention-1512.png'});
 
   await click(`Select agent ${retained.projection.partitions.findIndex(p=>p.partition===1)+1}`);await focus('preparation');
@@ -108,6 +109,7 @@ try {
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-budget-1of4-1512.png'});
   await selectPartition(1);await focus('collection');
   assert.match(await page.locator('.stage-resource-details').innerText(),/Advice 3 · leased/);
+  assert.doesNotMatch(await page.locator('.stage-resource-details').innerText(),/Operational notice|Notice key|Notice ledger/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-advice-leased-1512.png'});
   const freeAdvice=restoreReplay(ownership.exportReplay());
   freeAdvice.schedule({at:25,kind:'canonical',event:{kind:'collectionReleaseLease',advice:3,token:100000}});freeAdvice.advance({untilTime:25,maxEvents:1000});
@@ -135,7 +137,7 @@ try {
   if(!await page.locator('.resident-resource-details').first().evaluate(el=>el.open)) await page.locator('.resident-resource-details').first().locator('summary').click();
   assert.equal(await resident.locator(".shared-capacity-total").innerText(), `0 / ${retained.projection.limits.globalItems} items · 0 / ${retained.projection.limits.globalBytes} bytes`);
   assert.match(await resident.innerText(),/Retained tickets\s+0 \/ 2/);
-  assert.match(await resident.innerText(),/Operational notice keys\s+0 \/ 1/);
+  assert.doesNotMatch(await resident.innerText(),/Operational notice keys|Notice key|Notice ledger storage/);
   await resident.screenshot({path:'/tmp/hapsland-capacity-retention-released-1512.png'});
 
 

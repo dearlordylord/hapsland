@@ -149,9 +149,10 @@ per-record free/leased states. Stop output is an exclusive selected-group slot,
 not an aggregate slot count divided by one. Continuation marks display the selected
 current round and delivery group's checked consumed budget; absent or stale
 selection requires selection rather than silently choosing another record.
-Cache entry/byte totals, retained ticket count and notice-key totals are separate
-resource details. Ticket units are not retained tickets. Cache and notice storage
-also consume common ledger charges; notice storage bytes are not a new byte pool.
+Cache entry/byte totals and retained ticket count are separate resource details.
+Ticket units are not retained tickets. Diagnostic operational-notice retention
+is omitted from the main delivery diagram, while actual storage charges remain
+in the common ledger. Cache storage also consumes common ledger charges.
 
 Encoded output details show the latest supplied resident candidate fact through
 the selected replay frame, with synthetic provenance and the recorded Bend

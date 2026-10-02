@@ -402,12 +402,12 @@ decision. The multi-agent layer layout is a new visual change; positions within 
 
 ## Capacity inspection in the shared resident
 
-The shared rail now has separate resident item and byte bars, the existing
-owner-labeled Jev slots, and resident preparation-worker, edit-permit and
+The shared rail has separate resident item and byte bars and resident preparation-worker, edit-permit and
 background-collector meters. Admission has partition item/byte/permit indicators;
 scheduling and Jev stages reference their shared pools. The resident resource
 disclosure and selected-stage inspector expose cache entries/bytes, retained
-tickets and notice keys, including notice storage charged to the common ledger.
+tickets. Operational-failure diagnostic notice retention is omitted from the
+main delivery diagram; its actual storage charges remain in shared ledger totals.
 These resource details do not add processing stages or flow edges.
 
 Select an agent and a stage to inspect its local records beside the resident

@@ -12,15 +12,12 @@ export const resourceMeter = <Message>(h: HtmlBuilder<Message>, label: string, u
 
 export const residentRetentionDetails = <Message>(h: HtmlBuilder<Message>, s: CanonicalProjection, metadata?: CapacityMetadata, inspect?: (stage: "outcomes" | "collection") => Message) => {
   const m = metadata;
-  return h.details([h.Class("resident-resource-details")], [h.summary([], ["Resident resource details · cache, tickets and operational notices"]),
-    ...(inspect ? [h.button([h.Type("button"), h.OnClick(inspect("outcomes"))], ["Inspect cached evaluations and tickets"]), h.button([h.Type("button"), h.OnClick(inspect("collection"))], ["Inspect notice collection"])] : []),
-    h.p([], ["Retained resources shared by all agents. Notice storage and cache storage also use the common ledger; these are not separate byte pools."]),
+  return h.details([h.Class("resident-resource-details")], [h.summary([], ["Resident resource details · cache and tickets"]),
+    ...(inspect ? [h.button([h.Type("button"), h.OnClick(inspect("outcomes"))], ["Inspect cached evaluations and tickets"])] : []),
+    h.p([], ["Cache and tickets are retained resident resources. Cache storage also uses the common ledger."]),
     resourceMeter(h, "Cached evaluations · entries", s.reuse.cache.length, m?.reuse?.entryLimit),
     resourceMeter(h, "Cached evaluations · bytes", s.reuse.cache.reduce((n, c) => n + c.bytes, 0), m?.reuse?.byteLimit),
     resourceMeter(h, "Retained tickets", s.tickets.length, m?.tickets?.retention),
-    resourceMeter(h, "Operational notice keys", s.notices.length, m?.notices?.maximumKeys),
-    h.p([], [`Notice ledger storage: ${s.charges.filter(c => c.purpose === "operationalNotice").reduce((n, c) => n + c.bytes, 0)} bytes`]),
-    h.ul([], s.notices.map(n => h.li([], [`Notice key ${n.id} · ${n.suppressed} suppressed · ${n.pending ? `${n.pending.count} accumulated · ${n.pending.leased ? "leased" : "available"}` : "cooldown only"}`]))),
   ]);
 };
 
@@ -38,7 +35,6 @@ export const stageResourceDetails = <Message>(h: HtmlBuilder<Message>, stage: st
   if (stage === "effect") rows.push(h.p([], ["One resident Jev permit pool, mirrored across agent layers. Occupied positions are request permits; Jev responses are simulated."]), h.ul([h.Class("jev-owner-details")], [...resident.dispatch.requests].sort((left, right) => left.request - right.request).map(request => h.li([], [`${agents?.find(agent => agent.partition === request.partition)?.agent ?? `partition ${request.partition}`} · request #${request.request} · ${request.started ? "started" : "authorized, not started"}`]))));
   if (["authorization", "effect", "jev"].includes(stage)) rows.push(resourceMeter(h, "Resident Jev permits · shared by all agents", resident.dispatch.requests.length, resident.executionLimits.jevRequests));
   if (stage === "collection" || stage === "advice") {
-    rows.push(resourceMeter(h, "Operational notice keys · resident", resident.notices.length, metadata?.notices?.maximumKeys), h.ul([], resident.notices.map(n => h.li([], [`Notice key ${n.id} · partition ${n.partition} · ${n.suppressed} suppressed · ${n.pending ? `${n.pending.count} accumulated · ${n.pending.leased ? "leased" : "available"}` : "cooldown only"}`]))));
     rows.push(resourceMeter(h, "Resident background collectors", resident.collection.claims.length, metadata?.collectors?.capacity), h.ul([], resident.collection.claims.map(c => h.li([], [`Group ${c.group} · collector token ${c.owner}`]))), h.ul([], local.collection.ready.map(id => h.li([], [`Advice ${id} · ${local.collection.leases.some(l => l.advice === id) ? "leased" : "free"}`]))));
   }
   if (stage === "delivery") {

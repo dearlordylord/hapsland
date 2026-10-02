@@ -523,6 +523,8 @@ const decodeControlledOptions = (
 export class ResidentServer {
   readonly lifetime = randomUUID();
   readonly #advice: Array<Advice> = [];
+  // Retained operational-failure diagnostics for the composed/installed flow,
+  // not the main review advice delivered to agents.
   readonly #noticeCooldowns = new Map<string, NoticeCooldown>();
   readonly #currentWork = new Map<string, CurrentWork>();
   readonly #bendPartitions = new Map<string, number>();
