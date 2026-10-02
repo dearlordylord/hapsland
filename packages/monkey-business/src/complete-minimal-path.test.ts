@@ -24,6 +24,7 @@ it.each(["finding", "clear"] as const)("executes a complete %s path with checked
   expect(graphs.map(frame => frame.preparation!.command.kind)).toEqual([
     "none", "resolveEdge", "checkPath", "readSource", "none", "unitComplete",
   ]);
+  expect(graphs.at(-1)!.preparation!.after).toMatchObject({ files: 2, readBytes: 200, treeBytes: 40 });
   for (const frame of graphs) {
     expect(frame.after.work.some(work => work.kind === "preparing")).toBe(true);
     expect(frame.after).toEqual(frame.before);
