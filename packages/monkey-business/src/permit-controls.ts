@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { DEFAULT_EDIT_PERMIT_LIMITS } from "../../../src/configuration/types.ts";
+import { DEFAULT_EDIT_PERMIT_LIMITS, EditPermitLimitsSettings } from "../../../src/configuration/types.ts";
 import { decoder, Nat, PositiveNat, readBendList } from "../../../src/canonical/boundary-schema.ts";
 import { decodeDriverEvent } from "./driver-codec.ts";
 
@@ -18,12 +18,17 @@ export const PermitControlSchema = Schema.Union([
 export type PermitLimits = typeof PermitLimitsSchema.Type;
 export type PermitProfile = typeof PermitProfileSchema.Type;
 export type PermitControl = typeof PermitControlSchema.Type;
-export const DEFAULT_PERMIT_LIMITS: PermitLimits = DEFAULT_EDIT_PERMIT_LIMITS;
+export const DEFAULT_PERMIT_LIMITS: PermitLimits = Object.freeze({ ...DEFAULT_EDIT_PERMIT_LIMITS });
 export const DEFAULT_PERMIT_PROFILE: PermitProfile = Object.freeze({ outcome: "success", durationMs: 0, lifetimeMs: 30000 });
 const readLimits = decoder(PermitLimitsSchema);
+const readLimitSettings = decoder(EditPermitLimitsSettings);
 const readProfile = decoder(PermitProfileSchema);
 const readControl = decoder(PermitControlSchema);
-export const validatePermitLimits = (value: unknown): PermitLimits => Object.freeze(readLimits(value));
+export const validatePermitLimits = (value: unknown): PermitLimits => {
+  const settings = readLimitSettings(value);
+  return Object.freeze(readLimits({ perAdvicee: settings.perAdvicee ?? DEFAULT_PERMIT_LIMITS.perAdvicee,
+    resident: settings.resident ?? DEFAULT_PERMIT_LIMITS.resident }));
+};
 export const validatePermitProfile = (value: unknown): PermitProfile => Object.freeze(readProfile(value));
 export const validatePermitControl = (value: unknown): PermitControl => {
   const control = readControl(value);
@@ -34,7 +39,7 @@ export const validatePermitControl = (value: unknown): PermitControl => {
 
 const CaptureSchema = Schema.Struct({
   partition: PositiveNat, lifetime: PositiveNat, tool: PositiveNat, started: PositiveNat,
-  deadline: PositiveNat, postDelay: Nat, outcome: PermitProfileSchema.fields.outcome,
+  deadline: PositiveNat, postDelay: Nat.check(Schema.isLessThanOrEqualTo(1_000_000_000)), outcome: PermitProfileSchema.fields.outcome,
   limits: PermitLimitsSchema,
 }).check(Schema.makeFilter(value => value.deadline >= value.started && value.started + value.postDelay < 2 ** 48));
 export type PermitCapture = typeof CaptureSchema.Type;
