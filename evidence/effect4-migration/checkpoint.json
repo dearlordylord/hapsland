@@ -195,7 +195,8 @@
     "Deleted all seventeen resident client Promise facades and its hidden process ManagedRuntime; native fixtures and runners explicitly execute the sole Effect workflows at their process boundary",
     "Resident path construction is pure and explicit; default endpoint paths resolve through Config at Effect execution time with injected provider isolation, exact precedence and preserved empty-string native semantics",
     "Client startup/service and public workflow error channels now name ResidentIpcError, ResidentEndpointError and ReviewConfigError instead of generic Error; user correction rejects empty endpoint environment values while preserving absent-value fallback",
-    "Integrated master #171 response authority into scoped resident Effects; removed superseded ticket tests/helpers and preserved common advice/lease/joined/identity rollback invariants; full typecheck and 81 shared-state, 95 server/terminal, 35 Claude/analytics selected cases passed."
+    "Integrated master #171 response authority into scoped resident Effects; removed superseded ticket tests/helpers and preserved common advice/lease/joined/identity rollback invariants; full typecheck and 81 shared-state, 95 server/terminal, 35 Claude/analytics selected cases passed.",
+    "Evaluation command planning composes parent ConfigProvider directly; removed internal runSync, redacted credential presence checks, introduced named plan/run/config Effects and bounded typed command failures. Offline injected-config/error and native CLI coverage passed 24 tests in three files."
   ],
   "verification": [
     {
@@ -2527,7 +2528,7 @@
   "integrationInProgress": {
     "targetMaster": "6a84a6c",
     "migrationHeadBeforeMerge": "f3ed43b",
-    "state": "Master #171 integration verified: all conflicts resolved, full typecheck/build/test and authority/proof guards pass. Checkpoint merge commit prepared; broader full Effect migration remains incomplete.",
+    "state": "Master #171 integration merged at a0db7ae with full typecheck/build/test and authority/proof guards passing. Subsequent evaluation configuration workflow conversion passes focused tests, typecheck and build; broader full migration remains incomplete.",
     "contract": "Current master #171 replaces retained Claude tickets with one bounded admission-and-collection RPC and ephemeral response authority; Claude background collection is disabled",
     "resolvedSources": [
       "src/canonical/adapter.ts",
@@ -2755,10 +2756,6 @@
         "remaining": "Audit interactive credential/maintenance/setup and terminal/process bridge ownership; keep runtime entry at process/host boundaries."
       },
       {
-        "owner": "src/evaluation/command.ts",
-        "remaining": "credentialPresent starts an internal runSync runtime and ignores parent ConfigProvider; compose configuration with live planning and preserve pure suite/report validation."
-      },
-      {
         "owner": "src/resident/client.ts",
         "remaining": "Audit readiness loop Schedule and shared monotonic deadline dependency without changing retry/no-retry or original-owner behavior."
       }
@@ -2772,6 +2769,43 @@
       "src/resident/advice-records.ts": "2515b5a9d0a9c0a1a65a969975e0a419d441c2a0b5071f32ca14f625b819d1ef",
       "src/resident/claude-delivery.test.ts": "0f14a86510fe8ca0d7fb615a3783f3536cd6e0e72d53f99fae6b6d483c07e4f2",
       "src/direct-event/claude-cli.test.ts": "6e26dd6da0ba5304f27a8c37c872c11e6ccaa66995c46106763a286ecf432498"
-    }
+    },
+    "mergeCommit": "a0db7ae1d1a08ab23045ce4949ec0a19a3bea8d6"
+  },
+  "evaluationConfigurationPort": {
+    "scope": "Removed private evaluation command runtime and synchronous command decoding in place. Pure suite creation stays pure; named command/plan/config Effects compose redacted credential presence with parent ConfigProvider. Typed EvaluationCommandError exposes only a bounded reason/message; runner keeps EvaluationExecutionError channel. Existing v1 planning, budget authorization, report digest and explicit live command opt-in remain authoritative.",
+    "initialTests": {
+      "filesPassed": 2,
+      "filesFailed": 1,
+      "testsPassed": 23,
+      "testsFailed": 1,
+      "durationSeconds": 9.27,
+      "reason": "New injected-credential test incorrectly expected presence alone to authorize a live plan; current contract separately requires bounded call authorization. Corrected expectation to preserve live-authorization-required without changing production policy."
+    },
+    "typecheck": {
+      "command": "npm run typecheck",
+      "status": "pass"
+    },
+    "finalTests": {
+      "command": "npx vitest run src/evaluation/runner.test.ts src/evaluation/evaluation.test.ts src/cli.test.ts --maxWorkers=1",
+      "filesPassed": 3,
+      "testsPassed": 24,
+      "durationSeconds": 9.23
+    },
+    "build": {
+      "command": "npm run build",
+      "status": "pass"
+    },
+    "configurationGuard": {
+      "command": "node scripts/check-configuration-boundary.mjs",
+      "status": "pass",
+      "addedInvariant": "Evaluation planning cannot start an internal runtime or bypass ConfigProvider via process.env; credential presence remains redacted."
+    },
+    "sourceSha256": {
+      "src/evaluation/command.ts": "17efb21c906c6792c8b9360b74a82fc479b85f1ca635bce7f38bcd3cda708641",
+      "src/evaluation/runner.test.ts": "b0886220d93c44105d3cf9f0db209eecaaf70b12e452c1c409316307b6099470",
+      "scripts/check-configuration-boundary.mjs": "285652250505e08c3d20fe9fd1dc3f11e12ac5c3b99858bd4830078b4aaade63"
+    },
+    "limitations": "No live provider calls made. Full 1227-test suite passed on prior master-integration checkpoint; this subsequent change has focused evaluation/CLI, typecheck and build evidence. Remaining full workflow audit and final comprehensive/conformance/performance gates still required."
   }
 }

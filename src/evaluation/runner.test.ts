@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import { ConfigProvider } from "effect";
 import { spawnSync } from "node:child_process";
 import { controlledDecisionModelLayer } from "../test-support/controlled-decision-model.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
@@ -100,7 +101,7 @@ describe("evaluation execution and commands", () => {
         version: 1,
         operation: "run",
         liveOptIn: true,
-      });
+      }).pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({}))));
       expect(live.operation).toBe("run");
       if (live.operation !== "run") return;
       expect(live.status).toBe("rejected");
@@ -180,3 +181,50 @@ describe("evaluation execution and commands", () => {
     }),
   );
 });
+
+it.effect("uses the parent ConfigProvider for live planning without exposing credentials", () => Effect.gen(function* () {
+  const task = runEvaluationCommand({ version: 1, operation: "plan", liveOptIn: true },
+    { credentialEnvVar: "FIXTURE_EVALUATION_KEY" });
+  const missing = yield* task.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({}))));
+  const credential = "synthetic-private-evaluation-key";
+  const present = yield* task.pipe(Effect.provide(ConfigProvider.layer(
+    ConfigProvider.fromUnknown({ FIXTURE_EVALUATION_KEY: credential }),
+  )));
+  expect(missing.operation).toBe("plan");
+  expect(present.operation).toBe("plan");
+  if (missing.operation !== "plan" || present.operation !== "plan") throw new Error("fixture plan missing");
+  expect(missing.plan.permitted).toBe(false);
+  expect(missing.plan.rejectionReason).toBe("live-credential-required");
+  expect(present.plan.permitted).toBe(false);
+  expect(present.plan.rejectionReason).toBe("live-authorization-required");
+  expect(JSON.stringify(present)).not.toContain(credential);
+}));
+
+it.effect("contains ConfigProvider failures while controlled planning does not read credentials", () => Effect.gen(function* () {
+  const privateMessage = "synthetic-private-config-source";
+  const failedProvider = ConfigProvider.layer(ConfigProvider.make(() =>
+    Effect.fail(new ConfigProvider.SourceError({ message: privateMessage })),
+  ));
+  const live = yield* runEvaluationCommand({ version: 1, operation: "plan", liveOptIn: true })
+    .pipe(Effect.provide(failedProvider), Effect.result);
+  expect(live._tag).toBe("Failure");
+  if (live._tag === "Failure") {
+    expect(live.failure._tag).toBe("EvaluationCommandError");
+    expect(live.failure.reason).toBe("evaluation credential configuration unavailable");
+    expect(JSON.stringify(live.failure)).not.toContain(privateMessage);
+  }
+  const controlled = yield* runEvaluationCommand({ version: 1, operation: "plan" })
+    .pipe(Effect.provide(failedProvider));
+  expect(controlled).toMatchObject({ operation: "plan", status: "planned", plan: { permitted: true } });
+}));
+
+it.effect("returns a typed source-free failure for malformed command input", () => Effect.gen(function* () {
+  const result = yield* runEvaluationCommand({ version: 1, operation: "unknown", payload: "private fixture" }).pipe(Effect.result);
+  expect(result._tag).toBe("Failure");
+  if (result._tag === "Failure") {
+    expect(result.failure._tag).toBe("EvaluationCommandError");
+    expect(result.failure.reason).toBe("invalid evaluation command");
+    expect(result.failure.message).toBe("invalid evaluation command");
+    expect(JSON.stringify(result.failure)).not.toContain("private fixture");
+  }
+}));

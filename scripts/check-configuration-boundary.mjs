@@ -30,3 +30,11 @@ for (const access of ["process.env[settings.credentialEnvVar]", "process.env.REV
 if (!client.includes("Config.Redacted(settings.credentialEnvVar)")) {
   throw new Error("resident dispatch credential configuration must remain redacted until IPC construction");
 }
+
+const evaluation = read("src/evaluation/command.ts");
+if (/Effect\.run(?:Sync|Promise|Fork)\(/u.test(evaluation) || evaluation.includes("process.env")) {
+  throw new Error("evaluation planning must share the caller Effect runtime and ConfigProvider");
+}
+if (!evaluation.includes("Config.Redacted(name)")) {
+  throw new Error("evaluation credential presence must be read through redacted Effect Config");
+}

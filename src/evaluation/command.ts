@@ -2,6 +2,7 @@ import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
+import { Option, Redacted } from "effect";
 import { JEV_API_BASE } from "../runtime/backend.ts";
 import { liveLayer } from "../jev-decision.ts";
 import { ReviewBackend } from "../ports/review-backend.ts";
@@ -26,7 +27,7 @@ import {
   BUNDLED_EVALUATION_RULES,
 } from "./fixtures.ts";
 import { digestValue, makeConfigurationCase, makeConfigurationLayer, makeEffectiveConfiguration } from "./digest.ts";
-import { executeEvaluation } from "./runner.ts";
+import { executeEvaluation, type EvaluationExecutionError } from "./runner.ts";
 import { isReportDigestValid } from "./report.ts";
 import {
   EvaluationReport,
@@ -38,6 +39,12 @@ import {
 } from "./model.ts";
 
 export const EVALUATION_PROTOCOL_VERSION = 1 as const;
+
+export class EvaluationCommandError extends Schema.TaggedError<EvaluationCommandError>()(
+  "EvaluationCommandError", { reason: Schema.NonEmptyString },
+) {
+  override get message(): string { return this.reason; }
+}
 
 const NonNegativeInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 const PositiveInteger = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1));
@@ -202,15 +209,12 @@ export const makeDefaultEvaluationSuite = (input: {
   };
 };
 
-const parseCommand = (value: unknown): EvaluationCommand =>
-  Schema.decodeUnknownSync(EvaluationCommand, strictParseOptions)(value);
-
-const credentialPresent = (name: string): boolean =>
-  Effect.runSync(
-    Config.option(Config.String(name)).pipe(
-      Effect.map((value) => value._tag === "Some" && value.value.length > 0),
-    ),
-  );
+const credentialPresent = Effect.fn("EvaluationCommand.credentialPresent")((name: string) =>
+  Config.option(Config.Redacted(name)).pipe(
+    Effect.map((value) => Option.isSome(value) && Redacted.value(value.value).length > 0),
+    Effect.mapError(() => new EvaluationCommandError({ reason: "evaluation credential configuration unavailable" })),
+  ),
+);
 
 const runLayer = (
   options: EvaluationCommandOptions,
@@ -233,103 +237,101 @@ const runLayer = (
   }).pipe(Layer.provide(controlledDecisionModelLayer(options.controlled ?? {})));
 };
 
-const planFor = (
+const planFor = Effect.fn("EvaluationCommand.plan")(function* (
   command: Extract<EvaluationCommand, { readonly operation: "plan" | "run" }>,
   options: EvaluationCommandOptions,
-): DefaultEvaluationSuite => {
+) {
   const live = command.liveOptIn === true;
-  const suite = makeDefaultEvaluationSuite({
-    mode: live ? "live" : "controlled",
-    ...(command.repetitions === undefined ? {} : { repetitions: command.repetitions }),
-    ...(command.maximumRequests === undefined ? {} : { maximumRequests: command.maximumRequests }),
-    ...(command.maximumRetriesPerRequest === undefined
-      ? {}
-      : { maximumRetriesPerRequest: command.maximumRetriesPerRequest }),
-    ...(command.authorizedRemainingCalls === undefined
-      ? {}
-      : { authorizedRemainingCalls: command.authorizedRemainingCalls }),
-    liveOptIn: live,
+  const suite = yield* Effect.try({
+    try: () => makeDefaultEvaluationSuite({
+      mode: live ? "live" : "controlled",
+      ...(command.repetitions === undefined ? {} : { repetitions: command.repetitions }),
+      ...(command.maximumRequests === undefined ? {} : { maximumRequests: command.maximumRequests }),
+      ...(command.maximumRetriesPerRequest === undefined ? {} : { maximumRetriesPerRequest: command.maximumRetriesPerRequest }),
+      ...(command.authorizedRemainingCalls === undefined ? {} : { authorizedRemainingCalls: command.authorizedRemainingCalls }),
+      liveOptIn: live,
+    }),
+    catch: () => new EvaluationCommandError({ reason: "evaluation plan input was invalid" }),
   });
   const liveCredentialPresent = live
-    ? credentialPresent(options.credentialEnvVar ?? "TYPESAFE_API_KEY")
+    ? yield* credentialPresent(options.credentialEnvVar ?? "TYPESAFE_API_KEY")
     : undefined;
-  const planOptions = liveCredentialPresent === undefined
-    ? {}
-    : { liveCredentialPresent };
+  const planOptions = liveCredentialPresent === undefined ? {} : { liveCredentialPresent };
   return {
     ...suite,
     plan: planEvaluation(suite.run, suite.scenarios, planOptions),
   };
-};
+});
 
 export type EvaluationCommandResult =
   | { readonly version: 1; readonly operation: "plan"; readonly status: "planned"; readonly plan: EvaluationPlan }
   | { readonly version: 1; readonly operation: "run"; readonly status: "complete" | "rejected"; readonly plan: EvaluationPlan; readonly report?: EvaluationReportType; readonly reason?: string }
   | { readonly version: 1; readonly operation: "report"; readonly status: "verified" | "invalid"; readonly report?: EvaluationReportType; readonly reason?: string };
 
-export const runEvaluationCommand = (
+export const runEvaluationCommand = Effect.fn("EvaluationCommand.run")(function* (
   value: unknown,
   options: EvaluationCommandOptions = {},
-): Effect.Effect<EvaluationCommandResult, Error> =>
-  Effect.gen(function* () {
-    const command = parseCommand(value);
-    if (command.operation === "report") {
-      const report = Schema.decodeUnknownResult(EvaluationReport, strictParseOptions)(command.report);
-      if (report._tag === "Failure") {
-        return { version: 1, operation: "report", status: "invalid", reason: "report does not satisfy the evaluation contract" };
-      }
-      if (!isReportDigestValid(report.success)) {
-        return { version: 1, operation: "report", status: "invalid", reason: "report digest does not match its sanitized contents" };
-      }
-      return {
-        version: 1,
-        operation: "report",
-        status: "verified",
-        report: report.success,
-      };
+): Effect.fn.Return<EvaluationCommandResult, EvaluationCommandError | EvaluationExecutionError> {
+  const command = yield* Schema.decodeUnknownEffect(EvaluationCommand, strictParseOptions)(value).pipe(
+    Effect.mapError(() => new EvaluationCommandError({ reason: "invalid evaluation command" })),
+  );
+  if (command.operation === "report") {
+    const report = Schema.decodeUnknownResult(EvaluationReport, strictParseOptions)(command.report);
+    if (report._tag === "Failure") {
+      return { version: 1, operation: "report", status: "invalid", reason: "report does not satisfy the evaluation contract" };
     }
-    const suite = planFor(command, options);
-    if (command.operation === "plan") {
-      return { version: 1, operation: "plan", status: "planned", plan: suite.plan };
+    if (!isReportDigestValid(report.success)) {
+      return { version: 1, operation: "report", status: "invalid", reason: "report digest does not match its sanitized contents" };
     }
-    if (!suite.plan.permitted) {
-      return {
-        version: 1,
-        operation: "run",
-        status: "rejected",
-        plan: suite.plan,
-        ...(suite.plan.rejectionReason === undefined
-          ? {}
-          : { reason: suite.plan.rejectionReason }),
-      };
-    }
-    if (suite.run.backend.mode === "live" && options.allowLive !== true) {
-      return {
-        version: 1,
-        operation: "run",
-        status: "rejected",
-        plan: { ...suite.plan, permitted: false, rejectionReason: "live-opt-in-required" },
-        reason: "live evaluation requires the explicit command flag",
-      };
-    }
-    const executionInput = {
-      run: suite.run,
-      plan: suite.plan,
-      scenarios: suite.scenarios,
-      fixtures: BUNDLED_EVALUATION_FIXTURES,
-      ruleDefinitions: BUNDLED_EVALUATION_RULES,
-      expectations: BUNDLED_EVALUATION_EXPECTATIONS,
-      compiledRules: suite.compiledRules,
+    return {
+      version: 1,
+      operation: "report",
+      status: "verified",
+      report: report.success,
     };
-    const execution = yield* executeEvaluation(executionInput, runLayer(options, suite));
+  }
+  const suite = yield* planFor(command, options);
+  if (command.operation === "plan") {
+    return { version: 1, operation: "plan", status: "planned", plan: suite.plan };
+  }
+  if (!suite.plan.permitted) {
     return {
       version: 1,
       operation: "run",
-      status: "complete",
+      status: "rejected",
       plan: suite.plan,
-      report: execution.report,
+      ...(suite.plan.rejectionReason === undefined
+        ? {}
+        : { reason: suite.plan.rejectionReason }),
     };
-  });
+  }
+  if (suite.run.backend.mode === "live" && options.allowLive !== true) {
+    return {
+      version: 1,
+      operation: "run",
+      status: "rejected",
+      plan: { ...suite.plan, permitted: false, rejectionReason: "live-opt-in-required" },
+      reason: "live evaluation requires the explicit command flag",
+    };
+  }
+  const executionInput = {
+    run: suite.run,
+    plan: suite.plan,
+    scenarios: suite.scenarios,
+    fixtures: BUNDLED_EVALUATION_FIXTURES,
+    ruleDefinitions: BUNDLED_EVALUATION_RULES,
+    expectations: BUNDLED_EVALUATION_EXPECTATIONS,
+    compiledRules: suite.compiledRules,
+  };
+  const execution = yield* executeEvaluation(executionInput, runLayer(options, suite));
+  return {
+    version: 1,
+    operation: "run",
+    status: "complete",
+    plan: suite.plan,
+    report: execution.report,
+  };
+});
 
 /** Read the credential name through Effect Config without exposing its value. */
 export const configuredCredentialName = Config.String("EVALUATION_CREDENTIAL_ENV").pipe(
