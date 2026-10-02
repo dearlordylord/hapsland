@@ -11,7 +11,7 @@ it.effect("retains retired capture capacity until physical settlement and fences
   const capture = yield* owner.adviceCaptures.start(reservation, revision, 200);
   if (capture === undefined) throw new Error("missing fixture capture");
   expect(Object.isFrozen(capture)).toBe(true);
-  expect(reservation.bytes).toBe(300);
+  expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(300);
   expect(yield* owner.adviceCaptures.start(reservation, revision, 100)).toBeUndefined();
   expect(yield* owner.adviceCaptures.retire(reservation)).toBe(true);
   expect(owner.snapshot().bytes).toBe(300);
@@ -33,15 +33,15 @@ it.effect("restores retained bytes and prevents a completed capture from settlin
   const first = yield* owner.adviceCaptures.start(reservation, revision, 200);
   if (first === undefined) throw new Error("missing fixture capture");
   expect(yield* owner.adviceCaptures.finish(first)).toBe("retained");
-  expect(reservation.bytes).toBe(100);
-  expect(reservation.purpose).toBe("storedResult");
+  expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(100);
+  expect((yield* owner.reservationSnapshot(reservation))?.purpose).toBe("storedResult");
   const second = yield* owner.adviceCaptures.start(reservation, revision, 400);
   if (second === undefined) throw new Error("missing replacement capture");
   expect(yield* owner.adviceCaptures.finish(first)).toBe("stale");
   expect(yield* owner.adviceCaptures.resize(first, 1)).toBe(false);
-  expect(reservation.bytes).toBe(500);
+  expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(500);
   expect(yield* owner.adviceCaptures.finish(second)).toBe("retained");
-  expect(reservation.bytes).toBe(100);
+  expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(100);
 }));
 
 it.effect("publishes no capture when workspace capacity is refused", () => Effect.gen(function* () {
@@ -52,7 +52,7 @@ it.effect("publishes no capture when workspace capacity is refused", () => Effec
   expect(yield* owner.adviceCaptures.start(reservation, revision, 101)).toBeUndefined();
   expect(yield* owner.adviceCaptures.count()).toBe(0);
   expect(owner.canonicalProjection()).toEqual(before);
-  expect(reservation.bytes).toBe(100);
+  expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(100);
   expect(yield* owner.adviceCaptures.retire(reservation)).toBe(false);
 }));
 
@@ -61,15 +61,15 @@ it.effect("acquires one workspace for competing deferred captures", () => Effect
   const reservation = owner.reserve("partition", 100, "storedResult");
   if (reservation === undefined) throw new Error("missing fixture reservation");
   const start = owner.adviceCaptures.start(reservation, revision, 200);
-  expect(reservation.bytes).toBe(100);
+  expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(100);
   const captures = yield* Effect.all(Array.from({ length: 16 }, () => start), { concurrency: 16 });
   const acquired = captures.filter((capture) => capture !== undefined);
   expect(acquired).toHaveLength(1);
-  expect(reservation.bytes).toBe(300);
+  expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(300);
   const finish = owner.adviceCaptures.finish(acquired[0]!);
-  expect(reservation.bytes).toBe(300);
+  expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(300);
   const results = yield* Effect.all(Array.from({ length: 16 }, () => finish), { concurrency: 16 });
   expect(results.filter((result) => result === "retained")).toHaveLength(1);
   expect(results.filter((result) => result === "stale")).toHaveLength(15);
-  expect(reservation.bytes).toBe(100);
+  expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(100);
 }));

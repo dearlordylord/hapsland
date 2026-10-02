@@ -276,3 +276,7 @@ if (!state.includes('reservationSnapshot: Effect.fn("Capacity.reservationSnapsho
 if (state.includes("purpose: CapacityPurpose = reservation.purpose") || state.includes("const retainedBytes = reservation.bytes")) {
   throw new Error("capacity drafts must use retained registry metadata");
 }
+
+if (/Ref.getUnsafe|get bytes\(\)|get purpose\(\)|readReservation/.test(state)) {
+  throw new Error("reservation capabilities must not expose live state getters or unsafe Ref lookup");
+}

@@ -39,8 +39,6 @@ export type CapacityLimits = {
 export type CapacityReservation = {
   readonly id: number;
   readonly partition: string;
-  readonly bytes: number;
-  readonly purpose: CapacityPurpose;
 };
 
 export type CapacitySnapshot = {
@@ -149,14 +147,14 @@ type CapacityState = {
 };
 type CapacityDraft = {
   -readonly [K in keyof CapacityState]: CapacityState[K] extends ReadonlyMap<infer Key, infer Value> ? Map<Key, Value> : CapacityState[K]
-} & { readonly readReservation: (id: number) => ReservationRecord | undefined };
+};
 type Arguments<F extends (...args: never[]) => unknown> = Parameters<F> extends [unknown, ...infer Rest] ? Rest : never;
 
-const draftCapacity = (current: CapacityState, readReservation: CapacityDraft["readReservation"]): CapacityDraft => ({
+const draftCapacity = (current: CapacityState): CapacityDraft => ({
   ...current,
   reservations: new Map(current.reservations), partitionIds: new Map(current.partitionIds),
   roundIds: new Map(current.roundIds), requestRounds: new Map(current.requestRounds),
-  collectionTokens: new Map(current.collectionTokens), readReservation,
+  collectionTokens: new Map(current.collectionTokens),
 });
 
 /** One commit owner for canonical state, capacity identities and native domain records.
@@ -182,9 +180,9 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       if (committing) throw new Error("resident capacity commit cannot be reentered");
       committing = true;
       try {
-        const draft = draftCapacity(current, (id) => Ref.getUnsafe(state).reservations.get(id));
+        const draft = draftCapacity(current);
         const [value, records] = operation(draft, current.records);
-        const { readReservation: _, ...next } = draft;
+        const next = draft;
         // Record every published charge peak, including capture workspaces
         // that can be resized or released before any server checkpoint.
         const peakLedgerBytes = Math.max(records.runtime.peakLedgerBytes, projectCanonical(next.canonical).global.bytes);
@@ -362,7 +360,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         Ref.get(state).pipe(Effect.map((snapshot) => {
           // Bend check events run against a private draft of this one snapshot.
           // Queries must not publish identity allocations or canonical state.
-          const draft = draftCapacity(snapshot, (id) => snapshot.reservations.get(id));
+          const draft = draftCapacity(snapshot);
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
           return operation(revisionOperations(draftRevision(snapshot.records.revision), owner));
         }));
@@ -412,7 +410,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       }).pipe(Effect.uninterruptible);
       const deliveryRead = <A>(operation: (view: ReturnType<typeof deliveryView>) => A): Effect.Effect<A> =>
         Ref.get(state).pipe(Effect.map((snapshot) => {
-          const draft = draftCapacity(snapshot, (id) => snapshot.reservations.get(id));
+          const draft = draftCapacity(snapshot);
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
           return operation(deliveryView(snapshot.records.delivery, owner));
         }));
@@ -677,7 +675,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         });
       const reuseRead = <A>(operation: (view: ReturnType<typeof evaluationReuseView<Pending>>) => A): Effect.Effect<A> =>
         Ref.get(state).pipe(Effect.map((snapshot) => {
-          const draft = draftCapacity(snapshot, (id) => snapshot.reservations.get(id));
+          const draft = draftCapacity(snapshot);
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
           return operation(evaluationReuseView(snapshot.records.reuse, owner));
         }));
@@ -768,16 +766,7 @@ export type CapacityLedger = ReturnType<typeof capacityOperations>;
  */
 function registerReservation(draft: CapacityDraft, id: number, partition: string,
   bytes: number, purpose: CapacityPurpose): CapacityReservation {
-  const readReservation = draft.readReservation;
-  const live = () => {
-    const record = readReservation(id);
-    return record?.capability === capability ? record : undefined;
-  };
-  const capability: CapacityReservation = Object.freeze({
-    id, partition,
-    get bytes() { return live()?.bytes ?? bytes; },
-    get purpose() { return live()?.purpose ?? purpose; },
-  });
+  const capability: CapacityReservation = Object.freeze({ id, partition });
   draft.reservations.set(id, { capability, bytes, purpose });
   return capability;
 }
