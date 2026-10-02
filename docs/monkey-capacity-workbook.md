@@ -11,7 +11,7 @@
 - **Delivered diagram/Monkey scope:** See [scope tracking](#scope-tracking-against-the-initial-inventory). Later owner decisions removed notice/cache/ticket indicators; master also removed the ticket subsystem. Earlier tables are dated inventories, not outstanding tasks.
 - **Admission decision:** Retain PRE and strict post-closure freshness. Bare arrival-only A is rejected. Three Current model laws are checked: necessary valid PRE, rejection/no reopening for a pending PRE's POST after successful closure, and positive reopening after fresh successful PRE registration.
 - **Positive reopening, approved and checked:** A completed round's fresh successfully registered PRE and timely matching POST add one acceptance and open the successor round. The law is conditional on actual registration success; it excludes reject-all reopening POST, not reject-all PRE. Original deadline, scope, lifetime, retained-unseen identity and clock predicates are explicit. Duplicate POST remains separate and unapproved.
-- **Next work:** Return to the 3D shared-resource visual review; [no further comparison proofs are required](#proof-value-filter-before-returning-to-shared-resource-design-2026-10-02). Preserve the three Current gates. Registration-enabled timeout/late-IPC/retry evidence remains deferred before stronger runtime support claims.
+- **Next work:** Review remaining shared edit-permit placement, then background collectors, one at a time; [no further comparison proofs are required](#proof-value-filter-before-returning-to-shared-resource-design-2026-10-02). Preserve the three Current gates. Registration-enabled timeout/late-IPC/retry evidence remains deferred before stronger runtime support claims.
 - **Native evidence still bounded:** Six PRE-only probes characterize delayed/failed hooks; actual tool-start provenance, registration followed by cancellation, late IPC/retry and closure/restart remain separate validation work.
 - **Deferred simulator boundary:** Preparation result linkage still lacks source-free per-rule capability facts; do not infer that every incomplete graph makes every rule unusable.
 
@@ -999,3 +999,27 @@ in one frame changes zoom by less than 9%; range 20–200, no internal spatial
 scrollbar, outside native scroll, keyboard/reset and CDP pinch checks passed.
 The existing execution-pool browser also passed saturation, release, history,
 reload, keyboard and narrow cases after the family styling change.
+
+## Owner acceptance and next visual item (2026-10-02)
+
+The owner approved the delivered focused view, stable wheel zoom, and the
+shared-resource family with distinct Work reservations and Execution limits.
+The global item/byte inset placement beside Admission is accepted; the accepted
+projection/placement guidance is recorded in
+[dashboard rules](../packages/agent-flow-viz/DASHBOARD-RULES.md). This is design
+acceptance, not a new native gesture/platform validation claim. The three Current
+proof gates and the native-evidence boundaries remain unchanged.
+
+Next, review **shared edit permits** still outside the diagram, separately from
+background collectors. A permit is prospective edit-admission authority, not an
+item/byte reservation or a preparation/Jev execution slot. Current local permit
+counts are in Admission; the resident-wide meter remains in the upper rail.
+Astra's placement advice is requested before creating the next visual diff.
+No edit-permit or collector relocation is authorized by this record.
+
+Astra's next-placement advice: attach a compact permit subsection to Admission
+with two explicitly scoped rows, This agent and All agents, using only recorded
+effective limits. Remove only the external edit-permit duplicate. Keep this
+prospective admission resource separate from Work reservations and Execution
+limits; background collectors remain above for their own next review. This is
+a design proposal with no new visual diff, not an accepted placement.

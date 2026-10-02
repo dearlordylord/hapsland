@@ -129,9 +129,9 @@ preparation workers, Jev permits, edit permits and background collectors retain
 their actual resident or partition scopes. Selecting another agent changes its
 local contribution and inspection, not the shared numerator or denominator.
 Preparation occupancy counts running preparation jobs, excluding waiting work and
-running reviews. The combined **ONE RESIDENT · EXECUTION POOLS** inset to the
-right of Round state contains separately labeled Preparation workers and Jev
-request permit rows. Its subtitle is **Shared by all agents**. Each row mirrors
+running reviews. The **ONE RESIDENT** inset to the right of Round state has the
+subtitle **Execution limits · shared by all agents** and separately labeled
+Preparation workers and Jev request permit rows. Each row mirrors
 the complete selected resident snapshot and owning-agent palette on every layer,
 using its checked maximum. Sort preparation operations and Jev requests by their
 own identities; do not pair positions or add links between the rows. Exact owner
@@ -140,6 +140,16 @@ stage inspector. Jev request attempt retains the shared count and local started
 reference; Scheduling retains its local preparation reference. The top rail
 contains no duplicate preparation pool, and the original gold Jev contact stays.
 Positions do not identify physical connections or stable sockets.
+
+The accepted global item/byte inset beside Admission uses the same green dashed
+shared-resource family and **ONE RESIDENT** heading, with the subtitle
+**Work reservations · shared by all agents**. It mirrors the complete resident
+ledger on each layer; Admission retains its agent-local meters. The top rail
+contains no duplicate global item/byte ledger. These resource cards have different
+units and lifecycles: retained data may remain charged after execution slots are
+released. Common styling expresses shared resident ownership, not a fixed ratio
+or a resource-conversion edge. Edit permits and collectors retain their current
+placement until separately reviewed.
 
 Effective limits come from checked projection limits or capacity metadata captured
 at the selected frame. Known initial configuration and subsequent event-supplied
