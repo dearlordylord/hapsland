@@ -4,12 +4,12 @@ import { Nat, decoder } from "./boundary-schema.ts";
 // Lists and nested constructors are decoded separately, so linked tails stay stack safe.
 // Every constructor has an exact field set. Scalar domains are shared with input schemas.
 export const CanonicalConstructors = {
-  "Canonical.AwaitingSourceRead": Schema.Struct({ $: Schema.Literal("Canonical.AwaitingSourceRead") }), 
-  "Canonical.SourceReading": Schema.Struct({ $: Schema.Literal("Canonical.SourceReading") }), 
-  "Canonical.Preparing": Schema.Struct({ $: Schema.Literal("Canonical.Preparing") }), 
-  "Canonical.Reviewing": Schema.Struct({ $: Schema.Literal("Canonical.Reviewing") }), 
-  "Canonical.AtJev": Schema.Struct({ $: Schema.Literal("Canonical.AtJev") }), 
-  "Admission.AdmissionState": Schema.Struct({
+  "Canonical.AwaitingSourceRead": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.AwaitingSourceRead") })), 
+  "Canonical.SourceReading": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.SourceReading") })), 
+  "Canonical.Preparing": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.Preparing") })), 
+  "Canonical.Reviewing": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.Reviewing") })), 
+  "Canonical.AtJev": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.AtJev") })), 
+  "Admission.AdmissionState": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.AdmissionState"),
     partition: Nat,
     lifetime: Nat,
@@ -18,701 +18,701 @@ export const CanonicalConstructors = {
     closed_at: Nat,
     next_token: Nat,
     permits: Schema.Unknown,
-  }),
-  "Admission.DuplicateTool": Schema.Struct({
+  })),
+  "Admission.DuplicateTool": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.DuplicateTool"),
-  }),
-  "Admission.Expired": Schema.Struct({
+  })),
+  "Admission.Expired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.Expired"),
-  }),
-  "Admission.InvalidClock": Schema.Struct({
+  })),
+  "Admission.InvalidClock": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.InvalidClock"),
-  }),
-  "Admission.LifetimeNotFresh": Schema.Struct({
+  })),
+  "Admission.LifetimeNotFresh": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.LifetimeNotFresh"),
-  }),
-  "Admission.NoPermit": Schema.Struct({
+  })),
+  "Admission.NoPermit": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.NoPermit"),
-  }),
-  "Admission.OldRound": Schema.Struct({
+  })),
+  "Admission.OldRound": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.OldRound"),
-  }),
-  "Admission.Permit": Schema.Struct({
+  })),
+  "Admission.Permit": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.Permit"),
     token: Nat,
     tool: Nat,
     round: Nat,
     started: Nat,
     deadline: Nat,
-  }),
-  "Admission.RoundAlreadyClosed": Schema.Struct({
+  })),
+  "Admission.RoundAlreadyClosed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.RoundAlreadyClosed"),
-  }),
-  "Admission.StaleInvocation": Schema.Struct({
+  })),
+  "Admission.StaleInvocation": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.StaleInvocation"),
-  }),
-  "Admission.WrongLifetime": Schema.Struct({
+  })),
+  "Admission.WrongLifetime": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.WrongLifetime"),
-  }),
-  "Admission.WrongPartition": Schema.Struct({
+  })),
+  "Admission.WrongPartition": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.WrongPartition"),
-  }),
-  "Admission.WrongTool": Schema.Struct({
+  })),
+  "Admission.WrongTool": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Admission.WrongTool"),
-  }),
-  "Canonical.Acknowledged": Schema.Struct({
+  })),
+  "Canonical.Acknowledged": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Acknowledged"),
-  }),
-  "Canonical.AdmissionForgotten": Schema.Struct({
+  })),
+  "Canonical.AdmissionForgotten": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.AdmissionForgotten"),
-  }),
-  "Canonical.Advanced": Schema.Struct({
+  })),
+  "Canonical.Advanced": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Advanced"),
     state: Schema.Unknown,
     commands: Schema.Unknown,
-  }),
-  "Canonical.CacheAlready": Schema.Struct({
+  })),
+  "Canonical.CacheAlready": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CacheAlready"),
-  }),
-  "Canonical.CacheCommitted": Schema.Struct({
+  })),
+  "Canonical.CacheCommitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CacheCommitted"),
-  }),
-  "Canonical.CacheDiscarded": Schema.Struct({
+  })),
+  "Canonical.CacheDiscarded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CacheDiscarded"),
     ids: Schema.Unknown,
-  }),
-  "Canonical.CachePrepared": Schema.Struct({
+  })),
+  "Canonical.CachePrepared": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CachePrepared"),
     evicted: Schema.Unknown,
-  }),
-  "Canonical.CacheRejected": Schema.Struct({
+  })),
+  "Canonical.CacheRejected": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CacheRejected"),
-  }),
-  "Canonical.CancelWork": Schema.Struct({
+  })),
+  "Canonical.CancelWork": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CancelWork"),
     operation: Nat,
-  }),
-  "Canonical.CandidateFile": Schema.Struct({
+  })),
+  "Canonical.CandidateFile": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CandidateFile"),
     candidate: Schema.Unknown,
-  }),
-  "Canonical.CapacityGranted": Schema.Struct({
+  })),
+  "Canonical.CapacityGranted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CapacityGranted"),
     id: Nat,
     after: Schema.Unknown,
-  }),
-  "Canonical.CapacityRefused": Schema.Struct({
+  })),
+  "Canonical.CapacityRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CapacityRefused"),
     reason: Schema.Unknown,
     after: Schema.Unknown,
-  }),
-  "Canonical.CapacityResized": Schema.Struct({
+  })),
+  "Canonical.CapacityResized": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CapacityResized"),
     id: Nat,
     after: Schema.Unknown,
-  }),
-  "Canonical.CapacityUnitAdmitted": Schema.Struct({
+  })),
+  "Canonical.CapacityUnitAdmitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CapacityUnitAdmitted"),
     reservation: Nat,
     position: Nat,
     bytes: Nat,
     after: Schema.Unknown,
-  }),
-  "Canonical.CapacityUnitRefused": Schema.Struct({
+  })),
+  "Canonical.CapacityUnitRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CapacityUnitRefused"),
     position: Nat,
     bytes: Nat,
     reason: Schema.Unknown,
     after: Schema.Unknown,
-  }),
-  "Canonical.CapacityView": Schema.Struct({
+  })),
+  "Canonical.CapacityView": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CapacityView"),
     global: Schema.Unknown,
     local: Schema.Unknown,
     charges: Schema.Unknown,
-  }),
-  "Canonical.CleanupBusy": Schema.Struct({
+  })),
+  "Canonical.CleanupBusy": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CleanupBusy"),
-  }),
-  "Canonical.CleanupCommitted": Schema.Struct({
+  })),
+  "Canonical.CleanupCommitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CleanupCommitted"),
-  }),
-  "Canonical.CleanupReady": Schema.Struct({
+  })),
+  "Canonical.CleanupReady": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CleanupReady"),
-  }),
-  "Canonical.Clear": Schema.Struct({ $: Schema.Literal("Canonical.Clear") }),
-  "Canonical.CollectionAdviceRetired": Schema.Struct({
+  })),
+  "Canonical.Clear": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.Clear") })),
+  "Canonical.CollectionAdviceRetired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionAdviceRetired"),
-  }),
-  "Canonical.CollectionAfter": Schema.Struct({
+  })),
+  "Canonical.CollectionAfter": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionAfter"),
-  }),
-  "Canonical.CollectionBackgroundClaimed": Schema.Struct({
+  })),
+  "Canonical.CollectionBackgroundClaimed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionBackgroundClaimed"),
-  }),
-  "Canonical.CollectionBackgroundKept": Schema.Struct({
+  })),
+  "Canonical.CollectionBackgroundKept": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionBackgroundKept"),
-  }),
-  "Canonical.CollectionBackgroundRefused": Schema.Struct({
+  })),
+  "Canonical.CollectionBackgroundRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionBackgroundRefused"),
-  }),
-  "Canonical.CollectionBackgroundReleased": Schema.Struct({
+  })),
+  "Canonical.CollectionBackgroundReleased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionBackgroundReleased"),
-  }),
-  "Canonical.CollectionBefore": Schema.Struct({
+  })),
+  "Canonical.CollectionBefore": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionBefore"),
-  }),
-  "Canonical.CollectionCandidate": Schema.Struct({
+  })),
+  "Canonical.CollectionCandidate": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionCandidate"),
-  }),
-  "Canonical.CollectionCurrent": Schema.Struct({
+  })),
+  "Canonical.CollectionCurrent": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionCurrent"),
-  }),
-  "Canonical.CollectionEligible": Schema.Struct({
+  })),
+  "Canonical.CollectionEligible": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionEligible"),
-  }),
-  "Canonical.CollectionEqual": Schema.Struct({
+  })),
+  "Canonical.CollectionEqual": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionEqual"),
-  }),
-  "Canonical.CollectionExpired": Schema.Struct({
+  })),
+  "Canonical.CollectionExpired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionExpired"),
-  }),
-  "Canonical.CollectionFindingExpired": Schema.Struct({
+  })),
+  "Canonical.CollectionFindingExpired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionFindingExpired"),
-  }),
-  "Canonical.CollectionFindingLimited": Schema.Struct({
+  })),
+  "Canonical.CollectionFindingLimited": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionFindingLimited"),
-  }),
-  "Canonical.CollectionFindingRetained": Schema.Struct({
+  })),
+  "Canonical.CollectionFindingRetained": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionFindingRetained"),
-  }),
-  "Canonical.CollectionFindingSelected": Schema.Struct({
+  })),
+  "Canonical.CollectionFindingSelected": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionFindingSelected"),
-  }),
-  "Canonical.CollectionFits": Schema.Struct({
+  })),
+  "Canonical.CollectionFits": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionFits"),
-  }),
-  "Canonical.CollectionLeaseKept": Schema.Struct({
+  })),
+  "Canonical.CollectionLeaseKept": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionLeaseKept"),
-  }),
-  "Canonical.CollectionLeaseRefused": Schema.Struct({
+  })),
+  "Canonical.CollectionLeaseRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionLeaseRefused"),
-  }),
-  "Canonical.CollectionLeaseReleased": Schema.Struct({
+  })),
+  "Canonical.CollectionLeaseReleased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionLeaseReleased"),
-  }),
-  "Canonical.CollectionLeaseReserved": Schema.Struct({
+  })),
+  "Canonical.CollectionLeaseReserved": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionLeaseReserved"),
-  }),
-  "Canonical.CollectionLimited": Schema.Struct({
+  })),
+  "Canonical.CollectionLimited": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionLimited"),
-  }),
-  "Canonical.CollectionNoticeIncluded": Schema.Struct({
+  })),
+  "Canonical.CollectionNoticeIncluded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionNoticeIncluded"),
-  }),
-  "Canonical.CollectionNoticeSkipped": Schema.Struct({
+  })),
+  "Canonical.CollectionNoticeSkipped": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionNoticeSkipped"),
-  }),
-  "Canonical.CollectionNoticeStopped": Schema.Struct({
+  })),
+  "Canonical.CollectionNoticeStopped": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionNoticeStopped"),
-  }),
-  "Canonical.CollectionRetainCredential": Schema.Struct({
+  })),
+  "Canonical.CollectionRetainCredential": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionRetainCredential"),
-  }),
-  "Canonical.CollectionRetireCredential": Schema.Struct({
+  })),
+  "Canonical.CollectionRetireCredential": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionRetireCredential"),
-  }),
-  "Canonical.CollectionSkip": Schema.Struct({
+  })),
+  "Canonical.CollectionSkip": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionSkip"),
-  }),
-  "Canonical.CollectionWaiting": Schema.Struct({
+  })),
+  "Canonical.CollectionWaiting": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectionWaiting"),
-  }),
-  "Canonical.CollectorFinalProceed": Schema.Struct({
+  })),
+  "Canonical.CollectorFinalProceed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectorFinalProceed"),
-  }),
-  "Canonical.CollectorFinalRelease": Schema.Struct({
+  })),
+  "Canonical.CollectorFinalRelease": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectorFinalRelease"),
-  }),
-  "Canonical.CollectorProceed": Schema.Struct({
+  })),
+  "Canonical.CollectorProceed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectorProceed"),
-  }),
-  "Canonical.CollectorUnavailable": Schema.Struct({
+  })),
+  "Canonical.CollectorUnavailable": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CollectorUnavailable"),
     reason: Schema.Unknown,
-  }),
-  "Canonical.CompletedEditAbsent": Schema.Struct({
+  })),
+  "Canonical.CompletedEditAbsent": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CompletedEditAbsent"),
-  }),
-  "Canonical.CompletedEditRemembered": Schema.Struct({
+  })),
+  "Canonical.CompletedEditRemembered": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CompletedEditRemembered"),
     evicted: Schema.Unknown,
-  }),
-  "Canonical.CompletedEditSeen": Schema.Struct({
+  })),
+  "Canonical.CompletedEditSeen": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.CompletedEditSeen"),
     reason: Schema.Unknown,
     report: Schema.Boolean,
-  }),
-  "Canonical.ContinuationConsumed": Schema.Struct({
+  })),
+  "Canonical.ContinuationConsumed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ContinuationConsumed"),
-  }),
-  "Canonical.ContinuationRefused": Schema.Struct({
+  })),
+  "Canonical.ContinuationRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ContinuationRefused"),
-  }),
-  "Canonical.ContinueCandidate": Schema.Struct({
+  })),
+  "Canonical.ContinueCandidate": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ContinueCandidate"),
-  }),
-  "Canonical.DeliveryAckEmpty": Schema.Struct({
+  })),
+  "Canonical.DeliveryAckEmpty": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryAckEmpty"),
-  }),
-  "Canonical.DeliveryAckExpired": Schema.Struct({
+  })),
+  "Canonical.DeliveryAckExpired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryAckExpired"),
-  }),
-  "Canonical.DeliveryAckReady": Schema.Struct({
+  })),
+  "Canonical.DeliveryAckReady": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryAckReady"),
-  }),
-  "Canonical.DeliveryBatchProceed": Schema.Struct({
+  })),
+  "Canonical.DeliveryBatchProceed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryBatchProceed"),
-  }),
-  "Canonical.DeliveryBatchRelease": Schema.Struct({
+  })),
+  "Canonical.DeliveryBatchRelease": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryBatchRelease"),
-  }),
-  "Canonical.DeliveryCredentialInvalid": Schema.Struct({
+  })),
+  "Canonical.DeliveryCredentialInvalid": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryCredentialInvalid"),
-  }),
-  "Canonical.DeliveryCredentialValid": Schema.Struct({
+  })),
+  "Canonical.DeliveryCredentialValid": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryCredentialValid"),
-  }),
-  "Canonical.DeliveryExistingTokenAllowed": Schema.Struct({
+  })),
+  "Canonical.DeliveryExistingTokenAllowed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryExistingTokenAllowed"),
-  }),
-  "Canonical.DeliveryExistingTokenDenied": Schema.Struct({
+  })),
+  "Canonical.DeliveryExistingTokenDenied": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryExistingTokenDenied"),
-  }),
-  "Canonical.DeliveryFinalEmpty": Schema.Struct({
+  })),
+  "Canonical.DeliveryFinalEmpty": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryFinalEmpty"),
-  }),
-  "Canonical.DeliveryFinalExpired": Schema.Struct({
+  })),
+  "Canonical.DeliveryFinalExpired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryFinalExpired"),
-  }),
-  "Canonical.DeliveryFinalReady": Schema.Struct({
+  })),
+  "Canonical.DeliveryFinalReady": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryFinalReady"),
-  }),
-  "Canonical.DeliveryKeepAcknowledged": Schema.Struct({
+  })),
+  "Canonical.DeliveryKeepAcknowledged": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryKeepAcknowledged"),
-  }),
-  "Canonical.DeliveryKeepForReoffer": Schema.Struct({
+  })),
+  "Canonical.DeliveryKeepForReoffer": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryKeepForReoffer"),
-  }),
-  "Canonical.DeliveryKeepRemaining": Schema.Struct({
+  })),
+  "Canonical.DeliveryKeepRemaining": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryKeepRemaining"),
-  }),
-  "Canonical.DeliveryReleaseUnacknowledged": Schema.Struct({
+  })),
+  "Canonical.DeliveryReleaseUnacknowledged": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryReleaseUnacknowledged"),
-  }),
-  "Canonical.DeliveryRetireAdvice": Schema.Struct({
+  })),
+  "Canonical.DeliveryRetireAdvice": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryRetireAdvice"),
-  }),
-  "Canonical.DeliverySubmissionAllowed": Schema.Struct({
+  })),
+  "Canonical.DeliverySubmissionAllowed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliverySubmissionAllowed"),
-  }),
-  "Canonical.DeliverySubmissionCandidate": Schema.Struct({
+  })),
+  "Canonical.DeliverySubmissionCandidate": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliverySubmissionCandidate"),
-  }),
-  "Canonical.DeliverySubmissionDenied": Schema.Struct({
+  })),
+  "Canonical.DeliverySubmissionDenied": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliverySubmissionDenied"),
-  }),
-  "Canonical.DeliverySubmissionRefused": Schema.Struct({
+  })),
+  "Canonical.DeliverySubmissionRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliverySubmissionRefused"),
-  }),
-  "Canonical.DeliveryUnreservedStopAllowed": Schema.Struct({
+  })),
+  "Canonical.DeliveryUnreservedStopAllowed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryUnreservedStopAllowed"),
-  }),
-  "Canonical.DeliveryUnreservedStopDenied": Schema.Struct({
+  })),
+  "Canonical.DeliveryUnreservedStopDenied": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DeliveryUnreservedStopDenied"),
-  }),
-  "Canonical.DiscardAllUnfinished": Schema.Struct({
+  })),
+  "Canonical.DiscardAllUnfinished": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DiscardAllUnfinished"),
-  }),
-  "Canonical.Discarded": Schema.Struct({
+  })),
+  "Canonical.Discarded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Discarded"),
-  }),
-  "Canonical.DiscardNamedOnly": Schema.Struct({
+  })),
+  "Canonical.DiscardNamedOnly": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DiscardNamedOnly"),
-  }),
-  "Canonical.DispatchDiscarded": Schema.Struct({
+  })),
+  "Canonical.DispatchDiscarded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DispatchDiscarded"),
     operation: Nat,
     running: Schema.Boolean,
-  }),
-  "Canonical.DispatchStarted": Schema.Struct({
+  })),
+  "Canonical.DispatchStarted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.DispatchStarted"),
     operation: Nat,
     sequence: Nat,
-  }),
-  "Canonical.EmptyAccepted": Schema.Struct({
+  })),
+  "Canonical.EmptyAccepted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.EmptyAccepted"),
-  }),
-  "Canonical.EmptyLost": Schema.Struct({
+  })),
+  "Canonical.EmptyLost": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.EmptyLost"),
-  }),
-  "Canonical.Failed": Schema.Struct({ $: Schema.Literal("Canonical.Failed") }),
-  "Canonical.FailureBackend": Schema.Struct({
+  })),
+  "Canonical.Failed": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Canonical.Failed") })),
+  "Canonical.FailureBackend": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FailureBackend"),
-  }),
-  "Canonical.FailureCredential": Schema.Struct({
+  })),
+  "Canonical.FailureCredential": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FailureCredential"),
-  }),
-  "Canonical.FailureLost": Schema.Struct({
+  })),
+  "Canonical.FailureLost": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FailureLost"),
-  }),
-  "Canonical.FailureNone": Schema.Struct({
+  })),
+  "Canonical.FailureNone": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FailureNone"),
-  }),
-  "Canonical.FileProtection": Schema.Struct({
+  })),
+  "Canonical.FileProtection": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FileProtection"),
     protection: Schema.Unknown,
-  }),
-  "Canonical.FileSelection": Schema.Struct({
+  })),
+  "Canonical.FileSelection": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FileSelection"),
     selection: Schema.Unknown,
-  }),
-  "Canonical.Finding": Schema.Struct({
+  })),
+  "Canonical.Finding": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Finding"),
-  }),
-  "Canonical.FindingCountRecorded": Schema.Struct({
+  })),
+  "Canonical.FindingCountRecorded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FindingCountRecorded"),
-  }),
-  "Canonical.FinishAllowedDeadline": Schema.Struct({
+  })),
+  "Canonical.FinishAllowedDeadline": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishAllowedDeadline"),
-  }),
-  "Canonical.FinishAllowedNoAdvice": Schema.Struct({
+  })),
+  "Canonical.FinishAllowedNoAdvice": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishAllowedNoAdvice"),
-  }),
-  "Canonical.FinishAllowedUnavailable": Schema.Struct({
+  })),
+  "Canonical.FinishAllowedUnavailable": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishAllowedUnavailable"),
-  }),
-  "Canonical.FinishAuthorized": Schema.Struct({
+  })),
+  "Canonical.FinishAuthorized": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishAuthorized"),
-  }),
-  "Canonical.FinishEnded": Schema.Struct({
+  })),
+  "Canonical.FinishEnded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishEnded"),
-  }),
-  "Canonical.FinishLimit": Schema.Struct({
+  })),
+  "Canonical.FinishLimit": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishLimit"),
-  }),
-  "Canonical.FinishNotices": Schema.Struct({
+  })),
+  "Canonical.FinishNotices": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishNotices"),
-  }),
-  "Canonical.FinishReady": Schema.Struct({
+  })),
+  "Canonical.FinishReady": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishReady"),
-  }),
-  "Canonical.FinishRecorded": Schema.Struct({
+  })),
+  "Canonical.FinishRecorded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishRecorded"),
     outcome: Schema.Unknown,
-  }),
-  "Canonical.FinishRefused": Schema.Struct({
+  })),
+  "Canonical.FinishRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishRefused"),
-  }),
-  "Canonical.FinishReleased": Schema.Struct({
+  })),
+  "Canonical.FinishReleased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishReleased"),
-  }),
-  "Canonical.FinishReserved": Schema.Struct({
+  })),
+  "Canonical.FinishReserved": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.FinishReserved"),
-  }),
-  "Canonical.IgnoreCandidate": Schema.Struct({
+  })),
+  "Canonical.IgnoreCandidate": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.IgnoreCandidate"),
-  }),
-  "Canonical.IncludeChoice": Schema.Struct({
+  })),
+  "Canonical.IncludeChoice": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.IncludeChoice"),
     choice: Schema.Unknown,
-  }),
-  "Canonical.Interrupted": Schema.Struct({
+  })),
+  "Canonical.Interrupted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Interrupted"),
-  }),
-  "Canonical.JevInterruptionRecorded": Schema.Struct({
+  })),
+  "Canonical.JevInterruptionRecorded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.JevInterruptionRecorded"),
-  }),
-  "Canonical.JevObservationIgnored": Schema.Struct({
+  })),
+  "Canonical.JevObservationIgnored": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.JevObservationIgnored"),
-  }),
-  "Canonical.JevRequestIssued": Schema.Struct({
+  })),
+  "Canonical.JevRequestIssued": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.JevRequestIssued"),
     partition: Nat,
     lifetime: Nat,
     round: Nat,
     operation: Nat,
     request: Nat,
-  }),
-  "Canonical.JevRequestOutcomeRecorded": Schema.Struct({
+  })),
+  "Canonical.JevRequestOutcomeRecorded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.JevRequestOutcomeRecorded"),
     outcome: Schema.Unknown,
-  }),
-  "Canonical.JevRequestStartRecorded": Schema.Struct({
+  })),
+  "Canonical.JevRequestStartRecorded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.JevRequestStartRecorded"),
-  }),
-  "Canonical.JevRequestUnavailable": Schema.Struct({
+  })),
+  "Canonical.JevRequestUnavailable": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.JevRequestUnavailable"),
-  }),
-  "Canonical.NeverSent": Schema.Struct({
+  })),
+  "Canonical.NeverSent": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NeverSent"),
-  }),
-  "Canonical.NoticeCommitted": Schema.Struct({
+  })),
+  "Canonical.NoticeCommitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeCommitted"),
-  }),
-  "Canonical.NoticeCreateKey": Schema.Struct({
+  })),
+  "Canonical.NoticeCreateKey": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeCreateKey"),
-  }),
-  "Canonical.NoticeCreatePending": Schema.Struct({
+  })),
+  "Canonical.NoticeCreatePending": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeCreatePending"),
     count: Nat,
-  }),
-  "Canonical.NoticeDropped": Schema.Struct({
+  })),
+  "Canonical.NoticeDropped": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeDropped"),
-  }),
-  "Canonical.NoticeKeepLeased": Schema.Struct({
+  })),
+  "Canonical.NoticeKeepLeased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeKeepLeased"),
-  }),
-  "Canonical.NoticeLeased": Schema.Struct({
+  })),
+  "Canonical.NoticeLeased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeLeased"),
-  }),
-  "Canonical.NoticeMergePending": Schema.Struct({
+  })),
+  "Canonical.NoticeMergePending": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeMergePending"),
     count: Nat,
-  }),
-  "Canonical.NoticePendingCleared": Schema.Struct({
+  })),
+  "Canonical.NoticePendingCleared": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticePendingCleared"),
-  }),
-  "Canonical.NoticePruned": Schema.Struct({
+  })),
+  "Canonical.NoticePruned": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticePruned"),
     drop_lease: Schema.Boolean,
     drop_pending: Schema.Boolean,
     drop_key: Schema.Boolean,
-  }),
-  "Canonical.NoticeRefused": Schema.Struct({
+  })),
+  "Canonical.NoticeRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeRefused"),
-  }),
-  "Canonical.NoticeRejectedFull": Schema.Struct({
+  })),
+  "Canonical.NoticeRejectedFull": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeRejectedFull"),
-  }),
-  "Canonical.NoticeSelected": Schema.Struct({
+  })),
+  "Canonical.NoticeSelected": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeSelected"),
     ids: Schema.Unknown,
-  }),
-  "Canonical.NoticeSuppressed": Schema.Struct({
+  })),
+  "Canonical.NoticeSuppressed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.NoticeSuppressed"),
     count: Nat,
-  }),
-  "Canonical.ObservationAdmitted": Schema.Struct({
+  })),
+  "Canonical.ObservationAdmitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ObservationAdmitted"),
     id: Nat,
-  }),
-  "Canonical.ObservationCompleted": Schema.Struct({
+  })),
+  "Canonical.ObservationCompleted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ObservationCompleted"),
-  }),
-  "Canonical.ObservationInterrupted": Schema.Struct({
+  })),
+  "Canonical.ObservationInterrupted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ObservationInterrupted"),
-  }),
-  "Canonical.ObservationStarted": Schema.Struct({
+  })),
+  "Canonical.ObservationStarted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ObservationStarted"),
-  }),
-  "Canonical.PartitionRetired": Schema.Struct({
+  })),
+  "Canonical.PartitionRetired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PartitionRetired"),
     round: Nat,
-  }),
-  "Canonical.PendingFinding": Schema.Struct({
+  })),
+  "Canonical.PendingFinding": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PendingFinding"),
     count: Nat,
-  }),
-  "Canonical.PermitConsumed": Schema.Struct({
+  })),
+  "Canonical.PermitConsumed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PermitConsumed"),
     round: Nat,
-  }),
-  "Canonical.PermitDenied": Schema.Struct({
+  })),
+  "Canonical.PermitDenied": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PermitDenied"),
     reason: Schema.Unknown,
-  }),
-  "Canonical.PermitExpired": Schema.Struct({
+  })),
+  "Canonical.PermitExpired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PermitExpired"),
-  }),
-  "Canonical.PermitIssued": Schema.Struct({
+  })),
+  "Canonical.PermitIssued": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PermitIssued"),
     token: Nat,
     round: Nat,
-  }),
-  "Canonical.PermitKept": Schema.Struct({
+  })),
+  "Canonical.PermitKept": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PermitKept"),
-  }),
-  "Canonical.PermitReleased": Schema.Struct({
+  })),
+  "Canonical.PermitReleased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PermitReleased"),
-  }),
-  "Canonical.PermitRoundClosed": Schema.Struct({
+  })),
+  "Canonical.PermitRoundClosed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PermitRoundClosed"),
     round: Nat,
-  }),
-  "Canonical.PreparationRefused": Schema.Struct({
+  })),
+  "Canonical.PreparationRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PreparationRefused"),
-  }),
-  "Canonical.PreparationReleased": Schema.Struct({
+  })),
+  "Canonical.PreparationReleased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PreparationReleased"),
     id: Nat,
     after: Schema.Unknown,
-  }),
-  "Canonical.Prepare": Schema.Struct({
+  })),
+  "Canonical.Prepare": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Prepare"),
     operation: Nat,
     reservation: Nat,
-  }),
-  "Canonical.PreparedAdmitted": Schema.Struct({
+  })),
+  "Canonical.PreparedAdmitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PreparedAdmitted"),
-  }),
-  "Canonical.PreparedCapacityRefused": Schema.Struct({
+  })),
+  "Canonical.PreparedCapacityRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PreparedCapacityRefused"),
-  }),
-  "Canonical.PreparedSkipped": Schema.Struct({
+  })),
+  "Canonical.PreparedSkipped": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.PreparedSkipped"),
-  }),
-  "Canonical.QuietRoundBusy": Schema.Struct({
+  })),
+  "Canonical.QuietRoundBusy": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.QuietRoundBusy"),
-  }),
-  "Canonical.QuietRoundExpired": Schema.Struct({
+  })),
+  "Canonical.QuietRoundExpired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.QuietRoundExpired"),
     since: Nat,
-  }),
-  "Canonical.QuietRoundResetRecorded": Schema.Struct({
+  })),
+  "Canonical.QuietRoundResetRecorded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.QuietRoundResetRecorded"),
-  }),
-  "Canonical.QuietRoundWaiting": Schema.Struct({
+  })),
+  "Canonical.QuietRoundWaiting": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.QuietRoundWaiting"),
     since: Nat,
-  }),
-  "Canonical.Rejected": Schema.Struct({
+  })),
+  "Canonical.Rejected": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Rejected"),
     state: Schema.Unknown,
     reason: Schema.Unknown,
-  }),
-  "Canonical.ReleaseCandidate": Schema.Struct({
+  })),
+  "Canonical.ReleaseCandidate": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReleaseCandidate"),
-  }),
-  "Canonical.ReofferAtStop": Schema.Struct({
+  })),
+  "Canonical.ReofferAtStop": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReofferAtStop"),
-  }),
-  "Canonical.RequestBackendFailure": Schema.Struct({
+  })),
+  "Canonical.RequestBackendFailure": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RequestBackendFailure"),
-  }),
-  "Canonical.RequestClear": Schema.Struct({
+  })),
+  "Canonical.RequestClear": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RequestClear"),
-  }),
-  "Canonical.RequestFinding": Schema.Struct({
+  })),
+  "Canonical.RequestFinding": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RequestFinding"),
-  }),
-  "Canonical.RequestInterrupted": Schema.Struct({
+  })),
+  "Canonical.RequestInterrupted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RequestInterrupted"),
-  }),
-  "Canonical.RequestTimeout": Schema.Struct({
+  })),
+  "Canonical.RequestTimeout": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RequestTimeout"),
-  }),
-  "Canonical.ReservationReleased": Schema.Struct({
+  })),
+  "Canonical.ReservationReleased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReservationReleased"),
     id: Nat,
-  }),
-  "Canonical.RetainCandidate": Schema.Struct({
+  })),
+  "Canonical.RetainCandidate": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RetainCandidate"),
-  }),
-  "Canonical.RetainFinding": Schema.Struct({
+  })),
+  "Canonical.RetainFinding": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RetainFinding"),
-  }),
-  "Canonical.RetireCandidate": Schema.Struct({
+  })),
+  "Canonical.RetireCandidate": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RetireCandidate"),
-  }),
-  "Canonical.RetireStaleFinding": Schema.Struct({
+  })),
+  "Canonical.RetireStaleFinding": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RetireStaleFinding"),
-  }),
-  "Canonical.ReuseAttached": Schema.Struct({
+  })),
+  "Canonical.ReuseAttached": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseAttached"),
-  }),
-  "Canonical.ReuseCached": Schema.Struct({
+  })),
+  "Canonical.ReuseCached": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseCached"),
-  }),
-  "Canonical.ReuseClaimed": Schema.Struct({
+  })),
+  "Canonical.ReuseClaimed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseClaimed"),
-  }),
-  "Canonical.ReuseJoinAdvice": Schema.Struct({
+  })),
+  "Canonical.ReuseJoinAdvice": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseJoinAdvice"),
-  }),
-  "Canonical.ReuseJoinClaimed": Schema.Struct({
+  })),
+  "Canonical.ReuseJoinClaimed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseJoinClaimed"),
-  }),
-  "Canonical.ReuseJoinPending": Schema.Struct({
+  })),
+  "Canonical.ReuseJoinPending": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseJoinPending"),
-  }),
-  "Canonical.ReuseKeepMember": Schema.Struct({
+  })),
+  "Canonical.ReuseKeepMember": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseKeepMember"),
-  }),
-  "Canonical.ReuseOwn": Schema.Struct({
+  })),
+  "Canonical.ReuseOwn": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseOwn"),
-  }),
-  "Canonical.ReuseRefused": Schema.Struct({
+  })),
+  "Canonical.ReuseRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseRefused"),
-  }),
-  "Canonical.ReuseReleased": Schema.Struct({
+  })),
+  "Canonical.ReuseReleased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseReleased"),
-  }),
-  "Canonical.ReuseSetMemberClear": Schema.Struct({
+  })),
+  "Canonical.ReuseSetMemberClear": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseSetMemberClear"),
-  }),
-  "Canonical.ReuseSetMemberFinding": Schema.Struct({
+  })),
+  "Canonical.ReuseSetMemberFinding": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseSetMemberFinding"),
-  }),
-  "Canonical.ReuseSetMemberLost": Schema.Struct({
+  })),
+  "Canonical.ReuseSetMemberLost": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseSetMemberLost"),
-  }),
-  "Canonical.ReuseSetMemberUnavailable": Schema.Struct({
+  })),
+  "Canonical.ReuseSetMemberUnavailable": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReuseSetMemberUnavailable"),
-  }),
-  "Canonical.ReviewAdmission": Schema.Struct({
+  })),
+  "Canonical.ReviewAdmission": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReviewAdmission"),
     admission: Schema.Unknown,
-  }),
-  "Canonical.ReviewRecorded": Schema.Struct({
+  })),
+  "Canonical.ReviewRecorded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReviewRecorded"),
     outcome: Schema.Unknown,
-  }),
-  "Canonical.ReviewStarted": Schema.Struct({
+  })),
+  "Canonical.ReviewStarted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.ReviewStarted"),
-  }),
-  "Canonical.RevisionCount": Schema.Struct({
+  })),
+  "Canonical.RevisionCount": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RevisionCount"),
     count: Nat,
-  }),
-  "Canonical.RevisionCurrent": Schema.Struct({
+  })),
+  "Canonical.RevisionCurrent": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RevisionCurrent"),
-  }),
-  "Canonical.RevisionGeneration": Schema.Struct({
+  })),
+  "Canonical.RevisionGeneration": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RevisionGeneration"),
     generation: Nat,
-  }),
-  "Canonical.RevisionNotSuperseded": Schema.Struct({
+  })),
+  "Canonical.RevisionNotSuperseded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RevisionNotSuperseded"),
-  }),
-  "Canonical.RevisionReleased": Schema.Struct({
+  })),
+  "Canonical.RevisionReleased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RevisionReleased"),
-  }),
-  "Canonical.RevisionReplaced": Schema.Struct({
+  })),
+  "Canonical.RevisionReplaced": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RevisionReplaced"),
     generation: Nat,
-  }),
-  "Canonical.RevisionReused": Schema.Struct({
+  })),
+  "Canonical.RevisionReused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RevisionReused"),
     generation: Nat,
-  }),
-  "Canonical.RevisionStale": Schema.Struct({
+  })),
+  "Canonical.RevisionStale": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RevisionStale"),
-  }),
-  "Canonical.RevisionSuperseded": Schema.Struct({
+  })),
+  "Canonical.RevisionSuperseded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RevisionSuperseded"),
-  }),
-  "Canonical.Round": Schema.Struct({
+  })),
+  "Canonical.Round": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Round"),
     partition: Nat,
     lifetime: Nat,
@@ -722,67 +722,67 @@ export const CanonicalConstructors = {
     write: Schema.Unknown,
     uncertain: Schema.Boolean,
     quiet_since: Schema.Unknown,
-  }),
-  "Canonical.RoundActive": Schema.Struct({
+  })),
+  "Canonical.RoundActive": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundActive"),
-  }),
-  "Canonical.RoundBarrierClear": Schema.Struct({
+  })),
+  "Canonical.RoundBarrierClear": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundBarrierClear"),
-  }),
-  "Canonical.RoundBarrierRaised": Schema.Struct({
+  })),
+  "Canonical.RoundBarrierRaised": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundBarrierRaised"),
-  }),
-  "Canonical.RoundContinuationAvailable": Schema.Struct({
+  })),
+  "Canonical.RoundContinuationAvailable": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundContinuationAvailable"),
-  }),
-  "Canonical.RoundContinuationExhausted": Schema.Struct({
+  })),
+  "Canonical.RoundContinuationExhausted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundContinuationExhausted"),
-  }),
-  "Canonical.RoundExpireCloses": Schema.Struct({
+  })),
+  "Canonical.RoundExpireCloses": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundExpireCloses"),
-  }),
-  "Canonical.RoundExpireKeeps": Schema.Struct({
+  })),
+  "Canonical.RoundExpireKeeps": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundExpireKeeps"),
-  }),
-  "Canonical.RoundInactive": Schema.Struct({
+  })),
+  "Canonical.RoundInactive": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundInactive"),
-  }),
-  "Canonical.RoundStarted": Schema.Struct({
+  })),
+  "Canonical.RoundStarted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundStarted"),
     id: Nat,
-  }),
-  "Canonical.RoundStopBegun": Schema.Struct({
+  })),
+  "Canonical.RoundStopBegun": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundStopBegun"),
-  }),
-  "Canonical.RoundStopNotOwned": Schema.Struct({
+  })),
+  "Canonical.RoundStopNotOwned": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundStopNotOwned"),
-  }),
-  "Canonical.RoundStopOwned": Schema.Struct({
+  })),
+  "Canonical.RoundStopOwned": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundStopOwned"),
-  }),
-  "Canonical.RoundStopRefused": Schema.Struct({
+  })),
+  "Canonical.RoundStopRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundStopRefused"),
-  }),
-  "Canonical.RoundStopTerminal": Schema.Struct({
+  })),
+  "Canonical.RoundStopTerminal": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RoundStopTerminal"),
     revoke_provisional: Schema.Boolean,
     close: Schema.Boolean,
-  }),
-  "Canonical.RuleGate": Schema.Struct({
+  })),
+  "Canonical.RuleGate": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RuleGate"),
     gate: Schema.Unknown,
-  }),
-  "Canonical.RuleOrder": Schema.Struct({
+  })),
+  "Canonical.RuleOrder": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.RuleOrder"),
     order: Schema.Unknown,
-  }),
-  "Canonical.SettleClear": Schema.Struct({
+  })),
+  "Canonical.SettleClear": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SettleClear"),
-  }),
-  "Canonical.SettleStaleClear": Schema.Struct({
+  })),
+  "Canonical.SettleStaleClear": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SettleStaleClear"),
-  }),
-  "Canonical.State": Schema.Struct({
+  })),
+  "Canonical.State": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.State"),
     ledger: Schema.Unknown,
     rounds: Schema.Unknown,
@@ -793,74 +793,74 @@ export const CanonicalConstructors = {
     dispatch: Schema.Unknown,
     collection: Schema.Unknown,
     history: Schema.Unknown,
-  }),
-  "Canonical.StopEnded": Schema.Struct({
+  })),
+  "Canonical.StopEnded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.StopEnded"),
-  }),
-  "Canonical.SubmissionAuthorized": Schema.Struct({
+  })),
+  "Canonical.SubmissionAuthorized": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionAuthorized"),
-  }),
-  "Canonical.SubmissionBegun": Schema.Struct({
+  })),
+  "Canonical.SubmissionBegun": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionBegun"),
-  }),
-  "Canonical.SubmissionCurrent": Schema.Struct({
+  })),
+  "Canonical.SubmissionCurrent": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionCurrent"),
-  }),
-  "Canonical.SubmissionExpired": Schema.Struct({
+  })),
+  "Canonical.SubmissionExpired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionExpired"),
-  }),
-  "Canonical.SubmissionForgotten": Schema.Struct({
+  })),
+  "Canonical.SubmissionForgotten": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionForgotten"),
-  }),
-  "Canonical.SubmissionNotReofferable": Schema.Struct({
+  })),
+  "Canonical.SubmissionNotReofferable": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionNotReofferable"),
-  }),
-  "Canonical.SubmissionRecorded": Schema.Struct({
+  })),
+  "Canonical.SubmissionRecorded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionRecorded"),
-  }),
-  "Canonical.SubmissionRefused": Schema.Struct({
+  })),
+  "Canonical.SubmissionRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionRefused"),
-  }),
-  "Canonical.SubmissionReleased": Schema.Struct({
+  })),
+  "Canonical.SubmissionReleased": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionReleased"),
-  }),
-  "Canonical.SubmissionReofferable": Schema.Struct({
+  })),
+  "Canonical.SubmissionReofferable": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionReofferable"),
-  }),
-  "Canonical.SubmissionSuppresses": Schema.Struct({
+  })),
+  "Canonical.SubmissionSuppresses": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionSuppresses"),
-  }),
-  "Canonical.SubmissionUnsuppressed": Schema.Struct({
+  })),
+  "Canonical.SubmissionUnsuppressed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.SubmissionUnsuppressed"),
-  }),
-  "Canonical.Unavailable": Schema.Struct({
+  })),
+  "Canonical.Unavailable": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Unavailable"),
-  }),
-  "Canonical.UnitAdmitted": Schema.Struct({
+  })),
+  "Canonical.UnitAdmitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.UnitAdmitted"),
     operation: Nat,
     reservation: Nat,
     position: Nat,
     bytes: Nat,
     after: Schema.Unknown,
-  }),
-  "Canonical.UnitRefused": Schema.Struct({
+  })),
+  "Canonical.UnitRefused": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.UnitRefused"),
     position: Nat,
     bytes: Nat,
     reason: Schema.Unknown,
     after: Schema.Unknown,
-  }),
-  "Canonical.Unknown": Schema.Struct({
+  })),
+  "Canonical.Unknown": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Unknown"),
-  }),
-  "Canonical.WaitForOutput": Schema.Struct({
+  })),
+  "Canonical.WaitForOutput": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.WaitForOutput"),
-  }),
-  "Canonical.WaitForWork": Schema.Struct({
+  })),
+  "Canonical.WaitForWork": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.WaitForWork"),
-  }),
-  "Canonical.Work": Schema.Struct({
+  })),
+  "Canonical.Work": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.Work"),
     partition: Nat,
     lifetime: Nat,
@@ -869,26 +869,26 @@ export const CanonicalConstructors = {
     charge: Nat,
     kind: Schema.Unknown,
     parent: Nat,
-  }),
-  "Canonical.WriteAuthorized": Schema.Struct({
+  })),
+  "Canonical.WriteAuthorized": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.WriteAuthorized"),
     operation: Nat,
-  }),
-  "Canonical.WriteRecorded": Schema.Struct({
+  })),
+  "Canonical.WriteRecorded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Canonical.WriteRecorded"),
     outcome: Schema.Unknown,
-  }),
-  "CollectionState.Claim": Schema.Struct({
+  })),
+  "CollectionState.Claim": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("CollectionState.Claim"),
     group: Nat,
     owner: Nat,
-  }),
-  "CollectionState.Lease": Schema.Struct({
+  })),
+  "CollectionState.Lease": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("CollectionState.Lease"),
     advice: Nat,
     owner: Nat,
-  }),
-  "CollectionState.State": Schema.Struct({
+  })),
+  "CollectionState.State": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("CollectionState.State"),
     ready: Schema.Unknown,
     leases: Schema.Unknown,
@@ -897,121 +897,121 @@ export const CanonicalConstructors = {
     revision: Schema.Unknown,
     reuse: Schema.Unknown,
     notices: Schema.Unknown,
-  }),
-  "CollectorAuthority.Backend": Schema.Struct({
+  })),
+  "CollectorAuthority.Backend": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("CollectorAuthority.Backend"),
-  }),
-  "CollectorAuthority.Capacity": Schema.Struct({
+  })),
+  "CollectorAuthority.Capacity": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("CollectorAuthority.Capacity"),
-  }),
-  "CollectorAuthority.Credential": Schema.Struct({
+  })),
+  "CollectorAuthority.Credential": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("CollectorAuthority.Credential"),
-  }),
-  "CollectorAuthority.Expired": Schema.Struct({
+  })),
+  "CollectorAuthority.Expired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("CollectorAuthority.Expired"),
-  }),
-  "CollectorAuthority.Lost": Schema.Struct({
+  })),
+  "CollectorAuthority.Lost": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("CollectorAuthority.Lost"),
-  }),
-  "CollectorAuthority.Stale": Schema.Struct({
+  })),
+  "CollectorAuthority.Stale": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("CollectorAuthority.Stale"),
-  }),
-  Con: Schema.Struct({
+  })),
+  Con: Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Con"),
     head: Schema.Unknown,
     tail: Schema.Unknown,
-  }),
-  "Configuration.AdmitReview": Schema.Struct({
+  })),
+  "Configuration.AdmitReview": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.AdmitReview"),
-  }),
-  "Configuration.AllowedPath": Schema.Struct({
+  })),
+  "Configuration.AllowedPath": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.AllowedPath"),
-  }),
-  "Configuration.CandidateAllowed": Schema.Struct({
+  })),
+  "Configuration.CandidateAllowed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.CandidateAllowed"),
-  }),
-  "Configuration.EmptyIncludes": Schema.Struct({
+  })),
+  "Configuration.EmptyIncludes": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.EmptyIncludes"),
-  }),
-  "Configuration.Excluded": Schema.Struct({
+  })),
+  "Configuration.Excluded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.Excluded"),
-  }),
-  "Configuration.FileExtension": Schema.Struct({
+  })),
+  "Configuration.FileExtension": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.FileExtension"),
-  }),
-  "Configuration.GeneratedOrVendor": Schema.Struct({
+  })),
+  "Configuration.GeneratedOrVendor": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.GeneratedOrVendor"),
-  }),
-  "Configuration.KeepIncludes": Schema.Struct({
+  })),
+  "Configuration.KeepIncludes": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.KeepIncludes"),
-  }),
-  "Configuration.NotIncluded": Schema.Struct({
+  })),
+  "Configuration.NotIncluded": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.NotIncluded"),
-  }),
-  "Configuration.Protected": Schema.Struct({
+  })),
+  "Configuration.Protected": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.Protected"),
-  }),
-  "Configuration.RefuseConfiguration": Schema.Struct({
+  })),
+  "Configuration.RefuseConfiguration": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.RefuseConfiguration"),
-  }),
-  "Configuration.RefuseCredential": Schema.Struct({
+  })),
+  "Configuration.RefuseCredential": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.RefuseCredential"),
-  }),
-  "Configuration.RefuseFileKind": Schema.Struct({
+  })),
+  "Configuration.RefuseFileKind": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.RefuseFileKind"),
-  }),
-  "Configuration.RefuseGitAdmin": Schema.Struct({
+  })),
+  "Configuration.RefuseGitAdmin": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.RefuseGitAdmin"),
-  }),
-  "Configuration.RefuseGitIgnore": Schema.Struct({
+  })),
+  "Configuration.RefuseGitIgnore": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.RefuseGitIgnore"),
-  }),
-  "Configuration.RefuseRoot": Schema.Struct({
+  })),
+  "Configuration.RefuseRoot": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.RefuseRoot"),
-  }),
-  "Configuration.RefuseSelection": Schema.Struct({
+  })),
+  "Configuration.RefuseSelection": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.RefuseSelection"),
-  }),
-  "Configuration.ReplaceIncludes": Schema.Struct({
+  })),
+  "Configuration.ReplaceIncludes": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.ReplaceIncludes"),
-  }),
-  "Configuration.RepositoryBoundary": Schema.Struct({
+  })),
+  "Configuration.RepositoryBoundary": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.RepositoryBoundary"),
-  }),
-  "Configuration.Selected": Schema.Struct({
+  })),
+  "Configuration.Selected": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.Selected"),
-  }),
-  "Configuration.SensitivePath": Schema.Struct({
+  })),
+  "Configuration.SensitivePath": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Configuration.SensitivePath"),
-  }),
-  "Delivery.Authorized": Schema.Struct({
+  })),
+  "Delivery.Authorized": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Delivery.Authorized"),
-  }),
-  "Delivery.Reserved": Schema.Struct({
+  })),
+  "Delivery.Reserved": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Delivery.Reserved"),
-  }),
-  "Delivery.Submitted": Schema.Struct({
+  })),
+  "Delivery.Submitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Delivery.Submitted"),
-  }),
-  "Delivery.Uncertain": Schema.Struct({
+  })),
+  "Delivery.Uncertain": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Delivery.Uncertain"),
-  }),
-  "DeliveryState.Authorized": Schema.Struct({
+  })),
+  "DeliveryState.Authorized": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("DeliveryState.Authorized"),
-  }),
-  "DeliveryState.Counter": Schema.Struct({
+  })),
+  "DeliveryState.Counter": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("DeliveryState.Counter"),
     group: Nat,
     round: Nat,
     used: Nat,
-  }),
-  "DeliveryState.Failed": Schema.Struct({
+  })),
+  "DeliveryState.Failed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("DeliveryState.Failed"),
-  }),
-  "DeliveryState.Reserved": Schema.Struct({
+  })),
+  "DeliveryState.Reserved": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("DeliveryState.Reserved"),
-  }),
-  "DeliveryState.Slot": Schema.Struct({
+  })),
+  "DeliveryState.Slot": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("DeliveryState.Slot"),
     group: Nat,
     round: Nat,
@@ -1019,20 +1019,20 @@ export const CanonicalConstructors = {
     token: Nat,
     selected: Schema.Unknown,
     phase: Schema.Unknown,
-  }),
-  "DeliveryState.State": Schema.Struct({
+  })),
+  "DeliveryState.State": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("DeliveryState.State"),
     slots: Schema.Unknown,
     counters: Schema.Unknown,
     submissions: Schema.Unknown,
-  }),
-  "DeliveryState.Submitted": Schema.Struct({
+  })),
+  "DeliveryState.Submitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("DeliveryState.Submitted"),
-  }),
-  "DeliveryState.Uncertain": Schema.Struct({
+  })),
+  "DeliveryState.Uncertain": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("DeliveryState.Uncertain"),
-  }),
-  "Dispatch.Entry": Schema.Struct({
+  })),
+  "Dispatch.Entry": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Dispatch.Entry"),
     partition: Nat,
     lifetime: Nat,
@@ -1041,8 +1041,8 @@ export const CanonicalConstructors = {
     sequence: Nat,
     cancelled: Schema.Boolean,
     preparation: Schema.Boolean,
-  }),
-  "Dispatch.Request": Schema.Struct({
+  })),
+  "Dispatch.Request": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Dispatch.Request"),
     partition: Nat,
     lifetime: Nat,
@@ -1051,141 +1051,141 @@ export const CanonicalConstructors = {
     request: Nat,
     started: Schema.Boolean,
     interrupted: Schema.Boolean,
-  }),
-  "Dispatch.State": Schema.Struct({
+  })),
+  "Dispatch.State": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Dispatch.State"),
     queued: Schema.Unknown,
     running: Schema.Unknown,
     next_sequence: Nat,
     closed: Schema.Boolean,
     requests: Schema.Unknown,
-  }),
-  "EditHistory.Closed": Schema.Struct({
+  })),
+  "EditHistory.Closed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("EditHistory.Closed"),
-  }),
-  "EditHistory.Completed": Schema.Struct({
+  })),
+  "EditHistory.Completed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("EditHistory.Completed"),
     tool: Nat,
     reason: Schema.Unknown,
     reported: Schema.Boolean,
-  }),
-  "EditHistory.Consumed": Schema.Struct({
+  })),
+  "EditHistory.Consumed": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("EditHistory.Consumed"),
-  }),
-  "EditHistory.Expired": Schema.Struct({
+  })),
+  "EditHistory.Expired": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("EditHistory.Expired"),
-  }),
-  "EditHistory.Released": Schema.Struct({
+  })),
+  "EditHistory.Released": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("EditHistory.Released"),
-  }),
-  "EditHistory.State": Schema.Struct({
+  })),
+  "EditHistory.State": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("EditHistory.State"),
     entries: Schema.Unknown,
-  }),
-  "Handoff.Authorized": Schema.Struct({
+  })),
+  "Handoff.Authorized": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Handoff.Authorized"),
     token: Nat,
     surface: Schema.Unknown,
-  }),
-  "Handoff.Available": Schema.Struct({
+  })),
+  "Handoff.Available": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Handoff.Available"),
-  }),
-  "Handoff.Background": Schema.Struct({
+  })),
+  "Handoff.Background": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Handoff.Background"),
-  }),
-  "Handoff.Edit": Schema.Struct({ $: Schema.Literal("Handoff.Edit") }),
-  "Handoff.Lease": Schema.Struct({
+  })),
+  "Handoff.Edit": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Handoff.Edit") })),
+  "Handoff.Lease": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Handoff.Lease"),
     item: Nat,
     round: Nat,
     closed: Schema.Boolean,
     reoffered: Schema.Boolean,
     phase: Schema.Unknown,
-  }),
-  "Handoff.Reserved": Schema.Struct({
+  })),
+  "Handoff.Reserved": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Handoff.Reserved"),
     token: Nat,
     surface: Schema.Unknown,
-  }),
-  "Handoff.Stop": Schema.Struct({ $: Schema.Literal("Handoff.Stop") }),
-  "Handoff.Submitted": Schema.Struct({
+  })),
+  "Handoff.Stop": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Handoff.Stop") })),
+  "Handoff.Submitted": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Handoff.Submitted"),
     surface: Schema.Unknown,
-  }),
-  "Handoff.Uncertain": Schema.Struct({
+  })),
+  "Handoff.Uncertain": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Handoff.Uncertain"),
     surface: Schema.Unknown,
-  }),
-  "Ledger.AdviceRecheck": Schema.Struct({
+  })),
+  "Ledger.AdviceRecheck": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.AdviceRecheck"),
-  }),
-  "Ledger.Charge": Schema.Struct({
+  })),
+  "Ledger.Charge": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.Charge"),
     id: Nat,
     partition: Nat,
     bytes: Nat,
     purpose: Schema.Unknown,
-  }),
-  "Ledger.GlobalByteLimit": Schema.Struct({
+  })),
+  "Ledger.GlobalByteLimit": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.GlobalByteLimit"),
-  }),
-  "Ledger.GlobalItemLimit": Schema.Struct({
+  })),
+  "Ledger.GlobalItemLimit": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.GlobalItemLimit"),
-  }),
-  "Ledger.InventoryEntry": Schema.Struct({
+  })),
+  "Ledger.InventoryEntry": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.InventoryEntry"),
     purpose: Schema.Unknown,
     limits: Schema.Unknown,
-  }),
-  "Ledger.Ledger": Schema.Struct({
+  })),
+  "Ledger.Ledger": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.Ledger"),
     limits: Schema.Unknown,
     next_id: Nat,
     charges: Schema.Unknown,
-  }),
-  "Ledger.Limits": Schema.Struct({
+  })),
+  "Ledger.Limits": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.Limits"),
     global_items: Nat,
     global_bytes: Nat,
     partition_items: Nat,
     partition_bytes: Nat,
-  }),
-  "Ledger.ObservationDispatch": Schema.Struct({
+  })),
+  "Ledger.ObservationDispatch": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.ObservationDispatch"),
-  }),
-  "Ledger.OperationalNotice": Schema.Struct({
+  })),
+  "Ledger.OperationalNotice": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.OperationalNotice"),
-  }),
-  "Ledger.PartitionByteLimit": Schema.Struct({
+  })),
+  "Ledger.PartitionByteLimit": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.PartitionByteLimit"),
-  }),
-  "Ledger.PartitionItemLimit": Schema.Struct({
+  })),
+  "Ledger.PartitionItemLimit": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.PartitionItemLimit"),
-  }),
-  "Ledger.Preparation": Schema.Struct({
+  })),
+  "Ledger.Preparation": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.Preparation"),
-  }),
-  "Ledger.ReviewUnit": Schema.Struct({
+  })),
+  "Ledger.ReviewUnit": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.ReviewUnit"),
-  }),
-  "Ledger.StoredResult": Schema.Struct({
+  })),
+  "Ledger.StoredResult": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.StoredResult"),
-  }),
-  "Ledger.Usage": Schema.Struct({
+  })),
+  "Ledger.Usage": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("Ledger.Usage"),
     items: Nat,
     bytes: Nat,
-  }),
-  Nil: Schema.Struct({ $: Schema.Literal("Nil") }),
-  None: Schema.Struct({ $: Schema.Literal("None") }),
-  "NoticeState.Pending": Schema.Struct({
+  })),
+  Nil: Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Nil") })),
+  None: Schema.suspend(() => Schema.Struct({ $: Schema.Literal("None") })),
+  "NoticeState.Pending": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("NoticeState.Pending"),
     id: Nat,
     count: Nat,
     sequence: Nat,
     leased: Schema.Boolean,
-  }),
-  "NoticeState.Record": Schema.Struct({
+  })),
+  "NoticeState.Record": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("NoticeState.Record"),
     id: Nat,
     partition: Nat,
@@ -1193,49 +1193,49 @@ export const CanonicalConstructors = {
     reservation: Nat,
     suppressed: Nat,
     pending: Schema.Unknown,
-  }),
-  "NoticeState.State": Schema.Struct({
+  })),
+  "NoticeState.State": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("NoticeState.State"),
     records: Schema.Unknown,
-  }),
-  "ReuseState.Claim": Schema.Struct({
+  })),
+  "ReuseState.Claim": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("ReuseState.Claim"),
     id: Nat,
     attached: Schema.Boolean,
-  }),
-  "ReuseState.Entry": Schema.Struct({
+  })),
+  "ReuseState.Entry": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("ReuseState.Entry"),
     id: Nat,
     partition: Nat,
     bytes: Nat,
     reservation: Nat,
-  }),
-  "ReuseState.State": Schema.Struct({
+  })),
+  "ReuseState.State": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("ReuseState.State"),
     claims: Schema.Unknown,
     cache: Schema.Unknown,
-  }),
-  "RevisionState.Entry": Schema.Struct({
+  })),
+  "RevisionState.Entry": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("RevisionState.Entry"),
     subject: Nat,
     input: Nat,
     generation: Nat,
     members: Nat,
-  }),
-  "RevisionState.State": Schema.Struct({
+  })),
+  "RevisionState.State": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("RevisionState.State"),
     entries: Schema.Unknown,
     next_generation: Nat,
-  }),
-  "RulePolicy.Admit": Schema.Struct({ $: Schema.Literal("RulePolicy.Admit") }),
-  "RulePolicy.After": Schema.Struct({ $: Schema.Literal("RulePolicy.After") }),
-  "RulePolicy.Before": Schema.Struct({
+  })),
+  "RulePolicy.Admit": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("RulePolicy.Admit") })),
+  "RulePolicy.After": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("RulePolicy.After") })),
+  "RulePolicy.Before": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("RulePolicy.Before"),
-  }),
-  "RulePolicy.Equal": Schema.Struct({ $: Schema.Literal("RulePolicy.Equal") }),
-  "RulePolicy.Omit": Schema.Struct({ $: Schema.Literal("RulePolicy.Omit") }),
-  Some: Schema.Struct({ $: Schema.Literal("Some"), value: Schema.Unknown }),
-  "SubmissionState.Batch": Schema.Struct({
+  })),
+  "RulePolicy.Equal": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("RulePolicy.Equal") })),
+  "RulePolicy.Omit": Schema.suspend(() => Schema.Struct({ $: Schema.Literal("RulePolicy.Omit") })),
+  Some: Schema.suspend(() => Schema.Struct({ $: Schema.Literal("Some"), value: Schema.Unknown })),
+  "SubmissionState.Batch": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("SubmissionState.Batch"),
     advice: Nat,
     group: Nat,
@@ -1245,34 +1245,35 @@ export const CanonicalConstructors = {
     phase: Schema.Unknown,
     fingerprints: Schema.Unknown,
     units: Schema.Unknown,
-  }),
-  "SubmissionState.LeaseRecord": Schema.Struct({
+  })),
+  "SubmissionState.LeaseRecord": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("SubmissionState.LeaseRecord"),
     advice: Nat,
     fingerprint: Nat,
     current: Schema.Unknown,
     previous: Schema.Unknown,
-  }),
-  "SubmissionState.State": Schema.Struct({
+  })),
+  "SubmissionState.State": Schema.suspend(() => Schema.Struct({
     $: Schema.Literal("SubmissionState.State"),
     leases: Schema.Unknown,
     batches: Schema.Unknown,
-  }),
+  })),
 } as const;
 
-const decoders = new Map<string, (value: unknown) => Record<string, unknown>>(
-  Object.entries(CanonicalConstructors).map(([name, schema]) => [
-    name,
-    decoder(schema),
-  ]),
-);
+// Compile a constructor interpreter only when that constructor crosses the boundary.
+const decoders = new Map<string, (value: unknown) => Record<string, unknown>>();
 export const decodeCanonicalConstructor = (
   value: unknown,
   name: string,
 ): Record<string, unknown> => {
-  const decode = decoders.get(name);
-  if (decode === undefined)
-    throw new TypeError(`unknown canonical constructor ${name}`);
+  let decode = decoders.get(name);
+  if (decode === undefined) {
+    if (!Object.hasOwn(CanonicalConstructors, name))
+      throw new TypeError(`unknown canonical constructor ${name}`);
+    const schema = CanonicalConstructors[name as keyof typeof CanonicalConstructors];
+    decode = decoder(schema);
+    decoders.set(name, decode);
+  }
   return decode(value);
 };
 

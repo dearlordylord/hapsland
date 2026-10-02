@@ -76,7 +76,7 @@ sameSet(missingTags, compilerElidedTags, "compiled Bend tag exceptions");
 // Constructor field contracts come from Bend source, independently of TypeScript schemas.
 // This catches malformed shape inventories even when both mapping and schema names compile.
 let auditedConstructors = 0;
-for (const match of schemas.matchAll(/"([A-Za-z]+\.[A-Za-z]+)": Schema\.Struct\(\{([^}]*)\}\)/g)) {
+for (const match of schemas.matchAll(/"([A-Za-z]+\.[A-Za-z]+)": Schema\.suspend\(\(\) => Schema\.Struct\(\{([^}]*)\}\)\)/g)) {
   auditedConstructors++;
   const [module, name] = match[1].split(".");
   const source = read(`packages/agent-flow-bend/${module}.bend`);

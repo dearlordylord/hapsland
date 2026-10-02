@@ -126,7 +126,7 @@ export const DispatchEntrySchema = Schema.Struct({
 });
 export type DispatchEntry = typeof DispatchEntrySchema.Type;
 
-export const CanonicalProjectionSchema = Schema.Struct({
+export const CanonicalProjectionSchema = Schema.suspend(() => Schema.Struct({
   executionLimits: Schema.Struct({ preparation: Nat, jevRequests: Nat }),
   global: Schema.Struct({ items: Nat, bytes: Nat }),
   limits: Schema.Struct({
@@ -331,10 +331,10 @@ export const CanonicalProjectionSchema = Schema.Struct({
       ),
     }),
   }),
-});
+}));
 export type CanonicalProjection = typeof CanonicalProjectionSchema.Type;
 
-export const CanonicalCommandSchema = Schema.Union([
+export const CanonicalCommandSchema = Schema.suspend(() => Schema.Union([
   Schema.Struct({
     kind: Schema.Literal("capacityGranted"),
     id: Nat,
@@ -810,7 +810,7 @@ export const CanonicalCommandSchema = Schema.Union([
   Schema.Struct({ kind: Schema.Literal("reofferAtStop") }),
   Schema.Struct({ kind: Schema.Literal("partitionRetired"), round: Nat }),
   Schema.Struct({ kind: Schema.Literal("admissionForgotten") }),
-]);
+]));
 export type CanonicalCommand = typeof CanonicalCommandSchema.Type;
 
 export const CanonicalEventSchema = Schema.Union([
