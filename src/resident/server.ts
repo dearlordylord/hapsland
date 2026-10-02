@@ -2991,10 +2991,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       if (process.platform !== "linux" && process.platform !== "darwin") {
         return yield* Effect.fail(new ResidentAdapterError({ operation: "resident IPC requires Linux or macOS" }));
       }
-      yield* residentAdapter("prepare resident directory", () => prepareResidentDirectory(owner.paths));
+      yield* prepareResidentDirectory(owner.paths).pipe(
+        Effect.mapError(() => new ResidentAdapterError({ operation: "prepare resident directory" })));
       // The launcher holds the live-owner directory. A socket pathname alone is
       // never treated as ownership evidence.
-      yield* residentAdapter("verify removable socket", () => verifyRemovableSocket(owner.paths));
+      yield* verifyRemovableSocket(owner.paths).pipe(
+        Effect.mapError(() => new ResidentAdapterError({ operation: "verify removable socket" })));
       yield* residentAdapter("remove stale socket", () => rm(owner.paths.socket, { force: true }));
       const server = createServer((socket) => {
         if (!server.listening) { socket.destroy(); return; }

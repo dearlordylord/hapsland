@@ -189,7 +189,8 @@
     "Five root identity/capacity reads now named Ref.get Effects: minimumFreshStart, partitionIdentityCount, partitionIdentityBytes, collectionTokenIdentityCount, currentRoundId. Native fixtures execute root reads and scoped capacity/round fixtures yield; draft owner readers remain synchronous within atomic operations. Reusable current-round read observes deferred round allocation at execution. Five focused files passed197tests; updated27capacitytests separately passed; typecheck/build/all15boundaries/diffcheck passed. Remaining root knownPartitionId/snapshot/canonicalProjection and work/reservation APIs still need migration.",
     "Root retireRound/consumeEditPermit/acknowledgeStopRelease now named atomic Effects; private draft versions remain synchronous within owning service commits. Native round retirement fixtures execute root Effects. Round identity Effect test now proves deferred retirement, replacement round creation and old-generation retirement fence protecting replacement. Seven focused files passed200tests; updated27capacitytests separately passed; typecheck/build/all15boundaries/diffcheck passed. Root capacity work/request/reservation operations and remaining read bridges still require conversion.",
     "Root admitObservation is named atomic Effect; resident ingress yields it. Refusal cleanup uses Effect.exit and Exit.isFailure to release ingress reservation, replacing synchronous try/catch which cannot catch yielded Effect defects. Native Bend-work/Jev/capacity/dispatch fixtures execute root effects; scoped advice/round fixtures yield. New Effect test proves lazy admission,16 distinct concurrent observation identities,invalid-round defect publishes no changed canonical state/round. Eight focused files passed184tests; final capacity/server run114tests passed after refusal cleanup and new test. Typecheck/build/all15boundaries/diffcheck passed. Remaining observation lifecycle/work/request/reservation/read APIs and final migration gates still required.",
-    "Replaced the remaining six resident Promise coordination hooks with one scoped Effect review control service; Deferred fixtures prove cancellation, retained completed-finding preservation, pending-advice failure cleanup and revalidation workspace/lease cleanup. Root resident state and runtime expose Effects without runSync/runPromise or unsafe reads."
+    "Replaced the remaining six resident Promise coordination hooks with one scoped Effect review control service; Deferred fixtures prove cancellation, retained completed-finding preservation, pending-advice failure cleanup and revalidation workspace/lease cleanup. Root resident state and runtime expose Effects without runSync/runPromise or unsafe reads.",
+    "Resident endpoint directory/socket preparation and verification compose as named Effects with typed source-free filesystem errors; ENOENT allowance, uid/mode/type/symlink checks and absolute client deadlines preserved."
   ],
   "verification": [
     {
@@ -2306,6 +2307,34 @@
         ]
       },
       "limitations": "Final full offline suite, direct-event/package/installed-release/applicable host gates and performance reruns remain required. Prior full-suite credential timeout cause remains unproven despite isolated case and 23-test file passing without changed limits. Host-labelled probes and offline installed witness do not establish native agent/live Jev/release support."
+    },
+    {
+      "stage": "typed-effect-endpoint-adapters",
+      "parentCommit": "64634fe",
+      "sourceSha256": {
+        "src/resident/paths.ts": "11e84f8bc555195f024c477ce7be20422d96bf12fb749bb082518fe2e2e21891",
+        "src/resident/paths.test.ts": "68a2dfd6e2472d2073236cdc264f6a37cddba742714c0e88fc2b74a598358e59",
+        "src/resident/client.ts": "8f260fa6b544812034a75de86332a66f8af82ac3ee3e6f4c6f6e4fb7832df8fc",
+        "src/resident/client.test.ts": "515982fd3e26d9260efb2083ad60ea5115f2ce2f0a7065586e8cd66da2093c40",
+        "src/resident/server.ts": "38256bcbe56029422ed072169e2a76f83782f832e2b2db99567fd5d8b1d59eb2"
+      },
+      "selectedTests": {
+        "command": "npx vitest run src/resident/paths.test.ts src/resident/client.test.ts src/resident/client-startup.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/security-sinks.test.ts --maxWorkers=1",
+        "testsPassed": 121,
+        "filesPassed": 6,
+        "durationSeconds": 78.49
+      },
+      "finalEndpointTests": {
+        "command": "npx vitest run src/resident/paths.test.ts",
+        "testsPassed": 4,
+        "durationSeconds": 0.272,
+        "scope": "Rechecked after refining native error code to an absent optional key"
+      },
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Directory preparation, socket verification and removable socket verification now return named Effects with ResidentEndpointError. Native lstat/mkdir remain Promise adapters at the OS boundary; pure endpoint metadata validation remains synchronous. Client verification and startup compose directly rather than wrapping Effect operations in tryPromise. Resident listener maps endpoint failures at its adapter boundary. Only missing endpoint ENOENT is admitted; actual regular files/dangling symlinks and ENOTDIR metadata failures are rejected; native paths are omitted from error messages. Existing ownership/mode/symlink, deadline, startup, subprocess and sink security fixtures pass.",
+      "limitations": "Resident path environment resolution, owner acquisition/release, client Promise facades and broader service error surfaces remain part of the edge audit. This is Linux filesystem/runtime evidence, not platform/release acceptance. Final full suite and declared conformance/performance gates remain pending."
     }
   ],
   "next": [

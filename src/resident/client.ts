@@ -84,10 +84,7 @@ export const residentRequestEffect = Effect.fn("ResidentClient.request")(functio
   paths: ResidentPaths, request: ResidentRequest, timeoutMs = CLIENT_REQUEST_DEADLINE_MS,
 ) {
   const deadline = performance.now() + timeoutMs;
-  yield* Effect.tryPromise({
-    try: () => verifyResidentSocket(paths),
-    catch: (cause) => cause instanceof Error ? cause : new ResidentIpcError({ message: "resident endpoint verification failed" }),
-  }).pipe(Effect.timeoutOrElse({
+  yield* verifyResidentSocket(paths).pipe(Effect.timeoutOrElse({
     duration: timeoutMs,
     orElse: () => Effect.fail(new ResidentIpcError({ message: "resident endpoint verification timed out" })),
   }));
@@ -167,9 +164,7 @@ export const makeResidentStartup = Effect.gen(function* () {
   }, Effect.uninterruptible);
   return ResidentStartup.of({
     now: launcher.now,
-    prepare: Effect.fn("ResidentStartup.prepare")((paths: ResidentPaths) => Effect.tryPromise({
-      try: () => prepareResidentDirectory(paths), catch: (cause) => cause instanceof Error ? cause : new ResidentIpcError({ message: "resident endpoint preparation failed" }),
-    })),
+    prepare: Effect.fn("ResidentStartup.prepare")((paths: ResidentPaths) => prepareResidentDirectory(paths)),
     probe: (paths, timeoutMs) => residentRequestEffect(paths, { requestRoute: "shared", operation: "hello" }, timeoutMs),
     launch,
     wait: (milliseconds) => Effect.sleep(milliseconds),

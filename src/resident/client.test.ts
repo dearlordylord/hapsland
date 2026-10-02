@@ -194,7 +194,7 @@ describe("resident client trust boundary", () => {
     directories.push(parent, target);
     const link = join(parent, "runtime");
     await symlink(target, link);
-    await expect(prepareResidentDirectory(residentPaths(link))).rejects.toThrow("private user-owned");
+    await expect(Effect.runPromise(prepareResidentDirectory(residentPaths(link)))).rejects.toThrow("private user-owned");
   });
 
   it.each([

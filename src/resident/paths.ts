@@ -1,4 +1,5 @@
 import { lstat, mkdir } from "node:fs/promises";
+import { Effect, Schema } from "effect";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -50,8 +51,27 @@ export const validateEndpointMetadata = (
       ? metadata.isSocket
       : metadata.isFile);
 
-const metadata = async (path: string): Promise<EndpointMetadata> => {
-  const value = await lstat(path);
+const EndpointOperation = Schema.Literals(["createDirectory", "inspectEndpoint", "verifyDirectory", "verifySocket", "verifyRemovableSocket"]);
+type EndpointOperation = typeof EndpointOperation.Type;
+
+export class ResidentEndpointError extends Schema.TaggedError<ResidentEndpointError>()(
+  "ResidentEndpointError", {
+    operation: EndpointOperation,
+    message: Schema.String,
+    code: Schema.optionalKey(Schema.String),
+  },
+) {}
+
+const endpointIo = <A>(operation: EndpointOperation, message: string, run: () => Promise<A>) => Effect.tryPromise({
+  try: run,
+  catch: (cause) => new ResidentEndpointError({ operation, message,
+    ...(typeof cause === "object" && cause !== null && "code" in cause && typeof cause.code === "string"
+      ? { code: cause.code } : {}),
+  }),
+});
+
+const metadata = Effect.fn("ResidentEndpoint.metadata")(function* (path: string) {
+  const value = yield* endpointIo("inspectEndpoint", "resident endpoint metadata unavailable", () => lstat(path));
   return {
     uid: value.uid,
     mode: value.mode,
@@ -60,31 +80,32 @@ const metadata = async (path: string): Promise<EndpointMetadata> => {
     isFile: value.isFile(),
     isSymbolicLink: value.isSymbolicLink(),
   };
-};
+});
 
-export const prepareResidentDirectory = async (paths: ResidentPaths): Promise<void> => {
-  await mkdir(paths.directory, { recursive: true, mode: 0o700 });
-  if (!validateEndpointMetadata(await metadata(paths.directory), "directory")) {
-    throw new Error("resident runtime directory is not a private user-owned directory");
+export const prepareResidentDirectory = Effect.fn("ResidentEndpoint.prepareDirectory")(function* (paths: ResidentPaths) {
+  yield* endpointIo("createDirectory", "resident runtime directory creation failed",
+    () => mkdir(paths.directory, { recursive: true, mode: 0o700 }));
+  if (!validateEndpointMetadata(yield* metadata(paths.directory), "directory")) {
+    return yield* Effect.fail(new ResidentEndpointError({ operation: "verifyDirectory",
+      message: "resident runtime directory is not a private user-owned directory" }));
   }
-};
+});
 
-export const verifyResidentSocket = async (paths: ResidentPaths): Promise<void> => {
+export const verifyResidentSocket = Effect.fn("ResidentEndpoint.verifySocket")(function* (paths: ResidentPaths) {
   // Node 24's net.Socket does not expose Linux SO_PEERCRED. The supported
   // profile therefore authenticates the endpoint through a private uid-owned
   // directory plus uid/type/mode checks on the socket itself.
-  if (!validateEndpointMetadata(await metadata(paths.socket), "socket")) {
-    throw new Error("resident socket is not a private user-owned socket");
+  if (!validateEndpointMetadata(yield* metadata(paths.socket), "socket")) {
+    return yield* Effect.fail(new ResidentEndpointError({ operation: "verifySocket",
+      message: "resident socket is not a private user-owned socket" }));
   }
-};
+});
 
-export const verifyRemovableSocket = async (paths: ResidentPaths): Promise<void> => {
-  try {
-    if (!validateEndpointMetadata(await metadata(paths.socket), "socket")) {
-      throw new Error("resident socket pathname is unsafe");
-    }
-  } catch (cause) {
-    if (typeof cause === "object" && cause !== null && "code" in cause && cause.code === "ENOENT") return;
-    throw cause;
+export const verifyRemovableSocket = Effect.fn("ResidentEndpoint.verifyRemovableSocket")(function* (paths: ResidentPaths) {
+  const value = yield* metadata(paths.socket).pipe(Effect.catch((error) =>
+    error.code === "ENOENT" ? Effect.succeed(undefined) : Effect.fail(error)));
+  if (value !== undefined && !validateEndpointMetadata(value, "socket")) {
+    return yield* Effect.fail(new ResidentEndpointError({ operation: "verifyRemovableSocket",
+      message: "resident socket pathname is unsafe" }));
   }
-};
+});
