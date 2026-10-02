@@ -227,3 +227,10 @@ for (const operation of ["recentEditCount", "editIdentityMappingCount", "liveCol
     throw new Error(`delivery ${operation} must compose as an Effect read`);
   }
 }
+
+for (const operation of ["markSubmitted", "release", "claimBackground", "releaseBackground"]) {
+  if (!deliverySurface.includes(`${operation}: Effect.fn("ComposedDelivery.${operation}")`) ||
+      !deliverySurface.includes(`deliveryCommitEffect((operations) => operations.${operation}(...args))`)) {
+    throw new Error(`delivery ${operation} must compose as an atomic Effect`);
+  }
+}

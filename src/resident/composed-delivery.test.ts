@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Effect } from "effect";
-import { makeCapacityLedger, MAX_PARTITION_IDENTITIES } from "./capacity.ts";
+import { it as effectIt } from "@effect/vitest";
+import { makeCapacityLedger, makeResidentState, MAX_PARTITION_IDENTITIES } from "./capacity.ts";
 import { BACKGROUND_WAITER_EXPIRY_MS, type ComposedDelivery, EDIT_PERMIT_EXPIRY_MS, VIRTUAL_ROUND_QUIET_MS } from "./composed-delivery.ts";
 const RECENT_EDIT_IDENTITIES = 1_000;
 import { monotonicNow } from "./hook-clock.ts";
@@ -60,7 +61,7 @@ describe("shared Hapsland rounds", () => {
     expect(state.finishSelectionMatches("output", selected)).toBe(true);
     expect(state.ownsStop("agent", "attempt")).toBe(beforeOwnsStop);
     expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
-    expect(state.markSubmitted("output", [unit])).toBe(true);
+    expect(Effect.runSync(state.markSubmitted("output", [unit]))).toBe(true);
   });
 
   it("runs repeat diagnostics after publication and contains a failing sink", () => {
@@ -499,9 +500,9 @@ describe("shared Hapsland rounds", () => {
     expect(state.reserveFinishOutput("agent", "attempt", "output",
       [{ id: "advice", unit: canonicalUnit, findings: [finding] }], 1)).toBe(true);
     expect(state.authorizeFinishOutput("agent", "output")).toBe(true);
-    expect(state.markSubmitted("output", [canonicalUnit + 1])).toBe(false);
-    expect(state.markSubmitted("output", [canonicalUnit])).toBe(true);
-    expect(state.markSubmitted("output", [canonicalUnit])).toBe(false);
+    expect(Effect.runSync(state.markSubmitted("output", [canonicalUnit + 1]))).toBe(false);
+    expect(Effect.runSync(state.markSubmitted("output", [canonicalUnit]))).toBe(true);
+    expect(Effect.runSync(state.markSubmitted("output", [canonicalUnit]))).toBe(false);
     expect(state.expireStop("agent", "attempt")).toBeUndefined();
     expect(state.isActive("agent")).toBe(true);
     expect(state.closureCounts("agent").reservedContinuations).toBe(1);
@@ -535,9 +536,9 @@ describe("shared Hapsland rounds", () => {
     expect(state.canonical.transition({ kind: "submissionForget", advice: firstBatch.advice }).rejection).toBeDefined();
     expect(state.canonical.transition({ kind: "collectionRetireAdvice", advice: firstBatch.advice }).rejection).toBeDefined();
     expect(state.canonical.canonicalProjection()).toEqual(before);
-    expect(state.markSubmitted("output", [first])).toBe(false);
+    expect(Effect.runSync(state.markSubmitted("output", [first]))).toBe(false);
     expect(state.canonical.canonicalProjection()).toEqual(before);
-    expect(state.markSubmitted("output", [first, second])).toBe(true);
+    expect(Effect.runSync(state.markSubmitted("output", [first, second]))).toBe(true);
     const after = state.canonical.canonicalProjection();
     expect(after.delivery.submissions.batches.map((batch) => batch.phase)).toEqual(["submitted", "submitted"]);
     expect(after.delivery.slots.map((slot) => slot.phase)).toEqual(["submitted"]);
@@ -577,7 +578,7 @@ describe("shared Hapsland rounds", () => {
     state.forget("first");
     expect(state.finishSelectionMatches("output", advice.slice(1))).toBe(false);
     expect(state.authorizeFinishOutput("agent", "output")).toBe(false);
-    state.release("output");
+    Effect.runSync(state.release("output"));
     expect(state.closureCounts("agent").reservedContinuations).toBe(0);
   });
 
@@ -734,9 +735,9 @@ describe("shared Hapsland rounds", () => {
   it("coalesces background waiters and forbids submission after the Stop barrier", () => {
     const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
-    expect(state.claimBackground("agent", "first", 0)).toBe(true);
-    expect(state.claimBackground("agent", "second", 1)).toBe(false);
-    expect(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS)).toBe(true);
+    expect(Effect.runSync(state.claimBackground("agent", "first", 0))).toBe(true);
+    expect(Effect.runSync(state.claimBackground("agent", "second", 1))).toBe(false);
+    expect(Effect.runSync(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS))).toBe(true);
     state.beginStop("agent", "stop");
     expect(state.canSubmit("agent", "background")).toBe(true);
     state.consumeStop("agent");
@@ -748,9 +749,9 @@ describe("shared Hapsland rounds", () => {
   it("keeps one canonical background owner through wrong release and expiry", () => {
     const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
-    expect(state.claimBackground("agent", "writer", 100)).toBe(true);
+    expect(Effect.runSync(state.claimBackground("agent", "writer", 100))).toBe(true);
     expect(state.canonical.canonicalProjection().collection.claims).toHaveLength(1);
-    state.releaseBackground("agent", "wrong");
+    Effect.runSync(state.releaseBackground("agent", "wrong"));
     expect(state.canonical.canonicalProjection().collection.claims).toHaveLength(1);
     state.expire(100 + BACKGROUND_WAITER_EXPIRY_MS - 1);
     expect(state.canonical.canonicalProjection().collection.claims).toHaveLength(1);
@@ -761,9 +762,9 @@ describe("shared Hapsland rounds", () => {
   it("keeps a fractional-time background claim until its full lifetime elapses", () => {
     const state = makeCapacityLedger().delivery();
     state.admitEdit("agent", "edit", 0);
-    expect(state.claimBackground("agent", "first", 0.9)).toBe(true);
-    expect(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS + 0.1)).toBe(false);
-    expect(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS + 0.9)).toBe(true);
+    expect(Effect.runSync(state.claimBackground("agent", "first", 0.9))).toBe(true);
+    expect(Effect.runSync(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS + 0.1))).toBe(false);
+    expect(Effect.runSync(state.claimBackground("agent", "second", BACKGROUND_WAITER_EXPIRY_MS + 0.9))).toBe(true);
   });
 
   it("counts submitted background findings as delivered at Stop", () => {
@@ -774,7 +775,7 @@ describe("shared Hapsland rounds", () => {
     expect(state.suppresses("advice", "agent", finding)).toBe(true);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
     expect(state.beginSubmission("advice", "agent", "early-stop", [finding], "stop", 2)).toBe(false);
-    state.markSubmitted("bg");
+    Effect.runSync(state.markSubmitted("bg"));
     expect(state.backgroundReofferable("advice", "bg")).toBe(false);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
     expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(false);
@@ -787,10 +788,10 @@ describe("shared Hapsland rounds", () => {
     const state = makeCapacityLedger().delivery();
     const finding = { rule: "r", advice: "repair" };
     state.admitEdit("agent", "edit", 0);
-    expect(state.claimBackground("agent", "worker", 0)).toBe(true);
+    expect(Effect.runSync(state.claimBackground("agent", "worker", 0))).toBe(true);
     expect(state.beginSubmission("advice", "agent", "bg", [finding], "background", 1)).toBe(true);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
-    state.releaseBackground("agent", "worker");
+    Effect.runSync(state.releaseBackground("agent", "worker"));
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
     expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(true);
   });
@@ -803,7 +804,7 @@ describe("shared Hapsland rounds", () => {
     expect(state.markUncertain("bg")).toBe(true);
     expect(state.beginSubmission("advice", "agent", "stop", [finding], "stop", 2)).toBe(true);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(true);
-    state.release("stop");
+    Effect.runSync(state.release("stop"));
     expect(Effect.runSync(state.hasToken("bg"))).toBe(true);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
     expect(state.beginSubmission("advice", "agent", "retry", [finding], "stop", 3)).toBe(true);
@@ -820,6 +821,27 @@ describe("shared Hapsland rounds", () => {
     state.expire(DELIVERY_LEASE_MS + 0.9);
     expect(state.backgroundReofferable("advice", "bg")).toBe(true);
     expect(state.suppresses("advice", "agent", finding, "stop")).toBe(false);
-    expect(state.markSubmitted("bg")).toBe(false);
+    expect(Effect.runSync(state.markSubmitted("bg"))).toBe(false);
   });
 });
+
+effectIt.effect("serializes background claims and defers release until execution", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const delivery = owner.delivery();
+  delivery.admitEdit("agent", "edit", 0);
+  const before = owner.canonicalProjection();
+  const claim = delivery.claimBackground("agent", "winner", 0);
+  expect(owner.canonicalProjection()).toEqual(before);
+  const claims = yield* Effect.forEach(Array.from({ length: 16 }), (_, index) =>
+    delivery.claimBackground("agent", `worker-${index}`, 0), { concurrency: "unbounded" });
+  expect(claims.filter(Boolean)).toHaveLength(1);
+  const winner = claims.findIndex(Boolean);
+  const retained = owner.canonicalProjection();
+  const release = delivery.releaseBackground("agent", `worker-${winner}`);
+  expect(owner.canonicalProjection()).toEqual(retained);
+  expect(yield* claim).toBe(false);
+  yield* release;
+  expect(yield* claim).toBe(true);
+  yield* delivery.releaseBackground("agent", "winner");
+  expect(yield* delivery.claimBackground("agent", "replacement", 0)).toBe(true);
+}));

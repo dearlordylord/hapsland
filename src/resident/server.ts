@@ -1098,8 +1098,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       return { status: "empty" };
     }
     if (decision.commands[0]?.kind !== "deliveryAckReady") throw new Error("invalid canonical acknowledgement");
-    if (!residentComposedDelivery.markSubmitted(token,
-      advice.flatMap(({ capability, content }) => (content.delivery?.findings ?? []).map(() => capability.canonicalOperationId)))) {
+    if (!(yield* residentComposedDelivery.markSubmitted(token,
+      advice.flatMap(({ capability, content }) => (content.delivery?.findings ?? []).map(() => capability.canonicalOperationId))))) {
       return { status: "empty" };
     }
     for (const { capability: item, content } of advice) {
@@ -1235,7 +1235,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   }, Effect.uninterruptible);
 
   const releaseComposedSubmission = Effect.fn("ResidentRuntime.releaseComposedSubmission")(function* (token: string): Effect.fn.Return<ResidentResponse> {
-    residentComposedDelivery.release(token);
+    (yield* residentComposedDelivery.release(token));
     yield* runtime.releaseDelivery(token);
     return { status: "released" };
   }, Effect.uninterruptible);
@@ -2455,14 +2455,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         }));
       }
       if (request.operation === "claim-background") {
-        return residentResponse(residentComposedDelivery.claimBackground(
+        return residentResponse((yield* residentComposedDelivery.claimBackground(
           adviceePartition(request.root, request.advicee), request.token, residentNow(),
-        ) ? { status: "background-claimed" } : { status: "busy" });
+        )) ? { status: "background-claimed" } : { status: "busy" });
       }
       if (request.operation === "release-background") {
-        residentComposedDelivery.releaseBackground(
+        (yield* residentComposedDelivery.releaseBackground(
           adviceePartition(request.root, request.advicee), request.token,
-        );
+        ));
         return residentResponse({ status: "released" });
       }
       if (request.operation === "begin-submission") {

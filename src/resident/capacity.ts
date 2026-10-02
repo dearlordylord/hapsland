@@ -388,8 +388,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         }),
     } satisfies DispatchState<DispatchKey, DispatchValue>,
     delivery: (reportRepeat: (diagnostic: RepeatEditDiagnostic) => void = () => {}) => {
-      const deliveryCommit = <A>(operation: (operations: ComposedDelivery) => A): A => {
-        const [value, diagnostics] = commitAll((draft, records) => {
+      const deliveryCommitEffect = <A>(operation: (operations: ComposedDelivery) => A): Effect.Effect<A> => Effect.gen(function* () {
+        const [value, diagnostics] = yield* commitAllEffect((draft, records) => {
           const current = records.delivery;
           const delivery = draftDelivery(current);
           const diagnostics: RepeatEditDiagnostic[] = [];
@@ -405,7 +405,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           try { reportRepeat(diagnostic); } catch { /* diagnostic sink unavailable */ }
         }
         return value;
-      };
+      }).pipe(Effect.uninterruptible);
+      const deliveryCommit = <A>(operation: (operations: ComposedDelivery) => A): A => Effect.runSync(deliveryCommitEffect(operation));
       const deliveryRead = <A>(operation: (view: ReturnType<typeof deliveryView>) => A): Effect.Effect<A> =>
         Ref.get(state).pipe(Effect.map((snapshot) => {
           const draft = draftCapacity(snapshot, (id) => snapshot.reservations.get(id));
@@ -414,8 +415,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         }));
       return {
         canonical: capacity,
-        claimBackground: (...args: Parameters<ComposedDelivery["claimBackground"]>) => deliveryCommit((operations) => operations.claimBackground(...args)),
-        releaseBackground: (...args: Parameters<ComposedDelivery["releaseBackground"]>) => deliveryCommit((operations) => operations.releaseBackground(...args)),
+        claimBackground: Effect.fn("ComposedDelivery.claimBackground")((...args: Parameters<ComposedDelivery["claimBackground"]>) => deliveryCommitEffect((operations) => operations.claimBackground(...args))),
+        releaseBackground: Effect.fn("ComposedDelivery.releaseBackground")((...args: Parameters<ComposedDelivery["releaseBackground"]>) => deliveryCommitEffect((operations) => operations.releaseBackground(...args))),
         advance: (...args: Parameters<ComposedDelivery["advance"]>) => deliveryCommit((operations) => operations.advance(...args)),
         recentEditCount: Effect.fn("ComposedDelivery.recentEditCount")((...args: Parameters<ComposedDelivery["recentEditCount"]>) => deliveryRead((view) => view.recentEditCount(...args))),
         editIdentityMappingCount: Effect.fn("ComposedDelivery.editIdentityMappingCount")((...args: Parameters<ComposedDelivery["editIdentityMappingCount"]>) => deliveryRead((view) => view.editIdentityMappingCount(...args))),
@@ -449,9 +450,9 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         consumeStop: (...args: Parameters<ComposedDelivery["consumeStop"]>) => deliveryCommit((operations) => operations.consumeStop(...args)),
         hasVirtualRoundContinuationBudget: (...args: Parameters<ComposedDelivery["hasVirtualRoundContinuationBudget"]>) => deliveryCommit((operations) => operations.hasVirtualRoundContinuationBudget(...args)),
         beginSubmission: (...args: Parameters<ComposedDelivery["beginSubmission"]>) => deliveryCommit((operations) => operations.beginSubmission(...args)),
-        markSubmitted: (...args: Parameters<ComposedDelivery["markSubmitted"]>) => deliveryCommit((operations) => operations.markSubmitted(...args)),
+        markSubmitted: Effect.fn("ComposedDelivery.markSubmitted")((...args: Parameters<ComposedDelivery["markSubmitted"]>) => deliveryCommitEffect((operations) => operations.markSubmitted(...args))),
         markUncertain: (...args: Parameters<ComposedDelivery["markUncertain"]>) => deliveryCommit((operations) => operations.markUncertain(...args)),
-        release: (...args: Parameters<ComposedDelivery["release"]>) => deliveryCommit((operations) => operations.release(...args)),
+        release: Effect.fn("ComposedDelivery.release")((...args: Parameters<ComposedDelivery["release"]>) => deliveryCommitEffect((operations) => operations.release(...args))),
         forget: (...args: Parameters<ComposedDelivery["forget"]>) => deliveryCommit((operations) => operations.forget(...args)),
         suppresses: (...args: Parameters<ComposedDelivery["suppresses"]>) => deliveryCommit((operations) => operations.suppresses(...args)),
         backgroundReofferable: (...args: Parameters<ComposedDelivery["backgroundReofferable"]>) => deliveryCommit((operations) => operations.backgroundReofferable(...args)),
