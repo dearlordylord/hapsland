@@ -265,3 +265,8 @@ export const sharedCredentialMatches = (state: EngineState, operation: number): 
 };
 export const sharedCallbackMatches = (event: CanonicalEvent, target: { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }): boolean =>
   SharedEngine.callback_matches(encodeSharedValue(encodeCanonicalEvent(event)), encodeSharedValue({ $: "FaultTargets.Target", ...target }));
+
+export const sharedPreparationActive = (state: EngineState, partition: number, lifetime: number, round: number, operation: number): boolean => {
+  sharedCheck(state);
+  return SharedEngine.preparation_active(state, BigInt(readNat(partition)), BigInt(readNat(lifetime)), BigInt(readNat(round)), BigInt(readNat(operation)));
+};

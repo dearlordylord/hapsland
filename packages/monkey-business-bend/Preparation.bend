@@ -1,6 +1,7 @@
 import Base
 import ./Types.bend as Types
 import ../agent-flow-bend/ImportGraph.bend as ImportGraph
+import ../agent-flow-bend/Canonical.bend as Canonical
 
 def same(+key: Types.GraphKey, entry: Types.GraphEntry) -> Bool:
   match key entry:
@@ -69,3 +70,29 @@ def retire_entries(entries: List<&2, Types.GraphEntry>, +operation: Nat) -> List
     case +head <> tail:
       retire_entry(head, retire_entries(tail, operation), operation)
 
+
+# Graph facts belong only to the exact retained preparing work identity.
+def preparing(found: Maybe<&2, Canonical.Work>) -> Bool:
+  match found:
+    case Some{Canonical.Work{_, _, _, _, _, Canonical.Preparing{}, _}}: True{}
+    case _: False{}
+
+def active(canonical: Canonical.State, partition: Nat, lifetime: Nat, round: Nat, operation: Nat) -> Bool:
+  match canonical:
+    case Canonical.State{_, _, work, _, _, _, _, _, _}:
+      preparing(Canonical.find_work(partition, lifetime, round, operation, work))
+
+def retain_entry_pick(keep: Bool, entry: Types.GraphEntry, remaining: List<&2, Types.GraphEntry>) -> List<&2, Types.GraphEntry>:
+  match keep:
+    case True{}: entry <> remaining
+    case False{}: remaining
+
+def retained_entry(+entry: Types.GraphEntry, remaining: List<&2, Types.GraphEntry>, canonical: Canonical.State) -> List<&2, Types.GraphEntry>:
+  match entry:
+    case Types.GraphEntry{partition, lifetime, round, operation, _, _, _}:
+      retain_entry_pick(active(canonical, partition, lifetime, round, operation), entry, remaining)
+
+def retained(entries: List<&2, Types.GraphEntry>, +canonical: Canonical.State) -> List<&2, Types.GraphEntry>:
+  match entries:
+    case Nil{}: Nil{}
+    case head <> tail: retained_entry(head, retained(tail, canonical), canonical)

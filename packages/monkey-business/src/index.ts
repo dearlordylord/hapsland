@@ -626,8 +626,7 @@ export class Run {
     if (item.input.kind === "preparationGraph") {
       const event = item.input.event;
       const before = this.projection;
-      if (!before.work.some(work => work.operation === event.operation && work.kind === "preparing")) {
-        this.core.retire(event.operation);
+      if (!this.core.preparationActive(event)) {
         return this.step(untilTime);
       }
       const preparation = this.core.graphStep(event);
@@ -1312,7 +1311,6 @@ export class Run {
       if (!this.projection.pendingFindings.some(f => f.operation === event.operation)) this.jobs.delete(event.operation);
     }
     if (event.kind === "preparationCompleted") {
-      this.core.retire(event.operation);
       this.jobs.delete(event.operation);
       effects.push({
         kind: "preparation",

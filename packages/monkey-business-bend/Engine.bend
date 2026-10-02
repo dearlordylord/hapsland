@@ -75,7 +75,7 @@ def retained_credentials(credentials: CredentialFacts.State, canonical: Canonica
 
 def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, +event: Canonical.CanonicalEvent) -> Transition:
   match result:
-    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), PendingEffects.consumed(retiring, event)}, Canonical.Advanced{state, commands}}
+    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, Preparation.retained(graphs, state), scheduler, workloads, random, advicees, retained_credentials(captured_commands(commands, credentials), state), AdmissionAttempts.consumed(opening, event), PendingEffects.consumed(retiring, event)}, Canonical.Advanced{state, commands}}
     case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}, Canonical.Rejected{state, reason}}
 
 def step(state: Types.State, +event: Canonical.CanonicalEvent) -> Transition:
@@ -348,3 +348,6 @@ def callback_matches(event: Canonical.CanonicalEvent, target: FaultTargets.Targe
 
 def context_credentials(state: Types.State, event: Canonical.CanonicalEvent, context: Driver.Context) -> Driver.Context:
   CredentialContext.apply(credential_state(state), event, context)
+
+def preparation_active(state: Types.State, partition: Nat, lifetime: Nat, round: Nat, operation: Nat) -> Bool:
+  Preparation.active(canonical(state), partition, lifetime, round, operation)

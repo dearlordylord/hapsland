@@ -16389,6 +16389,54 @@ function $Preparation$retire_entries$(_entries_0, _operation_0) {
   }
 }
 
+function $Preparation$preparing$(_found_0) {
+  if (_found_0.$ === "Some") {
+    const _t_0 = _found_0["value"];
+    const _t_1 = _t_0["kind"];
+    if (_t_1.$ === "Canonical.Preparing") {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    return false;
+  }
+}
+
+function $Preparation$active$(_canonical_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  const _work_0 = _canonical_0["work"];
+  return $Preparation$preparing$(($$$$047agent$045flow$045bend$047Canonical$find_work$(_partition_0, _lifetime_0, _round_0, _operation_0, _work_0)));
+}
+
+function $Preparation$retain_entry_pick$(_keep_0, _entry_0, _remaining_0) {
+  if (_keep_0) {
+    return {$: "Con", "head": _entry_0, "tail": _remaining_0};
+  } else {
+    return _remaining_0;
+  }
+}
+
+function $Preparation$retained_entry$(_entry_0, _remaining_0, _canonical_0) {
+  const _partition_0 = _entry_0["partition"];
+  const _lifetime_0 = _entry_0["lifetime"];
+  const _round_0 = _entry_0["round"];
+  const _operation_0 = _entry_0["operation"];
+  const __0 = _entry_0["unit"];
+  const __1 = _entry_0["position"];
+  const __2 = _entry_0["graph"];
+  return $Preparation$retain_entry_pick$(($Preparation$active$(_canonical_0, _partition_0, _lifetime_0, _round_0, _operation_0)), {$: "Types.GraphEntry", "partition": _partition_0, "lifetime": _lifetime_0, "round": _round_0, "operation": _operation_0, "unit": __0, "position": __1, "graph": __2}, _remaining_0);
+}
+
+function $Preparation$retained$(_entries_0, _canonical_0) {
+  if (_entries_0.$ === "Nil") {
+    return {$: "Nil"};
+  } else {
+    const _head_0 = _entries_0["head"];
+    const _tail_0 = _entries_0["tail"];
+    return $Preparation$retained_entry$(_head_0, ($Preparation$retained$(_tail_0, _canonical_0)), _canonical_0);
+  }
+}
+
 function $Postprocess$preparation_parent$(_found_0) {
   if (_found_0.$ === "Some") {
     const _t_0 = _found_0["value"];
@@ -16604,7 +16652,7 @@ function $settle$(_graphs_0, _scheduler_0, _workloads_0, _random_0, _result_0, _
   if (_result_0.$ === "Canonical.Advanced") {
     const _state_0 = _result_0["state"];
     const _commands_0 = _result_0["commands"];
-    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": _graphs_0, "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($PendingEffects$consumed$(_retiring_0, _event_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
+    return {$: "Transition", "state": {$: "Types.State", "canonical": _state_0, "graphs": ($Preparation$retained$(_graphs_0, _state_0)), "scheduler": _scheduler_0, "workloads": _workloads_0, "random": _random_0, "advicees": _advicees_0, "credentials": ($retained_credentials$(($captured_commands$(_commands_0, _credentials_0)), _state_0)), "opening": ($AdmissionAttempts$consumed$(_opening_0, _event_0)), "retiring": ($PendingEffects$consumed$(_retiring_0, _event_0))}, "result": {$: "Canonical.Advanced", "state": _state_0, "commands": _commands_0}};
   } else {
     const _state_1 = _result_0["state"];
     const _reason_0 = _result_0["reason"];
@@ -17049,6 +17097,10 @@ function $context_credentials$(_state_0, _event_0, _context_0) {
   return $CredentialContext$apply$(($credential_state$(_state_0)), _event_0, _context_0);
 }
 
+function $preparation_active$(_state_0, _partition_0, _lifetime_0, _round_0, _operation_0) {
+  return $Preparation$active$(($canonical$(_state_0)), _partition_0, _lifetime_0, _round_0, _operation_0);
+}
+
 function $Bool$and$(_a_0, _b_0) {
   if (!_a_0) {
     return false;
@@ -17226,7 +17278,7 @@ function $0m1(v) {
 }
 
 
-export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:5f81ab1c4faa708b006a5e7efa0fbb56de7e0a8e4607412289d12f54c5659cdb";
+export const SOURCE_IDENTITY = "shared-monkey-business-source-sha256:50b7ad8cc27e85a0fd7826d9c3ccf1dd43d9c097513714fc9ac45d37d3bc1171";
 export const PREPARATION_SOURCE_IDENTITY = "import-preparation-sha256:21b3255c6e5331343f54a58c07f91ea938d8f08f6dcf4e29830baeb4239152e9";
 
 const facts = value => {
@@ -17242,6 +17294,7 @@ const facts = value => {
   return value;
 };
 export default {
+ preparation_active: (state, partition, lifetime, round, operation) => run_loop($preparation_active$(state, facts(partition), facts(lifetime), facts(round), facts(operation))),
  context_credentials: (state, event, context) => run_loop($context_credentials$(state, facts(event), facts(context))),
  credential_captured: (state, operation) => run_loop($credential_captured$(state, facts(operation))),
  credential_matches: (state, operation) => run_loop($credential_matches$(state, facts(operation))),
