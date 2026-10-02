@@ -190,3 +190,25 @@ export const capturedSharedPermit = (state: EngineState, capture: unknown): unkn
   sharedCheck(state);
   return decodeSharedValue(SharedEngine.permit_actions(state, encodeSharedValue(capture)));
 };
+
+const credentialFacts = decoder(Schema.Struct({ $: Schema.Literal("CredentialFacts.State"), available: Schema.Boolean, generation: Nat }));
+export const sharedCredentialFacts = (state: EngineState) => {
+  sharedCheck(state);
+  return credentialFacts(decodeSharedValue(SharedEngine.credentials(state)));
+};
+export const configureSharedCredentials = (state: EngineState, available: boolean, generation: number): EngineState => {
+  sharedCheck(state);
+  const checked = credentialFacts({ $: "CredentialFacts.State", available, generation });
+  return retain(state, SharedEngine.configure_credentials(state, checked.available, BigInt(checked.generation)));
+};
+export const actSharedCredentials = (state: EngineState, action: "unavailable" | "restore" | "rotate"): EngineState => {
+  sharedCheck(state);
+  if (action === "rotate" && sharedCredentialFacts(state).generation === 281474976710655)
+    throw new RangeError("credential generation outside u48 range");
+  return retain(state, SharedEngine.credential_action(state, action === "restore", action === "rotate"));
+};
+export const interveneSharedRequest = (state: EngineState, target: { readonly partition: number; readonly lifetime: number; readonly round: number; readonly operation: number; readonly request: number }, outcome: unknown, delay: number): unknown => {
+  sharedCheck(state);
+  const binding = { $: "FaultTargets.Target", partition: readNat(target.partition), lifetime: readNat(target.lifetime), round: readNat(target.round), operation: readNat(target.operation), request: readNat(target.request) };
+  return decodeSharedValue(SharedEngine.intervene_request(state, encodeSharedValue(binding), encodeSharedValue(outcome), BigInt(readNat(delay))));
+};

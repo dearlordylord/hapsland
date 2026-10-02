@@ -4,6 +4,9 @@ export interface EngineState { $: "Types.State"; canonical: unknown; graphs: unk
 export interface Transition { $: "Transition"; state: EngineState; result: unknown }
 export type GraphTransition = { $: "Types.GraphTransition"; state: EngineState; before: unknown; result: unknown } | { $: "Types.GraphRejected"; state: EngineState };
 declare const Engine: {
+ scope_event(before: EngineState, after: EngineState, event: unknown, provided: unknown): unknown;
+ scope_command(before: EngineState, after: EngineState, command: unknown, provided: unknown): unknown;
+ scope_select(bindings: unknown, partition: bigint): unknown;
  intervene_request(state: EngineState, target: unknown, outcome: unknown, delay: bigint): unknown;
  declare_advicee(state: EngineState, identity: bigint, seed: number): { state: EngineState; scope: unknown; valid: boolean };
  advicee_identity(state: EngineState, identity: bigint): unknown;

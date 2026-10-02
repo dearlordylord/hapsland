@@ -1,4 +1,5 @@
 import Base
+import ./AdviceeScope.bend as AdviceeScope
 import ./PreparationScenario.bend as PreparationScenario
 import ./TreeFacts.bend as TreeFacts
 import ./Advicees.bend as Advicees
@@ -248,3 +249,12 @@ def credential_action(state: Types.State, available: Bool, rotation: Bool) -> Ty
 
 def generate_tree(seed: Nat, operation: Nat, unit: Nat, profile: TreeFacts.Profile, limits: ImportGraph.Limits) -> PreparationScenario.Generated:
   PreparationScenario.generate(seed, operation, unit, profile, limits)
+
+def scope_event(before: Types.State, after: Types.State, event: Canonical.CanonicalEvent, provided: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+  AdviceeScope.event(canonical(before), canonical(after), event, provided)
+
+def scope_command(before: Types.State, after: Types.State, command: Canonical.Command, provided: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+  AdviceeScope.command(canonical(before), canonical(after), command, provided)
+
+def scope_select(bindings: List<&2, AdviceeScope.Binding>, partition: Nat) -> List<&2, Nat>:
+  AdviceeScope.select(bindings, partition)
