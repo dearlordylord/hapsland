@@ -874,14 +874,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const selected: Array<Advice> = [];
       let selectedFindings: Array<Finding> = [];
       for (const id of eligible) {
-        const advice = residentAdvice().find((item) => item.id === id && item.delivery === undefined);
+        const advice = (yield* residentLedger.advice.snapshots())
+          .find(({ capability, content }) => capability.id === id && content.delivery === undefined)?.capability;
         if (advice === undefined) continue;
         if (!(yield* residentReserveAdviceLease(advice, token))) continue;
         yield* residentAdapter("collection revalidation barrier", () => Promise.resolve(residentBeforeRevalidate?.(advice.id)));
         const validity = yield* residentRevalidate(advice, dispatch);
         const retained = residentAdvice().find((item) => item.id === advice.id);
         const route = residentCandidateRoute({ kind: "validationRouteCheck",
-          ownerCurrent: retained === advice && retained.delivery?.token === token,
+          ownerCurrent: retained === advice && (yield* residentLedger.advice.current(advice)).delivery?.token === token,
           status: validity.status });
         if (route === "ignoreCandidate") continue;
         if (route === "releaseCandidate") {
@@ -937,7 +938,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const validity = yield* residentRevalidate(advice, dispatch);
           const retained = residentAdvice().find((item) => item.id === advice.id);
           const route = residentCandidateRoute({ kind: "validationRouteCheck",
-            ownerCurrent: retained === advice && retained.delivery?.token === token,
+            ownerCurrent: retained === advice && (yield* residentLedger.advice.current(advice)).delivery?.token === token,
             status: validity.status });
           if (route === "ignoreCandidate") continue;
           if (route === "releaseCandidate") {
@@ -981,7 +982,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             else yield* residentReleaseAdviceLease(advice);
             continue;
           }
-          if (advice.delivery?.token !== token) continue;
+          if ((yield* residentLedger.advice.current(advice)).delivery?.token !== token) continue;
           yield* residentLedger.advice.updateDelivery(advice, token, { findings: fitting });
           finalFindings = [...finalFindings, ...fitting];
           final.push(advice);
@@ -1244,9 +1245,9 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const work = composed ? round === undefined ? 0 : (yield* residentLedger.rounds.policyWork(round)).unfinished() : dispatcherWork;
     return Number(composed && residentComposedDelivery.hasPendingEdits(partition)) +
       work +
-      residentAdvice().filter((item) =>
+      (yield* residentLedger.advice.snapshots()).filter(({ capability: item, content }) =>
         (composed ? adviceePartition(item.observation.root, item.observation.advicee) === partition
-          : item.partition === partition) && item.delivery !== undefined).length +
+          : item.partition === partition) && content.delivery !== undefined).length +
       [...residentNotices.entries().map(([, value]) => value)].filter((notice) =>
         (composed ? notice.deliveryGroup === partition : notice.partition === partition) && notice.pending?.delivery !== undefined).length;
   });
@@ -1740,7 +1741,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(existing, ticketUnit), existing.id);
               recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
                 advicee: job.observation.advicee, lifetime: server.lifetime, stage: "findings",
-                findings: existing.findings.length, unitIdentity: item.evaluationKey });
+                findings: (yield* residentLedger.advice.current(existing)).findings.length, unitIdentity: item.evaluationKey });
             } else {
               const pending = residentReuse.pending(item.evaluationKey);
               if (pending === undefined && item.join !== "claimed") {
@@ -2675,7 +2676,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const current = new Map<string, boolean>();
       if (response.status !== "advice") return current;
       for (const advice of residentAdvice()) {
-        if (advice.delivery?.token !== response.token) continue;
+        if ((yield* residentLedger.advice.current(advice)).delivery?.token !== response.token) continue;
         const relativePath = advice.prepared.input.path;
         const captured = yield* captureStable(advice.observation.root, {
           relativePath, absolutePath: resolve(advice.observation.root, relativePath),
@@ -2710,7 +2711,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     const sharedCollect = request.operation === "collect" && request.requestRoute !== "ticketed";
     let invalidCredential = false;
     if (sharedCollect) for (const advice of residentAdvice()) {
-      if (advice.delivery?.token !== response.token || invalidCredential) continue;
+      if (invalidCredential || (yield* residentLedger.advice.current(advice)).delivery?.token !== response.token) continue;
       const generationValid = advice.credentialGeneration === (request.dispatch.credential?.generation ?? null);
       const observed = residentLedger.transition({ kind: "deliveryCredentialObserveCheck",
         invalidSeen: invalidCredential, generationValid,
@@ -2727,12 +2728,12 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     const handoff: Array<Advice> = [];
     for (const advice of [...residentAdvice()]) {
-      if (advice.delivery?.token !== response.token) continue;
+      if ((yield* residentLedger.advice.current(advice)).delivery?.token !== response.token) continue;
       const route = residentCandidateRoute({ kind: "finalCandidateCheck",
         ownerCurrent: true, credentialGeneration: true, credentialAuthorized: true,
         expired: !residentRoundActive(advice.round) || residentAdviceExpired(advice, now),
         workCurrent: (yield* residentIsCurrentWork(advice.revision, advice.prepared)) && sourceCurrent.get(advice.id) === true,
-        hasFindings: advice.delivery.findings.length > 0 });
+        hasFindings: ((yield* residentLedger.advice.current(advice)).delivery?.findings.length ?? 0) > 0 });
       if (route === "retireCandidate") {
         yield* residentRemoveAdvice(advice.id, response.token);
         continue;
