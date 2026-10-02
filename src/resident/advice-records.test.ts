@@ -278,3 +278,20 @@ it.effect("retires advice once across competing deferred removals", () => Effect
   expect(yield* owner.revision.count()).toBe(0);
   expect(owner.snapshot().items).toBe(0);
 }));
+
+
+it.effect("reads immutable advice snapshots at execution and fences copied capabilities", () => Effect.gen(function* () {
+  const { owner, initial } = yield* fixture();
+  const advice = yield* owner.advice.insert(initial);
+  const read = owner.advice.current(advice);
+  const before = yield* read;
+  expect(Object.isFrozen(before)).toBe(true);
+  expect(before.collectionEligible).toBe(false);
+  yield* owner.advice.eligible(advice, false);
+  expect((yield* read).collectionEligible).toBe(true);
+  expect(before.collectionEligible).toBe(false);
+  expect((yield* owner.advice.current({ ...advice })).findings).toEqual([]);
+  yield* owner.advice.remove(advice, "stale");
+  expect((yield* read).findings).toEqual([]);
+  expect(before.findings).toEqual(initial.findings);
+}));

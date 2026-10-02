@@ -139,3 +139,8 @@ if (!state.includes('remove: Effect.fn("AdviceRecords.remove")') ||
     !server.includes('yield* residentExpirePending(now)')) {
   throw new Error("advice retirement and expiry must compose Effects");
 }
+
+if (!state.includes('current: Effect.fn("AdviceRecords.current")') ||
+    !server.includes('yield* residentLedger.advice.current(advice)')) {
+  throw new Error("advice lease inspection must use the explicit Effect snapshot read");
+}

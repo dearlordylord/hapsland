@@ -746,7 +746,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentReleaseAdviceLease = Effect.fn("ResidentRuntime.releaseAdviceLease")((advice: Advice) => residentLedger.advice.releaseLease(advice));
 
   const residentCheckAdviceLease = Effect.fn("ResidentRuntime.checkAdviceLease")(function* (advice: Advice, now: number, stopCollector: boolean, sameGroup: boolean) {
-    const delivery = advice.delivery;
+    const { delivery } = yield* residentLedger.advice.current(advice);
     yield* residentLedger.advice.checkLease(advice, now, stopCollector, sameGroup,
       delivery !== undefined && stopCollector && sameGroup &&
         residentComposedDelivery.backgroundReofferable(advice.id, delivery.token));

@@ -150,7 +150,8 @@
     "Advice lease release, delivery cleanup and composed-submission cleanup compose Effects; interrupted collection and native IPC finalizers yield cleanup directly, uninterruptible release preserved",
     "Advice capture acquisition composes a named atomic Effect; revalidation acquires through an Effect generator",
     "Capture service composes Effects throughout: resize, retirement and completion commit atomically; count reads a snapshot; revalidation finalizer composes physical settlement directly; synchronous captureCommit removed",
-    "Advice retirement and expiry compose named Effects; collection, statistics, round close and shutdown callers yield retirement; synchronous adviceCommit removed, all advice mutations now compose Effects"
+    "Advice retirement and expiry compose named Effects; collection, statistics, round close and shutdown callers yield retirement; synchronous adviceCommit removed, all advice mutations now compose Effects",
+    "Explicit AdviceRecords.current Effect reads immutable content from one identity-fenced snapshot; lease checking consumes the snapshot directly"
   ],
   "verification": [
     {
@@ -1905,12 +1906,21 @@
       "build": true,
       "boundaryChecksPassed": 15,
       "cases": "Sixteen competing removals retire once and clear revision/capacity accounting; invalid submission transition preserves pre-retirement snapshot"
+    },
+    {
+      "stage": "advice-explicit-snapshot-read",
+      "testsPassed": 101,
+      "testFiles": 2,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "case": "Reusable current read observes eligibility at execution; older immutable snapshot stays stable; copied/retired capabilities return empty content"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Finish advice Effect reads and immutable metadata snapshots, then remaining capacity, reuse, delivery and notice domain bridges",
+    "Replace all advice getter and synchronous values callers with explicit snapshot/values Effects, remove getters; then remaining capacity, reuse, delivery and notice domain bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
@@ -1927,7 +1937,8 @@
     "Previous server-sampled peak figures can omit transient capture reservations; retain them as historical diagnostic evidence, not final peak-retention validation",
     "Round-record mutation Effect physical run preserves all eight settlement invariants and comparable budgets, but shutdown P95 11.475841ms exceeds the unchanged numeric 10.6382545ms formula. Fixed baseline remains physically invalid; retain this miss and do not claim all comparative budgets verified.",
     "Round-read/snapshot physical run preserves all settlement invariants and comparable budgets, but shutdown P95 11.841803ms exceeds the unchanged numeric 10.6382545ms formula. The baseline remains physically invalid; performance remains unresolved for final migration validation.",
-    "Revision-release physical run passes all eight settlement invariants and comparable budgets. Shutdown P95 15.746528ms exceeds the unchanged numeric 10.6382545ms formula; fixed baseline remains physically invalid. Retain this miss for final performance audit."
+    "Revision-release physical run passes all eight settlement invariants and comparable budgets. Shutdown P95 15.746528ms exceeds the unchanged numeric 10.6382545ms formula; fixed baseline remains physically invalid. Retain this miss for final performance audit.",
+    "Advice current snapshot read is adopted by lease checking; remaining live content getters and synchronous values reader are intermediate migration work and must be removed before completion."
   ],
   "cleanup": {
     "trigger": "Production ResidentState replacement and migration completion",

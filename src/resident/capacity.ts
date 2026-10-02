@@ -464,6 +464,10 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         return [value, { ...records, advice }];
       };
       return {
+        current: Effect.fn("AdviceRecords.current")((capability: Advice) => Ref.get(state).pipe(Effect.map((snapshot) => {
+          const retained = snapshot.records.advice.entries.get(capability.id);
+          return retained?.capability === capability ? retained.content : emptyAdviceContent;
+        }))),
         values: (): ReadonlyArray<Advice> => [...Ref.getUnsafe(state).records.advice.entries.values()]
           .map(({ capability }) => capability).sort((left, right) => left.sequence - right.sequence),
         insert: Effect.fn("AdviceRecords.insert")((initial: AdviceInitial): Effect.Effect<Advice> => commitAllEffect(adviceChange((operations) => operations.insert(initial, (metadata) => {
