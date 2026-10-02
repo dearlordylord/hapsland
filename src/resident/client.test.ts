@@ -46,7 +46,7 @@ describe("resident client trust boundary", () => {
     const launchCalls: Array<{ readonly at: number; readonly budget: number }> = [];
     const probeBudgets: Array<number> = [];
     const dependencies: ResidentStartupOperations = {
-      now: () => clock,
+      now: Effect.sync(() => clock),
       clearDiagnostic: () => Effect.void,
       diagnostic: () => Effect.succeed(""),
       prepare: (_paths, timeoutMs) => Effect.sync(() => {
@@ -78,7 +78,7 @@ describe("resident client trust boundary", () => {
     let ownerPresent = true;
     const calls: Array<{ readonly operation: string; readonly at: number; readonly budget: number }> = [];
     const dependencies: ResidentStartupOperations = {
-      now: () => clock,
+      now: Effect.sync(() => clock),
       clearDiagnostic: () => Effect.void,
       diagnostic: () => Effect.succeed(""),
       prepare: (_paths, timeoutMs) => Effect.sync(() => {
@@ -231,7 +231,7 @@ describe("resident client trust boundary", () => {
     }));
     yield* Effect.promise(() => chmod(paths.socket, 0o600));
     const startup = ResidentStartup.of({
-      now: () => performance.now(),
+      now: Effect.sync(() => performance.now()),
       prepare: () => Effect.void,
       probe: () => Effect.succeed({ status: "ready", lifetime: "owner", pid: 1 }),
       launch: () => Effect.die("an available owner must not launch"),

@@ -100,7 +100,7 @@ export const residentRequestEffect = Effect.fn("ResidentClient.request")(functio
 });
 
 export interface ResidentStartupOperations {
-  readonly now: () => number;
+  readonly now: Effect.Effect<number>;
   readonly prepare: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, ResidentEndpointError>;
   readonly probe: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<ResidentResponse, ResidentIpcError | ResidentEndpointError>;
   readonly launch: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, ResidentIpcError>;
@@ -111,12 +111,12 @@ export interface ResidentStartupOperations {
 export class ResidentStartup extends Context.Service<ResidentStartup, ResidentStartupOperations>()("hapsland/ResidentStartup") {}
 
 export class ResidentLauncher extends Context.Service<ResidentLauncher, {
-  readonly now: () => number;
+  readonly now: Effect.Effect<number>;
   readonly spawn: (paths: ResidentPaths) => Effect.Effect<void, ResidentIpcError>;
 }>()("hapsland/ResidentLauncher") {}
 
 const residentLauncherLayer = Layer.succeed(ResidentLauncher, ResidentLauncher.of({
-  now: () => performance.now(),
+  now: monotonicMillis,
   spawn: Effect.fn("ResidentLauncher.spawn")(function* (paths: ResidentPaths) {
     const compiled = fileURLToPath(new URL("./main.js", import.meta.url));
     const source = fileURLToPath(new URL("./main.ts", import.meta.url));
@@ -149,7 +149,7 @@ export const makeResidentStartup = Effect.gen(function* () {
   const launcher = yield* ResidentLauncher;
   const launches = yield* Ref.make<ReadonlyMap<string, { readonly expiry: number }>>(new Map());
   const launch = Effect.fn("ResidentStartup.launch")(function* (paths: ResidentPaths, _timeoutMs: number) {
-    const now = launcher.now();
+    const now = yield* launcher.now;
     const claim = yield* Ref.modify(launches, (current) => {
       const next = new Map([...current].filter(([, value]) => value.expiry > now));
       if (next.has(paths.lock)) return [undefined, next] as const;
@@ -188,28 +188,28 @@ export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(f
   const dependencies = yield* ResidentStartup;
   const ready = (response: Extract<ResidentResponse, { status: "ready" }>) =>
     dependencies.clearDiagnostic(paths).pipe(Effect.as(response));
-  const deadline = dependencies.now() + readinessMs;
-  const remaining = () => Math.max(0, deadline - dependencies.now());
-  yield* dependencies.prepare(paths, remaining()).pipe(Effect.timeoutOrElse({
-    duration: remaining(),
+  const deadline = (yield* dependencies.now) + readinessMs;
+  const remaining = dependencies.now.pipe(Effect.map((now) => Math.max(0, deadline - now)));
+  yield* dependencies.prepare(paths, (yield* remaining)).pipe(Effect.timeoutOrElse({
+    duration: (yield* remaining),
     orElse: () => Effect.fail(new ResidentIpcError({ message: "resident endpoint preparation timed out" })),
   }));
-  if (remaining() <= 0) return yield* Effect.fail(new ResidentIpcError({ message: "resident readiness deadline exceeded" }));
+  if ((yield* remaining) <= 0) return yield* Effect.fail(new ResidentIpcError({ message: "resident readiness deadline exceeded" }));
   const probe = (timeoutMs: number) => dependencies.probe(paths, timeoutMs).pipe(Effect.catch(() => Effect.succeed(undefined)));
   // Failed probes do not determine death; atomic owner acquisition protects
   // contending servers and stale recovery checks process liveness.
-  const existing = yield* probe(Math.min(250, remaining()));
+  const existing = yield* probe(Math.min(250, (yield* remaining)));
   if (existing?.status === "ready") return yield* ready(existing);
   let lastLaunch = Number.NEGATIVE_INFINITY;
-  while (remaining() > 0) {
-    if (dependencies.now() - lastLaunch >= 500) {
-      yield* dependencies.launch(paths, remaining());
-      lastLaunch = dependencies.now();
+  while ((yield* remaining) > 0) {
+    if ((yield* dependencies.now) - lastLaunch >= 500) {
+      yield* dependencies.launch(paths, (yield* remaining));
+      lastLaunch = (yield* dependencies.now);
     }
-    if (remaining() <= 0) break;
-    const response = yield* probe(Math.min(250, remaining()));
+    if ((yield* remaining) <= 0) break;
+    const response = yield* probe(Math.min(250, (yield* remaining)));
     if (response?.status === "ready") return yield* ready(response);
-    const backoff = Math.min(50, remaining());
+    const backoff = Math.min(50, (yield* remaining));
     if (backoff > 0) yield* dependencies.wait(backoff);
   }
   const diagnostic = yield* dependencies.diagnostic(paths);

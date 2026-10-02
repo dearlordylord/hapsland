@@ -3140,5 +3140,29 @@
       "src/resident/client.ts": "c9d7b547bd7e6d319e43aa02e380c5ef2ad2238d27454005bb48163b44e72eb6"
     },
     "remaining": "ResidentStartup/ResidentLauncher injected synchronous time, readiness loop/Schedule, and externally supplied performance-based deadlines require coordinated migration. No full-suite or platform support claim."
+  },
+  "residentStartupClockPort": {
+    "status": "ResidentStartup and ResidentLauncher time capabilities are Effects",
+    "behavior": "Production reads caller Clock.currentTimeNanos. Launch claim expiry stays 2000ms; readiness deadline, 500ms launch cadence, 250ms probe caps and 50ms wait caps unchanged. No synchronous Ref.getUnsafe clock bridge remains in startup tests.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/resident/client.test.ts src/resident/client-startup.test.ts src/resident/subprocess.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 3,
+        "tests": 29,
+        "durationSeconds": 49.31
+      }
+    ],
+    "clockEvidence": "TestClock advances 1999ms then 1ms; the launch claim blocks the former and expires at 2000ms. Existing tests cover shared acquisition, old-claim fencing, retry after launch failure, interrupted native spawn acknowledgement and absolute readiness budget.",
+    "sourceSha256": {
+      "src/resident/client.ts": "f84bbf7e0e0b011c3d190400ddd56eab60f962bde6cc7e1d5350e3744f762cbb",
+      "src/resident/client-startup.test.ts": "a6e1370449c098accb8832cd0f05bd7b58912ef384acc397214f669f79ec9f0c",
+      "src/resident/client.test.ts": "746e1474fe54e082a066f37bff3825d9b7b966bdf2738d035370eb96b35bc8fb"
+    },
+    "remaining": "Readiness repetition still uses a manual loop and injected wait; migrate it to Schedule without changing caps or absolute budget. Externally supplied hook performance deadlines, installation Config, interactive workflows and final complete gates remain."
   }
 }

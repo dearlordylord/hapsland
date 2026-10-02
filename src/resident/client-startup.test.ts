@@ -1,6 +1,7 @@
+import * as TestClock from "effect/testing/TestClock";
 import { it } from "@effect/vitest";
 import { expect } from "vitest";
-import { Deferred, Effect, Exit, Fiber, Layer, Ref } from "effect";
+import { Clock, Deferred, Effect, Exit, Fiber, Layer, Ref } from "effect";
 import { ResidentIpcError, ResidentLauncher, makeResidentStartup } from "./client.ts";
 import { residentPaths } from "./paths.ts";
 
@@ -10,7 +11,7 @@ it.effect("shares launch throttling in one acquisition and isolates another acqu
   const clock = yield* Ref.make(0);
   const spawned = yield* Ref.make<ReadonlyArray<string>>([]);
   const platform = Layer.succeed(ResidentLauncher, ResidentLauncher.of({
-    now: () => Ref.getUnsafe(clock),
+    now: Ref.get(clock),
     spawn: (endpoint) => Ref.update(spawned, (values) => [...values, endpoint.lock]),
   }));
   const recipe = makeResidentStartup.pipe(Effect.provide(platform));
@@ -31,7 +32,7 @@ it.effect("shares launch throttling in one acquisition and isolates another acqu
 it.effect("releases a failed launch claim so the same endpoint can retry immediately", () => Effect.gen(function* () {
   const calls = yield* Ref.make(0);
   const startup = yield* makeResidentStartup.pipe(Effect.provideService(ResidentLauncher, ResidentLauncher.of({
-    now: () => 0,
+    now: Effect.succeed(0),
     spawn: () => Ref.updateAndGet(calls, (count) => count + 1).pipe(Effect.flatMap((count) =>
       count === 1 ? Effect.fail(new ResidentIpcError({ message: "controlled launch failure" })) : Effect.void)),
   })));
@@ -46,7 +47,7 @@ it.effect("an old launch failure cannot erase a newer claim after expiry", () =>
   const started = yield* Deferred.make<void>();
   const finish = yield* Deferred.make<void>();
   const startup = yield* makeResidentStartup.pipe(Effect.provideService(ResidentLauncher, ResidentLauncher.of({
-    now: () => Ref.getUnsafe(clock),
+    now: Ref.get(clock),
     spawn: () => Effect.gen(function* () {
       const count = yield* Ref.updateAndGet(calls, (value) => value + 1);
       if (count !== 1) return;
@@ -71,7 +72,7 @@ it.effect("waits for native spawn acknowledgement through interruption", () => E
   const calls = yield* Ref.make(0);
   const acknowledged = yield* Ref.make(false);
   const startup = yield* makeResidentStartup.pipe(Effect.provideService(ResidentLauncher, ResidentLauncher.of({
-    now: () => 0,
+    now: Effect.succeed(0),
     spawn: () => Effect.gen(function* () {
       yield* Ref.update(calls, (count) => count + 1);
       yield* Deferred.succeed(started, undefined);
@@ -88,4 +89,19 @@ it.effect("waits for native spawn acknowledgement through interruption", () => E
   yield* Deferred.succeed(finish, undefined);
   yield* Fiber.join(interrupting);
   expect(yield* Ref.get(acknowledged)).toBe(true);
+}));
+
+it.effect("launch claim expiry follows the caller Effect clock", () => Effect.gen(function* () {
+  const calls = yield* Ref.make(0);
+  const startup = yield* makeResidentStartup.pipe(Effect.provideService(ResidentLauncher, ResidentLauncher.of({
+    now: Clock.currentTimeNanos.pipe(Effect.map((now) => Number(now / 1_000_000n))),
+    spawn: () => Ref.update(calls, (count) => count + 1),
+  })));
+  yield* startup.launch(paths, 10_000);
+  yield* TestClock.adjust("1999 millis");
+  yield* startup.launch(paths, 10_000);
+  expect(yield* Ref.get(calls)).toBe(1);
+  yield* TestClock.adjust("1 millis");
+  yield* startup.launch(paths, 10_000);
+  expect(yield* Ref.get(calls)).toBe(2);
 }));
