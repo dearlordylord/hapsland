@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect";
-import { access, readFile, realpath } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { configurationError, ConfigurationError } from "../configuration/errors.ts";
 import type { ConfigurationLayer } from "../configuration/resolve.ts";
@@ -95,72 +95,42 @@ const pathInside = (root: string, candidate: string): boolean => {
   return value === "" || (value !== ".." && !value.startsWith("../") && !value.startsWith("..\\") && !isAbsolute(value));
 };
 
-const canonicalPath = async (
-  candidate: string,
-  root: string,
-  origin: RulePackOrigin,
-): Promise<{ readonly path: string; readonly root: string }> => {
-  let canonicalRoot: string;
-  let canonicalCandidate: string;
-  try {
-    canonicalRoot = await realpath(root);
-  } catch {
-    canonicalRoot = resolve(root);
-  }
-  try {
-    canonicalCandidate = await realpath(candidate);
-  } catch {
-    throw configurationError(origin.source, origin.field, "rule-pack file does not exist");
-  }
+const validate = Effect.fn("RulePacks.validate")(<A>(source: string, field: string, read: () => A) => Effect.try({
+  try: read, catch: (cause) => cause instanceof ConfigurationError ? cause : configurationError(source, field, "rule-pack loading failed"),
+}));
+const nativeRead = Effect.fn("RulePacks.nativeRead")(<A>(source: string, field: string, read: () => Promise<A>, reason: string) =>
+  Effect.tryPromise({ try: read, catch: () => configurationError(source, field, reason) }).pipe(Effect.uninterruptible));
+
+const canonicalPath = Effect.fn("RulePacks.canonicalPath")(function* (candidate: string, root: string, origin: RulePackOrigin) {
+  const canonicalRoot = yield* nativeRead(origin.source, origin.field, () => realpath(root), "root is unavailable").pipe(
+    Effect.catch(() => Effect.succeed(resolve(root))),
+  );
+  const canonicalCandidate = yield* nativeRead(origin.source, origin.field, () => realpath(candidate), "rule-pack file does not exist");
   if (origin.layer === "project" && !pathInside(canonicalRoot, canonicalCandidate)) {
-    throw configurationError(
-      origin.source,
-      origin.field,
-      "project rule-pack references must stay inside the Git working tree",
-    );
+    return yield* configurationError(origin.source, origin.field, "project rule-pack references must stay inside the Git working tree");
   }
   return { path: canonicalCandidate, root: canonicalRoot };
-};
+});
 
 const baseDirectory = (source: string): string => {
   if (source === "built-in" || source.startsWith("built-in:")) return process.cwd();
   return dirname(resolve(source));
 };
 
-const readPack = async (
-  reference: RulePackReference,
-  root: string,
-): Promise<LoadedRulePack> => {
+const readPack = Effect.fn("RulePacks.readPack")(function* (reference: RulePackReference, root: string) {
   if (reference.path === undefined) {
-    throw configurationError(reference.origin.source, reference.origin.field, "inherited pack reference needs an earlier pack declaration");
+    return yield* configurationError(reference.origin.source, reference.origin.field, "inherited pack reference needs an earlier pack declaration");
   }
-  const requested = isAbsolute(reference.path)
-    ? resolve(reference.path)
-    : resolve(baseDirectory(reference.origin.source), reference.path);
-  const resolved = await canonicalPath(requested, root, reference.origin);
-  try {
-    await access(resolved.path);
-    const sourceText = await readFile(resolved.path, "utf8");
-    const decoded = decodeRulePackText(sourceText, resolved.path, reference.origin);
-    if (reference.id !== undefined && reference.id !== decoded.id) {
-      throw configurationError(
-        reference.origin.source,
-        `${reference.origin.field}.id`,
-        `pack reference id '${reference.id}' does not match declared id '${decoded.id}'`,
-      );
-    }
-    return {
-      ...decoded,
-      origin: reference.origin,
-      path: resolved.path,
-      enabled: reference.enabled ?? true,
-      reference,
-    };
-  } catch (cause) {
-    if (cause instanceof ConfigurationError) throw cause;
-    throw configurationError(resolved.path, "$", "rule pack could not be read");
+  const requested = isAbsolute(reference.path) ? resolve(reference.path) : resolve(baseDirectory(reference.origin.source), reference.path);
+  const resolved = yield* canonicalPath(requested, root, reference.origin);
+  const sourceText = yield* nativeRead(resolved.path, "$", () => readFile(resolved.path, "utf8"), "rule pack could not be read");
+  const decoded = yield* validate(resolved.path, "$", () => decodeRulePackText(sourceText, resolved.path, reference.origin));
+  if (reference.id !== undefined && reference.id !== decoded.id) {
+    return yield* configurationError(reference.origin.source, `${reference.origin.field}.id`,
+      `pack reference id '${reference.id}' does not match declared id '${decoded.id}'`);
   }
-};
+  return { ...decoded, origin: reference.origin, path: resolved.path, enabled: reference.enabled ?? true, reference };
+});
 
 const mergeLayeredReference = (
   existing: LoadedRulePack,
@@ -197,9 +167,7 @@ const mergeLayeredReference = (
  * Load bundled plus explicitly referenced local packs. All validation happens
  * before the compiler can expose a partial rule set to the review runtime.
  */
-export const loadRulePacks = async (
-  options: LoadRulePacksOptions,
-): Promise<ReadonlyArray<LoadedRulePack>> => {
+export const loadRulePacks = Effect.fn("RulePacks.load")(function* (options: LoadRulePacksOptions) {
   const root = resolve(options.root);
   const loaded = new Map<string, LoadedRulePack>();
   const seenWithinLayer = new Set<string>();
@@ -216,11 +184,11 @@ export const loadRulePacks = async (
       enabled: true,
     });
   }
-  for (const reference of referencesFromLayers(options.layers)) {
+  for (const reference of yield* validate(options.root, "packs", () => referencesFromLayers(options.layers))) {
     const layerKey = `${reference.origin.layer}:${reference.origin.source}`;
     const declarationKey = `${layerKey}:${reference.id ?? reference.path ?? ""}`;
     if (seenWithinLayer.has(declarationKey)) {
-      throw configurationError(reference.origin.source, reference.origin.field, "duplicate pack declaration");
+      return yield* configurationError(reference.origin.source, reference.origin.field, "duplicate pack declaration");
     }
     seenWithinLayer.add(declarationKey);
     const inherited = reference.path === undefined && reference.id === undefined
@@ -230,7 +198,7 @@ export const loadRulePacks = async (
         : undefined;
     if (reference.path === undefined) {
       if (reference.id === undefined || inherited === undefined) {
-        throw configurationError(reference.origin.source, reference.origin.field, "inherited pack reference needs an earlier pack declaration");
+        return yield* configurationError(reference.origin.source, reference.origin.field, "inherited pack reference needs an earlier pack declaration");
       }
       loaded.set(reference.id, {
         ...inherited,
@@ -240,31 +208,19 @@ export const loadRulePacks = async (
       });
       const inheritedKey = `${reference.origin.layer}:${reference.origin.source}:${reference.id}`;
       if (seenPackIdsWithinLayer.has(inheritedKey)) {
-        throw configurationError(reference.origin.source, reference.origin.field, "duplicate pack declaration");
+        return yield* configurationError(reference.origin.source, reference.origin.field, "duplicate pack declaration");
       }
       seenPackIdsWithinLayer.add(inheritedKey);
       continue;
     }
-    const pack = await readPack(reference, root);
+    const pack = yield* readPack(reference, root);
     const packKey = `${reference.origin.layer}:${reference.origin.source}:${pack.id}`;
     if (seenPackIdsWithinLayer.has(packKey)) {
-      throw configurationError(reference.origin.source, reference.origin.field, "duplicate pack declaration");
+      return yield* configurationError(reference.origin.source, reference.origin.field, "duplicate pack declaration");
     }
     seenPackIdsWithinLayer.add(packKey);
     const previous = loaded.get(pack.id);
-    loaded.set(pack.id, previous === undefined ? pack : mergeLayeredReference(previous, pack));
+    loaded.set(pack.id, previous === undefined ? pack : yield* validate(reference.origin.source, reference.origin.field, () => mergeLayeredReference(previous, pack)));
   }
   return [...loaded.values()];
-};
-
-export const loadRulePacksEffect = Effect.fn("RulePacks.load")(function* (
-  options: LoadRulePacksOptions,
-) {
-  return yield* Effect.tryPromise({
-    try: () => loadRulePacks(options),
-    catch: (cause) =>
-      cause instanceof ConfigurationError
-        ? cause
-        : configurationError(options.root, "packs", "rule-pack loading failed"),
-  });
 });

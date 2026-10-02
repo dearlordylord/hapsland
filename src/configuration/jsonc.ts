@@ -1,5 +1,3 @@
-import { readFile } from "node:fs/promises";
-
 export class JsoncParseError extends Error {
   readonly code = "jsonc_parse_error" as const;
 
@@ -202,6 +200,3 @@ export const parseJsonc = (text: string): unknown => {
     throw new JsoncParseError("configuration is not valid JSONC");
   }
 };
-
-export const readJsonc = async (path: string): Promise<unknown> =>
-  parseJsonc(await readFile(path, "utf8"));

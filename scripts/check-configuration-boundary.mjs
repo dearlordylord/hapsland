@@ -101,6 +101,11 @@ if (/spawnSync\(|Effect\.run(?:Sync|Promise|Fork)\(|\basync\b/u.test(distributio
     !distribution.includes("yield* execFileClosedStdin(")) {
   throw new Error("release staging must compose scoped native process Effects");
 }
+for (const path of ["src/rules/loader.ts", "src/configuration/load.ts"]) {
+  if (/\basync\b|Effect\.run(?:Sync|Promise|Fork)\(/u.test(read(path))) {
+    throw new Error(`${path} must compose Effects directly without an async facade`);
+  }
+}
 
 const doctor = read("src/onboarding/doctor.ts");
 if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||

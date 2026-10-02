@@ -9,7 +9,6 @@ import {
   resolveConfiguration,
   type ConfigurationLayer,
 } from "./resolve.ts";
-import type { ConfigurationCapture } from "./types.ts";
 
 export const PROJECT_CONFIGURATION_FILES = [
   ".review.jsonc",
@@ -30,23 +29,18 @@ export type LoadConfigurationOptions = {
   readonly projectConfigPath?: string;
 };
 
-const exists = async (path: string): Promise<boolean> => {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-};
+const exists = Effect.fn("Configuration.exists")((path: string) => Effect.tryPromise({
+  try: () => access(path), catch: () => false,
+}).pipe(Effect.as(true), Effect.catch(() => Effect.succeed(false)), Effect.uninterruptible));
 
-const readDocument = (path: string) =>
-  Effect.tryPromise({
-    try: async () => decodeConfigurationText(await readFile(path, "utf8"), path),
-    catch: (cause) =>
-      cause instanceof ConfigurationError
-        ? cause
-        : configurationError(path, "$", "configuration could not be read"),
+const readDocument = Effect.fn("Configuration.readDocument")(function* (path: string) {
+  const source = yield* Effect.tryPromise({ try: () => readFile(path, "utf8"),
+    catch: () => configurationError(path, "$", "configuration could not be read"),
+  }).pipe(Effect.uninterruptible);
+  return yield* Effect.try({ try: () => decodeConfigurationText(source, path),
+    catch: (cause) => cause instanceof ConfigurationError ? cause : configurationError(path, "$", "configuration could not be read"),
   });
+});
 
 const projectPath = Effect.fn("Configuration.findProject")(function* (
   root: string,
@@ -63,12 +57,12 @@ const projectPath = Effect.fn("Configuration.findProject")(function* (
         reason: "project configuration must be inside the Git working tree",
       });
     }
-    return (yield* Effect.promise(() => exists(candidate))) ? candidate : undefined;
+    return (yield* exists(candidate)) ? candidate : undefined;
   }
   const found: Array<string> = [];
   for (const name of PROJECT_CONFIGURATION_FILES) {
     const candidate = join(canonicalRoot, name);
-    if (yield* Effect.promise(() => exists(candidate))) found.push(candidate);
+    if (yield* exists(candidate)) found.push(candidate);
   }
   if (found.length > 1) {
     return yield* new ConfigurationError({
@@ -94,7 +88,7 @@ export const loadConfiguration = Effect.fn("Configuration.load")(function* (
   const layers: Array<ConfigurationLayer> = [];
   const project = yield* projectPath(canonicalRoot, options.projectConfigPath);
   const user = userPath(options);
-  if (yield* Effect.promise(() => exists(user))) {
+  if (yield* exists(user)) {
     layers.push({
       name: "user",
       source: user,
@@ -122,8 +116,3 @@ export const loadConfiguration = Effect.fn("Configuration.load")(function* (
   }
   return captureConfiguration(policy);
 });
-
-export const loadConfigurationAtRoot = (
-  root: string,
-  options?: LoadConfigurationOptions,
-) => loadConfiguration(root, options);

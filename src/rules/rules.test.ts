@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -172,7 +173,7 @@ describe("layered local pack loading and compilation", () => {
         source: configPath,
         document: decodeConfigurationText('{"version":1,"packs":["rules/team.jsonc"]}', configPath),
       };
-      const packs = await loadRulePacks({ root, layers: [layer] });
+      const packs = await Effect.runPromise(loadRulePacks({ root, layers: [layer] }));
       const rules = compileRules({ packs, layers: [layer] });
       expect(rules.map((rule) => rule.qualifiedId)).toContain("team/has-question");
       const localRules = rules.filter((rule) => rule.packId === "team");
@@ -205,7 +206,7 @@ describe("layered local pack loading and compilation", () => {
         source: configPath,
         document: decodeConfigurationText('{"version":1,"packs":["rules/team.jsonc"]}', configPath),
       };
-      const packs = await loadRulePacks({ root, layers: [layer] });
+      const packs = await Effect.runPromise(loadRulePacks({ root, layers: [layer] }));
       const rules = compileRules({ packs, layers: [layer] });
       const localRules = rules.filter((rule) => rule.packId === "team");
       expect(localRules).toHaveLength(1);
@@ -229,7 +230,7 @@ describe("layered local pack loading and compilation", () => {
         source: configPath,
         document: decodeConfigurationText(JSON.stringify({ version: 1, packs: [outsidePack] }), configPath),
       };
-      await expect(loadRulePacks({ root, layers: [escapeLayer] })).rejects.toThrow(ConfigurationError);
+      await expect(Effect.runPromise(loadRulePacks({ root, layers: [escapeLayer] }))).rejects.toThrow(ConfigurationError);
 
       const first = join(root, "first.jsonc");
       const second = join(root, "second.jsonc");
@@ -240,7 +241,7 @@ describe("layered local pack loading and compilation", () => {
         source: configPath,
         document: decodeConfigurationText(JSON.stringify({ version: 1, packs: ["first.jsonc", "second.jsonc"] }), configPath),
       };
-      await expect(loadRulePacks({ root, layers: [rebindLayer] })).rejects.toThrow(ConfigurationError);
+      await expect(Effect.runPromise(loadRulePacks({ root, layers: [rebindLayer] }))).rejects.toThrow(ConfigurationError);
 
       const pack = decodeRulePackText(packText(), first);
       const loaded = [{

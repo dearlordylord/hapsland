@@ -11,7 +11,7 @@ import {
 import type { ConfigurationCapture } from "../configuration/types.ts";
 import { DEFAULT_CREDENTIAL_ENV_VAR } from "../configuration/types.ts";
 import { compileRules, type CompiledRule } from "../rules/compiler.ts";
-import { loadRulePacksEffect } from "../rules/loader.ts";
+import { loadRulePacks } from "../rules/loader.ts";
 import { configuredRules } from "../policy/rules.ts";
 import {
   JEV_API_BASE,
@@ -77,7 +77,7 @@ export const loadReviewSettings = Effect.fn("ReviewConfig.load")(function* (
         }),
     ),
   );
-  const packs = yield* loadRulePacksEffect({
+  const packs = yield* loadRulePacks({
     root,
     layers: capture.policy.layers,
   }).pipe(

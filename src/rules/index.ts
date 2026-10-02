@@ -21,7 +21,6 @@ export {
 } from "./bundled.ts";
 export {
   loadRulePacks,
-  loadRulePacksEffect,
   type LoadRulePacksOptions,
   type LoadedRulePack,
   type RulePackReference,
