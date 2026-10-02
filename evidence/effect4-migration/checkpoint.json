@@ -4181,5 +4181,27 @@
     "skippedTests": 2,
     "durationSeconds": 389.15,
     "limitations": "Offline full suite, including new native IPC context regression. Two live tests are credential gated; separate two-attempt live Decision contract receipt remains applicable to unchanged Jev provider source."
+  },
+  "latestOriginalAndPhysicalPerformance": {
+    "productionSourceCommit": "0c86f40",
+    "originalBudgets": "pass",
+    "physicalInvariants": "all-eight-pass",
+    "physicalComparableBudgets": "pass",
+    "physicalShutdownComparison": "unproven; fixed baseline exits before physical settlement, current numeric shutdown 11.943252999999913ms exceeds its invalid formula 10.752943000000414ms, no comparative speed pass",
+    "evidence": [
+      "benchmark-current-ipc-final.json",
+      "benchmark-current-ipc-final-comparison.json",
+      "physical-retirement-current-ipc-final.json",
+      "physical-retirement-current-ipc-final-comparison.json"
+    ],
+    "reproducer": "resident-benchmark.mjs and physical-retirement-benchmark.mjs at unchanged workloads; compare-benchmarks.mjs checks declaration and baseline ratios/allowances."
+  },
+  "latestInstalledPackageCompletion": {
+    "productionSourceCommit": "0c86f40",
+    "receipt": "installed-package-current.json",
+    "verdict": "clean-package-and-real-host-passed",
+    "host": "Codex CLI 0.155.1",
+    "archiveSha256": "e46594c28d7d13004dc3e043e8516b27b375e0b26bd7997f9356c02d6a02fd34",
+    "limitations": "Fresh Linux pack/install and one controlled synthetic native host case, native trust without bypass; no current macOS acceptance."
   }
 }

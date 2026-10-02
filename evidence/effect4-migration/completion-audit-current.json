@@ -44,8 +44,8 @@
       "requirement": "Physical retirement, bounded concurrency, interruption and shutdown fences",
       "status": "pass",
       "evidence": [
-        "physical-retirement-current-final.json",
-        "physical-retirement-current-final-comparison.json"
+        "physical-retirement-current-ipc-final.json",
+        "physical-retirement-current-ipc-final-comparison.json"
       ],
       "limitation": "Comparative shutdown speed is unproven under the original declared baseline rule."
     },
@@ -84,7 +84,7 @@
         "installed-package-current.json",
         "claude-native-current.json"
       ],
-      "scope": "Installed Codex 0.155.1 with native interactive trust and controlled backend; Claude 2.1.218 native source case with Stop fallback, repair and clear follow-up."
+      "scope": "Latest production source: installed Codex 0.155.1 with native interactive repository and exact hook trust, controlled backend submission and correlated completion. Claude source case is being rerun after IPC Context change."
     },
     {
       "requirement": "Public lifecycle/setup and terminal cleanup",
@@ -101,7 +101,7 @@
       "requirement": "Original latency, retention, RSS and concurrency budgets",
       "status": "pass",
       "evidence": [
-        "benchmark-current-final-comparison.json"
+        "benchmark-current-ipc-final-comparison.json"
       ],
       "limitation": "Separate physical-settlement shutdown comparison remains explicitly unproven."
     },
@@ -131,7 +131,7 @@
     "limitations": "Direct AST syntax only; aliases and dynamic imports need manual review. Tree-sitter reports one unsupported export type * at function-analyzer.ts:3; that eight-line pure language adapter was inspected manually. TypeScript 7 package exposes no legacy JS compiler API; inventory uses existing native Tree-sitter with no added dependency.",
     "followup": "Native IPC listener now captures caller Context for runForkWith; regression reproduced unsupported hello before fix and validates ready response plus caller Clock/ConfigProvider after fix. Focused 23 tests and build pass; final suite remains required."
   },
-  "currentProductionFollowup": "Latest production source typechecks and builds. Full suite passes 1292 tests in 126 files, with one file/two credential-gated live tests skipped. Original and physical-retirement workloads rerun with unchanged declarations; independent fresh installed-package native-host run is in progress.",
+  "currentProductionFollowup": "Latest source typecheck/build and full suite pass (1292 tests). Both unchanged declared workloads rerun: original budgets pass, all eight physical invariants pass, physical shutdown comparison remains unproven by original baseline rule. Fresh installed package and native Codex 0.155.1 pass; exact Claude rerun remains active.",
   "responsibilityMap": [
     {
       "original": "ResidentServer",

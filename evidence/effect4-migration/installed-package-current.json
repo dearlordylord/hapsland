@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-10-02T14:38:34.214Z",
+  "recordedAt": "2026-10-02T15:29:54.667Z",
   "package": {
     "name": "@hapsland/hapsland",
     "version": "0.1.0",
     "artifact": "hapsland-hapsland-0.1.0.tgz",
     "source": "local-pack",
-    "sha256": "bb384f84c8ee72a47798d577276fd445107733d7e36e692e83703de94f45e925"
+    "sha256": "e46594c28d7d13004dc3e043e8516b27b375e0b26bd7997f9356c02d6a02fd34"
   },
   "environment": {
     "node": "v24.20.0",
@@ -82,8 +82,8 @@
   },
   "credentialLifecycle": {
     "status": "controlled-helper",
-    "loginMs": 635,
-    "separateProcessLookupMs": 333,
+    "loginMs": 630,
+    "separateProcessLookupMs": 337,
     "defaultKeychainIsolation": "not-applicable",
     "residentRestartPersistence": "passed-distinct-pid-and-lifetime",
     "residentControlledTransportResolution": "passed",
@@ -125,6 +125,7 @@
     },
     "activityStages": [
       "findings",
+      "incomplete",
       "pending",
       "submitted",
       "unknown"
@@ -237,5 +238,9 @@
     ]
   },
   "transientPackageDownloadPerEdit": false,
-  "verdict": "clean-package-and-real-host-passed"
+  "verdict": "clean-package-and-real-host-passed",
+  "postExecutionMetadata": {
+    "productionSourceCommit": "0c86f40",
+    "timing": "Recorded after native run; fresh pack/install and real Codex 0.155.1 execution include listener Context and backend monotonic duration changes."
+  }
 }
