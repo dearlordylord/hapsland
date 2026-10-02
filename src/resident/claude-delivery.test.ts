@@ -107,9 +107,9 @@ describe("Claude advicee scoped resident delivery", () => {
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) } };
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
-    expect(server.admit(observation, dispatch, false, true)).toEqual({ status: "accepted" });
+    expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
     await server.whenIdle();
-    expect(server.stats().pendingFindingBatches).toBe(1);
+    expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
     const stopToken = "stop-collection";
     expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: stopToken })).status).toBe("advanced");
@@ -143,9 +143,9 @@ describe("Claude advicee scoped resident delivery", () => {
         rule.id, { _tag: "Probability", probability: rule.id === "r6_bare_domain_value" ? 0.9 : 0 },
       ])) },
     };
-    expect(server.admit(observation, dispatch).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
     await server.whenIdle();
-    expect(server.stats().pendingAdvice).toBe(1);
+    expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1);
     const delivered = await server.collect(root, { ...observation.advicee, toolUseId: "tool-two" }, dispatch);
     expect(delivered.status).toBe("advice");
     if (delivered.status === "advice") expect(delivered.output.hookSpecificOutput.additionalContext).toContain("OrderCount");
@@ -242,7 +242,7 @@ describe("Claude advicee scoped resident delivery", () => {
       const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
         ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
       expect(response.status).not.toBe("advice");
-      expect(server.stats().pendingAdvice).toBe(0);
+      expect(Effect.runSync(server.stats()).pendingAdvice).toBe(0);
     } finally {
       await server.close();
     }
@@ -286,7 +286,7 @@ describe("Claude advicee scoped resident delivery", () => {
       const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
         ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
       expect(response).toMatchObject({ requestRoute: "ticketed", status: "pending" });
-      expect(server.stats().pendingAdvice).toBe(1);
+      expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1);
     } finally {
       await server.close();
     }

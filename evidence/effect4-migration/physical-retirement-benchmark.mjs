@@ -90,21 +90,24 @@ try {
         yield* Effect.promise(() => server.listen());
         const dispatch = { statePath: join(root, "consent"), userConfigPath: null, credential: null,
           controlled: { answers: Object.fromEntries(configuredRules.map(rule => [rule.id, { _tag: "Probability", probability: 0 }])) } };
-        const admit = (edit) => {
+        const admit = Effect.fn("PhysicalRetirement.admit")(function* (edit) {
           const started = performance.now();
-          ensure(server.admit(edit, dispatch, false, true).status === "accepted", "admission refused");
+          const admission = runtimeModule.makeResidentRuntime === undefined
+            ? server.admit(edit, dispatch, false, true)
+            : yield* server.admit(edit, dispatch, false, true);
+          ensure(admission.status === "accepted", "admission refused");
           if (measured) samples.admission.push(performance.now() - started);
-        };
+        });
         const saturationStarted = performance.now();
         for (let index = 0; index < 8; index += 1) {
-          admit(edits[index]);
+          yield* admit(edits[index]);
           yield* Deferred.await(physicalEntries[index]);
         }
         phase = "await eight physical starts";
         yield* Deferred.await(eightStarted);
         const exactSaturation = physical === 8 && entered === 8;
         if (measured) samples.saturation.push(performance.now() - saturationStarted);
-        admit(edits[8]);
+        yield* admit(edits[8]);
         phase = "await saturated edit refusal";
         yield* Deferred.await(saturated);
         const saturatedDidNotStart = entered === 8 && physical === 8;
@@ -122,7 +125,7 @@ try {
         yield* Effect.promise(() => physicalCompletions[0]);
         phase = "await first canonical settlement";
         yield* Deferred.await(firstSettled);
-        admit(edits[9]);
+        yield* admit(edits[9]);
         phase = "await reused physical start";
         yield* Deferred.await(reusedStarted);
         const firstInterruption = events.findIndex(event => event.stage === "interrupted");
@@ -156,7 +159,7 @@ try {
         phase = "await shutdown completion";
         yield* Fiber.join(closeFiber);
         if (measured) samples.shutdown.push(performance.now() - releaseStarted);
-        const accounting = server.stats();
+        const accounting = runtimeModule.makeResidentRuntime === undefined ? server.stats() : yield* server.stats();
         return {
           exactSaturation, saturatedDidNotStart, roundRetainsPhysicalPermit, reuseFollowsPhysicalSettlement,
           shutdownPendingWhileHeld, shutdownWaitsForPhysicalCompletion: !closedBeforePhysicalCompletion,

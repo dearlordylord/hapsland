@@ -41,7 +41,7 @@ if (process.argv[2] === "child") {
   const server = await Effect.runPromise(makeResidentRuntime(residentPaths(join(root, "runtime")), undefined, {
     afterPrepare: async () => { throw new Error(marker); },
   }).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
-  const admitted = server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath: join(root, "called") } });
+  const admitted = await Effect.runPromise(server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath: join(root, "called") } }));
   if (admitted.status !== "accepted") throw new Error(`installed admission was ${admitted.status}`);
   await server.whenIdle();
   await Effect.runPromise(Scope.close(fixtureScope, Exit.void));

@@ -149,7 +149,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       await f.admit({ "second.ts": finding("SecondCount") }, { ...findingControl, delayMs: 1_000 });
       const stop = await f.stop();
       requireThat(stop.blocked && stop.findings === 2, "finish returned before collecting both completed items");
-      requireThat(f.server.stats().pendingEvaluations === 0, "finish left unfinished review work");
+      requireThat(Effect.runSync(f.server.stats()).pendingEvaluations === 0, "finish left unfinished review work");
       const finish = await f.stop(true);
       requireThat(!finish.blocked, "finish replayed its batch");
       return { stop, finish, completedFindingItems: 2 };
@@ -163,7 +163,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
         { ...findingControl, delayMs: 8_000 });
       const stop = await f.stop(); await f.server.whenIdle();
       requireThat(stop.blocked && stop.findings === 1, "deadline did not select the completed advice");
-      const stats = f.server.stats();
+      const stats = Effect.runSync(f.server.stats());
       requireThat(stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0 && stats.pendingFindingBatches === 1,
         "deadline block retained unfinished review or published a late result");
       await f.admit({ "repair.ts": finding("RepairCount") }); await f.server.whenIdle();
@@ -214,11 +214,11 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       }
       await within(Effect.runPromise(Deferred.await(gates.saturated)));
       await f.admit({ "queued.ts": finding("QueuedCount") });
-      const beforeStop = f.server.stats();
+      const beforeStop = Effect.runSync(f.server.stats());
       requireThat(beforeStop.running > 0 && beforeStop.queued > 0, "deadline fixture must hold running and queued work", beforeStop);
       const stop = await f.stop(); await f.server.whenIdle();
       requireThat(!stop.blocked, "deadline unexpectedly continued");
-      const stats = f.server.stats();
+      const stats = Effect.runSync(f.server.stats());
       requireThat(stats.queued === 0 && stats.running === 0 && stats.pendingAdvice === 0 && stats.pendingEvaluations === 0 && stats.retainedBytes === 0 &&
         stats.successfulCacheEntries === 0 && stats.currentWork === 0, "deadline retained review resources");
       const closure = f.activity().roundClosures?.at(-1);
@@ -232,7 +232,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       await f.admit({ "type.ts": finding() }); await f.server.whenIdle();
       const stop = await f.stop();
       requireThat(!stop.blocked && !stop.unavailableNotice && f.activity().counts.unavailable > 0,
-        "backend failure must stay in diagnostics without agent output", { stop, activity: f.activity(), stats: f.server.stats() });
+        "backend failure must stay in diagnostics without agent output", { stop, activity: f.activity(), stats: Effect.runSync(f.server.stats()) });
       requireThat(f.activity().counts.clear === 0, "backend failure was marked clear");
       requireThat(f.activity().roundClosures?.at(-1)?.reason === "no-advice", "quiet diagnostic-only closure reason mismatch");
       return { stop, activity: f.activity().kind, closure: f.activity().roundClosures?.at(-1) };
@@ -245,7 +245,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       requireThat((await Effect.runPromise(f.server.pendingAdviceMetadata())).length === 1, "stale fixture had no finding to discard");
       await put(f.root, "type.ts", 'type OrderCount = number & { readonly __brand: "OrderCount" }\n');
       const stop = await f.stop();
-      requireThat(!stop.blocked && f.server.stats().pendingAdvice === 0, "stale finding escaped revalidation");
+      requireThat(!stop.blocked && Effect.runSync(f.server.stats()).pendingAdvice === 0, "stale finding escaped revalidation");
       return { stop, staleAdviceDiscarded: true };
     } finally { await f.cleanup(); }
   });
@@ -285,7 +285,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       const stop = await f.stop();
       requireThat(acknowledged ? !stop.blocked : stop.blocked && stop.findings === 1,
         "Stop must reoffer uncertain background advice once and suppress submitted advice",
-        { stop, acknowledged, activity: f.activity(), stats: f.server.stats() });
+        { stop, acknowledged, activity: f.activity(), stats: Effect.runSync(f.server.stats()) });
       requireThat((await Effect.runPromise(f.server.acknowledge(background.token))).status !== "acknowledged", "old background token regained ownership");
       const finish = await f.stop(true); requireThat(!finish.blocked, "Stop reoffered same finding twice");
       requireThat(await f.calls() === callsBefore, "reoffer reran Jev evaluation");
@@ -304,7 +304,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       requireThat(stops.slice(0, 4).every((stop) => stop.blocked) && !stops[4]!.blocked, "four-continuation cap was violated");
       const closed = f.activity().roundClosures?.at(-1);
       requireThat(closed?.reason === "limit" && closed.reservedContinuations === 0 && closed.discarded.submitted === 4, "limit closure summary mismatch", { closed, activity: f.activity() });
-      requireThat(f.server.stats().pendingAdvice === 0, "limit left pending advice");
+      requireThat(Effect.runSync(f.server.stats()).pendingAdvice === 0, "limit left pending advice");
       await pause(5);
       await f.admit({ "type.ts": finding("NewRoundCount") }); await f.server.whenIdle();
       const nextRound = await f.stop(); requireThat(nextRound.blocked, "new round did not receive a fresh count");

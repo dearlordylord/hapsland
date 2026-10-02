@@ -50,7 +50,7 @@ describe("queued exclusion authority", () => {
   it("has a provider-attempt positive control", async () => {
     const fixture = await setup(false);
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")));
-    expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     await server.whenIdle();
     expect(calls(fixture.capturePath)).toBe(1);
   }, 30_000);
@@ -58,7 +58,7 @@ describe("queued exclusion authority", () => {
   it("does not call the provider for an initially excluded candidate", async () => {
     const fixture = await setup(true);
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")));
-    expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     await server.whenIdle();
     expect(calls(fixture.capturePath)).toBe(0);
   }, 30_000);
@@ -75,7 +75,7 @@ describe("queued exclusion authority", () => {
         await release.promise;
       },
     });
-    expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     await entered.promise;
     expect(preparedSourceSeen).toBe(true);
     expect(calls(fixture.capturePath)).toBe(0);
@@ -96,7 +96,7 @@ describe("queued exclusion authority", () => {
       },
       dispatchControls: controls.layer,
     });
-    expect(server.admit(fixture.observation, fixture.dispatch).status).toBe("accepted");
+    expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     expect(await Effect.runPromise(controls.entered)).toBe("credentialResolved");
     expect(preparedSourceSeen).toBe(true);
     await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');

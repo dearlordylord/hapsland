@@ -47,7 +47,9 @@ try {
       const saturationStarted = performance.now();
       for (const observation of observations) {
         const started = performance.now();
-        const admitted = server.admit(observation, dispatch, false, true);
+        const admitted = runtimeModule.makeResidentRuntime === undefined
+          ? server.admit(observation, dispatch, false, true)
+          : await Effect.runPromise(server.admit(observation, dispatch, false, true));
         if (admitted.status !== "accepted") throw new Error("benchmark admission refused");
         if (measured) admissions.push(performance.now() - started);
         peakRssBytes = Math.max(peakRssBytes, process.memoryUsage().rss);

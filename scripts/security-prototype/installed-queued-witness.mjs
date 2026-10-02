@@ -66,7 +66,7 @@ try {
         await release.promise;
       },
     } : {}).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
-    const admitted = server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath } });
+    const admitted = await Effect.runPromise(server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath } }));
     if (admitted.status !== "accepted") throw new Error(`installed admission ${kind} was ${admitted.status}`);
     if (kind === "queued-excluded") {
       await within(entered.promise, "installed preparation barrier");

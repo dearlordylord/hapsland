@@ -2140,6 +2140,19 @@
       "boundaryChecksPassed": 15,
       "scope": "Deleted root synchronous read/commit/commitAll facades, root pure capacity spread, makeCapacityLedger production constructor and delivery canonical draft-owner exposure. Public state retains named Effect methods and immutable lifetime metadata. Native fixtures construct makeResidentState Effects at their test boundary; composed fixture attaches test-owned Effect state rather than production draft capability. Added capacity boundary rejection of runSync, unsafe reads and removed owner bridges.",
       "limitations": "Native fixtures still use runSync at test boundaries; broader fixture conversion, synchronous runtime facades, adapter audit, docs and final validation remain."
+    },
+    {
+      "stage": "runtime-synchronous-facade-deletion",
+      "testsPassed": 142,
+      "testFiles": 8,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "probeStrictTypecheck": true,
+      "roundContractCasesPassed": 18,
+      "roundContractEvidence": "evidence/effect4-migration/round-contract-runtime-facade-effects.json",
+      "scope": "Stats, cleanup, admit and quiet-round sweeping expose named Effects directly. Deleted runSync runtime wrappers and Effect suffix aliases; runtime owns no synchronous execution or unsafe reads. Native callers execute at fixture boundary; installed witnesses execute admission Effects. Benchmark runner adapts only frozen baseline/current module boundary without product compatibility paths. Strengthened Stop boundary to reject all synchronous runtime execution.",
+      "limitations": "Promise collect/whenIdle/handle/listen/close facades, fixture hooks and adapter audit remain. Probe cases are deterministic host-labelled fixtures, not installed-host/live support evidence. Benchmark runner syntax checked; workload reruns remain required."
     }
   ],
   "next": [
