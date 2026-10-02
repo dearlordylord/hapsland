@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 import type { Finding } from "../direct-event/pipeline.ts";
 import {
@@ -72,7 +73,7 @@ describe("resident advice collection policy", () => {
   it("selects flattened findings from a unit until the byte bound", () => {
     const nineFromOneUnit = Array.from({ length: 9 }, (_, index) => finding(index));
     expect(fitsCombinedResponse([nineFromOneUnit])).toBe(true);
-    const selected = selectFittingFindings([], nineFromOneUnit);
+    const selected = Effect.runSync(selectFittingFindings([], nineFromOneUnit));
     expect(selected).toHaveLength(9);
     expect(fitsCombinedResponse([selected])).toBe(true);
   });
@@ -82,15 +83,15 @@ describe("resident advice collection policy", () => {
       partition: 17, round: 3, unit: 8, snapshot: 8, currentSnapshot: 8,
       credential: 12, currentCredential: 12, ageMs: 42, collectionReady: true,
     };
-    expect(selectFittingFindings([], [finding(0)], { ...facts, currentSnapshot: 9 })).toEqual([]);
-    expect(selectFittingFindings([], [finding(0)], { ...facts, currentCredential: 13 })).toEqual([]);
-    expect(selectFittingFindings([], [finding(0)], { ...facts, ageMs: PENDING_ADVICE_EXPIRY_MS })).toEqual([]);
-    expect(selectFittingFindings([], [finding(0)], { ...facts, collectionReady: false })).toEqual([]);
-    expect(selectFittingFindings([], [finding(0)], facts)).toEqual([finding(0)]);
+    expect(Effect.runSync(selectFittingFindings([], [finding(0)], { ...facts, currentSnapshot: 9 }))).toEqual([]);
+    expect(Effect.runSync(selectFittingFindings([], [finding(0)], { ...facts, currentCredential: 13 }))).toEqual([]);
+    expect(Effect.runSync(selectFittingFindings([], [finding(0)], { ...facts, ageMs: PENDING_ADVICE_EXPIRY_MS }))).toEqual([]);
+    expect(Effect.runSync(selectFittingFindings([], [finding(0)], { ...facts, collectionReady: false }))).toEqual([]);
+    expect(Effect.runSync(selectFittingFindings([], [finding(0)], facts))).toEqual([finding(0)]);
     const limited: Array<Finding> = [];
     const oversized = finding(1, "x".repeat(MAX_COMBINED_RESPONSE_BYTES));
-    expect(selectFittingFindings([], [oversized, finding(2)], facts,
-      (item) => limited.push(item))).toEqual([finding(2)]);
+    expect(Effect.runSync(selectFittingFindings([], [oversized, finding(2)], facts,
+      (item) => limited.push(item)))).toEqual([finding(2)]);
     expect(limited).toEqual([oversized]);
     expect(combinedReviewOutput([], [{ kind: "output-limit", suppressedCount: 0 }])
       .hookSpecificOutput.additionalContext).toContain("exceeded the host response limit");
@@ -106,8 +107,8 @@ describe("resident advice collection policy", () => {
       { finding: finding(1), facts: current },
       { finding: finding(2), facts: { ...current, currentCredential: 5 } },
     ];
-    expect(selectFittingCurrentFindingIndices(offers, "codex")).toEqual([1]);
-    expect(selectFittingCurrentFindingIndices(offers, "block-current-findings")).toEqual([1]);
+    expect(Effect.runSync(selectFittingCurrentFindingIndices(offers, "codex"))).toEqual([1]);
+    expect(Effect.runSync(selectFittingCurrentFindingIndices(offers, "block-current-findings"))).toEqual([1]);
   });
 
   it("keeps notices within the byte bound", () => {
@@ -132,7 +133,7 @@ describe("resident advice collection policy", () => {
 
   it("selects whole Claude findings against the exact serialized block line", () => {
     const six = Array.from({ length: 6 }, (_, index) => finding(index));
-    expect(selectFittingClaudeFindings([], six, "block-current-findings")).toEqual(six);
+    expect(Effect.runSync(selectFittingClaudeFindings([], six, "block-current-findings"))).toEqual(six);
     const output = combinedClaudeOutput(six, [], "block-current-findings");
     expect(output).toMatchObject({ decision: "block" });
     expect(encodedClaudeHostOutputBytes(output)).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
@@ -142,15 +143,15 @@ describe("resident advice collection policy", () => {
     expect(fitsClaudeReviewResponse([exact], [], "block-current-findings")).toBe(true);
     expect(fitsClaudeReviewResponse([{ ...exact, message: `${exact.message}x` }], [], "block-current-findings")).toBe(false);
     const oversized = { ...exact, message: `${exact.message}x` };
-    expect(selectFittingClaudeFindings([], [oversized, finding(1)], "block-current-findings")).toEqual([finding(1)]);
+    expect(Effect.runSync(selectFittingClaudeFindings([], [oversized, finding(1)], "block-current-findings"))).toEqual([finding(1)]);
   });
 
   it.each(["background", "stop"] as const)("bounds the final composed Claude %s response", (surface) => {
     const baseline = encodedComposedClaudeOutputBytes([finding(0, "")], [], surface);
     const exact = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES - baseline));
     expect(encodedComposedClaudeOutputBytes([exact], [], surface)).toBe(MAX_COMBINED_RESPONSE_BYTES);
-    expect(selectFittingComposedClaudeFindings([], [exact], surface)).toEqual([exact]);
-    expect(selectFittingComposedClaudeFindings([], [{ ...exact, message: `${exact.message}x` }], surface)).toEqual([]);
+    expect(Effect.runSync(selectFittingComposedClaudeFindings([], [exact], surface))).toEqual([exact]);
+    expect(Effect.runSync(selectFittingComposedClaudeFindings([], [{ ...exact, message: `${exact.message}x` }], surface))).toEqual([]);
     expect(selectFittingComposedClaudeNotices([exact], [{ kind: "backend", suppressedCount: 0 }], surface)).toEqual([]);
     const output = composedClaudeHostOutput(combinedReviewOutput([exact], []), 1, surface);
     expect(Buffer.byteLength(`${JSON.stringify(output)}\n`, "utf8")).toBe(MAX_COMBINED_RESPONSE_BYTES);
@@ -164,7 +165,7 @@ describe("resident advice collection policy", () => {
     expect(findingOutput.reason).toContain("Informational notices:");
     expect(findingOutput.reason).toContain("Jev was unavailable");
     const tooLarge = finding(0, "x".repeat(MAX_COMBINED_RESPONSE_BYTES));
-    const selected = selectFittingClaudeFindings([], [tooLarge], "block-current-findings");
+    const selected = Effect.runSync(selectFittingClaudeFindings([], [tooLarge], "block-current-findings"));
     expect(selected).toEqual([]);
     expect(selectFittingClaudeNotices(selected, [notice], "block-current-findings")).toEqual([notice]);
     expect(combinedClaudeOutput([], [notice], "block-current-findings")).not.toHaveProperty("decision");

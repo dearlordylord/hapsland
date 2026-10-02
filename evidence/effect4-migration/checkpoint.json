@@ -2109,6 +2109,16 @@
       "boundaryChecksPassed": 15,
       "scope": "Public canonicalProjection is a named Ref read Effect. Dispatcher live operations, snapshots, settlement checks and discard selection compose it; runtime pending finding and error settlement readers compose it. Finish binding decisions read one immutable pending-findings projection before pure every checks. Private commit draft projection remains pure.",
       "limitations": "Root transition still synchronous; read/commit bridge deletion, fixture constructors, runtime facades and final validation remain."
+    },
+    {
+      "stage": "finding-selection-policy-effects",
+      "testsPassed": 121,
+      "testFiles": 3,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Finding offer callback and all finding selectors return named Effects. Sequential offer loops preserve retained-first ordering and output limits; encoding defects still fall back to empty selection while interruption stays visible. Runtime selection composes them.",
+      "limitations": "Root transition and runtime comparator/expiry helpers still synchronous; finding offer currently wraps existing transition until subsequent conversion."
     }
   ],
   "next": [

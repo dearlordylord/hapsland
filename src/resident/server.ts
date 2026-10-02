@@ -506,7 +506,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentIdleChecks = yield* FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
   const residentQuietChecks = yield* FiberHandle.make<void, never>().pipe(Effect.provideService(Scope.Scope, residentDispatchScope));
   const residentLifetimeController = new AbortController();
-  const residentCollectionFindingOffer: CanonicalFindingOffer = (input) => {
+  const residentCollectionFindingOffer: CanonicalFindingOffer = Effect.fn("ResidentRuntime.collectionFindingOffer")((input) => Effect.sync(() => {
     const facts = input.facts;
     const result = residentLedger.transition({ kind: "collectionFindingCheck",
       selectionPartition: input.selectionPartition, selectionRound: input.selectionRound,
@@ -524,7 +524,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       case "collectionFindingExpired": return "expired";
       default: throw new Error("invalid canonical finding fit");
     }
-  };
+  }));
 
   const maximumOperationalNoticeKeys = options.maximumOperationalNoticeKeys ?? MAX_OPERATIONAL_NOTICE_KEYS;
   if (
@@ -874,13 +874,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const facts = yield* residentFindingSelectionFacts(advice, partition, credentialGeneration, residentNow(), composed);
         let limited = 0;
         const onLimited = reportLimit ? () => { limited++; } : undefined;
-        const fitting = ticket === undefined
+        const fitting = yield* (ticket === undefined
           ? claudeSurface === undefined
             ? selectFittingFindings(retained, candidates, facts, onLimited, residentCollectionFindingOffer)
             : selectFittingComposedClaudeFindings(retained, candidates, claudeSurface,
                 facts, onLimited, residentCollectionFindingOffer)
           : selectFittingClaudeFindings(retained, candidates, ticket.claudeFeedbackMode,
-            facts, onLimited, residentCollectionFindingOffer);
+            facts, onLimited, residentCollectionFindingOffer));
         for (let index = 0; index < limited; index++) yield* residentRecordOperationalFailure(advice.observation, "output-limit");
         return fitting;
       }, Effect.uninterruptible);
@@ -1042,11 +1042,11 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             return (delivery?.findings ?? []).map((finding) => ({ advice, finding, facts }));
           }))).flat();
           const limitedIndices: Array<number> = [];
-          const accepted = new Set(selectFittingCurrentFindingIndices(offers,
+          const accepted = new Set((yield* selectFittingCurrentFindingIndices(offers,
             ticket === undefined ? claudeSurface === undefined ? "codex" :
               claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
             (index) => { limitedIndices.push(index); },
-            residentCollectionFindingOffer));
+            residentCollectionFindingOffer)));
           for (const index of limitedIndices) yield* residentRecordOperationalFailure(offers[index]!.advice.observation, "output-limit", handoffNow);
           let index = 0;
           for (const advice of handoff) {
@@ -2778,10 +2778,10 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }))).flat();
       const claudeSurface = composed && ticket === undefined && request.advicee.host === "claude-code"
         ? request.mode === "turn-end" ? "stop" : "background" : undefined;
-      const accepted = new Set(selectFittingCurrentFindingIndices(offers,
+      const accepted = new Set((yield* selectFittingCurrentFindingIndices(offers,
         ticket === undefined ? claudeSurface === undefined ? "codex" :
           claudeSurface === "stop" ? "claude-stop" : "claude-background" : ticket.claudeFeedbackMode,
-        undefined, residentCollectionFindingOffer));
+        undefined, residentCollectionFindingOffer)));
       let index = 0;
       for (const advice of handoff) {
         const { delivery } = yield* residentLedger.advice.current(advice);
