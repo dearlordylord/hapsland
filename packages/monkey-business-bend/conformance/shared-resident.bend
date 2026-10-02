@@ -386,7 +386,7 @@ def registry_rows(+state: Types.State) -> List<&2, List<&2, Nat>>:
     duplicate_row(Engine.declare_advicee(state, Nat.add(U32.to_nat(4294967295), 18n), 777))]
 
 def cancellation() -> List<&2, List<&2, Nat>>:
-  loop(2000n, Runtime{initial(),
+  loop(80n, Runtime{initial(),
     append(append(append(Queue{[], 0n, 0n}, 0n, Edit{Job{1n, 10n, [5n], Canonical.RequestClear{}}}),
       0n, Edit{Job{2n, 20n, [7n], Canonical.RequestFinding{}}}),
       5n, Event{Driver.immediate(Canonical.StopPolled{1n, 1n, 1n, True{}}, False{}),
@@ -394,7 +394,7 @@ def cancellation() -> List<&2, List<&2, Nat>>:
 
 def main() -> IO(Unit):
   IO.print(Minimal.bracket(Minimal.show_traces([
-    List.append(&2, List<&2, Nat>, registry_rows(initial()), loop(2000n, Runtime{initial(),
+    List.append(&2, List<&2, Nat>, registry_rows(initial()), loop(250n, Runtime{initial(),
       append(append(originals(9n, Queue{[], 0n, 0n}, 0n),
         30n, Edit{Job{1n, 10n, [5n], Canonical.RequestClear{}}}),
         30n, Edit{Job{2n, 20n, [7n], Canonical.RequestClear{}}}), [], 20n}, True{})), cancellation()])))

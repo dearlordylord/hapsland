@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { createRun, restoreReplay, projectAgent, DEFAULT_FILE_TREE_PROFILE, type Observation } from "./index.ts";
+import { createRun, restoreReplay, projectAgent, DEFAULT_FILE_TREE_PROFILE, type Observation, type Run } from "./index.ts";
 
 import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
@@ -112,19 +112,42 @@ function residentRow(frame: Observation): number[] {
     Number(!!frame.rejection), ...commands];
 }
 
+const residentDiagnostics = process.env.HAPSLAND_RESIDENT_DIAGNOSTICS === "1";
+function residentCheckpoint(stage: string) {
+  if (residentDiagnostics) console.error(`[shared-resident] ${stage}`);
+}
+function advanceResident(run: Run, untilTime: number, fuel: number, stage: string) {
+  // The two finite original workloads must quiesce before their passive million-
+  // millisecond arrivals. A cycle is a failure, not another scheduling opportunity.
+  for (let index = 0; index < fuel; index++) {
+    residentCheckpoint(`${stage} before step ${index} count=${run.eventCount} clock=${run.now}`);
+    const result = run.advance({ untilTime, maxEvents: 1 });
+    residentCheckpoint(`${stage} after step ${index} reason=${result.reason} event=${run.observations.at(-1)?.event.kind}`);
+    if (result.reason !== "eventLimit") return;
+  }
+  throw new Error(`${stage} did not quiesce within ${fuel} events; last=${run.observations.at(-1)?.event.kind}`);
+}
+
 it("compares original shared contention and recovery inputs with the compiled native resident", () => {
+  residentCheckpoint("native start");
   const [rows, canceled] = runWorkloadNative(new URL("../../monkey-business-bend/conformance/shared-resident.bend", import.meta.url)) as [number[][], number[][]];
+  residentCheckpoint(`native complete contention=${rows.length} cancellation=${canceled.length}`);
+  for (const trace of [rows.slice(3), canceled]) expect(trace.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
+  expect(rows.length).toBeLessThan(250);
+  expect(canceled.length).toBeLessThan(80);
   expect(rows.slice(0, 3)).toEqual([[90, 4294967313, 1, 11], [90, 99, 2, 12], [91, 0, 4294967313, 1, 11]]);
   const native = rows.slice(3);
   const run = createRun(contentionConfig);
-  run.advance({ untilTime: 25, maxEvents: 2000 });
+  advanceResident(run, 25, 250, "contention initial");
   const boundary = run.now;
   const before = run.observations.map(residentRow);
   run.applyControl({ kind: "jevProfile", delayMs: 5, outcome: "clear" });
   run.applyControl({ kind: "suspendArrivals", agent: opaqueAdvicees[0], suspended: true });
+  residentCheckpoint("contention restore start");
   const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())));
-  run.advance({ untilTime: 40, maxEvents: 1000 });
-  restored.advance({ untilTime: 40, maxEvents: 1000 });
+  residentCheckpoint("contention restore complete");
+  advanceResident(run, 40, 80, "contention recovery");
+  advanceResident(restored, 40, 80, "contention restored recovery");
   expect(restored.observe()).toEqual(run.observe());
   expect(native).toEqual([...before, [80, boundary, 5], ...run.observations.slice(before.length).map(residentRow)]);
   expect(native.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
@@ -140,12 +163,14 @@ it("compares original shared contention and recovery inputs with the compiled na
   expect(graph).toHaveLength(22);
   for (const row of graph) expect(row.slice(7, 10)).toEqual([1, 100, 20]);
 
+  residentCheckpoint("cancellation create start");
   const cancellation = createRun({ ...contentionConfig, inputs: [
     { at: 0, kind: "edit", agent: opaqueAdvicees[0], revision: 1, generation: 0, recurring: false, bytes: 10, unitBytes: [5], outcome: "clear" },
     { at: 0, kind: "edit", agent: opaqueAdvicees[1], revision: 2, generation: 0, recurring: false, bytes: 20, unitBytes: [7], outcome: "finding" },
     { at: 5, kind: "canonical", event: { kind: "stopPolled", partition: 1, lifetime: 1, round: 1, deadline: true } },
   ] });
-  cancellation.advance({ untilTime: 5, maxEvents: 200 });
+  residentCheckpoint("cancellation create complete");
+  advanceResident(cancellation, 5, 64, "cancellation initial");
   const deadline = cancellation.observations.find(frame => frame.event.kind === "stopPolled")!;
   expect(deadline.event).toEqual({ kind: "stopPolled", partition: 1, lifetime: 1, round: 1, deadline: true });
   expect(deadline.partition).toBe(1);
@@ -156,9 +181,12 @@ it("compares original shared contention and recovery inputs with the compiled na
   expect(deadline.after.partitions.find(owner => owner.partition === 1)?.items ?? 0).toBe(0);
   expect(deadline.after.partitions.find(owner => owner.partition === 2)).toMatchObject({ items: 1, bytes: 7 });
   for (let index = 0; index < deadline.commands.length; index++) expect(deadline.commandScopes?.[index]).toBe(1);
+  residentCheckpoint("cancellation restore start");
   const cancellationReplay = restoreReplay(JSON.parse(JSON.stringify(cancellation.exportReplay())));
+  residentCheckpoint("cancellation restore complete");
   expect(cancellationReplay.observe()).toEqual(cancellation.observe());
-  for (const candidate of [cancellation, cancellationReplay]) candidate.advance({ untilTime: 40, maxEvents: 1000 });
+  advanceResident(cancellation, 40, 64, "cancellation settle");
+  advanceResident(cancellationReplay, 40, 64, "cancellation restored settle");
   expect(cancellationReplay.observe()).toEqual(cancellation.observe());
   expect(canceled).toEqual(cancellation.observations.map(residentRow));
   const ignored = cancellation.observations.filter(frame => frame.commands.some(command => command.kind === "jevObservationIgnored"));
