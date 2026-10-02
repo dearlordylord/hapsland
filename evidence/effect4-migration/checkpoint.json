@@ -154,7 +154,8 @@
     "Explicit AdviceRecords.current Effect reads immutable content from one identity-fenced snapshot; lease checking consumes the snapshot directly",
     "Finding selection readiness and source revalidation read advice content through explicit Effect snapshots rather than live capability getters",
     "Advice batch snapshot Effect captures ordered capability/content pairs in one Ref read; acknowledgement and finalization consume immutable batch content without advice getters",
-    "Delivery release and composed submission authorization consume immutable advice batch snapshots, removing live delivery getters from these workflows"
+    "Delivery release and composed submission authorization consume immutable advice batch snapshots, removing live delivery getters from these workflows",
+    "Collection and final transport output fitting read advice delivery through explicit snapshots; handoff offers, renewal and retained findings no longer use live delivery getters in those blocks"
   ],
   "verification": [
     {
@@ -1946,6 +1947,15 @@
       "build": true,
       "boundaryChecksPassed": 15,
       "scope": "Delivery release and composed submission consumers; other getter callers remain"
+    },
+    {
+      "stage": "advice-handoff-snapshot-consumers",
+      "testsPassed": 108,
+      "testFiles": 2,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Collection final output fitting and transport output fitting; other advice getter callers remain"
     }
   ],
   "next": [

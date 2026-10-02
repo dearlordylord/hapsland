@@ -993,7 +993,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           const handoff: Array<Advice> = [];
           for (const advice of final) {
             const retained = residentAdvice().find((item) => item.id === advice.id);
-            const delivery = retained?.delivery;
+            const delivery = retained === undefined ? undefined : (yield* residentLedger.advice.current(retained)).delivery;
             const ownerCurrent = retained === advice && delivery?.token === token;
             const credentialGenerationValid = advice.credentialGeneration === credentialGeneration;
             let credentialAuthorized = true;
@@ -1025,7 +1025,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           }
           const offers = (yield* Effect.forEach(handoff, Effect.fn("ResidentRuntime.handoffOffers")(function* (advice) {
             const facts = yield* residentFindingSelectionFacts(advice, partition, credentialGeneration, handoffNow, composed);
-            return (advice.delivery?.findings ?? []).map((finding) => ({ advice, finding, facts }));
+            const { delivery } = yield* residentLedger.advice.current(advice);
+            return (delivery?.findings ?? []).map((finding) => ({ advice, finding, facts }));
           }))).flat();
           const accepted = new Set(selectFittingCurrentFindingIndices(offers,
             ticket === undefined ? claudeSurface === undefined ? "codex" :
@@ -1035,12 +1036,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             residentCollectionFindingOffer));
           let index = 0;
           for (const advice of handoff) {
-            const delivery = advice.delivery;
+            const { delivery } = yield* residentLedger.advice.current(advice);
             if (delivery === undefined) continue;
             yield* residentLedger.advice.updateDelivery(advice, token, { findings: delivery.findings.filter(() => accepted.has(index++)) });
-            if (advice.delivery?.findings.length === 0) yield* residentReleaseAdviceLease(advice);
+            if ((yield* residentLedger.advice.current(advice)).delivery?.findings.length === 0) yield* residentReleaseAdviceLease(advice);
           }
-          handoffFindings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
+          handoffFindings = (yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice)))
+            .flatMap((content) => content.delivery?.findings ?? []);
         }
       }
       // Operational failures stay in resident diagnostics; agent output carries
@@ -2754,15 +2756,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const partition = adviceePartition(request.root, request.advicee);
       const generation = request.dispatch.credential?.generation ?? null;
       if (composed) for (const advice of handoff) {
-        if (advice.delivery !== undefined && (advice.round === undefined ||
+        const { delivery } = yield* residentLedger.advice.current(advice);
+        if (delivery !== undefined && (advice.round === undefined ||
             advice.workUnitId === undefined ||
-            advice.delivery.findings.length > residentPendingCanonicalFindings(advice.canonicalOperationId))) {
+            delivery.findings.length > residentPendingCanonicalFindings(advice.canonicalOperationId))) {
           yield* residentReleaseAdviceLease(advice);
         }
       }
       const offers = (yield* Effect.forEach(handoff, Effect.fn("ResidentRuntime.finalOffers")(function* (advice) {
         const facts = yield* residentFindingSelectionFacts(advice, partition, generation, now, composed);
-        return (advice.delivery?.findings ?? []).map((finding) => ({ finding, facts }));
+        const { delivery } = yield* residentLedger.advice.current(advice);
+        return (delivery?.findings ?? []).map((finding) => ({ finding, facts }));
       }))).flat();
       const claudeSurface = composed && ticket === undefined && request.advicee.host === "claude-code"
         ? request.mode === "turn-end" ? "stop" : "background" : undefined;
@@ -2772,12 +2776,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         undefined, residentCollectionFindingOffer));
       let index = 0;
       for (const advice of handoff) {
-        if (advice.delivery === undefined) continue;
-        yield* residentLedger.advice.updateDelivery(advice, response.token, { findings: advice.delivery.findings.filter(() => accepted.has(index++)) });
-        if (advice.delivery.findings.length === 0) yield* residentReleaseAdviceLease(advice);
+        const { delivery } = yield* residentLedger.advice.current(advice);
+        if (delivery === undefined) continue;
+        const fitting = delivery.findings.filter(() => accepted.has(index++));
+        yield* residentLedger.advice.updateDelivery(advice, response.token, { findings: fitting });
+        if (fitting.length === 0) yield* residentReleaseAdviceLease(advice);
       }
     }
-    const findings = handoff.flatMap((advice) => advice.delivery?.findings ?? []);
+    const findings = (yield* Effect.forEach(handoff, (advice) => residentLedger.advice.current(advice)))
+      .flatMap((content) => content.delivery?.findings ?? []);
     const notices = residentNoticesForToken(response.token);
     if (request.operation === "collect" && request.requestRoute === "shared" && request.composed === true &&
         request.advicee.host === "claude-code") {
