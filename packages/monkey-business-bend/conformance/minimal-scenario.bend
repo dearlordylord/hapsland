@@ -285,6 +285,7 @@ def graph_result(transition: Types.GraphTransition, queue: Queue, now: Nat,
   match transition:
     case Types.GraphTransition{+state, _, Graph.BoundedStep{graph, command}}:
       List.append(&2, Nat, graph_row(graph, command, now), state_counts(state)) <> ih((state, queue))
+    case Types.GraphRejected{_}: [[97n, now]]
 
 def controlled(config: Config) -> Bool:
   match config:
