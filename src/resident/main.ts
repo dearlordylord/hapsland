@@ -6,7 +6,7 @@ import * as Schema from "effect/Schema";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
-import { acquireResidentOwnership, releaseResidentOwnership } from "./ownership.ts";
+import { acquireResidentOwnership, releaseResidentOwnership, ownershipControlsLayer } from "./ownership.ts";
 
 class ResidentProcessError extends Schema.TaggedError<ResidentProcessError>()(
   "ResidentProcessError", { operation: Schema.String },
@@ -35,8 +35,9 @@ const run = Effect.fn("ResidentProcess.run")(function* () {
   yield* processEffect("create runtime directory", () => mkdir(directory, { recursive: true, mode: 0o700 }));
   const lock = join(directory, "owner.lock");
   const acquired = yield* Effect.acquireRelease(
-    processEffect("acquire resident ownership", () => acquireResidentOwnership(lock)),
-    (owned) => owned ? processEffect("release resident ownership", () => releaseResidentOwnership(lock)).pipe(Effect.orDie) : Effect.void,
+    acquireResidentOwnership(lock).pipe(
+      Effect.mapError(() => new ResidentProcessError({ operation: "acquire resident ownership" }))),
+    (owned) => owned ? releaseResidentOwnership(lock).pipe(Effect.orDie) : Effect.void,
   );
   if (!acquired) return;
 
@@ -54,7 +55,7 @@ const run = Effect.fn("ResidentProcess.run")(function* () {
   }).pipe(Effect.provide(runtimeLayer));
 });
 
-await Effect.runPromise(Effect.scoped(run().pipe(Effect.raceFirst(stopped))).pipe(
+await Effect.runPromise(Effect.scoped(run().pipe(Effect.provide(ownershipControlsLayer), Effect.raceFirst(stopped))).pipe(
   Effect.catch((error) => Effect.sync(() => {
     // Launcher diagnostics contain operation labels, never captured source,
     // provider responses or credentials from an infrastructure error.

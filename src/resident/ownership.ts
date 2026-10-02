@@ -1,107 +1,130 @@
 import { randomUUID } from "node:crypto";
 import { lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { Clock, Context, Effect, Layer, Schema } from "effect";
 
-type OwnerRecord = { readonly pid: number; readonly token: string };
+const OwnerRecord = Schema.Struct({ pid: Schema.Int, token: Schema.String });
+interface OwnerRecord extends Schema.Schema.Type<typeof OwnerRecord> {}
+// A visible live PID protects an owner even while its metadata is incomplete.
+// This observation is not a separate persisted record format.
+const OwnerObservation = Schema.Struct({ pid: OwnerRecord.fields.pid });
+const decodeOwner = Schema.decodeUnknownEffect(Schema.fromJsonString(OwnerObservation));
 type Identity = { readonly dev: bigint; readonly ino: bigint };
 const code = (cause: unknown): string | undefined =>
-  typeof cause === "object" && cause !== null && "code" in cause ? String(cause.code) : undefined;
+  typeof cause === "object" && cause !== null && "code" in cause && typeof cause.code === "string" ? cause.code : undefined;
 const processExists = (pid: number): boolean => {
   try { process.kill(pid, 0); return true; } catch (cause) { return code(cause) === "EPERM"; }
 };
-const readOwner = async (directory: string): Promise<OwnerRecord | undefined> => {
-  try {
-    const value: unknown = JSON.parse(await readFile(`${directory}/owner.json`, "utf8"));
-    if (typeof value === "object" && value !== null && "pid" in value && Number.isSafeInteger(value.pid)) {
-      const token = "token" in value && typeof value.token === "string" ? value.token : "unknown-directory-owner";
-      return { pid: value.pid as number, token };
-    }
-  } catch { /* incomplete owner */ }
-  return undefined;
-};
-const identity = async (path: string): Promise<Identity | undefined> => {
-  try { const value = await lstat(path, { bigint: true }); return { dev: value.dev, ino: value.ino }; }
-  catch (cause) { if (code(cause) === "ENOENT") return undefined; throw cause; }
-};
+
+const OwnershipOperation = Schema.Literals([
+  "createCandidate", "writeOwner", "inspectIdentity", "inspectLock", "readOwner",
+  "publishCandidate", "removeCandidate", "replaceBarrier", "sealRetirement",
+  "retireLock", "removeRecovery", "releaseOwner",
+]);
+type OwnershipOperation = typeof OwnershipOperation.Type;
+export class ResidentOwnershipError extends Schema.TaggedError<ResidentOwnershipError>()(
+  "ResidentOwnershipError", { operation: OwnershipOperation, code: Schema.optionalKey(Schema.String) },
+) {}
+
+/** Local recovery coordination; neither persisted nor supplied by IPC. */
+export class ResidentOwnershipControls extends Context.Service<ResidentOwnershipControls, {
+  readonly beforeReplace: Effect.Effect<void, ResidentOwnershipError>;
+}>()("@hapsland/ResidentOwnershipControls") {}
+export const ownershipControlsLayer = Layer.succeed(ResidentOwnershipControls,
+  ResidentOwnershipControls.of({ beforeReplace: Effect.void }));
+
+// These bounded native operations do not support abort. Await actual completion
+// before a resource finalizer can remove their artifacts.
+const ownerIo = <A>(operation: OwnershipOperation, run: () => Promise<A>) => Effect.tryPromise({
+  try: run,
+  catch: (cause) => {
+    const nativeCode = code(cause);
+    return new ResidentOwnershipError({ operation, ...(nativeCode === undefined ? {} : { code: nativeCode }) });
+  },
+}).pipe(Effect.uninterruptible);
+
+const readOwnerFile = Effect.fn("ResidentOwnership.readOwner")(function* (path: string) {
+  const encoded = yield* ownerIo("readOwner", () => readFile(path, "utf8"));
+  return yield* decodeOwner(encoded);
+}, (effect) => effect.pipe(Effect.catch(() => Effect.succeed(undefined))));
+const readOwner = (directory: string) => readOwnerFile(`${directory}/owner.json`);
+const identity = Effect.fn("ResidentOwnership.identity")(function* (path: string) {
+  const value = yield* ownerIo("inspectIdentity", () => lstat(path, { bigint: true })).pipe(
+    Effect.catch((error) => error.code === "ENOENT" ? Effect.succeed(undefined) : Effect.fail(error)));
+  return value === undefined ? undefined : { dev: value.dev, ino: value.ino };
+});
 const same = (a: Identity | undefined, b: Identity | undefined) =>
   a !== undefined && b !== undefined && a.dev === b.dev && a.ino === b.ino;
 
-const publish = async (path: string, owner: OwnerRecord): Promise<boolean> => {
+const publish = Effect.fn("ResidentOwnership.publish")(function* (path: string, owner: OwnerRecord) {
   const candidate = `${path}.candidate-${owner.pid}-${owner.token}`;
-  await mkdir(candidate, { mode: 0o700 });
-  await writeFile(`${candidate}/owner.json`, `${JSON.stringify(owner)}\n`, { mode: 0o600 });
-  try {
-    if (await identity(path) !== undefined) return false;
-    await rename(candidate, path);
-    return true;
-  } catch (cause) {
-    if (!["EEXIST", "ENOTEMPTY"].includes(code(cause) ?? "")) throw cause;
-    return false;
-  } finally { await rm(candidate, { recursive: true, force: true }); }
-};
+  return yield* Effect.acquireUseRelease(
+    ownerIo("createCandidate", () => mkdir(candidate, { mode: 0o700 })),
+    () => Effect.gen(function* () {
+      yield* ownerIo("writeOwner", () => writeFile(`${candidate}/owner.json`, `${JSON.stringify(owner)}\n`, { mode: 0o600 }));
+      if ((yield* identity(path)) !== undefined) return false;
+      yield* ownerIo("publishCandidate", () => rename(candidate, path));
+      return true;
+    }).pipe(Effect.catch((error) =>
+      error.code === "EEXIST" || error.code === "ENOTEMPTY" ? Effect.succeed(false) : Effect.fail(error))),
+    () => ownerIo("removeCandidate", () => rm(candidate, { recursive: true, force: true })),
+  );
+});
 
-export type OwnershipHooks = { readonly beforeReplace?: () => Promise<void>; readonly now?: () => number };
-
-export const acquireResidentOwnership = async (lock: string, hooks: OwnershipHooks = {}): Promise<boolean> => {
-  const owner = { pid: process.pid, token: randomUUID() };
-  if (await publish(lock, owner)) return true;
-  const observed = await identity(lock);
-  if (observed === undefined) return publish(lock, owner);
-  const status = await lstat(lock, { bigint: true });
+export const acquireResidentOwnership = Effect.fn("ResidentOwnership.acquire")(function* (lock: string) {
+  const controls = yield* ResidentOwnershipControls;
+  const owner: OwnerRecord = { pid: process.pid, token: randomUUID() };
+  if (yield* publish(lock, owner)) return true;
+  const observed = yield* identity(lock);
+  if (observed === undefined) return yield* publish(lock, owner);
+  const status = yield* ownerIo("inspectLock", () => lstat(lock, { bigint: true }));
   if (!status.isDirectory()) return false;
-  const prior = await readOwner(lock);
+  const prior = yield* readOwner(lock);
   if (prior !== undefined && processExists(prior.pid)) return false;
-  if (prior === undefined && (hooks.now?.() ?? Date.now()) - Number(status.mtimeMs) < 250) return false;
+  if (prior === undefined && (yield* Clock.currentTimeMillis) - Number(status.mtimeMs) < 250) return false;
 
   const recovery = `${lock}.recovery-${observed.dev}-${observed.ino}`;
-  const claimant = { pid: process.pid, token: randomUUID() };
-  const ownsRecovery = await publish(recovery, claimant);
+  const claimant: OwnerRecord = { pid: process.pid, token: randomUUID() };
+  const ownsRecovery = yield* publish(recovery, claimant);
   if (!ownsRecovery) {
-    const existing = await readOwner(recovery);
+    const existing = yield* readOwner(recovery);
     if (existing !== undefined && processExists(existing.pid)) return false;
     // A crashed recovery claimant is never replaced. Contenders instead race
     // for the single inode-specific tombstone below. Keeping that tombstone
     // makes delayed contenders harmless after the new owner is published.
   }
-  try {
-    await hooks.beforeReplace?.();
-    if (!same(observed, await identity(lock))) return false;
-    const current = await readOwner(lock);
+  return yield* Effect.gen(function* () {
+    // Interruption here precedes lock replacement and retires our recovery claim.
+    yield* controls.beforeReplace.pipe(Effect.interruptible);
+    if (!same(observed, yield* identity(lock))) return false;
+    const current = yield* readOwner(lock);
     if (current !== undefined && processExists(current.pid)) return false;
-    // An interrupted owner directory may be empty. Seal it before rename so
-    // the inode-specific tombstone is nonempty from the instant it appears;
-    // POSIX rename may replace an empty directory, but cannot replace this.
+    // Seal empty interrupted directories before renaming them: POSIX rename
+    // can replace an empty directory, but cannot replace this tombstone.
     const guardPath = `${lock}/retirement.guard`;
-    try {
-      await writeFile(guardPath, `${JSON.stringify(owner)}\n`, { flag: "wx", mode: 0o600 });
-    } catch (cause) {
-      if (code(cause) === "ENOENT") return false;
-      if (code(cause) !== "EEXIST") throw cause;
-      let guardOwner: OwnerRecord | undefined;
-      try {
-        const value: unknown = JSON.parse(await readFile(guardPath, "utf8"));
-        if (typeof value === "object" && value !== null && "pid" in value && Number.isSafeInteger(value.pid)) {
-          guardOwner = {
-            pid: value.pid as number,
-            token: "token" in value && typeof value.token === "string" ? value.token : "unknown-retirement-guard",
-          };
-        }
-      } catch { /* an interrupted guard is treated as crashed after identity revalidation */ }
+    const guard = yield* ownerIo("sealRetirement", () => writeFile(guardPath,
+      `${JSON.stringify(owner)}\n`, { flag: "wx", mode: 0o600 })).pipe(
+      Effect.as("sealed" as const), Effect.catch((error) => error.code === "ENOENT"
+        ? Effect.succeed("missing" as const) : error.code === "EEXIST"
+        ? Effect.succeed("existing" as const) : Effect.fail(error)),
+    );
+    if (guard === "missing") return false;
+    if (guard === "existing") {
+      const guardOwner = yield* readOwnerFile(guardPath);
       if (guardOwner !== undefined && processExists(guardOwner.pid)) return false;
     }
-    if (!same(observed, await identity(lock))) return false;
+    if (!same(observed, yield* identity(lock))) return false;
     const retired = `${lock}.retired-${observed.dev}-${observed.ino}`;
-    try { await rename(lock, retired); }
-    catch (cause) {
-      if (["ENOENT", "EEXIST", "ENOTEMPTY"].includes(code(cause) ?? "")) return false;
-      throw cause;
-    }
-    return publish(lock, owner);
-  } finally {
-    if (ownsRecovery) await rm(recovery, { recursive: true, force: true });
-  }
-};
+    const replaced = yield* ownerIo("retireLock", () => rename(lock, retired)).pipe(
+      Effect.as(true), Effect.catch((error) => ["ENOENT", "EEXIST", "ENOTEMPTY"].includes(error.code ?? "")
+        ? Effect.succeed(false) : Effect.fail(error)),
+    );
+    return replaced ? yield* publish(lock, owner) : false;
+  }).pipe(Effect.onExit(() => ownsRecovery
+    ? ownerIo("removeRecovery", () => rm(recovery, { recursive: true, force: true }))
+    : Effect.void));
+}, Effect.uninterruptible);
 
-export const releaseResidentOwnership = async (lock: string): Promise<void> => {
-  const owner = await readOwner(lock);
-  if (owner?.pid === process.pid) await rm(lock, { recursive: true, force: true });
-};
+export const releaseResidentOwnership = Effect.fn("ResidentOwnership.release")(function* (lock: string) {
+  const owner = yield* readOwner(lock);
+  if (owner?.pid === process.pid) yield* ownerIo("releaseOwner", () => rm(lock, { recursive: true, force: true }));
+}, Effect.uninterruptible);

@@ -190,7 +190,8 @@
     "Root retireRound/consumeEditPermit/acknowledgeStopRelease now named atomic Effects; private draft versions remain synchronous within owning service commits. Native round retirement fixtures execute root Effects. Round identity Effect test now proves deferred retirement, replacement round creation and old-generation retirement fence protecting replacement. Seven focused files passed200tests; updated27capacitytests separately passed; typecheck/build/all15boundaries/diffcheck passed. Root capacity work/request/reservation operations and remaining read bridges still require conversion.",
     "Root admitObservation is named atomic Effect; resident ingress yields it. Refusal cleanup uses Effect.exit and Exit.isFailure to release ingress reservation, replacing synchronous try/catch which cannot catch yielded Effect defects. Native Bend-work/Jev/capacity/dispatch fixtures execute root effects; scoped advice/round fixtures yield. New Effect test proves lazy admission,16 distinct concurrent observation identities,invalid-round defect publishes no changed canonical state/round. Eight focused files passed184tests; final capacity/server run114tests passed after refusal cleanup and new test. Typecheck/build/all15boundaries/diffcheck passed. Remaining observation lifecycle/work/request/reservation/read APIs and final migration gates still required.",
     "Replaced the remaining six resident Promise coordination hooks with one scoped Effect review control service; Deferred fixtures prove cancellation, retained completed-finding preservation, pending-advice failure cleanup and revalidation workspace/lease cleanup. Root resident state and runtime expose Effects without runSync/runPromise or unsafe reads.",
-    "Resident endpoint directory/socket preparation and verification compose as named Effects with typed source-free filesystem errors; ENOENT allowance, uid/mode/type/symlink checks and absolute client deadlines preserved."
+    "Resident endpoint directory/socket preparation and verification compose as named Effects with typed source-free filesystem errors; ENOENT allowance, uid/mode/type/symlink checks and absolute client deadlines preserved.",
+    "Native process ownership acquisition/release and recovery publication compose as named Effects with typed errors, scoped candidate cleanup, explicit Effect recovery controls and live epoch Clock; production root acquireRelease owns the lock through runtime teardown."
   ],
   "verification": [
     {
@@ -2335,6 +2336,36 @@
       "boundaryChecksPassed": 15,
       "scope": "Directory preparation, socket verification and removable socket verification now return named Effects with ResidentEndpointError. Native lstat/mkdir remain Promise adapters at the OS boundary; pure endpoint metadata validation remains synchronous. Client verification and startup compose directly rather than wrapping Effect operations in tryPromise. Resident listener maps endpoint failures at its adapter boundary. Only missing endpoint ENOENT is admitted; actual regular files/dangling symlinks and ENOTDIR metadata failures are rejected; native paths are omitted from error messages. Existing ownership/mode/symlink, deadline, startup, subprocess and sink security fixtures pass.",
       "limitations": "Resident path environment resolution, owner acquisition/release, client Promise facades and broader service error surfaces remain part of the edge audit. This is Linux filesystem/runtime evidence, not platform/release acceptance. Final full suite and declared conformance/performance gates remain pending."
+    },
+    {
+      "stage": "effect-process-ownership",
+      "parentCommit": "a7e7b61",
+      "sourceSha256": {
+        "src/resident/ownership.ts": "179d2c3a6bd07c1fc2d404140ea65fa0581b109da64eac17a64cea1862fce98c",
+        "src/resident/ownership.test.ts": "78af9807cd3d532736c2700aece704cb0541a9384d88afee02e4d01af94b1b07",
+        "src/resident/main.ts": "a27bef6dc3a1606583fc20d074e2de32712581edb988a06cf48a71183cc5d197"
+      },
+      "tests": {
+        "command": "npx vitest run src/resident/ownership.test.ts src/resident/subprocess.test.ts src/resident/security-sinks.test.ts src/resident/client-startup.test.ts --maxWorkers=1",
+        "testsPassed": 30,
+        "filesPassed": 4,
+        "durationSeconds": 52.64,
+        "ownershipCases": 14
+      },
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Ownership acquisition, candidate publication, inode reads, owner observation and release are named Effect workflows. Typed ResidentOwnershipError classifies native IO without source/native path payloads; bounded native Promise operations await physical completion under interruption masks. Candidate directory is acquired before owner-file write and released on every publication exit. Removed OwnershipHooks and its Promise callback/clock override; an explicit ResidentOwnershipControls layer supplies a pre-replacement Effect barrier, with kernel epoch age read through Clock.currentTimeMillis. Process root supplies its control layer and composes acquireRelease directly; only the winner loads the resident runtime. Schema decodes live PID observations from partial owner metadata and eliminates unchecked PID casts and invented missing-token fallback strings, retaining the same pid/token persisted record. Real filesystem tests use live epoch clock and scoped temporary roots.",
+      "observations": [
+        "20 concurrent fresh candidates elect exactly one owner and leave only the elected lock; release leaves no candidates",
+        "Three 20-contender stale recovery scenarios elect one owner and preserve nonempty inode-specific tombstones",
+        "A newly live owner after inode inspection is not replaced; a visible live PID is protected when token metadata is absent",
+        "Typed barrier failure retires an owned recovery claim; a crashed claimant owned by another attempt is preserved",
+        "A held replacement barrier is interrupted without external gate release, and its own recovery claim is removed",
+        "Process-scope interruption removes the elected lock",
+        "Native candidate creation ENOENT is typed and does not expose the fixture path"
+      ],
+      "limitations": "The candidate resource structure covers an owner-file write failure, but this stage did not inject an OS write failure after candidate mkdir. Physical native IO is awaited rather than claimed abortable. Linux process/filesystem fixtures establish neither native host/platform acceptance nor final full-migration performance/package support. Final broad suite and declared conformance/performance gates remain pending."
     }
   ],
   "next": [
