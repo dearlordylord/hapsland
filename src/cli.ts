@@ -14,7 +14,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { createInterface } from "node:readline/promises";
+import { askConfirmation } from "./onboarding/confirmation.ts";
 import { fileURLToPath } from "node:url";
 import { discoverWorkingTreeRoot, rootRelativePath } from "./repository/root.ts";
 import { selectFile } from "./configuration/decision.ts";
@@ -1015,12 +1015,6 @@ const positionalHost = () => clientArguments?.host;
 const selectedHost = (): SetupClient => clientArguments?.host ?? "codex";
 const hostFields = (host: SetupClient) => profileFields(host, clientArguments?.flags ?? new Map());
 
-const askConfirmation = async (question: string, signal?: AbortSignal) => {
-  const prompt = createInterface({ input: process.stdin, output: process.stderr });
-  try { return (await prompt.question(`${question} [y/N] `, signal === undefined ? {} : { signal })).trim().toLowerCase() === "y"; }
-  finally { prompt.close(); }
-};
-
 const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
   const hostName = host === "claude" ? "Claude Code" : "Codex";
   if (!process.stdin.isTTY || !process.stderr.isTTY) {
@@ -1069,7 +1063,7 @@ const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClien
     if (install !== undefined) {
       const observed = stage(result, "installation")?.observed as { proposal?: unknown } | undefined;
       process.stderr.write(`Installation preview:\n${formatProposal(observed?.proposal).join("\n")}\n`);
-      if (!(yield* Effect.tryPromise((signal) => askConfirmation(`Install these entries in the selected ${hostName} profile?`, signal)))) {
+      if (!(yield* askConfirmation(`Install these entries in the selected ${hostName} profile?`))) {
         process.stderr.write(`Installation was not changed. Run hapsland setup ${host} to resume.\n`);
         return;
       }
@@ -1206,7 +1200,7 @@ const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
     } catch (cause) { failed(host, cause); }
   }
   if (proposals.length > 0) {
-    const apply = yield* Effect.tryPromise((signal) => askConfirmation(`Apply these changes to ${proposals.map(proposal => proposal.host).join(", ")} profiles?`, signal));
+    const apply = yield* askConfirmation(`Apply these changes to ${proposals.map(proposal => proposal.host).join(", ")} profiles?`);
     for (const proposal of proposals) {
       if (!apply) { outcomes.set(proposal.host, "skipped"); continue; }
       try {
@@ -1261,10 +1255,7 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
       if (recovered !== undefined && command === "repair") process.stderr.write(`Resume interrupted ${operation}; after completion rerun hapsland repair ${host} if needed.\n`);
       process.stderr.write(`${host} ${command} preview:\n${formatProposal(preview.proposal).join("\n")}\n`);
       if (reinstall) process.stderr.write("Replace marked Hapsland handlers; preserve independent hooks, review settings and saved credentials.\n");
-      const confirmation = yield* Effect.tryPromise({
-        try: (signal) => askConfirmation(`Apply ${command} to ${host}?`, signal),
-        catch: (cause) => cause instanceof Error ? cause : new Error("confirmation failed"),
-      }).pipe(Effect.result);
+      const confirmation = yield* askConfirmation(`Apply ${command} to ${host}?`).pipe(Effect.result);
       if (confirmation._tag === "Failure") {
         reportClientFailure(host, confirmation.failure);
         continue;

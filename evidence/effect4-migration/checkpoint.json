@@ -3637,5 +3637,29 @@
       "src/cli.ts": "87a134d759010f22ae70dd883d9c0c4f63dee6f92de71ab3a45289a3debf0d0c"
     },
     "limitations": "Package identity/active dispatcher and doctor native calls remain synchronous; no actual interactive approved mutation or installed-package conformance run. Codex/Claude installation Config, external Clock deadline and final full gates remain incomplete."
+  },
+  "terminalConfirmationEffectPort": {
+    "status": "shared interactive confirmation is scoped named Effect",
+    "scope": "Pilot/update/maintenance directly yield askConfirmation; previous Promise helper deleted. Readline interface acquisition/release owned by acquireUseRelease; native question receives fiber AbortSignal. Only trimmed case-insensitive y accepts, preserving old behavior.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/confirmation.test.ts src/cli.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 2,
+        "tests": 10,
+        "durationSeconds": 7.94
+      }
+    ],
+    "ownershipEvidence": "Native readline with synthetic PassThrough streams tests y/yes/empty responses and interrupted fiber; data/end listeners absent after each completion.",
+    "sourceSha256": {
+      "src/onboarding/confirmation.ts": "6eceb64f36ceaea786c3f08a6378bfcb912741b2bde02ac4656b819220523e30",
+      "src/onboarding/confirmation.test.ts": "bfec8523214e5404644a6ea5068aba4ec7637a3501695af93792eb7cdcd34646",
+      "src/cli.ts": "74bbae4a958e2230365dcb79c162dbc27242c12bed3eb24086467edfbce70ce1"
+    },
+    "limitations": "No actual interactive lifecycle approved mutation or native readline fault injection; remaining native doctor/dispatcher, installation Config, external Clock deadlines and final full migration gates incomplete."
   }
 }
