@@ -556,3 +556,23 @@ black owner labels remain readable against the owner palette. Logs:
 `/tmp/hapsland-execution-pools-ensemble.log`, and
 `/tmp/hapsland-execution-pools-resource.log`. This validates the authorized
 visualization change, not native Jev behavior or a backend policy change.
+
+
+## Owner-selected Monkey edit-permit ceilings (2026-10-01)
+
+The owner requested 16 edit permits per agent and 64 shared resident permits for
+new Monkey dashboard runs, replacing the earlier 2/8 demo defaults. The start
+configuration and ordinary-run browser assertions now use 16/64. Explicit
+partition-scope boundary fixtures retain their supplied limits, and native
+32/4096 defaults are unchanged. This changes demo configuration only.
+
+
+Typecheck, visualization build, resource browser, and diff checks passed. The
+browser verifies ordinary exported 16/64 configuration and rendered local0/16
+versus resident1/64 after a permit issued to another partition; explicit fixture
+ceilings and historical unknown-limit behavior remain checked. Logs:
+`/tmp/hapsland-permit-16-64-build.log` and
+`/tmp/hapsland-permit-16-64-browser.log`.
+
+Astra's bounded rendered after-review confirmed the new local/resident labels fit
+and scope remains clear, with no UX blocker.

@@ -467,3 +467,8 @@ rewritten. Optional scenarios create at most three tickets and two notice
 identities independently of these maxima, so ordinary demos do not imply that a
 handful of records saturates native retention. The retained-resource inset proposal is rejected; retained resource details
 are omitted from the diagram.
+
+
+The Monkey dashboard starts new demos with edit-permit ceilings of 16 per agent
+and 64 for the shared resident. Explicit replay/fixture ceilings remain unchanged;
+native permit defaults remain 32 per advicee and 4096 per resident.

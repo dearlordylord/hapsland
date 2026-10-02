@@ -17,13 +17,15 @@ try {
   const resident=page.locator('.shared-resident');
   assert.match(await resident.innerText(),/Resident ledger items\s+0 \/ 32/);
   assert.match(await page.locator('.stage-preparation-total').first().textContent(),/0 \/ 8/);
-  assert.match(await resident.innerText(),/Edit permits · shared by all agents\s+0 \/ 8/);
+  assert.match(await resident.innerText(),/Edit permits · shared by all agents\s+0 \/ 64/);
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-initial-1512.png'});
   await click('Focus selected agent');
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-current-flat-1512.png'});
   await click('Step resident');
   await page.locator('#agent-ensemble').getByRole('button',{name:'Inspect Admission & capacity',exact:true}).click();await settle();
   assert.match(await page.locator('.stage-resource-details').innerText(),/Items\s+0 \/ 16/);
+  assert.match(await page.locator('.stage-resource-details').innerText(),/Edit permits\s+0 \/ 16/);
+  assert.match(await resident.innerText(),/Edit permits · shared by all agents\s+1 \/ 64/);
   await page.locator('.simulation-stage-inspector').screenshot({path:'/tmp/hapsland-capacity-admission-1512.png'});
   await page.locator('#agent-ensemble').getByRole('button',{name:'Inspect Host output',exact:true}).click();await settle();
   // Initial state has no event; take one checked step to expose event inspector.
@@ -39,6 +41,8 @@ try {
   await click('Export replay');
   const configured=JSON.parse(await page.getByLabel('Replay JSON',{exact:true}).inputValue());
   assert.equal(configured.config.resourceScenarios.tickets,true);
+  assert.equal(configured.config.lifecycles.permits.adviceeLimit,16);
+  assert.equal(configured.config.lifecycles.permits.residentLimit,64);
   assert.equal(configured.config.resourceScenarios.ticketRetention,48);
   assert.equal(configured.config.lifecycles.reuse.entryLimit,6);
   assert.equal(configured.config.lifecycles.reuse.byteLimit,49152);

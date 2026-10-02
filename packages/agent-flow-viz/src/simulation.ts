@@ -382,7 +382,7 @@ export const actSimulation = (
         demoAgentCount: number(model.agentCount, "Agent count", 1, 6),
         // One resident ledger and execution pool serve every independent generator.
         limits: { globalItems: 32, partitionItems: 16, globalBytes: 2000, partitionBytes: 2000 },
-        lifecycles: { permits: { adviceeLimit: 2, residentLimit: 8, holdMs: 1 }, collectors: { capacity: 64 }, reuse: { entryLimit: demoLimits.entryLimit, byteLimit: demoLimits.byteLimit }, quietWindowMs: 60000 },
+        lifecycles: { permits: { adviceeLimit: 16, residentLimit: 64, holdMs: 1 }, collectors: { capacity: 64 }, reuse: { entryLimit: demoLimits.entryLimit, byteLimit: demoLimits.byteLimit }, quietWindowMs: 60000 },
         resourceScenarios: model.resourceScenario === "none" ? undefined : { ticketRetention: demoLimits.ticketRetention, noticeMaximumKeys: demoLimits.noticeMaximumKeys, tickets: model.resourceScenario === "tickets", notices: model.resourceScenario === "notices", outputFit: model.resourceScenario === "fit" || model.resourceScenario === "oversized", outputBytes: model.resourceScenario === "oversized" ? 10241 : 512 },
         environment: environmentFacts(model),
         outputProfile: outputProfile(model),
