@@ -21,12 +21,7 @@ type Input is Data:
 type Item is Data:
   Item{at: Nat, order: Nat, input: Input}
 type Queue is Data:
-  Queue{items: List<&2, Item>, sequence: Nat}
-
-def keys(items: List<&2, Item>) -> List<&2, Scheduler.Entry>:
-  match items:
-    case Nil{}: Nil{}
-    case Item{at, order, _} <> tail: Scheduler.Entry{at, order} <> keys(tail)
+  Queue{items: List<&2, Item>, sequence: Nat, synced: Nat}
 
 def lookup_if(found: Bool, input: Input, rest: Input) -> Input:
   match found:
@@ -51,7 +46,7 @@ def remove(items: List<&2, Item>, +order: Nat) -> List<&2, Item>:
 
 def append(queue: Queue, at: Nat, input: Input) -> Queue:
   match queue:
-    case Queue{items, +sequence}: Queue{List.append(&2, Item, items, [Item{at, sequence, input}]), Nat.add(sequence, 1n)}
+    case Queue{items, +sequence, synced}: Queue{List.append(&2, Item, items, [Item{at, sequence, input}]), Nat.add(sequence, 1n), synced}
 
 def enqueue(actions: List<&2, Driver.Action>, queue: Queue, +now: Nat) -> Queue:
   match actions:
@@ -340,25 +335,43 @@ def input(input: Input, +state: Types.State, queue: Queue, now: Nat,
       graph_result(Engine.graph_step(state, Types.GraphKey{1n, 1n, 1n, operation, 0n}, step,
         Graph.Limits{1n, 262144n, 20480n, 8n, 1572864n, 16n, 4n, 128n}, event), queue, now, ih)
 
-def selected_if(in_budget: Bool, +items: List<&2, Item>, state: Types.State, sequence: Nat,
-    at: Nat, +order: Nat, config: Config,
+def sync_if(fresh: Bool, state: Types.State, at: Nat, order: Nat) -> Types.State:
+  match fresh:
+    case True{}: Engine.enqueue(state, at, order)
+    case False{}: state
+
+def sync(items: List<&2, Item>, state: Types.State, +synced: Nat) -> Types.State:
+  match items:
+    case Nil{}: state
+    case Item{at, +order, _} <> tail:
+      sync(tail, sync_if(Nat.is_le(synced, order), state, at, order), synced)
+
+def taken(taken: Engine.Taken, +items: List<&2, Item>, +sequence: Nat, config: Config,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match taken:
+    case Engine.Taken{state, Some{Scheduler.Entry{at, +order}}}:
+      input(lookup(items, order), state, Queue{remove(items, order), sequence, sequence}, at, config, ih)
+    case Engine.Taken{_, None{}}: Nil{}
+
+def selected_if(in_budget: Bool, state: Types.State, items: List<&2, Item>, sequence: Nat,
+    config: Config, ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match in_budget:
     case False{}: Nil{}
-    case True{}: input(lookup(items, order), state, Queue{remove(items, order), sequence}, at, config, ih)
+    case True{}: taken(Engine.take(state), items, sequence, config, ih)
 
-def selected(entries: List<&2, Scheduler.Entry>, state: Types.State, +items: List<&2, Item>, sequence: Nat,
-    config: Config,
-    ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+def selected(entries: List<&2, Scheduler.Entry>, state: Types.State, items: List<&2, Item>, sequence: Nat,
+    config: Config, ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match entries:
     case Nil{}: Nil{}
-    case Scheduler.Entry{+at, +order} <> _:
-      selected_if(Nat.is_le(at, 10n), items, state, sequence, at, order, config, ih)
+    case Scheduler.Entry{at, _} <> _:
+      selected_if(Nat.is_le(at, 10n), state, items, sequence, config, ih)
 
-def next(state_queue: Types.State & Queue, +config: Config,
+def next(state_queue: Types.State & Queue, config: Config,
     ih: (Types.State & Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match state_queue:
-    case (state, Queue{+items, sequence}): selected(Engine.order(keys(items)), state, items, sequence, config, ih)
+    case (state, Queue{+items, sequence, synced}):
+      +state = sync(items, state, synced)
+      selected(Engine.queued(state), state, items, sequence, config, ih)
 
 def loop(fuel: Nat, state_queue: Types.State & Queue, +config: Config) -> List<&2, List<&2, Nat>>:
   match fuel:
@@ -367,7 +380,7 @@ def loop(fuel: Nat, state_queue: Types.State & Queue, +config: Config) -> List<&
 
 def scenario(config: Config) -> List<&2, List<&2, Nat>>:
   loop(100n, (Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}),
-    Queue{[Item{0n, 0n, Edit{}}], 1n}), config)
+    Queue{[Item{0n, 0n, Edit{}}], 1n, 0n}), config)
 
 def scenarios() -> List<&2, List<&2, List<&2, Nat>>>:
   [scenario(Config{Canonical.RequestFinding{}, True{}, True{}, True{}, True{}}),
