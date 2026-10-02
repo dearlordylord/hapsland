@@ -2807,5 +2807,37 @@
       "scripts/check-configuration-boundary.mjs": "285652250505e08c3d20fe9fd1dc3f11e12ac5c3b99858bd4830078b4aaade63"
     },
     "limitations": "No live provider calls made. Full 1227-test suite passed on prior master-integration checkpoint; this subsequent change has focused evaluation/CLI, typecheck and build evidence. Remaining full workflow audit and final comprehensive/conformance/performance gates still required."
+  },
+  "credentialNativeProcessPort": {
+    "scope": "Named Effect native process adapter with acquireUseRelease, Effect timeout, retained physical close acknowledgement and typed sanitized spawn failure. Input is sent only after ownership publication. Native output parsing preserves existing status protocol and credential bytes; retained buffers are cleared after decoding.",
+    "status": "adapter-verified-workflow-integration-pending",
+    "tests": {
+      "command": "npx vitest run src/credentials/secret-service.test.ts src/credentials/secret-service-process.test.ts --maxWorkers=1",
+      "filesPassed": 2,
+      "testsPassed": 29,
+      "durationSeconds": 19.67,
+      "newCases": [
+        "native header/body without trimming",
+        "failed spawn sanitized after closure",
+        "malformed mutation response stays indeterminate",
+        "timeout waits for native closure",
+        "fiber interruption waits for closure and stays interrupted",
+        "external abort waits for closure and returns cancelled"
+      ]
+    },
+    "typecheck": {
+      "command": "npm run typecheck",
+      "status": "pass"
+    },
+    "build": {
+      "command": "npm run build",
+      "status": "pass"
+    },
+    "sourceSha256": {
+      "src/credentials/secret-service-process.ts": "d421d3a40a9d1f414b3ecc6519a59ebb510438a267d6fcd2e868af9a9e5eac9c",
+      "src/credentials/secret-service-process.test.ts": "58dbbea83ca5d30f2b1a58a28318a07eb25f18cb905d12c2dbee3fd9d7bd22b0"
+    },
+    "limitations": "New adapter is not yet connected to production credential workflows. Existing Promise helper and lifecycle exports remain pending in-place replacement; this is not completion of the credential migration. Tests use synthetic native helpers on this Linux host, not a live Secret Service or cross-platform support validation. Full workflow, conformance, performance and completion audits remain required.",
+    "next": "Replace runSecretService in place with Config-resolved Effect adapter; migrate state-lock polling/acquisition and resolve/save/logout composition, then port CLI, onboarding, resident and native test callsites. Preserve v1 generation fences, stale-owner tombstones, mutation invalidation-before-helper, domain statuses and lock ownership until physical helper closure."
   }
 }
