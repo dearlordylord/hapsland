@@ -1,3 +1,5 @@
+import { reviewControlsLayer } from "../../src/test-support/review-controls.ts";
+import { nativeDeferred as deferred } from "../../src/test-support/native-deferred.ts";
 // Linux production-resident contract probes. No native agent runtime is launched.
 // Hook subprocess inputs are fixture events; Jev uses the controlled Effect model.
 import { spawn, execFileSync } from "node:child_process";
@@ -24,11 +26,7 @@ const output = process.argv[2] ?? join(project, "evidence/advicing-linux/linux-r
 const requireThat = (condition: unknown, label: string, evidence?: unknown): void => {
   if (!condition) throw new Error(evidence === undefined ? label : `${label}: ${JSON.stringify(evidence)}`);
 };
-const deferred = () => {
-  let resolve!: () => void;
-  const promise = new Promise<void>((done) => { resolve = done; });
-  return { promise, resolve };
-};
+
 const within = async <A>(promise: Promise<A>, milliseconds = 10_000): Promise<A> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try { return await Promise.race([promise, new Promise<never>((_, reject) => {
@@ -202,7 +200,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
         })) };
     }));
     const f = await fixture(host, { ...findingControl, delayMs: 8_000 }, {
-      beforeEvaluate: async () => entered.resolve(), preparationControls: gates.layer,
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* entered.complete(); }) }), preparationControls: gates.layer,
     });
     try {
       await f.admit({ "running.ts": finding("RunningCount") });
@@ -266,9 +264,9 @@ for (const host of ["codex-cli", "claude-code"] as const) {
   });
   for (const acknowledged of [false, true]) await runCase(host, acknowledged ? "submitted-background-not-reoffered" : "lost-background-ack-reoffered-once", async () => {
     const entered = deferred(), release = deferred(); let gateUsed = false;
-    const f = await fixture(host, undefined, { beforeRevalidate: async () => {
-      if (!gateUsed) { gateUsed = true; entered.resolve(); await release.promise; }
-    } });
+    const f = await fixture(host, undefined, { reviewControls: reviewControlsLayer({ beforeRevalidate: () => Effect.gen(function* () {
+      if (!gateUsed) { gateUsed = true; yield* entered.complete(); yield* release.wait; }
+    }) }) });
     try {
       await f.admit({ "type.ts": finding() }); await Effect.runPromise(f.server.whenIdle());
       const callsBefore = await f.calls();

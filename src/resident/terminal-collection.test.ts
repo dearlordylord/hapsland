@@ -1,3 +1,6 @@
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
+import { ReviewControlError } from "./review-controls.ts";
+import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
 import { Layer, Ref } from "effect";
 import { ResidentPreparationControls, PreparationControlError, defaultPreparationControls } from "./preparation-controls.ts";
 import { makePreparationControls } from "../test-support/preparation-controls.ts";
@@ -17,11 +20,7 @@ import { monotonicNow } from "./hook-clock.ts";
 import { PENDING_ADVICE_EXPIRY_MS } from "./collection.ts";
 import type { ResidentDispatchContext, ResidentRequest, ResidentCollectionTicket } from "./protocol.ts";
 
-const deferred = () => {
-  let resolve!: () => void;
-  const promise = new Promise<void>((done) => { resolve = done; });
-  return { promise, resolve };
-};
+
 
 const fixture = async () => {
   const root = await makeGitFixture();
@@ -92,18 +91,18 @@ describe("Claude terminal collection", () => {
     const evaluatedIdentities = new Set<string>();
     const evaluatedContracts = new Set<string>();
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), () => 1_000, {
-      beforeEvaluate: async (prepared) => {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         evaluationCount += 1;
         evaluatedIdentities.add(prepared.identity);
         evaluatedContracts.add(prepared.input.contract);
         if (evaluationCount === 1) {
-          primerEntered.resolve();
-          await releasePrimer.promise;
+          yield* primerEntered.complete();
+          yield* releasePrimer.wait;
         } else if (evaluationCount <= 3) {
-          if (evaluationCount === 3) blockersEntered.resolve();
-          await releaseBlockers.promise;
+          if (evaluationCount === 3) yield* blockersEntered.complete();
+          yield* releaseBlockers.wait;
         }
-      },
+      }) }),
       preparationControls: controls.layer,
     });
     const activityPath = join(data.root, "joined-activity");
@@ -177,7 +176,7 @@ describe("Claude terminal collection", () => {
     const gate = deferred();
     const entered = deferred();
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeEvaluate: async () => { entered.resolve(); await gate.promise; },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* entered.complete(); yield* gate.wait; }) }),
     });
     const dispatch = data.dispatch(0);
     expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
@@ -295,8 +294,9 @@ describe("Claude terminal collection", () => {
     const handingOff = deferred();
     const responseGate = deferred();
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeEvaluate: async () => { evaluating.resolve(); await evaluateGate.promise; },
-      beforeResponseHandoff: async () => { handingOff.resolve(); await responseGate.promise; },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* evaluating.complete(); yield* evaluateGate.wait; }),
+beforeResponseHandoff: () => Effect.gen(function* () { yield* handingOff.complete(); yield* responseGate.wait; }) }),
+
     });
     await Effect.runPromise(server.listen());
     try {
@@ -324,8 +324,9 @@ describe("Claude terminal collection", () => {
     const handingOff = deferred();
     const responseGate = deferred();
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeEvaluate: async () => { evaluating.resolve(); await evaluateGate.promise; },
-      beforeResponseHandoff: async () => { handingOff.resolve(); await responseGate.promise; },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* evaluating.complete(); yield* evaluateGate.wait; }),
+beforeResponseHandoff: () => Effect.gen(function* () { yield* handingOff.complete(); yield* responseGate.wait; }) }),
+
     });
     await Effect.runPromise(server.listen());
     try {
@@ -352,7 +353,7 @@ describe("Claude terminal collection", () => {
     const handingOff = deferred();
     const responseGate = deferred();
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeResponseHandoff: async () => { handingOff.resolve(); await responseGate.promise; },
+      reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () { yield* handingOff.complete(); yield* responseGate.wait; }) }),
     });
     await Effect.runPromise(server.listen());
     try {
@@ -389,9 +390,9 @@ describe("Claude terminal collection", () => {
       ...firstCandidate, path: secondPath, addedLines: ["type SecondCount = number"],
     }] };
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeEvaluate: async (prepared) => {
-        if (prepared.input.path.endsWith("second.ts")) throw new Error("controlled unit failure");
-      },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
+        if (prepared.input.path.endsWith("second.ts")) yield* Effect.fail(new ReviewControlError({ phase: "beforeEvaluate" }));
+      }) }),
     });
     const activityPath = join(data.root, "mixed-activity");
     const dispatch = { ...data.dispatch(0.9), activityPath };
@@ -484,7 +485,7 @@ describe("Claude terminal collection", () => {
     const entered = deferred();
     const gate = deferred();
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
-      beforeResponseHandoff: async () => { entered.resolve(); await gate.promise; },
+      reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () { yield* entered.complete(); yield* gate.wait; }) }),
     });
     await Effect.runPromise(server.listen());
     try {

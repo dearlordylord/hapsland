@@ -1,3 +1,4 @@
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
@@ -227,9 +228,9 @@ describe("Claude advicee scoped resident delivery", () => {
     };
     let changeAtHandoff = false;
     const paths = residentPaths(join(root, "runtime"));
-    const server = await acquireResidentFixture(paths, undefined, { beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
       if (changeAtHandoff) writeFileSync(path, "type OrderCount = string\n");
-    } });
+    }) }) });
     await Effect.runPromise(server.listen());
     try {
       expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
@@ -270,9 +271,9 @@ describe("Claude advicee scoped resident delivery", () => {
     let revoke = false;
     const paths = residentPaths(join(root, "runtime"));
     const server = await acquireResidentFixture(paths, () => performance.now(), {
-      beforeResponseHandoff: async () => {
+      reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
         if (revoke) writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
-      },
+      }) }),
     });
     await Effect.runPromise(server.listen());
     try {

@@ -1,4 +1,6 @@
-import { Effect, Exit, Scope } from "effect";
+import { Effect, Exit, Schedule, Scope } from "effect";
+import { reviewControlsLayer } from "../../src/test-support/review-controls.ts";
+import { ReviewControlError } from "../../src/resident/review-controls.ts";
 /** Dedicated offline resident process for the security wire witness. */
 import { appendFileSync } from "node:fs";
 import nodeHttp from "node:http";
@@ -28,14 +30,15 @@ const fixtureScope = await Effect.runPromise(Scope.make());
 const server = await Effect.runPromise(makeResidentRuntime(runtime, undefined, {
   offlineHttpClient: http,
   dispatchAuthorityObserver: (observation) => record(observation),
-  beforeEvaluate: async (unit) => {
+  reviewControls: reviewControlsLayer({ beforeEvaluate: (unit) => Effect.gen(function* () {
     record({ kind: "prepared", path: unit.input.path, declaration: unit.input.declaration.name });
-    await writeFile(join(root, "wire-prepared"), "ready\n");
-    while (true) {
-      try { await access(join(root, "wire-release")); break; }
-      catch { await new Promise((resolve) => setTimeout(resolve, 10)); }
-    }
-  },
+    yield* Effect.tryPromise({ try: () => writeFile(join(root, "wire-prepared"), "ready\n"),
+      catch: () => new ReviewControlError({ phase: "beforeEvaluate" }) });
+    yield* Effect.tryPromise({ try: () => access(join(root, "wire-release")), catch: () => false }).pipe(
+      Effect.as(true), Effect.catch(() => Effect.succeed(false)),
+      Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (released) => released }),
+    );
+  }) }),
 }).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
 await Effect.runPromise(server.listen());
 await writeFile(join(root, "wire-ready"), server.lifetime, { mode: 0o600 });

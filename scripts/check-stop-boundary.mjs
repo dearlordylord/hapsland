@@ -52,3 +52,11 @@ for (const ownership of [
 if (/listenEffect|closeEffect|(?:whenIdle|listen|close)\(\): Promise/u.test(server)) {
   throw new Error("resident lifecycle must expose scoped Effects without parallel Promise facades");
 }
+
+if (/readonly (?:beforeRevalidate|beforeEvaluate|afterRevalidationWorkspaceReserved|afterAdvicePending|beforeFinalRevalidate|beforeResponseHandoff)\?/u.test(server) ||
+    /resident(?:BeforeRevalidate|BeforeEvaluate|AfterRevalidationWorkspaceReserved|AfterAdvicePending|BeforeFinalRevalidate|BeforeResponseHandoff)/u.test(server)) {
+  throw new Error("resident coordination must use scoped review controls rather than Promise hooks");
+}
+if (!server.includes("Layer.buildWithScope(options.reviewControls ?? reviewControlsLayer, residentControlScope)")) {
+  throw new Error("resident review controls must be owned by its control scope");
+}

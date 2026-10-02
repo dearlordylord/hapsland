@@ -11,11 +11,6 @@ import { createHash } from "node:crypto";
 const exec = promisify(execFile);
 const temporary = await mkdtemp(join(tmpdir(), "hapsland-security-installed-"));
 const command = async (bin, args, cwd = process.cwd()) => exec(bin, args, { cwd, timeout: 120_000, maxBuffer: 1024 * 1024 });
-const deferred = () => {
-  let resolve;
-  const promise = new Promise((done) => { resolve = done; });
-  return { promise, resolve };
-};
 const within = (promise, label) => new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error(`${label} timed out`)), 10_000);
   Promise.resolve(promise).then(
@@ -35,6 +30,9 @@ try {
   const Effect = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Effect.js")).href);
   const Scope = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Scope.js")).href);
   const Exit = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Exit.js")).href);
+  const Deferred = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Deferred.js")).href);
+  const Layer = await import(pathToFileURL(join(installation, "node_modules", "effect", "dist", "Layer.js")).href);
+  const { ResidentReviewControls, defaultReviewControls } = await installed("resident/review-controls.js");
   const { adaptCodexDirectEvent } = await installed("direct-event/adapter.js");
   const { makeResidentRuntime } = await installed("resident/server.js");
   const { residentPaths } = await installed("resident/paths.js");
@@ -55,24 +53,24 @@ try {
     };
     const observation = await Effect.runPromise(adaptCodexDirectEvent(event));
     if (observation === undefined) throw new Error("installed event adapter returned no observation");
-    const entered = deferred();
-    const release = deferred();
+    const entered = await Effect.runPromise(Deferred.make());
+    const release = await Effect.runPromise(Deferred.make());
     let preparedMarker = false;
     const fixtureScope = await Effect.runPromise(Scope.make());
     const server = await Effect.runPromise(makeResidentRuntime(residentPaths(join(root, "runtime")), undefined, kind === "queued-excluded" ? {
-      beforeEvaluate: async (prepared) => {
+      reviewControls: Layer.succeed(ResidentReviewControls, { ...defaultReviewControls, beforeEvaluate: (prepared) => Effect.gen(function* () {
         preparedMarker = prepared.input.declaration.source.includes("InstalledSecurityMarker");
-        entered.resolve();
-        await release.promise;
-      },
+        yield* Deferred.succeed(entered, undefined);
+        yield* Deferred.await(release);
+      }) }),
     } : {}).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
     const admitted = await Effect.runPromise(server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath } }));
     if (admitted.status !== "accepted") throw new Error(`installed admission ${kind} was ${admitted.status}`);
     if (kind === "queued-excluded") {
-      await within(entered.promise, "installed preparation barrier");
+      await within(Effect.runPromise(Deferred.await(entered)), "installed preparation barrier");
       if (!preparedMarker) throw new Error("queued unit was not prepared before update");
       await writeFile(join(root, ".review.jsonc"), '{"version":1,"excludes":["type.ts"]}\n');
-      release.resolve();
+      await Effect.runPromise(Deferred.succeed(release, undefined));
     }
     await within(Effect.runPromise(server.whenIdle()), "installed resident idle barrier");
     await Effect.runPromise(Scope.close(fixtureScope, Exit.void));

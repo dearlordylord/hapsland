@@ -29,7 +29,7 @@
     "Production authority check rejects restoration of the retired CapacityLedger, EvaluationReuse and ComposedDelivery classes",
     "Dispatch native registry and retained start commands now commit in the canonical/capacity/reuse/delivery Ref; dispatcher no longer owns an independent state Ref",
     "Dispatch commits and command acknowledgement compose directly as Effects over the shared owner; scoped physical execution and idle Latch remain executor resources",
-    "Resident state acquisition is an Effect with one Ref per acquisition; synchronous factory remains a host bridge for existing callers",
+    "Resident state acquisition is an Effect with one Ref per acquisition; the synchronous production factory has been deleted",
     "Outstanding native dispatch jobs block destructive state clearing; one scoped dispatch executor attaches per owner, including after logical state clear",
     "Dispatch boundary check rejects independently acquired dispatch Ref ownership",
     "Revision identity mappings and current native work handles moved from ResidentServer fields into the shared canonical/native Ref, with draft registration/reuse/supersession/release operations",
@@ -188,7 +188,8 @@
     "Root roundId allocation now a named atomic Effect; resident admission yields it only when no bound canonical round exists. Root round allocations in native Bend-work/Jev/capacity and scoped dispatch fixtures execute Effects; private draft owner stays synchronous. New Effect test proves 16 deferred requests open one round/partition, constructing allocation leaves tables unchanged, reusable execution retains round identity. Six focused files passed159tests; updatedcapacity/Jev files37tests separately passed; typecheck/build/all15boundaries/diffcheck passed. Remaining public capacity reads and work/reservation mutations still need conversion.",
     "Five root identity/capacity reads now named Ref.get Effects: minimumFreshStart, partitionIdentityCount, partitionIdentityBytes, collectionTokenIdentityCount, currentRoundId. Native fixtures execute root reads and scoped capacity/round fixtures yield; draft owner readers remain synchronous within atomic operations. Reusable current-round read observes deferred round allocation at execution. Five focused files passed197tests; updated27capacitytests separately passed; typecheck/build/all15boundaries/diffcheck passed. Remaining root knownPartitionId/snapshot/canonicalProjection and work/reservation APIs still need migration.",
     "Root retireRound/consumeEditPermit/acknowledgeStopRelease now named atomic Effects; private draft versions remain synchronous within owning service commits. Native round retirement fixtures execute root Effects. Round identity Effect test now proves deferred retirement, replacement round creation and old-generation retirement fence protecting replacement. Seven focused files passed200tests; updated27capacitytests separately passed; typecheck/build/all15boundaries/diffcheck passed. Root capacity work/request/reservation operations and remaining read bridges still require conversion.",
-    "Root admitObservation is named atomic Effect; resident ingress yields it. Refusal cleanup uses Effect.exit and Exit.isFailure to release ingress reservation, replacing synchronous try/catch which cannot catch yielded Effect defects. Native Bend-work/Jev/capacity/dispatch fixtures execute root effects; scoped advice/round fixtures yield. New Effect test proves lazy admission,16 distinct concurrent observation identities,invalid-round defect publishes no changed canonical state/round. Eight focused files passed184tests; final capacity/server run114tests passed after refusal cleanup and new test. Typecheck/build/all15boundaries/diffcheck passed. Remaining observation lifecycle/work/request/reservation/read APIs and final migration gates still required."
+    "Root admitObservation is named atomic Effect; resident ingress yields it. Refusal cleanup uses Effect.exit and Exit.isFailure to release ingress reservation, replacing synchronous try/catch which cannot catch yielded Effect defects. Native Bend-work/Jev/capacity/dispatch fixtures execute root effects; scoped advice/round fixtures yield. New Effect test proves lazy admission,16 distinct concurrent observation identities,invalid-round defect publishes no changed canonical state/round. Eight focused files passed184tests; final capacity/server run114tests passed after refusal cleanup and new test. Typecheck/build/all15boundaries/diffcheck passed. Remaining observation lifecycle/work/request/reservation/read APIs and final migration gates still required.",
+    "Replaced the remaining six resident Promise coordination hooks with one scoped Effect review control service; Deferred fixtures prove cancellation, retained completed-finding preservation, pending-advice failure cleanup and revalidation workspace/lease cleanup. Root resident state and runtime expose Effects without runSync/runPromise or unsafe reads."
   ],
   "verification": [
     {
@@ -2233,22 +2234,92 @@
         "durationSeconds": 18.0,
         "timeoutChanged": false
       }
+    },
+    {
+      "stage": "scoped-review-controls",
+      "parentCommit": "9f2b194",
+      "sourceSha256": {
+        "src/resident/server.ts": "d69677b58cdb9f8d583fc30e11067bdb5a7d1a3b8c482c7f75c074a7b7ef7fb3",
+        "src/resident/review-controls.ts": "aa22d760078790d368aaa6cae76c5e7418ca4f415259a455a8ced7fe608f0a96",
+        "src/resident/review-controls.test.ts": "ab8bc349fff567676f35159c787a74f7142d9abd450f326d915cb44cc84d1a36",
+        "src/test-support/review-controls.ts": "d1e8235db6cfd24176c36624be71eae724b2f015c45177e382fe9394cf4a73c8",
+        "src/test-support/native-deferred.ts": "e028bc42e3ad7d43f0206463b090eecd6bba9c8ff5892d2a3385e30c05bb924f",
+        "evidence/advicing-linux/run-round-contract-linux.ts": "39e43710fd2a1f67a5ff0bcf18d2712f1477e184bda98ed1c64ccc9802a7ead1",
+        "tsconfig.build.json": "6f3c181a4d9ca2addffb09df5ccd1cdc72ffa9c342e9b4609909409256884d93"
+      },
+      "selectedTests": {
+        "command": "npx vitest run src/resident/review-controls.test.ts src/resident/server.test.ts src/resident/security-queued.test.ts src/resident/claude-delivery.test.ts src/resident/terminal-collection.test.ts src/resident/jev-request.test.ts --maxWorkers=1",
+        "testsPassed": 134,
+        "filesPassed": 6,
+        "durationSeconds": 34.43
+      },
+      "finalControlTests": {
+        "command": "npx vitest run src/resident/review-controls.test.ts",
+        "testsPassed": 6,
+        "durationSeconds": 1.7,
+        "scope": "Added workspace failure case after selected pass; production then changed only a coordination comment"
+      },
+      "typecheck": true,
+      "probeStrictTypecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "packagedTestSupport": [
+        "dist/test-support/controlled-decision-model.js"
+      ],
+      "roundContractCasesPassed": 18,
+      "roundContractEvidence": "evidence/effect4-migration/round-contract-review-controls-effects.json",
+      "probeMetadata": "Probe candidateCommit denotes parent HEAD while reviewed source changes were uncommitted; source hashes in this checkpoint identify the executed files",
+      "offlineWire": {
+        "sameProcess": [
+          "allowed:1 request",
+          "exclude-at-dispatch:0 requests",
+          "exclude-at-admission:0 requests"
+        ],
+        "separateProcess": [
+          "allowed:1 request",
+          "exclude-at-dispatch:0 requests",
+          "exclude-at-admission:0 requests"
+        ],
+        "verdict": "all six passed"
+      },
+      "installedQueuedWitness": {
+        "command": "node scripts/security-prototype/installed-queued-witness.mjs",
+        "status": "pass",
+        "archiveSha256": "b7bf50d9b8336deff0b57ab4fd74202625d78025346d663a2733d2fdbe67b66a",
+        "providerAttempts": {
+          "allowed": 1,
+          "initiallyExcluded": 0,
+          "queuedExcluded": 0
+        },
+        "platform": "linux",
+        "architecture": "arm64",
+        "node": "v24.20.0",
+        "packageVersion": "0.1.0"
+      },
+      "scope": "Removed six Promise hook options/captured variables and replaced them with resident-scoped ResidentReviewControls Layer and typed ReviewControlError. Async OS fixtures use Deferred at their native boundary; service callbacks yield directly. Evaluation gate observes work cancellation; retained completed finding gate observes resident lifetime only so Stop does not discard completed findings. Pending-control failure retires unpublished advice. Test support excluded from build while production-imported controlled provider remains included. Stop guard rejects restored Promise hooks. Source and installed security witnesses consume the Effect service.",
+      "initialSelectedFailure": {
+        "testsPassed": 132,
+        "testsFailed": 2,
+        "issues": [
+          "Work-cohort cancellation incorrectly removed a completed retained finding at pending-control gate; corrected gate to lifetime cancellation",
+          "Old Promise fixture expected a running review after Stop; converted Deferred is cooperatively interrupted before Jev dispatch. Updated fixture to observe interruption and idle without external release. Physical native request settlement fences remain unchanged."
+        ]
+      },
+      "limitations": "Final full offline suite, direct-event/package/installed-release/applicable host gates and performance reruns remain required. Prior full-suite credential timeout cause remains unproven despite isolated case and 23-test file passing without changed limits. Host-labelled probes and offline installed witness do not establish native agent/live Jev/release support."
     }
   ],
   "next": [
-    "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
-    "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Convert advice capability listing and all callers to Effects, then remaining capacity, reuse, delivery and notice domain bridges",
-    "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
-    "Convert fixture hooks to scoped controlled services and deterministic coordination",
+    "Audit remaining client Promise facades, configuration/trust/credential/native path and ownership adapters; keep Effect execution at process and host boundaries",
+    "Finish any remaining fixture and service error/resource ownership gaps found by the full requirement audit",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
-    "Full typecheck/test/direct-event/build/package/installed-release/applicable host validation",
-    "Rerun original and deterministic physical-retirement workloads after remaining service migrations and final validation gates"
+    "Run final typecheck/test/direct-event/build/package/installed-release/applicable host validation and bounded authorized live Jev validation when credentials are available",
+    "Rerun original and deterministic physical-retirement workloads against the final migrated implementation",
+    "Establish valid comparative physical-retirement timing evidence; preserve original declarations, formulas and all failure evidence"
   ],
   "limitations": [
-    "Native IPC fibers now have scoped ownership and acknowledged socket closure; mutable per-job callback metadata remains an executor resource and synchronous domain bridges still need removal",
-    "Client/host edges and production state service ownership still require migration; thin public Promise facades remain for existing host callers",
-    "Current full offline suite passed1148tests with two credential-gated live tests skipped. Final full suite after remaining migration changes, package, installed-release, applicable host and live gates remain pending.",
+    "Native IPC fibers and resident coordination layers have scoped ownership; mutable per-job callback metadata remains an executor resource. Root resident state and runtime execution bridges and unsafe reads have been removed.",
+    "Client/host edges and native configuration/trust/ownership adapters still require their final audit; thin public client Promise facades remain for existing imperative callers.",
+    "Latest full offline rerun passed1149 tests with two credential-gated live tests skipped but failed one native credential test at its unchanged5000ms timeout. Isolated case and full23-test credential file passed without changing limits; timeout cause remains unproven. Final full-suite/package/installed-release/applicable host/live gates remain pending.",
     "Original workload now passes every unchanged budget with automatically observed peak 17625630 bytes (strict baseline 17807985). Deterministic workload reaches eight and passes all ownership fences. Physical-retirement shutdown latency comparison remains unproven because the fixed baseline shuts down before held callbacks complete; final full-migration reruns remain required.",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied",
     "Loaded native library overwrite was reproduced as SIGSEGV/SIGBUS and fixed with atomic publication; the subsequent 112-test server/state/build suite passed. This does not attribute every historical crash or varying timeout, and final full-suite gates remain pending.",

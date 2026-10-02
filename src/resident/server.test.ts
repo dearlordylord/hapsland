@@ -1,3 +1,6 @@
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
+import { ReviewControlError } from "./review-controls.ts";
+import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
 import { ResidentDispatchControls, DispatchControlError } from "./dispatch-controls.ts";
 import { makeDispatchControls } from "../test-support/dispatch-controls.ts";
 import { Layer } from "effect";
@@ -35,11 +38,7 @@ import {
   encodedHostOutputBytes,
 } from "./collection.ts";
 
-const deferred = <A = void>() => {
-  let resolve!: (value: A | PromiseLike<A>) => void;
-  const promise = new Promise<A>((done) => { resolve = done; });
-  return { promise, resolve };
-};
+
 
 const findingDispatch = (statePath: string): ResidentDispatchContext => ({
   statePath,
@@ -145,7 +144,7 @@ describe("canonical resident capacity", () => {
         return { text, bytes, byteLength: bytes.byteLength,
           contentHash: createHash("sha256").update(bytes).digest("hex"), metadata: "rule-fixture" };
       }),
-      beforeEvaluate: async () => { started.resolve(); await release.promise; },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* release.wait; }) }),
     });
     try {
       expect(Effect.runSync(server.admit(observation, dispatch, false, true)).status).toBe("accepted");
@@ -195,11 +194,11 @@ describe("canonical resident capacity", () => {
         return { text, bytes, byteLength: bytes.byteLength,
           contentHash: createHash("sha256").update(bytes).digest("hex"), metadata: "fixture" };
       }),
-      beforeEvaluate: async (prepared) => {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         evaluated.push(prepared.input.path);
-        started.resolve();
-        await release.promise;
-      },
+        yield* started.complete();
+        yield* release.wait;
+      }) }),
     });
     try {
       expect(Effect.runSync(server.admit(observation, findingDispatch(join(root, "unused-grants")))).status).toBe("accepted");
@@ -230,12 +229,12 @@ describe("canonical resident capacity", () => {
     const firstGate = deferred();
     let clock = 100;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
-      beforeEvaluate: async (prepared) => {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         if (prepared.input.path === "first.ts") {
-          firstStarted.resolve();
-          await firstGate.promise;
-        } else if (prepared.input.path === "second.ts") secondStarted.resolve();
-      },
+          yield* firstStarted.complete();
+          yield* firstGate.wait;
+        } else if (prepared.input.path === "second.ts") yield* secondStarted.complete();
+      }) }),
     });
     try {
       expect(Effect.runSync(server.admit(observation, allFindingsDispatch(statePath))).status).toBe("accepted");
@@ -330,7 +329,7 @@ describe("resident delivery lease", () => {
     const entered = deferred();
     const release = deferred();
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
-      afterAdvicePending: async () => { entered.resolve(); await release.promise; },
+      reviewControls: reviewControlsLayer({ afterAdvicePending: () => Effect.gen(function* () { yield* entered.complete(); yield* release.wait; }) }),
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
     try {
@@ -367,7 +366,7 @@ describe("resident delivery lease", () => {
     const started = deferred();
     const gate = deferred();
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
-      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* gate.wait; }) }),
     });
     const dispatch = { ...findingDispatch(statePath), activityPath };
     try {
@@ -405,7 +404,7 @@ describe("resident delivery lease", () => {
     const started = deferred();
     const gate = deferred();
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
-      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* gate.wait; }) }),
     });
     const dispatch = findingDispatch(statePath);
     try {
@@ -445,7 +444,7 @@ describe("resident delivery lease", () => {
     const started = deferred();
     let hold = false;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
-      beforeEvaluate: async () => { if (hold) { started.resolve(); await gate.promise; } },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { if (hold) { yield* started.complete(); yield* gate.wait; } }) }),
     });
     const dispatch = findingDispatch(statePath);
     try {
@@ -526,13 +525,14 @@ describe("resident delivery lease", () => {
     let armed = true;
     const paths = residentPaths(join(root, "runtime"));
     const server = await acquireResidentFixture(paths, () => performance.now(), {
-      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
-      beforeResponseHandoff: async () => {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* gate.wait; }),
+beforeResponseHandoff: () => Effect.gen(function* () {
         if (!armed) return;
         armed = false;
-        gate.resolve();
-        await Effect.runPromise(server.whenIdle());
-      },
+        yield* gate.complete();
+        (yield* server.whenIdle());
+      }) }),
+
     });
     const dispatch = findingDispatch(statePath);
     try {
@@ -581,7 +581,7 @@ describe("resident delivery lease", () => {
       host: "claude-code" as const, hostVersion: "2.1.218" as const, turnId: null } };
     let reviews = 0;
     const paths = residentPaths(join(root, "runtime"));
-    const server = await acquireResidentFixture(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
+    const server = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { reviews += 1; }) }) });
     await Effect.runPromise(server.listen());
     try {
       const admission = { requestRoute, operation: "admit" as const, lifetime: server.lifetime,
@@ -665,7 +665,7 @@ describe("resident delivery lease", () => {
       hostVersion: "1.14.44" as const, turnId: null, subagentId: null } };
     const paths = residentPaths(join(root, "runtime"));
     let reviews = 0;
-    const server = await acquireResidentFixture(paths, undefined, { beforeEvaluate: async () => { reviews += 1; } });
+    const server = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { reviews += 1; }) }) });
     const dispatch = findingDispatch(join(root, "consent"));
     await Effect.runPromise(server.listen());
     try {
@@ -752,7 +752,7 @@ describe("resident delivery lease", () => {
     const started = deferred();
     const gate = deferred();
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => performance.now(), {
-      beforeEvaluate: async () => { started.resolve(); await gate.promise; },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: () => Effect.gen(function* () { yield* started.complete(); yield* gate.wait; }) }),
     });
     const activityPath = join(root, "activity");
     const dispatch = { ...findingDispatch(statePath), activityPath };
@@ -1039,11 +1039,11 @@ describe("resident delivery lease", () => {
 
     writeFileSync(credentialStatePath, credentialState(1));
     let rotateAtHandoff = true;
-    const gated = await acquireResidentFixture(paths, undefined, { beforeResponseHandoff: async () => {
+    const gated = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
       if (!rotateAtHandoff) return;
       rotateAtHandoff = false;
       writeFileSync(credentialStatePath, credentialState(2));
-    } });
+    }) }) });
     try {
       expect(Effect.runSync(gated.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
       await Effect.runPromise(gated.whenIdle());
@@ -1072,9 +1072,9 @@ describe("resident delivery lease", () => {
       environmentOnly: true, generation: 1, statePath: credentialStatePath,
     } };
     const paths = residentPaths(join(root, "runtime"));
-    const server = await acquireResidentFixture(paths, undefined, { beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
       writeFileSync(credentialStatePath, credentialState(2));
-    } });
+    }) }) });
     try {
       expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
       await Effect.runPromise(server.whenIdle());
@@ -1103,10 +1103,11 @@ describe("resident delivery lease", () => {
     const dispatch = { ...findingDispatch(statePath), activityPath };
     const paths = residentPaths(join(root, "runtime"));
     let server: ResidentRuntime;
-    server = await acquireResidentFixture(paths, undefined, { beforeResponseHandoff: async () => {
-      expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-        root, advicee: observation.advicee, token: "finish", close: false }))).toEqual({ status: "advanced" });
-    } });
+    server = await acquireResidentFixture(paths, undefined, { reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
+      expect((yield* server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+        root, advicee: observation.advicee, token: "finish", close: false }).pipe(
+          Effect.mapError(() => new ReviewControlError({ phase: "beforeResponseHandoff" }))))).toEqual({ status: "advanced" });
+    }) }) });
     try {
       expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
       await Effect.runPromise(server.whenIdle());
@@ -1143,9 +1144,9 @@ describe("resident delivery lease", () => {
     const paths = residentPaths(join(root, "runtime"));
     let invalidate = false;
     let now = 0;
-    const server = await acquireResidentFixture(paths, () => now, { beforeResponseHandoff: async () => {
+    const server = await acquireResidentFixture(paths, () => now, { reviewControls: reviewControlsLayer({ beforeResponseHandoff: () => Effect.gen(function* () {
       if (invalidate) now = PENDING_ADVICE_EXPIRY_MS + 1;
-    } });
+    }) }) });
     try {
       expect(Effect.runSync(server.admit(finding, dispatch, false, true))).toEqual({ status: "accepted" });
       await Effect.runPromise(server.whenIdle());
@@ -1915,14 +1916,16 @@ describe("resident delivery lease", () => {
       },
     };
     const entered: Array<string> = [];
-    const releases = new Map<string, () => void>();
+    const releases = new Map<string, Effect.Effect<void>>();
     const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
-      { beforeRevalidate: (id) => new Promise<void>((resolve) => {
+      { reviewControls: reviewControlsLayer({ beforeRevalidate: (id) => Effect.gen(function* () {
+        const release = yield* Deferred.make<void>();
         entered.push(id);
-        releases.set(id, resolve);
-      }) },
+        releases.set(id, Deferred.succeed(release, undefined).pipe(Effect.asVoid));
+        yield* Deferred.await(release);
+      }) }) },
     );
     expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
     await Effect.runPromise(server.whenIdle());
@@ -1938,14 +1941,14 @@ describe("resident delivery lease", () => {
     while (entered.length < 2) await Promise.resolve();
     expect(entered).toEqual([first.id, second.id]);
 
-    releases.get(second.id)?.();
+    Effect.runSync(releases.get(second.id) ?? Effect.void);
     const secondResult = await collectSecond;
     expect(secondResult.status).toBe("advice");
     if (secondResult.status === "advice") {
       expect((await Effect.runPromise(server.acknowledge(secondResult.token))).status).toBe("acknowledged");
       expect((await Effect.runPromise(server.finalize(secondResult.token))).status).toBe("finalized");
     }
-    releases.get(first.id)?.();
+    Effect.runSync(releases.get(first.id) ?? Effect.void);
     await expect(collectFirst).resolves.toMatchObject({ status: "empty" });
     expect(Effect.runSync(server.stats())).toMatchObject({
       pendingAdvice: 0,
@@ -1998,13 +2001,13 @@ describe("resident delivery lease", () => {
       () => 100,
       {
         preparationControls: controls.layer,
-        beforeEvaluate: async (prepared) => {
+        reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
           if (!heldOldEvaluation && prepared.input.declaration.source.includes("number")) {
             heldOldEvaluation = true;
-            oldEvaluationEntered.resolve();
-            await releaseOldEvaluation.promise;
+            yield* oldEvaluationEntered.complete();
+            yield* releaseOldEvaluation.wait;
           }
-        },
+        }) }),
       },
     );
     expect(Effect.runSync(server.admit(first, dispatch)).status).toBe("accepted");
@@ -2102,12 +2105,12 @@ describe("resident delivery lease", () => {
     const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
-      { beforeRevalidate: async () => {
+      { reviewControls: reviewControlsLayer({ beforeRevalidate: () => Effect.gen(function* () {
         if (held) return;
         held = true;
-        entered.resolve();
-        await release.promise;
-      } },
+        yield* entered.complete();
+        yield* release.wait;
+      }) }) },
     );
     const dispatch = findingDispatch(statePath);
     expect(Effect.runSync(server.admit(first, dispatch)).status).toBe("accepted");
@@ -2153,12 +2156,12 @@ describe("resident delivery lease", () => {
     const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
-      { afterRevalidationWorkspaceReserved: async () => {
+      { reviewControls: reviewControlsLayer({ afterRevalidationWorkspaceReserved: () => Effect.gen(function* () {
         if (held) return;
         held = true;
-        workspaceReserved.resolve();
-        await releaseRevalidation.promise;
-      } },
+        yield* workspaceReserved.complete();
+        yield* releaseRevalidation.wait;
+      }) }) },
     );
     const dispatch = findingDispatch(statePath);
     expect(Effect.runSync(server.admit(first, dispatch)).status).toBe("accepted");
@@ -2237,12 +2240,12 @@ describe("resident delivery lease", () => {
       residentPaths(join(root, "runtime")),
       () => 100,
       {
-        afterRevalidationWorkspaceReserved: async () => {
+        reviewControls: reviewControlsLayer({ afterRevalidationWorkspaceReserved: () => Effect.gen(function* () {
           if (!holdNextRevalidation) return;
           holdNextRevalidation = false;
-          revalidationHeld.resolve();
-          await releaseRevalidation.promise;
-        },
+          yield* revalidationHeld.complete();
+          yield* releaseRevalidation.wait;
+        }) }),
       },
     );
     const admitSource = async (
@@ -2485,7 +2488,7 @@ describe("resident delivery lease", () => {
     const server = await acquireResidentFixture(
       residentPaths(join(root, "runtime")),
       () => 100,
-      { beforeRevalidate: async (id) => { visits.push(id); } },
+      { reviewControls: reviewControlsLayer({ beforeRevalidate: (id) => Effect.gen(function* () { visits.push(id); }) }) },
     );
     expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
     await Effect.runPromise(server.whenIdle());
@@ -2755,11 +2758,11 @@ describe("resident bounded advice batches", () => {
     const release = deferred();
     let bId = "";
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
-      beforeRevalidate: async (id) => {
+      reviewControls: reviewControlsLayer({ beforeRevalidate: (id) => Effect.gen(function* () {
         if (id !== bId) return;
-        blocked.resolve();
-        await release.promise;
-      },
+        yield* blocked.complete();
+        yield* release.wait;
+      }) }),
     });
     expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
     await Effect.runPromise(server.whenIdle());
@@ -2802,11 +2805,11 @@ describe("resident bounded advice batches", () => {
     const blocked = deferred();
     const release = deferred();
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
-      beforeFinalRevalidate: async (id) => {
+      reviewControls: reviewControlsLayer({ beforeFinalRevalidate: (id) => Effect.gen(function* () {
         if (id !== bId) return;
-        blocked.resolve();
-        await release.promise;
-      },
+        yield* blocked.complete();
+        yield* release.wait;
+      }) }),
     });
     const dispatch = singleFindingDispatch(statePath);
     expect(Effect.runSync(server.admit(firstObservation, dispatch)).status).toBe("accepted");
@@ -2846,11 +2849,11 @@ describe("resident bounded advice batches", () => {
     const blocked = deferred();
     const release = deferred();
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
-      beforeFinalRevalidate: async (id) => {
+      reviewControls: reviewControlsLayer({ beforeFinalRevalidate: (id) => Effect.gen(function* () {
         if (id !== bId) return;
-        blocked.resolve();
-        await release.promise;
-      },
+        yield* blocked.complete();
+        yield* release.wait;
+      }) }),
     });
     const dispatch = singleFindingDispatch(statePath);
     expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
@@ -2907,15 +2910,16 @@ describe("resident bounded advice batches", () => {
     const bPending = deferred();
     let pendingCount = 0;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
-      beforeEvaluate: async (prepared) => {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         if (prepared.input.path !== "c.ts") return;
-        cEntered.resolve();
-        await releaseC.promise;
-      },
-      afterAdvicePending: () => {
+        yield* cEntered.complete();
+        yield* releaseC.wait;
+      }),
+      afterAdvicePending: () => Effect.gen(function* () {
         pendingCount += 1;
-        if (pendingCount === 2) bPending.resolve();
-      },
+        if (pendingCount === 2) yield* bPending.complete();
+      }) }),
+
     });
     expect(Effect.runSync(server.admit(firstObservation, allFindingsDispatch(statePath))).status).toBe("accepted");
     await Effect.runPromise(server.whenIdle());
@@ -2973,7 +2977,7 @@ describe("resident bounded advice batches", () => {
     expect(observation).toBeDefined();
     if (observation === undefined) return;
     let clock = 10_000;
-    const releases = new Map<string, () => void>();
+    const releases = new Map<string, Effect.Effect<void>>();
     const entered: Array<string> = [];
     const firstTwoEntered = deferred();
     const allEntered = deferred();
@@ -2981,22 +2985,25 @@ describe("resident bounded advice batches", () => {
     const secondAdvicePending = deferred();
     let pending = 0;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => clock, {
-      beforeEvaluate: (prepared) => new Promise<void>((resolve) => {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
+        const release = yield* Deferred.make<void>();
         entered.push(prepared.input.path);
-        releases.set(prepared.input.path, resolve);
-        if (entered.length === 2) firstTwoEntered.resolve();
-        if (entered.length === 3) allEntered.resolve();
+        releases.set(prepared.input.path, Deferred.succeed(release, undefined).pipe(Effect.asVoid));
+        if (entered.length === 2) yield* firstTwoEntered.complete();
+        if (entered.length === 3) yield* allEntered.complete();
+        yield* Deferred.await(release);
       }),
-      afterAdvicePending: () => {
+      afterAdvicePending: () => Effect.gen(function* () {
         pending += 1;
-        if (pending === 1) firstAdvicePending.resolve();
-        if (pending === 2) secondAdvicePending.resolve();
-      },
+        if (pending === 1) yield* firstAdvicePending.complete();
+        if (pending === 2) yield* secondAdvicePending.complete();
+      }) }),
+
     });
     const dispatch = findingDispatch(statePath);
     expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
     await firstTwoEntered.promise;
-    releases.get("a.ts")?.();
+    Effect.runSync(releases.get("a.ts") ?? Effect.void);
     await firstAdvicePending.promise;
     await allEntered.promise;
     expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toMatchObject([{
@@ -3009,12 +3016,12 @@ describe("resident bounded advice batches", () => {
     clock += 49;
     await expect(Effect.runPromise(server.collect(root, advicee({ turnId: "before", toolUseId: "before" }), dispatch)))
       .resolves.toMatchObject({ status: "empty" });
-    releases.get("b.ts")?.();
+    Effect.runSync(releases.get("b.ts") ?? Effect.void);
     await secondAdvicePending.promise;
     clock += 1;
     await expect(Effect.runPromise(server.collect(root, advicee({ turnId: "at", toolUseId: "at" }), dispatch)))
       .resolves.toMatchObject({ status: "empty" });
-    releases.get("c.ts")?.();
+    Effect.runSync(releases.get("c.ts") ?? Effect.void);
     await Effect.runPromise(server.whenIdle());
     const complete = await Effect.runPromise(server.collect(root, advicee({ turnId: "complete", toolUseId: "complete" }), dispatch));
     expect(complete.status).toBe("advice");
@@ -3024,7 +3031,7 @@ describe("resident bounded advice batches", () => {
     }
   });
 
-  it("returns only the ready subset after the checked Stop deadline", async () => {
+  it("returns the ready subset and interrupts a suspended review after the checked Stop deadline", async () => {
     const root = await makeGitFixture();
     await put(root, "a.ts", "type ACount = number\n");
     await put(root, "b.ts", "type BCount = number\n");
@@ -3032,22 +3039,26 @@ describe("resident bounded advice batches", () => {
     const observation = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, ["a.ts", "b.ts"])));
     expect(observation).toBeDefined();
     if (observation === undefined) return;
-    const releases = new Map<string, () => void>();
+    const releases = new Map<string, Effect.Effect<void>>();
     const bothEntered = deferred();
     const ready = deferred();
+    const cancelled = deferred();
     let entered = 0;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 100, {
-      beforeEvaluate: (prepared) => new Promise<void>((resolve) => {
-        releases.set(prepared.input.path, resolve);
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
+        const release = yield* Deferred.make<void>();
+        releases.set(prepared.input.path, Deferred.succeed(release, undefined).pipe(Effect.asVoid));
         entered += 1;
-        if (entered === 2) bothEntered.resolve();
+        if (entered === 2) yield* bothEntered.complete();
+        yield* Deferred.await(release).pipe(Effect.onInterrupt(() => cancelled.complete()));
       }),
-      afterAdvicePending: () => { ready.resolve(); },
+      afterAdvicePending: () => Effect.gen(function* () { yield* ready.complete(); }) }),
+
     });
     const dispatch = findingDispatch(statePath);
     expect(Effect.runSync(server.admit(observation, dispatch, false, true)).status).toBe("accepted");
     await bothEntered.promise;
-    releases.get("a.ts")?.();
+    Effect.runSync(releases.get("a.ts") ?? Effect.void);
     await ready.promise;
     await expect(Effect.runPromise(server.collect(
       root,
@@ -3061,9 +3072,9 @@ describe("resident bounded advice batches", () => {
       lifetime: server.lifetime, root, advicee: observation.advicee, dispatch, mode: "turn-end",
       composed: true, finish: { token: "partial-stop", deadlineReached: true } }));
     expect(turnEnd.status).toBe("advice");
-    expect(Effect.runSync(server.stats())).toMatchObject({ running: 1, pendingAdvice: 1 });
+    await cancelled.promise;
+    expect(Effect.runSync(server.stats())).toMatchObject({ running: 0, pendingAdvice: 1 });
     if (turnEnd.status === "advice") (await Effect.runPromise(server.releaseDelivery(turnEnd.token)));
-    releases.get("b.ts")?.();
     await Effect.runPromise(server.whenIdle());
   });
 

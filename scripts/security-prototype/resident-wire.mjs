@@ -1,4 +1,5 @@
-import { Exit, Scope } from "effect";
+import { Deferred, Exit, Scope } from "effect";
+import { reviewControlsLayer } from "../../src/test-support/review-controls.ts";
 /** Offline resident wire witness. Run with node --experimental-strip-types. */
 import { createHash } from "node:crypto";
 import nodeHttp from "node:http";
@@ -39,10 +40,9 @@ nodeHttp.request = denyNetwork;
 nodeHttp.get = denyNetwork;
 nodeHttps.request = denyNetwork;
 nodeHttps.get = denyNetwork;
-let release;
-let prepared;
-const held = new Promise((resolve) => { release = resolve; });
-const reachedPrepare = new Promise((resolve) => { prepared = resolve; });
+const held = Effect.runSync(Deferred.make());
+const prepared = Effect.runSync(Deferred.make());
+const reachedPrepare = Effect.runPromise(Deferred.await(prepared));
 const event = (kind, fields = {}) => events.push({ kind, jobId: "job-1", ...fields });
 const http = makeOfflineSecurityHttpClient((record) => {
   requests.push(record);
@@ -83,15 +83,15 @@ try {
       authorityObservations.push(record);
       authorityOrder.push({ kind: "dispatchAuthority", path: record.path, sequence: record.sequence });
     },
-    beforeEvaluate: async (unit) => {
+    reviewControls: reviewControlsLayer({ beforeEvaluate: (unit) => Effect.gen(function* () {
       event("prepared", {
         repoId: "fixture-repo", path: unit.input.path,
         declaration: unit.input.declaration.name,
         sourceSha256: sha256(unit.input.declaration.source), source: "production",
       });
-      prepared();
-      await held;
-    },
+      yield* Deferred.succeed(prepared, undefined);
+      yield* Deferred.await(held);
+    }) }),
   }).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
   await Effect.runPromise(server.listen());
   const dispatch = {
@@ -127,7 +127,7 @@ try {
       source: "fixture",
     });
   }
-  release();
+  await Effect.runPromise(Deferred.succeed(held, undefined));
   await Effect.runPromise(server.whenIdle());
   const collection = await residentRequest(paths, {
     requestRoute: "shared", operation: "collect", lifetime: server.lifetime,

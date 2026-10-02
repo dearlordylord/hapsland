@@ -1,3 +1,5 @@
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
+import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
 import { makeDispatchControls } from "../test-support/dispatch-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { afterEach, describe, expect, it } from "vitest";
@@ -13,11 +15,7 @@ import type { ResidentDispatchContext } from "./protocol.ts";
 
 // Regresses dispatch authorization after a completed policy update. The
 // controlled provider writes one line per DecisionModel call.
-const deferred = () => {
-  let resolve!: () => void;
-  const promise = new Promise<void>((done) => { resolve = done; });
-  return { promise, resolve };
-};
+
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -69,11 +67,11 @@ describe("queued exclusion authority", () => {
     const release = deferred();
     let preparedSourceSeen = false;
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
-      beforeEvaluate: async (prepared) => {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
-        entered.resolve();
-        await release.promise;
-      },
+        yield* entered.complete();
+        yield* release.wait;
+      }) }),
     });
     expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
     await entered.promise;
@@ -91,9 +89,9 @@ describe("queued exclusion authority", () => {
     const controls = await Effect.runPromise(makeDispatchControls());
     await Effect.runPromise(controls.holdNext("credentialResolved"));
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")), undefined, {
-      beforeEvaluate: async (prepared) => {
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () {
         preparedSourceSeen = prepared.input.declaration.source.includes("QueuedSecurityMarker");
-      },
+      }) }),
       dispatchControls: controls.layer,
     });
     expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");

@@ -1,3 +1,4 @@
+import { reviewControlsLayer } from "../test-support/review-controls.ts";
 import { makePreparationControls } from "../test-support/preparation-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it, vi } from "vitest";
@@ -38,7 +39,7 @@ describe("canonical Jev request boundary", () => {
     const seen: string[] = [];
     const capturePath = join(root, "provider-calls.txt");
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), undefined, {
-      beforeEvaluate: async (prepared) => { if (prepared.input.rules.some((rule) => rule.id === "team/check")) seen.push(prepared.input.contract); },
+      reviewControls: reviewControlsLayer({ beforeEvaluate: (prepared) => Effect.gen(function* () { if (prepared.input.rules.some((rule) => rule.id === "team/check")) seen.push(prepared.input.contract); }) }),
     });
     try {
       expect(Effect.runSync(server.admit(observation, { statePath: join(root, "consent"), userConfigPath: null,

@@ -1,4 +1,5 @@
 import { ResidentDispatchControls, dispatchControlsLayer } from "./dispatch-controls.ts";
+import { ResidentReviewControls, reviewControlsLayer } from "./review-controls.ts";
 import { makeSocketFramePort, type SocketFramePort } from "./socket-frame.ts";
 import { ResidentPreparationControls, preparationControlsLayer } from "./preparation-controls.ts";
 import { captureWorkspaceBytes, analysisWorkspaceBytes } from "./preparation-workspace.ts";
@@ -385,15 +386,12 @@ const decodeControlledOptions = (
 };
 
 export type ResidentRuntimeOptions = {
-  readonly beforeRevalidate?: (adviceId: string) => Promise<void>;
-  readonly beforeEvaluate?: (prepared: PreparedUnit) => Promise<void>;
+  /** Scoped local review coordination; never supplied by resident IPC. */
+  readonly reviewControls?: Layer.Layer<ResidentReviewControls>;
   /** Fixture-only source effect; never supplied by resident IPC. */
   readonly captureSource?: DirectReviewContext["captureSource"];
-  readonly afterRevalidationWorkspaceReserved?: (adviceId: string) => Promise<void>;
-  readonly afterAdvicePending?: (adviceId: string) => Promise<void> | void;
   /** Scoped local preparation coordination; never supplied by resident IPC. */
   readonly preparationControls?: Layer.Layer<ResidentPreparationControls>;
-  readonly beforeFinalRevalidate?: (adviceId: string) => Promise<void>;
   readonly dispatchControls?: Layer.Layer<ResidentDispatchControls>;
   /** Fixture-only authority observation; never supplied by resident IPC. */
   readonly dispatchAuthorityObserver?: (observation: DispatchAuthorityObservation) => void;
@@ -404,7 +402,6 @@ export type ResidentRuntimeOptions = {
   readonly offlineHttpClient?: HttpClient.HttpClient;
   /** Fixture-only gate entered by the controlled DecisionModel call. */
   readonly controlledRequestEffect?: (signal: AbortSignal) => Promise<void>;
-  readonly beforeResponseHandoff?: () => Promise<void>;
   readonly maximumTickets?: number;
 };
 
@@ -539,23 +536,19 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentMaximumTickets = maximumTickets;
   const residentNow = now;
   const residentNotices = residentLedger.notices(maximumOperationalNoticeKeys, OPERATIONAL_NOTICE_COOLDOWN_MS, PENDING_ADVICE_EXPIRY_MS, logicalBytes);
-  const residentBeforeRevalidate = options.beforeRevalidate;
-  const residentBeforeEvaluate = options.beforeEvaluate;
   const residentCaptureSource = options.captureSource;
-  const residentAfterRevalidationWorkspaceReserved = options.afterRevalidationWorkspaceReserved;
-  const residentAfterAdvicePending = options.afterAdvicePending;
   const residentControlScope = yield* Scope.make();
   yield* Effect.addFinalizer(() => Scope.close(residentControlScope, Exit.void));
   const residentPreparationControls = Context.get(
     yield* Layer.buildWithScope(options.preparationControls ?? preparationControlsLayer, residentControlScope), ResidentPreparationControls);
-  const residentBeforeFinalRevalidate = options.beforeFinalRevalidate;
+  const residentReviewControls = Context.get(
+    yield* Layer.buildWithScope(options.reviewControls ?? reviewControlsLayer, residentControlScope), ResidentReviewControls);
   const residentDispatchControls = Context.get(
     yield* Layer.buildWithScope(options.dispatchControls ?? dispatchControlsLayer, residentControlScope), ResidentDispatchControls);
   const residentDispatchAuthorityObserver = options.dispatchAuthorityObserver;
   const residentJevRequestObserver = options.jevRequestObserver;
   const residentOfflineHttpClient = options.offlineHttpClient;
   const residentControlledRequestEffect = options.controlledRequestEffect;
-  const residentBeforeResponseHandoff = options.beforeResponseHandoff;
   const residentReuse = residentLedger.reuse(logicalBytes);
 
   const residentAdvice = Effect.fn("ResidentRuntime.advice")(() => residentLedger.advice.values());
@@ -889,7 +882,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           .find(({ capability, content }) => capability.id === id && content.delivery === undefined)?.capability;
         if (advice === undefined) continue;
         if (!(yield* residentReserveAdviceLease(advice, token))) continue;
-        yield* residentAdapter("collection revalidation barrier", () => Promise.resolve(residentBeforeRevalidate?.(advice.id)));
+        yield* residentReviewControls.beforeRevalidate(advice.id).pipe(
+          Effect.mapError(() => new ResidentAdapterError({ operation: "collection revalidation barrier" })));
         const validity = yield* residentRevalidate(advice, dispatch);
         const retained = (yield* residentAdvice()).find((item) => item.id === advice.id);
         const route = (yield* residentCandidateRoute({ kind: "validationRouteCheck",
@@ -943,7 +937,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const final: Array<Advice> = [];
         let finalFindings: Array<Finding> = [];
         for (const advice of selected) {
-          yield* residentAdapter("final collection revalidation barrier", () => Promise.resolve(residentBeforeFinalRevalidate?.(advice.id)));
+          yield* residentReviewControls.beforeFinalRevalidate(advice.id).pipe(
+            Effect.mapError(() => new ResidentAdapterError({ operation: "final collection revalidation barrier" })));
           const validity = yield* residentRevalidate(advice, dispatch);
           const retained = (yield* residentAdvice()).find((item) => item.id === advice.id);
           const route = (yield* residentCandidateRoute({ kind: "validationRouteCheck",
@@ -1971,7 +1966,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         yield* residentReleaseUnit(job);
         return;
       }
-      yield* residentAdapter("evaluation barrier", () => Promise.resolve(residentBeforeEvaluate?.(job.prepared)));
+      yield* withinWork(residentReviewControls.beforeEvaluate(job.prepared).pipe(
+        Effect.mapError(() => new ResidentAdapterError({ operation: "evaluation barrier" }))), signal);
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
       const controlled = decodeControlledOptions(job.dispatch.controlled);
       const offlineHttpClient = residentOfflineHttpClient;
@@ -2351,11 +2347,15 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         pendingAt: residentNow(),
       });
       job.completed = true;
-      if (residentAfterAdvicePending !== undefined) {
-        yield* residentAdapter("pending advice barrier", () => Promise.resolve(residentAfterAdvicePending?.(advice.id)));
+      yield* Effect.gen(function* () {
+        yield* withinWork(residentReviewControls.afterAdvicePending(advice.id).pipe(
+          Effect.mapError(() => new ResidentAdapterError({ operation: "pending advice barrier" }))),
+          residentLifetimeController.signal);
+        // A finding already retained is excluded from unfinished-work cutoff.
+        // Replacing that work cohort must not discard the completed finding.
         if (!(yield* residentJobActive(job))) return;
-      }
-      yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(advice, job.ticketUnit, job.revision), advice.id);
+        yield* residentRecordJoinedOutcomes(yield* residentLedger.advice.publish(advice, job.ticketUnit, job.revision), advice.id);
+      }).pipe(Effect.onError(() => residentRemoveAdvice(advice.id).pipe(Effect.asVoid)));
     });
   });
 
@@ -2382,7 +2382,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     let capacityUnavailable = false;
     return yield* Effect.gen(function* () {
       const content = yield* residentLedger.advice.current(advice);
-      yield* residentAdapter("revalidation barrier", () => Promise.resolve(residentAfterRevalidationWorkspaceReserved?.(advice.id)));
+      yield* residentReviewControls.afterRevalidationWorkspaceReserved(advice.id).pipe(
+        Effect.mapError(() => new ResidentAdapterError({ operation: "revalidation barrier" })));
       const userConfigPath = dispatch.userConfigPath ?? undefined;
       const current = yield* withinWork(Effect.gen(function* () {
         const settings = yield* loadReviewSettings(
@@ -2890,7 +2891,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       const response = yield* residentHandle(decoded);
       if (response.status === "advice") responseToken = response.token;
       yield* residentResponseGate(decoded.operation, response);
-      yield* residentAdapter("response handoff barrier", () => Promise.resolve(residentBeforeResponseHandoff?.()));
+      yield* residentReviewControls.beforeResponseHandoff().pipe(
+        Effect.mapError(() => new ResidentAdapterError({ operation: "response handoff barrier" })));
       const sourceCurrent = yield* residentHandoffSourceCurrent(response);
       // Keep final authorization and socket handoff within one ownership
       // boundary; the response finalizer owns any untransferred lease.
