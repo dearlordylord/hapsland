@@ -9,6 +9,7 @@ import ../FaultTargets.bend as Targets
 import ../CredentialFacts.bend as Credentials
 import ../../agent-flow-bend/Canonical.bend as Canonical
 import ../../agent-flow-bend/Ledger.bend as Ledger
+import ../../agent-flow-bend/ImportGraph.bend as Graph
 
 # Original source-free script: 24 edits, alternating a selected fault and healthy
 # finding every 20 virtual milliseconds. One actual resident state is retained.
@@ -225,6 +226,11 @@ def credential_after(pair: Types.State & Minimal.Queue, +now: Nat, +action: Nat,
   match pair:
     case (+state, queue): credential_report(state, now, action) <> credential_resumed(credential_control(state, queue, now, action), now, action, ih)
 
+def credential_live(pair: Types.State & Minimal.Queue, +operation: Nat, now: Nat,
+    ih: (Types.State & Minimal.Queue) -> List<&2,List<&2,Nat>>) -> List<&2,List<&2,Nat>>:
+  match pair:
+    case (+state,queue): [35n,now,operation,captured(Credentials.captured(Engine.credentials(state),operation))] <> ih((state,queue))
+
 def credential_input(+input: Minimal.Input, state: Types.State, queue: Minimal.Queue, +now: Nat, +mode: Nat, +stage: Nat,
     ih: ((Types.State & Minimal.Queue) & Nat) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match input mode stage:
@@ -234,6 +240,8 @@ def credential_input(+input: Minimal.Input, state: Types.State, queue: Minimal.Q
       Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => credential_after(pair, now, 1n, pair => ih((pair, 1n))))
     case Minimal.Event{Driver.Action{Canonical.JevRequestStarted{_, _, _, 3n, _}, _, _, _, _}} 2n 0n:
       Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => credential_after(pair, now, 3n, pair => ih((pair, 1n))))
+    case Minimal.Event{Driver.Action{Canonical.JevRequestStarted{_,_,_,+operation,_},_,_,_,_}} 0n _:
+      Minimal.input(input,state,queue,now,config(Canonical.RequestFinding{},now),pair => credential_live(pair,operation,now,pair => ih((pair,stage))))
     case _ _ _:
       Minimal.input(input, state, queue, now, config(Canonical.RequestFinding{}, now), pair => ih((pair, stage)))
 
@@ -297,121 +305,122 @@ def credential_scenario(+mode: Nat) -> List<&2, List<&2, Nat>>:
     case _:
       credential_loop(200n, ((Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), credential_queue(mode)), 0n), mode)
 
-# Compact campaign: same source-free config as the public 2050-terminal-request
-# regression (PRE2, Jev1, edits at cycle*10). No state reset or bulk re-offering.
+# Compact original 2050-cycle campaign. Each step returns only state, pending
+# payloads and seven counters; no transition history survives the next step.
+# The adapter delegates every edit, graph fact and command to the same Engine.
+type Totals is Data:
+  Totals{started: Nat, clear: Nat, finding: Nat, output: Nat, refused: Nat, graphs: Nat, frames: Nat}
+
+type Compact is Data:
+  Compact{state: Types.State, queue: Minimal.Queue, totals: Totals, remaining: Nat, healed: Bool}
+
 def terminal_context(action: Driver.Action, healed: Bool) -> Driver.Context:
   match action:
     case Driver.Action{_, _, candidate, _, _}:
       Driver.Context{1n, 1n, 1n, 10n, True{}, 1n, Bool.pick(Canonical.RequestOutcome, healed, Canonical.RequestFinding{}, Canonical.RequestClear{}), True{}, True{}, True{}, True{}, 600000n, candidate, True{}, True{}, True{}, True{}, 0n, 30n, False{}, True{}}
 
-# The only variant from Minimal's edge adapter is the declared Jev delay1.
-# Actual command interpretation and lifecycle generation still run Engine.handle.
-def terminal_requested(transition: Engine.Transition, +before: Types.State, +action: Driver.Action, queue: Minimal.Queue, +now: Nat, +healed: Bool,
-    ih: (Types.State & Minimal.Queue) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+def terminal_count(event: Canonical.CanonicalEvent, totals: Totals, rejected: Nat) -> Totals:
+  match event totals:
+    case Canonical.JevRequestStarted{_, _, _, _, _} Totals{s,c,f,o,r,g,n}: Totals{Nat.add(s,1n),c,f,o,Nat.add(r,rejected),g,Nat.add(n,1n)}
+    case Canonical.JevRequestSettled{_, _, _, _, _, Canonical.RequestClear{}, _} Totals{s,c,f,o,r,g,n}: Totals{s,Nat.add(c,1n),f,o,Nat.add(r,rejected),g,Nat.add(n,1n)}
+    case Canonical.JevRequestSettled{_, _, _, _, _, Canonical.RequestFinding{}, _} Totals{s,c,f,o,r,g,n}: Totals{s,c,Nat.add(f,1n),o,Nat.add(r,rejected),g,Nat.add(n,1n)}
+    case Canonical.SubmissionTerminal{_, _, _} Totals{s,c,f,o,r,g,n}: Totals{s,c,f,Nat.add(o,1n),Nat.add(r,rejected),g,Nat.add(n,1n)}
+    case _ Totals{s,c,f,o,r,g,n}: Totals{s,c,f,o,Nat.add(r,rejected),g,Nat.add(n,1n)}
+
+def terminal_remaining(event: Canonical.CanonicalEvent, remaining: Nat) -> Nat:
+  match event:
+    case Canonical.JevRequestSettled{_, _, _, _, _, _, _}: Nat.sub(remaining,1n)
+    case _: remaining
+
+def terminal_retire(event: Canonical.CanonicalEvent, state: Types.State) -> Types.State:
+  match event:
+    case Canonical.PreparationCompleted{_,_,_,operation,_}: Engine.retire(state,operation)
+    case _: state
+
+def terminal_transition(transition: Engine.Transition, +before: Types.State, action: Driver.Action, queue: Minimal.Queue, +now: Nat, totals: Totals, +remaining: Nat, +healed: Bool) -> Compact:
   match transition action:
-    case Engine.Transition{+state, Canonical.Advanced{_, +commands}} Driver.Action{+event, delay, candidate, job, expiry}:
-      +q = Minimal.commands(commands, queue, now, state, event, terminal_context(Driver.Action{event, delay, candidate, job, expiry}, healed))
-      +q = Minimal.enqueue(Engine.after(before, state, event), q, now)
-      (Minimal.event_code(event) <> now <> List.append(&2, Nat, Minimal.event_identity(event), List.append(&2, Nat, Minimal.event_facts(event), List.append(&2, Nat, Minimal.state_counts(state), 0n <> Minimal.command_codes(commands))))) <> ih((state, q))
+    case Engine.Transition{+state, Canonical.Advanced{_, commands}} Driver.Action{+event, delay, candidate, job, expiry}:
+      +state = terminal_retire(event,state)
+      +q = Minimal.commands(commands,queue,now,state,event,terminal_context(Driver.Action{event,delay,candidate,job,expiry},healed))
+      +q = Minimal.enqueue(Engine.after(before,state,event),q,now)
+      Compact{state,q,terminal_count(event,totals,0n),terminal_remaining(event,remaining),healed}
     case Engine.Transition{+state, Canonical.Rejected{_, _}} Driver.Action{+event, _, _, _, _}:
-      (Minimal.event_code(event) <> now <> List.append(&2, Nat, Minimal.event_identity(event), List.append(&2, Nat, Minimal.event_facts(event), List.append(&2, Nat, Minimal.state_counts(state), [1n])))) <> ih((state, queue))
+      Compact{state,Minimal.enqueue(Engine.after(before,state,event),queue,now),terminal_count(event,totals,1n),terminal_remaining(event,remaining),healed}
 
-def terminal_input(+input: Minimal.Input, +state: Types.State, queue: Minimal.Queue, +now: Nat, +remaining: Nat, +healed: Bool,
-    ih: ((Types.State & Minimal.Queue) & (Nat & Bool)) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+def terminal_execute(+state: Types.State, action: Driver.Action, queue: Minimal.Queue, +now: Nat, totals: Totals, remaining: Nat, +healed: Bool) -> Compact:
+  match action:
+    case Driver.Action{+event, +delay, +candidate, +job, +expiry}:
+      +event = Engine.fence(state,event,True{},terminal_context(Driver.Action{event,delay,candidate,job,expiry},healed))
+      terminal_transition(Engine.step(state,event),state,Driver.Action{event,delay,candidate,job,expiry},queue,now,totals,remaining,healed)
+
+def terminal_edit(plan: Driver.EditPlan, state: Types.State, queue: Minimal.Queue, +now: Nat, totals: Totals, remaining: Nat, healed: Bool) -> Compact:
+  match plan:
+    case Driver.EditPlan{retry,actions}: Compact{state,Minimal.edit_retry(retry,Minimal.enqueue(actions,queue,now),now),totals,remaining,healed}
+
+def terminal_graph(transition: Types.GraphTransition, queue: Minimal.Queue, totals: Totals, remaining: Nat, healed: Bool) -> Compact:
+  match transition totals:
+    case Types.GraphTransition{state,_,_} Totals{s,c,f,o,r,g,n}: Compact{state,queue,Totals{s,c,f,o,r,Nat.add(g,1n),Nat.add(n,1n)},remaining,healed}
+    case Types.GraphRejected{state} Totals{s,c,f,o,r,g,n}: Compact{state,queue,Totals{s,c,f,o,Nat.add(r,1n),g,n},remaining,healed}
+
+def terminal_input(input: Minimal.Input, +state: Types.State, queue: Minimal.Queue, +now: Nat, totals: Totals, remaining: Nat, healed: Bool) -> Compact:
   match input:
-    case Minimal.Event{+action}:
-      match action:
-        case Driver.Action{Canonical.JevRequestReady{+p, +l, +r, +o, +root, +configuration, +credential, +selected, +current, +physical}, delay, candidate, job, expiry}:
-          +action = {Driver.Action{Canonical.JevRequestReady{p, l, r, o, root, configuration, credential, selected, current, physical}, delay, candidate, job, expiry} : Driver.Action}
-          +event = Engine.fence(state, Canonical.JevRequestReady{p, l, r, o, root, configuration, credential, selected, current, physical}, True{}, terminal_context(action, healed))
-          terminal_requested(Engine.step(state, event), state, action, queue, now, healed, pair => ih((pair, (remaining, healed))))
-        case Driver.Action{Canonical.JevRequestSettled{_, _, _, _, _, _, _}, _, _, _, _}:
-          Minimal.input(input, state, queue, now, Minimal.Config{Canonical.RequestClear{}, True{}, True{}, True{}, True{}, 1n}, pair => ih((pair, (Nat.sub(remaining, 1n), healed))))
-        case _:
-          Minimal.input(input, state, queue, now, Minimal.Config{Canonical.RequestClear{}, True{}, True{}, True{}, True{}, 1n}, pair => ih((pair, (remaining, healed))))
-    case _:
-      Minimal.input(input, state, queue, now, Minimal.Config{Canonical.RequestClear{}, True{}, True{}, True{}, True{}, 1n}, pair => ih((pair, (remaining, healed))))
+    case Minimal.Edit{}: terminal_edit(Engine.edit(state,1n,1n),state,queue,now,totals,remaining,healed)
+    case Minimal.Event{action}: terminal_execute(state,action,queue,now,totals,remaining,healed)
+    case Minimal.Fact{operation,step,event}:
+      terminal_graph(Engine.graph_step(state,Types.GraphKey{1n,1n,1n,operation,0n},step,Graph.Limits{1n,262144n,20480n,8n,1572864n,16n,4n,128n},event),queue,totals,remaining,healed)
 
-def terminal_endpoint_values(credentials: Credentials.State, +state: Types.State) -> List<&2, List<&2, Nat>>:
-  match credentials:
-    case Credentials.State{_, generation, issued}:
-      [List.append(&2, Nat, [37n, Engine.clock(state)], List.append(&2, Nat, Minimal.state_counts(state), [generation, List.length(&2, Credentials.Capture, issued)]))]
-
-def terminal_endpoint(+state: Types.State) -> List<&2, List<&2, Nat>>:
-  terminal_endpoint_values(Engine.credentials(state), state)
-
-def terminal_fresh(pair: (Types.State & Minimal.Queue) & (Nat & Bool),
-    ih: ((Types.State & Minimal.Queue) & (Nat & Bool)) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match pair:
-    case ((+state, queue), (remaining, healed)):
-      ih(((state, Minimal.append(queue, Nat.add(Engine.clock(state), 1n), Minimal.Edit{})), (remaining, healed)))
-
-def terminal_empty(+state: Types.State, queue: Minimal.Queue, +remaining: Nat, healed: Bool,
-    ih: ((Types.State & Minimal.Queue) & (Nat & Bool)) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match remaining healed:
-    case 0n True{}: terminal_endpoint(state)
-    case 0n False{}:
-      credential_after((state, queue), Engine.clock(state), 1n, pair => credential_after(pair, Engine.clock(state), 2n, pair => credential_after(pair, Engine.clock(state), 3n, pair => terminal_fresh((pair, (0n, True{})), ih))))
-    case _ _:
-      ih(((state, Minimal.append(queue, Nat.mul(Nat.sub(2050n, remaining), 10n), Minimal.Edit{})), (remaining, healed)))
-
-def terminal_taken(taken: Engine.Taken, +items: List<&2, Minimal.Item>, +sequence: Nat, remaining: Nat, healed: Bool,
-    ih: ((Types.State & Minimal.Queue) & (Nat & Bool)) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+def terminal_taken(taken: Engine.Taken, +items: List<&2,Minimal.Item>, +sequence: Nat, totals: Totals, remaining: Nat, healed: Bool) -> Compact:
   match taken:
-    case Engine.Taken{state, Some{Scheduler.Entry{at, +order}}}:
-      terminal_input(Minimal.lookup(items, order), state, Minimal.Queue{Minimal.remove(items, order), sequence, sequence}, at, remaining, healed, ih)
-    case Engine.Taken{state, None{}}: terminal_endpoint(state)
+    case Engine.Taken{state,Some{Scheduler.Entry{at,+order}}}: terminal_input(Minimal.lookup(items,order),state,Minimal.Queue{Minimal.remove(items,order),sequence,sequence},at,totals,remaining,healed)
+    case Engine.Taken{state,None{}}: Compact{state,Minimal.Queue{items,sequence,sequence},totals,remaining,healed}
 
-def terminal_selected(entries: List<&2, Scheduler.Entry>, +state: Types.State, +queue: Minimal.Queue, +remaining: Nat, +healed: Bool,
-    ih: ((Types.State & Minimal.Queue) & (Nat & Bool)) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match entries queue:
-    case Nil{} _: terminal_empty(state, queue, remaining, healed, ih)
-    case Scheduler.Entry{at, _} <> _ Minimal.Queue{items, sequence, _}:
-      Bool.pick(List<&2, List<&2, Nat>>, Nat.is_le(at, 20520n), terminal_taken(Engine.take(state), items, sequence, remaining, healed, ih), terminal_endpoint(state))
-
-def terminal_next(pair: (Types.State & Minimal.Queue) & (Nat & Bool),
-    ih: ((Types.State & Minimal.Queue) & (Nat & Bool)) -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+def terminal_controls(pair: Types.State & Minimal.Queue, action: Nat) -> Types.State & Minimal.Queue:
   match pair:
-    case ((state, Minimal.Queue{+items, +sequence, synced}), (remaining, healed)):
-      +state = Minimal.sync(items, state, synced)
-      terminal_selected(Engine.queued(state), state, Minimal.Queue{items, sequence, sequence}, remaining, healed, ih)
+    case (+state,queue): credential_control(state,queue,Engine.clock(state),action)
 
-def terminal_loop(fuel: Nat, pair: (Types.State & Minimal.Queue) & (Nat & Bool)) -> List<&2, List<&2, Nat>>:
+def terminal_healed(pair: Types.State & Minimal.Queue, totals: Totals) -> Compact:
+  match pair:
+    case (+state,queue): Compact{state,Minimal.append(queue,Nat.add(Engine.clock(state),1n),Minimal.Edit{}),totals,0n,True{}}
+
+def terminal_empty(+state: Types.State, queue: Minimal.Queue, totals: Totals, +remaining: Nat, healed: Bool) -> Compact:
+  match remaining healed:
+    case 0n False{}: terminal_healed(terminal_controls(terminal_controls(terminal_controls((state,queue),1n),2n),3n),totals)
+    case _ _: Compact{state,Minimal.append(queue,Nat.mul(Nat.sub(2050n,remaining),10n),Minimal.Edit{}),totals,remaining,healed}
+
+def terminal_selected(entries: List<&2,Scheduler.Entry>, +state: Types.State, queue: Minimal.Queue, totals: Totals, remaining: Nat, healed: Bool) -> Compact:
+  match entries queue:
+    case Nil{} _: terminal_empty(state,queue,totals,remaining,healed)
+    case _ Minimal.Queue{items,sequence,_}: terminal_taken(Engine.take(state),items,sequence,totals,remaining,healed)
+
+def terminal_next(compact: Compact) -> Compact:
+  match compact:
+    case Compact{state,Minimal.Queue{+items,+sequence,synced},totals,remaining,healed}:
+      +state = Minimal.sync(items,state,synced)
+      terminal_selected(Engine.queued(state),state,Minimal.Queue{items,sequence,sequence},totals,remaining,healed)
+
+def terminal_values(credentials: Credentials.State, +state: Types.State, totals: Totals) -> List<&2,Nat>:
+  match credentials totals:
+    case Credentials.State{_,generation,issued} Totals{s,c,f,o,r,g,n}:
+      List.append(&2,Nat,[s,c,f,o,r,g,n,Engine.clock(state)],List.append(&2,Nat,Minimal.state_counts(state),[generation,List.length(&2,Credentials.Capture,issued)]))
+
+def terminal_done(entries: List<&2,Scheduler.Entry>, compact: Compact) -> Bool:
+  match entries compact:
+    case Nil{} Compact{_,Minimal.Queue{Nil{},_,_},_,0n,True{}}: True{}
+    case _ _: False{}
+
+def terminal_continue(done: Bool, +compact: Compact, ih: Compact -> List<&2,Nat>) -> List<&2,Nat>:
+  match done compact:
+    case True{} Compact{+state,_,totals,_,_}: terminal_values(Engine.credentials(state),state,totals)
+    case False{} _: ih(terminal_next(compact))
+
+def terminal_finished(+compact: Compact) -> Bool:
+  match compact:
+    case Compact{+state,queue,totals,remaining,healed}: terminal_done(Engine.queued(state),Compact{state,queue,totals,remaining,healed})
+
+def terminal_loop(fuel: Nat, +compact: Compact) -> List<&2,Nat>:
   match fuel:
-    case 0n: [[99n]]
-    case 1n+rest: terminal_next(pair, pair => terminal_loop(rest, pair))
+    case 0n: [99n]
+    case 1n+rest: terminal_continue(terminal_finished(compact),compact,next => terminal_loop(rest,next))
 
-type Totals is Data:
-  Totals{started: Nat, clear: Nat, finding: Nat, output: Nat, refused: Nat, graphs: Nat, frames: Nat}
-
-def field(values: List<&2, Nat>, position: Nat) -> Nat:
-  match values position:
-    case head <> _ 0n: head
-    case _ <> tail 1n+rest: field(tail, rest)
-    case Nil{} _: 0n
-
-def tally(+row: List<&2, Nat>, totals: Totals) -> Totals:
-  match totals:
-    case Totals{started, clear, finding, output, refused, graphs, frames}:
-      Totals{Nat.add(started, Bool.pick(Nat, Nat.is_eq(field(row, 0n), 11n), 1n, 0n)),
-        Nat.add(clear, Bool.pick(Nat, Nat.is_eq(field(row, 0n), 12n) && Nat.is_eq(field(row, 10n), 3n), 1n, 0n)),
-        Nat.add(finding, Bool.pick(Nat, Nat.is_eq(field(row, 0n), 12n) && Nat.is_eq(field(row, 10n), 2n), 1n, 0n)),
-        Nat.add(output, Bool.pick(Nat, Nat.is_eq(field(row, 0n), 18n), 1n, 0n)),
-        Nat.add(refused, Bool.pick(Nat, Nat.is_lt(field(row, 0n), 26n) && Bool.not(Nat.is_eq(field(row, 0n), 21n)) && Nat.is_eq(field(row, 20n), 1n), 1n, 0n)),
-        Nat.add(graphs, Bool.pick(Nat, Nat.is_eq(field(row, 0n), 21n), 1n, 0n)),
-        Nat.add(frames, Bool.pick(Nat, Nat.is_lt(field(row, 0n), 26n), 1n, 0n))}
-
-def totals_row(totals: Totals, endpoint: List<&2, Nat>) -> List<&2, Nat>:
-  match totals endpoint:
-    case Totals{started, clear, finding, output, refused, graphs, frames} _ <> rest:
-      List.append(&2, Nat, [started, clear, finding, output, refused, graphs, frames], rest)
-    case _ Nil{}: [99n]
-
-def summarize(rows: List<&2, List<&2, Nat>>, totals: Totals, endpoint: List<&2, Nat>) -> List<&2, Nat>:
-  match rows:
-    case Nil{}: totals_row(totals, endpoint)
-    case +row <> rest: summarize(rest, tally(row, totals), Bool.pick(List<&2, Nat>, Nat.is_eq(field(row, 0n), 37n), row, endpoint))
-
-def terminal_campaign() -> List<&2, Nat>:
-  summarize(terminal_loop(60000n, ((Engine.initial(Ledger.Limits{32n, 100000n, 16n, 50000n}), Minimal.initial_queue(1n)), (2050n, False{}))), Totals{0n, 0n, 0n, 0n, 0n, 0n, 0n}, Nil{})
-
+def terminal_campaign() -> List<&2,Nat>:
+  terminal_loop(60000n,Compact{Engine.initial(Ledger.Limits{32n,100000n,16n,50000n}),Minimal.initial_queue(1n),Totals{0n,0n,0n,0n,0n,0n,0n},2050n,False{}})

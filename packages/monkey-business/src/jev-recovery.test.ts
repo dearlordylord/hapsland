@@ -240,13 +240,22 @@ it.each([0, 1, 2] as const)("compares original credential action script %i with 
     }
     run.advance({ untilTime: mode === 1 ? 10 : 20, maxEvents: 100 });
     flush();
-    expect(nativeTrace.filter(row => ![32, 33, 34].includes(row[0] ?? 99))).toEqual(trace);
+    expect(nativeTrace.filter(row => ![32, 33, 34, 35].includes(row[0] ?? 99))).toEqual(trace);
     expect(nativeTrace.filter(row => row[0] === 18)).toHaveLength(1);
     expect(nativeTrace.filter(row => row[0] === 11)).toHaveLength(mode === 0 ? 1 : mode === 1 ? 1 : 2);
+    // The fresh edit at11 completes PRE2 at13 and Jev5 at18. Captures
+    // follow live work/physical-request ownership, not historical numeric IDs.
+    if (mode === 0) {
+      const started = run.observations.find(frame => frame.event.kind === "jevRequestStarted");
+      expect(started?.event.kind).toBe("jevRequestStarted");
+      if (started?.event.kind === "jevRequestStarted") {
+        expect(nativeTrace.filter(row => row[0] === 35)).toEqual([[35, 13, started.event.operation, 1]]);
+      }
+    }
     const endpoint = nativeTrace.find(row => row[0] === 33);
-    expect(endpoint).toEqual(mode === 0 ? [33, 17, 1, 5, 0, 0, 0, 1, 0, 1, 0]
+    expect(endpoint).toEqual(mode === 0 ? [33, 18, 1, 5, 0, 0, 0, 1, 0, 0, 0]
       : mode === 1 ? [33, 7, 1, 5, 0, 0, 0, 1, 1, 0, 0]
-        : [33, 17, 1, 5, 0, 0, 0, 2, 0, 0, 2]);
+        : [33, 18, 1, 5, 0, 0, 0, 2, 0, 0, 2]);
     expect(run.observations.filter(frame => frame.rejection)).toEqual([]);
     expect(run.projection.dispatch.running).toEqual([]);
     expect(run.projection.dispatch.requests).toEqual([]);
