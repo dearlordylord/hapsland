@@ -89,7 +89,7 @@ it.effect("rolls back staged ticket eviction and retirement if native validation
   const unit = (yield* owner.ticketUnits.add(ticket));
   // Seed a mismatched canonical admission to exercise failure after the first
   // eviction has staged; normal ticket admission validates this invariant.
-  owner.transition({ kind: "ticketOpen", id: ticket.generation + 1 });
+  yield* owner.transition({ kind: "ticketOpen", id: ticket.generation + 1 });
   const before = (yield* owner.canonicalProjection());
   const outcome = yield* Effect.exit(owner.runtime.cleanup(() => 10));
   expect(outcome._tag).toBe("Failure");

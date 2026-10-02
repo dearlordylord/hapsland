@@ -2180,6 +2180,59 @@
       "roundContractInitialAttempt": "evidence/effect4-migration/round-contract-collection-handler-effects.json",
       "scope": "Collection returns named workflow Effects through typed overloads; request handle directly exposes named Effect workflow. Typed ResidentAdapterError remains visible. Removed final runtime runPromise bridges; runtime and state owner contain no execution bridges or unsafe reads. Native async fixtures/probes execute at their boundaries. Updated ticket revalidation source marker and Stop guard now rejects runPromise as well.",
       "limitations": "Initial probe passed 17/18 and Claude-labelled deadline-block exceeded unchanged six-second limit. Isolated full rerun passed18/18; cause unproven, historical failure retained. Fixture hook conversion, adapter audit, docs and final validation remain. Benchmark runner syntax checked; workload reruns remain required."
+    },
+    {
+      "stage": "full-offline-after-runtime-facade-removal",
+      "baseCommit": "da425d8",
+      "initialRun": {
+        "command": "npm test",
+        "exitCode": 1,
+        "filesPassed": 115,
+        "filesFailed": 1,
+        "filesSkipped": 1,
+        "testsPassed": 1149,
+        "testsFailed": 1,
+        "testsSkipped": 2,
+        "durationSeconds": 331.03,
+        "failure": "runtime-records rollback fixture failed to execute owner.transition Effect; mismatched canonical state was not injected"
+      },
+      "fix": "yield* owner.transition in the rollback fixture; the other owner.transition test call is a pure draft operation within dispatch.modify",
+      "targeted": {
+        "command": "npx vitest run src/resident/runtime-records.test.ts src/resident/dispatch.test.ts",
+        "exitCode": 0,
+        "testsPassed": 19,
+        "filesPassed": 2
+      },
+      "fullRerun": {
+        "command": "npm test",
+        "exitCode": 1,
+        "filesPassed": 115,
+        "filesFailed": 1,
+        "filesSkipped": 1,
+        "testsPassed": 1149,
+        "testsFailed": 1,
+        "testsSkipped": 2,
+        "durationSeconds": 387.1,
+        "failure": "credentials/secret-service.test.ts native create failure after possible commit exceeded unchanged 5000ms test timeout",
+        "rollbackFixturePassed": true,
+        "preVitestGatesPassed": true
+      },
+      "isolatedCredentialCase": {
+        "command": "npx vitest run src/credentials/secret-service.test.ts -t 'maps a native create failure after possible commit to indeterminate and suspends use'",
+        "exitCode": 0,
+        "testsPassed": 1,
+        "testsSkipped": 22,
+        "durationSeconds": 0.205,
+        "timeoutChanged": false
+      },
+      "limitations": "The isolated pass does not prove full-suite success or explain the timeout. Final full-suite rerun remains required after remaining migration work; live tests are credential-gated.",
+      "isolatedCredentialFile": {
+        "command": "npx vitest run src/credentials/secret-service.test.ts",
+        "exitCode": 0,
+        "testsPassed": 23,
+        "durationSeconds": 18.0,
+        "timeoutChanged": false
+      }
     }
   ],
   "next": [
