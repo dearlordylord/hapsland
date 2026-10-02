@@ -3,6 +3,7 @@ import { Effect, Schema } from "effect";
 
 export type HostProcessOptions = {
   readonly env: NodeJS.ProcessEnv;
+  readonly input?: string;
   readonly cwd?: string;
   readonly timeout: number;
   readonly maxBuffer: number;
@@ -30,7 +31,8 @@ const acquireProcess = Effect.fn("HostProcess.acquireProcess")((executable: stri
       for (const finish of waiters) finish(outcome);
       waiters.clear();
     };
-    const child = execFile(executable, [...args], { ...options, timeout: 0, encoding: "utf8" }, (cause, stdout, stderr) => {
+    const { input, ...nativeOptions } = options;
+    const child = execFile(executable, [...args], { ...nativeOptions, timeout: 0, encoding: "utf8" }, (cause, stdout, stderr) => {
       output = { stdout, stderr, succeeded: cause === null };
       settle();
     });
@@ -48,12 +50,12 @@ const acquireProcess = Effect.fn("HostProcess.acquireProcess")((executable: stri
       child.kill("SIGKILL");
     }));
     // Publish ownership before input closure, including synchronous failures.
-    const closeInput = Effect.try({ try: () => { child.stdin?.end(); }, catch: () => new HostProcessStartError() });
+    const closeInput = Effect.try({ try: () => { child.stdin?.end(input); }, catch: () => new HostProcessStartError() });
     return { wait, terminate, closeInput };
   }, catch: () => new HostProcessStartError(),
 }));
 
-/** Codex needs closed stdin; every exit retains ownership until callback and physical close. */
+/** Sends optional input and closes stdin; ownership lasts through callback and physical close. */
 export const execFileClosedStdin = Effect.fn("HostProcess.run")((executable: string, args: ReadonlyArray<string>,
   options: HostProcessOptions) => Effect.acquireUseRelease(
   acquireProcess(executable, args, options),

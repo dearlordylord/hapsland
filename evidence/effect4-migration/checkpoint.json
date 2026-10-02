@@ -3590,5 +3590,28 @@
       "scripts/check-configuration-boundary.mjs": "3463d58f89777feb6f7b3baf384b3016402f8943d9dc08d8e52cca8ed864c569"
     },
     "limitations": "No native restoration failure injection, cross-platform proof or complete migration claim. Remaining installation Config/inspection, native lifecycle, external Clock deadline and final gates still required."
+  },
+  "nativeProcessInputCapability": {
+    "status": "shared scoped process adapter sends optional stdin input before EOF",
+    "scope": "Required lifecycle JSON transport capability; input excluded from execFile native options and sent only after process ownership publication. Existing no-input demo and compatibility behavior retained. Native close/deadline/interruption ownership unchanged.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/host-process.test.ts src/onboarding/first-review-demo.test.ts src/onboarding/opencode-installation.test.ts --maxWorkers=1",
+        "status": "pass",
+        "files": 3,
+        "tests": 23,
+        "durationSeconds": 2.14
+      }
+    ],
+    "nativeEvidence": "Child reads UTF-8 JSON until EOF and returns boolean-only equality/end receipt; native timeout/interruption tests and demo/cleanup tests pass.",
+    "sourceSha256": {
+      "src/onboarding/host-process.ts": "a9a073d26a07f1e9b2b11e33881b3d015816493ac522b8bef711bede2f895e5d",
+      "src/onboarding/host-process.test.ts": "4b9a5d1a91ff6367b960a90e212026306b9171d0ceee72614da3ef930bb8c4c2"
+    },
+    "remaining": "invokeLifecycle and its update/maintenance callers still use synchronous native invocation; next port must preserve per-host failure handling, 30000ms deadline and partial-result semantics. Full migration incomplete."
   }
 }

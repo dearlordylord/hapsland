@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { execFileClosedStdin } from "./host-process.ts";
 
-describe("Codex host process", () => {
+describe("native host process", () => {
   it("closes stdin so a prompt argument can start without waiting for the deadline", async () => {
     const result = await Effect.runPromise(execFileClosedStdin(process.execPath, [
       "-e", "process.stdin.resume(); process.stdin.on('end', () => process.stdout.write('ready'))",
@@ -66,3 +66,11 @@ effectIt.live("failed spawn and command exit return structured outcomes without 
   expect(failed).toEqual({ succeeded: false, timedOut: false,
     stdout: "synthetic-output", stderr: "synthetic-authentication-error" });
 }));
+
+it("sends UTF-8 lifecycle input then EOF before completing the child", async () => {
+  const result = await Effect.runPromise(execFileClosedStdin(process.execPath, ["-e",
+    "let text='';process.stdin.setEncoding('utf8');process.stdin.on('data',chunk=>text+=chunk);process.stdin.on('end',()=>process.stdout.write(JSON.stringify({matches:text===JSON.stringify({version:1,label:'тест'}),ended:true})))",
+  ], { env: process.env, input: JSON.stringify({ version: 1, label: "тест" }), timeout: 2_000, maxBuffer: 1_024 }));
+  expect(result.succeeded).toBe(true);
+  expect(JSON.parse(result.stdout)).toEqual({ matches: true, ended: true });
+});
