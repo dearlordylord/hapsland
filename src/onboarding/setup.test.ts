@@ -1,3 +1,4 @@
+import { createInstallationPackageFixture } from "../test-support/installation-package.ts";
 import {
   chmodSync,
   existsSync,
@@ -33,6 +34,7 @@ const fixture = () => {
   chmodSync(codexExecutable, 0o700);
   const environment: NodeJS.ProcessEnv = {
     ...process.env,
+    REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(root),
     REVIEW_STATE_PATH: join(root, "consent"),
     REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"),
     REVIEW_CREDENTIAL_STATE_PATH: join(root, "credential-state.json"),

@@ -5,3 +5,6 @@ dist
 *.tsbuildinfo
 .cleanup/
 .tools/lychee/
+
+.tools/bend/
+.tools/lean/

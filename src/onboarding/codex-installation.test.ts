@@ -1,3 +1,4 @@
+import { createInstallationPackageFixture, installationPackageDeclaration } from "../test-support/installation-package.ts";
 import { ConfigProvider, Effect } from "effect";
 import {
   chmodSync,
@@ -81,11 +82,13 @@ const invoke = (
   operation: Record<string, unknown>,
   env: NodeJS.ProcessEnv = process.env,
 ) => {
+  const fixtureEnvironment = env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
+    ? env : { ...env, REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(dirname(operation.codexHome)) };
   const child = spawnSync(process.execPath, ["src/cli.ts", `--${String(operation.operation)}`], {
     cwd: process.cwd(),
     input: JSON.stringify({ version: 1, ...operation }),
     encoding: "utf8",
-    env,
+    env: fixtureEnvironment,
     timeout: 45_000,
   });
   expect(child.stderr).toBe("");
@@ -159,7 +162,8 @@ const waitFor = async <A>(read: () => A | undefined, timeout = 5_000): Promise<A
 const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessEnv) => {
   const child = spawn(process.execPath, ["src/cli.ts", `--${String(operation.operation)}`], {
     cwd: process.cwd(),
-    env,
+    env: env.REVIEW_INSTALL_ENTRYPOINT !== undefined || typeof operation.codexHome !== "string"
+      ? env : { ...env, REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(dirname(operation.codexHome)) },
     stdio: ["pipe", "pipe", "pipe"],
   });
   const closed = new Promise<number | null>((resolveClosed) => {
@@ -189,6 +193,35 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     expect(result).toMatchObject({ _tag: "Failure", failure: { reason: "Codex installation configuration is invalid" } });
   });
 
+  it("rejects Linux x64 against the production arm64 declaration before mutation", () => {
+    const test = fixture();
+    const runtime = join(test.root, "synthetic-x64-runtime");
+    writeFileSync(runtime, `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: "v24.20.0", platform: "linux", architecture: "x64" })}'\n`, { mode: 0o700 });
+    const result = invoke({ operation: "install-preview", codexHome: test.home, codexExecutable: test.bin }, {
+      ...process.env, REVIEW_INSTALL_RUNTIME: runtime, REVIEW_INSTALL_ENTRYPOINT: join(process.cwd(), "src/cli.ts"),
+    });
+    expect(result).toMatchObject({ status: "unsupported", host: { compatibility: { runtime: { supported: false, checks: {
+      node: { ready: true }, platform: { ready: false, observed: "linux" }, architecture: { ready: false, observed: "x64", required: "arm64" },
+    } } } } });
+    expect(readdirSync(test.home)).toEqual([]);
+  });
+
+  it("accepts matching synthetic runtime/package profiles independently of release support", () => {
+    const test = fixture();
+    const entrypoint = createInstallationPackageFixture(test.root);
+    const declaration = { ...installationPackageDeclaration(), profiles: [{ operatingSystem: "linux", architecture: "x64" }] };
+    writeFileSync(join(dirname(dirname(entrypoint)), "package-runtime.json"), JSON.stringify(declaration));
+    const runtime = join(test.root, "synthetic-x64-runtime");
+    writeFileSync(runtime, `#!/bin/sh\nprintf '%s' '${JSON.stringify({ version: process.version, platform: "linux", architecture: "x64" })}'\n`, { mode: 0o700 });
+    const result = invoke({ operation: "install-preview", codexHome: test.home, codexExecutable: test.bin }, {
+      ...process.env, REVIEW_INSTALL_RUNTIME: runtime, REVIEW_INSTALL_ENTRYPOINT: entrypoint,
+    });
+    expect(result).toMatchObject({ status: "preview", host: { compatibility: { runtime: { supported: true, checks: {
+      node: { ready: true }, platform: { ready: true, observed: "linux" }, architecture: { ready: true, observed: "x64" },
+    } } } } });
+    expect(readdirSync(test.home)).toEqual([]);
+  });
+
   it("inspects the pinned hook runtime when the caller uses another Node path", async () => {
     const test = fixture();
     previewAndInstall(test.home, test.bin);
@@ -196,7 +229,8 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     const previousEntrypoint = process.env.REVIEW_INSTALL_ENTRYPOINT;
     try {
       process.env.REVIEW_INSTALL_RUNTIME = "/bin/true";
-      process.env.REVIEW_INSTALL_ENTRYPOINT = join(process.cwd(), "src/cli.ts");
+      // Keep the selected fixture package metadata constant; vary only the caller runtime.
+      process.env.REVIEW_INSTALL_ENTRYPOINT = createInstallationPackageFixture(test.root);
       expect(await runInstallation(inspectCodexInstallation({ codexHome: test.home, codexExecutable: test.bin }))).toMatchObject({
         status: "installed",
         installed: true,
@@ -258,7 +292,7 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     mkdirSync(join(dirname(quotedEntrypoint), "resident"));
     writeFileSync(join(dirname(quotedEntrypoint), "resident", "main.js"), "#!/usr/bin/env node\n");
     writeFileSync(join(root, "package.json"), readFileSync(join(process.cwd(), "package.json"), "utf8"));
-    writeFileSync(join(root, "package-runtime.json"), readFileSync(join(process.cwd(), "package-runtime.json"), "utf8"));
+    writeFileSync(join(root, "package-runtime.json"), JSON.stringify(installationPackageDeclaration()));
     const installEnvironment = {
       ...process.env,
       REVIEW_INSTALL_ENTRYPOINT: quotedEntrypoint,

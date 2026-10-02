@@ -1,3 +1,4 @@
+import { createInstallationPackageFixture } from "../test-support/installation-package.ts";
 import { spawn, execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -8,7 +9,7 @@ afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: 
 const fixture = () => {
   const root = mkdtempSync(join(tmpdir(), "hapsland-interactive-")); roots.push(root);
   const repository = join(root, "repo"); mkdirSync(repository); execFileSync("git", ["init", "--quiet", repository]);
-  const environment = { ...process.env, HOME: root, TYPESAFE_API_KEY: "interactive-test-key", REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"), REVIEW_STATE_PATH: join(root, "state") };
+  const environment = { ...process.env, REVIEW_INSTALL_ENTRYPOINT: createInstallationPackageFixture(root), HOME: root, TYPESAFE_API_KEY: "interactive-test-key", REVIEW_USER_CONFIG_PATH: join(root, "user.jsonc"), REVIEW_STATE_PATH: join(root, "state") };
   return { root, repository, environment };
 };
 const terminal = async (test: ReturnType<typeof fixture>, args: string[], answer: "y" | "n", selection?: string) => {
