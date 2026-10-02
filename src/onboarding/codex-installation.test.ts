@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { ConfigProvider, Effect } from "effect";
 import {
   chmodSync,
   existsSync,
@@ -16,7 +16,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
-import { inspectCodexInstallation, uninstallCodexIntegration } from "./codex-installation.ts";
+import { inspectCodexInstallation, installCodexIntegration, previewCodexInstallation, uninstallCodexIntegration } from "./codex-installation.ts";
+
+const runInstallation = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect.pipe(
+  Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))),
+));
 
 const roots: Array<string> = [];
 const shellQuote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
@@ -166,7 +170,26 @@ const spawnOperation = (operation: Record<string, unknown>, env: NodeJS.ProcessE
 };
 
 describe("public Codex installation operations", { timeout: 30_000 }, () => {
-  it("inspects the pinned hook runtime when the caller uses another Node path", () => {
+  it.each(["REVIEW_INSTALL_RUNTIME", "REVIEW_INSTALL_ENTRYPOINT", "REVIEW_INSTALL_CONTROLLED", "REVIEW_INSTALL_FAIL_AFTER_WRITES"])("rejects empty %s before installation state is written", async (key) => {
+    const { home, bin } = fixture();
+    const result = await Effect.runPromise(installCodexIntegration({ codexHome: home, codexExecutable: bin }).pipe(
+      Effect.result,
+      Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ [key]: "" }, { preserveEmptyStrings: true }))),
+    ));
+    expect(result).toMatchObject({ _tag: "Failure", failure: { reason: "Codex installation configuration is invalid" } });
+    expect(readdirSync(home)).toEqual([]);
+  });
+
+  it("rejects an empty configured Codex home before inspecting ambient registration", async () => {
+    const { bin } = fixture();
+    const result = await Effect.runPromise(previewCodexInstallation({ codexExecutable: bin }).pipe(
+      Effect.result,
+      Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ CODEX_HOME: "" }, { preserveEmptyStrings: true }))),
+    ));
+    expect(result).toMatchObject({ _tag: "Failure", failure: { reason: "Codex installation configuration is invalid" } });
+  });
+
+  it("inspects the pinned hook runtime when the caller uses another Node path", async () => {
     const test = fixture();
     previewAndInstall(test.home, test.bin);
     const previousRuntime = process.env.REVIEW_INSTALL_RUNTIME;
@@ -174,7 +197,7 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     try {
       process.env.REVIEW_INSTALL_RUNTIME = "/bin/true";
       process.env.REVIEW_INSTALL_ENTRYPOINT = join(process.cwd(), "src/cli.ts");
-      expect(inspectCodexInstallation({ codexHome: test.home, codexExecutable: test.bin })).toMatchObject({
+      expect(await runInstallation(inspectCodexInstallation({ codexHome: test.home, codexExecutable: test.bin }))).toMatchObject({
         status: "installed",
         installed: true,
       });
@@ -204,7 +227,7 @@ describe("public Codex installation operations", { timeout: 30_000 }, () => {
     const settings = JSON.parse(readFileSync(path, "utf8")) as { hooks: Record<typeof event, Array<{ hooks: Array<{ timeout: number }> }>> };
     settings.hooks[event][0]!.hooks[0]!.timeout = 3;
     writeFileSync(path, JSON.stringify(settings));
-    expect((await Effect.runPromise(uninstallCodexIntegration({ codexHome: home, codexExecutable: bin }))).status).toBe("conflict");
+    expect((await runInstallation(uninstallCodexIntegration({ codexHome: home, codexExecutable: bin }))).status).toBe("conflict");
   });
   it("updates an older owned installation to add SubagentStop", () => {
     const { root, home, bin } = fixture();

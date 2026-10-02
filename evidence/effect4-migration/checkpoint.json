@@ -3797,5 +3797,25 @@
       }
     },
     "limitations": "Shared adapter native tests included; this is synthetic host validation, not current real Claude/platform support acceptance. Full suite predates this port. Codex/dispatch/deadline/final gates remain incomplete."
+  },
+  "codexConfigurationAndScopedCompatibilityPort": {
+    "status": "pass",
+    "scope": "Codex preview/update preview/inspection compose as named Effects with caller Config. Runtime/entrypoint/controlled reviewer/fault injection/Codex home resolve once; pure plans and journal receive explicit inputs. Native host/runtime probes use scoped closed-stdin process adapter; runtime JSON uses Schema. Installation/update re-probe runtime under installation lock. Inspection probes ownership-pinned runtime. CLI/setup/doctor/demo and executable registration evidence callers ported directly without facade. Version-one ownership/journal/proposals preserved.",
+    "checks": {
+      "typecheck": "pass",
+      "configurationBoundaryGuard": "pass",
+      "firstConfigPortTargetedTests": {
+        "files": 5,
+        "passed": 66,
+        "durationSeconds": 112.25
+      },
+      "finalTargetedTests": {
+        "files": 6,
+        "passed": 76,
+        "durationSeconds": 115.33
+      }
+    },
+    "emptyConfiguration": "Four empty installation settings fail before any home files are created; empty configured Codex home fails before ambient registration access. Native test boundaries use fresh environment provider preserving empty values.",
+    "limitations": "Full suite predates these ports. Exact-host registration probe updated but not executed here. Native filesystem journal remains an atomic adapter; no current real host/platform support or live/performance acceptance claimed. Dispatch, external deadlines and final gates still incomplete."
   }
 }

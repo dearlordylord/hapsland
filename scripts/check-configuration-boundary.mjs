@@ -70,6 +70,15 @@ if (/spawnSync\(|process\.env(?:\.|\[)/u.test(claudeInstallation) ||
   throw new Error("Claude installation must use caller Config and scoped native host processes");
 }
 
+const codexInstallation = read("src/onboarding/codex-installation.ts");
+if (/spawnSync\(|process\.env(?:\.|\[)/u.test(codexInstallation) ||
+    !codexInstallation.includes('Config.NonEmptyString("CODEX_HOME")') ||
+    !codexInstallation.includes('Config.NonEmptyString("REVIEW_INSTALL_RUNTIME")') ||
+    !codexInstallation.includes('Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT")') ||
+    !codexInstallation.includes("yield* execFileClosedStdin(")) {
+  throw new Error("Codex installation must use caller Config and scoped native host processes");
+}
+
 const doctor = read("src/onboarding/doctor.ts");
 if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||
     !doctor.includes("yield* inspectResident()")) {

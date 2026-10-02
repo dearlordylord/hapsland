@@ -76,7 +76,7 @@ export const runSetup = Effect.fn("Setup.run")(function* (
   const codexRequest = request.host === "codex" ? installationRequest(request) : {};
   const claudeInstalled = request.host === "claude" && hasClaudeRegistration(claudeRequest);
   const preview = Effect.fn("Setup.previewInstallation")(function* () {
-    if (request.host !== "claude") return previewCodexInstallation(codexRequest);
+    if (request.host !== "claude") return yield* previewCodexInstallation(codexRequest);
     if (!claudeInstalled) return yield* previewClaudeInstallation(claudeRequest);
     const target = yield* previewClaudeUpdate(claudeRequest);
     const changes = list(record(record(target)?.proposal)?.changes);

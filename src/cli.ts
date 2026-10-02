@@ -816,11 +816,11 @@ const program = Effect.gen(function* () {
         });
       }
       case "install-preview":
-        return previewCodexInstallation(request);
+        return yield* previewCodexInstallation(request);
       case "install":
         return yield* installCodexIntegration(request);
       case "update-preview":
-        return previewCodexUpdate(request);
+        return yield* previewCodexUpdate(request);
       case "update":
         return yield* updateCodexIntegration(request);
       case "uninstall":
@@ -1123,12 +1123,12 @@ const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function*
   if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.");
   const choices: ClientChoice[] = yield* Effect.forEach(["claude", "codex"] as const, Effect.fn("InteractiveSetup.clientChoice")(function* (host) {
     const fields = hostFields(host);
-    const inspection = fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : inspectCodexInstallation(fields);
+    const inspection = fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : yield* inspectCodexInstallation(fields);
     const decoded = Schema.decodeUnknownSync(Schema.Struct({ status: Schema.String, installed: Schema.optionalKey(Schema.Boolean) }))(inspection);
     let status: ClientChoice["status"] = decoded.installed === true ? "installed"
       : ["conflict", "partial"].includes(decoded.status) ? "needs attention" : "not installed";
     if (fields.host === "codex" && status === "not installed") {
-      const target = previewCodexUpdate(fields);
+      const target = yield* previewCodexUpdate(fields);
       // An owned registration may point to a different retained package.
       if (target.status === "preview") status = "installed";
       else if (target.status === "unsupported") status = "unavailable";
@@ -1244,7 +1244,7 @@ const maintenanceInteractive = Effect.fn("InteractiveMaintenance.run")(function*
       const fields = hostFields(host);
       const reinstall = command === "reinstall";
       const installed = fields.host === "claude" ? hasClaudeRegistration(fields) : hasCodexRegistration(fields);
-      const inspection = fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : inspectCodexInstallation(fields);
+      const inspection = fields.host === "claude" ? yield* inspectClaudeInstallation(fields) : yield* inspectCodexInstallation(fields);
       const recovered = Schema.decodeUnknownSync(Schema.Struct({ recovery: Schema.optionalKey(Schema.Struct({ operation: Schema.String })) }))(inspection).recovery?.operation;
       const operation = command === "repair" && (recovered === "install" || recovered === "update" || recovered === "uninstall") ? recovered : command === "uninstall" ? "uninstall" : fields.host === "claude" && installed && !reinstall ? "update" : "install";
       const invoke = (digest?: string) => {

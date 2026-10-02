@@ -1,5 +1,5 @@
-import { Effect, Schema } from "effect";
-import { spawnSync } from "node:child_process";
+import { Config, Effect, Schema } from "effect";
+import { execFileClosedStdin } from "./host-process.ts";
 import { createHash, randomUUID } from "node:crypto";
 import {
   accessSync,
@@ -132,8 +132,8 @@ const parseJsonObject = (file: FileSnapshot): JsonObject => {
 
 const quoteShell = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
 
-const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1") => {
-  const controlled = process.env.REVIEW_INSTALL_CONTROLLED === "1" ? " --controlled-reviewer" : "";
+const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1", controlledReviewer = false) => {
+  const controlled = controlledReviewer ? " --controlled-reviewer" : "";
   const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
   return {
     type: "command",
@@ -142,25 +142,25 @@ const ownedHook = (runtime: string, entrypoint: string, hostVersion = "0.155.1")
   };
 };
 
-const composedCommand = (runtime: string, entrypoint: string, hostVersion: string, kind: "background" | "stop" | "prompt" | "before-edit") => {
-  const controlled = process.env.REVIEW_INSTALL_CONTROLLED === "1" ? " --controlled-reviewer" : "";
+const composedCommand = (runtime: string, entrypoint: string, hostVersion: string, kind: "background" | "stop" | "prompt" | "before-edit", controlledReviewer = false) => {
+  const controlled = controlledReviewer ? " --controlled-reviewer" : "";
   const version = hostVersion === "0.155.1" ? "" : ` --codex-version=${hostVersion}`;
   const exec = kind === "before-edit" ? "exec " : "";
   return `${exec}${quoteShell(runtime)} ${quoteShell(entrypoint)} --composed-${kind}-hook --composed-host=codex-cli${controlled} ${COMPOSED_MARKER}${version}`;
 };
 
-const composedGroups = (runtime: string, entrypoint: string, hostVersion: string) => ({
-  PreToolUse: { matcher: OWNED_MATCHER, hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "before-edit"), timeout: 5 }] },
-  Stop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop"), timeout: 5 }] },
-  SubagentStop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop"), timeout: 5 }] },
-  UserPromptSubmit: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "prompt"), timeout: 4 }] },
+const composedGroups = (runtime: string, entrypoint: string, hostVersion: string, controlledReviewer = false) => ({
+  PreToolUse: { matcher: OWNED_MATCHER, hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "before-edit", controlledReviewer), timeout: 5 }] },
+  Stop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop", controlledReviewer), timeout: 5 }] },
+  SubagentStop: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "stop", controlledReviewer), timeout: 5 }] },
+  UserPromptSubmit: { hooks: [{ type: "command", command: composedCommand(runtime, entrypoint, hostVersion, "prompt", controlledReviewer), timeout: 4 }] },
 });
 
-const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1") => ({
+const ownedGroup = (runtime: string, entrypoint: string, hostVersion = "0.155.1", controlledReviewer = false) => ({
   matcher: OWNED_MATCHER,
-  hooks: [ownedHook(runtime, entrypoint, hostVersion), {
+  hooks: [ownedHook(runtime, entrypoint, hostVersion, controlledReviewer), {
     type: "command",
-    command: composedCommand(runtime, entrypoint, hostVersion, "background"),
+    command: composedCommand(runtime, entrypoint, hostVersion, "background", controlledReviewer),
     timeout: 25,
     async: true,
   }],
@@ -529,9 +529,7 @@ const installationDigest = (
   })),
 }));
 
-const codexCompatibility = (codexExecutable: string, versions: ReadonlyArray<string>) => {
-  const run = spawnSync(codexExecutable, ["--version"], { encoding: "utf8", timeout: 2_000 });
-  const observed = run.status === 0 ? run.stdout.trim() : "unavailable";
+const codexCompatibility = (observed: string, versions: ReadonlyArray<string>) => {
   const version = /^codex-cli (\d+\.\d+\.\d+)$/.exec(observed)?.[1] ?? "unavailable";
   return {
     supported: versions.includes(version),
@@ -568,32 +566,31 @@ const packagedRuntimeEntrypoints = (entrypoint: string) => {
   };
 };
 
-const probeRuntime = (executable: string) => {
-  const probe = spawnSync(executable, [
-    "-e",
-    "process.stdout.write(JSON.stringify({version:process.version,platform:process.platform,architecture:process.arch}))",
-  ], { encoding: "utf8", timeout: 2_000, maxBuffer: 16_384 });
-  if (probe.status !== 0 || probe.error !== undefined) {
-    return { ready: false, observed: probe.error?.message.includes("timed out") ? "timed-out" : "not-a-supported-node-runtime" };
-  }
-  try {
-    const value: unknown = JSON.parse(probe.stdout);
-    if (!isObject(value) || typeof value.version !== "string" || typeof value.platform !== "string" ||
-        typeof value.architecture !== "string") throw new Error("shape");
-    return {
-      ready: true,
-      observed: { version: value.version, platform: value.platform, architecture: value.architecture },
-    };
-  } catch {
-    return { ready: false, observed: "not-a-supported-node-runtime" };
-  }
-};
+const RuntimeObservation = Schema.Struct({
+  version: Schema.String, platform: Schema.String, architecture: Schema.String,
+});
+type RuntimeProbe = { readonly ready: boolean; readonly observed: string | Schema.Schema.Type<typeof RuntimeObservation> };
+const probeRuntime = Effect.fn("CodexInstallation.probeRuntime")(function* (executable: string) {
+  const readiness = yield* Effect.sync(() => pathReadiness(executable, true));
+  if (!readiness.ready) return { ready: false, observed: readiness.observed } satisfies RuntimeProbe;
+  const probe = yield* execFileClosedStdin(executable, [
+    "-e", "process.stdout.write(JSON.stringify({version:process.version,platform:process.platform,architecture:process.arch}))",
+  ], { env: process.env, timeout: 2_000, maxBuffer: 16_384 });
+  if (!probe.succeeded) return { ready: false,
+    observed: probe.timedOut ? "timed-out" : "not-a-supported-node-runtime" } satisfies RuntimeProbe;
+  const observed = yield* Effect.try({ try: (): unknown => JSON.parse(probe.stdout), catch: () => "invalid-runtime-json" }).pipe(
+    Effect.flatMap(Schema.decodeUnknownEffect(RuntimeObservation)), Effect.result,
+  );
+  return observed._tag === "Success"
+    ? { ready: true, observed: observed.success } satisfies RuntimeProbe
+    : { ready: false, observed: "not-a-supported-node-runtime" } satisfies RuntimeProbe;
+});
 
-const runtimeCompatibility = (inputs: ReturnType<typeof resolveInputs>) => {
+const runtimeCompatibility = (inputs: ReturnType<typeof buildInputs>) => {
   const executable = pathReadiness(inputs.executable, true);
   const entrypoint = pathReadiness(inputs.entrypoint, false);
   const runtimeProbe = executable.ready
-    ? probeRuntime(inputs.executable)
+    ? inputs.runtimeProbe
     : { ready: false, observed: executable.observed };
   const packaged = packagedRuntimeEntrypoints(inputs.entrypoint);
   const parser = pathReadiness(packaged.parser, false);
@@ -620,7 +617,7 @@ const runtimeCompatibility = (inputs: ReturnType<typeof resolveInputs>) => {
   };
 };
 
-const compatibility = (inputs: ReturnType<typeof resolveInputs>) => {
+const compatibility = (inputs: ReturnType<typeof buildInputs>) => {
   const codex = inputs.codex;
   const runtime = runtimeCompatibility(inputs);
   return { supported: codex.supported && runtime.supported, codex, runtime };
@@ -628,7 +625,7 @@ const compatibility = (inputs: ReturnType<typeof resolveInputs>) => {
 
 const unsupportedResult = (
   operation: "install" | "install-preview" | "update" | "update-preview",
-  inputs: ReturnType<typeof resolveInputs>,
+  inputs: ReturnType<typeof buildInputs>,
   host: ReturnType<typeof compatibility>,
 ) => ({
   version: RESULT_VERSION,
@@ -639,10 +636,14 @@ const unsupportedResult = (
   pending: ["install the declared runtime, packaged entrypoint, and a declared Codex CLI version before mutation"],
 });
 
-const resolveInputs = (request: InstallationRequest) => {
-  const home = resolve(request.codexHome ?? process.env.CODEX_HOME ?? join(homedir(), ".codex"));
-  const executable = resolve(process.env.REVIEW_INSTALL_RUNTIME ?? process.execPath);
-  const requestedEntrypoint = resolve(process.env.REVIEW_INSTALL_ENTRYPOINT ?? process.argv[1] ?? "dist/cli.js");
+const buildInputs = (request: InstallationRequest, configured: {
+  readonly home: string; readonly executable: string; readonly entrypoint: string;
+  readonly controlledReviewer: boolean; readonly failAfterWrites: number;
+  readonly hostObserved: string; readonly runtimeProbe: RuntimeProbe;
+}) => {
+  const home = resolve(configured.home);
+  const executable = resolve(configured.executable);
+  const requestedEntrypoint = resolve(configured.entrypoint);
   let entrypoint = requestedEntrypoint;
   try {
     entrypoint = realpathSync(requestedEntrypoint);
@@ -697,7 +698,10 @@ const resolveInputs = (request: InstallationRequest) => {
     executable,
     entrypoint,
     codexExecutable,
-    codex: codexCompatibility(codexExecutable, codexVersions ?? ["0.155.1"]),
+    controlledReviewer: configured.controlledReviewer,
+    failAfterWrites: configured.failAfterWrites,
+    codex: codexCompatibility(configured.hostObserved, codexVersions ?? ["0.155.1"]),
+    runtimeProbe: configured.runtimeProbe,
     packageVersion: packageVersion ?? "development",
     residentProtocol: residentProtocol ?? 1,
     runtimeVersion: runtimeVersion ?? "unsupported",
@@ -709,7 +713,24 @@ const resolveInputs = (request: InstallationRequest) => {
   };
 };
 
-const requireTargetPackageMetadata = (inputs: ReturnType<typeof resolveInputs>) => {
+const resolveInputs = Effect.fn("CodexInstallation.inputs")(function* (request: InstallationRequest) {
+  const home = request.codexHome ?? (yield* Config.NonEmptyString("CODEX_HOME").pipe(Config.withDefault(join(homedir(), ".codex"))));
+  const executable = yield* Config.NonEmptyString("REVIEW_INSTALL_RUNTIME").pipe(Config.withDefault(process.execPath));
+  const entrypoint = yield* Config.NonEmptyString("REVIEW_INSTALL_ENTRYPOINT").pipe(Config.withDefault(process.argv[1] ?? "dist/cli.js"));
+  const controlled = yield* Config.NonEmptyString("REVIEW_INSTALL_CONTROLLED").pipe(Config.withDefault("0"));
+  const failAfterWrites = yield* Config.Int("REVIEW_INSTALL_FAIL_AFTER_WRITES").pipe(Config.withDefault(-1));
+  const host = yield* execFileClosedStdin(request.codexExecutable ?? "codex", ["--version"], {
+    env: process.env, timeout: 2_000, maxBuffer: 1_048_576,
+  });
+  const runtimeProbe = yield* probeRuntime(resolve(executable));
+  return yield* Effect.try({
+    try: () => buildInputs(request, { home, executable, entrypoint, controlledReviewer: controlled === "1", failAfterWrites,
+      hostObserved: host.succeeded ? host.stdout.trim() : "unavailable", runtimeProbe }),
+    catch: () => new CodexInstallationError({ reason: "Codex installation inputs unavailable" }),
+  });
+}, Effect.mapError(() => new CodexInstallationError({ reason: "Codex installation configuration is invalid" })));
+
+const requireTargetPackageMetadata = (inputs: ReturnType<typeof buildInputs>) => {
   if (!inputs.packageMetadata.ready) {
     throw new TargetPackageMetadataInvalid(
       `target package metadata is missing or malformed: ${inputs.packageMetadata.reason}`,
@@ -718,7 +739,7 @@ const requireTargetPackageMetadata = (inputs: ReturnType<typeof resolveInputs>) 
 };
 
 const makeOwnershipRecord = (
-  inputs: ReturnType<typeof resolveInputs>,
+  inputs: ReturnType<typeof buildInputs>,
   fingerprint: string,
   featureOwned: boolean,
 ): OwnershipRecord => ({
@@ -732,12 +753,12 @@ const makeOwnershipRecord = (
   entrypoint: inputs.entrypoint,
   marker: OWNED_MARKER,
   hookFingerprint: fingerprint,
-  hookGroups: { PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version), ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version) },
+  hookGroups: { PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer), ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer) },
   composedFingerprints: {
-    preToolUse: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).PreToolUse),
-    stop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).Stop),
-    subagentStop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).SubagentStop),
-    prompt: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version).UserPromptSubmit),
+    preToolUse: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).PreToolUse),
+    stop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).Stop),
+    subagentStop: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).SubagentStop),
+    prompt: hookFingerprint(composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).UserPromptSubmit),
   },
   owned: [
     ...(featureOwned
@@ -747,15 +768,14 @@ const makeOwnershipRecord = (
   ],
 });
 
-const makeInstallPlan = (request: InstallationRequest) => {
-  const inputs = resolveInputs(request);
+const makeInstallPlan = (request: InstallationRequest, inputs: ReturnType<typeof buildInputs>) => {
   const config = snapshot(inputs.paths.config);
   const hooks = snapshot(inputs.paths.hooks);
   const ownership = snapshot(inputs.paths.ownership);
   const resetJournal = request.reinstall ? snapshot(inputs.paths.journal) : undefined;
   let existingRecord: OwnershipRecord | undefined;
   try { existingRecord = readOwnership(inputs.paths.ownership); } catch (cause) { if (!request.reinstall) throw cause; }
-  const group = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
+  const group = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer);
   const fingerprint = hookFingerprint(group);
   const originalRoot = parseJsonObject(hooks);
   const hookRoot = request.reinstall ? removeMarkedHandlers(originalRoot, [OWNED_MARKER, COMPOSED_MARKER]) : originalRoot;
@@ -778,7 +798,7 @@ const makeInstallPlan = (request: InstallationRequest) => {
     ? addOwnedHook(hookRoot, group)
     : replaceOwnedHook(hookRoot, group);
   const nextHooks = encodeJson(withComposedGroups(nextHooksRoot,
-    composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version),
+    composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
     request.reinstall ? undefined : existingRecord?.composedFingerprints, true, existingRecord?.hookGroups));
   const featureOwned = (existingRecord?.owned.some((entry) =>
     entry.kind === "feature" && entry.file === inputs.paths.config
@@ -793,8 +813,7 @@ const makeInstallPlan = (request: InstallationRequest) => {
   return { inputs, mutations, resetJournal, digest: reinstallDigest(installationDigest("install", inputs.home, mutations), resetJournal?.exists ? resetJournal.digest : undefined), alreadyInstalled: mutations.length === 0 };
 };
 
-const makeUpdatePlan = (request: InstallationRequest) => {
-  const inputs = resolveInputs(request);
+const makeUpdatePlan = (request: InstallationRequest, inputs: ReturnType<typeof buildInputs>) => {
   requireTargetPackageMetadata(inputs);
   const record = readOwnership(inputs.paths.ownership);
   if (record === undefined) throw new Error("no owned Codex installation exists; run install first");
@@ -811,10 +830,10 @@ const makeUpdatePlan = (request: InstallationRequest) => {
       !retainedHookSubset(currentGroup, record.hookGroups?.PostToolUse))) {
     throw new Error("owned Codex hook was locally modified; the installed version was preserved");
   }
-  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
+  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer);
   const targetFingerprint = hookFingerprint(targetGroup);
   const nextHooks = encodeJson(withComposedGroups(replaceOwnedHook(hookRoot, targetGroup),
-    composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version),
+    composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer),
     record.composedFingerprints, true, record.hookGroups));
   const ownership = snapshot(inputs.paths.ownership);
   const nextOwnership = encodeJson(makeOwnershipRecord(inputs, targetFingerprint, ownedFeature !== undefined || nextConfig !== config.content));
@@ -834,8 +853,7 @@ const makeUpdatePlan = (request: InstallationRequest) => {
   };
 };
 
-const makeUninstallPlan = (request: InstallationRequest) => {
-  const inputs = resolveInputs(request);
+const makeUninstallPlan = (request: InstallationRequest, inputs: ReturnType<typeof buildInputs>) => {
   const record = readOwnership(inputs.paths.ownership);
   if (record === undefined) {
     withComposedGroups(parseJsonObject(snapshot(inputs.paths.hooks)), undefined, undefined);
@@ -939,7 +957,7 @@ const readJournal = (path: string): Journal | undefined => {
   }
 };
 
-const applyJournal = (journalPath: string, journal: Journal) => {
+const applyJournal = (journalPath: string, journal: Journal, failAfter: number) => {
   let completed = [...journal.completed];
   for (let index = 0; index < journal.mutations.length; index += 1) {
     const change = journal.mutations[index];
@@ -953,7 +971,6 @@ const applyJournal = (journalPath: string, journal: Journal) => {
     }
   }
   atomicWrite(journalPath, encodeJson(journal));
-  const failAfter = Number(process.env.REVIEW_INSTALL_FAIL_AFTER_WRITES ?? "-1");
   for (let index = 0; index < journal.mutations.length; index += 1) {
     const change = journal.mutations[index];
     if (change === undefined || completed.includes(index)) continue;
@@ -992,7 +1009,7 @@ const decodedOwnershipContent = (content: string | null) => {
   }
 };
 
-const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof resolveInputs>) => {
+const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
   if (new Set(journal.completed).size !== journal.completed.length) {
     throw new Error("recovery journal repeats a completed step");
   }
@@ -1025,7 +1042,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
   const configChange = byPath.get(inputs.paths.config);
   const hooksChange = byPath.get(inputs.paths.hooks);
   const ownershipChange = byPath.get(inputs.paths.ownership);
-  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version);
+  const targetGroup = ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer);
   const targetFingerprint = hookFingerprint(targetGroup);
   const priorOwnership = decodedOwnershipContent(ownershipChange?.beforeContent ?? null);
   const priorComposed = isObject(priorOwnership?.composedFingerprints) &&
@@ -1035,7 +1052,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
       ...(typeof priorOwnership.composedFingerprints.preToolUse === "string" ? { preToolUse: priorOwnership.composedFingerprints.preToolUse } : {}),
       ...(typeof priorOwnership.composedFingerprints.subagentStop === "string" ? { subagentStop: priorOwnership.composedFingerprints.subagentStop } : {}) }
     : undefined;
-  const targetComposed = composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version);
+  const targetComposed = composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer);
   const priorOwned = Array.isArray(priorOwnership?.owned) ? priorOwnership.owned : [];
   const priorFeatureOwned = priorOwned.some((entry) =>
     isObject(entry) && entry.kind === "feature" && entry.file === inputs.paths.config &&
@@ -1138,7 +1155,7 @@ const validateJournalIntegrity = (journal: Journal, inputs: ReturnType<typeof re
   }
 };
 
-const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolveInputs>) => {
+const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof buildInputs>) => {
   const allowed = new Set([inputs.paths.config, inputs.paths.hooks, inputs.paths.ownership]);
   if (journal.mutations.some((change) => !allowed.has(change.path)) ||
       new Set(journal.mutations.map((change) => change.path)).size !== journal.mutations.length) {
@@ -1191,7 +1208,7 @@ const validateJournalScope = (journal: Journal, inputs: ReturnType<typeof resolv
 
 const recoveryConflictResult = (
   operation: "install" | "update" | "uninstall",
-  inputs: ReturnType<typeof resolveInputs>,
+  inputs: ReturnType<typeof buildInputs>,
   journal: Journal,
   cause: unknown,
 ) => {
@@ -1233,7 +1250,7 @@ const previewChanges = (mutations: ReadonlyArray<Mutation>) => mutations.map((ch
   afterDigest: change.afterDigest,
 }));
 
-const ownedChanges = (inputs: ReturnType<typeof resolveInputs>) => ({
+const ownedChanges = (inputs: ReturnType<typeof buildInputs>) => ({
   runtime: {
     executable: inputs.executable,
     entrypoint: inputs.entrypoint,
@@ -1253,8 +1270,8 @@ const ownedChanges = (inputs: ReturnType<typeof resolveInputs>) => ({
     file: inputs.paths.hooks,
     event: "PostToolUse",
     matcher: OWNED_MATCHER,
-    handlers: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version).hooks,
-    groups: { PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version), ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version) },
+    handlers: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer).hooks,
+    groups: { PostToolUse: ownedGroup(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer), ...composedGroups(inputs.executable, inputs.entrypoint, inputs.codex.version, inputs.controlledReviewer) },
   },
   ownership: {
     file: inputs.paths.ownership,
@@ -1263,7 +1280,7 @@ const ownedChanges = (inputs: ReturnType<typeof resolveInputs>) => ({
   },
 });
 
-const installationJournal = (inputs: ReturnType<typeof resolveInputs>, request: InstallationRequest): Journal | undefined => {
+const installationJournal = (inputs: ReturnType<typeof buildInputs>, request: InstallationRequest): Journal | undefined => {
   if (!request.reinstall) return readJournal(inputs.paths.journal);
   try {
     const journal = readJournal(inputs.paths.journal);
@@ -1273,10 +1290,10 @@ const installationJournal = (inputs: ReturnType<typeof resolveInputs>, request: 
   } catch { return undefined; }
 };
 
-export const previewCodexInstallation = (request: InstallationRequest): InstallationResult => {
-  const home = resolveInputs(request).home;
+export const previewCodexInstallation = Effect.fn("CodexInstallation.preview")(function* (request: InstallationRequest) {
+  const inputs = yield* resolveInputs(request);
+  const home = inputs.home;
   try {
-    const inputs = resolveInputs(request);
     const host = compatibility(inputs);
     if (!host.supported) return unsupportedResult("install-preview", inputs, host);
     const pendingJournal = installationJournal(inputs, request);
@@ -1303,7 +1320,7 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
         pending: [`resume the journaled ${pendingJournal.operation} with its original proposal digest`],
       };
     }
-    const plan = makeInstallPlan(request);
+    const plan = makeInstallPlan(request, inputs);
     return {
       version: RESULT_VERSION,
       operation: "install-preview",
@@ -1325,13 +1342,12 @@ export const previewCodexInstallation = (request: InstallationRequest): Installa
       pending: ["install using this proposal digest", "configure file includes/excludes if you want to narrow or turn off review"],
     };
   } catch (cause) {
-    const inputs = resolveInputs(request);
     return {
       ...conflictResult("install-preview", cause instanceof Error ? cause.message : "installation preview failed", home),
       host: { adapter: "codex", home, compatibility: compatibility(inputs) },
     };
   }
-};
+});
 
 /** Read-only ownership/configuration inspection independent of host compatibility. */
 /** Discover owned registration state without requiring this package or host version to be current. */
@@ -1342,8 +1358,8 @@ export const hasCodexRegistration = (request: InstallationRequest): boolean => {
   return hooks.includes(OWNED_MARKER) || hooks.includes(COMPOSED_MARKER);
 };
 
-export const inspectCodexInstallation = (request: InstallationRequest): InstallationResult => {
-  const inputs = resolveInputs(request);
+export const inspectCodexInstallation = Effect.fn("CodexInstallation.inspect")(function* (request: InstallationRequest) {
+  const inputs = yield* resolveInputs(request);
   try {
     const pendingJournal = readJournal(inputs.paths.journal);
     if (pendingJournal !== undefined) {
@@ -1363,7 +1379,8 @@ export const inspectCodexInstallation = (request: InstallationRequest): Installa
       };
     }
     const ownership = readOwnership(inputs.paths.ownership);
-    const installed = ownership !== undefined && (() => {
+    let installed = false;
+    if (ownership !== undefined) {
       if (ownership.codexHome !== inputs.home) throw new Error("ownership record targets another Codex home");
       const config = validateToml(snapshot(inputs.paths.config));
       if (!isObject(config.features) || config.features.hooks !== true) throw new Error("Codex hooks feature is missing or disabled");
@@ -1376,11 +1393,12 @@ export const inspectCodexInstallation = (request: InstallationRequest): Installa
       if (ownership.composedFingerprints !== undefined) {
         withComposedGroups(hooks, undefined, ownership.composedFingerprints);
       }
-      const pinnedInputs = resolveInputs({ ...request });
+      const pinnedInputs = { ...inputs };
       pinnedInputs.executable = ownership.executable;
       pinnedInputs.entrypoint = ownership.entrypoint;
-      return compatibility(pinnedInputs).supported && ownership.runtimeVersion === `v${inputs.runtimeVersion}`;
-    })();
+      pinnedInputs.runtimeProbe = yield* probeRuntime(ownership.executable);
+      installed = compatibility(pinnedInputs).supported && ownership.runtimeVersion === `v${inputs.runtimeVersion}`;
+    }
     return {
       version: RESULT_VERSION,
       operation: "inspect-installation",
@@ -1395,10 +1413,10 @@ export const inspectCodexInstallation = (request: InstallationRequest): Installa
       inputs.home,
     );
   }
-};
+});
 
 const updateRecoveryCommand = (
-  inputs: ReturnType<typeof resolveInputs>,
+  inputs: ReturnType<typeof buildInputs>,
   proposalDigest: string,
 ) => ({
   executable: "hapsland",
@@ -1406,10 +1424,10 @@ const updateRecoveryCommand = (
   request: { version: 1, operation: "update", codexHome: inputs.home, proposalDigest },
 });
 
-export const previewCodexUpdate = (request: InstallationRequest): InstallationResult => {
-  const home = resolveInputs(request).home;
+export const previewCodexUpdate = Effect.fn("CodexInstallation.previewUpdate")(function* (request: InstallationRequest) {
+  const inputs = yield* resolveInputs(request);
+  const home = inputs.home;
   try {
-    const inputs = resolveInputs(request);
     requireTargetPackageMetadata(inputs);
     const host = compatibility(inputs);
     if (!host.supported) return unsupportedResult("update-preview", inputs, host);
@@ -1439,7 +1457,7 @@ export const previewCodexUpdate = (request: InstallationRequest): InstallationRe
         pending: ["resume the journaled update with its original proposal digest"],
       };
     }
-    const plan = makeUpdatePlan(request);
+    const plan = makeUpdatePlan(request, inputs);
     return {
       version: RESULT_VERSION,
       operation: "update-preview",
@@ -1484,10 +1502,10 @@ export const previewCodexUpdate = (request: InstallationRequest): InstallationRe
     }
     return conflictResult("update-preview", cause instanceof Error ? cause.message : "update preview failed", home);
   }
-};
+});
 
 export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(function* (request: InstallationRequest) {
-  const inputs = resolveInputs(request);
+  const inputs = yield* resolveInputs(request);
   try {
     requireTargetPackageMetadata(inputs);
   } catch (cause) {
@@ -1499,9 +1517,11 @@ export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(func
   const initialCompatibility = compatibility(inputs);
   if (!initialCompatibility.supported) return unsupportedResult("update", inputs, initialCompatibility);
   try {
-    return yield* withInstallationLock(inputs.paths.lock, Effect.try<InstallationResult, CodexInstallationError>({
+    return yield* withInstallationLock(inputs.paths.lock, Effect.gen(function* () {
+      const runtimeProbe = yield* probeRuntime(inputs.executable);
+      return yield* Effect.try<InstallationResult, CodexInstallationError>({
       try: () => {
-        const currentCompatibility = compatibility(inputs);
+        const currentCompatibility = compatibility({ ...inputs, runtimeProbe });
         if (!currentCompatibility.supported) return unsupportedResult("update", inputs, currentCompatibility);
         const existingJournal = readJournal(inputs.paths.journal);
         if (existingJournal !== undefined) {
@@ -1536,7 +1556,7 @@ export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(func
             };
           }
           try {
-            applyJournal(inputs.paths.journal, existingJournal);
+            applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites);
           } catch (cause) {
             return recoveryConflictResult("update", inputs, existingJournal, cause);
           }
@@ -1553,7 +1573,7 @@ export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(func
             pending: ["restart Codex after current work completes and approve renewed hook trust if prompted"],
           };
         }
-        const plan = makeUpdatePlan(request);
+        const plan = makeUpdatePlan(request, inputs);
         if (request.proposalDigest === undefined || request.proposalDigest !== plan.digest) {
           return {
             version: RESULT_VERSION,
@@ -1586,7 +1606,7 @@ export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(func
           mutations: plan.mutations,
         };
         try {
-          applyJournal(inputs.paths.journal, journal);
+          applyJournal(inputs.paths.journal, journal, inputs.failAfterWrites);
         } catch (cause) {
           const current = readJournal(inputs.paths.journal);
           return {
@@ -1621,6 +1641,7 @@ export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(func
         };
       },
       catch: (cause) => new CodexInstallationError({ reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed" }),
+    });
     })).pipe(Effect.catch((error) => Effect.succeed(conflictResult("update", error.message, inputs.home))));
   } catch (cause) {
     return conflictResult("update", cause instanceof Error ? cause.message : "update failed", inputs.home);
@@ -1628,13 +1649,15 @@ export const updateCodexIntegration = Effect.fn("CodexInstallation.update")(func
 });
 
 export const installCodexIntegration = Effect.fn("CodexInstallation.install")(function* (request: InstallationRequest) {
-  const inputs = resolveInputs(request);
+  const inputs = yield* resolveInputs(request);
   const initialCompatibility = compatibility(inputs);
   if (!initialCompatibility.supported) return unsupportedResult("install", inputs, initialCompatibility);
   try {
-    return yield* withInstallationLock(inputs.paths.lock, Effect.try<InstallationResult, CodexInstallationError>({
+    return yield* withInstallationLock(inputs.paths.lock, Effect.gen(function* () {
+      const runtimeProbe = yield* probeRuntime(inputs.executable);
+      return yield* Effect.try<InstallationResult, CodexInstallationError>({
       try: () => {
-        const currentCompatibility = compatibility(inputs);
+        const currentCompatibility = compatibility({ ...inputs, runtimeProbe });
         if (!currentCompatibility.supported) return unsupportedResult("install", inputs, currentCompatibility);
         const existingJournal = installationJournal(inputs, request);
         if (existingJournal !== undefined) {
@@ -1656,7 +1679,7 @@ export const installCodexIntegration = Effect.fn("CodexInstallation.install")(fu
             };
           }
           try {
-            applyJournal(inputs.paths.journal, existingJournal);
+            applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites);
           } catch (cause) {
             return recoveryConflictResult("install", inputs, existingJournal, cause);
           }
@@ -1670,7 +1693,7 @@ export const installCodexIntegration = Effect.fn("CodexInstallation.install")(fu
             pending: ["make Jev credentials available and configure file settings if desired", "approve native Codex trust prompts when shown"],
           };
         }
-        const plan = makeInstallPlan(request);
+        const plan = makeInstallPlan(request, inputs);
         const host = compatibility(plan.inputs);
         if (!host.supported) {
           return unsupportedResult("install", inputs, host);
@@ -1699,7 +1722,7 @@ export const installCodexIntegration = Effect.fn("CodexInstallation.install")(fu
         const journal: Journal = { version: 1, operation: "install", ...(request.reinstall ? { reinstall: true } : {}), ...(plan.resetJournal?.exists ? { replacedJournalDigest: plan.resetJournal.digest } : {}), proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
         try {
           if (plan.resetJournal?.exists) atomicWrite(`${inputs.paths.journal}.reinstall-backup.${randomUUID()}`, plan.resetJournal.content);
-          applyJournal(inputs.paths.journal, journal);
+          applyJournal(inputs.paths.journal, journal, inputs.failAfterWrites);
         } catch (cause) {
           const current = readJournal(inputs.paths.journal);
           return {
@@ -1724,6 +1747,7 @@ export const installCodexIntegration = Effect.fn("CodexInstallation.install")(fu
         };
       },
       catch: (cause) => new CodexInstallationError({ reason: cause instanceof Error && cause.message.length > 0 ? cause.message : "installation failed" }),
+    });
     })).pipe(Effect.catch((error) => Effect.succeed(conflictResult("install", error.message, inputs.home))));
   } catch (cause) {
     return conflictResult("install", cause instanceof Error ? cause.message : "installation failed", inputs.home);
@@ -1731,7 +1755,7 @@ export const installCodexIntegration = Effect.fn("CodexInstallation.install")(fu
 });
 
 export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall")(function* (request: InstallationRequest) {
-  const inputs = resolveInputs(request);
+  const inputs = yield* resolveInputs(request);
   try {
     return yield* withInstallationLock(inputs.paths.lock, Effect.try<InstallationResult, CodexInstallationError>({
       try: () => {
@@ -1744,7 +1768,7 @@ export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall"
           }
           if (request.proposalDigest === existingJournal.proposalDigest && existingJournal.operation === "uninstall") {
             try {
-              applyJournal(inputs.paths.journal, existingJournal);
+              applyJournal(inputs.paths.journal, existingJournal, inputs.failAfterWrites);
             } catch (cause) {
               return recoveryConflictResult("uninstall", inputs, existingJournal, cause);
             }
@@ -1767,7 +1791,7 @@ export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall"
           };
           throw new Error("another journaled operation requires recovery before uninstall");
         }
-        const plan = makeUninstallPlan(request);
+        const plan = makeUninstallPlan(request, inputs);
         if (plan.alreadyRemoved) {
           return {
             version: RESULT_VERSION,
@@ -1805,7 +1829,7 @@ export const uninstallCodexIntegration = Effect.fn("CodexInstallation.uninstall"
         }
         const journal: Journal = { version: 1, operation: "uninstall", proposalDigest: plan.digest, completed: [], mutations: plan.mutations };
         try {
-          applyJournal(inputs.paths.journal, journal);
+          applyJournal(inputs.paths.journal, journal, inputs.failAfterWrites);
         } catch (cause) {
           const current = readJournal(inputs.paths.journal);
           return {

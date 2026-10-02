@@ -407,13 +407,15 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
   },
 ) {
   if (request.selection === "preview") {
-    const installationReady = options.installationReady?.(request) ?? (() => {
-      const inspection = inspectCodexInstallation({
+    let installationReady: boolean;
+    if (options.installationReady !== undefined) installationReady = options.installationReady(request);
+    else {
+      const inspection = yield* inspectCodexInstallation({
         ...(request.codexHome === undefined ? {} : { codexHome: request.codexHome }),
         ...(request.codexExecutable === undefined ? {} : { codexExecutable: request.codexExecutable }),
       });
-      return "installed" in inspection && inspection.installed === true;
-    })();
+      installationReady = "installed" in inspection && inspection.installed === true;
+    }
     if (!installationReady) {
       return {
         version: 1 as const, operation: "demo" as const, status: "conflict" as const,

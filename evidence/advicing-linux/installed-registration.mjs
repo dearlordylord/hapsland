@@ -1,5 +1,7 @@
 // Exact-host, isolated installer smoke probe. No host session or provider call.
 import assert from 'node:assert/strict';
+import { ConfigProvider, Effect } from 'effect';
+const runInstallation = (effect) => Effect.runPromise(effect.pipe(Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true })))));
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -36,27 +38,27 @@ try {
   await mkdir(codexHome, { mode: 0o700 });
   await mkdir(claudeHome, { mode: 0o700 });
   const codexRequest = { codexHome, codexExecutable };
-  const codexPreview = previewCodexInstallation(codexRequest);
+  const codexPreview = await runInstallation(previewCodexInstallation(codexRequest));
   assert.equal(codexPreview.status, 'preview');
-  const codexInstall = await installCodexIntegration({ ...codexRequest, proposalDigest: codexPreview.proposal.digest });
+  const codexInstall = await runInstallation(installCodexIntegration({ ...codexRequest, proposalDigest: codexPreview.proposal.digest }));
   assert.equal(codexInstall.status, 'installed');
-  assert.equal(inspectCodexInstallation(codexRequest).status, 'installed');
-  const codexRemoval = await uninstallCodexIntegration(codexRequest);
+  assert.equal((await runInstallation(inspectCodexInstallation(codexRequest))).status, 'installed');
+  const codexRemoval = await runInstallation(uninstallCodexIntegration(codexRequest));
   assert.equal(codexRemoval.status, 'preview');
-  const codexUninstall = await uninstallCodexIntegration({ ...codexRequest, proposalDigest: codexRemoval.proposal.digest });
+  const codexUninstall = await runInstallation(uninstallCodexIntegration({ ...codexRequest, proposalDigest: codexRemoval.proposal.digest }));
   assert.equal(codexUninstall.status, 'uninstalled');
   results.push({ host: 'codex-cli', version: '0.155.1', install: codexInstall.status,
     inspect: 'installed', uninstall: codexUninstall.status });
 
   const claudeRequest = { claudeHome, claudeExecutable };
-  const claudePreview = previewClaudeInstallation(claudeRequest);
+  const claudePreview = (await runInstallation(previewClaudeInstallation(claudeRequest)));
   assert.equal(claudePreview.status, 'preview');
-  const claudeInstall = await installClaudeIntegration({ ...claudeRequest, proposalDigest: claudePreview.proposal.digest });
+  const claudeInstall = await runInstallation(installClaudeIntegration({ ...claudeRequest, proposalDigest: claudePreview.proposal.digest }));
   assert.equal(claudeInstall.status, 'complete');
-  assert.equal(inspectClaudeInstallation(claudeRequest).status, 'ready');
-  const claudeRemoval = await uninstallClaudeIntegration(claudeRequest);
+  assert.equal((await runInstallation(inspectClaudeInstallation(claudeRequest))).status, 'ready');
+  const claudeRemoval = await runInstallation(uninstallClaudeIntegration(claudeRequest));
   assert.equal(claudeRemoval.status, 'preview');
-  const claudeUninstall = await uninstallClaudeIntegration({ ...claudeRequest, proposalDigest: claudeRemoval.proposal.digest });
+  const claudeUninstall = await runInstallation(uninstallClaudeIntegration({ ...claudeRequest, proposalDigest: claudeRemoval.proposal.digest }));
   assert.equal(claudeUninstall.status, 'complete');
   results.push({ host: 'claude-code', version: '2.1.218', install: claudeInstall.status,
     inspect: 'ready', uninstall: claudeUninstall.status });

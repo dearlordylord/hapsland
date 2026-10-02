@@ -76,7 +76,7 @@ export const diagnoseInstalledIntegration = Effect.fn("Doctor.diagnose")(functio
     checks.push({ stage: "parser", status: "missing", observed: "load-failed", action: "reinstall a release archive containing compatible parser bindings for this platform" });
   }
 
-  const preview = yield* observe("preview installation", () => previewCodexInstallation(options.installation));
+  const preview = yield* previewCodexInstallation(options.installation);
   const previewRecord = object(preview) ?? {};
   const host = object(previewRecord.host);
   const compatibility = object(host?.compatibility);
@@ -89,7 +89,7 @@ export const diagnoseInstalledIntegration = Effect.fn("Doctor.diagnose")(functio
     ? { stage: "host", status: "ready", observed: { adapter: "codex", home: host?.home, version: codex.observed } }
     : { stage: "host", status: "unsupported", observed: codex?.observed ?? "unavailable", action: `select a Codex home and install ${codex?.required ?? "a declared Codex CLI version"}` });
 
-  const inspection = object(yield* observe("inspect installation", () => inspectCodexInstallation(options.installation))) ?? {};
+  const inspection = object(yield* inspectCodexInstallation(options.installation)) ?? {};
   if (inspection.status === "conflict") {
     checks.push({
       stage: "configuration-ownership",

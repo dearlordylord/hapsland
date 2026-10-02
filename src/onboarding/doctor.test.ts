@@ -11,6 +11,10 @@ import {
 } from "./codex-installation.ts";
 import { diagnoseInstalledIntegration, type DoctorCheck } from "./doctor.ts";
 
+const runDoctor = <A, E>(effect: Effect.Effect<A, E>) => Effect.runPromise(effect.pipe(
+  Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ preserveEmptyStrings: true }))),
+));
+
 const roots: Array<string> = [];
 const previousEnvironment = new Map<string, string | undefined>();
 const setEnvironment = (name: string, value: string) => {
@@ -29,7 +33,7 @@ afterEach(() => {
 });
 
 describe("offline installed integration doctor", () => {
-  effectIt.effect("resident inspection honors the caller provider and sanitizes its source failure", () => Effect.gen(function* () {
+  effectIt.effect("doctor honors the caller provider and sanitizes configuration source failures", () => Effect.gen(function* () {
     const root = mkdtempSync(join(tmpdir(), "doctor-provider-"));
     roots.push(root);
     const options = { installation: { codexHome: root, codexExecutable: process.execPath },
@@ -42,7 +46,7 @@ describe("offline installed integration doctor", () => {
     const unavailable = yield* diagnoseInstalledIntegration(options).pipe(Effect.provide(ConfigProvider.layer(
       ConfigProvider.make(() => Effect.fail(new ConfigProvider.SourceError({ message: privateDetail }))),
     )), Effect.result);
-    expect(unavailable).toMatchObject({ _tag: "Failure", failure: { _tag: "ResidentEndpointError", operation: "resolveConfiguration" } });
+    expect(unavailable).toMatchObject({ _tag: "Failure", failure: { _tag: "CodexInstallationError", reason: "Codex installation configuration is invalid" } });
     expect(JSON.stringify(unavailable)).not.toContain(privateDetail);
   }));
 
@@ -59,11 +63,11 @@ describe("offline installed integration doctor", () => {
     setEnvironment("REVIEW_RESIDENT_DIR", runtime);
 
     const request = { codexHome, codexExecutable: fakeCodex };
-    const preview = previewCodexInstallation(request) as { proposal?: { digest?: string } };
+    const preview = await runDoctor(previewCodexInstallation(request)) as { proposal?: { digest?: string } };
     expect(preview.proposal?.digest).toBeTypeOf("string");
     const proposalDigest = preview.proposal?.digest;
     if (proposalDigest === undefined) throw new Error("installation preview omitted its digest");
-    const installed = await Effect.runPromise(installCodexIntegration({ ...request, proposalDigest }));
+    const installed = await runDoctor(installCodexIntegration({ ...request, proposalDigest }));
     expect(installed).toMatchObject({ status: "installed" });
     const configBefore = readFileSync(join(codexHome, "config.toml"), "utf8");
     const hooksBefore = readFileSync(join(codexHome, "hooks.json"), "utf8");
@@ -121,7 +125,7 @@ else console.log('{"version":1,"status":"available"}');
         action: expect.stringContaining("background hooks never prompt"),
       }),
     ]));
-    const result = await Effect.runPromise(diagnoseInstalledIntegration({
+    const result = await runDoctor(diagnoseInstalledIntegration({
       installation: request,
       repository: readyCheck("file-selection"),
       credential: {
@@ -156,7 +160,7 @@ else console.log('{"version":1,"status":"available"}');
     const hooks = JSON.parse(hooksBefore) as { hooks: { PostToolUse: Array<unknown> } };
     hooks.hooks.PostToolUse.push(hooks.hooks.PostToolUse[0]);
     writeFileSync(join(codexHome, "hooks.json"), `${JSON.stringify(hooks)}\n`);
-    const drift = await Effect.runPromise(diagnoseInstalledIntegration({
+    const drift = await runDoctor(diagnoseInstalledIntegration({
       installation: request,
       repository: readyCheck("file-selection"),
       credential: readyCheck("credential-accessibility"),
@@ -167,7 +171,7 @@ else console.log('{"version":1,"status":"available"}');
         expect.objectContaining({ stage: "configuration-ownership", status: "conflict" }),
       ]),
     });
-    const unsupportedWithDrift = await Effect.runPromise(diagnoseInstalledIntegration({
+    const unsupportedWithDrift = await runDoctor(diagnoseInstalledIntegration({
       installation: { ...request, codexExecutable: "/bin/true" },
       repository: readyCheck("file-selection"),
       credential: readyCheck("credential-accessibility"),
