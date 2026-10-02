@@ -1,9 +1,14 @@
-import { initialImportGraph, projectImportGraph, stepImportGraph, type ImportGraphEvent } from "../../../src/canonical/graph-adapter.ts";
+import Shared from "../../monkey-business-bend/engine.mjs";
+import { Schema } from "effect";
+import { decoder, Nat, readNat, readBool, readRecord, readBendList } from "../../../src/canonical/boundary-schema.ts";
+import { decodeGraphEvent } from "../../../src/canonical/graph-schema.ts";
+import { type ImportGraphEvent, GRAPH_LIMIT_CEILINGS, validateGraphLimits, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
+import { encodeSharedValue, decodeSharedValue } from "../../../src/canonical/simulation-codec.ts";
 
 export type FileTreeProfile = Readonly<{
   minFiles: number; maxFiles: number; maxImports: number; maxDepth: number;
   deniedPercent: number;
-  missingPercent?: number; unreadablePercent?: number; repeatedEdgePercent?: number; cyclicEdgePercent?: number;
+  unsupportedPercent?: number; missingPercent?: number; unreadablePercent?: number; repeatedEdgePercent?: number; cyclicEdgePercent?: number;
   /** Fact index at which the native deadline fires; zero disables injection. */
   deadlineStep?: number;
   /** Synthetic local analysis work supplied with every capture. */
@@ -16,6 +21,7 @@ export const DEFAULT_FILE_TREE_PROFILE: FileTreeProfile = Object.freeze({
   minSourceBytes: 512, maxSourceBytes: 4096, minTreeBytes: 256, maxTreeBytes: 2048,
 });
 export const FILE_TREE_LABELS: Readonly<Record<keyof FileTreeProfile, string>> = Object.freeze({
+  unsupportedPercent: "Unsupported import targets (%)",
   localWork: "Local analysis work per file",
   missingPercent: "Missing import targets (%)", unreadablePercent: "Unreadable import targets (%)", repeatedEdgePercent: "Repeated import edges (%)", cyclicEdgePercent: "Cyclic import edges (%)", deadlineStep: "Deadline fact index",
   minFiles: "Minimum generated files", maxFiles: "Maximum generated files", maxImports: "Maximum imports per file", maxDepth: "Maximum import depth", deniedPercent: "Denied import targets (%)",
@@ -24,6 +30,7 @@ export const FILE_TREE_LABELS: Readonly<Record<keyof FileTreeProfile, string>> =
 export const validateFileTreeProfile = (profile: FileTreeProfile): FileTreeProfile => {
   if (!profile || typeof profile !== "object") throw new TypeError("file tree profile must be an object");
   const bounds: Record<keyof FileTreeProfile, readonly [number, number]> = {
+    unsupportedPercent: [0, 100],
     localWork: [0, 1048576],
     missingPercent: [0, 100], unreadablePercent: [0, 100], repeatedEdgePercent: [0, 100], cyclicEdgePercent: [0, 100], deadlineStep: [0, 511],
     minFiles: [1, 64], maxFiles: [1, 64], maxImports: [0, 128], maxDepth: [0, 12], deniedPercent: [0, 100],
@@ -31,7 +38,7 @@ export const validateFileTreeProfile = (profile: FileTreeProfile): FileTreeProfi
   };
   for (const key of Object.keys(bounds) as (keyof FileTreeProfile)[]) {
     const [min, max] = bounds[key];
-    if (profile[key] === undefined && ["missingPercent", "unreadablePercent", "repeatedEdgePercent", "cyclicEdgePercent", "deadlineStep", "localWork"].includes(key)) continue;
+    if (profile[key] === undefined && ["unsupportedPercent", "missingPercent", "unreadablePercent", "repeatedEdgePercent", "cyclicEdgePercent", "deadlineStep", "localWork"].includes(key)) continue;
     if (!Number.isSafeInteger(profile[key]) || profile[key]! < min || profile[key]! > max)
       throw new RangeError(`${FILE_TREE_LABELS[key]} must be an integer in [${min}, ${max}]`);
   }
@@ -46,64 +53,83 @@ export const validateFileTreeProfile = (profile: FileTreeProfile): FileTreeProfi
   return Object.freeze({ ...profile });
 };
 export type GeneratedFile = Readonly<{ target: number; name: string; depth: number; allowed: boolean; sourceBytes: number; treeBytes: number; edges: readonly number[] }>;
-export type GeneratedTree = Readonly<{ files: readonly GeneratedFile[]; facts: readonly ImportGraphEvent[]; targetNames: Readonly<Record<number, string>>; depth: number }>;
+export type GeneratedTree = Readonly<{ files: readonly GeneratedFile[]; facts: readonly ImportGraphEvent[]; targetNames: Readonly<Record<number, string>>; depth: number; limits: GraphLimits; rootEligible: boolean; closureEligible: boolean }>;
 
-/** Dedicated per-artifact stream: unrelated Jev draws and playback do not consume it. */
-export const generateFileTree = (seed: number, operation: number, unit: number, input: FileTreeProfile = DEFAULT_FILE_TREE_PROFILE): GeneratedTree => {
+const rawFile = decoder(Schema.Struct({
+  $: Schema.Literal("TreeFacts.TreeFile"), target: Nat, depth: Nat, allowed: Schema.Boolean,
+  source_bytes: Nat, tree_bytes: Nat, edges: Schema.Unknown,
+  missing: Schema.Boolean, unreadable: Schema.Boolean, unsupported: Schema.Boolean,
+}));
+const rawTree = decoder(Schema.Struct({ $: Schema.Literal("TreeFacts.Tree"), files: Schema.Unknown, depth: Nat }));
+const rawGenerated = decoder(Schema.Struct({ $: Schema.Literal("PreparationScenario.Generated"),
+  tree: Schema.Unknown, facts: Schema.Unknown, state: Schema.Unknown, terminated: Schema.Boolean, root_gate: Schema.Unknown, closure_gate: Schema.Unknown }));
+
+/** Encode the captured source-free profile; no random draws or graph policy run in the host. */
+export const encodeFileTreeProfile = (input: FileTreeProfile): unknown => {
+  const profile = validateFileTreeProfile(input);
+  return { $: "TreeFacts.Profile", min_files: profile.minFiles, max_files: profile.maxFiles,
+    max_imports: profile.maxImports, max_depth: profile.maxDepth, denied_percent: profile.deniedPercent,
+    missing_percent: profile.missingPercent ?? 0, unreadable_percent: profile.unreadablePercent ?? 0,
+    repeated_percent: profile.repeatedEdgePercent ?? 0, cyclic_percent: profile.cyclicEdgePercent ?? 0,
+    unsupported_percent: profile.unsupportedPercent ?? 0, deadline_step: profile.deadlineStep ?? 0,
+    local_work: profile.localWork ?? 0, min_source: profile.minSourceBytes, max_source: profile.maxSourceBytes,
+    min_tree: profile.minTreeBytes, max_tree: profile.maxTreeBytes };
+};
+export const encodePreparationGraphLimits = (input: GraphLimits): unknown => {
+  const limits = validateGraphLimits(input);
+  return { $: "ImportGraph.Limits", version: limits.version, source_bytes: limits.sourceBytes,
+    tree_bytes: limits.treeBytes, files: limits.files, read_bytes: limits.readBytes,
+    outgoing_edges: limits.outgoingEdges, depth: limits.depth, work: limits.work };
+};
+const decodedFact = (input: unknown): ImportGraphEvent => {
+  const fact = readRecord(input);
+  switch (fact.$) {
+    case "ImportGraph.Root": return decodeGraphEvent({ kind: "root", target: fact.target,
+      sourceBytes: fact.source_bytes, treeBytes: fact.tree_bytes, localWork: fact.local_work,
+      edges: readBendList(fact.edges, readNat, 128) });
+    case "ImportGraph.Next": return decodeGraphEvent({ kind: "next" });
+    case "ImportGraph.Resolved": {
+      const result = readRecord(fact.result).$;
+      const names = { "ImportGraph.Found": "found", "ImportGraph.NotFound": "missing", "ImportGraph.Many": "ambiguous", "ImportGraph.Unhandled": "unsupported" } as const;
+      if (typeof result !== "string" || !(result in names)) throw new TypeError("invalid generated resolution");
+      return decodeGraphEvent({ kind: "resolved", target: fact.target, result: names[result as keyof typeof names] });
+    }
+    case "ImportGraph.PathChecked": return decodeGraphEvent({ kind: "pathChecked", allowed: readBool(fact.allowed) });
+    case "ImportGraph.Captured": return decodeGraphEvent({ kind: "captured", sourceBytes: fact.source_bytes,
+      treeBytes: fact.node_bytes, localWork: fact.local_work, edges: readBendList(fact.edges, readNat, 128) });
+    case "ImportGraph.CaptureFailed": return decodeGraphEvent({ kind: "captureFailed" });
+    case "ImportGraph.DeadlineReached": return decodeGraphEvent({ kind: "deadlineReached" });
+    default: throw new TypeError("invalid generated preparation fact");
+  }
+};
+
+/** Dedicated per-artifact stream and command-following orchestration belong to Bend. */
+export const generateFileTree = (seed: number, operation: number, unit: number,
+  input: FileTreeProfile = DEFAULT_FILE_TREE_PROFILE, graphLimits: GraphLimits = GRAPH_LIMIT_CEILINGS): GeneratedTree => {
   for (const [name, value] of [["seed", seed], ["operation", operation], ["artifact index", unit]] as const)
     if (!Number.isSafeInteger(value) || value < 0 || value >= 2 ** 48) throw new RangeError(`${name} must be a nonnegative safe graph integer`);
-  const profile = validateFileTreeProfile(input);
-  let randomState = (seed >>> 0) ^ Math.floor(seed / 2 ** 32);
-  for (const char of `import-trees:${operation}:${unit}`) randomState = Math.imul(randomState ^ char.charCodeAt(0), 16777619) >>> 0;
-  randomState ||= 1;
-  const draw = () => {
-    randomState ^= randomState << 13; randomState ^= randomState >>> 17; randomState ^= randomState << 5;
-    randomState >>>= 0;
-    return randomState / 2 ** 32;
-  };
-  const between = (min: number, max: number) => min + Math.floor(draw() * (max - min + 1));
-  const count = between(profile.minFiles, profile.maxFiles);
-  const files: (Omit<GeneratedFile, "edges"> & { edges: number[] })[] = [];
-  const makeFile = (target: number, depth: number) => ({ target, name: target === 1 ? "entry.ts" : `module-${target}.ts`, depth,
-    allowed: target === 1 || draw() * 100 >= profile.deniedPercent,
-    sourceBytes: between(profile.minSourceBytes, profile.maxSourceBytes), treeBytes: between(profile.minTreeBytes, profile.maxTreeBytes), edges: [] as number[] });
-  files.push(makeFile(1, 0));
-  for (let target = 2; target <= count; target++) {
-    const candidates = files.filter(file => file.depth < profile.maxDepth && file.edges.length < profile.maxImports);
-    const parent = candidates[between(0, candidates.length - 1)]!;
-    parent.edges.push(target); // Synthetic edge IDs resolve to the same numeric target.
-    files.push(makeFile(target, parent.depth + 1));
-  }
-  const missing = new Set<number>(), unreadable = new Set<number>();
-  const chance = (percent: number | undefined) => !!percent && draw() * 100 < percent;
-  for (const file of files) {
-    if (file.target !== 1 && chance(profile.missingPercent)) missing.add(file.target);
-    if (file.target !== 1 && chance(profile.unreadablePercent)) unreadable.add(file.target);
-    if (file.edges.length && file.edges.length < profile.maxImports && chance(profile.repeatedEdgePercent)) file.edges.push(file.edges[0]!);
-    if (file.edges.length < profile.maxImports && chance(profile.cyclicEdgePercent)) file.edges.push(1);
-  }
-  // Native orchestration follows checked commands; only Bend decides traversal and budgets.
-  let state = initialImportGraph();
-  const facts: ImportGraphEvent[] = [];
-  let fact: ImportGraphEvent = { kind: "root", target: 1, sourceBytes: files[0]!.sourceBytes, treeBytes: files[0]!.treeBytes, ...(profile.localWork === undefined ? {} : { localWork: profile.localWork }), edges: files[0]!.edges };
-  while (facts.length < 512) {
-    if (profile.deadlineStep && facts.length === profile.deadlineStep) fact = { kind: "deadlineReached" };
-    facts.push(fact);
-    const result = stepImportGraph(state, fact);
-    state = result.state;
-    const phase = projectImportGraph(state).phase;
-    if (phase === "complete" || phase === "incomplete") return {
-      files, facts, targetNames: Object.fromEntries(files.map(file => [file.target, file.name])), depth: Math.max(...files.map(file => file.depth)),
-    };
-    switch (result.command.kind) {
-      case "resolveEdge": fact = { kind: "resolved", target: result.command.edge, result: missing.has(result.command.edge) ? "missing" : "found" }; break;
-      case "checkPath": fact = { kind: "pathChecked", allowed: files[result.command.target - 1]!.allowed }; break;
-      case "readSource": {
-        const file = files[result.command.target - 1]!;
-        fact = unreadable.has(file.target) ? { kind: "captureFailed" } : { kind: "captured", sourceBytes: file.sourceBytes, treeBytes: file.treeBytes, ...(profile.localWork === undefined ? {} : { localWork: profile.localWork }), edges: file.edges }; break;
-      }
-      default: fact = { kind: "next" };
-    }
-  }
-  throw new Error("generated import tree did not reach a checked terminal state");
+  const limits = validateGraphLimits(graphLimits);
+  const generated = rawGenerated(decodeSharedValue(Shared.generate_tree(BigInt(seed), BigInt(operation), BigInt(unit),
+    encodeSharedValue(encodeFileTreeProfile(input)), encodeSharedValue(encodePreparationGraphLimits(limits)))));
+  if (!generated.terminated) throw new Error("generated import tree did not reach a checked terminal state");
+  const tree = rawTree(generated.tree);
+  const files = readBendList(tree.files, item => {
+    const file = rawFile(item);
+    return { target: file.target, name: file.target === 1 ? "entry.ts" : `module-${file.target}.ts`,
+      depth: file.depth, allowed: file.allowed, sourceBytes: file.source_bytes,
+      treeBytes: file.tree_bytes, edges: readBendList(file.edges, readNat, 128) };
+  }, 64);
+  const facts = readBendList(generated.facts, item => {
+    const fact = decodedFact(item);
+    if (input.localWork !== undefined || !("localWork" in fact)) return fact;
+    const { localWork: _work, ...nativeFact } = fact;
+    return nativeFact;
+  }, 512);
+  const gate = decoder(Schema.Union([
+    Schema.Struct({ $: Schema.Literal("RulePolicy.Admit") }),
+    Schema.Struct({ $: Schema.Literal("RulePolicy.Omit") }),
+  ]));
+  return { files, facts, depth: tree.depth, limits,
+    rootEligible: gate(generated.root_gate).$ === "RulePolicy.Admit", closureEligible: gate(generated.closure_gate).$ === "RulePolicy.Admit",
+    targetNames: Object.fromEntries(files.map(file => [file.target, file.name])) };
 };

@@ -1,11 +1,12 @@
 import Base
 import ./TreeFacts.bend as TreeFacts
 import ../agent-flow-bend/ImportGraph.bend as ImportGraph
+import ../agent-flow-bend/RulePolicy.bend as RulePolicy
 
 # Environment orchestration follows actual ImportGraph commands. No traversal,
 # admission, omission, evidence or resource-budget policy is implemented here.
 type Generated is Data:
-  Generated{tree: TreeFacts.Tree, facts: List<&2, ImportGraph.GraphEvent>, state: ImportGraph.Bounded, terminated: Bool}
+  Generated{tree: TreeFacts.Tree, facts: List<&2, ImportGraph.GraphEvent>, state: ImportGraph.Bounded, terminated: Bool, root_gate: RulePolicy.Gate, closure_gate: RulePolicy.Gate}
 type Trace is Data:
   Trace{facts: List<&2, ImportGraph.GraphEvent>, state: ImportGraph.Bounded, terminated: Bool}
 
@@ -58,9 +59,28 @@ def loop(fuel: Nat, +files: List<&2, TreeFacts.TreeFile>, +profile: TreeFacts.Pr
 def root(+file: TreeFacts.TreeFile, work: Nat) -> ImportGraph.GraphEvent:
   ImportGraph.Root{TreeFacts.file_target(file), TreeFacts.file_source_bytes(file), TreeFacts.file_tree_bytes(file), work, TreeFacts.file_edges(file)}
 
+def phase_complete(phase: ImportGraph.Phase) -> Bool:
+  match phase:
+    case ImportGraph.Complete{}: True{}
+    case _: False{}
+
+def root_available(state: ImportGraph.Bounded) -> Bool:
+  match state:
+    case ImportGraph.Bounded{ImportGraph.Graph{_, _, _, files, _, _, _, _, _, _, _}, _}: Nat.is_gt(files, 0n)
+
+def closure_available(state: ImportGraph.Bounded) -> Bool:
+  match state:
+    case ImportGraph.Bounded{ImportGraph.Graph{phase, _, _, _, _, _, _, _, _, _, _}, _}: phase_complete(phase)
+
+# Synthetic type-shape rules share production applicability. A partial graph
+# still supplies root evidence; only closure-dependent capabilities are absent.
+def rule_gate(+state: ImportGraph.Bounded, requires_closure: Bool) -> RulePolicy.Gate:
+  RulePolicy.applicable(True{}, root_available(state), RulePolicy.TypeShape{}, True{}, False{},
+    True{}, True{}, True{}, False{}, True{}, Bool.not(requires_closure) || closure_available(state), 2n, 2n)
+
 def generated(trace: Trace, tree: TreeFacts.Tree) -> Generated:
   match trace:
-    case Trace{facts, state, terminated}: Generated{tree, facts, state, terminated}
+    case Trace{facts, +state, terminated}: Generated{tree, facts, state, terminated, rule_gate(state, False{}), rule_gate(state, True{})}
 
 def run(+tree: TreeFacts.Tree, +profile: TreeFacts.Profile, limits: ImportGraph.Limits) -> Generated:
   match tree:

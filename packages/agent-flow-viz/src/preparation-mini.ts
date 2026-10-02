@@ -28,7 +28,7 @@ export const preparationMini = <Message>(h: HtmlBuilder<Message>, x: number, y: 
   const phase = frame ? phases[frame.after.phase] : "";
   const incomplete = frame?.after.phase === "incomplete";
   return h.g([h.Class("preparation-mini")], [
-    h.title([], [frame ? `${recordLabel("preparation", frame.event.operation, numbers)}, tree ${frame.event.unit + 1}: ${frame.event.fact.kind} → ${frame.command.kind}; ${frame.after.phase}. Source facts are simulated.` : "Artifact-building subprocess. No source facts supplied at this step."]),
+    h.title([], [frame ? `${recordLabel("preparation", frame.event.operation, numbers)}, tree ${frame.event.unit + 1}: ${frame.event.fact.kind} → ${frame.command.kind}; ${frame.after.phase}. Source facts are simulated; this unit retains captured graph limits.` : "Artifact-building subprocess. No source facts supplied at this step."]),
     h.path([h.D(`M ${x + 12} ${y + 100} H ${x + 212}`), h.Stroke("#a3b3c7")], []),
     h.text([h.Class("preparation-mini-status"), h.X(String(x + 12)), h.Y(String(y + 115)), h.FontSize("8"), h.Fill("#435670")], [frame
       ? `${recordLabel("preparation", frame.event.operation, numbers)} · tree ${frame.event.unit + 1} · ${frame.after.phase}`

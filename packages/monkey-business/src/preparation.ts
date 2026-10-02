@@ -1,5 +1,5 @@
 import { SharedCore } from "./shared-core.ts";
-import { type ImportGraphEvent, type ImportGraphProjection, type ImportGraphCommand } from "../../../src/canonical/graph-adapter.ts";
+import { type ImportGraphEvent, type ImportGraphProjection, type ImportGraphCommand, type GraphLimits } from "../../../src/canonical/graph-adapter.ts";
 
 /** Source-free native facts for one synthetic A → B review artifact. */
 export const preparationFacts = (): readonly ImportGraphEvent[] => [
@@ -45,7 +45,9 @@ export type PreparationEvent = Readonly<{
   unit: number;
   step: number;
   fact: ImportGraphEvent;
-  generatedTree?: Readonly<{ targetNames: Readonly<Record<number, string>>; files: number; depth: number }>;
+  /** Effective production graph profile captured when this unit is prepared. */
+  graphLimits?: GraphLimits;
+  generatedTree?: Readonly<{ targetNames: Readonly<Record<number, string>>; files: number; depth: number; rootEligible?: boolean; closureEligible?: boolean }>;
 }>;
 export type PreparationFrame = Readonly<{
   event: PreparationEvent;
