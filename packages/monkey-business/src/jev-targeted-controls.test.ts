@@ -17,6 +17,10 @@ const issued = (run: Run): JevRequestTarget => {
 const replayExact = (run: Run): void => {
   expect(restoreReplay(JSON.parse(JSON.stringify(run.exportReplay()))).observe()).toEqual(run.observe());
 };
+const reach = (run: Run, condition: () => boolean): void => {
+  for (let transitions = 0; transitions < 100 && !condition(); transitions++) run.step();
+  expect(condition(), "declared boundary must be reached within 100 transitions").toBe(true);
+};
 
 it("targets an issued request before start, preserves its due time and recovers on the same resident", () => {
   const run = createRun({ inputs: [edit], jevDelay: 20 });
@@ -42,14 +46,15 @@ it("targets an issued request before start, preserves its due time and recovers 
 it("visibly refuses wrong, unknown, started and terminal targets without replacing their healthy callbacks", () => {
   const run = createRun({ inputs: [edit], jevDelay: 20 });
   const target = issued(run);
-  run.applyControl({ kind: "jevRequest", target: { ...target, lifetime: target.lifetime + 1 }, outcome: "timeout" });
-  run.applyControl({ kind: "jevRequest", target: { ...target, request: target.request + 1 }, outcome: "timeout" });
-  while (!run.observations.some(frame => frame.event.kind === "jevRequestStarted")) run.step();
+  for (const field of ["partition", "lifetime", "round", "operation", "request"] as const) {
+    run.applyControl({ kind: "jevRequest", target: { ...target, [field]: target[field] + 1 }, outcome: "timeout" });
+  }
+  reach(run, () => run.observations.some(frame => frame.event.kind === "jevRequestStarted"));
   run.applyControl({ kind: "jevRequest", target, outcome: "neverSent" });
   run.advance({ untilTime: 30 });
   run.applyControl({ kind: "jevRequest", target, outcome: "interrupted" });
   expect(run.interventions.map(report => report.result)).toEqual([
-    "requestMissing", "requestMissing", "requestAlreadyStarted", "requestMissing",
+    "requestMissing", "requestMissing", "requestMissing", "requestMissing", "requestMissing", "requestAlreadyStarted", "requestMissing",
   ]);
   expect(run.observations.filter(frame => frame.event.kind === "jevRequestStarted")).toHaveLength(1);
   expect(run.observations.filter(frame => frame.event.kind === "jevRequestSettled").map(frame => frame.event)).toEqual([
@@ -63,7 +68,7 @@ it("visibly refuses wrong, unknown, started and terminal targets without replaci
 it.each(["backendFailure", "timeout", "interrupted"] as const)("replaces only a started request with valid %s facts", outcome => {
   const run = createRun({ inputs: [edit], jevDelay: 20 });
   const target = issued(run);
-  while (!run.observations.some(frame => frame.event.kind === "jevRequestStarted")) run.step();
+  reach(run, () => run.observations.some(frame => frame.event.kind === "jevRequestStarted"));
   run.applyControl({ kind: "jevRequest", target, outcome });
   run.advance({ untilTime: 30 });
   expect(run.interventions.at(-1)?.result).toBe("applied");
@@ -80,7 +85,7 @@ it.each(["backendFailure", "timeout", "interrupted"] as const)("replaces only a 
 
 it("restores availability without changing issuance authority, and rotation retires old findings", () => {
   const run = createRun({ inputs: [edit] });
-  while (!run.observations.some(frame => frame.event.kind === "jevRequestSettled")) run.step();
+  reach(run, () => run.observations.some(frame => frame.event.kind === "jevRequestSettled"));
   run.applyControl({ kind: "credentials", action: "unavailable" });
   run.advance({ untilTime: 8 });
   expect(run.projection.pendingFindings).toHaveLength(1);
@@ -89,7 +94,7 @@ it("restores availability without changing issuance authority, and rotation reti
   run.advance({ untilTime: 9 });
   expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "submissionRecorded")).toHaveLength(1);
   run.schedule({ ...edit, at: 10 });
-  while (run.observations.filter(frame => frame.event.kind === "jevRequestSettled").length < 2) run.step();
+  reach(run, () => run.observations.filter(frame => frame.event.kind === "jevRequestSettled").length === 2);
   run.applyControl({ kind: "credentials", action: "rotate" });
   run.advance({ untilTime: 20 });
   expect(run.projection.pendingFindings).toEqual([]);
@@ -103,5 +108,24 @@ it("restores availability without changing issuance authority, and rotation reti
   run.advance({ untilTime: 30 });
   expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "submissionRecorded")).toHaveLength(2);
   expect(run.observations.filter(frame => frame.rejection)).toEqual([]);
+  replayExact(run);
+});
+
+it("refuses issuance while credentials are unavailable and restores fresh admission without reset", () => {
+  const run = createRun({ inputs: [] });
+  run.applyControl({ kind: "credentials", action: "unavailable" });
+  run.schedule(edit);
+  run.advance({ untilTime: 10, maxEvents: 100 });
+  expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "jevRequestUnavailable")).toHaveLength(1);
+  expect(run.observations.filter(frame => frame.event.kind === "jevRequestStarted")).toEqual([]);
+  expect(run.projection.dispatch.requests).toEqual([]);
+  expect(run.projection.dispatch.running).toEqual([]);
+  run.applyControl({ kind: "credentials", action: "restore" });
+  run.schedule({ ...edit, at: 11 });
+  run.advance({ untilTime: 21, maxEvents: 100 });
+  expect(run.observations.filter(frame => frame.event.kind === "jevRequestStarted")).toHaveLength(1);
+  expect(run.observations.flatMap(frame => frame.commands).filter(command => command.kind === "submissionRecorded")).toHaveLength(1);
+  expect(run.observations.filter(frame => frame.rejection)).toEqual([]);
+  expect(run.interventions.map(report => report.result)).toEqual(["applied", "applied"]);
   replayExact(run);
 });
