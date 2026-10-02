@@ -1,6 +1,7 @@
 // Genuine Hapsland capture/evaluation or released Abide post-edit handler.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import * as Effect from 'effect/Effect';
 import { adaptCodexDirectEvent } from '../src/direct-event/adapter.ts';
@@ -10,6 +11,26 @@ import { TYPE_INPUT_CONTRACT } from '../src/rules/targets.ts';
 import { DEFAULT_BACKEND, DEFAULT_DESTINATION } from '../src/runtime/review-config.ts';
 import { Live } from '../src/jev-decision.ts';
 const spec = JSON.parse(readFileSync(0, 'utf8'));
+const graphSourcePaths = unit => {
+  const paths = new Set(unit.sourceDependencies ?? []), pending = [unit.root];
+  while (pending.length) {
+    const node = pending.pop();
+    if (node.artifact.path) paths.add(node.artifact.path);
+    for (const edge of node.references) if (edge.kind === 'expanded') pending.push(edge.node);
+  }
+  return [...paths].sort();
+};
+const graphOmissions = unit => {
+  const omissions = [], pending = [unit.root];
+  while (pending.length) {
+    const node = pending.pop();
+    for (const edge of node.references) {
+      if (edge.kind === 'expanded') pending.push(edge.node);
+      if (edge.kind === 'omitted') omissions.push({ declaration: node.artifact.name, path: node.artifact.path, reason: edge.reason, target: edge.target });
+    }
+  }
+  return omissions;
+};
 const { fixture, repo, candidate } = spec;
 const beforeLines = fixture.before.trimEnd().split('\n'), afterLines = fixture.after.trimEnd().split('\n');
 let prefix = 0;
@@ -38,12 +59,33 @@ if (candidate === 'abide') {
   if (!observation) { console.log(JSON.stringify({ status: 'adaptation-failed' })); process.exit(0); }
   const prepared = await Effect.runPromise(prepareObservation(observation, { controlledWriter: true,
     advicee: observation.advicee, settings: { backend: DEFAULT_BACKEND, destination: DEFAULT_DESTINATION },
-    rules: configuredRules.filter(x => x.id === fixture.ruleId), inputContract: TYPE_INPUT_CONTRACT,
+    rules: configuredRules.filter(x => x.id === fixture.ruleId), inputContract: fixture.inputContract ?? TYPE_INPUT_CONTRACT,
     policy: { includes: ['**/*'], excludes: fixture.excludedPaths } }));
   const ready = prepared.outcomes.filter(x => x.status === 'ready');
   const summary = { status: prepared.observation.status, ready: ready.length,
-    pathReasons: prepared.observation.outcomes.map(x => ({status: x.status, reason: x.reason ?? null})),
+    pathReasons: prepared.observation.outcomes.map(x => ({status: x.status, reason: x.reason ?? null,
+      analysisStatus: x.analysis?.status ?? null,
+      analysisReason: x.analysis?.reason ?? null,
+      analysisFailures: x.analysis?.failures?.map(failure => ({ reason: failure.reason, root: typeof failure.root === 'string' ? failure.root : failure.root?.name ?? null })) ?? [],
+    })),
+    unitSummaries: prepared.observation.outcomes.flatMap(outcome => outcome.units ?? []).map(unit => ({
+      root: unit.root.artifact.name,
+      sourcePaths: graphSourcePaths(unit),
+      omissions: graphOmissions(unit),
+    })) ?? [],
+    preparedUnits: ready.map(item => ({
+      declaration: item.prepared.input.declaration.name,
+      contract: item.prepared.input.contract,
+      completeness: item.prepared.input.completeness,
+      inputSha256: createHash('sha256').update(JSON.stringify(item.prepared.input)).digest('hex'),
+      sourcePaths: [...new Set((item.prepared.input.sourceFingerprints ?? []).map(source => source.path))],
+      ruleIds: item.prepared.input.rules.map(rule => rule.id),
+    })),
     evaluations: [] };
+  if (process.env.QUALITY_PREPARE_ONLY === '1') {
+    console.log(JSON.stringify(summary));
+    process.exit(0);
+  }
   for (const item of ready) {
     const result = await Effect.runPromise(evaluatePrepared(item.prepared).pipe(Effect.provide(Live)));
     summary.evaluations.push({ status: result.status,
