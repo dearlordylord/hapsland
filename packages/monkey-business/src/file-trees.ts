@@ -38,8 +38,9 @@ export const validateFileTreeProfile = (profile: FileTreeProfile): FileTreeProfi
   };
   for (const key of Object.keys(bounds) as (keyof FileTreeProfile)[]) {
     const [min, max] = bounds[key];
-    if (profile[key] === undefined && ["unsupportedPercent", "missingPercent", "unreadablePercent", "repeatedEdgePercent", "cyclicEdgePercent", "deadlineStep", "localWork"].includes(key)) continue;
-    if (!Number.isSafeInteger(profile[key]) || profile[key]! < min || profile[key]! > max)
+    const value = profile[key];
+    if (value === undefined && ["unsupportedPercent", "missingPercent", "unreadablePercent", "repeatedEdgePercent", "cyclicEdgePercent", "deadlineStep", "localWork"].includes(key)) continue;
+    if (typeof value !== "number" || !Number.isSafeInteger(value) || value < min || value > max)
       throw new RangeError(`${FILE_TREE_LABELS[key]} must be an integer in [${min}, ${max}]`);
   }
   for (const [min, max] of [["minFiles", "maxFiles"], ["minSourceBytes", "maxSourceBytes"], ["minTreeBytes", "maxTreeBytes"]] as const)
