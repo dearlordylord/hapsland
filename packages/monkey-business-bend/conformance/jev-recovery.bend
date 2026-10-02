@@ -394,9 +394,8 @@ def terminal_selected(entries: List<&2,Scheduler.Entry>, +state: Types.State, qu
 
 def terminal_next(compact: Compact) -> Compact:
   match compact:
-    case Compact{state,Minimal.Queue{+items,+sequence,synced},totals,remaining,healed}:
-      +state = Minimal.sync(items,state,synced)
-      terminal_selected(Engine.queued(state),state,Minimal.Queue{items,sequence,sequence},totals,remaining,healed)
+    case Compact{+state,queue,totals,remaining,healed}:
+      terminal_selected(Engine.queued(state),state,queue,totals,remaining,healed)
 
 def terminal_values(credentials: Credentials.State, +state: Types.State, totals: Totals) -> List<&2,Nat>:
   match credentials totals:
@@ -421,10 +420,20 @@ def terminal_finished(+compact: Compact) -> Bool:
   match compact:
     case Compact{+state,queue,totals,remaining,healed}: terminal_done(Engine.queued(state),Compact{state,queue,totals,remaining,healed})
 
+# Publish each newly appended payload identity before observing the scheduler
+# head. Otherwise a future expiry could hide immediate newly generated Ready.
+def terminal_publish(compact: Compact) -> Compact:
+  match compact:
+    case Compact{state,Minimal.Queue{+items,+sequence,synced},totals,remaining,healed}:
+      Compact{Minimal.sync(items,state,synced),Minimal.Queue{items,sequence,sequence},totals,remaining,healed}
+
+def terminal_prepared(+compact: Compact, ih: Compact -> List<&2,Nat>) -> List<&2,Nat>:
+  terminal_continue(terminal_finished(compact),compact,ih)
+
 def terminal_loop(fuel: Nat, +compact: Compact) -> List<&2,Nat>:
   match fuel:
     case 0n: [99n]
-    case 1n+rest: terminal_continue(terminal_finished(compact),compact,next => terminal_loop(rest,next))
+    case 1n+rest: terminal_prepared(terminal_publish(compact),next => terminal_loop(rest,next))
 
 def terminal_campaign() -> List<&2,Nat>:
   terminal_loop(60000n,Compact{Engine.initial(Ledger.Limits{32n,100000n,16n,50000n}),Minimal.initial_queue(1n),Totals{0n,0n,0n,0n,0n,0n,0n},2050n,False{}})
