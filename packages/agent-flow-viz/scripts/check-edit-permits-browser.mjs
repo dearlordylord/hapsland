@@ -32,8 +32,8 @@ try {
       }
       assert.equal(await admission(layer).locator('.topology-event-fact').count(), 0);
     }
-    assert.doesNotMatch(await ensemble.locator('.shared-secondary-resources').innerText(), /Edit permits/);
-    assert.match(await ensemble.locator('.shared-secondary-resources').innerText(), /Background collectors/);
+    assert.equal(await ensemble.locator('.shared-secondary-resources').count(), 0);
+    assert.doesNotMatch(await ensemble.locator('.shared-resident').innerText(), /Edit permits|Background collectors/);
   };
   const owners = ['agent-1', 'agent-2', 'agent-3'];
   const sessions = owners.map(agent => ({ agent, editIntervalMs: 1000000 }));

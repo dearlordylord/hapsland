@@ -355,7 +355,19 @@ export const productionFlowView = <Message>(
               h.text([h.X(String(point.x+13)),h.Y(String(point.y+69)),h.FontSize("10"),h.Fill("#435670")],[`Shared Jev permits: ${resident.dispatch.requests.length} / ${resident.executionLimits.jevRequests}`]),
               h.text([h.X(String(point.x+13)),h.Y(String(point.y+91)),h.FontSize("10"),h.Fill("#435670")],[`This agent: ${projection.dispatch.requests.filter(request=>request.started && (partition === undefined || request.partition === partition)).length} started`]),
             ] : []),
-            ...(node.id === "collection" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], [`Collectors shared ${resident.collection.claims.length}${metadata?.collectors ? `/${metadata.collectors.capacity}` : " · limit unrecorded"}`])] : []),
+            ...(node.id === "collection" ? (() => {
+              const used = resident.collection.claims.length;
+              const maximum = metadata?.collectors?.capacity;
+              const description = `Shared background collectors: ${maximum === undefined ? `${used} used; limit not recorded` : `${used} of ${maximum}`}`;
+              return [h.g([h.Class("collection-shared-collectors"), h.Role("img"), h.AriaLabel(description)], [
+                h.title([], [description, ...resident.collection.claims.map(claim => ` · Group ${claim.group} · collector token ${claim.owner}`)]),
+                h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 95)), h.FontSize("9"), h.Fill("#435670")], [maximum === undefined ? `Collectors ${used} · max unknown` : `Collectors · shared ${used}/${maximum}`]),
+                ...(maximum === undefined ? [] : [
+                  h.rect([h.X(String(point.x + 154)), h.Y(String(point.y + 89)), h.Width("57"), h.Height("5"), h.Fill("#dce5f0")], []),
+                  h.rect([h.Class("collection-collector-fill"), h.X(String(point.x + 154)), h.Y(String(point.y + 89)), h.Width(String(Math.min(57, maximum > 0 ? used / maximum * 57 : 0))), h.Height("5"), h.Fill("#168f83")], []),
+                ]),
+              ])];
+            })() : []),
             ...(node.id === "delivery" ? [h.text([h.X(String(point.x + 13)), h.Y(String(point.y + 69)), h.FontSize("9"), h.Fill("#435670")], [selected?.group === undefined ? "Output slot · select group in inspector" : `Group ${selected.group} · ${resident.delivery.slots.some(s => s.group === selected.group) ? "occupied" : "free"}`])] : []),
             ...(node.id === "round" ? (() => {
               if (selected?.round === undefined || !projection.rounds.some(r => r.id === selected.round) || selected.group === undefined || metadata?.continuationBudget === undefined)

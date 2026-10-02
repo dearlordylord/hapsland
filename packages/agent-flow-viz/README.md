@@ -498,7 +498,11 @@ The Work reservations inset shows shared resident item and byte bars; the
 Execution limits inset shows preparation workers and Jev request permits.
 Admission retains partition item/byte bars and shows two edit-permit rows:
 the selected agent's count/recorded ceiling and all agents' count/resident ceiling.
-The external shared rail now retains only the background-collector meter.
+Advice collection shows resident-wide background collector claims against their
+recorded capacity, separate from advice leases and host output slots. Claim
+groups and owner tokens remain in the SVG title and inspector; unknown capacity
+shows the count without a bar. The external shared heading retains agent/event
+status only; its duplicate resource meters are removed.
 Admission's transient event facts remain in its SVG title and checked event details
 so the two permit rows stay readable. Cache retention,
 and operational-failure diagnostic notice retention are intentionally omitted
@@ -543,6 +547,9 @@ Run `npm run test:resource-browser` for resource metadata/selection, optional
 fixtures, encoded candidate display, import detail and narrow-layout checks.
 `node scripts/check-edit-permits-browser.mjs` covers occupied 16/64 permit
 placement, different local ceilings, unknown history, replay and narrow layouts.
+`node scripts/check-collectors-browser.mjs` covers shared collector placement,
+checked release/expiry, recorded and unknown historical maxima, agent selection
+and replay across 3D, focused and narrow views.
 `test:execution-pools-browser` covers both pool rows, ownership, saturation,
 keyboard inspection and replay; `test:ensemble-browser` covers shared pools/history and agent selection;
 `test:simulation-browser` covers the single-agent controls and inspector.

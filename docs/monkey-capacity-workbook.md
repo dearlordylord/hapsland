@@ -11,7 +11,7 @@
 - **Delivered diagram/Monkey scope:** See [scope tracking](#scope-tracking-against-the-initial-inventory). Later owner decisions removed notice/cache/ticket indicators; master also removed the ticket subsystem. Earlier tables are dated inventories, not outstanding tasks.
 - **Admission decision:** Retain PRE and strict post-closure freshness. Bare arrival-only A is rejected. Three Current model laws are checked: necessary valid PRE, rejection/no reopening for a pending PRE's POST after successful closure, and positive reopening after fresh successful PRE registration.
 - **Positive reopening, approved and checked:** A completed round's fresh successfully registered PRE and timely matching POST add one acceptance and open the successor round. The law is conditional on actual registration success; it excludes reject-all reopening POST, not reject-all PRE. Original deadline, scope, lifetime, retained-unseen identity and clock predicates are explicit. Duplicate POST remains separate and unapproved.
-- **Next work:** Review remaining shared edit-permit placement, then background collectors, one at a time; [no further comparison proofs are required](#proof-value-filter-before-returning-to-shared-resource-design-2026-10-02). Preserve the three Current gates. Registration-enabled timeout/late-IPC/retry evidence remains deferred before stronger runtime support claims.
+- **Next work:** Implement and inspect background collector capacity inside Advice collection; [no further comparison proofs are required](#proof-value-filter-before-returning-to-shared-resource-design-2026-10-02). Preserve the three Current gates. Registration-enabled timeout/late-IPC/retry evidence remains deferred before stronger runtime support claims.
 - **Native evidence still bounded:** Six PRE-only probes characterize delayed/failed hooks; actual tool-start provenance, registration followed by cancellation, late IPC/retry and closure/restart remain separate validation work.
 - **Deferred simulator boundary:** Preparation result linkage still lacks source-free per-rule capability facts; do not infer that every incomplete graph makes every rule unusable.
 
@@ -1180,3 +1180,36 @@ and Reset to72. No physical-device timing claim is made. Review artifacts:
 `/workspace/hapsland-review/input-zoom-stability/typing.png`, `samples.json`,
 `slider-after.png` and `slider-samples.json`; before artifacts remain separately
 named for comparison.
+
+## Owner validation and next collector preview (2026-10-02)
+
+The owner confirmed that input editing and Zoom now work correctly after the
+stability correction. This is owner validation of the observed dashboard
+behavior, alongside the browser evidence above.
+
+The next authorized visual preview moves the resident-wide background collector
+count into Advice collection and removes its upper duplicate. Astra advised
+keeping the existing square geometry and a compact used/max bar, preserving
+waiting-round and advice-lease rows. Collector claims, advice leases and Stop
+output slots remain distinct. Unknown historical maxima must have no fill;
+collector ownership is not inferred from delivery-group IDs. The upper strip
+retains resident, agent and event status. Rendered review and concrete occupied
+and free captures are required before presenting the preview.
+
+Collector preview implemented: Advice collection now displays shared collector
+claims used/recorded maximum with a compact bar; the upper duplicate and empty
+resource wrapper are removed. The status heading remains. No production
+capacity policy changed. Astra rendered review passed occupied2/3, released1/3,
+expired0/3, custom full1/1, historical unknown/no fill, focus, 3D and narrow
+views. Group/token ownership is available in the title and inspector; plain
+shared teal avoids inventing agent attribution. Claims remain separate from
+advice leases and output slots. Owner placement acceptance is pending inspection
+of this preview. Captures: `/workspace/hapsland-review/collectors/` with
+`before-occupied-focus.png`, `after-occupied-focus.png`,
+`after-occupied-detail.png` and `after-expired-detail.png`.
+
+Validation: focused collector browser, existing resource, resident-capacity and
+edit-permit browsers, TypeScript check and diff check passed. The focused test
+also checks wrong-token refusal, release/expiry recovery, exact recorded maxima,
+layer mirrors, selection, history and replay reconstruction. Superseded capture
+mode and unused upper-wrapper styles were removed.
