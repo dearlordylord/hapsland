@@ -27,14 +27,14 @@ type Transition is Data:
 def initial(limits: Ledger.Limits) -> Types.State:
   Types.State{Canonical.initial(limits), Nil{}, Scheduler.initial(), Nil{}, Random.streams(1n), Advicees.initial(), CredentialFacts.initial(), Nil{}, Nil{}}
 
-def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>) -> Transition:
+def settle(graphs: List<&2, Types.GraphEntry>, scheduler: Scheduler.State, workloads: List<&2, Workload.Advicee>, random: Random.State, result: Canonical.Step, advicees: Advicees.Registry, credentials: CredentialFacts.State, opening: List<&2, Nat>, retiring: List<&2, Nat>, +event: Canonical.CanonicalEvent) -> Transition:
   match result:
-    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}, Canonical.Advanced{state, commands}}
+    case Canonical.Advanced{+state, +commands}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, AdmissionAttempts.consumed(opening, event), PendingEffects.consumed(retiring, event)}, Canonical.Advanced{state, commands}}
     case Canonical.Rejected{+state, +reason}: Transition{Types.State{state, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}, Canonical.Rejected{state, reason}}
 
 def step(state: Types.State, +event: Canonical.CanonicalEvent) -> Transition:
   match state:
-    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}: settle(graphs, scheduler, workloads, random, Canonical.step(canonical, event), advicees, credentials, AdmissionAttempts.consumed(opening, event), PendingEffects.consumed(retiring, event))
+    case Types.State{canonical, graphs, scheduler, workloads, random, advicees, credentials, opening, retiring}: settle(graphs, scheduler, workloads, random, Canonical.step(canonical, event), advicees, credentials, opening, retiring, event)
 
 def canonical(state: Types.State) -> Canonical.State:
   match state:
