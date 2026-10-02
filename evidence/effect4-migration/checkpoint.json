@@ -151,7 +151,8 @@
     "Advice capture acquisition composes a named atomic Effect; revalidation acquires through an Effect generator",
     "Capture service composes Effects throughout: resize, retirement and completion commit atomically; count reads a snapshot; revalidation finalizer composes physical settlement directly; synchronous captureCommit removed",
     "Advice retirement and expiry compose named Effects; collection, statistics, round close and shutdown callers yield retirement; synchronous adviceCommit removed, all advice mutations now compose Effects",
-    "Explicit AdviceRecords.current Effect reads immutable content from one identity-fenced snapshot; lease checking consumes the snapshot directly"
+    "Explicit AdviceRecords.current Effect reads immutable content from one identity-fenced snapshot; lease checking consumes the snapshot directly",
+    "Finding selection readiness and source revalidation read advice content through explicit Effect snapshots rather than live capability getters"
   ],
   "verification": [
     {
@@ -1915,6 +1916,15 @@
       "build": true,
       "ticketBoundaryCheck": true,
       "case": "Reusable current read observes eligibility at execution; older immutable snapshot stays stable; copied/retired capabilities return empty content"
+    },
+    {
+      "stage": "advice-selection-revalidation-snapshots",
+      "testsPassed": 123,
+      "testFiles": 3,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "scope": "Selection and revalidation snapshot consumers; remaining getter/read conversion incomplete"
     }
   ],
   "next": [

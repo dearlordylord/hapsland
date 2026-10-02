@@ -144,3 +144,11 @@ if (!state.includes('current: Effect.fn("AdviceRecords.current")') ||
     !server.includes('yield* residentLedger.advice.current(advice)')) {
   throw new Error("advice lease inspection must use the explicit Effect snapshot read");
 }
+
+const revalidateAdvice = server.slice(server.indexOf("  const residentRevalidate ="), server.indexOf("\n  function handle(", server.indexOf("  const residentRevalidate =")));
+const selectionFacts = server.slice(server.indexOf("  const residentFindingSelectionFacts ="), server.indexOf("  const residentRegisterRevision ="));
+if (revalidateAdvice.includes("advice.evaluations") || selectionFacts.includes("advice.collectionEligible") ||
+    !revalidateAdvice.includes("yield* residentLedger.advice.current(advice)") ||
+    !selectionFacts.includes("yield* residentLedger.advice.current(advice)")) {
+  throw new Error("advice revalidation and finding readiness must read explicit snapshots");
+}

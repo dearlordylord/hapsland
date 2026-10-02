@@ -1349,6 +1349,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   ): Effect.fn.Return<FindingSelectionFacts> {
     const partitionId = residentLedger.knownPartitionId(partition);
     if (partitionId === undefined) throw new Error("finding selection lost its resident partition identity");
+    const content = yield* residentLedger.advice.current(advice);
     return {
       partition: partitionId,
       round: composed ? residentComposedDelivery.generation(partition) : 0,
@@ -1358,7 +1359,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       credential: advice.credentialGeneration ?? 0,
       currentCredential: credentialGeneration ?? 0,
       ageMs: Math.floor(Math.max(0, now - advice.pendingAt)),
-      collectionReady: advice.collectionEligible &&
+      collectionReady: content.collectionEligible &&
         (composed && advice.round !== undefined
           ? advice.round.generation === residentComposedDelivery.generation(partition) : true),
     };
@@ -2380,6 +2381,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (capture === undefined) return { status: "unavailable" as const, findings: [] };
     let capacityUnavailable = false;
     return yield* Effect.gen(function* () {
+      const content = yield* residentLedger.advice.current(advice);
       yield* residentAdapter("revalidation barrier", () => Promise.resolve(residentAfterRevalidationWorkspaceReserved?.(advice.id)));
       const userConfigPath = dispatch.userConfigPath ?? undefined;
       const current = yield* withinWork(Effect.gen(function* () {
@@ -2387,7 +2389,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           advice.observation.root,
           userConfigPath === undefined ? {} : { userConfigPath },
         );
-        return yield* revalidateEvaluations(advice.observation, advice.evaluations, {
+        return yield* revalidateEvaluations(advice.observation, content.evaluations, {
           controlledWriter: true,
           advicee: advice.observation.advicee,
           settings,
