@@ -847,7 +847,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         return result.commands[0]?.kind === "collectionCandidate";
       });
       for (const item of available) {
-        residentLedger.advice.eligible(item, residentJoined.hasAdmission(item.admissionId));
+        residentLedger.advice.eligible(item, yield* residentJoined.hasAdmission(item.admissionId));
       }
       const eligible = available.filter((item) => item.collectionEligible)
         .sort((left, right) => residentCollectionOrder(left, right))
@@ -1382,7 +1382,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         const revision = (yield* residentLedger.ticketUnits.current(unit)).revision;
         if (revision !== undefined && (yield* superseded(revision))) yield* residentLedger.ticketUnits.fail(unit, "stale");
       }
-      for (const review of residentJoined.retireSuperseded(subject)) {
+      for (const review of (yield* residentJoined.retireSuperseded(subject))) {
         recordActivity({ statePath: review.activityPath, root: review.observation.root,
           advicee: review.observation.advicee, lifetime: runtime.lifetime,
           stage: "unavailable", unitIdentity: review.evaluationKey });

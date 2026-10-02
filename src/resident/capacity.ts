@@ -608,8 +608,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
       };
     },
     joinedReviews: (logicalBytes: (value: unknown) => number): JoinedReviews<Pending> => {
-      const joinedCommit = <A>(operation: (joined: ReturnType<typeof joinedReviewOperations>, reuse: EvaluationReuse<Pending>) => A): A =>
-        commitAll((draft, records) => {
+      const joinedChange = <A>(operation: (joined: ReturnType<typeof joinedReviewOperations>, reuse: EvaluationReuse<Pending>) => A): Parameters<typeof commitAllEffect<A>>[0] =>
+        (draft, records) => {
           const joined = draftJoinedReviews(records.joined);
           const ticketUnits = draftTicketUnits(records.ticketUnits);
           const revision = draftRevision(records.revision);
@@ -623,10 +623,14 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           revisionOps.assert();
           reuseOps.snapshot();
           return [value, { ...records, joined, ticketUnits, revision, reuse }];
-        });
+        };
+      const joinedCommit = <A>(operation: (joined: ReturnType<typeof joinedReviewOperations>, reuse: EvaluationReuse<Pending>) => A): A =>
+        commitAll(joinedChange(operation));
       return {
         append: (review) => joinedCommit((joined) => joined.append(review)),
-        hasAdmission: (admission) => [...Ref.getUnsafe(state).records.joined.entries.values()].some((reviews) => reviews.some((review) => review.admission === admission)),
+        hasAdmission: Effect.fn("JoinedReviews.hasAdmission")((admission: number) =>
+          Ref.get(state).pipe(Effect.map((snapshot) => [...snapshot.records.joined.entries.values()]
+            .some((reviews) => reviews.some((review) => review.admission === admission))))),
         attachOwner: (key, pending, revision) => joinedCommit((joined, reuse) => {
           if (!reuse.attachPending(key, pending)) return false;
           joined.attach(key, revision);
@@ -636,7 +640,8 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           reuse.releaseClaim(key);
           return joined.releaseUnattached(key, reason);
         }),
-        retireSuperseded: (subject) => joinedCommit((joined) => joined.retireSuperseded(subject)),
+        retireSuperseded: Effect.fn("JoinedReviews.retireSuperseded")((subject: string) =>
+          commitAllEffect(joinedChange((joined) => joined.retireSuperseded(subject)))),
         settle: (...args) => joinedCommit((joined) => joined.settle(...args)),
       };
     },

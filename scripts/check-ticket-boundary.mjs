@@ -46,3 +46,11 @@ if (!ticketCommit.includes("commitAllEffect(") || /\bcommitAll\(/u.test(ticketCo
     ticketCommit.includes("Ref.getUnsafe")) {
   throw new Error("ticket operations must compose atomic Effects for commits and reads");
 }
+
+if (!state.includes('hasAdmission: Effect.fn("JoinedReviews.hasAdmission")') ||
+    !state.includes('retireSuperseded: Effect.fn("JoinedReviews.retireSuperseded")') ||
+    !state.includes('commitAllEffect(joinedChange((joined) => joined.retireSuperseded(subject)))') ||
+    !server.includes('yield* residentJoined.hasAdmission(item.admissionId)') ||
+    !server.includes('yield* residentJoined.retireSuperseded(subject)')) {
+  throw new Error("joined admission reads and supersession retirement must compose Effects");
+}

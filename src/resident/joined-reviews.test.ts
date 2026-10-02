@@ -33,8 +33,8 @@ it.effect("attaches one owner and independently settles all joining ticket units
   expect(Object.isFrozen(outcomes[0]?.review.observation)).toBe(true);
   expect((yield* owner.ticketUnits.current(first)).adviceId).toBe("advice");
   expect((yield* owner.ticketUnits.current(second)).adviceId).toBe("advice");
-  expect(joined.hasAdmission(1)).toBe(false);
-  expect(joined.hasAdmission(2)).toBe(false);
+  expect(yield* joined.hasAdmission(1)).toBe(false);
+  expect(yield* joined.hasAdmission(2)).toBe(false);
   expect(joined.settle("key", "finding", undefined, "advice")).toEqual([]);
 }));
 
@@ -51,8 +51,8 @@ it.effect("releases unbound subscribers with the claim while retaining attached 
   expect(joined.releaseOwner("key", "backend").map((review) => review.admission)).toEqual([1]);
   expect(reuse.hasPending("key")).toBe(false);
   expect((yield* owner.ticketUnits.stage(unbound))).toMatchObject({ stage: "unavailable", reason: "backend" });
-  expect(joined.hasAdmission(1)).toBe(false);
-  expect(joined.hasAdmission(2)).toBe(true);
+  expect(yield* joined.hasAdmission(1)).toBe(false);
+  expect(yield* joined.hasAdmission(2)).toBe(true);
   expect(joined.settle("key", "clear").map((outcome) => outcome.stage)).toEqual(["clear"]);
   expect((yield* owner.ticketUnits.stage(attached))?.stage).toBe("clear");
 }));
@@ -68,7 +68,7 @@ it.effect("rolls back unit attachment when native subscriber construction fails"
   })).toThrow("subscriber construction failed");
   expect(owner.canonicalProjection()).toEqual(before);
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
-  expect(joined.hasAdmission(1)).toBe(false);
+  expect(yield* joined.hasAdmission(1)).toBe(false);
 }));
 
 it.effect("clears joined membership with its owner and keeps independent acquisitions isolated", () => Effect.gen(function* () {
@@ -83,9 +83,9 @@ it.effect("clears joined membership with its owner and keeps independent acquisi
   expect(second.canonicalProjection()).toEqual(before);
   const joined = first.joinedReviews(measure);
   joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, revision });
-  expect(second.joinedReviews(measure).hasAdmission(1)).toBe(false);
+  expect(yield* second.joinedReviews(measure).hasAdmission(1)).toBe(false);
   first.clear();
-  expect(joined.hasAdmission(1)).toBe(false);
+  expect(yield* joined.hasAdmission(1)).toBe(false);
   expect(joined.settle("key", "clear")).toEqual([]);
 }));
 
@@ -129,9 +129,21 @@ it.effect("retires superseded subscribers without changing another subject's mem
   joined.attachOwner("first", { token: "first" }, old);
   joined.attachOwner("independent", { token: "independent" }, independent);
   yield* owner.revision.register("a", prepare("type Count = string"), true, "replacement");
-  expect(joined.retireSuperseded(old.subject).map((review) => review.admission)).toEqual([1]);
+  expect((yield* joined.retireSuperseded(old.subject)).map((review) => review.admission)).toEqual([1]);
   expect((yield* owner.ticketUnits.stage(oldUnit))).toMatchObject({ stage: "unavailable", reason: "stale" });
-  expect(joined.hasAdmission(1)).toBe(false);
-  expect(joined.hasAdmission(2)).toBe(true);
+  expect(yield* joined.hasAdmission(1)).toBe(false);
+  expect(yield* joined.hasAdmission(2)).toBe(true);
   expect((yield* owner.ticketUnits.stage(independentUnit))?.stage).toBe("pending");
+}));
+
+
+it.effect("reads joined admission membership at execution", () => Effect.gen(function* () {
+  const owner = yield* makeResidentState();
+  const joined = owner.joinedReviews(measure);
+  const member = joined.hasAdmission(42);
+  expect(yield* member).toBe(false);
+  joined.append({ admission: 42, evaluationKey: "deferred", observation, activityPath: undefined });
+  expect(yield* member).toBe(true);
+  joined.releaseOwner("deferred", "lost");
+  expect(yield* member).toBe(false);
 }));

@@ -165,7 +165,7 @@ it.effect("publishes the owner result and independent joined subscribers togethe
   expect((yield* owner.ticketUnits.stage(subscriber))?.stage).toBe("finding");
   expect((yield* owner.ticketUnits.current(ownerUnit)).adviceId).toBe(advice.id);
   expect((yield* owner.ticketUnits.current(subscriber)).adviceId).toBe(advice.id);
-  expect(joined.hasAdmission(initial.admissionId)).toBe(false);
+  expect(yield* joined.hasAdmission(initial.admissionId)).toBe(false);
   owner.advice.remove(advice, "stale");
   expect(owner.advice.publish(advice, ownerUnit)).toEqual([]);
   expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("unavailable");

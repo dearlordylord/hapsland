@@ -1,3 +1,4 @@
+import type { Effect } from "effect";
 import type { DirectObservation } from "../direct-event/model.ts";
 import type { TicketReason } from "../canonical/adapter.ts";
 import type { CapacityLedger } from "./capacity.ts";
@@ -107,9 +108,9 @@ export const joinedReviewOperations = (
 };
 export interface JoinedReviews<Pending> {
   readonly append: (review: JoinedReview) => void;
-  readonly hasAdmission: (admission: number) => boolean;
+  readonly hasAdmission: (admission: number) => Effect.Effect<boolean>;
   readonly attachOwner: (key: string, pending: Pending, revision: WorkRevision) => boolean;
   readonly releaseOwner: (key: string, reason: TicketReason) => ReadonlyArray<JoinedReview>;
-  readonly retireSuperseded: (subject: string) => ReadonlyArray<JoinedReview>;
+  readonly retireSuperseded: (subject: string) => Effect.Effect<ReadonlyArray<JoinedReview>>;
   readonly settle: ReturnType<typeof joinedReviewOperations>["settle"];
 }

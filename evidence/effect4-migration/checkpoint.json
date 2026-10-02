@@ -137,7 +137,8 @@
     "Revision releases and supersession checks compose named atomic Effects; runtime cleanup yields releases in uninterruptible unit cleanup and Effect finalizers",
     "Revision count composes as a named Effect in runtime statistics; count and supersession checks use one Ref snapshot and private Bend query drafts without publishing state",
     "Revision generation uses a named snapshot-read Effect; finding selection and final handoff offer construction compose generation queries directly as Effects",
-    "All revision service operations are Effects: current checks read one captured snapshot, synchronous revisionCommit removed, composed submission and revalidation yield checks directly"
+    "All revision service operations are Effects: current checks read one captured snapshot, synchronous revisionCommit removed, composed submission and revalidation yield checks directly",
+    "Joined-review admission lookup reads an Effect snapshot instead of Ref.getUnsafe; supersession retirement composes an atomic Effect across joined, ticket-unit, revision and reuse drafts"
   ],
   "verification": [
     {
@@ -1761,12 +1762,21 @@
       "linuxContractEvidence": "round-contract-revision-current-effects.json",
       "linuxContractCasesPassed": 18,
       "case": "Reusable current check observes token replacement after generation-ID reuse without changing canonical state"
+    },
+    {
+      "stage": "joined-admission-supersession-effects",
+      "testsPassed": 100,
+      "testFiles": 3,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "case": "Reusable admission lookup observes append and release at execution; supersession preserves independent subject and ticket state"
     }
   ],
   "next": [
     "Finish remaining preparation/revalidation/delivery fixture ports and deterministic coordination; scoped dispatch and preparation barriers now have cancellation coverage",
     "Establish valid comparative physical-retirement timing evidence rather than the fixed baseline premature-shutdown duration; preserve all declarations, formulas and failure evidence",
-    "Replace remaining capacity, reuse, delivery, advice/capture and notice synchronous domain commit/read bridges; round, ticket-unit and revision services now compose Effects throughout",
+    "Finish joined append/attach/release/settle Effects, then remaining capacity, reuse, delivery, advice/capture and notice domain bridges",
     "Migrate remaining client configuration/trust adapters and server fixture ports into scoped services, inspect remaining agent host edges, and remove intermediate synchronous server/class ownership bridges",
     "Convert fixture hooks to scoped controlled services and deterministic coordination",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
