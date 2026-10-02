@@ -51,7 +51,7 @@ it.effect("resident close retires its preparation layer while the caller scope r
   const controls = yield* makePreparationControls();
   const runtime = yield* makeResidentRuntime(residentPaths("/fixture/preparation-controls"), () => 0,
     { preparationControls: controls.layer });
-  yield* runtime.closeEffect;
+  yield* runtime.close;
   yield* controls.retired;
 })));
 

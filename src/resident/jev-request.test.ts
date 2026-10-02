@@ -43,10 +43,10 @@ describe("canonical Jev request boundary", () => {
     try {
       expect(Effect.runSync(server.admit(observation, { statePath: join(root, "consent"), userConfigPath: null,
         credential: null, controlled: { capturePath } })).status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(new Set(seen)).toEqual(new Set([TYPE_INPUT_CONTRACT, FUNCTION_INPUT_CONTRACT]));
       expect(existsSync(capturePath)).toBe(true);
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
   it("captures an over-32 KiB same-file candidate without sending a v1 request", async () => {
     const root = await makeGitFixture();
@@ -67,12 +67,12 @@ describe("canonical Jev request boundary", () => {
       expect(Buffer.byteLength(source, "utf8")).toBeGreaterThan(32 * 1024);
       expect(Effect.runSync(server.admit(observation, { statePath, userConfigPath: null, credential: null,
         controlled: { capturePath } })).status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(reads).toContain("large.ts");
       expect(commands).toEqual([]);
       expect(existsSync(capturePath)).toBe(false);
       expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBe(0);
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
 
   it("issues a Jev request for large rule text when evidence is within the tree limit", async () => {
@@ -96,11 +96,11 @@ describe("canonical Jev request boundary", () => {
     try {
       expect(Effect.runSync(server.admit(observation, { statePath, userConfigPath: null, credential: null,
         controlled: { capturePath } })).status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(commands.map((item) => item.stage)).toContain("started");
       expect(existsSync(capturePath)).toBe(true);
       expect((await Effect.runPromise(server.accountingMetrics())).pendingOperationalNotices).toBe(0);
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
   });
   it("sends complete selected cross-file evidence and excludes denied supporting source", async () => {
     const root = await makeGitFixture();
@@ -120,19 +120,19 @@ describe("canonical Jev request boundary", () => {
     });
     try {
       expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(existsSync(capturePath)).toBe(true);
       expect(reads).toContain("c.ts");
-    } finally { await server.close(); }
+    } finally { await Effect.runPromise(server.close); }
 
     const gatedCalls = join(root, "gated-provider-calls.txt");
     const gatedServer = await acquireResidentFixture(residentPaths(join(root, "gated-runtime")));
     try {
       expect(Effect.runSync(gatedServer.admit(observation, { ...dispatch, controlled: { capturePath: gatedCalls } })).status).toBe("accepted");
-      await gatedServer.whenIdle();
+      await Effect.runPromise(gatedServer.whenIdle());
       expect(existsSync(gatedCalls)).toBe(true);
       expect((await Effect.runPromise(gatedServer.accountingMetrics())).pendingOperationalNotices).toBe(0);
-    } finally { await gatedServer.close(); }
+    } finally { await Effect.runPromise(gatedServer.close); }
 
     await put(root, ".review.jsonc", JSON.stringify({ version: 1, excludes: ["c.ts"] }));
     reads.length = 0;
@@ -140,10 +140,10 @@ describe("canonical Jev request boundary", () => {
     const excludedServer = await acquireResidentFixture(residentPaths(join(root, "excluded-runtime")), undefined, { captureSource });
     try {
       expect(Effect.runSync(excludedServer.admit(observation, { ...dispatch, controlled: { capturePath: excludedCalls } })).status).toBe("accepted");
-      await excludedServer.whenIdle();
+      await Effect.runPromise(excludedServer.whenIdle());
       expect(existsSync(excludedCalls)).toBe(false);
       expect(reads).not.toContain("c.ts");
-    } finally { await excludedServer.close(); }
+    } finally { await Effect.runPromise(excludedServer.close); }
   });
   it("records an issued command that failed before provider dispatch and releases its permit", async () => {
     const root = await makeGitFixture();
@@ -164,7 +164,7 @@ describe("canonical Jev request boundary", () => {
     try {
       expect(Effect.runSync(server.admit(await event(), { ...dispatch,
         demoBudgetPath: join(root, "missing-budget.json") })).status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(observations.map((item) => [item.stage, item.outcome])).toEqual([
         ["issued", undefined], ["settled", "neverSent"],
       ]);
@@ -175,14 +175,14 @@ describe("canonical Jev request boundary", () => {
       expect(Effect.runSync(server.stats()).retainedBytes).toBe(0);
 
       expect(Effect.runSync(server.admit(await event(), dispatch)).status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(observations.slice(2).map((item) => item.stage)).toEqual([
         "issued", "started", "settled",
       ]);
       expect(new Set(observations.map((item) => item.round)).size).toBe(1);
       expect(existsSync(capturePath)).toBe(true);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
     const nextLifetime: JevRequestObservation[] = [];
     const restarted = await acquireResidentFixture(residentPaths(join(root, "restarted-runtime")), undefined, {
@@ -190,7 +190,7 @@ describe("canonical Jev request boundary", () => {
     });
     try {
       expect(Effect.runSync(restarted.admit(await event(), dispatch, false, true)).status).toBe("accepted");
-      await restarted.whenIdle();
+      await Effect.runPromise(restarted.whenIdle());
       expect(nextLifetime.map((item) => item.stage)).toEqual(["issued", "started", "settled"]);
       expect(nextLifetime.every((item) => item.lifetime === restarted.lifetime)).toBe(true);
       expect(nextLifetime.every((item) => (item.hapslandRound ?? 0) > 0)).toBe(true);
@@ -198,7 +198,7 @@ describe("canonical Jev request boundary", () => {
       expect(nextLifetime[0]?.canonicalLifetime).toBe(observations[0]?.canonicalLifetime);
       expect(nextLifetime[0]?.round).toBe(observations[0]?.round);
     } finally {
-      await restarted.close();
+      await Effect.runPromise(restarted.close);
     }
   });
 
@@ -250,12 +250,12 @@ describe("canonical Jev request boundary", () => {
       expect(observations.filter((item) => item.stage === "unavailable")).toHaveLength(1);
 
       release.resolve();
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(8);
       expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(8);
 
       expect(Effect.runSync(server.admit(await observe([paths[9]!]), dispatch)).status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       expect(effectsEntered).toBe(9);
       expect(observations.filter((item) => item.stage === "settled")).toHaveLength(9);
       expect((await Effect.runPromise(server.pendingAdviceMetadata()))).toHaveLength(9);
@@ -266,7 +266,7 @@ describe("canonical Jev request boundary", () => {
       }
     } finally {
       release.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   }, 15_000);
 
@@ -366,8 +366,8 @@ describe("canonical Jev request boundary", () => {
       expect(observations.filter((item) => item.stage === "started")).toHaveLength(9);
     } finally {
       for (const release of releases) release.resolve();
-      await server.whenIdle();
-      await server.close();
+      await Effect.runPromise(server.whenIdle());
+      await Effect.runPromise(server.close);
     }
   }, 15_000);
 
@@ -450,8 +450,8 @@ describe("canonical Jev request boundary", () => {
     } finally {
       release.resolve();
       await vi.advanceTimersByTimeAsync(16_000);
-      await server.whenIdle();
-      await server.close();
+      await Effect.runPromise(server.whenIdle());
+      await Effect.runPromise(server.close);
       vi.useRealTimers();
     }
   }, 15_000);

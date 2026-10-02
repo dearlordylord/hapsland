@@ -2153,6 +2153,19 @@
       "roundContractEvidence": "evidence/effect4-migration/round-contract-runtime-facade-effects.json",
       "scope": "Stats, cleanup, admit and quiet-round sweeping expose named Effects directly. Deleted runSync runtime wrappers and Effect suffix aliases; runtime owns no synchronous execution or unsafe reads. Native callers execute at fixture boundary; installed witnesses execute admission Effects. Benchmark runner adapts only frozen baseline/current module boundary without product compatibility paths. Strengthened Stop boundary to reject all synchronous runtime execution.",
       "limitations": "Promise collect/whenIdle/handle/listen/close facades, fixture hooks and adapter audit remain. Probe cases are deterministic host-labelled fixtures, not installed-host/live support evidence. Benchmark runner syntax checked; workload reruns remain required."
+    },
+    {
+      "stage": "runtime-lifecycle-promise-facade-deletion",
+      "testsPassed": 146,
+      "testFiles": 8,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "probeStrictTypecheck": true,
+      "roundContractCasesPassed": 18,
+      "roundContractEvidence": "evidence/effect4-migration/round-contract-lifecycle-facade-effects.json",
+      "scope": "Deleted runtime Promise wrappers for listen, whenIdle and close, plus parallel listenEffect/closeEffect names. Scoped listener acquisition, idle barrier and cached close Effect exposed directly. Native fixture close is owning Scope.close Effect; async callers execute at native boundary. Executable Linux and installed wire witnesses updated. Stop boundary rejects parallel lifecycle aliases and Promise signatures.",
+      "limitations": "Collection and handle Promise facades, fixture hooks and adapter audit remain. Round probe uses deterministic host-labelled fixtures. Benchmark runner syntax checked; final performance reruns remain required."
     }
   ],
   "next": [

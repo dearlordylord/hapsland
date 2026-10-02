@@ -48,3 +48,7 @@ for (const ownership of [
 ]) {
   if (!server.includes(ownership)) throw new Error(`missing scoped IPC ownership: ${ownership}`);
 }
+
+if (/listenEffect|closeEffect|(?:whenIdle|listen|close)\(\): Promise/u.test(server)) {
+  throw new Error("resident lifecycle must expose scoped Effects without parallel Promise facades");
+}

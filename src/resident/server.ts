@@ -423,8 +423,6 @@ export interface ResidentRuntime {
   readonly operations: ResidentRuntimeOperations;
   readonly lifetime: string;
   readonly paths: ResidentPaths;
-  readonly listenEffect: () => Effect.Effect<void, ResidentAdapterError>;
-  readonly closeEffect: Effect.Effect<void, ResidentAdapterError>;
   stats(): Effect.Effect<Extract<ResidentResponse, { status: "stats" }>>;
   cleanup(): Effect.Effect<"busy" | "cleaned">;
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed?: boolean, composed?: boolean, requirePermit?: boolean): Effect.Effect<ResidentResponse>;
@@ -436,7 +434,7 @@ export interface ResidentRuntime {
   releaseDelivery(token: string): Effect.Effect<void>;
   beginComposedSubmission(token: string, surface: "edit" | "background" | "stop"): Effect.Effect<ResidentResponse>;
   releaseComposedSubmission(token: string): Effect.Effect<ResidentResponse>;
-  whenIdle(): Promise<void>;
+  whenIdle(): Effect.Effect<void>;
   pendingAdviceMetadata(): Effect.Effect<ReadonlyArray<{
     readonly id: string;
     readonly partition: string;
@@ -463,8 +461,8 @@ export interface ResidentRuntime {
   }>;
   sweepQuietRounds(now?: number): Effect.Effect<number>;
   handle(request: ResidentRequest): Promise<ResidentResponse>;
-  listen(): Promise<void>;
-  close(): Promise<void>;
+  listen(): Effect.Effect<void, ResidentAdapterError>;
+  readonly close: Effect.Effect<void, ResidentAdapterError>;
 }
 
 export class ResidentRuntimeService extends Context.Service<ResidentRuntimeService, ResidentRuntimeOperations>()("@hapsland/ResidentRuntime") {}
@@ -1265,9 +1263,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return { status: (yield* residentCollectionWorkCount(root, advicee, composed)) > 0 ? "pending" : "empty" };
   });
 
-  function whenIdle(): Promise<void> {
-    return Effect.runPromise(residentDispatcher.whenIdle());
-  }
+  const whenIdle = Effect.fn("ResidentRuntime.whenIdle")(() => residentDispatcher.whenIdle());
 
   const pendingAdviceMetadata = Effect.fn("ResidentRuntime.pendingAdviceMetadata")(function* (): Effect.fn.Return<Effect.Success<ReturnType<ResidentRuntime["pendingAdviceMetadata"]>>> {
     return yield* Effect.forEach((yield* residentLedger.advice.snapshots()), Effect.fn("ResidentRuntime.adviceMetadata")(function* ({ capability: advice, content }) {
@@ -2955,7 +2951,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (!(yield* residentLedger.runtime.scheduleRetirement())) return;
     // Retirement runs at the process boundary, outside the scope it closes.
     // Keeping the closing fiber in that scope would make it await itself.
-    yield* Effect.forkIn(Effect.sleep("10 millis").pipe(Effect.andThen(runtime.closeEffect)), residentRuntimeScope);
+    yield* Effect.forkIn(Effect.sleep("10 millis").pipe(Effect.andThen(runtime.close)), residentRuntimeScope);
   });
 
   const residentScheduleIdleCheck = Effect.fn("ResidentRuntime.scheduleIdleCheck")(function* () {
@@ -2989,11 +2985,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       ))));
   });
 
-  function listen(): Promise<void> {
-    return Effect.runPromise(runtime.listenEffect());
-  }
-
-  const listenEffect = Effect.fn("ResidentIpc.listen")(() => {
+  const listen = Effect.fn("ResidentIpc.listen")(() => {
     const owner = runtime;
     // Endpoint publication is a bounded acquisition. Signal interruption must
     // wait for binding to settle so its owning finalizer can remove the socket.
@@ -3028,10 +3020,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentScheduleQuietCheck();
     }));
   });
-
-  function close(): Promise<void> {
-    return Effect.runPromise(runtime.closeEffect);
-  }
 
   const residentDispose = Effect.fn("ResidentRuntime.close")(() => {
     const owner = runtime;
@@ -3080,7 +3068,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
     }));
   });
-  const closeEffect = yield* Effect.cached(Effect.suspend(() => residentDispose()));
+  const close = yield* Effect.cached(Effect.suspend(() => residentDispose()));
   const residentDispatcher: Dispatcher<string, Job> = yield* makeDispatcher<string, Job>(
     residentLedger,
     (job) => ({ operation: job.kind === "ingress" ? job.canonicalObservationId : job.canonicalOperationId,
@@ -3090,14 +3078,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const operations = Object.freeze(ResidentRuntimeService.of({
     lifetime,
     paths,
-    listen: listenEffect,
-    close: closeEffect,
+    listen: listen,
+    close: close,
     handle: residentHandle,
     stats: stats,
-    whenIdle: Effect.fn("ResidentRuntime.whenIdle")(() => residentDispatcher.whenIdle()),
+    whenIdle,
   }));
-  const runtime: ResidentRuntime = Object.freeze({ operations, lifetime, paths, listenEffect, closeEffect, stats, cleanup, admit, collect, acknowledge, finalize, releaseDelivery, beginComposedSubmission, releaseComposedSubmission, whenIdle, pendingAdviceMetadata, accountingMetrics, sweepQuietRounds, handle, listen, close });
-  yield* Effect.addFinalizer(() => closeEffect.pipe(Effect.orDie));
+  const runtime: ResidentRuntime = Object.freeze({ operations, lifetime, paths, stats, cleanup, admit, collect, acknowledge, finalize, releaseDelivery, beginComposedSubmission, releaseComposedSubmission, whenIdle, pendingAdviceMetadata, accountingMetrics, sweepQuietRounds, handle, listen, close });
+  yield* Effect.addFinalizer(() => close.pipe(Effect.orDie));
   return runtime;
 });
 

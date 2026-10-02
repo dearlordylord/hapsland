@@ -87,7 +87,7 @@ try {
       return yield* Effect.gen(function* () {
         phase = "runtime acquisition";
         server = yield* acquire;
-        yield* Effect.promise(() => server.listen());
+        yield* (runtimeModule.makeResidentRuntime === undefined ? Effect.promise(() => server.listen()) : server.listen());
         const dispatch = { statePath: join(root, "consent"), userConfigPath: null, credential: null,
           controlled: { answers: Object.fromEntries(configuredRules.map(rule => [rule.id, { _tag: "Probability", probability: 0 }])) } };
         const admit = Effect.fn("PhysicalRetirement.admit")(function* (edit) {
@@ -139,8 +139,9 @@ try {
           ? server.accountingMetrics() : yield* server.accountingMetrics() : undefined;
         peakRetainedBytes = Math.max(peakRetainedBytes, metrics?.peakLedgerBytes ?? 0);
         peakRssBytes = Math.max(peakRssBytes, measured ? process.memoryUsage().rss : 0);
-        closeFiber = yield* Effect.forkChild(Effect.promise(() => {
-          const completion = server.close();
+        closeFiber = yield* Effect.forkChild(Effect.suspend(() => {
+          const completion = runtimeModule.makeResidentRuntime === undefined
+            ? Effect.promise(() => server.close()) : server.close;
           signal(closeEntered);
           return completion;
         }).pipe(
@@ -172,7 +173,7 @@ try {
       })), Effect.ensuring(Effect.gen(function* () {
         for (const release of releases) yield* Deferred.succeed(release, undefined);
         yield* Effect.promise(() => Promise.all(physicalCompletions));
-        if (server !== undefined) yield* Effect.promise(() => server.close());
+        if (server !== undefined) yield* (runtimeModule.makeResidentRuntime === undefined ? Effect.promise(() => server.close()) : server.close);
         yield* Scope.close(scope, Exit.void);
         monitor.disable();
         if (measured) samples.eventLoop.push(monitor.percentile(95) / 1e6);

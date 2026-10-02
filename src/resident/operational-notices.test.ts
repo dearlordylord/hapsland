@@ -98,7 +98,7 @@ const fillAndFinalizeCooldownTable = async (
     };
     scopes.push(scoped);
     expect(Effect.runSync(server.admit(scoped, context)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
   }
   expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({
     operationalNoticeKeys: maximumKeys,
@@ -146,13 +146,13 @@ console.log('{"version":1,"status":"interaction-required"}');
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     try {
       expect(Effect.runSync(server.admit(observation, context)).status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       const result = await collectAndFinalize(server, observation, context);
       expect(result.status).toBe("empty");
       expect(existsSync(capturePath)).toBe(false);
       expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
       if (previousHelper === undefined) delete process.env.REVIEW_CREDENTIAL_HELPER;
       else process.env.REVIEW_CREDENTIAL_HELPER = previousHelper;
     }
@@ -165,7 +165,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime-a")), () => now);
 
     expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const first = await collectAndFinalize(server, observation, failed);
     expect(first.status).toBe("empty");
     expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
@@ -173,12 +173,12 @@ console.log('{"version":1,"status":"interaction-required"}');
     now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1;
     expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
     expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
 
     now += 1;
     expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const boundary = await collectAndFinalize(server, observation, failed);
     expect(boundary.status).toBe("empty");
 
@@ -187,10 +187,10 @@ console.log('{"version":1,"status":"interaction-required"}');
 
     const restarted = await acquireResidentFixture(residentPaths(join(root, "runtime-b")), () => now);
     expect(Effect.runSync(restarted.admit(observation, failed)).status).toBe("accepted");
-    await restarted.whenIdle();
+    await Effect.runPromise(restarted.whenIdle());
     expect((await restarted.collect(root, observation.advicee, failed)).status).toBe("empty");
-    await server.close();
-    await restarted.close();
+    await Effect.runPromise(server.close);
+    await Effect.runPromise(restarted.close);
   });
 
   it("keeps repeated failures in internal cooldown state without agent output", async () => {
@@ -199,17 +199,17 @@ console.log('{"version":1,"status":"interaction-required"}');
     let now = 100;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     now += OPERATIONAL_NOTICE_COOLDOWN_MS - 1;
     expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     now += 1;
     expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const result = await collectAndFinalize(server, observation, failed);
     expect(result.status).toBe("empty");
     expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
-    await server.close();
+    await Effect.runPromise(server.close);
   });
 
   it("keeps capacity/backend records separate while emitting only fresh findings", async () => {
@@ -218,13 +218,13 @@ console.log('{"version":1,"status":"interaction-required"}');
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => 1_000);
 
     expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     await installCapacityRule(root);
     expect(Effect.runSync(server.admit(observation, capacityDispatch(statePath))).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     await installCapacityRule(root, 0.7, 32);
     expect(Effect.runSync(server.admit(observation, capacityDispatch(statePath))).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const combined = await server.collect(root, observation.advicee, capacityDispatch(statePath));
     expect(combined.status).toBe("advice");
     if (combined.status === "advice") {
@@ -242,17 +242,17 @@ console.log('{"version":1,"status":"interaction-required"}');
     });
     const otherObservation = { ...observation, advicee: otherAdvicee };
     expect(Effect.runSync(server.admit(otherObservation, failed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const otherAdviceeNotice = await collectAndFinalize(server, otherObservation, failed);
     expect(otherAdviceeNotice.status).toBe("empty");
 
     const second = await fixture();
     const secondFailed = dispatch(second.statePath, { failure: "offline backend" });
     expect(Effect.runSync(server.admit(second.observation, secondFailed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await server.collect(root, observation.advicee, failed)).toMatchObject({ status: "empty" });
     expect((await server.collect(second.root, second.observation.advicee, secondFailed)).status).toBe("empty");
-    await server.close();
+    await Effect.runPromise(server.close);
   });
 
   it("reclaims a full cooldown table at equality before the next admission", async () => {
@@ -271,8 +271,8 @@ console.log('{"version":1,"status":"interaction-required"}');
     await installCapacityRule(root, 0.7, 32);
     expect(Effect.runSync(server.admit(observation, capacityDispatch(statePath))).status).toBe("accepted");
     expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 0 });
-    await server.whenIdle();
-    await server.close();
+    await Effect.runPromise(server.whenIdle());
+    await Effect.runPromise(server.close);
 
     await installCapacityRule(root);
     let excludedNow = 50_000;
@@ -286,7 +286,7 @@ console.log('{"version":1,"status":"interaction-required"}');
     const excluded = await Effect.runPromise(adaptCodexDirectEvent(addEvent(root, [".env.local"])));
     if (excluded === undefined) throw new Error("excluded fixture adaptation failed");
     expect(Effect.runSync(excludedServer.admit(excluded, capacity)).status).toBe("accepted");
-    await excludedServer.whenIdle();
+    await Effect.runPromise(excludedServer.whenIdle());
     expect(await excludedServer.collect(root, excluded.advicee, capacity)).toMatchObject({ status: "empty" });
     expect((await Effect.runPromise(excludedServer.accountingMetrics()))).toMatchObject({
       operationalNoticeKeys: maximumKeys,
@@ -294,10 +294,10 @@ console.log('{"version":1,"status":"interaction-required"}');
     });
     excludedNow += PENDING_ADVICE_EXPIRY_MS;
     expect(Effect.runSync(excludedServer.admit(excluded, capacity)).status).toBe("accepted");
-    await excludedServer.whenIdle();
+    await Effect.runPromise(excludedServer.whenIdle());
     expect(await excludedServer.collect(root, excluded.advicee, capacity)).toMatchObject({ status: "empty" });
     expect((await Effect.runPromise(excludedServer.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 0 });
-    await excludedServer.close();
+    await Effect.runPromise(excludedServer.close);
   });
 
   it("saturates canonical suppression counts and keeps a leased pending notice stable", () => {
@@ -330,14 +330,14 @@ console.log('{"version":1,"status":"interaction-required"}');
     let now = 20;
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")), () => now);
     expect(Effect.runSync(server.admit(observation, failed)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 1, pendingOperationalNotices: 1 });
 
     now += PENDING_ADVICE_EXPIRY_MS;
     expect(Effect.runSync(server.admit(observation, dispatch(statePath, { answers }))).status).toBe("accepted");
     expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 0, pendingOperationalNotices: 0 });
-    await server.whenIdle();
-    await server.close();
+    await Effect.runPromise(server.whenIdle());
+    await Effect.runPromise(server.close);
   });
 
   it("does not address unknown advicees or quiet applicability outcomes", async () => {
@@ -371,15 +371,15 @@ console.log('{"version":1,"status":"interaction-required"}');
     if (unsupported === undefined) throw new Error("unsupported fixture adaptation failed");
     const capacity = capacityDispatch(statePath);
     expect(Effect.runSync(server.admit(unsupported, capacity)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const unsupportedOperation = {
       ...observation,
       candidates: [{ operation: "delete" as const, path: "type.ts", addedLines: [] as const }],
     };
     expect(Effect.runSync(server.admit(unsupportedOperation, capacity)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await server.collect(root, unsupported.advicee, capacity)).toMatchObject({ status: "empty" });
     expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ operationalNoticeKeys: 0 });
-    await server.close();
+    await Effect.runPromise(server.close);
   });
 });

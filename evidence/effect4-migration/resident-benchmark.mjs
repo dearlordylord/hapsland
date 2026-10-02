@@ -61,7 +61,7 @@ try {
       await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: observations[0].advicee, token: `stop-${pass}`, close: true });
       if (measured) stops.push(performance.now() - stopStarted);
-      await server.whenIdle();
+      await (runtimeModule.makeResidentRuntime === undefined ? server.whenIdle() : Effect.runPromise(server.whenIdle()));
       if (measured) {
         saturations.push(performance.now() - saturationStarted);
         // The fixed class-based baseline exposes synchronous diagnostics.
@@ -71,12 +71,12 @@ try {
         maximumConcurrentDecisionEffects = Math.max(maximumConcurrentDecisionEffects, maximum);
       }
       const shutdownStarted = performance.now();
-      await server.close();
+      await (runtimeModule.makeResidentRuntime === undefined ? server.close() : Effect.runPromise(server.close));
       if (measured) shutdowns.push(performance.now() - shutdownStarted);
     } finally {
       monitor.disable();
       if (measured) delays.push(monitor.percentile(95) / 1e6);
-      await server.close();
+      await (runtimeModule.makeResidentRuntime === undefined ? server.close() : Effect.runPromise(server.close));
       await Effect.runPromise(Scope.close(fixtureScope, Exit.void));
     }
   }

@@ -43,7 +43,7 @@ if (process.argv[2] === "child") {
   }).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
   const admitted = await Effect.runPromise(server.admit(observation, { statePath, userConfigPath: null, credential: null, controlled: { capturePath: join(root, "called") } }));
   if (admitted.status !== "accepted") throw new Error(`installed admission was ${admitted.status}`);
-  await server.whenIdle();
+  await Effect.runPromise(server.whenIdle());
   await Effect.runPromise(Scope.close(fixtureScope, Exit.void));
 } else {
   const temporary = await mkdtemp(join(tmpdir(), "hapsland-security-installed-debug-"));

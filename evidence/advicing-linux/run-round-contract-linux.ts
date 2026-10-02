@@ -57,8 +57,8 @@ const fixture = async (host: Host, controlled: ResidentDispatchContext["controll
       Effect.provideService(Scope.Scope, scope),
       Effect.onError(() => Scope.close(scope, Exit.void)),
     );
-    yield* runtime.listenEffect().pipe(Effect.onError(() => Scope.close(scope, Exit.void)));
-    return Object.freeze({ ...runtime, close: () => Effect.runPromise(Scope.close(scope, Exit.void)) });
+    yield* runtime.listen().pipe(Effect.onError(() => Scope.close(scope, Exit.void)));
+    return Object.freeze({ ...runtime, close: Scope.close(scope, Exit.void) });
   }));
   const dispatch: ResidentDispatchContext = { statePath, activityPath, credential: null,
     userConfigPath: null, controlled: { ...controlled, capturePath } };
@@ -124,7 +124,7 @@ const fixture = async (host: Host, controlled: ResidentDispatchContext["controll
   };
   const activity = () => readActivity({ statePath: activityPath, root, sessionId: current?.sessionId ?? "session",
     resident: { available: true, lifetime: server.lifetime } });
-  const cleanup = async () => { await server.close(); await rm(root, { recursive: true, force: true }); scratchRoots.delete(root); };
+  const cleanup = async () => { await Effect.runPromise(server.close); await rm(root, { recursive: true, force: true }); scratchRoots.delete(root); };
   return { root, server, admit, calls, collect, backgroundBoundary, stop, activity, cleanup };
 };
 
@@ -145,7 +145,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
   await runCase(host, "finish-waits-for-second-review-and-batches", async () => {
     const f = await fixture(host);
     try {
-      await f.admit({ "first.ts": finding("FirstCount") }); await f.server.whenIdle();
+      await f.admit({ "first.ts": finding("FirstCount") }); await Effect.runPromise(f.server.whenIdle());
       await f.admit({ "second.ts": finding("SecondCount") }, { ...findingControl, delayMs: 1_000 });
       const stop = await f.stop();
       requireThat(stop.blocked && stop.findings === 2, "finish returned before collecting both completed items");
@@ -158,15 +158,15 @@ for (const host of ["codex-cli", "claude-code"] as const) {
   await runCase(host, "deadline-block-cancels-unfinished-and-keeps-repair-round", async () => {
     const f = await fixture(host);
     try {
-      await f.admit({ "first.ts": finding("FirstCount") }); await f.server.whenIdle();
+      await f.admit({ "first.ts": finding("FirstCount") }); await Effect.runPromise(f.server.whenIdle());
       await f.admit({ "second.ts": finding("SecondCount"), "third.ts": finding("ThirdCount"), "fourth.ts": finding("FourthCount") },
         { ...findingControl, delayMs: 8_000 });
-      const stop = await f.stop(); await f.server.whenIdle();
+      const stop = await f.stop(); await Effect.runPromise(f.server.whenIdle());
       requireThat(stop.blocked && stop.findings === 1, "deadline did not select the completed advice");
       const stats = Effect.runSync(f.server.stats());
       requireThat(stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0 && stats.pendingFindingBatches === 1,
         "deadline block retained unfinished review or published a late result");
-      await f.admit({ "repair.ts": finding("RepairCount") }); await f.server.whenIdle();
+      await f.admit({ "repair.ts": finding("RepairCount") }); await Effect.runPromise(f.server.whenIdle());
       const repair = await f.stop(true);
       requireThat(repair.blocked && repair.findings === 1, "fresh repair could not continue the same virtual round");
       const finish = await f.stop(true);
@@ -216,7 +216,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       await f.admit({ "queued.ts": finding("QueuedCount") });
       const beforeStop = Effect.runSync(f.server.stats());
       requireThat(beforeStop.running > 0 && beforeStop.queued > 0, "deadline fixture must hold running and queued work", beforeStop);
-      const stop = await f.stop(); await f.server.whenIdle();
+      const stop = await f.stop(); await Effect.runPromise(f.server.whenIdle());
       requireThat(!stop.blocked, "deadline unexpectedly continued");
       const stats = Effect.runSync(f.server.stats());
       requireThat(stats.queued === 0 && stats.running === 0 && stats.pendingAdvice === 0 && stats.pendingEvaluations === 0 && stats.retainedBytes === 0 &&
@@ -229,7 +229,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
   await runCase(host, "backend-unavailable-not-clean", async () => {
     const f = await fixture(host, { failure: "fixture unavailable" });
     try {
-      await f.admit({ "type.ts": finding() }); await f.server.whenIdle();
+      await f.admit({ "type.ts": finding() }); await Effect.runPromise(f.server.whenIdle());
       const stop = await f.stop();
       requireThat(!stop.blocked && !stop.unavailableNotice && f.activity().counts.unavailable > 0,
         "backend failure must stay in diagnostics without agent output", { stop, activity: f.activity(), stats: Effect.runSync(f.server.stats()) });
@@ -241,7 +241,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
   await runCase(host, "stale-finding-discarded", async () => {
     const f = await fixture(host);
     try {
-      await f.admit({ "type.ts": finding() }); await f.server.whenIdle();
+      await f.admit({ "type.ts": finding() }); await Effect.runPromise(f.server.whenIdle());
       requireThat((await Effect.runPromise(f.server.pendingAdviceMetadata())).length === 1, "stale fixture had no finding to discard");
       await put(f.root, "type.ts", 'type OrderCount = number & { readonly __brand: "OrderCount" }\n');
       const stop = await f.stop();
@@ -252,7 +252,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
   await runCase(host, "multi-unit-one-stop-batch", async () => {
     const f = await fixture(host);
     try {
-      await f.admit({ "first.ts": finding("FirstCount"), "second.ts": finding("SecondCount") }); await f.server.whenIdle();
+      await f.admit({ "first.ts": finding("FirstCount"), "second.ts": finding("SecondCount") }); await Effect.runPromise(f.server.whenIdle());
       requireThat((await Effect.runPromise(f.server.pendingAdviceMetadata())).length === 2, "multi-unit fixture did not produce two records");
       const selected = asAdvice(await f.collect());
       requireThat(selected.findingCount === 2, "multi-unit collection did not include both findings");
@@ -270,7 +270,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       if (!gateUsed) { gateUsed = true; entered.resolve(); await release.promise; }
     } });
     try {
-      await f.admit({ "type.ts": finding() }); await f.server.whenIdle();
+      await f.admit({ "type.ts": finding() }); await Effect.runPromise(f.server.whenIdle());
       const callsBefore = await f.calls();
       const worker = "fixture-background-worker";
       requireThat((await f.backgroundBoundary("claim-background", worker)).status === "background-claimed", "background claim failed");
@@ -298,7 +298,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
     try {
       const stops = [];
       for (let index = 0; index < 5; index++) {
-        await f.admit({ "type.ts": finding(`Count${index}`) }); await f.server.whenIdle();
+        await f.admit({ "type.ts": finding(`Count${index}`) }); await Effect.runPromise(f.server.whenIdle());
         stops.push(await f.stop(index > 0));
       }
       requireThat(stops.slice(0, 4).every((stop) => stop.blocked) && !stops[4]!.blocked, "four-continuation cap was violated");
@@ -306,7 +306,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       requireThat(closed?.reason === "limit" && closed.reservedContinuations === 0 && closed.discarded.submitted === 4, "limit closure summary mismatch", { closed, activity: f.activity() });
       requireThat(Effect.runSync(f.server.stats()).pendingAdvice === 0, "limit left pending advice");
       await pause(5);
-      await f.admit({ "type.ts": finding("NewRoundCount") }); await f.server.whenIdle();
+      await f.admit({ "type.ts": finding("NewRoundCount") }); await Effect.runPromise(f.server.whenIdle());
       const nextRound = await f.stop(); requireThat(nextRound.blocked, "new round did not receive a fresh count");
       return { stops, closure: closed, newRound: nextRound, simulatedRepairEdits: 4 };
     } finally { await f.cleanup(); }

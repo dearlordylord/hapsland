@@ -93,7 +93,7 @@ try {
       await held;
     },
   }).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
-  await server.listen();
+  await Effect.runPromise(server.listen());
   const dispatch = {
     statePath, userConfigPath: null,
     credential: {
@@ -128,7 +128,7 @@ try {
     });
   }
   release();
-  await server.whenIdle();
+  await Effect.runPromise(server.whenIdle());
   const collection = await residentRequest(paths, {
     requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
     root: observation.root, advicee: observation.advicee, dispatch, composed: true,

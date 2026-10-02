@@ -73,12 +73,12 @@ describe("Claude terminal collection", () => {
   it("rejects an invalid socket collection version without reporting a review result", async () => {
     const data = await fixture();
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
-    await server.listen();
+    await Effect.runPromise(server.listen());
     try {
       expect(await collectOverSocket(server, { nonce: "invalid", lifetime: server.lifetime },
         data, data.dispatch(0.9), null)).toEqual({ version: 1, status: "unsupported" });
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
   it("joins a claimed evaluation before its owner attaches the request", async () => {
@@ -133,7 +133,7 @@ describe("Claude terminal collection", () => {
     } finally {
       await Effect.runPromise(controls.releaseOwner);
     }
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
     expect(await collect(server, second.ticket, data, dispatch, secondObservation.advicee))
       .toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -163,11 +163,11 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0);
     const first = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect((await Effect.runPromise(server.accountingMetrics())).pendingEvaluations).toBe(0);
     const second = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, second.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
     expect((await Effect.runPromise(server.accountingMetrics()))).toMatchObject({ successfulCacheEntries: 1, pendingEvaluations: 0 });
   });
@@ -190,7 +190,7 @@ describe("Claude terminal collection", () => {
     await entered.promise;
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "pending" });
     gate.resolve();
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
     expect(await collect(server, admission.ticket, data, {
       ...dispatch, credential: { name: "TYPESAFE_API_KEY", environmentValue: null,
@@ -212,7 +212,7 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0.9);
     const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     for (let index = 0; index < 16; index += 1) {
       const advice = await collect(server, admission.ticket, data, dispatch);
       if (advice.status !== "advice") break;
@@ -230,7 +230,7 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0, "backend failed");
     const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const result = await collect(server, admission.ticket, data, dispatch);
     expect(result).toEqual({ requestRoute: "ticketed", status: "empty" });
     expect(Effect.runSync(server.stats()).pendingOperationalNotices).toBeGreaterThan(0);
@@ -248,7 +248,7 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0);
     const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
     const path = await put(data.root, "type.ts", "type OrderCount = string\n");
     const second = await Effect.runPromise(adaptClaudeDirectEvent({
@@ -259,7 +259,7 @@ describe("Claude terminal collection", () => {
     }));
     if (second === undefined) throw new Error("second edit not adapted");
     expect(Effect.runSync(server.admit(second, dispatch)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
     now += 600_001;
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "unavailable", reason: "expired" });
@@ -273,7 +273,7 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0);
     const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const expiresAt = admittedAt + 600_000;
     now = expiresAt - 0.00005;
     expect(now).toBeLessThan(expiresAt);
@@ -298,7 +298,7 @@ describe("Claude terminal collection", () => {
       beforeEvaluate: async () => { evaluating.resolve(); await evaluateGate.promise; },
       beforeResponseHandoff: async () => { handingOff.resolve(); await responseGate.promise; },
     });
-    await server.listen();
+    await Effect.runPromise(server.listen());
     try {
       const dispatch = data.dispatch(0);
       const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
@@ -307,13 +307,13 @@ describe("Claude terminal collection", () => {
       const result = collectOverSocket(server, admission.ticket, data, dispatch);
       await handingOff.promise;
       evaluateGate.resolve();
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       responseGate.resolve();
       expect(await result).toEqual({ version: 1, status: "empty" });
     } finally {
       evaluateGate.resolve();
       responseGate.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -327,7 +327,7 @@ describe("Claude terminal collection", () => {
       beforeEvaluate: async () => { evaluating.resolve(); await evaluateGate.promise; },
       beforeResponseHandoff: async () => { handingOff.resolve(); await responseGate.promise; },
     });
-    await server.listen();
+    await Effect.runPromise(server.listen());
     try {
       const dispatch = data.dispatch(0.9);
       const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
@@ -336,14 +336,14 @@ describe("Claude terminal collection", () => {
       const result = collectOverSocket(server, admission.ticket, data, dispatch);
       await handingOff.promise;
       evaluateGate.resolve();
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       responseGate.resolve();
       expect((await result).status).toBe("pending");
       expect((await collect(server, admission.ticket, data, dispatch)).status).toBe("advice");
     } finally {
       evaluateGate.resolve();
       responseGate.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -354,12 +354,12 @@ describe("Claude terminal collection", () => {
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
       beforeResponseHandoff: async () => { handingOff.resolve(); await responseGate.promise; },
     });
-    await server.listen();
+    await Effect.runPromise(server.listen());
     try {
       const dispatch = data.dispatch(0);
       const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
       if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       const result = collectOverSocket(server, admission.ticket, data, dispatch);
       await handingOff.promise;
       const path = await put(data.root, "type.ts", "type OrderCount = string\n");
@@ -371,12 +371,12 @@ describe("Claude terminal collection", () => {
       }));
       if (second === undefined) throw new Error("second edit not adapted");
       expect(Effect.runSync(server.admit(second, dispatch)).status).toBe("accepted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       responseGate.resolve();
       expect(await result).toEqual({ version: 1, status: "empty" });
     } finally {
       responseGate.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -397,7 +397,7 @@ describe("Claude terminal collection", () => {
     const dispatch = { ...data.dispatch(0.9), activityPath };
     const admission = Effect.runSync(server.admit(observation, dispatch, true));
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     let delivered = false;
     for (let index = 0; index < 16; index += 1) {
       const outcome = await collect(server, admission.ticket, data, dispatch);
@@ -421,7 +421,7 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0.9);
     const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const outcomes = await Promise.all([
       collect(server, admission.ticket, data, dispatch),
       collect(server, admission.ticket, data, dispatch),
@@ -442,7 +442,7 @@ describe("Claude terminal collection", () => {
     const skipped = Effect.runSync(server.admit({ ...data.observation, candidates: [{ operation: "delete", path: "type.ts", addedLines: [] }] }, dispatch, true));
     if (finding.status !== "accepted" || !("ticket" in finding) ||
         skipped.status !== "accepted" || !("ticket" in skipped)) throw new Error("not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const other = await collect(server, skipped.ticket, data, dispatch);
     expect(other.status).toBe("advice");
     expect((await collect(server, finding.ticket, data, dispatch)).status).toBe("pending");
@@ -456,10 +456,10 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0.9);
     const first = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const second = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     let advice = await collect(server, second.ticket, data, dispatch);
     expect(advice.status).toBe("advice");
     for (let index = 0; index < 16 && advice.status === "advice"; index += 1) {
@@ -486,11 +486,11 @@ describe("Claude terminal collection", () => {
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")), undefined, {
       beforeResponseHandoff: async () => { entered.resolve(); await gate.promise; },
     });
-    await server.listen();
+    await Effect.runPromise(server.listen());
     try {
       const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
       if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       const result = collectOverSocket(server, admission.ticket, data, dispatch);
       await entered.promise;
       writeFileSync(statePath, JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
@@ -499,7 +499,7 @@ describe("Claude terminal collection", () => {
       expect(Effect.runSync(server.stats()).pendingAdvice).toBeGreaterThan(0);
     } finally {
       gate.resolve();
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -516,7 +516,7 @@ describe("Claude terminal collection", () => {
     const server = await acquireResidentFixture(residentPaths(join(data.root, "runtime")));
     const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
     writeFileSync(statePath, JSON.stringify({ version: 1, generation: 2, savedUseSuspended: false }));
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({
@@ -530,11 +530,11 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0);
     const first = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
     const second = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, second.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
   });
 
@@ -545,7 +545,7 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0);
     const admission = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
   });
 
@@ -555,11 +555,11 @@ describe("Claude terminal collection", () => {
     const failed = data.dispatch(0, "controlled backend failure");
     const first = Effect.runSync(server.admit(data.observation, failed, true));
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     await put(data.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     const second = Effect.runSync(server.admit(data.observation, failed, true));
     if (second.status !== "accepted" || !("ticket" in second)) throw new Error("second not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, second.ticket, data, failed)).toEqual({ requestRoute: "ticketed", status: "empty" });
     expect(Effect.runSync(server.stats()).pendingOperationalNotices).toBeGreaterThan(0);
     expect(await collect(server, first.ticket, data, failed)).toEqual({ requestRoute: "ticketed", status: "empty" });
@@ -572,11 +572,11 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0);
     const first = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
     const later = { ...data.observation, advicee: { ...data.observation.advicee, toolUseId: "later-tool" } };
     expect(Effect.runSync(server.admit(later, dispatch)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "empty" });
   });
 
@@ -587,7 +587,7 @@ describe("Claude terminal collection", () => {
     const dispatch = data.dispatch(0.9);
     const first = Effect.runSync(server.admit(data.observation, dispatch, true));
     if (first.status !== "accepted" || !("ticket" in first)) throw new Error("first not admitted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     now += PENDING_ADVICE_EXPIRY_MS + 1;
     expect(await collect(server, first.ticket, data, dispatch)).toEqual({
       requestRoute: "ticketed", status: "unavailable", reason: "expired",

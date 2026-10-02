@@ -20,5 +20,5 @@ export const acquireResidentFixture = (...args: Parameters<typeof makeResidentRu
       Effect.onError(() => Scope.close(scope, Exit.void)),
     );
     scopes.add(scope);
-    return Object.freeze({ ...runtime, close: () => Effect.runPromise(Scope.close(scope, Exit.void)) });
+    return Object.freeze({ ...runtime, close: Scope.close(scope, Exit.void) });
   }));

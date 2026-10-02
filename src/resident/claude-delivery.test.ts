@@ -42,7 +42,7 @@ describe("Claude advicee scoped resident delivery", () => {
       if (accepted.status !== "accepted" || !("ticket" in accepted)) throw new Error("expected admission");
       latest = { ticket: accepted.ticket, advicee: observation.advicee };
     }
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     if (latest === undefined) throw new Error("expected second admission");
     const result = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
       ticket: latest.ticket, root, advicee: latest.advicee, dispatch, composed: true });
@@ -78,7 +78,7 @@ describe("Claude advicee scoped resident delivery", () => {
       }
       admitted.push({ ticket: accepted.ticket, advicee: observation.advicee });
     }
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const latest = admitted[1]!;
     const result = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
       ticket: latest.ticket, root, advicee: latest.advicee, dispatch, composed: true });
@@ -108,7 +108,7 @@ describe("Claude advicee scoped resident delivery", () => {
       ])) } };
     const server = await acquireResidentFixture(residentPaths(join(root, "runtime")));
     expect(Effect.runSync(server.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(Effect.runSync(server.stats()).pendingFindingBatches).toBe(1);
     const stopToken = "stop-collection";
     expect((await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
@@ -144,7 +144,7 @@ describe("Claude advicee scoped resident delivery", () => {
       ])) },
     };
     expect(Effect.runSync(server.admit(observation, dispatch)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1);
     const delivered = await server.collect(root, { ...observation.advicee, toolUseId: "tool-two" }, dispatch);
     expect(delivered.status).toBe("advice");
@@ -179,7 +179,7 @@ describe("Claude advicee scoped resident delivery", () => {
       observation, controlledWriter: true, dispatch, composed: true });
     expect(accepted.status).toBe("accepted");
     if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") return;
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     const wrong = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
       ticket: accepted.ticket, root, advicee: { ...observation.advicee, toolUseId: "other" }, dispatch, composed: true });
     expect(wrong).toMatchObject({ requestRoute: "ticketed", status: "unavailable", reason: "lost" });
@@ -199,7 +199,7 @@ describe("Claude advicee scoped resident delivery", () => {
     const later = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
       observation: laterObservation, controlledWriter: true, dispatch, composed: true });
     if (later.status !== "accepted" || !("requestRoute" in later) || later.requestRoute !== "ticketed") throw new Error("expected later ticket");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"block-current-findings"}');
     const laterOutput = await server.handle({ requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
       ticket: later.ticket, root, advicee: laterObservation.advicee, dispatch, composed: true });
@@ -230,21 +230,21 @@ describe("Claude advicee scoped resident delivery", () => {
     const server = await acquireResidentFixture(paths, undefined, { beforeResponseHandoff: async () => {
       if (changeAtHandoff) writeFileSync(path, "type OrderCount = string\n");
     } });
-    await server.listen();
+    await Effect.runPromise(server.listen());
     try {
       expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
       const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
         observation, controlledWriter: true, dispatch, composed: true });
       if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       changeAtHandoff = true;
       const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
         ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
       expect(response.status).not.toBe("advice");
       expect(Effect.runSync(server.stats()).pendingAdvice).toBe(0);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 
@@ -274,21 +274,21 @@ describe("Claude advicee scoped resident delivery", () => {
         if (revoke) writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
       },
     });
-    await server.listen();
+    await Effect.runPromise(server.listen());
     try {
       expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
         root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
       const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
         observation, controlledWriter: true, dispatch, composed: true });
       if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
-      await server.whenIdle();
+      await Effect.runPromise(server.whenIdle());
       revoke = true;
       const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
         ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
       expect(response).toMatchObject({ requestRoute: "ticketed", status: "pending" });
       expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1);
     } finally {
-      await server.close();
+      await Effect.runPromise(server.close);
     }
   });
 });

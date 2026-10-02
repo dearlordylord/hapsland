@@ -33,7 +33,7 @@ it.effect("scope closure removes owned endpoints and fences the retired lifetime
     (scope) => Effect.gen(function* () {
       const paths = residentPaths(directory);
       const runtime = yield* makeResidentRuntime(paths).pipe(Effect.provideService(Scope.Scope, scope));
-      yield* runtime.listenEffect();
+      yield* runtime.listen();
       expect(existsSync(paths.socket)).toBe(true);
       expect(existsSync(paths.owner)).toBe(true);
       yield* Scope.close(scope, Exit.void);

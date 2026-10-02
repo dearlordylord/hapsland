@@ -37,7 +37,7 @@ const server = await Effect.runPromise(makeResidentRuntime(runtime, undefined, {
     }
   },
 }).pipe(Effect.provideService(Scope.Scope, fixtureScope)));
-await server.listen();
+await Effect.runPromise(server.listen());
 await writeFile(join(root, "wire-ready"), server.lifetime, { mode: 0o600 });
 const stop = () => { void Effect.runPromise(Scope.close(fixtureScope, Exit.void)).then(() => process.exit(0)); };
 process.once("SIGTERM", stop);

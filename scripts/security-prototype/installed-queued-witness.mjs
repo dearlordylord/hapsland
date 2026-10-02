@@ -74,7 +74,7 @@ try {
       await writeFile(join(root, ".review.jsonc"), '{"version":1,"excludes":["type.ts"]}\n');
       release.resolve();
     }
-    await within(server.whenIdle(), "installed resident idle barrier");
+    await within(Effect.runPromise(server.whenIdle()), "installed resident idle barrier");
     await Effect.runPromise(Scope.close(fixtureScope, Exit.void));
     return existsSync(capturePath) ? readFileSync(capturePath, "utf8").trim().split("\n").filter(Boolean).length : 0;
   };

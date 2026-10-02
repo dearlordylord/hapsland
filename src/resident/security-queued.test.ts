@@ -51,7 +51,7 @@ describe("queued exclusion authority", () => {
     const fixture = await setup(false);
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")));
     expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(1);
   }, 30_000);
 
@@ -59,7 +59,7 @@ describe("queued exclusion authority", () => {
     const fixture = await setup(true);
     const server = await acquireResidentFixture(residentPaths(join(fixture.root, "runtime")));
     expect(Effect.runSync(server.admit(fixture.observation, fixture.dispatch)).status).toBe("accepted");
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
   }, 30_000);
 
@@ -81,7 +81,7 @@ describe("queued exclusion authority", () => {
     expect(calls(fixture.capturePath)).toBe(0);
     await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     release.resolve();
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
   }, 30_000);
 
@@ -101,7 +101,7 @@ describe("queued exclusion authority", () => {
     expect(preparedSourceSeen).toBe(true);
     await put(fixture.root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     await Effect.runPromise(controls.release);
-    await server.whenIdle();
+    await Effect.runPromise(server.whenIdle());
     expect(calls(fixture.capturePath)).toBe(0);
   }, 30_000);
 });
