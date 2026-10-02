@@ -1,4 +1,3 @@
-import { postEditTimingView } from "./post-edit-timing";
 import { Schema } from "effect";
 import type { HtmlBuilder } from "foldkit/html";
 import { numberRecords } from "@hapsland/agent-flow-projection";
@@ -26,7 +25,7 @@ export const initialSimulation: SimulationModel = {
 const displayScopes = (model: ResidentModel) => {
   const run = simulationRun();
   if (run?.agentScopes.length) return run.agentScopes;
-  const partitions = run?.projection.partitions.map(record => record.partition) ?? [];
+  const partitions = run?.projection.partitions.map(record => record.partition).sort((a, b) => a - b) ?? [];
   return (partitions.length ? partitions : [1]).map(partition => ({
     agent: `agent-${partition}`, partition, seed: run?.exportReplay().config.seed ?? Number(model.seed),
   }));
@@ -84,6 +83,14 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
   const run = simulationRun();
   const observations = run?.observations ?? [];
   const current = model.resident.selected < 0 ? observations.at(-1) : observations.find(frame => frame.sequence === model.resident.selected);
+  const displayedEvent = current?.event;
+  const operation = displayedEvent && "operation" in displayedEvent ? displayedEvent.operation : undefined;
+  const requestId = displayedEvent && "request" in displayedEvent ? displayedEvent.request : undefined;
+  const eventOwner = current ? ("partition" in current.event ? current.event.partition
+    : current.preparation ? current.partition
+    : "operation" in current.event ? [...current.before.work, ...current.after.work].find(work => work.operation === operation)?.partition
+    : "request" in current.event ? [...current.before.dispatch.requests, ...current.after.dispatch.requests].find(request => request.request === requestId)?.partition
+    : undefined) : undefined;
   const history = observations.filter(frame => frame.sequence <= (current?.sequence ?? -1));
   const projection = model.resident.selected < 0 ? current?.after ?? run?.projection : current?.after;
   const numbers = numberRecords(observations[0]?.sequence === 0 ? history : []);
@@ -124,18 +131,18 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
             h.Type("button"), h.Class(`ensemble-agent agent-index-${index} ${index === model.active ? "selected" : ""}`),
             h.Style({ borderLeftColor: colors[index] }), h.OnClick(action(`fleet:select:${index}`)),
             h.AriaLabel(`Select agent ${index + 1}`),
-          ], [h.strong([], [`Agent ${String(index + 1).padStart(2, "0")}`]),
+          ], [h.strong([], [`Agent ${String(index + 1).padStart(2, "0")}`, h.span([h.Class("ensemble-event-marker"), ...(eventOwner === agent.partition ? [h.Role("img"), h.AriaLabel("Current event"), h.Title("Current event"), h.Style({ background: colors[index] })] : [h.AriaHidden(true)])], [])]),
             h.span([], [run && !run.agentScopes.length ? "Scripted events" : `Seed ${agent.seed}`]), h.span([], [`${model.playing ? "Running" : "Paused"} · ${history.length} retained events`]),
             h.small([], [current?.event.kind ?? "Ready to start"])])),
           h.p([h.Class("ensemble-scope")], ["Select an agent for its generator controls and stage inspection. Playback, history and replay belong to the whole resident."]),
         ]),
         h.div([h.Class("ensemble-viewport"), h.Style({ height: `${sceneHeight}px` }), h.AriaLabel("Three-dimensional agent diagram")], [
           h.div([h.Class("ensemble-scene"), h.Style({
-            transform: model.flat ? "none" : `translateY(${-35 + Math.max(0, layers.length - 3) * 30}px) scale(${bounded(model.zoom, 35, 100, 72) / 100}) rotateX(${bounded(model.tilt, 0, 65, 48)}deg) rotateZ(${bounded(model.turn, -180, 180, -16)}deg) translateZ(${-(layers.length - 1) * spacing / 2}px)`,
+            transform: model.flat ? "none" : `translateY(${-35 + Math.max(0, layers.length - 3) * 30}px) scale(${bounded(model.zoom, 20, 200, 72) / 100}) rotateX(${bounded(model.tilt, 0, 65, 48)}deg) rotateZ(${bounded(model.turn, -180, 180, -16)}deg) translateZ(${-(layers.length - 1) * spacing / 2}px)`,
           })], [
             ...layers.filter(layer => !model.flat || layer.index === model.active).map(({ agent, index, local, last, history, numbers }) => h.div([
               h.Class(`ensemble-layer agent-index-${index} ${index === model.active ? "is-selected" : ""}`),
-              h.Style({ transform: model.flat ? "none" : `translateZ(${index * spacing}px)`, borderColor: colors[index] }),
+              h.Style({ transform: model.flat ? "none" : `translateZ(${(layers.length - 1 - index) * spacing}px)`, borderColor: colors[index] }),
             ], [
               h.div([h.Class("ensemble-layer-title"), h.Style({ color: colors[index] })], [
                 h.strong([], [`AGENT ${String(index + 1).padStart(2, "0")}`]), h.span([], [`${current?.time ?? run?.now ?? 0} ms · seed ${agent.seed}`]),
@@ -150,21 +157,20 @@ export const simulationView = <Message>(model: SimulationModel, h: HtmlBuilder<M
                 // Match the SVG's xMidYMid meet geometry inside the fixed diagram plane.
                 left: `${1 + 12 + (894 - 505 * 1400 / 830) / 2 + contact.x * 505 / 830}px`,
                 top: `${1 + 32 + contact.y * 505 / 830}px`,
-                transform: `translateZ(${index * spacing}px) rotateX(90deg)`,
+                transform: `translateZ(${(layers.length - 1 - index) * spacing}px) rotateX(-90deg)`,
               }),
             ], []))) : []),
           ]),
-          ...(!model.flat ? [h.div([h.Class("ensemble-gesture-hint")], ["Drag to rotate · touch: drag sideways, scroll vertically"])] : []),
+          ...(!model.flat ? [h.div([h.Class("ensemble-gesture-hint")], ["Drag to rotate · wheel or pinch to zoom · touch: scroll vertically"])] : []),
           ...(model.flat ? [h.div([h.Class("ensemble-orientation")], [`AGENT ${model.active + 1} / INSPECTION VIEW`])] : []),
         ]),
       ]),
       h.div([h.Class("ensemble-camera")], [range("Tilt", "tilt", 0, 65, model.tilt), range("Rotation", "turn", -180, 180, model.turn),
-        range("Layer spacing", "spacing", 70, 190, model.spacing), range("Zoom", "zoom", 35, 100, model.zoom)]),
+        range("Layer spacing", "spacing", 70, 190, model.spacing), range("Zoom", "zoom", 20, 200, model.zoom)]),
       h.p([h.Class("ensemble-evidence-key")], ["Diagram: blue = state / decision · gray = external work · orange = transition · purple dashed = command. Select a stage to inspect its checked state."]),
       h.div([h.Class("ensemble-resource-key")], [h.span([h.Class("capacity-key")], ["● Resident capacity → Admission & capacity"]), h.span([h.Class("jev-key")], ["● Jev backend → Jev request attempt"]),
         h.p([], ["Green contacts share the resident’s global capacity ledger. Gold contacts share its Jev request pool. Agent layers show their own checked state at the same resident event; contention is decided by Bend. Jev responses are simulated."])]),
     ]),
-    postEditTimingView(h),
     h.div([h.Class("ensemble-inspector-heading")], [h.h2([], [`Resident controls · ${active.agent.agent} selected`]),
       h.p([], [run && !run.agentScopes.length ? "Scripted replay: no event generator is attached. Backend/native profiles, playback, history and replay files apply to the whole resident." : `Edit pace, bursts, size and suspension target ${active.agent.agent}. Backend/native profiles, playback, history and replay files apply to the whole resident.`])]),
     residentView(model.resident, h, action, changed, false, active.local ? { projection: active.local, observations: active.history, partition: active.agent.partition, agents: scopes } : undefined),

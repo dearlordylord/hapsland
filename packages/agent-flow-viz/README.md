@@ -341,7 +341,12 @@ Drag the 3D viewport to rotate the layers. Mouse dragging changes rotation and
 tilt; horizontal touch dragging rotates while vertical touch gestures scroll
 the page. Rotation wraps through a full turn. A drag does not activate a stage;
 a click or tap opens its inspector. **Tilt**, **Rotation**, **Layer spacing** and
-**Zoom** also position the layers. **Focus selected agent** opens that diagram
+**Zoom** also position the layers. Zoom spans 20–200%; wheel or touchpad pinch
+over the viewport and two-finger touch pinch zoom around its center. Page
+scrolling outside the viewport is unchanged; Reset view restores 72%. Agent 1 is
+the front/top plane, matching sidebar order. A colored dot marks the current
+checked event owner independently of selected or hovered agent; unattributed
+resident events show no dot. **Focus selected agent** opens that diagram
 without perspective; **3D layers** returns to the stack. Narrow screens scroll
 the diagram viewport independently of the page.
 
@@ -550,18 +555,6 @@ The Monkey dashboard starts new demos with edit-permit ceilings of 16 per agent
 and 64 for the shared resident. Explicit replay/fixture ceilings remain unchanged;
 native permit defaults remain 32 per advicee and 4096 per resident.
 
-
-The expandable [hook timing panel](#current-hook-timing) shows current installed
-Claude Code and Codex CLI paths first, followed by clearly separated no-pre
-proposals. Both pre hooks record the upcoming edit; failure does not block the
-native edit. Claude's synchronous post hook reports the completed edit and may
-wait for review until a result or time limit. Codex's post hook reports and
-returns, while resident review continues. A separate background collector can
-overlap these paths. Stop decides immediately when no review is unfinished and
-otherwise waits within its time limit; findings may continue the turn. The
-illustrations repeat per edit and do not assume one edit per turn or measured
-durations. `test:timing-browser` checks the direct anchor, keyboard disclosure,
-current/proposal labels, and contained narrow-screen scrolling.
 
 Ticket state and its exercise were removed with master issue #171; active review
 responses use response authority rather than retained ticket records.

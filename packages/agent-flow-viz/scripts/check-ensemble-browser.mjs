@@ -49,7 +49,7 @@ try {
   await ensemble.screenshot({ path: "/tmp/hapsland-ensemble-drag.png" });
   await click("Reset view");
   // A drag beginning on a stage must not activate that stage on release.
-  const stage = ensemble.locator(".ensemble-layer").last().locator('.topology-node[role="button"]').first();
+  const stage = ensemble.locator(".ensemble-layer").first().locator('.topology-node[role="button"]').first();
   const stageBounds = await stage.boundingBox();
   await page.mouse.move(stageBounds.x + stageBounds.width / 2, stageBounds.y + stageBounds.height / 2);
   await page.mouse.down();
@@ -150,14 +150,15 @@ try {
   }
   const poolOwners = await ensemble.locator(".stage-jev-pool").evaluateAll(pools => pools.map(pool => Array.from(pool.querySelectorAll(".stage-jev-slot"), slot => [slot.getAttribute("aria-label"), slot.querySelector("rect").getAttribute("fill")])));
   for (const owners of poolOwners) assert.deepEqual(owners, poolOwners[0], "all layers use the same global owners and agent colors");
-  assert.match(await ensemble.locator(".shared-capacity-total").textContent(), new RegExp(`^${saturation.projection.global.items} / 64 items · ${saturation.projection.global.bytes} / 8000 bytes$`));
+  assert.equal(await ensemble.locator(".resident-capacity-items .resident-capacity-total").first().textContent(), `${saturation.projection.global.items} / 64`);
+  assert.equal(await ensemble.locator(".resident-capacity-bytes .resident-capacity-total").first().textContent(), `${saturation.projection.global.bytes} / 8000`);
   const times = await ensemble.locator(".ensemble-layer-title span").allTextContents();
   assert.equal(new Set(times.map(text => text.split(" · ")[0])).size, 1, "all layers share the same resident time");
   await ensemble.screenshot({ path: "/tmp/hapsland-shared-resident.png" });
   const finalResourceText = await ensemble.locator(".shared-resident").textContent();
   await click("Previous event");
   const prior = JSON.parse(await inspector.locator(".simulation-details pre").textContent());
-  assert.match(await ensemble.locator(".shared-capacity-total").textContent(), new RegExp(`^${prior.after.global.items} /`));
+  assert.equal(await ensemble.locator(".resident-capacity-items .resident-capacity-total").first().textContent(), `${prior.after.global.items} / ${prior.after.limits.globalItems}`);
   for (const pool of await ensemble.locator(".stage-jev-pool").all()) assert.equal(await pool.locator(".stage-jev-slot.occupied").count(), prior.after.dispatch.requests.length);
   await click("Return to latest");
   assert.equal(await ensemble.locator(".shared-resident").textContent(), finalResourceText);

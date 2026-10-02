@@ -1,4 +1,5 @@
 import { executionPoolsView } from "./execution-pools-view";
+import { residentCapacityInset } from "./resident-capacity-inset";
 import type { AgentScope } from "./shared-resident-view";
 import { adviceePermitLimit } from "./resource-details";
 import type { CapacityMetadata } from "../../monkey-business/src/index";
@@ -429,6 +430,7 @@ export const productionFlowView = <Message>(
                 : []),
           ]);
         }),
+        ...(infrastructure ? [residentCapacityInset(h, resident, agents, inspect)] : []),
         ...(infrastructure ? INFRASTRUCTURE_CONTACTS.map(contact => h.g([
           h.Class(`topology-resource ${contact.id}`), h.Role("img"),
           h.AriaLabel(`${contact.title} contact at ${SQUARES[contact.stage].title}: ${contact.scope}`),

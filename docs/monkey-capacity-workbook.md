@@ -587,40 +587,6 @@ Astra's bounded rendered after-review confirmed the new local/resident labels fi
 and scope remains clear, with no UX blocker.
 
 
-## Current installed hook timing (2026-10-02)
-
-The current timing panel begins at `#current-hook-timing` with
-separate Claude Code and Codex CLI illustrations, based on current foreground
-adapter code (`src/cli.ts`, Codex admission around 430–452 and Claude bounded
-collection around 454–493) and pre/Stop/background paths in
-`src/resident/composed-hook.ts`. Both pre hooks record an upcoming edit for later
-review admission; failure does not prevent the native edit. Claude's synchronous
-post hook reports the edit and may wait for review until its result/time limit.
-Codex's post hook reports and returns while review proceeds in the resident.
-The background collector is independent and may overlap post collection and
-Stop. The illustrated Claude case reaches its post time limit before review
-finishes, so both traces correctly show unfinished review at Stop invocation.
-Separate cards explain immediate decisions when nothing is unfinished versus
-waiting within the Stop time limit, and findings may continue the turn rather
-than always allowing closure. A repeat-per-edit caption avoids implying one
-edit per turn. Plain labels explain reporting/recording the edit instead of
-opaque registration terminology. Rejected no-PRE proposal panels are removed
-separately during the owner-requested cleanup.
-
-Typecheck/build and the adapted bounded timing browser passed. Captures of the
-current section only are
-`/workspace/hapsland-review/current-hook-timing/current-1512.png` and
-`/workspace/hapsland-review/current-hook-timing/current-390.png`. Logs are
-`/tmp/hapsland-current-hook-timing-build.log` and
-`/tmp/hapsland-current-hook-timing-browser.log`. The diagrams illustrate code
-ordering, not measured durations or a live/native validation claim. No hook
-behavior is changed.
-
-Astra's rendered after-review passed the desktop and narrow current-section
-captures without a blocking issue. Runtime-specific post-hook behavior, pre-hook
-fail-open semantics, optional collector overlap, and both Stop paths are clear.
-
-
 ## Master reconciliation: ticket removal and response authority (2026-10-02)
 
 The authorized merge of master includes issue #171: ticket retention/state/events
@@ -932,3 +898,54 @@ environment; this is not a default browser-launch support claim. Astra's rendere
 review passed desktop and narrow current views at
 `/workspace/hapsland-review/current-hook-timing/current-1512.png`,
 `current-390.png`, and `current-left-390.png`. Native PRE evidence was not removed.
+
+## Current visual work and first placement question (2026-10-02)
+
+The owner requested deleting the temporary hook-timing panel, making the visible
+layer order match the Agent 1–2–3 sidebar, and adding wheel/touchpad zoom with a
+wider range. The temporary renderer, its styles, test script/package entry and
+maintained README instructions are removed. Agent 1 is now the front/top plane,
+followed by 2 and 3; contacts reverse depth with the layers while scope/color
+identity remains unchanged. Zoom spans 20–200%, using viewport-centered wheel,
+touchpad control-wheel and two-finger touch pinch. Reset remains 72%; single-
+finger rotation/vertical page scroll and scrolling outside the viewport remain.
+The focused camera browser and existing ensemble browser passed in the existing
+`LD_LIBRARY_PATH` environment, as did typecheck. Astra rendered after-review passed; these checks do not imply general
+platform support. Pinch was exercised by CDP touch input, not physical-device
+validation. High zoom intentionally crops edges and is recoverable through
+wheel/reset or flat focus.
+
+The global resident item/byte ledger remains above the diagram because of the
+initial Astra readability advice, not a product requirement or an accepted
+placement decision. Astra now proposes a separate shared-resident capacity inset
+beside Admission & capacity, at its existing green resident contact. Each layer
+would mirror the same global item/byte owner segments; Admission retains local
+agent meters. Remove the external item/byte duplicate if this placement is
+accepted. Edit permits and background collectors are separate resources and are
+excluded from this first placement question.
+
+**Owner authorized placement prototype:** show the global item/byte ledger
+inside the diagram and discuss the result afterward. This permits implementing
+the inset and removing only its top item/byte duplicate; it is not final
+acceptance of a finished visual artifact. Review the specific inset beside
+Admission and the removed top item/byte rows before accepting final placement.
+Astra advises and reviews the visual work. Implementation is in progress.
+
+**Additional owner request:** place a small event-owner dot beside the agent
+in the sidebar so the currently changing agent is visible. The dot must reflect
+event ownership rather than selection or hover; shared events without an agent
+must not fabricate an owner. The implemented dot uses explicit checked event
+scope or a checked linked work/request owner; it does not use ambient generator
+partition for global events. It follows the displayed history frame and remains
+steady while paused. Tests cover agent 2 owning an event while agent 1 is
+selected, history movement and an unowned resident event. Astra advised this
+implementation and passed final rendered review. Specific captures are
+`/workspace/hapsland-review/visual-update/mixed-3d.png`,
+`event-agent2-selected1.png`, `mixed-hover-agent2.png`, and `mixed-zoom115.png`.
+
+
+The complete temporary hook-timing panel is now deleted, superseding the earlier
+dated current-only timing cleanup outcome above. Native PRE reports and the
+three Current proof slices remain; no additional proof was required for these
+UI changes. Global ledger inset prototype acceptance remains the owner's
+separate next decision after the specific before/after review.
