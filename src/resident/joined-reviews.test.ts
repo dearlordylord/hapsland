@@ -23,7 +23,7 @@ it.effect("attaches one owner and independently settles all joining ticket units
   yield* joined.append({ admission: 2, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: second });
   const pending = Object.freeze({ id: 1 });
   expect(yield* joined.attachOwner("key", pending, revision)).toBe(true);
-  expect(reuse.pending("key")).toBe(pending);
+  expect((yield* reuse.pending("key"))).toBe(pending);
   expect((yield* owner.ticketUnits.current(first)).revision).toBe(revision);
   expect((yield* owner.ticketUnits.current(second)).revision).toBe(revision);
   const outcomes = yield* joined.settle("key", "finding", undefined, "advice");
@@ -49,7 +49,7 @@ it.effect("releases unbound subscribers with the claim while retaining attached 
   yield* joined.append({ admission: 1, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: unbound });
   yield* joined.append({ admission: 2, evaluationKey: "key", observation, activityPath: undefined, ticketUnit: attached, revision });
   expect((yield* joined.releaseOwner("key", "backend")).map((review) => review.admission)).toEqual([1]);
-  expect(reuse.hasPending("key")).toBe(false);
+  expect((yield* reuse.hasPending("key"))).toBe(false);
   expect((yield* owner.ticketUnits.stage(unbound))).toMatchObject({ stage: "unavailable", reason: "backend" });
   expect(yield* joined.hasAdmission(1)).toBe(false);
   expect(yield* joined.hasAdmission(2)).toBe(true);
@@ -101,7 +101,7 @@ it.effect("rolls back owner and subscriber attachment together when the native c
   expect(yield* defectMessage(joined.attachOwner("key", undefined, revision))).toContain("native evaluation handles");
   expect(owner.canonicalProjection()).toEqual(before);
   expect((yield* owner.ticketUnits.current(unit))).toEqual({});
-  expect(reuse.hasPending("key")).toBe(true);
+  expect((yield* reuse.hasPending("key"))).toBe(true);
   expect((yield* joined.releaseOwner("key", "lost")).map((review) => review.admission)).toEqual([1]);
 }));
 

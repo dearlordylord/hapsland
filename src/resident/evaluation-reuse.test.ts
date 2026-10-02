@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { Effect } from "effect";
 import {
   freezeInput,
   freezeRules,
@@ -105,7 +106,7 @@ describe("resident evaluation identity", () => {
     });
     const before = ledger.canonicalProjection();
     const beforeCapacity = ledger.snapshot();
-    const beforeReuse = reuse.snapshot();
+    const beforeReuse = Effect.runSync(reuse.snapshot());
     const replacement = prepared(input({ path: "replacement.ts", rules: [] }));
     const replacementKey = reuse.key("partition", replacement);
 
@@ -115,13 +116,13 @@ describe("resident evaluation identity", () => {
       { prepared: replacement, findings: [] })).toThrow("advicee identity exceeds resident metadata bound");
     expect(ledger.canonicalProjection()).toEqual(before);
     expect(ledger.snapshot()).toEqual(beforeCapacity);
-    expect(reuse.snapshot()).toEqual(beforeReuse);
-    for (const success of successes) expect(reuse.cached(success.key).evaluation).toBe(success.evaluation);
+    expect(Effect.runSync(reuse.snapshot())).toEqual(beforeReuse);
+    for (const success of successes) expect(Effect.runSync(reuse.cached(success.key)).evaluation).toBe(success.evaluation);
 
     expect(reuse.put("partition", replacementKey, { prepared: replacement, findings: [] })).toBe(true);
     expect(ledger.canonicalProjection().reuse.cache.at(-1)?.id).toBe(SUCCESS_CACHE_ENTRY_LIMIT + 1);
     expect(reuse.get(successes[0]?.key ?? "missing")).toBeUndefined();
-    expect(reuse.snapshot()).toEqual({ entries: SUCCESS_CACHE_ENTRY_LIMIT, bytes: 80, pending: 0 });
+    expect(Effect.runSync(reuse.snapshot())).toEqual({ entries: SUCCESS_CACHE_ENTRY_LIMIT, bytes: 80, pending: 0 });
   });
 
   it("shares native claims across views and clears them with the canonical owner", () => {
@@ -130,15 +131,24 @@ describe("resident evaluation identity", () => {
     const second = ledger.reuse(() => 10);
     const item = prepared(input({ rules: [] }));
     const key = first.key("partition", item);
+    const pendingRead = first.pending(key);
+    const snapshotRead = first.snapshot();
+    expect(Effect.runSync(pendingRead)).toBeUndefined();
+    expect(Effect.runSync(snapshotRead)).toEqual({ entries: 0, bytes: 0, pending: 0 });
     expect(first.route(key, false)).toBe("owner");
     expect(second.route(key, false)).toBe("joinedClaimed");
     expect(second.attachPending(key, "shared request")).toBe(true);
-    expect(first.pending(key)).toBe("shared request");
-    expect(first.snapshot()).toEqual(second.snapshot());
+    expect(Effect.runSync(pendingRead)).toBe("shared request");
+    const retainedSnapshot = Effect.runSync(snapshotRead);
+    expect(retainedSnapshot.pending).toBe(1);
+    expect(Effect.runSync(first.snapshot())).toEqual(Effect.runSync(second.snapshot()));
     ledger.clear();
-    expect(first.hasPending(key)).toBe(false);
-    expect(second.pending(key)).toBeUndefined();
-    expect(second.snapshot()).toEqual({ entries: 0, bytes: 0, pending: 0 });
+    expect(Effect.runSync(first.hasPending(key))).toBe(false);
+    expect(Effect.runSync(second.pending(key))).toBeUndefined();
+    expect(Effect.runSync(pendingRead)).toBeUndefined();
+    expect(Effect.runSync(snapshotRead)).toEqual({ entries: 0, bytes: 0, pending: 0 });
+    expect(retainedSnapshot.pending).toBe(1);
+    expect(Effect.runSync(second.snapshot())).toEqual({ entries: 0, bytes: 0, pending: 0 });
     expect(first.route(key, false)).toBe("owner");
     expect(ledger.canonicalProjection().reuse.claims).toEqual([{ id: 1, attached: false }]);
   });
@@ -158,14 +168,14 @@ describe("resident evaluation identity", () => {
       keys.push(key);
       expect(reuse.put(partition, key, { prepared: item, findings: [] })).toBe(true);
     }
-    expect(reuse.snapshot()).toMatchObject({
+    expect(Effect.runSync(reuse.snapshot())).toMatchObject({
       entries: SUCCESS_CACHE_ENTRY_LIMIT,
       pending: 1,
     });
-    expect(reuse.snapshot().bytes).toBeLessThanOrEqual(SUCCESS_CACHE_BYTE_LIMIT);
+    expect(Effect.runSync(reuse.snapshot()).bytes).toBeLessThanOrEqual(SUCCESS_CACHE_BYTE_LIMIT);
     expect(reuse.get(keys[0] ?? "missing")).toBeUndefined();
-    expect(reuse.hasPending(pending)).toBe(true);
-    expect(ledger.snapshot().bytes).toBe(reuse.snapshot().bytes);
+    expect(Effect.runSync(reuse.hasPending(pending))).toBe(true);
+    expect(ledger.snapshot().bytes).toBe(Effect.runSync(reuse.snapshot()).bytes);
     reuse.clear();
     expect(ledger.snapshot()).toMatchObject({ items: 0, bytes: 0 });
   });
@@ -181,10 +191,10 @@ describe("resident evaluation identity", () => {
     expect(reuse.put("partition", firstKey, { prepared: first, findings: [] })).toBe(true);
     expect(reuse.put("partition", secondKey, { prepared: second, findings: [] })).toBe(true);
     expect(reuse.get(firstKey)).toBeUndefined();
-    expect(reuse.snapshot()).toMatchObject({ entries: 1, bytes: 70_000 });
+    expect(Effect.runSync(reuse.snapshot())).toMatchObject({ entries: 1, bytes: 70_000 });
     size = SUCCESS_CACHE_BYTE_LIMIT + 1;
     expect(reuse.put("partition", firstKey, { prepared: first, findings: [] })).toBe(false);
-    expect(reuse.snapshot()).toMatchObject({ entries: 1, bytes: 70_000 });
+    expect(Effect.runSync(reuse.snapshot())).toMatchObject({ entries: 1, bytes: 70_000 });
     expect(ledger.snapshot().bytes).toBe(70_000);
     reuse.clear();
   });
@@ -212,7 +222,7 @@ describe("resident evaluation identity", () => {
     ]);
     reuse.discardPartition("partition-b");
     expect(ledger.canonicalProjection().reuse.cache).toMatchObject([{ partition: ledger.partitionId("partition-a") }]);
-    expect(reuse.snapshot()).toMatchObject({ entries: 1, bytes: 10, pending: 0 });
+    expect(Effect.runSync(reuse.snapshot())).toMatchObject({ entries: 1, bytes: 10, pending: 0 });
     reuse.clear();
     expect(ledger.canonicalProjection().reuse).toEqual({ claims: [], cache: [] });
     expect(ledger.snapshot()).toMatchObject({ items: 0, bytes: 0 });

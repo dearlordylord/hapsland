@@ -204,3 +204,11 @@ if (!accounting.includes('Effect.fn("ResidentRuntime.accountingMetrics")') || ac
     server.includes('function accountingMetrics(')) {
   throw new Error("resident accounting metrics must execute in their caller's Effect workflow");
 }
+
+const reuseSurface = state.slice(state.indexOf("    reuse:"), state.indexOf("}).pipe(Effect.withSpan", state.indexOf("    reuse:")));
+if (reuseSurface.includes("Ref.getUnsafe")) throw new Error("reuse reads must capture state through Effect");
+for (const operation of ["pending", "hasPending", "cached", "snapshot"]) {
+  if (!reuseSurface.includes(`${operation}: Effect.fn("EvaluationReuse.${operation}")`)) {
+    throw new Error(`reuse ${operation} must compose as an Effect read`);
+  }
+}

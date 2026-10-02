@@ -568,7 +568,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     yield* residentPruneNoticeCooldowns(now);
     const dispatch = yield* residentDispatcher.snapshot();
     const capacity = residentLedger.snapshot();
-    const reuse = residentReuse.snapshot();
+    const reuse = (yield* residentReuse.snapshot());
     return {
       status: "stats",
       queued: dispatch.queued,
@@ -1286,7 +1286,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   });
 
   const accountingMetrics = Effect.fn("ResidentRuntime.accountingMetrics")(function* (): Effect.fn.Return<Effect.Success<ReturnType<ResidentRuntime["accountingMetrics"]>>> {
-    const reuse = residentReuse.snapshot();
+    const reuse = (yield* residentReuse.snapshot());
     const notices = yield* residentNotices.entries();
     return {
       peakLedgerBytes: residentLedger.runtime.snapshot().peakLedgerBytes,
@@ -1672,14 +1672,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             case "joinedClaimed":
               return { kind: "joined" as const, join: "claimed" as const, outcome, evaluationKey };
             case "joinedPending": {
-              const pending = residentReuse.pending(evaluationKey);
+              const pending = (yield* residentReuse.pending(evaluationKey));
               if (pending === undefined) throw new Error("canonical reuse route lacks pending evaluation");
               pending.revision = yield* residentRestoreCurrentWork(job.partition, outcome.prepared);
               return { kind: "joined" as const, join: "pending" as const, outcome, evaluationKey };
             }
             case "cached":
               return { kind: "cached" as const, outcome, evaluationKey,
-                cached: residentReuse.cached(evaluationKey) };
+                cached: (yield* residentReuse.cached(evaluationKey)) };
             case "owner":
               unassignedClaims.add(evaluationKey);
               return { kind: "owner" as const, outcome, evaluationKey };
@@ -1726,7 +1726,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
                 advicee: job.observation.advicee, lifetime: server.lifetime, stage: "findings",
                 findings: (yield* residentLedger.advice.current(existing)).findings.length, unitIdentity: item.evaluationKey });
             } else {
-              const pending = residentReuse.pending(item.evaluationKey);
+              const pending = (yield* residentReuse.pending(item.evaluationKey));
               if (pending === undefined && item.join !== "claimed") {
                 if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "lost");
                 recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,

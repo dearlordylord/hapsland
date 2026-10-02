@@ -664,19 +664,24 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           operations.snapshot();
           return [value, { ...records, reuse }];
         });
-      const view = () => evaluationReuseView(Ref.getUnsafe(state).records.reuse, capacity);
+      const reuseRead = <A>(operation: (view: ReturnType<typeof evaluationReuseView<Pending>>) => A): Effect.Effect<A> =>
+        Ref.get(state).pipe(Effect.map((snapshot) => {
+          const draft = draftCapacity(snapshot, (id) => snapshot.reservations.get(id));
+          const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
+          return operation(evaluationReuseView(snapshot.records.reuse, owner));
+        }));
       return {
         key: residentEvaluationIdentity,
         route: (...args: Parameters<EvaluationReuse<Pending>["route"]>) => reuseCommit((operations) => operations.route(...args)),
         claim: (...args: Parameters<EvaluationReuse<Pending>["claim"]>) => reuseCommit((operations) => operations.claim(...args)),
         attachPending: (...args: Parameters<EvaluationReuse<Pending>["attachPending"]>) => reuseCommit((operations) => operations.attachPending(...args)),
-        pending: (...args: Parameters<EvaluationReuse<Pending>["pending"]>) => view().pending(...args),
+        pending: Effect.fn("EvaluationReuse.pending")((...args: Parameters<EvaluationReuse<Pending>["pending"]>) => reuseRead((view) => view.pending(...args))),
         releaseClaim: (...args: Parameters<EvaluationReuse<Pending>["releaseClaim"]>) => reuseCommit((operations) => operations.releaseClaim(...args)),
-        hasPending: (...args: Parameters<EvaluationReuse<Pending>["hasPending"]>) => view().hasPending(...args),
+        hasPending: Effect.fn("EvaluationReuse.hasPending")((...args: Parameters<EvaluationReuse<Pending>["hasPending"]>) => reuseRead((view) => view.hasPending(...args))),
         get: (...args: Parameters<EvaluationReuse<Pending>["get"]>) => reuseCommit((operations) => operations.get(...args)),
-        cached: (...args: Parameters<EvaluationReuse<Pending>["cached"]>) => view().cached(...args),
+        cached: Effect.fn("EvaluationReuse.cached")((...args: Parameters<EvaluationReuse<Pending>["cached"]>) => reuseRead((view) => view.cached(...args))),
         put: (...args: Parameters<EvaluationReuse<Pending>["put"]>) => reuseCommit((operations) => operations.put(...args)),
-        snapshot: (...args: Parameters<EvaluationReuse<Pending>["snapshot"]>) => view().snapshot(...args),
+        snapshot: Effect.fn("EvaluationReuse.snapshot")((...args: Parameters<EvaluationReuse<Pending>["snapshot"]>) => reuseRead((view) => view.snapshot(...args))),
         discardPartition: (...args: Parameters<EvaluationReuse<Pending>["discardPartition"]>) => reuseCommit((operations) => operations.discardPartition(...args)),
         clear: (...args: Parameters<EvaluationReuse<Pending>["clear"]>) => reuseCommit((operations) => operations.clear(...args)),
       };
