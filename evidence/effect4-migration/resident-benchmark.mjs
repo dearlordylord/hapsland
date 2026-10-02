@@ -39,6 +39,8 @@ try {
         if (event.stage === "settled" && event.outcome !== "neverSent") active -= 1;
       },
     });
+    const handle = (request) => runtimeModule.makeResidentRuntime === undefined
+      ? server.handle(request) : Effect.runPromise(server.handle(request));
     const monitor = monitorEventLoopDelay({ resolution: 1 });
     monitor.enable();
     try {
@@ -56,9 +58,9 @@ try {
       }
       // Stop's deadline observation executes while unrelated edits are active.
       const stopStarted = performance.now();
-      await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+      await handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observations[0].advicee, token: `stop-${pass}` });
-      await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+      await handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
         root, advicee: observations[0].advicee, token: `stop-${pass}`, close: true });
       if (measured) stops.push(performance.now() - stopStarted);
       await (runtimeModule.makeResidentRuntime === undefined ? server.whenIdle() : Effect.runPromise(server.whenIdle()));

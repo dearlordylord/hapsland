@@ -1,0 +1,701 @@
+{
+  "schema": "hapsland-105-linux-round-contract-v1",
+  "recordedAt": "2026-10-02T03:18:42.353Z",
+  "candidateCommit": "0609c1dd0763c2095c7e01ff9fa91974f7240b4d",
+  "platform": "linux",
+  "architecture": "arm64",
+  "node": "v24.20.0",
+  "authority": "Implementation evidence against docs/advicing-target-contract.md; no native agent or release support acceptance",
+  "boundary": "Production resident, Effect controlled DecisionModel, real Stop CLI subprocess and local IPC; fixture runtime events; no native agent or live Jev",
+  "limitations": [
+    "Does not establish model visibility or actual agent repair",
+    "Repair edits are explicitly driven by this harness",
+    "Background uncertainty is injected by omitting acknowledgement and releasing the fixture background claim; successful background submission is simulated by acknowledgement",
+    "No cold-start, process restart, or native parallel-tool scheduling proof"
+  ],
+  "passed": false,
+  "results": [
+    {
+      "host": "codex-cli",
+      "case": "finish-waits-for-second-review-and-batches",
+      "passed": true,
+      "elapsedMs": 2053,
+      "evidence": {
+        "stop": {
+          "blocked": true,
+          "findings": 2,
+          "unavailableNotice": false,
+          "elapsedMs": 1283,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "finish": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 567,
+          "outputKeys": []
+        },
+        "completedFindingItems": 2
+      }
+    },
+    {
+      "host": "codex-cli",
+      "case": "deadline-block-cancels-unfinished-and-keeps-repair-round",
+      "passed": true,
+      "elapsedMs": 5159,
+      "evidence": {
+        "stop": {
+          "blocked": true,
+          "findings": 1,
+          "unavailableNotice": false,
+          "elapsedMs": 3641,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "repair": {
+          "blocked": true,
+          "findings": 1,
+          "unavailableNotice": false,
+          "elapsedMs": 670,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "finish": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 579,
+          "outputKeys": []
+        },
+        "closure": {
+          "roundKey": "61921a1d7bf4652f112e283725d12a646721b2d95a3979c1f9f61547aa5e7299",
+          "reason": "no-advice",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 3,
+            "pendingAdvice": 2,
+            "submitted": 2,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        },
+        "unfinishedWorkDiscarded": true
+      }
+    },
+    {
+      "host": "codex-cli",
+      "case": "deadline-cancels-running-review",
+      "passed": true,
+      "elapsedMs": 4011,
+      "evidence": {
+        "beforeStop": {
+          "status": "stats",
+          "queued": 1,
+          "running": 9,
+          "pendingAdvice": 0,
+          "pendingFindingBatches": 0,
+          "pendingOperationalNotices": 0,
+          "retainedBytes": 73463,
+          "rejectedCapacity": 0,
+          "successfulCacheEntries": 0,
+          "pendingEvaluations": 1,
+          "noticeCooldowns": 0,
+          "currentWork": 1
+        },
+        "stop": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 3484,
+          "outputKeys": []
+        },
+        "closure": {
+          "roundKey": "6899186ca3d9b0384e240e57a2a01dddb8e900f679c6b7834c591499bbdb1640",
+          "reason": "deadline",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 1,
+            "running": 1,
+            "pendingAdvice": 0,
+            "submitted": 0,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        },
+        "resourcesEmpty": true
+      }
+    },
+    {
+      "host": "codex-cli",
+      "case": "backend-unavailable-not-clean",
+      "passed": true,
+      "elapsedMs": 513,
+      "evidence": {
+        "stop": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 412,
+          "outputKeys": []
+        },
+        "activity": "unavailable",
+        "closure": {
+          "roundKey": "5c772c4418b25e513f52c29cc176bd87c57b87d139ee02e6e63b00c586146bac",
+          "reason": "no-advice",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 0,
+            "submitted": 0,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        }
+      }
+    },
+    {
+      "host": "codex-cli",
+      "case": "stale-finding-discarded",
+      "passed": true,
+      "elapsedMs": 581,
+      "evidence": {
+        "stop": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 485,
+          "outputKeys": []
+        },
+        "staleAdviceDiscarded": true
+      }
+    },
+    {
+      "host": "codex-cli",
+      "case": "multi-unit-one-stop-batch",
+      "passed": true,
+      "elapsedMs": 1506,
+      "evidence": {
+        "stop": {
+          "blocked": true,
+          "findings": 2,
+          "unavailableNotice": false,
+          "elapsedMs": 673,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "finish": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 544,
+          "outputKeys": []
+        },
+        "findingRecords": 2,
+        "closure": {
+          "roundKey": "0307a9f1a49977979018fcbbd54a5fbcca4124ecf671df4c0b569fd24736daec",
+          "reason": "no-advice",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 2,
+            "submitted": 1,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        }
+      }
+    },
+    {
+      "host": "codex-cli",
+      "case": "lost-background-ack-reoffered-once",
+      "passed": true,
+      "elapsedMs": 4876,
+      "evidence": {
+        "competingCollection": "pending",
+        "backgroundAcknowledged": false,
+        "stop": {
+          "blocked": true,
+          "findings": 1,
+          "unavailableNotice": false,
+          "elapsedMs": 3783,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "finish": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 811,
+          "outputKeys": []
+        },
+        "evaluationCallsUnchanged": true,
+        "closure": {
+          "roundKey": "1988b2e954a1873ab3d829c9c90d7fb7f6cafadb1dbf3993bca260d8a2301d73",
+          "reason": "no-advice",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 1,
+            "submitted": 1,
+            "uncertain": 1,
+            "editPermits": 0
+          }
+        }
+      }
+    },
+    {
+      "host": "codex-cli",
+      "case": "submitted-background-not-reoffered",
+      "passed": true,
+      "elapsedMs": 1967,
+      "evidence": {
+        "competingCollection": "pending",
+        "backgroundAcknowledged": true,
+        "stop": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 811,
+          "outputKeys": []
+        },
+        "finish": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 692,
+          "outputKeys": []
+        },
+        "evaluationCallsUnchanged": true,
+        "closure": {
+          "roundKey": "1892ce9c6f47d2525801e8de3793c8ccae5e0a01488d5b04b1b99b11a21bc551",
+          "reason": "no-advice",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 1,
+            "submitted": 1,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        }
+      }
+    },
+    {
+      "host": "codex-cli",
+      "case": "repair-findings-four-continuations-and-new-round",
+      "passed": true,
+      "elapsedMs": 6132,
+      "evidence": {
+        "stops": [
+          {
+            "blocked": true,
+            "findings": 1,
+            "unavailableNotice": false,
+            "elapsedMs": 861,
+            "outputKeys": [
+              "decision",
+              "reason"
+            ]
+          },
+          {
+            "blocked": true,
+            "findings": 1,
+            "unavailableNotice": false,
+            "elapsedMs": 861,
+            "outputKeys": [
+              "decision",
+              "reason"
+            ]
+          },
+          {
+            "blocked": true,
+            "findings": 1,
+            "unavailableNotice": false,
+            "elapsedMs": 828,
+            "outputKeys": [
+              "decision",
+              "reason"
+            ]
+          },
+          {
+            "blocked": true,
+            "findings": 1,
+            "unavailableNotice": false,
+            "elapsedMs": 911,
+            "outputKeys": [
+              "decision",
+              "reason"
+            ]
+          },
+          {
+            "blocked": false,
+            "findings": 0,
+            "unavailableNotice": false,
+            "elapsedMs": 783,
+            "outputKeys": []
+          }
+        ],
+        "closure": {
+          "roundKey": "bbc064ec39be6dc321a8814daaebe652fcf13ea880b30a1e848b9ac1fd9911b6",
+          "reason": "limit",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 5,
+            "submitted": 4,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        },
+        "newRound": {
+          "blocked": true,
+          "findings": 1,
+          "unavailableNotice": false,
+          "elapsedMs": 815,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "simulatedRepairEdits": 4
+      }
+    },
+    {
+      "host": "claude-code",
+      "case": "finish-waits-for-second-review-and-batches",
+      "passed": true,
+      "elapsedMs": 2594,
+      "evidence": {
+        "stop": {
+          "blocked": true,
+          "findings": 2,
+          "unavailableNotice": false,
+          "elapsedMs": 1542,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "finish": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 797,
+          "outputKeys": []
+        },
+        "completedFindingItems": 2
+      }
+    },
+    {
+      "host": "claude-code",
+      "case": "deadline-block-cancels-unfinished-and-keeps-repair-round",
+      "passed": false,
+      "elapsedMs": 33928,
+      "failure": "Stop subprocess exceeded six seconds"
+    },
+    {
+      "host": "claude-code",
+      "case": "deadline-cancels-running-review",
+      "passed": true,
+      "elapsedMs": 4067,
+      "evidence": {
+        "beforeStop": {
+          "status": "stats",
+          "queued": 1,
+          "running": 9,
+          "pendingAdvice": 0,
+          "pendingFindingBatches": 0,
+          "pendingOperationalNotices": 0,
+          "retainedBytes": 73471,
+          "rejectedCapacity": 0,
+          "successfulCacheEntries": 0,
+          "pendingEvaluations": 1,
+          "noticeCooldowns": 0,
+          "currentWork": 1
+        },
+        "stop": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 3498,
+          "outputKeys": []
+        },
+        "closure": {
+          "roundKey": "fa8aed050ec86235fcf242bbb9189eb3718fc6985e8603a0fa493a179fdd604f",
+          "reason": "deadline",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 1,
+            "running": 1,
+            "pendingAdvice": 0,
+            "submitted": 0,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        },
+        "resourcesEmpty": true
+      }
+    },
+    {
+      "host": "claude-code",
+      "case": "backend-unavailable-not-clean",
+      "passed": true,
+      "elapsedMs": 684,
+      "evidence": {
+        "stop": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 537,
+          "outputKeys": []
+        },
+        "activity": "unavailable",
+        "closure": {
+          "roundKey": "efc640c3860cddd3969ecab2f4032ac8ec8ed476662b6ae7dccba45ae63aa1d2",
+          "reason": "no-advice",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 0,
+            "submitted": 0,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        }
+      }
+    },
+    {
+      "host": "claude-code",
+      "case": "stale-finding-discarded",
+      "passed": true,
+      "elapsedMs": 707,
+      "evidence": {
+        "stop": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 573,
+          "outputKeys": []
+        },
+        "staleAdviceDiscarded": true
+      }
+    },
+    {
+      "host": "claude-code",
+      "case": "multi-unit-one-stop-batch",
+      "passed": true,
+      "elapsedMs": 1851,
+      "evidence": {
+        "stop": {
+          "blocked": true,
+          "findings": 2,
+          "unavailableNotice": false,
+          "elapsedMs": 918,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "finish": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 584,
+          "outputKeys": []
+        },
+        "findingRecords": 2,
+        "closure": {
+          "roundKey": "01f2b732a64c722a58f12c137f179c6c23f583cf5b75db15f8c83f4f7b871d70",
+          "reason": "no-advice",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 2,
+            "submitted": 1,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        }
+      }
+    },
+    {
+      "host": "claude-code",
+      "case": "lost-background-ack-reoffered-once",
+      "passed": true,
+      "elapsedMs": 4248,
+      "evidence": {
+        "competingCollection": "pending",
+        "backgroundAcknowledged": false,
+        "stop": {
+          "blocked": true,
+          "findings": 1,
+          "unavailableNotice": false,
+          "elapsedMs": 3565,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "finish": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 467,
+          "outputKeys": []
+        },
+        "evaluationCallsUnchanged": true,
+        "closure": {
+          "roundKey": "0589f69e550cb1e0e3032f9aaac9292e5a48d020a6c5f7359ad9f3a729a305b1",
+          "reason": "no-advice",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 1,
+            "submitted": 1,
+            "uncertain": 1,
+            "editPermits": 0
+          }
+        }
+      }
+    },
+    {
+      "host": "claude-code",
+      "case": "submitted-background-not-reoffered",
+      "passed": true,
+      "elapsedMs": 1157,
+      "evidence": {
+        "competingCollection": "pending",
+        "backgroundAcknowledged": true,
+        "stop": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 508,
+          "outputKeys": []
+        },
+        "finish": {
+          "blocked": false,
+          "findings": 0,
+          "unavailableNotice": false,
+          "elapsedMs": 477,
+          "outputKeys": []
+        },
+        "evaluationCallsUnchanged": true,
+        "closure": {
+          "roundKey": "49c06b50f816406c7325e774d4c477b9a9d092d24c7de88084ee186d1f9db0b7",
+          "reason": "no-advice",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 1,
+            "submitted": 1,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        }
+      }
+    },
+    {
+      "host": "claude-code",
+      "case": "repair-findings-four-continuations-and-new-round",
+      "passed": true,
+      "elapsedMs": 3872,
+      "evidence": {
+        "stops": [
+          {
+            "blocked": true,
+            "findings": 1,
+            "unavailableNotice": false,
+            "elapsedMs": 602,
+            "outputKeys": [
+              "decision",
+              "reason"
+            ]
+          },
+          {
+            "blocked": true,
+            "findings": 1,
+            "unavailableNotice": false,
+            "elapsedMs": 628,
+            "outputKeys": [
+              "decision",
+              "reason"
+            ]
+          },
+          {
+            "blocked": true,
+            "findings": 1,
+            "unavailableNotice": false,
+            "elapsedMs": 517,
+            "outputKeys": [
+              "decision",
+              "reason"
+            ]
+          },
+          {
+            "blocked": true,
+            "findings": 1,
+            "unavailableNotice": false,
+            "elapsedMs": 570,
+            "outputKeys": [
+              "decision",
+              "reason"
+            ]
+          },
+          {
+            "blocked": false,
+            "findings": 0,
+            "unavailableNotice": false,
+            "elapsedMs": 415,
+            "outputKeys": []
+          }
+        ],
+        "closure": {
+          "roundKey": "923d29f7c4a34e5a9453b4cf04d4ea5ead34818212e6c3f6c437db54de2bd0d1",
+          "reason": "limit",
+          "reservedContinuations": 0,
+          "discarded": {
+            "queued": 0,
+            "running": 0,
+            "pendingAdvice": 5,
+            "submitted": 4,
+            "uncertain": 0,
+            "editPermits": 0
+          }
+        },
+        "newRound": {
+          "blocked": true,
+          "findings": 1,
+          "unavailableNotice": false,
+          "elapsedMs": 490,
+          "outputKeys": [
+            "decision",
+            "reason"
+          ]
+        },
+        "simulatedRepairEdits": 4
+      }
+    }
+  ]
+}

@@ -98,6 +98,8 @@ try {
           ensure(admission.status === "accepted", "admission refused");
           if (measured) samples.admission.push(performance.now() - started);
         });
+        const handle = (request) => runtimeModule.makeResidentRuntime === undefined
+          ? Effect.promise(() => server.handle(request)) : server.handle(request);
         const saturationStarted = performance.now();
         for (let index = 0; index < 8; index += 1) {
           yield* admit(edits[index]);
@@ -112,10 +114,10 @@ try {
         yield* Deferred.await(saturated);
         const saturatedDidNotStart = entered === 8 && physical === 8;
         const stopStarted = performance.now();
-        yield* Effect.promise(() => server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
-          root, advicee: edits[0].advicee, token: `held-stop-${pass}` }));
-        yield* Effect.promise(() => server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
-          root, advicee: edits[0].advicee, token: `held-stop-${pass}`, close: true }));
+        yield* handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
+          root, advicee: edits[0].advicee, token: `held-stop-${pass}` });
+        yield* handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
+          root, advicee: edits[0].advicee, token: `held-stop-${pass}`, close: true });
         if (measured) samples.stop.push(performance.now() - stopStarted);
         phase = "await round interruption";
         yield* Deferred.await(firstInterrupted);

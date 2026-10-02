@@ -2166,6 +2166,20 @@
       "roundContractEvidence": "evidence/effect4-migration/round-contract-lifecycle-facade-effects.json",
       "scope": "Deleted runtime Promise wrappers for listen, whenIdle and close, plus parallel listenEffect/closeEffect names. Scoped listener acquisition, idle barrier and cached close Effect exposed directly. Native fixture close is owning Scope.close Effect; async callers execute at native boundary. Executable Linux and installed wire witnesses updated. Stop boundary rejects parallel lifecycle aliases and Promise signatures.",
       "limitations": "Collection and handle Promise facades, fixture hooks and adapter audit remain. Round probe uses deterministic host-labelled fixtures. Benchmark runner syntax checked; final performance reruns remain required."
+    },
+    {
+      "stage": "collection-handler-promise-facade-deletion",
+      "testsPassed": 136,
+      "testFiles": 6,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "probeStrictTypecheck": true,
+      "roundContractCasesPassed": 18,
+      "roundContractEvidence": "evidence/effect4-migration/round-contract-collection-handler-effects-isolated.json",
+      "roundContractInitialAttempt": "evidence/effect4-migration/round-contract-collection-handler-effects.json",
+      "scope": "Collection returns named workflow Effects through typed overloads; request handle directly exposes named Effect workflow. Typed ResidentAdapterError remains visible. Removed final runtime runPromise bridges; runtime and state owner contain no execution bridges or unsafe reads. Native async fixtures/probes execute at their boundaries. Updated ticket revalidation source marker and Stop guard now rejects runPromise as well.",
+      "limitations": "Initial probe passed 17/18 and Claude-labelled deadline-block exceeded unchanged six-second limit. Isolated full rerun passed18/18; cause unproven, historical failure retained. Fixture hook conversion, adapter audit, docs and final validation remain. Benchmark runner syntax checked; workload reruns remain required."
     }
   ],
   "next": [

@@ -45,10 +45,10 @@ const fixture = async () => {
 
 const collect = (server: ResidentRuntime, ticket: ResidentCollectionTicket,
   data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext,
-  advicee = data.observation.advicee) => server.handle({
+  advicee = data.observation.advicee) => Effect.runPromise(server.handle({
     requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime, ticket,
     root: data.root, advicee, dispatch, composed: true,
-  } satisfies ResidentRequest);
+  } satisfies ResidentRequest));
 
 const collectOverSocket = (server: ResidentRuntime, ticket: ResidentCollectionTicket,
   data: Awaited<ReturnType<typeof fixture>>, dispatch: ResidentDispatchContext, version: number | null = 1) =>
@@ -180,10 +180,10 @@ describe("Claude terminal collection", () => {
       beforeEvaluate: async () => { entered.resolve(); await gate.promise; },
     });
     const dispatch = data.dispatch(0);
-    expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-      root: data.root, advicee: data.observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-    const admission = await server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-      observation: data.observation, controlledWriter: true, dispatch, composed: true });
+    expect((await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+      root: data.root, advicee: data.observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
+    const admission = await Effect.runPromise(server.handle({ requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
+      observation: data.observation, controlledWriter: true, dispatch, composed: true }));
     expect(admission.status).toBe("accepted");
     if (admission.status !== "accepted" || !("ticket" in admission)) return;
     expect(await collect(server, admission.ticket, data, dispatch)).toEqual({ requestRoute: "ticketed", status: "pending" });

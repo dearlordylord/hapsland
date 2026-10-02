@@ -76,24 +76,24 @@ const fixture = async (host: Host, controlled: ResidentDispatchContext["controll
     };
     const observation: DirectObservation = { ...base, advicee };
     current = advicee;
-    const permit = await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-      root, advicee, startedAt: monotonicNow(), activityPath });
+    const permit = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+      root, advicee, startedAt: monotonicNow(), activityPath }));
     requireThat(permit.status === "advanced", "prospective permit was rejected");
-    const admitted = await server.handle({ requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
-      observation, dispatch: { ...dispatch, controlled: control }, controlledWriter: true, composed: true });
+    const admitted = await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
+      observation, dispatch: { ...dispatch, controlled: control }, controlledWriter: true, composed: true }));
     requireThat(admitted.status === "accepted", "composed admission was rejected");
     return observation;
   };
   const calls = async () => (await readFile(capturePath, "utf8").catch(() => "")).split("\n").filter(Boolean).length;
   const collect = (mode: "ordinary" = "ordinary") => {
     if (current === undefined) throw new Error("fixture has no advicee");
-    return server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
-      root, advicee: current, dispatch, mode, composed: true, reportWorkState: true });
+    return Effect.runPromise(server.handle({ requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      root, advicee: current, dispatch, mode, composed: true, reportWorkState: true }));
   };
   const backgroundBoundary = (operation: "claim-background" | "release-background", token: string) => {
     if (current === undefined) throw new Error("fixture has no advicee");
-    return server.handle({ requestRoute: "shared", operation, token,
-      lifetime: server.lifetime, root, advicee: current });
+    return Effect.runPromise(server.handle({ requestRoute: "shared", operation, token,
+      lifetime: server.lifetime, root, advicee: current }));
   };
   const stop = async (active = false) => {
     if (current === undefined) throw new Error("fixture has no advicee");

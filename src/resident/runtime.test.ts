@@ -39,7 +39,7 @@ it.effect("scope closure removes owned endpoints and fences the retired lifetime
       yield* Scope.close(scope, Exit.void);
       expect(existsSync(paths.socket)).toBe(false);
       expect(existsSync(paths.owner)).toBe(false);
-      expect(yield* Effect.promise(() => runtime.handle({ requestRoute: "shared", operation: "hello" })))
+      expect(yield* runtime.handle({ requestRoute: "shared", operation: "hello" }))
         .toMatchObject({ status: "obsolete-lifetime" });
     }),
     (scope) => Scope.close(scope, Exit.void).pipe(

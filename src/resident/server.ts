@@ -426,9 +426,9 @@ export interface ResidentRuntime {
   stats(): Effect.Effect<Extract<ResidentResponse, { status: "stats" }>>;
   cleanup(): Effect.Effect<"busy" | "cleaned">;
   admit(observation: DirectObservation, dispatch: ResidentDispatchContext, ticketed?: boolean, composed?: boolean, requirePermit?: boolean): Effect.Effect<ResidentResponse>;
-  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode?: CollectionMode): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
-  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: undefined, composed: true): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
-  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: TicketRecord, composed?: boolean): Promise<ResidentResponse>;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode?: CollectionMode): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>, ResidentAdapterError>;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: undefined, composed: true): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>, ResidentAdapterError>;
+  collect(root: string, advicee: DirectAdvicee, dispatch: ResidentDispatchContext, mode: CollectionMode, ticket: TicketRecord, composed?: boolean): Effect.Effect<ResidentResponse, ResidentAdapterError>;
   acknowledge(token: string): Effect.Effect<ResidentResponse>;
   finalize(token: string): Effect.Effect<ResidentResponse>;
   releaseDelivery(token: string): Effect.Effect<void>;
@@ -460,7 +460,7 @@ export interface ResidentRuntime {
     readonly operationalNoticeBytes: number;
   }>;
   sweepQuietRounds(now?: number): Effect.Effect<number>;
-  handle(request: ResidentRequest): Promise<ResidentResponse>;
+  handle(request: ResidentRequest): Effect.Effect<ResidentResponse, ResidentAdapterError>;
   listen(): Effect.Effect<void, ResidentAdapterError>;
   readonly close: Effect.Effect<void, ResidentAdapterError>;
 }
@@ -757,7 +757,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     advicee: DirectAdvicee,
     dispatch: ResidentDispatchContext,
     mode?: CollectionMode,
-  ): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
+  ): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>, ResidentAdapterError>;
 
   function collect(
     root: string,
@@ -766,7 +766,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     mode: CollectionMode,
     ticket: undefined,
     composed: true,
-  ): Promise<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>>;
+  ): Effect.Effect<Exclude<ResidentResponse, { readonly requestRoute: "ticketed" }>, ResidentAdapterError>;
 
   function collect(
     root: string,
@@ -775,7 +775,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     mode: CollectionMode,
     ticket: TicketRecord,
     composed?: boolean,
-  ): Promise<ResidentResponse>;
+  ): Effect.Effect<ResidentResponse, ResidentAdapterError>;
 
   function collect(
     root: string,
@@ -784,8 +784,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     mode: CollectionMode = "ordinary",
     ticket?: TicketRecord,
     composed = false,
-  ): Promise<ResidentResponse> {
-    return Effect.runPromise(residentCollect(root, advicee, dispatch, mode, ticket, composed));
+  ): Effect.Effect<ResidentResponse, ResidentAdapterError> {
+    return residentCollect(root, advicee, dispatch, mode, ticket, composed);
   }
 
   const residentCollect = Effect.fn("ResidentRuntime.collect")((
@@ -2412,10 +2412,6 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     );
   }));
 
-  function handle(request: ResidentRequest): Promise<ResidentResponse> {
-    return Effect.runPromise(residentHandle(request));
-  }
-
   const residentHandle = Effect.fn("ResidentRuntime.handle")((request: ResidentRequest) => {
     const server = runtime;
     return Effect.gen(function* () {
@@ -3084,7 +3080,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     stats: stats,
     whenIdle,
   }));
-  const runtime: ResidentRuntime = Object.freeze({ operations, lifetime, paths, stats, cleanup, admit, collect, acknowledge, finalize, releaseDelivery, beginComposedSubmission, releaseComposedSubmission, whenIdle, pendingAdviceMetadata, accountingMetrics, sweepQuietRounds, handle, listen, close });
+  const runtime: ResidentRuntime = Object.freeze({ operations, lifetime, paths, stats, cleanup, admit, collect, acknowledge, finalize, releaseDelivery, beginComposedSubmission, releaseComposedSubmission, whenIdle, pendingAdviceMetadata, accountingMetrics, sweepQuietRounds, handle: residentHandle, listen, close });
   yield* Effect.addFinalizer(() => close.pipe(Effect.orDie));
   return runtime;
 });

@@ -23,8 +23,8 @@ if (!server.includes("residentLedger.rounds.replaceWork") || !server.includes("r
   throw new Error("native round replacement and retirement must use the shared resident owner");
 }
 
-if (/Effect\.runSync|Ref\.getUnsafe/u.test(server)) {
-  throw new Error("resident runtime operations must compose Effects in their owning fiber without synchronous execution or unsafe reads");
+if (/Effect\.runSync|Effect\.runPromise|Ref\.getUnsafe/u.test(server)) {
+  throw new Error("resident runtime operations must compose Effects in their owning fiber without execution bridges or unsafe reads");
 }
 
 const capacity = readFileSync(resolve(root, "src/resident/capacity.ts"), "utf8");
