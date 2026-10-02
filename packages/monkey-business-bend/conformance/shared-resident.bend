@@ -249,9 +249,13 @@ def phase_end(phase: Bool, runtime: Runtime,
     case True{}: healthy(runtime, ih)
     case False{}: []
 
-def handled(result: Driver.Handled, queue: Queue, now: Nat, job: Job) -> Queue:
+def issued(result: Engine.IssuedActions, queue: Queue, jobs: List<&2, Stored>, now: Nat, job: Job, delay: Nat) -> Runtime:
   match result:
-    case Driver.Handled{_, events}: actions(events, queue, now, job)
+    case Engine.IssuedActions{state, events}: Runtime{state, actions(events, queue, now, job), jobs, delay}
+
+def handled(result: Driver.Handled, state: Types.State, queue: Queue, jobs: List<&2, Stored>, now: Nat, job: Job, delay: Nat) -> Runtime:
+  match result:
+    case Driver.Handled{_, events}: issued(Engine.issue_actions(state, events), queue, jobs, now, job, delay)
 
 def generated(generated: Preparation.Generated, queue: Queue, +now: Nat,
     +operation: Nat, +round: Nat, job: Job) -> Queue:
@@ -262,11 +266,11 @@ def generated(generated: Preparation.Generated, queue: Queue, +now: Nat,
         now, Job{partition, bytes, units, outcome})
     case _ _: queue
 
-def continued(pair: Queue & List<&2, Stored>, +before: Types.State, +state: Types.State,
+def continued(runtime: Runtime, +before: Types.State,
     +event: Canonical.CanonicalEvent, +job: Job, +now: Nat, +delay: Nat,
     list: List<&2, Canonical.Command>, ih: Runtime -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match pair:
-    case (queue, jobs): canonical_row(before, state, event, job_partition(job), now, 0n, list) <>
+  match runtime:
+    case Runtime{+state, queue, jobs, _}: canonical_row(before, state, event, job_partition(job), now, 0n, list) <>
       ih(Runtime{state, actions(Engine.after(before, state, event), queue, now, job), jobs, delay})
 
 def edit_plan(attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2, Stored>,
@@ -276,33 +280,34 @@ def edit_plan(attempt: Engine.EditAttempt, queue: Queue, jobs: List<&2, Stored>,
       ih(Runtime{state, retry_edit(retry, actions(emitted, queue, now, job), now, job), jobs, delay})
 
 def interpret(value: Canonical.Command, +state: Types.State, +event: Canonical.CanonicalEvent,
-    queue: Queue, +now: Nat, +job: Job, delay: Nat) -> Queue:
+    queue: Queue, jobs: List<&2, Stored>, +now: Nat, +job: Job, +delay: Nat) -> Runtime:
   match value:
     case Canonical.Prepare{+operation, _}:
-      generated(Engine.generate_tree(7n, operation, 0n, tree_profile(), graph_limits()), queue,
-        now, operation, round(Engine.canonical(state), job_partition(job)), job)
-    case command: handled(Engine.handle(state, event, command, context(state, job, delay)), queue, now, job)
+      Runtime{state, generated(Engine.generate_tree(7n, operation, 0n, tree_profile(), graph_limits()), queue,
+        now, operation, round(Engine.canonical(state), job_partition(job)), job), jobs, delay}
+    case command: handled(Engine.handle(state, event, command, context(state, job, delay)), state, queue, jobs, now, job, delay)
 
 def command_step(+command: Canonical.Command,
     +state: Types.State, +event: Canonical.CanonicalEvent, queue: Queue, +jobs: List<&2, Stored>,
     +now: Nat, +job: Job, +delay: Nat,
-    ih: Queue -> List<&2, Stored> -> (Queue & List<&2, Stored>)) -> (Queue & List<&2, Stored>):
+    ih: Runtime -> Runtime) -> Runtime:
   +actual = command_job(command, jobs, job)
-  ih(interpret(command, state, event, queue, now, actual, delay), remember(command, jobs, actual))
+  ih(interpret(command, state, event, queue, remember(command, jobs, actual), now, actual, delay))
 
-def commands(list: List<&2, Canonical.Command>, +state: Types.State, +event: Canonical.CanonicalEvent,
-    queue: Queue, jobs: List<&2, Stored>, +now: Nat, +job: Job, +delay: Nat) -> (Queue & List<&2, Stored>):
-  match list:
-    case Nil{}: (queue, jobs)
-    case head <> tail: command_step(head, state, event, queue, jobs, now, job, delay,
-      q => stored => commands(tail, state, event, q, stored, now, job, delay))
+def commands(list: List<&2, Canonical.Command>, runtime: Runtime, +event: Canonical.CanonicalEvent,
+    +now: Nat, +job: Job) -> Runtime:
+  match list runtime:
+    case Nil{} runtime: runtime
+    case head <> tail Runtime{state, queue, jobs, delay}:
+      command_step(head, state, event, queue, jobs, now, job, delay,
+        next => commands(tail, next, event, now, job))
 
 def transitioned(transition: Engine.Transition, +before: Types.State, +event: Canonical.CanonicalEvent,
     queue: Queue, jobs: List<&2, Stored>, +job: Job, +now: Nat, +delay: Nat,
     ih: Runtime -> List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match transition:
     case Engine.Transition{+state, Canonical.Advanced{_, +list}}:
-      continued(commands(list, state, event, queue, jobs, now, job, delay), before, state, event, job, now, delay, list, ih)
+      continued(commands(list, Runtime{state, queue, jobs, delay}, event, now, job), before, event, job, now, delay, list, ih)
     case Engine.Transition{+state, Canonical.Rejected{_, _}}:
       canonical_row(before, state, event, job_partition(job), now, 1n, []) <> ih(Runtime{state, queue, jobs, delay})
 
@@ -354,8 +359,23 @@ def loop(fuel: Nat, runtime: Runtime, phase: Bool) -> List<&2, List<&2, Nat>>:
     case 0n: [[98n]]
     case 1n+rest: next(runtime, phase, state => phase => loop(rest, state, phase))
 
+def scope_row(scope: Maybe<&2, Advicees.Scope>) -> List<&2, Nat>:
+  match scope:
+    case Some{Advicees.Scope{identity, partition, seed}}: [identity, partition, U32.to_nat(seed)]
+    case None{}: [0n, 0n, 0n]
+
+def duplicate_row(declared: Engine.AdviceeDeclared) -> List<&2, Nat>:
+  match declared:
+    case Engine.AdviceeDeclared{state, _, valid}:
+      91n <> Bool.pick(Nat, valid, 1n, 0n) <> scope_row(Engine.advicee_identity(state, Nat.add(U32.to_nat(4294967295), 18n)))
+
+def registry_rows(+state: Types.State) -> List<&2, List<&2, Nat>>:
+  [90n <> scope_row(Engine.advicee_identity(state, Nat.add(U32.to_nat(4294967295), 18n))),
+    90n <> scope_row(Engine.advicee_identity(state, 99n)),
+    duplicate_row(Engine.declare_advicee(state, Nat.add(U32.to_nat(4294967295), 18n), 777))]
+
 def main() -> IO(Unit):
-  IO.print(Minimal.bracket(Minimal.show_rows(loop(2000n, Runtime{initial(),
+  IO.print(Minimal.bracket(Minimal.show_rows(List.append(&2, List<&2, Nat>, registry_rows(initial()), loop(2000n, Runtime{initial(),
     append(append(originals(9n, Queue{[], 0n, 0n}, 0n),
       30n, Edit{Job{1n, 10n, [5n], Canonical.RequestClear{}}}),
-      30n, Edit{Job{2n, 20n, [7n], Canonical.RequestClear{}}}), [], 20n}, True{}))))
+      30n, Edit{Job{2n, 20n, [7n], Canonical.RequestClear{}}}), [], 20n}, True{})))))

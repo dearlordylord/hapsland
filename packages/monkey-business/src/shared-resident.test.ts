@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import fc from "fast-check";
-import { createRun, restoreReplay, projectAgent, DEFAULT_FILE_TREE_PROFILE } from "./index.ts";
+import { createRun, restoreReplay, projectAgent, DEFAULT_FILE_TREE_PROFILE, type Observation } from "./index.ts";
+
+import { runWorkloadNative } from "../../monkey-business-bend/conformance/workload-native-runner.mjs";
 
 const opaqueAdvicees = ["runtime/subagent:7", "unrelated:session/2"] as const;
 const contentionConfig = {
@@ -27,7 +29,7 @@ it("attributes contention, interruption, refusal and recovery to opaque advicees
   expect(run.agentScopes.map(scope => scope.agent)).toEqual(opaqueAdvicees);
   expect(run.projection.dispatch.requests).toHaveLength(8);
   expect(run.projection.global).toEqual({ items: 8, bytes: 48 });
-  expect(run.projection.partitions.map(scope => [scope.partition, scope.items, scope.bytes]))
+  expect(run.projection.partitions.map(scope => [scope.partition, scope.items, scope.bytes]).sort((a, b) => a[0]! - b[0]!))
     .toEqual([[1, 4, 20], [2, 4, 28]]);
   const refused = run.observations.filter(frame => frame.commands.some(command => command.kind === "jevRequestUnavailable"));
   expect(refused).toHaveLength(1);
@@ -59,6 +61,80 @@ it("attributes contention, interruption, refusal and recovery to opaque advicees
     if (frame.partition !== undefined) expect(local.work.every(work => work.partition === frame.partition)).toBe(true);
   }
 });
+
+const residentEventCodes: Record<string, number> = { openRound: 1, admitObservation: 2, queueDispatch: 3,
+  startObservation: 4, beginObservedPreparation: 5, preparationCompleted: 6, completeObservation: 7,
+  dispatchSettled: 8, startReview: 9, jevRequestReady: 10, jevRequestStarted: 11, jevRequestSettled: 12,
+  collectionReady: 13, finalCandidateCheck: 14, submissionSuppressCheck: 15, collectionReserveLease: 16,
+  submissionBegin: 17, submissionTerminal: 18, collectionLeaseCheck: 19, collectionReleaseLease: 20,
+  collectionRetireAdvice: 22, submissionForget: 23, retireReview: 24, jevRequestInterrupted: 25 };
+const residentCommandCodes: Record<string, number> = { roundStarted: 1, observationAdmitted: 2,
+  dispatchStarted: 3, prepare: 4, unitAdmitted: 5, jevRequestIssued: 6, retainFinding: 7,
+  collectionEligible: 8, retainCandidate: 9, submissionUnsuppressed: 10, collectionLeaseReserved: 11,
+  submissionBegun: 12, submissionRecorded: 13, observationStarted: 14, preparationReleased: 15,
+  observationCompleted: 16, reviewStarted: 17, jevRequestStartRecorded: 18, jevRequestOutcomeRecorded: 19,
+  reservationReleased: 20, collectionLeaseKept: 21, collectionLeaseReleased: 22, settleClear: 23,
+  reviewRecorded: 24, retireCandidate: 25, releaseCandidate: 26, collectionAdviceRetired: 27,
+  submissionForgotten: 28, jevRequestUnavailable: 29, jevInterruptionRecorded: 30 };
+const residentGraphCodes: Record<string, number> = { none: 0, resolveEdge: 1, checkPath: 2, readSource: 3, unitComplete: 4 };
+function residentRow(frame: Observation): number[] {
+  const p = frame.after;
+  const counts = [p.global.items, p.global.bytes,
+    ...[1, 2].flatMap(owner => { const usage = p.partitions.find(item => item.partition === owner); return [usage?.items ?? 0, usage?.bytes ?? 0]; }),
+    p.dispatch.running.filter(item => item.preparation).length, p.dispatch.requests.length];
+  if (frame.preparation) {
+    const { after, command, event } = frame.preparation;
+    return [21, frame.time, frame.partition ?? 0, event.operation, 21, 0,
+      residentGraphCodes[command.kind] ?? 99, after.files, after.readBytes, after.treeBytes, ...counts];
+  }
+  const event = frame.event as unknown as Record<string, unknown>;
+  const identity = ["partition", "lifetime", "round", "operation", "request", "advice", "token"].map(key =>
+    Number(event[key] ?? (key === "operation" ? event.observation : key === "partition" ? event.group : key === "token" ? event.fingerprint : undefined) ?? 0));
+  const facts = event.kind === "jevRequestReady"
+    ? [event.rootValid, event.configurationValid, event.credentialReady, event.selected, event.currentWork, event.physicalAvailable].map(Number)
+    : event.kind === "jevRequestSettled" ? [Number(event.currentWork), { neverSent: 1, finding: 2, clear: 3, backendFailure: 4, timeout: 5, interrupted: 6 }[event.outcome as "clear"], 0, 0, 0, 0]
+      : event.kind === "beginObservedPreparation" ? [Number(event.bytes), 0, 0, 0, 0, 0]
+        : event.kind === "preparationCompleted" ? [(event.unitBytes as number[]).length, (event.unitBytes as number[])[0] ?? 0, 0, 0, 0, 0] : [0, 0, 0, 0, 0, 0];
+  const commands = frame.commands.flatMap((command, index) => {
+    const value = command as unknown as Record<string, unknown>;
+    const id = ["roundStarted", "observationAdmitted", "preparationReleased", "reservationReleased"].includes(command.kind) ? value.id
+      : ["dispatchStarted", "prepare", "unitAdmitted"].includes(command.kind) ? value.operation
+        : command.kind === "jevRequestIssued" ? value.request : 0;
+    if (residentCommandCodes[command.kind] === undefined) throw new Error(`Unmapped resident command ${command.kind}`);
+    return [residentCommandCodes[command.kind]!, frame.commandScopes?.[index] ?? 0, Number(id ?? 0)];
+  });
+  return [residentEventCodes[frame.event.kind] ?? 99, frame.time, frame.partition ?? 0, ...identity, ...facts, ...counts,
+    Number(!!frame.rejection), ...commands];
+}
+
+it("compares original shared contention and recovery inputs with the compiled native resident", () => {
+  const rows = runWorkloadNative(new URL("../../monkey-business-bend/conformance/shared-resident.bend", import.meta.url)) as number[][];
+  expect(rows.slice(0, 3)).toEqual([[90, 4294967313, 1, 11], [90, 99, 2, 12], [91, 0, 4294967313, 1, 11]]);
+  const native = rows.slice(3);
+  const run = createRun(contentionConfig);
+  run.advance({ untilTime: 25, maxEvents: 2000 });
+  const boundary = run.now;
+  const before = run.observations.map(residentRow);
+  run.applyControl({ kind: "jevProfile", delayMs: 5, outcome: "clear" });
+  run.applyControl({ kind: "suspendArrivals", agent: opaqueAdvicees[0], suspended: true });
+  const restored = restoreReplay(JSON.parse(JSON.stringify(run.exportReplay())));
+  run.advance({ untilTime: 40, maxEvents: 1000 });
+  restored.advance({ untilTime: 40, maxEvents: 1000 });
+  expect(restored.observe()).toEqual(run.observe());
+  expect(native).toEqual([...before, [80, boundary, 5], ...run.observations.slice(before.length).map(residentRow)]);
+  expect(native.some(row => [97, 98, 99].includes(row[0]!))).toBe(false);
+  const canonical = native.filter(row => row[0] !== 21 && row[0] !== 80);
+  expect(Math.max(...canonical.map(row => row[22]!))).toBe(8);
+  expect(Math.max(...canonical.map(row => row[23]!))).toBe(8);
+  expect(canonical.filter(row => row.slice(25).some((code, index) => index % 3 === 0 && code === 29)).map(row => [row[1], row[2]]))
+    .toEqual([[4, 1]]);
+  expect(canonical.filter(row => row[0] === 25).map(row => [row[1], row[2]])).toEqual([[22, 1]]);
+  expect(canonical.filter(row => row[0] === 12 && row[1]! > 25).map(row => [row[1], row[2]])).toEqual([[37, 1], [37, 2]]);
+  expect(canonical.at(-1)!.slice(16, 24)).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
+  const graph = native.filter(row => row[0] === 21);
+  expect(graph).toHaveLength(22);
+  for (const row of graph) expect(row.slice(7, 10)).toEqual([1, 100, 20]);
+}, 30000);
 
 const config = {
   seed: 7,
