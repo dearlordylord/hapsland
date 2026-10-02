@@ -1,7 +1,7 @@
 import { expect, it } from "@effect/vitest";
 import { ConfigProvider, Deferred, Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { InstallationLockError, withInstallationLock } from "./installation-lock.ts";
@@ -103,3 +103,26 @@ it.effect("configuration source failures are sanitized before creating any owner
   expect(JSON.stringify(result)).not.toContain("synthetic-private-provider-detail");
   expect(readdirSync(path)).toEqual([]);
 }));
+
+it.effect("malformed owner records fail closed without replacing their generation", () => Effect.gen(function* () {
+  const root = yield* fixture;
+  const owner = "12345678-1234-4123-8123-123456789abc";
+  const invalids = [{ version: 2 }, { pid: 0 }, { pid: 1.5 },
+    { createdAt: "invalid-date" }, { owner: "invalid-owner" }];
+  for (const [index, invalid] of invalids.entries()) {
+    const path = join(root, String(index));
+    const ownerDirectory = join(path, "owners", owner);
+    mkdirSync(ownerDirectory, { recursive: true });
+    mkdirSync(join(path, "generations"));
+    writeFileSync(join(ownerDirectory, "record.json"), JSON.stringify({
+      version: 1, pid: process.pid, createdAt: "2026-10-02T00:00:00.000Z", owner, ...invalid,
+    }));
+    symlinkSync(`../owners/${owner}`, join(path, "generations", "0000000000000001"));
+    const result = yield* withInstallationLock(path, Effect.succeed("must-not-enter")).pipe(Effect.result);
+    expect(result).toMatchObject({ _tag: "Failure", failure: {
+      reason: "configuration lock generation has an invalid owner record",
+    } });
+    expect(readdirSync(join(path, "owners"))).toEqual([owner]);
+    expect(readdirSync(join(path, "generations"))).toEqual(["0000000000000001"]);
+  }
+}).pipe(Effect.provide(configuration)));

@@ -3321,5 +3321,26 @@
     "logSha256": "cd064d8c7d7acc176ec5b1e423fa09ae63a81123ea4d891e9818248ff45ceb64",
     "scope": "Full npm test includes configuration, canonical/Bend artifact, production authority, boundary guards, progress proofs and all offline Vitest files. No source edits occurred during the run.",
     "limitations": "Does not establish live Jev behavior, real host/platform conformance or completion of the full idiomatic migration. Codex/Claude installation configuration and inspection, interactive CLI/terminal ownership, coordinated external hook deadline Clock migration and final conformance/performance/completion audit remain incomplete."
+  },
+  "installationLockSchemaPort": {
+    "status": "generation owner record decoded using Effect Schema",
+    "contract": "Version 1, positive safe integer PID, parseable finite date and v1-v5 UUID remain unchanged. Invalid published record fails closed; generation and existing owner retained; unpublished waiting candidate removed.",
+    "checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "npx vitest run src/onboarding/installation-lock.test.ts --maxWorkers=1",
+        "status": "pass",
+        "tests": 7
+      }
+    ],
+    "coverage": "New invalid owner-record test covers wrong version, zero/fractional PID, invalid date and owner UUID with retained generation and owner; existing Clock, interruption and release tests pass.",
+    "sourceSha256": {
+      "src/onboarding/installation-lock.ts": "cef5ae8090f61e41a397edb9ef6eedd4cdc692f7fc1ef68a07791f8b20340cb6",
+      "src/onboarding/installation-lock.test.ts": "f470d968a6daa15946248477e870bf9fe8a1eb158e0aa0cd37878c2cd59397c6"
+    },
+    "limitations": "Full suite evidence at 3cf71c6 predates this change; Codex/Claude Config, interactive workflows, coordinated deadline and final completion gates remain required."
   }
 }

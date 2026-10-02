@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Clock, Config, Effect, Schedule, Schema } from "effect";
+import { Clock, Config, Effect, Option, Schedule, Schema } from "effect";
 const isNodeError = (value: unknown, code: string) => typeof value === "object" && value !== null && "code" in value && value.code === code;
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -17,23 +17,19 @@ const LOCK_STALE_MS = 5_000;
 const LOCK_GENERATION_WIDTH = 16;
 const LOCK_GENERATION_RETENTION = 8;
 
-interface LockRecord {
-  readonly version: 1;
-  readonly pid: number;
-  readonly createdAt: string;
-  readonly owner: string;
-}
+const LockRecord = Schema.Struct({
+  version: Schema.Literal(1),
+  pid: Schema.Int.check(Schema.isGreaterThan(0)),
+  createdAt: Schema.String.check(Schema.makeFilter((value) => Number.isFinite(Date.parse(value)))),
+  owner: Schema.String.check(Schema.isPattern(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+  )),
+});
+interface LockRecord extends Schema.Schema.Type<typeof LockRecord> {}
 
 const decodeLockRecord = (content: string): LockRecord | undefined => {
   try {
-    const value: unknown = JSON.parse(content);
-    if (!isObject(value) || value.version !== 1 || typeof value.pid !== "number" ||
-        !Number.isSafeInteger(value.pid) || value.pid <= 0 || typeof value.createdAt !== "string" ||
-        !Number.isFinite(Date.parse(value.createdAt)) || typeof value.owner !== "string" ||
-        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.owner)) {
-      return undefined;
-    }
-    return { version: 1, pid: value.pid, createdAt: value.createdAt, owner: value.owner };
+    return Option.getOrUndefined(Schema.decodeUnknownOption(LockRecord)(JSON.parse(content)));
   } catch {
     return undefined;
   }
