@@ -133,3 +133,9 @@ for (const operation of ["resize", "retire", "finish", "count"]) {
     throw new Error(`advice capture ${operation} must compose as an Effect`);
   }
 }
+
+if (!state.includes('remove: Effect.fn("AdviceRecords.remove")') ||
+    !server.includes('yield* residentLedger.advice.remove(') ||
+    !server.includes('yield* residentExpirePending(now)')) {
+  throw new Error("advice retirement and expiry must compose Effects");
+}

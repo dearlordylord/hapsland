@@ -463,7 +463,6 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
         operations.assert();
         return [value, { ...records, advice }];
       };
-      const adviceCommit = <A>(operation: (operations: AdviceRecordOperations) => A): A => commitAll(adviceChange(operation));
       return {
         values: (): ReadonlyArray<Advice> => [...Ref.getUnsafe(state).records.advice.entries.values()]
           .map(({ capability }) => capability).sort((left, right) => left.sequence - right.sequence),
@@ -506,7 +505,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           commitAllEffect(adviceChange((operations) => operations.checkLease(...args)))),
         updateDelivery: Effect.fn("AdviceRecords.updateDelivery")((...args: Parameters<AdviceRecordOperations["updateDelivery"]>) =>
           commitAllEffect(adviceChange((operations) => operations.updateDelivery(...args)))),
-        remove: (capability: Advice, reason: "expired" | "stale", token?: string): boolean => commitAll((draft, records) => {
+        remove: Effect.fn("AdviceRecords.remove")((capability: Advice, reason: "expired" | "stale", token?: string): Effect.Effect<boolean> => commitAllEffect((draft, records) => {
           const advice = draftAdviceRecords(records.advice);
           const owner = capacityOperations((run) => run(draft), (run) => run(draft), residentLifetime);
           const operations = adviceRecordOperations(advice, owner);
@@ -536,7 +535,7 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
           revisions.assert();
           assertDeliveryState(delivery, owner);
           return [true, { ...records, advice, delivery, ticketUnits, adviceCaptures, revision }];
-        }),
+        })),
       };
     })(),
     adviceCaptures: (() => {

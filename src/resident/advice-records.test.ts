@@ -91,8 +91,8 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   yield* owner.advice.reserveLease(advice, "collector");
   const capture = yield* owner.adviceCaptures.start(advice.reservation, advice.revision, 200);
   if (capture === undefined) throw new Error("capture refused");
-  expect(owner.advice.remove(advice, "stale", "wrong")).toBe(false);
-  expect(owner.advice.remove(advice, "stale", "collector")).toBe(true);
+  expect(yield* owner.advice.remove(advice, "stale", "wrong")).toBe(false);
+  expect(yield* owner.advice.remove(advice, "stale", "collector")).toBe(true);
   expect(owner.advice.values()).toEqual([]);
   expect(advice.delivery).toBeUndefined();
   expect((yield* owner.ticketUnits.stage(unit))).toMatchObject({ stage: "unavailable", reason: "stale" });
@@ -104,7 +104,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   expect(owner.snapshot().items).toBe(0);
   expect(yield* owner.revision.count()).toBe(0);
   expect(yield* owner.advice.revise(advice, [], [])).toBe(false);
-  expect(owner.advice.remove(advice, "stale")).toBe(false);
+  expect(yield* owner.advice.remove(advice, "stale")).toBe(false);
 }));
 
 it.effect("fences a stale capability after the owner clears and advice identity is reused", () => Effect.gen(function* () {
@@ -115,7 +115,7 @@ it.effect("fences a stale capability after the owner clears and advice identity 
   const replacement = yield* owner.advice.insert(next.initial);
   expect(yield* owner.advice.revise(advice, [], [])).toBe(false);
   expect(yield* owner.advice.eligible(advice, false)).toBe(false);
-  expect(owner.advice.remove(advice, "stale")).toBe(false);
+  expect(yield* owner.advice.remove(advice, "stale")).toBe(false);
   expect(owner.advice.values()).toEqual([replacement]);
   expect(owner.snapshot().bytes).toBe(100);
 }));
@@ -140,7 +140,7 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
   expect(delivery.reserveFinishOutput(advice.partition, "stop", "collector", [{ id: advice.id, unit: advice.canonicalOperationId, findings: [finding] }], 1)).toBe(true);
   expect(delivery.authorizeFinishOutput(advice.partition, "collector")).toBe(true);
   const before = owner.canonicalProjection();
-  expect(() => owner.advice.remove(advice, "stale", "collector")).toThrow("canonical submission forget refused");
+  expect(yield* defectMessage(owner.advice.remove(advice, "stale", "collector"))).toContain("canonical submission forget refused");
   expect(owner.canonicalProjection()).toEqual(before);
   expect(owner.advice.values()).toEqual([advice]);
   expect(owner.snapshot().bytes).toBe(100);
@@ -169,7 +169,7 @@ it.effect("publishes the owner result and independent joined subscribers togethe
   expect((yield* owner.ticketUnits.current(ownerUnit)).adviceId).toBe(advice.id);
   expect((yield* owner.ticketUnits.current(subscriber)).adviceId).toBe(advice.id);
   expect(yield* joined.hasAdmission(initial.admissionId)).toBe(false);
-  owner.advice.remove(advice, "stale");
+  yield* owner.advice.remove(advice, "stale");
   expect(yield* owner.advice.publish(advice, ownerUnit)).toEqual([]);
   expect((yield* owner.ticketUnits.stage(ownerUnit))?.stage).toBe("unavailable");
 }));
@@ -185,7 +185,7 @@ it.effect("executes advice eligibility and revision against current retained ide
   expect(advice.findings).toHaveLength(initial.findings.length);
   expect(yield* revise).toBe(true);
   expect(advice.findings).toEqual([]);
-  owner.advice.remove(advice, "stale");
+  yield* owner.advice.remove(advice, "stale");
   expect(yield* eligible).toBe(false);
   expect(yield* revise).toBe(false);
 }));
@@ -264,4 +264,17 @@ it.effect("releases only the lease owned at execution", () => Effect.gen(functio
   expect(advice.delivery?.token).toBe("new");
   expect(yield* owner.advice.releaseLease(advice, "new")).toBe(true);
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
+}));
+
+
+it.effect("retires advice once across competing deferred removals", () => Effect.gen(function* () {
+  const { owner, initial } = yield* fixture();
+  const advice = yield* owner.advice.insert(initial);
+  const remove = owner.advice.remove(advice, "stale");
+  expect(owner.advice.values()).toEqual([advice]);
+  const results = yield* Effect.all(Array.from({ length: 16 }, () => remove), { concurrency: 16 });
+  expect(results.filter(Boolean)).toHaveLength(1);
+  expect(owner.advice.values()).toEqual([]);
+  expect(yield* owner.revision.count()).toBe(0);
+  expect(owner.snapshot().items).toBe(0);
 }));
