@@ -13,7 +13,7 @@
         "tree-sitter-typescript": "0.23.2",
       },
       "devDependencies": {
-        "@crap4ts/crap4ts": "1.0.4",
+        "@crap4ts/crap4ts": "1.0.5",
         "@effect/vitest": "4.0.0",
         "@types/bun": "1.3.14",
         "@vitest/coverage-v8": "5.0.1",
@@ -39,7 +39,7 @@
 
     "@bcoe/v8-coverage": ["@bcoe/v8-coverage@1.0.2", "", {}, "sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA=="],
 
-    "@crap4ts/crap4ts": ["@crap4ts/crap4ts@1.0.4", "", { "bin": { "crap4ts": "bin/crap4ts.js" } }, "sha512-UQ07gfX7P92nvnrm4BVGHxICUL+aWYnVT7itoLyQicj1t+s1G4AL/8zl5Qq1O1KnZh08Cwgo1CsqVvMvgm+TIA=="],
+    "@crap4ts/crap4ts": ["@crap4ts/crap4ts@1.0.5", "", { "bin": { "crap4ts": "bin/crap4ts.js" } }, "sha512-9vVj4vXRCc1fW8/99CxSniIauhToN7HTzaN2j0OGFU8zbi78sJbrWDJSvZl4TMiuccecpku1i7QkGDn7sKCSYw=="],
 
     "@effect/ai-typesafe": ["@effect/ai-typesafe@4.0.0", "", { "peerDependencies": { "effect": "^4.0.0" } }, "sha512-TbInR017yf4KFAYD1jTSr9pkQrob1+9UNyW6KKRHHGfmD8j121f41fOf+60RJ7IIBl/XOUAURC8/Mj7aWkGZtg=="],
 

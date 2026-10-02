@@ -36,7 +36,7 @@ The [crap4ts configuration](../crap4ts.json) selects all TypeScript under `src`
 (the tool excludes conventional tests and declarations) and enforces a CRAP
 threshold of **8** with missing evidence treated as an error.
 [`@crap4ts/crap4ts`](https://www.npmjs.com/package/@crap4ts/crap4ts) is pinned
-to **1.0.4** (`DEPEND ON`); the V8 coverage provider is pinned to the same
+to **1.0.5** (`DEPEND ON`); the V8 coverage provider is pinned to the same
 release as Vitest and emits Istanbul JSON, not raw V8 coverage.
 `npm run quality:check` regenerates coverage through
 `npm run test:coverage`, which includes the existing boundary checks and tests.
@@ -54,15 +54,6 @@ needs meaningful tests or simpler branching; do not raise thresholds or switch
 to report-only mode to hide a failure. Separate packages and JavaScript/Bend
 sources are outside this gate's current `src` scope. Review this policy when
 the production source roots, test runner, or pinned analysis tool change.
-
-The initial full test run with V8 coverage passed 1,292 tests, but crap4ts
-1.0.4 rejected the report with ambiguous function ownership in
-`src/activity/analytics.ts` (`readAnalytics`). The same attribution error was
-reproduced with direct Istanbul instrumentation and the focused analytics
-tests. The strict gate therefore currently exits **1**, before any CRAP scores
-can be assessed. Resolve the coverage/analyzer compatibility error before
-claiming the quality gate passes; do not exclude the affected source or suppress
-the error. Recheck this limitation when the coverage provider or analyzer changes.
 
 The link checker is [Lychee](https://lychee.cli.rs/guides/cli/) 0.24.2
 (`DEPEND ON`), selected because it checks Markdown and raw HTML links and images
