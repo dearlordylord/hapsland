@@ -159,9 +159,11 @@ it("runs original source-free minimal scenarios through the native shared driver
     const emit = spawnSync("bend", [fileURLToPath(new URL("../../monkey-business-bend/conformance/minimal-scenario.bend", import.meta.url)), "-o", source], { encoding: "utf8", timeout: 5000 });
     expect(emit.error).toBeUndefined();
     expect(emit.status, emit.stdout + emit.stderr).toBe(0);
-    // Separate bounded emission and native compilation keep every subprocess
-    // within the checker limit. Optimization is irrelevant to trace semantics.
-    const compile = spawnSync("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], { encoding: "utf8", timeout: 5000 });
+    // Bend checking/emission and native execution each retain a five-second bound.
+    // External C compilation has a separate fifteen-second bound: it took 4.1s
+    // without load and exceeded 5s during concurrent checks. This compile budget
+    // changes no proof or simulated-time deadline; optimization is irrelevant to traces.
+    const compile = spawnSync("clang", ["-O0", "-Wno-unused-value", source, "-o", binary, "-lm", "-pthread"], { encoding: "utf8", timeout: 15000 });
     expect(compile.error).toBeUndefined();
     expect(compile.status, compile.stdout + compile.stderr).toBe(0);
     const native = spawnSync(binary, [], { encoding: "utf8", timeout: 5000 });
@@ -230,4 +232,4 @@ it("runs original source-free minimal scenarios through the native shared driver
     });
   });
   expect(nativeTraces).toEqual(traces);
-}, 20000);
+}, 30000);
