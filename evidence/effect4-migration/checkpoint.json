@@ -3881,5 +3881,25 @@
     },
     "evidence": "Caller TestClock controls pre-write deadline refusal and unchanged 50ms reserve. Stop startedAt100000 with now104050 emits deadline104200 and finishes rather than collecting with a reset budget. Native subprocess/delivery tests pass.",
     "remaining": "Current full-suite/build/conformance/live/performance and requirement audit incomplete. Source audit identified release staging native spawnSync and async rule-loader facade; inspect and replace effectful workflow leftovers before final gates."
+  },
+  "releaseStagingScopedWorkflowPort": {
+    "status": "pass",
+    "scope": "Release staging composes native filesystem observations, registry JSON decoding, cached verification and npm acquisition as Effects. Command injection is Effect-native; no synchronous subprocess wrapper remains. Shared process adapter preserves 300000ms/2MiB limits and physical settlement on cancellation. Damaged caches/fresh failed candidates retained according to existing policy; version-one snapshot identity unchanged.",
+    "checks": {
+      "typecheck": "pass",
+      "configurationBoundaryGuard": "pass",
+      "targetedTests": {
+        "files": 3,
+        "passed": 25,
+        "durationSeconds": 10.52
+      },
+      "additionalCancellationTests": {
+        "files": 1,
+        "passed": 7,
+        "durationSeconds": 0.33
+      }
+    },
+    "evidence": "Interruption during cached verification remains interruption, preserves cache and does not begin a replacement install. Registry/archive/channel/version checks unchanged.",
+    "limitations": "Injected deterministic release commands, not actual registry install/platform acceptance. Native process adapter independently exercised. Rule-loader async facade/source edge audit and final gates remain."
   }
 }

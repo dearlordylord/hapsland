@@ -96,6 +96,11 @@ if (/spawnSync\(|Effect\.run(?:Sync|Promise|Fork)\(|process\.env(?:\.|\[)/u.test
     !clientLifecycle.includes("yield* spawnInherited(")) {
   throw new Error("package lifecycle must compose caller Config and scoped inherited processes");
 }
+const distribution = read("src/onboarding/distribution.ts");
+if (/spawnSync\(|Effect\.run(?:Sync|Promise|Fork)\(|\basync\b/u.test(distribution) ||
+    !distribution.includes("yield* execFileClosedStdin(")) {
+  throw new Error("release staging must compose scoped native process Effects");
+}
 
 const doctor = read("src/onboarding/doctor.ts");
 if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||
