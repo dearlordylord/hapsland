@@ -632,7 +632,7 @@ describe("resident delivery lease", () => {
         expect((await residentRequest(paths, { requestRoute: "shared", operation,
           lifetime: server.lifetime, token: ordinary.token })).status).toBe("empty");
       }
-      server.releaseDelivery(ordinary.token);
+      (await Effect.runPromise(server.releaseDelivery(ordinary.token)));
       for (const requestRoute of ["shared", "ticketed"] as const) {
         for (const composed of [undefined, false, true]) {
           const unsupported = { ...collect, requestRoute, ticket: admission.ticket, composed,
@@ -1161,7 +1161,7 @@ describe("resident delivery lease", () => {
       expect(mixed.findingCount).toBe(1);
       expect(claudeHostOutputText(mixed.output)).not.toMatch(/unavailable/i);
       expect(server.accountingMetrics().pendingOperationalNotices).toBeGreaterThan(0);
-      server.releaseDelivery(mixed.token);
+      (await Effect.runPromise(server.releaseDelivery(mixed.token)));
       expect(await server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: finding.advicee, token: "finish" })).toEqual({ status: "advanced" });
       invalidate = true;
@@ -1317,7 +1317,7 @@ describe("resident delivery lease", () => {
     expect(reoffer.status).toBe("advice");
     if (reoffer.status === "advice") {
       expect((await Effect.runPromise(server.beginComposedSubmission(reoffer.token, "stop")))).toEqual({ status: "submitting" });
-      server.releaseComposedSubmission(reoffer.token);
+      (await Effect.runPromise(server.releaseComposedSubmission(reoffer.token)));
     }
     await server.handle({ requestRoute: "shared", operation: "finish-stop", lifetime: server.lifetime,
       root, advicee: observation.advicee, token: "reoffer", close: false });
@@ -1707,7 +1707,7 @@ describe("resident delivery lease", () => {
     const first = await server.collect(root, advicee({ turnId: "later", toolUseId: "collect-1" }), dispatch);
     expect(first.status).toBe("advice");
     if (first.status !== "advice") return;
-    server.releaseDelivery(first.token);
+    (await Effect.runPromise(server.releaseDelivery(first.token)));
     const afterDisconnect = await server.collect(
       root,
       advicee({ turnId: "later", toolUseId: "collect-2" }),
@@ -3062,7 +3062,7 @@ describe("resident bounded advice batches", () => {
       composed: true, finish: { token: "partial-stop", deadlineReached: true } });
     expect(turnEnd.status).toBe("advice");
     expect(server.stats()).toMatchObject({ running: 1, pendingAdvice: 1 });
-    if (turnEnd.status === "advice") server.releaseDelivery(turnEnd.token);
+    if (turnEnd.status === "advice") (await Effect.runPromise(server.releaseDelivery(turnEnd.token)));
     releases.get("b.ts")?.();
     await server.whenIdle();
   });
@@ -3088,7 +3088,7 @@ describe("resident bounded advice batches", () => {
       expect(first.output.hookSpecificOutput.additionalContext).toContain(`type-${index}.ts :: Count${index}`);
     }
     expect(server.pendingAdviceMetadata().filter(({ delivery }) => delivery !== "available")).toHaveLength(6);
-    server.releaseDelivery(first.token);
+    (await Effect.runPromise(server.releaseDelivery(first.token)));
     expect(server.pendingAdviceMetadata().every(({ delivery }) => delivery === "available")).toBe(true);
     const retried = await server.collect(
       root,

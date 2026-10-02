@@ -111,3 +111,10 @@ if (!state.includes('checkLease: Effect.fn("AdviceRecords.checkLease")') ||
     !server.includes('yield* residentCheckAdviceLease(item, now, stopCollector, sameGroup)')) {
   throw new Error("advice lease checks must compose as atomic Effects");
 }
+
+if (!state.includes('releaseLease: Effect.fn("AdviceRecords.releaseLease")') ||
+    !state.includes('commitAllEffect(adviceChange((operations) => operations.releaseLease(...args)))') ||
+    !server.includes('yield* server.releaseDelivery(') ||
+    !server.includes('yield* server.releaseComposedSubmission(')) {
+  throw new Error("advice release and composed cleanup must compose Effects");
+}

@@ -227,7 +227,7 @@ it.effect("validates delivery token when a deferred update executes", () => Effe
   yield* owner.advice.reserveLease(advice, "old");
   const update = owner.advice.updateDelivery(advice, "old", { acknowledged: true });
   expect(advice.delivery?.acknowledged).toBe(false);
-  owner.advice.releaseLease(advice, "old");
+  yield* owner.advice.releaseLease(advice, "old");
   yield* owner.advice.reserveLease(advice, "new");
   expect(yield* update).toBe(false);
   expect(advice.delivery?.token).toBe("new");
@@ -248,5 +248,20 @@ it.effect("checks expiry against the lease retained at execution", () => Effect.
   expect(advice.delivery).toBeDefined();
   yield* owner.advice.checkLease(advice, 20, false, false, false);
   expect(advice.delivery).toBeUndefined();
+  expect(owner.canonicalProjection().collection.leases).toEqual([]);
+}));
+
+it.effect("releases only the lease owned at execution", () => Effect.gen(function* () {
+  const { owner, initial } = yield* fixture();
+  const advice = yield* owner.advice.insert(initial);
+  yield* owner.advice.eligible(advice, false);
+  yield* owner.advice.reserveLease(advice, "old");
+  const release = owner.advice.releaseLease(advice, "old");
+  expect(advice.delivery?.token).toBe("old");
+  expect(yield* release).toBe(true);
+  yield* owner.advice.reserveLease(advice, "new");
+  expect(yield* release).toBe(false);
+  expect(advice.delivery?.token).toBe("new");
+  expect(yield* owner.advice.releaseLease(advice, "new")).toBe(true);
   expect(owner.canonicalProjection().collection.leases).toEqual([]);
 }));

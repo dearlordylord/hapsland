@@ -256,7 +256,7 @@ for (const host of ["codex-cli", "claude-code"] as const) {
       requireThat(f.server.pendingAdviceMetadata().length === 2, "multi-unit fixture did not produce two records");
       const selected = asAdvice(await f.collect());
       requireThat(selected.findingCount === 2, "multi-unit collection did not include both findings");
-      f.server.releaseDelivery(selected.token);
+      (await Effect.runPromise(f.server.releaseDelivery(selected.token)));
       const stop = await f.stop();
       requireThat(stop.blocked, "multi-unit findings did not continue");
       const finish = await f.stop(true);

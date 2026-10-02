@@ -191,7 +191,7 @@ describe("Claude advicee scoped resident delivery", () => {
     expect(Buffer.byteLength(`${JSON.stringify(delivered.output)}\n`, "utf8")).toBeLessThanOrEqual(MAX_COMBINED_RESPONSE_BYTES);
     expect(delivered.output).not.toHaveProperty("hookSpecificOutput");
     expect(JSON.stringify(delivered.output)).not.toContain(accepted.ticket.nonce);
-    server.releaseDelivery(delivered.token);
+    (await Effect.runPromise(server.releaseDelivery(delivered.token)));
     writeFileSync(userConfigPath, '{"version":1,"claudeFeedbackMode":"advisory"}');
     const laterObservation = { ...observation, advicee: { ...observation.advicee, toolUseId: "tool-two" } };
     expect((await server.handle({ requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,

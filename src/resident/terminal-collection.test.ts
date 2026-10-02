@@ -430,7 +430,7 @@ describe("Claude terminal collection", () => {
     expect(outcomes.filter((outcome) => outcome.status === "pending")).toHaveLength(1);
     const advice = outcomes.find((outcome) => outcome.status === "advice");
     if (advice?.status !== "advice") throw new Error("advice was not leased");
-    server.releaseDelivery(advice.token);
+    (await Effect.runPromise(server.releaseDelivery(advice.token)));
     expect((await collect(server, admission.ticket, data, dispatch)).status).toBe("advice");
   });
 
@@ -446,7 +446,7 @@ describe("Claude terminal collection", () => {
     const other = await collect(server, skipped.ticket, data, dispatch);
     expect(other.status).toBe("advice");
     expect((await collect(server, finding.ticket, data, dispatch)).status).toBe("pending");
-    if (other.status === "advice") server.releaseDelivery(other.token);
+    if (other.status === "advice") (await Effect.runPromise(server.releaseDelivery(other.token)));
     expect((await collect(server, finding.ticket, data, dispatch)).status).toBe("advice");
   });
 
