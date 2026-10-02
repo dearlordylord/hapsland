@@ -1,18 +1,15 @@
 import * as Effect from "effect/Effect";
-import { execFile } from "node:child_process";
+import { Clock, Config, Exit, Option, Ref, Schedule, Schema } from "effect";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import { promisify } from "node:util";
 import { readActivity } from "../activity/status.ts";
 import { inspectResidentEffect as inspectResident } from "../resident/client.ts";
 import { inspectCodexInstallation } from "./codex-installation.ts";
 import { execFileClosedStdin } from "./codex-host-process.ts";
 import { initializeDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
 import { demoSourceHash, readDemoTrace } from "./demo-trace.ts";
-
-const execFileAsync = promisify(execFile);
 
 export const DEMO_SOURCE_BYTE_BUDGET = 4_096 as const;
 export const DEMO_PROVIDER_CALL_BUDGET = 2 as const;
@@ -53,14 +50,11 @@ const checks = [
 if (checks.some((value) => !value)) process.exit(1)
 `;
 
-type DemoRecord = {
-  readonly version: 1;
-  readonly id: string;
-  readonly root: string;
-  readonly createdAt: number;
-  readonly cleanupToken: string;
-  readonly selectionDigest: string;
-};
+const DemoRecord = Schema.Struct({
+  version: Schema.Literal(1), id: Schema.String, root: Schema.String, createdAt: Schema.Number,
+  cleanupToken: Schema.String, selectionDigest: Schema.String,
+});
+interface DemoRecord extends Schema.Schema.Type<typeof DemoRecord> {}
 
 export type FirstReviewDemoRequest = {
   readonly version: 1;
@@ -105,14 +99,19 @@ export type DemoExecution = {
   readonly repair: { readonly changed: boolean; readonly rejectsInvalidStates: boolean };
 };
 
-export type DemoExecutor = (options: {
+export type DemoExecutionOptions = {
   readonly root: string;
   readonly codexHome?: string;
   readonly codexExecutable: string;
   readonly deadlineMs: number;
   readonly providerCallBudget: number;
   readonly budgetPath: string;
-}) => Promise<DemoExecution>;
+};
+export class DemoExecutionError extends Schema.TaggedError<DemoExecutionError>()("DemoExecutionError", { operation: Schema.NonEmptyString }) {}
+export type DemoExecutor = (options: DemoExecutionOptions) => Effect.Effect<DemoExecution, DemoExecutionError>;
+const demoIo = Effect.fn("FirstReviewDemo.nativeIo")(<A>(operation: string, execute: () => Promise<A>) =>
+  Effect.tryPromise({ try: execute, catch: () => new DemoExecutionError({ operation }) }).pipe(Effect.uninterruptible));
+const monotonicMillis = Clock.currentTimeNanos.pipe(Effect.map((now) => Number(now / 1_000_000n)));
 
 const digestSelection = (record: Omit<DemoRecord, "selectionDigest">): string =>
   createHash("sha256").update([
@@ -128,100 +127,99 @@ const claimedRecordPath = (statePath: string, id: string): string => join(claimD
 const budgetPath = (statePath: string, id: string): string => join(statePath, `${id}.budget.json`);
 const demoParent = (): string => join(tmpdir(), "realtime-review-tool-demos");
 
-const validFixture = async (record: Pick<DemoRecord, "id" | "root" | "cleanupToken">): Promise<boolean> => {
-  try {
-    const canonicalParent = await realpath(demoParent());
-    const canonicalRoot = await realpath(record.root);
+const validFixture = Effect.fn("FirstReviewDemo.validFixture")((record: Pick<DemoRecord, "id" | "root" | "cleanupToken">) =>
+  Effect.gen(function* () {
+    const canonicalParent = yield* demoIo("resolve demo parent", () => realpath(demoParent()));
+    const canonicalRoot = yield* demoIo("resolve demo root", () => realpath(record.root));
     if (dirname(canonicalRoot) !== canonicalParent || !basename(canonicalRoot).startsWith("demo-")) return false;
-    const marker: unknown = JSON.parse(await readFile(join(canonicalRoot, ".review-demo-owner.json"), "utf8"));
+    const encoded = yield* demoIo("read demo owner", () => readFile(join(canonicalRoot, ".review-demo-owner.json"), "utf8"));
+    const marker: unknown = yield* Effect.try({ try: () => JSON.parse(encoded),
+      catch: () => new DemoExecutionError({ operation: "decode demo owner" }) });
     return typeof marker === "object" && marker !== null &&
-      "version" in marker && marker.version === 1 &&
-      "id" in marker && marker.id === record.id &&
+      "version" in marker && marker.version === 1 && "id" in marker && marker.id === record.id &&
       "cleanupToken" in marker && marker.cleanupToken === record.cleanupToken;
-  } catch {
-    return false;
-  }
-};
+  }).pipe(Effect.catch(() => Effect.succeed(false))));
 
-const readRecord = async (statePath: string, id: string): Promise<DemoRecord | undefined> => {
-  try {
-    const value: unknown = JSON.parse(await readFile(recordPath(statePath, id), "utf8"));
-    if (typeof value !== "object" || value === null) return undefined;
-    const candidate = value as Partial<DemoRecord>;
-    if (candidate.version !== 1 || candidate.id !== id || typeof candidate.root !== "string" ||
-        typeof candidate.createdAt !== "number" || typeof candidate.cleanupToken !== "string" ||
-        typeof candidate.selectionDigest !== "string") return undefined;
-    const expected = digestSelection({
-      version: 1, id, root: candidate.root, createdAt: candidate.createdAt,
-      cleanupToken: candidate.cleanupToken,
-    });
-    if (candidate.selectionDigest !== expected) return undefined;
-    const decoded: DemoRecord = {
-      version: 1,
-      id,
-      root: candidate.root,
-      createdAt: candidate.createdAt,
-      cleanupToken: candidate.cleanupToken,
-      selectionDigest: candidate.selectionDigest,
-    };
-    return await validFixture(decoded) ? decoded : undefined;
-  } catch {
-    return undefined;
-  }
-};
+const readRecord = Effect.fn("FirstReviewDemo.readRecord")((statePath: string, id: string) => Effect.gen(function* () {
+  const encoded = yield* demoIo("read preview record", () => readFile(recordPath(statePath, id), "utf8"));
+  const unknown: unknown = yield* Effect.try({ try: () => JSON.parse(encoded),
+    catch: () => new DemoExecutionError({ operation: "decode preview JSON" }) });
+  const candidate = yield* Schema.decodeUnknownEffect(DemoRecord)(unknown);
+  if (candidate.id !== id || candidate.selectionDigest !== digestSelection(candidate)) return undefined;
+  return (yield* validFixture(candidate)) ? candidate : undefined;
+}).pipe(Effect.catch(() => Effect.succeed(undefined))));
 
-/** Atomically consumes a pending preview. Only the process that creates the claim directory owns cleanup. */
-const claimRecord = async (statePath: string, record: DemoRecord): Promise<void> => {
+/** Atomically consumes a preview; only this claim creator owns subsequent cleanup. */
+const claimRecord = Effect.fn("FirstReviewDemo.claimRecord")((statePath: string, record: DemoRecord) => Effect.gen(function* () {
   const directory = claimDirectory(statePath, record.id);
-  await mkdir(directory, { mode: 0o700 });
-  try {
-    await rename(recordPath(statePath, record.id), claimedRecordPath(statePath, record.id));
-  } catch (cause) {
-    await rm(directory, { recursive: true, force: true });
-    throw cause;
-  }
-};
+  yield* demoIo("create preview claim", () => mkdir(directory, { mode: 0o700 }));
+  yield* demoIo("consume preview record", () => rename(recordPath(statePath, record.id), claimedRecordPath(statePath, record.id))).pipe(
+    Effect.catch((error) => demoIo("discard failed preview claim", () => rm(directory, { recursive: true, force: true })).pipe(
+      Effect.catch(() => Effect.void), Effect.andThen(Effect.fail(error)),
+    )),
+  );
+}).pipe(Effect.uninterruptible));
 
-const makeFixture = async (statePath: string): Promise<DemoRecord> => {
-  await mkdir(demoParent(), { recursive: true, mode: 0o700 });
-  const root = await mkdtemp(join(demoParent(), "demo-"));
+const runFixtureGit = Effect.fn("FirstReviewDemo.fixtureGit")((args: ReadonlyArray<string>) => Effect.gen(function* () {
+  const result = yield* execFileClosedStdin("git", args, { env: process.env,
+    timeout: DEMO_TIME_BUDGET_MS, maxBuffer: 1024 * 1024 });
+  if (!result.succeeded) return yield* Effect.fail(new DemoExecutionError({ operation: "prepare fixture git" }));
+}));
+
+const makeFixture = Effect.fn("FirstReviewDemo.makeFixture")((statePath: string) => Effect.gen(function* () {
+  yield* demoIo("create demo parent", () => mkdir(demoParent(), { recursive: true, mode: 0o700 }));
   const id = randomUUID();
-  const createdAt = Date.now();
+  const createdAt = yield* Clock.currentTimeMillis;
   const cleanupToken = randomUUID();
-  try {
-    await execFileAsync("git", ["init", "--quiet", "--initial-branch=main", root]);
-    await writeFile(join(root, "session.ts"), FLAWED_SOURCE, { mode: 0o600 });
-    await writeFile(join(root, "validate.mjs"), VALIDATOR_SOURCE, { mode: 0o600 });
-    await writeFile(join(root, ".review-demo-owner.json"), `${JSON.stringify({
-      version: 1, id, cleanupToken,
-    })}\n`, { mode: 0o600 });
-    await writeFile(join(root, ".review.jsonc"), JSON.stringify({
-      version: 1,
-      includes: ["session.ts"],
-      settings: { deadlineMs: 15_000, concurrency: 1, adviceBudget: 3, transientRetries: 0 },
-    }) + "\n", { mode: 0o600 });
-    await execFileAsync("git", ["-C", root, "add", "session.ts", "validate.mjs", ".review.jsonc", ".review-demo-owner.json"]);
-    await execFileAsync("git", ["-C", root, "-c", "user.name=Review Demo", "-c", "user.email=demo@example.invalid", "commit", "--quiet", "-m", "synthetic demo fixture"]);
-    const canonicalRoot = await realpath(root);
-    const base = { version: 1 as const, id, root: canonicalRoot, createdAt, cleanupToken };
-    const record = { ...base, selectionDigest: digestSelection(base) };
-    await mkdir(statePath, { recursive: true, mode: 0o700 });
-    await writeFile(recordPath(statePath, id), `${JSON.stringify(record)}\n`, { mode: 0o600 });
-    return record;
-  } catch (cause) {
-    await rm(root, { recursive: true, force: true });
-    throw cause;
-  }
-};
+  return yield* Effect.acquireUseRelease(
+    demoIo("create demo root", () => mkdtemp(join(demoParent(), "demo-"))),
+    (root) => Effect.gen(function* () {
+      yield* runFixtureGit(["init", "--quiet", "--initial-branch=main", root]);
+      yield* demoIo("write demo source", () => writeFile(join(root, "session.ts"), FLAWED_SOURCE, { mode: 0o600 }));
+      yield* demoIo("write demo validator", () => writeFile(join(root, "validate.mjs"), VALIDATOR_SOURCE, { mode: 0o600 }));
+      yield* demoIo("write demo owner", () => writeFile(join(root, ".review-demo-owner.json"),
+        `${JSON.stringify({ version: 1, id, cleanupToken })}\n`, { mode: 0o600 }));
+      yield* demoIo("write demo configuration", () => writeFile(join(root, ".review.jsonc"), JSON.stringify({
+        version: 1, includes: ["session.ts"],
+        settings: { deadlineMs: 15_000, concurrency: 1, adviceBudget: 3, transientRetries: 0 },
+      }) + "\n", { mode: 0o600 }));
+      yield* runFixtureGit(["-C", root, "add", "session.ts", "validate.mjs", ".review.jsonc", ".review-demo-owner.json"]);
+      yield* runFixtureGit(["-C", root, "-c", "user.name=Review Demo", "-c", "user.email=demo@example.invalid",
+        "commit", "--quiet", "-m", "synthetic demo fixture"]);
+      const canonicalRoot = yield* demoIo("resolve prepared root", () => realpath(root));
+      const base = { version: 1 as const, id, root: canonicalRoot, createdAt, cleanupToken };
+      const record = { ...base, selectionDigest: digestSelection(base) };
+      yield* demoIo("create preview state directory", () => mkdir(statePath, { recursive: true, mode: 0o700 }));
+      yield* demoIo("publish preview record", () => writeFile(recordPath(statePath, id), `${JSON.stringify(record)}\n`, { mode: 0o600, flag: "wx" }));
+      return record;
+    }),
+    (root, exit) => Exit.isSuccess(exit) ? Effect.void : Effect.gen(function* () {
+      const published = yield* readRecord(statePath, id);
+      if (published?.cleanupToken === cleanupToken) {
+        yield* demoIo("discard incomplete preview record", () => rm(recordPath(statePath, id), { force: true }));
+      }
+      yield* demoIo("discard incomplete demo root", () => rm(root, { recursive: true, force: true }));
+    }),
+  );
+}));
 
-const cleanFixture = async (statePath: string, record: DemoRecord): Promise<void> => {
-  if (!(await validFixture(record))) throw new Error("refusing to remove an unowned demo root");
-  await rm(record.root, { recursive: true, force: true });
-  await rm(recordPath(statePath, record.id), { force: true });
-  await rm(claimDirectory(statePath, record.id), { recursive: true, force: true });
-  await rm(budgetPath(statePath, record.id), { force: true });
-  await rm(`${budgetPath(statePath, record.id)}.trace`, { recursive: true, force: true });
-};
+const cleanFixture = Effect.fn("FirstReviewDemo.cleanFixture")((statePath: string, record: DemoRecord) => Effect.gen(function* () {
+  if (!(yield* validFixture(record))) return yield* Effect.fail(new DemoExecutionError({ operation: "refuse unowned demo root" }));
+  yield* demoIo("remove owned demo root", () => rm(record.root, { recursive: true, force: true }));
+  yield* demoIo("remove preview record", () => rm(recordPath(statePath, record.id), { force: true }));
+  yield* demoIo("remove preview claim", () => rm(claimDirectory(statePath, record.id), { recursive: true, force: true }));
+  yield* demoIo("remove demo budget", () => rm(budgetPath(statePath, record.id), { force: true }));
+  yield* demoIo("remove demo trace", () => rm(`${budgetPath(statePath, record.id)}.trace`, { recursive: true, force: true }));
+}).pipe(Effect.uninterruptible));
+
+const claimOwnedRecord = Effect.fn("FirstReviewDemo.claimOwnedRecord")((statePath: string, record: DemoRecord) => Effect.gen(function* () {
+  const released = yield* Ref.make(false);
+  const close = cleanFixture(statePath, record).pipe(Effect.tap(() => Ref.set(released, true)));
+  yield* Effect.acquireRelease(claimRecord(statePath, record), () => Ref.get(released).pipe(
+    Effect.flatMap((done) => done ? Effect.void : close), Effect.catch(() => Effect.void),
+  ));
+  return close;
+}));
 
 const jsonLines = (encoded: string): ReadonlyArray<Readonly<Record<string, unknown>>> =>
   encoded.split("\n").flatMap((line) => {
@@ -287,14 +285,14 @@ export const correlatedHostEvidence = (observations: {
 };
 
 /** The installed demo keeps native hook trust. A test-only environment switch can disable the host sandbox. */
-export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
-  const started = Date.now();
+export const executeInstalledCodexDemo = Effect.fn("FirstReviewDemo.executeInstalled")((options: DemoExecutionOptions) => Effect.gen(function* () {
+  const started = yield* monotonicMillis;
   const deadlineAt = started + options.deadlineMs;
-  const before = await readFile(join(options.root, "session.ts"), "utf8");
-  const hostVersion = await execFileAsync(options.codexExecutable, ["--version"], {
-    env: process.env,
-    timeout: 10_000,
-  }).then((result) => result.stdout.trim() || "unavailable", () => "unavailable");
+  const before = yield* demoIo("read initial demo source", () => readFile(join(options.root, "session.ts"), "utf8"));
+  const version = yield* execFileClosedStdin(options.codexExecutable, ["--version"], {
+    env: process.env, timeout: 10_000, maxBuffer: 1024 * 1024,
+  });
+  const hostVersion = version.succeeded ? version.stdout.trim() || "unavailable" : "unavailable";
   const prompt = `This is an explicitly selected disposable review demo. The existing session.ts is deliberately flawed: it permits a logged-out session with a userId and a logged-in session without one. Do not use web search. Use apply_patch to add the optional field "readonly demoStarted?: true" inside Session. Then respond to any realtime review feedback as you normally would, choosing the repair yourself. If review feedback affects your change, cite its exact rule ID in your final report. Use no more than two apply_patch calls total. Finally run "node validate.mjs" and report its result.`;
   const environment = {
     ...process.env,
@@ -304,36 +302,32 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
     REVIEW_DEMO_DEADLINE_MS: String(options.deadlineMs),
     REVIEW_DEMO_BUDGET_PATH: options.budgetPath,
   };
-  const testSandboxBypass = process.env.REVIEW_DEMO_TEST_SANDBOX_BYPASS === "1";
-  const testModel = process.env.REVIEW_DEMO_TEST_CODEX_MODEL;
+  const testSandboxBypass = (yield* Config.String("REVIEW_DEMO_TEST_SANDBOX_BYPASS").pipe(Config.withDefault("0"))) === "1";
+  const testModel = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_DEMO_TEST_CODEX_MODEL")));
   const hostTimeoutMs = Math.max(1, options.deadlineMs - 10_000);
-  const host = await execFileClosedStdin(options.codexExecutable, [
+  const hostResult = yield* execFileClosedStdin(options.codexExecutable, [
     "exec", "--ephemeral", "--json",
     ...(testSandboxBypass
       ? ["--dangerously-bypass-approvals-and-sandbox"]
       : ["--approve-for-me"]),
     ...(testModel === undefined ? [] : ["--model", testModel]),
     "-C", options.root, prompt,
-  ], { env: environment, timeout: hostTimeoutMs, maxBuffer: 2 * 1024 * 1024 }).then(
-    (result) => ({ completed: Date.now() - started < hostTimeoutMs - 500,
-      stdout: result.stdout, stderrBytes: result.stderr.length, durationMs: Date.now() - started,
-      failure: Date.now() - started >= hostTimeoutMs - 500 ? "timeout" as const : undefined }),
-    (cause: unknown) => ({
-      completed: false,
-      stdout: typeof cause === "object" && cause !== null && "stdout" in cause && typeof cause.stdout === "string" ? cause.stdout : "",
-      stderrBytes: typeof cause === "object" && cause !== null && "stderr" in cause && typeof cause.stderr === "string" ? cause.stderr.length : 0,
-      durationMs: Date.now() - started,
-      failure: hostFailure(typeof cause === "object" && cause !== null
-        ? `${"stderr" in cause && typeof cause.stderr === "string" ? cause.stderr : ""}\n${"stdout" in cause && typeof cause.stdout === "string" ? cause.stdout : ""}`
-        : String(cause)),
-    }),
+  ], { env: environment, timeout: hostTimeoutMs, maxBuffer: 2 * 1024 * 1024 });
+  const hostEnded = yield* monotonicMillis;
+  const durationMs = hostEnded - started;
+  const timedOut = hostResult.timedOut || (hostResult.succeeded && durationMs >= hostTimeoutMs - 500);
+  const host = { completed: hostResult.succeeded && !timedOut, stdout: hostResult.stdout,
+    stderrBytes: Buffer.byteLength(hostResult.stderr, "utf8"), durationMs,
+    failure: timedOut ? "timeout" as const : hostResult.succeeded ? undefined : hostFailure(`${hostResult.stderr}\n${hostResult.stdout}`),
+  };
+  const after = yield* demoIo("read final demo source", () => readFile(join(options.root, "session.ts"), "utf8")).pipe(
+    Effect.catch(() => Effect.succeed(before)),
   );
-  const after = await readFile(join(options.root, "session.ts"), "utf8").catch(() => before);
-  const validation = await execFileAsync(process.execPath, ["validate.mjs"], {
-    cwd: options.root,
-    timeout: Math.max(1, Math.min(5_000, deadlineAt - Date.now())),
-    env: { ...process.env, NODE_NO_WARNINGS: "1" },
-  }).then(() => true, () => false);
+  const now = yield* monotonicMillis;
+  const validation = (yield* execFileClosedStdin(process.execPath, ["validate.mjs"], {
+    cwd: options.root, timeout: Math.max(1, Math.min(5_000, deadlineAt - now)),
+    maxBuffer: 1024 * 1024, env: { ...process.env, NODE_NO_WARNINGS: "1" },
+  })).succeeded;
   const events = jsonLines(host.stdout);
   const eventCounts = {
     threads: events.filter((event) => event.type === "thread.started").length,
@@ -347,25 +341,27 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
   const thread = events.find((event) => event.type === "thread.started");
   const sessionId = typeof thread?.thread_id === "string" ? thread.thread_id : undefined;
   const observedSessionId = sessionId ?? "";
-  const activityPath = process.env.REVIEW_ACTIVITY_PATH ??
-    join(homedir(), ".local", "state", "realtime-review-tool", "activity");
-  let activity = sessionId === undefined ? undefined : readActivity({
-    statePath: activityPath,
-    root: options.root,
-    sessionId,
-    resident: await Effect.runPromise(inspectResident()),
+  const activityPath = yield* Config.NonEmptyString("REVIEW_ACTIVITY_PATH").pipe(
+    Config.withDefault(join(homedir(), ".local", "state", "realtime-review-tool", "activity")),
+  );
+  const observeActivity = Effect.fn("FirstReviewDemo.observeActivity")(function* () {
+    if (sessionId === undefined) return undefined;
+    const resident = yield* inspectResident();
+    return readActivity({ statePath: activityPath, root: options.root, sessionId: observedSessionId, resident });
   });
-  for (let attempt = 0; activity !== undefined && attempt < 20 && Date.now() + 250 <= deadlineAt; attempt += 1) {
-    const terminals = activity.counts.clear + activity.counts.findings +
-      activity.counts.unavailable + activity.counts.incomplete + activity.counts.skipped;
-    if (terminals >= 2 && activity.submission.status === "submitted") break;
-    await new Promise<void>((resolve) => setTimeout(resolve, 250));
-    activity = readActivity({
-      statePath: activityPath,
-      root: options.root,
-      sessionId: observedSessionId,
-      resident: await Effect.runPromise(inspectResident()),
-    });
+  const initial = yield* observeActivity();
+  const needsObservation = (activity: typeof initial) => activity !== undefined &&
+    !(activity.counts.clear + activity.counts.findings + activity.counts.unavailable + activity.counts.incomplete +
+      activity.counts.skipped >= 2 && activity.submission.status === "submitted");
+  let activity = initial;
+  if (needsObservation(initial) && (yield* monotonicMillis) + 250 <= deadlineAt) {
+    yield* Effect.sleep(250);
+    activity = yield* observeActivity().pipe(Effect.repeat({
+      schedule: Schedule.spaced("250 millis").pipe(Schedule.upTo({ times: 19 })),
+      while: (observed) => Effect.gen(function* () {
+        return needsObservation(observed) && (yield* monotonicMillis) + 250 <= deadlineAt;
+      }),
+    }));
   }
   const messages = events.filter((event) => event.type === "item.completed" &&
     typeof event.item === "object" && event.item !== null &&
@@ -385,7 +381,7 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
   });
   return {
     host: { completed: host.completed, version: hostVersion, durationMs: host.durationMs, eventCounts,
-      stdoutBytes: host.stdout.length, stderrBytes: host.stderrBytes,
+      stdoutBytes: Buffer.byteLength(host.stdout, "utf8"), stderrBytes: host.stderrBytes,
       ...(host.failure === undefined ? {} : { failure: host.failure }) },
     review: {
       providerCalls: usage?.providerCalls ?? terminalReviews,
@@ -399,8 +395,8 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
         : { latencyMs: Math.max(0, activity.lastObservedAt - activity.firstObservedAt) }),
     },
     repair: { changed, rejectsInvalidStates: validation },
-  };
-};
+  } satisfies DemoExecution;
+}).pipe(Effect.mapError(() => new DemoExecutionError({ operation: "execute installed demo" }))));
 
 export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
   request: FirstReviewDemoRequest,
@@ -425,8 +421,8 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
         paidVerificationPerformed: false as const, providerCalls: 0 as const,
       };
     }
-    const setupStarted = Date.now();
-    const record = yield* Effect.promise(() => makeFixture(options.statePath));
+    const setupStarted = yield* monotonicMillis;
+    const record = yield* makeFixture(options.statePath);
     return {
       version: 1 as const,
       operation: "demo" as const,
@@ -436,7 +432,7 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       demo: { id: record.id, disposableRoot: record.root, syntheticOnly: true as const, disclosure: DEMO_DISCLOSURE },
       budget: { sourceBytes: DEMO_SOURCE_BYTE_BUDGET, providerCalls: DEMO_PROVIDER_CALL_BUDGET, timeMs: DEMO_TIME_BUDGET_MS },
       authorization: { selectionDigest: record.selectionDigest },
-      setup: { actions: 1, durationMs: Math.max(0, Date.now() - setupStarted) },
+      setup: { actions: 1, durationMs: Math.max(0, (yield* monotonicMillis) - setupStarted) },
       reviewLatencyMs: undefined,
       action: "review the synthetic input, budgets, disposable root, and selection digest; then explicitly select live execution",
     };
@@ -445,19 +441,16 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
     return { version: 1 as const, operation: "demo" as const, status: "conflict" as const, reason: "demoId is required" };
   }
   const demoId = request.demoId;
-  const record = yield* Effect.promise(() => readRecord(options.statePath, demoId));
+  const record = yield* readRecord(options.statePath, demoId);
   if (record === undefined) {
     return { version: 1 as const, operation: "demo" as const, status: "conflict" as const, reason: "demo preview is missing or invalid" };
   }
   if (request.selection === "cancel") {
-    const claimed = yield* Effect.tryPromise(() => claimRecord(options.statePath, record)).pipe(
-      Effect.as(true),
-      Effect.catch(() => Effect.succeed(false)),
-    );
-    if (!claimed) {
+    const claimed = yield* claimOwnedRecord(options.statePath, record).pipe(Effect.result);
+    if (claimed._tag === "Failure") {
       return { version: 1 as const, operation: "demo" as const, status: "conflict" as const, reason: "demo preview was already claimed" };
     }
-    yield* Effect.promise(() => cleanFixture(options.statePath, record));
+    yield* claimed.success;
     return { version: 1 as const, operation: "demo" as const, status: "cleaned" as const, cleaned: true as const, providerCalls: 0 as const };
   }
   if (request.selectionDigest !== record.selectionDigest) {
@@ -467,18 +460,16 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       action: "cancel this preview or submit the exact selection digest",
     };
   }
-  const claimed = yield* Effect.tryPromise(() => claimRecord(options.statePath, record)).pipe(
-    Effect.as(true),
-    Effect.catch(() => Effect.succeed(false)),
-  );
-  if (!claimed) {
+  const claimed = yield* claimOwnedRecord(options.statePath, record).pipe(Effect.result);
+  if (claimed._tag === "Failure") {
     return {
       version: 1 as const, operation: "demo" as const, status: "conflict" as const,
       reason: "demo preview was already claimed", liveSelected: false as const,
       paidVerificationPerformed: false as const, providerCalls: 0 as const,
     };
   }
-  const reviewStarted = Date.now();
+  const reviewStarted = yield* Clock.currentTimeMillis;
+  const reviewMonotonicStarted = yield* monotonicMillis;
   const selectedBudgetPath = budgetPath(options.statePath, record.id);
   const budgetReady = yield* Effect.try(() => initializeDemoBudget(selectedBudgetPath, {
       root: record.root,
@@ -491,26 +482,27 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
     );
   const execution = !budgetReady
     ? { status: "incomplete" as const, value: undefined }
-    : yield* Effect.tryPromise(() => (options.execute ?? executeInstalledCodexDemo)({
+    : yield* (options.execute ?? executeInstalledCodexDemo)({
         root: record.root,
         ...(request.codexHome === undefined ? {} : { codexHome: request.codexHome }),
         codexExecutable: request.codexExecutable ?? "codex",
         deadlineMs: DEMO_TIME_BUDGET_MS,
         providerCallBudget: DEMO_PROVIDER_CALL_BUDGET,
         budgetPath: selectedBudgetPath,
-      })).pipe(
+      }).pipe(
         Effect.map((value) => ({ status: "completed" as const, value })),
         Effect.catch(() => Effect.succeed({ status: "incomplete" as const, value: undefined })),
       );
-  const disposableRootRemoved = yield* Effect.promise(() => cleanFixture(options.statePath, record)).pipe(
+  const observedUsage = readDemoBudgetUsage(selectedBudgetPath);
+  const disposableRootRemoved = yield* claimed.success.pipe(
     Effect.as(true),
     Effect.catch(() => Effect.succeed(false)),
   );
   const value = execution.value;
-  const calls = value?.review.providerCalls ?? 0;
-  const sourceBytes = value?.review.sourceBytes ?? 0;
+  const calls = value?.review.providerCalls ?? observedUsage?.providerCalls ?? 0;
+  const sourceBytes = value?.review.sourceBytes ?? observedUsage?.sourceBytes ?? 0;
   const budgetObserved = calls <= DEMO_PROVIDER_CALL_BUDGET && sourceBytes <= DEMO_SOURCE_BYTE_BUDGET &&
-    (Date.now() - reviewStarted) <= DEMO_TIME_BUDGET_MS;
+    ((yield* monotonicMillis) - reviewMonotonicStarted) <= DEMO_TIME_BUDGET_MS;
   const passed = value !== undefined && value.host.completed && value.review.submission === "submitted" &&
     value.review.findings > 0 && value.review.modelReaction.status === "observed" &&
     value.review.modelReaction.source === "correlated-finding-reaction" &&
@@ -549,12 +541,12 @@ export const runFirstReviewDemo = Effect.fn("FirstReviewDemo.run")(function* (
       hostStdoutBytes: value?.host.stdoutBytes ?? null,
       hostStderrBytes: value?.host.stderrBytes ?? null,
       editChanged: value?.repair.changed ?? false,
-      recordedAt: new Date().toISOString(),
+      recordedAt: new Date(yield* Clock.currentTimeMillis).toISOString(),
       sourceRetained: false as const,
       responsesRetained: false as const,
     },
     cleanup: { disposableRootRemoved },
   };
-});
+}, Effect.scoped);
 
 export * as FirstReviewDemo from "./first-review-demo.ts";

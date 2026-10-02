@@ -67,3 +67,16 @@ if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|process\.env/u.test(doctor) ||
     !doctor.includes("yield* inspectResident()")) {
   throw new Error("installed doctor must inspect the resident in the caller Effect runtime and configuration");
 }
+
+const demo = read("src/onboarding/first-review-demo.ts");
+if (/Effect\.run(?:Sync|Promise|Fork)\(|\basync\b|Effect\.promise\(|new Promise|setTimeout\(|Date\.now\(/u.test(demo) ||
+    !demo.includes('Schedule.spaced("250 millis")') || !demo.includes("Effect.scoped")) {
+  throw new Error("demo workflows must compose in the caller runtime with scheduled observation and scoped cleanup");
+}
+for (const key of ["REVIEW_ACTIVITY_PATH", "REVIEW_DEMO_TEST_SANDBOX_BYPASS", "REVIEW_DEMO_TEST_CODEX_MODEL"]) {
+  if (demo.includes(`process.env.${key}`)) throw new Error(`demo configuration bypass returned: ${key}`);
+}
+const host = read("src/onboarding/codex-host-process.ts");
+if (/new Promise|Effect\.run(?:Sync|Promise|Fork)\(/u.test(host) || !host.includes("Effect.acquireUseRelease(")) {
+  throw new Error("native Codex host process must use scoped Effect ownership");
+}

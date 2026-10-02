@@ -199,7 +199,8 @@
     "Evaluation command planning composes parent ConfigProvider directly; removed internal runSync, redacted credential presence checks, introduced named plan/run/config Effects and bounded typed command failures. Offline injected-config/error and native CLI coverage passed 24 tests in three files.",
     "Credential resolution/save/logout compose directly as named Effects with redacted caller configuration, Schema-decoded v1 state, Schedule lock polling and helper physical closure before token-fenced lock release; CLI, onboarding and resident callers migrated in place.",
     "Installation generation lock uses scoped candidate ownership, Clock/Config and Schedule. Named Codex/Claude/OpenCode mutation entrypoints compose directly from CLI/setup; typed lock/use failures map directly to existing conflict results. Deterministic tests cover interrupted candidates, retained generation fences and unchanged deadline; native stale-owner/journal/rollback cases pass.",
-    "Offline installed doctor composes the resident probe directly in the parent Effect runtime; typed native observation failures and Schema result model replace the Promise API/internal runtime. Caller ConfigProvider authority and sanitized source errors verified; CLI credential presence stays redacted."
+    "Offline installed doctor composes the resident probe directly in the parent Effect runtime; typed native observation failures and Schema result model replace the Promise API/internal runtime. Caller ConfigProvider authority and sanitized source errors verified; CLI credential presence stays redacted.",
+    "First-review demo fixture/claim/executor/observation/cleanup compose named Effects; Promise executor and private resident runtimes removed. Scoped native host process closes stdin, requests termination on timeout/interruption and waits for callback plus physical close. Claimed previews retain cleanup ownership through execution, native filesystem operations settle before cleanup, and interrupted execution removes owned artifacts. Schedule preserves observation count/spacing and monotonic Clock measures elapsed budgets; source/call budgets and explicit selection digest remain unchanged."
   ],
   "verification": [
     {
@@ -2747,12 +2748,12 @@
         "remaining": "Scoped installation lock and named install/update/uninstall entrypoints are implemented and verified. Preview/inspection/diagnosis entrypoints and installation input/hook/journal configuration still use synchronous APIs/direct env reads; move them to caller Config composition in place. Audit and decompose synchronous native journal/mutation execution where needed for full idiomatic ownership, preserving revalidation, recovery, rollback and unsupported-runtime contracts."
       },
       {
-        "owner": "src/onboarding/first-review-demo.ts",
-        "remaining": "Installed doctor Promise/private-runtime port is implemented and verified (installation preview/inspection Config work remains in the installation entry). Convert demo native executor, filesystem fixture lifecycle and observation polling to named Effects, preserving explicit live opt-in, paid/source/time budgets and physical process settlement."
+        "owner": "src/onboarding/demo-budget.ts, src/resident/server.ts (demo dispatch authority)",
+        "remaining": "Main demo workflows, filesystem lifecycle and native host execution are ported and verified. Audit epoch expiry measurement at the resident demo-budget claim boundary against caller Clock while preserving persisted v1 authorization and spending contracts. Native process environment passthrough remains an explicit host boundary; finish wider installation/interactive configuration and completion audit."
       },
       {
         "owner": "src/cli.ts, src/onboarding/client-selection.ts, src/onboarding/codex-host-process.ts",
-        "remaining": "Audit interactive credential/maintenance/setup and terminal/process bridge ownership; keep runtime entry at process/host boundaries."
+        "remaining": "Native Codex process adapter is scoped and verified. Audit remaining interactive credential/maintenance/setup and client-selection/terminal bridge ownership; remove internal runtimes and retain host-boundary process/environment entry. Finish configuration propagation without changing runtime trust or sandbox controls."
       },
       {
         "owner": "src/resident/client.ts",
@@ -3001,5 +3002,77 @@
       "scripts/check-configuration-boundary.mjs": "ebd0f7c7b46d70aef11464b8e61a0156a3e65ac1c1859684096969786be7d428"
     },
     "limitations": "Doctor resident-probe composition is complete, not all onboarding/configuration migration. Installation preview/inspection helpers still need caller Config conversion and native journal audit; first-review-demo, interactive/process/readiness adapters and final comprehensive/conformance/live/performance/completion gates remain. No live Jev or actual agent-host support validation performed."
+  },
+  "demoWorkflowPort": {
+    "scope": "Replaced fixture validation/read/claim/create/cleanup Promise workflows and Promise DemoExecutor in place. DemoRecord uses Schema decoding and selection digest/marker/token validation. Filesystem adapters await issued native Promise settlement under bounded ownership; git preparation, version query, Codex host and validator use one named scoped native process adapter. Host completion requires callback output plus physical close; timeout requests SIGKILL and waits for closure, and interruption stays interruption. Claimed preview cleanup is registered in the run scope and normal explicit cleanup releases the same capability once. Incomplete fixture creation compensates owned root and matching published record. Config controls activity path, test model and explicit test sandbox option in the parent provider; process env passthrough remains native host context. Observation preserves initial read plus at most 20 delayed rechecks at 250ms and the existing deadline check. Monotonic Clock measures elapsed time; epoch Clock mints record/authorization timestamps. Existing source/call/time budgets, live selection digest, trust/sandbox command and correlation/pass criteria remain.",
+    "initialExecutorTests": {
+      "command": "npx vitest run src/onboarding/codex-host-process.test.ts src/onboarding/first-review-demo.test.ts --maxWorkers=1",
+      "filesPassed": 2,
+      "testsPassed": 11,
+      "durationSeconds": 1.32
+    },
+    "filesystemTests": {
+      "filesPassed": 2,
+      "testsPassed": 11,
+      "durationSeconds": 1.31
+    },
+    "scopeAndUsageTests": {
+      "filesPassed": 2,
+      "testsPassed": 13,
+      "durationSeconds": 1.33
+    },
+    "physicalProcessTests": {
+      "filesPassed": 2,
+      "testsPassed": 16,
+      "durationSeconds": 1.79
+    },
+    "extendedTests": {
+      "command": "npx vitest run src/onboarding/codex-host-process.test.ts src/onboarding/first-review-demo.test.ts src/onboarding/demo-budget.test.ts src/onboarding/setup.test.ts src/cli.test.ts --maxWorkers=1",
+      "filesPassed": 5,
+      "testsPassed": 37,
+      "durationSeconds": 21.51
+    },
+    "finalDefaultExecutorTests": {
+      "command": "npx vitest run src/onboarding/codex-host-process.test.ts src/onboarding/first-review-demo.test.ts --maxWorkers=1",
+      "filesPassed": 2,
+      "testsPassed": 17,
+      "durationSeconds": 1.88,
+      "scope": "After adding real native synthetic host execution through default demo executor; production unchanged from extended test/build checkpoint."
+    },
+    "newEvidence": [
+      "SIGTERM-ignoring native child is forcibly terminated on timeout and absent before Effect returns",
+      "Fiber interruption waits for native child closure and remains interrupted",
+      "Spawn/exit failures retain structured outcome without raw thrown native error",
+      "Interrupted claimed execution removes owned root/claim/budget before interruption returns",
+      "Budget reservations observed before cleanup remain in sanitized incomplete report even when execution fails",
+      "Default executor invokes synthetic version/host/validator, conservatively stays inconclusive without correlation evidence, reports exact UTF-8 output bytes and removes artifacts"
+    ],
+    "evidenceCorrections": "Report snapshots budget usage before cleanup and uses it when the executor returns no value, avoiding a false zero-reservation observation after failure. stdout/stderr byte receipts use Buffer.byteLength rather than UTF-16 string length. Both changes have focused executable evidence and do not change spending limits.",
+    "typecheck": {
+      "command": "npm run typecheck",
+      "status": "pass"
+    },
+    "build": {
+      "command": "npm run build",
+      "status": "pass"
+    },
+    "configurationGuard": {
+      "command": "node scripts/check-configuration-boundary.mjs",
+      "status": "pass",
+      "invariants": [
+        "Demo cannot restore async/private runtime/Effect.promise/manual timers/Date.now orchestration",
+        "Demo configurable selectors use caller Config rather than direct env lookup",
+        "Native host process has scoped Effect ownership and no Promise facade"
+      ]
+    },
+    "sourceSha256": {
+      "src/onboarding/codex-host-process.ts": "9581c7e43dbe8295bf3bf9f9f6dfd2af81e34fd2c8550c45d4a59de5c520c690",
+      "src/onboarding/codex-host-process.test.ts": "c9a4e91bcfd904f3e7c605d2384ea1c44b7954233216e8c75b0189a6a5dccbd3",
+      "src/onboarding/first-review-demo.ts": "61ed5ac2f06e63bfdf0c030caed54b6433066d1f305795996f5ba3c45bff8398",
+      "src/onboarding/first-review-demo.test.ts": "3375e4d384c92245cdc7578916e512264b733db5eed05649f50562ee8ba43ff8",
+      "scripts/first-review-race-worker.mjs": "b7adbf877a20fb277fb942c0d359f62458c6033dd2d9a539d9ed9e75d5c5a45d",
+      "scripts/check-configuration-boundary.mjs": "964876da159f384ad61be63f9c67b2f689faf648404cb4ead7d8d96410e537fe"
+    },
+    "limitations": "All executions use synthetic native helpers, fixture git/validator and synthetic budget reservations; no live Jev requests or real Codex-model demo ran. This does not establish actual host/platform support or universally successful cleanup under native filesystem failure. Native filesystem adapters wait for issued operations rather than claiming physical cancellation. Remaining installation preview/inspection Config, native epoch spending-gate audit, interactive/client-readiness work and final full suite/conformance/live/performance/completion gates remain required."
   }
 }
