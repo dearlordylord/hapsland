@@ -1090,15 +1090,17 @@ const askConfirmation = async (question: string, signal?: AbortSignal) => {
   finally { prompt.close(); }
 };
 
-const pilotSetup = async (host: SetupClient) => {
+const pilotSetup = Effect.fn("InteractiveSetup.run")(function* (host: SetupClient) {
   const hostName = host === "claude" ? "Claude Code" : "Codex";
   if (!process.stdin.isTTY || !process.stderr.isTTY) {
     process.stderr.write("Guided setup needs a terminal. Run hapsland --pilot there, or use hapsland --setup with a versioned JSON request.\n");
     process.exitCode = 6;
     return;
   }
-  const statePath = process.env.REVIEW_STATE_PATH ?? process.env.REVIEW_CONSENT_FILE ??
-    join(homedir(), ".config", "realtime-review-tool", "consent");
+  const configuredStatePath = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_STATE_PATH")));
+  const statePath = configuredStatePath ?? (yield* Config.NonEmptyString("REVIEW_CONSENT_FILE").pipe(
+    Config.withDefault(join(homedir(), ".config", "realtime-review-tool", "consent"))));
+  const userConfigPath = Option.getOrUndefined(yield* Config.option(Config.NonEmptyString("REVIEW_USER_CONFIG_PATH")));
   const cwd = process.cwd();
   let request: SetupOperation = {
     version: 1,
@@ -1108,21 +1110,21 @@ const pilotSetup = async (host: SetupClient) => {
     credential: "saved",
   };
   let credentialEntered = false;
-  const run = (step: SetupOperation) => Effect.runPromise(runSetup(step, {
+  const run = (step: SetupOperation) => runSetup(step, {
     statePath,
-    ...(process.env.REVIEW_USER_CONFIG_PATH === undefined ? {} : { userConfigPath: process.env.REVIEW_USER_CONFIG_PATH }),
+    ...(userConfigPath === undefined ? {} : { userConfigPath }),
     readCredential: async () => {
       const value = await readMaskedCredential();
       credentialEntered = true;
       return value;
     },
-  }));
-  const stage = (result: Awaited<ReturnType<typeof run>>, name: string) =>
+  });
+  const stage = (result: Effect.Success<ReturnType<typeof run>>, name: string) =>
     result.stages.find((item) => item.stage === name);
-  const action = (result: Awaited<ReturnType<typeof run>>, code: string) =>
+  const action = (result: Effect.Success<ReturnType<typeof run>>, code: string) =>
     result.actions.find((item) => item.code === code);
     process.stderr.write(`${hostName} review integration setup. Selected profile hooks apply across repositories according to file settings. No Jev call is made during setup.\n`);
-    let result = await run(request);
+    let result = yield* run(request);
     process.stderr.write(`Compatibility: ${stage(result, "compatibility")?.summary ?? "unavailable"}.\n`);
     for (const line of formatCompatibility(stage(result, "compatibility")?.observed)) process.stderr.write(`${line}\n`);
     if (stage(result, "compatibility")?.status !== "complete") {
@@ -1140,7 +1142,7 @@ const pilotSetup = async (host: SetupClient) => {
     if (install !== undefined) {
       const observed = stage(result, "installation")?.observed as { proposal?: unknown } | undefined;
       process.stderr.write(`Installation preview:\n${formatProposal(observed?.proposal).join("\n")}\n`);
-      if (!await askConfirmation(`Install these entries in the selected ${hostName} profile?`)) {
+      if (!(yield* Effect.tryPromise((signal) => askConfirmation(`Install these entries in the selected ${hostName} profile?`, signal)))) {
         process.stderr.write(`Installation was not changed. Run hapsland setup ${host} to resume.\n`);
         return;
       }
@@ -1148,7 +1150,7 @@ const pilotSetup = async (host: SetupClient) => {
       if (digest === undefined) throw new Error("installation preview omitted its approval digest");
       request = { ...request, installProposalDigest: digest };
     }
-    result = await run({ ...request, interactive: true });
+    result = yield* run({ ...request, interactive: true });
     process.stderr.write(`Installation: ${stage(result, "installation")?.summary ?? "unavailable"}.\n`);
     if (["complete", "partial"].includes(stage(result, "installation")?.status ?? "")) activateCurrentPackage(fileURLToPath(import.meta.url));
     if (credentialEntered && stage(result, "credential")?.status === "complete") {
@@ -1188,9 +1190,9 @@ const pilotSetup = async (host: SetupClient) => {
     for (const next of diagnosis.nextSteps ?? []) process.stderr.write(`Next: ${next.action}.\n`);
     for (const check of diagnosis.checks ?? []) if (check.status !== "ready") process.stderr.write(`${check.stage}: ${check.status}.\n`);
     process.stderr.write(`After native ${hostName} repository and hook trust, make an ordinary supported edit and inspect review activity.\n`);
-};
+});
 
-const chooseSetupClients = async () => {
+const chooseSetupClients = Effect.fn("InteractiveSetup.chooseClients")(function* () {
   if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Guided setup needs a terminal. Use --setup JSON for automation.");
   const choices: ClientChoice[] = (["claude", "codex"] as const).map(host => {
     const fields = hostFields(host);
@@ -1207,16 +1209,18 @@ const chooseSetupClients = async () => {
     if (fields.host === "claude" && status === "not installed" && previewClaudeInstallation(fields).status === "unsupported") status = "unavailable";
     return { host, name: host === "claude" ? "Claude Code" : "Codex CLI", status };
   });
-  const hosts = await selectSetupClients(choices);
+  const hosts = yield* Effect.tryPromise(() => selectSetupClients(choices));
   if (hosts.length === 0) { process.stderr.write("No clients selected. No changes made.\n"); return; }
   for (const host of hosts) {
-    try { await pilotSetup(host); }
-    catch (cause) {
-      process.stderr.write(`${host}: ${cause instanceof Error ? cause.message : "Setup failed"}\n`);
+    const result = yield* pilotSetup(host).pipe(
+      Effect.catchDefect((cause) => Effect.fail(cause)), Effect.result,
+    );
+    if (result._tag === "Failure") {
+      process.stderr.write(`${host}: ${result.failure instanceof Error ? result.failure.message : "Setup failed"}\n`);
       process.exitCode = 6;
     }
   }
-};
+});
 
 const updateInteractive = Effect.fn("InteractiveUpdate.run")(function* () {
   if (!process.stdin.isTTY || !process.stderr.isTTY) throw new Error("Interactive update needs a terminal. Use --update-preview / --update JSON operations for automation.");
@@ -1372,8 +1376,8 @@ if (process.argv[2] === "--package-identity") {
       }
     } else if (command === "update") await Effect.runPromise(updateInteractive().pipe(Effect.provide(processConfigurationLayer)));
     else if (command === "repair" || command === "reinstall" || command === "uninstall") await Effect.runPromise(maintenanceInteractive(command).pipe(Effect.provide(processConfigurationLayer)));
-    else if (clientArguments.host === undefined) await chooseSetupClients();
-    else await pilotSetup(selectedHost());
+    else if (clientArguments.host === undefined) await Effect.runPromise(chooseSetupClients().pipe(Effect.provide(processConfigurationLayer)));
+    else await Effect.runPromise(pilotSetup(selectedHost()).pipe(Effect.provide(processConfigurationLayer)));
   } catch (cause) {
     process.stderr.write(`${cause instanceof Error ? cause.message : "Interactive operation failed"}\n`);
     process.exitCode = 6;
