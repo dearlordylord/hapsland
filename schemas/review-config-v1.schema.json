@@ -40,6 +40,9 @@
       },
       "description": "Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers."
     },
+    "reviewBackend": {
+      "$ref": "#/$defs/ReviewBackendSettings"
+    },
     "credentialEnvVar": {
       "type": "string",
       "pattern": "^[A-Z_][A-Z0-9_]*$",
@@ -95,6 +98,58 @@
   "title": "Review configuration v1",
   "description": "JSONC configuration for file selection, bounded import exploration, rule packs, and credential references.",
   "$defs": {
+    "ReviewBackendSettings": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "jev"
+              ],
+              "description": "Review backend provider."
+            }
+          },
+          "required": [
+            "provider"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "cloudflare"
+              ],
+              "description": "Review backend provider."
+            },
+            "model": {
+              "type": "string",
+              "enum": [
+                "clef",
+                "clef-flash"
+              ],
+              "description": "Cloudflare model selector."
+            },
+            "accountId": {
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{32}$",
+              "description": "Cloudflare account ID, 32 hexadecimal characters."
+            }
+          },
+          "required": [
+            "provider",
+            "model",
+            "accountId"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "User-owned review destination. Jev is the default; Cloudflare requires a model and account ID. Projects cannot set this field."
+    },
     "EditPermitLimitsSettings": {
       "type": "object",
       "properties": {

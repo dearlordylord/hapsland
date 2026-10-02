@@ -8,7 +8,9 @@ import { applicableRules, configuredRules } from "../policy/rules.ts";
 import { compareRuleRank, findingFromProbability } from "../rules/decision.ts";
 import { encodedProviderHttpBodyBytes } from "./provider-body-size.ts";
 import { admitReview } from "../configuration/decision.ts";
-import { effectiveGraphLimits } from "../configuration/resolve.ts";
+import { providerIdentity } from "../review-providers/catalog.ts";
+import { probabilityRequest, requestLimitViolation } from "../review-providers/request.ts";
+import { effectiveReviewBackend, effectiveGraphLimits } from "../configuration/resolve.ts";
 import { GRAPH_LIMIT_CEILINGS, type GraphLimits } from "../configuration/graph-limits.ts";
 import { initialImportGraph, stepImportGraph } from "../canonical/graph-adapter.ts";
 import type { ReviewSettings } from "../runtime/review-config.ts";
@@ -59,7 +61,7 @@ export type DirectReviewContext = {
   /** The only advicee for whom this invocation may produce advice. */
   readonly advicee: DirectAdvicee;
   readonly settings: Pick<ReviewSettings, "backend" | "destination"> &
-    Partial<Pick<ReviewSettings, "configuration" | "rules">>;
+    Partial<Pick<ReviewSettings, "configuration" | "rules" | "providerIdentity">>;
   readonly policy?: DirectFilePolicy | (() => DirectFilePolicy);
   readonly rules?: ReadonlyArray<CompiledRule> | (() => ReadonlyArray<CompiledRule>);
   readonly inputContract?: string | (() => string);
@@ -497,6 +499,9 @@ const prepareObservationForContract = Effect.fn("DirectEvent.prepareObservationF
       if (rules.length === 0) continue;
       const input = freezeInput({
         contract,
+        providerIdentity: context.settings.configuration !== undefined
+          ? providerIdentity(effectiveReviewBackend(context.settings.configuration.policy))
+          : context.settings.providerIdentity ?? providerIdentity({ provider: "jev" }),
         graphLimits,
         candidateProjection: true,
         ...(rootLocation === undefined ? {} : { rootLocation }),
@@ -687,7 +692,7 @@ export const encodedFullJevRequestBytes = (prepared: PreparedUnit): number => {
 export const encodedPreparedProviderHttpBodyBytes = (prepared: PreparedUnit): number => {
   const input = preparedProviderInput(prepared);
   return input === undefined ? Number.POSITIVE_INFINITY :
-    encodedProviderHttpBodyBytes(input, prepared.input.rules);
+    encodedProviderHttpBodyBytes(input, prepared.input.rules, prepared.input.providerIdentity.model);
 };
 
 /** One DecisionModel call, no retry wrapper, with a fixed total call deadline. */
@@ -696,7 +701,11 @@ export const evaluatePrepared = Effect.fn("DirectEvent.evaluatePrepared")(functi
   beforeDispatch: Effect.Effect<void, unknown> = Effect.void,
 ) {
   const providerInput = preparedProviderInput(prepared);
-  if (providerInput === undefined) return { status: "input-limit" } as const;
+  const modelId = prepared.input.providerIdentity.model;
+  if (providerInput === undefined || requestLimitViolation(modelId,
+      probabilityRequest(modelId, providerInput, prepared.input.rules)) !== undefined) {
+    return { status: "input-limit" } as const;
+  }
   const decisions: Record<string, Decision.Probability> = {};
   for (const rule of prepared.input.rules) decisions[rule.id] = rule.decision;
   const definition = Decision.make({ input: Schema.Json, decisions });

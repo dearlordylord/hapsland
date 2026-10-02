@@ -2,11 +2,11 @@
 
 The configuration file and authored rule packs use version 1.
 Each rule names the type-shape or function input it can review and the
-supporting evidence it needs. Jev returns a probability for the rule's binary
+supporting evidence it needs. The selected review backend returns a probability for the rule's binary
 question. Choice and Score are not supported result forms.
 
 File settings select reviewable files. With no file settings, all otherwise
-eligible files are selected when Jev credentials are available. User exclusions
+eligible files are selected when review credentials are available. User exclusions
 accumulate with project exclusions; a user `"**/*"` exclusion turns review off.
 
 Project configuration is read once from the Git working-tree root. The supported
@@ -52,9 +52,13 @@ JSONC and applies semantic glob, rule-pack, and repository-policy checks.
 | `excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `privacyExcludes` | array of non-empty string (may be empty) | Optional | — | Additional protected-path exclusions. These accumulate and cannot be overridden by lower-privacy layers. |
 | `privacyExcludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
+| `reviewBackend` | object with `provider` or object with `provider` and `model` and `accountId` | Optional | — | User-owned review destination. Jev is the default; Cloudflare requires a model and account ID. Projects cannot set this field. |
+| `reviewBackend.provider` | fixed value "jev" or fixed value "cloudflare" | Required (provider = "jev" or provider = "cloudflare") | — | Review backend provider. |
+| `reviewBackend.model` | "clef" or "clef-flash" | Required (provider = "cloudflare") | — | Cloudflare model selector. |
+| `reviewBackend.accountId` | string matching a pattern | Required (provider = "cloudflare") | — | Cloudflare account ID, 32 hexadecimal characters. |
 | `credentialEnvVar` | string matching a pattern | Optional | "TYPESAFE_API_KEY" | Name of the environment variable that supplies the review credential. Store the secret value outside configuration. |
 | `sessionAnalytics` | boolean | Optional | false | User-owned opt-in session analytics. Disabled by default; retains source-free totals and bounded rule-ID history for 30 days within a shared 20 MiB activity store. |
-| `claudeFeedbackMode` | string | Optional | "advisory" | Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory. |
+| `claudeFeedbackMode` | "advisory" or "block-current-findings" | Optional | "advisory" | Claude PostToolUse feedback. Blocking current findings requires an explicit user configuration opt-in; a project may only restrict it to advisory. |
 | `editPermitLimits` | object | Optional | — | User-owned shared resident admission limits. Omitted values use built-in defaults. |
 | `editPermitLimits.perAdvicee` | integer (1–65536) | Optional | 32 | Maximum simultaneously pending edit permits for one advicee in the shared resident. |
 | `editPermitLimits.resident` | integer (1–65536) | Optional | 4096 | Maximum simultaneously pending edit permits across the shared resident. |
@@ -95,7 +99,9 @@ the per-file cap because Bend reserves a full allowed file before requesting a
 read. The root's declared encoded contribution must fit `treeBytes`; Bend
 rejects that root otherwise. Native capture must measure canonical encoded
 contributions and enforce physical read bounds. These graph limits apply to
-source evidence; rule text and provider overhead have no total-request byte cap.
+source evidence. Provider request limits apply separately to the exact HTTP body;
+see [review providers and limits](review-providers.md) for selection, native checks,
+and the currently unmeasured token budgets.
 
 The graph profile bounds the active direct-edit type and function review path.
 Hapsland follows supported local imports only after each supporting path passes
@@ -211,16 +217,16 @@ message. A rule's qualified ID is `pack-id/rule-id`.
 | `rules[].applicability.includes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
 | `rules[].applicability.excludes` | array of non-empty string (may be empty) | Optional | — | Optional repository-relative patterns that prevent this rule from applying. |
 | `rules[].applicability.excludes[]` | non-empty string | Array item (array may be empty) | — | A non-empty repository-relative glob pattern using forward slashes. |
-| `rules[].reviewTargets` | array of object with `artifactKind` or `inputContract` or `capabilities` (at least 1 item, at most 2 items) | Required | — | Exact input contracts and evidence required by this rule. |
-| `rules[].reviewTargets[]` | object with `artifactKind` or `inputContract` or `capabilities` | Array item (array may be empty) | — | — |
-| `rules[].reviewTargets[].artifactKind` | fixed value "typeShape" | Required (object form) | — | — |
-| `rules[].reviewTargets[].inputContract` | fixed value "direct-event/type-shape/v1" | Required (object form) | — | — |
-| `rules[].reviewTargets[].capabilities` | array of string (at least 1 item) | Required (object form) | — | — |
-| `rules[].reviewTargets[].capabilities[]` | string | Array item (array may be empty) | — | — |
+| `rules[].reviewTargets` | array of object with `artifactKind` and `inputContract` and `capabilities` (at least 1 item, at most 2 items) | Required | — | Exact input contracts and evidence required by this rule. |
+| `rules[].reviewTargets[]` | object with `artifactKind` and `inputContract` and `capabilities` | Array item (array may be empty) | — | — |
+| `rules[].reviewTargets[].artifactKind` | fixed value "typeShape" or fixed value "function" | Required (object form) | — | — |
+| `rules[].reviewTargets[].inputContract` | fixed value "direct-event/type-shape/v1" or fixed value "direct-event/function/v1" | Required (object form) | — | — |
+| `rules[].reviewTargets[].capabilities` | array of "root-declaration" or "resolved-outbound-types" or "selected-source-type-closure" (at least 1 item) or array of "signature" or "body" or "resolved-local-calls" or "resolved-outbound-types" (at least 1 item) | Required (object form) | — | — |
+| `rules[].reviewTargets[].capabilities[]` | "root-declaration" or "resolved-outbound-types" or "selected-source-type-closure" or "signature" or "body" or "resolved-local-calls" or "resolved-outbound-types" | Array item (array may be empty) | — | — |
 
 A type target uses `typeShape` with `direct-event/type-shape/v1`. Its capabilities may be `root-declaration`, `resolved-outbound-types`, and `selected-source-type-closure`.
 A function target uses `function` with `direct-event/function/v1`. Its capabilities may be `signature`, `body`, `resolved-local-calls`, and `resolved-outbound-types`.
-Each target must name at least one capability. A rule may name one target of each kind. Hapsland sends a review unit to Jev only when the required evidence is complete.
+Each target must name at least one capability. A rule may name one target of each kind. Hapsland sends a review unit to the selected backend only when the required evidence is complete.
 
 <!-- rule-pack-guide:end -->
 
@@ -249,7 +255,7 @@ TypeScript supporting evidence can follow supported local imports across selecte
 files. Rust and Bend supporting evidence is limited to the same file; their functions are
 deferred. The [review contract](type-function-review-proposal.md#branch-contracts)
 defines the supported extraction scope. Omitted evidence is
-marked, and a rule runs only when its declared needs are met. Its Jev input does
+marked, and a rule runs only when its declared needs are met. Its review input does
 not contain a whole file, a before/after diff, or task or transcript context.
 Packs without explicit targets fail configuration before source capture.
 Findings may describe pre-existing content.
@@ -273,15 +279,16 @@ files, symlink containment, and the 256 KiB snapshot limit.
 The resident dispatches eligible semantic units after final source and policy
 currentness checks. The old whole-file JSON review command and its `settings`
 configuration were retired under issue #148. The configuration parser rejects
-`settings`; Jev request capacity and deadlines are resident policy, not JSONC controls.
+`settings`; review request capacity and deadlines are resident policy, not JSONC controls.
 `editPermitLimits` controls only simultaneously pending pre-edit permits and belongs in
 the user configuration because the resident is shared across projects.
 
 Credentials are references only. The value is read from the named environment
 variable at dispatch and is never persisted, printed, or included in diagnostics.
-The configuration schema rejects retired `consent` and `enabled` fields. The
-Jev destination is fixed for version 1 at
-`https://api.typesafe.ai/v1/systemone`; endpoint routing cannot be configured.
+The configuration schema rejects retired `consent` and `enabled` fields.
+User-only `reviewBackend` settings select Jev or Cloudflare Clef/Clef-flash.
+Each selection determines a fixed provider origin and model route; arbitrary
+endpoint routing cannot be configured. See [provider selection](review-providers.md#selection-and-credentials).
 
 The old version-1 whole-file JSON request/response process contract is retired.
 Configuration capture and explanation use the same policy digest. Shared

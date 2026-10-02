@@ -13,6 +13,7 @@ import {
   type Originated,
   type PatternOrigin,
   type ResolvedPolicy,
+  type ReviewBackendSettings,
 } from "./types.ts";
 import { ConfigurationError } from "./errors.ts";
 import { replaceIncludes } from "./decision.ts";
@@ -148,6 +149,9 @@ export const effectiveVirtualRoundQuietMs = (policy: ResolvedPolicy): number =>
   policy.layers.find((layer) => layer.name === "user")?.document.virtualRoundQuietMs ??
     DEFAULT_VIRTUAL_ROUND_QUIET_MS;
 
+export const effectiveReviewBackend = (policy: Pick<ResolvedPolicy, "layers">): ReviewBackendSettings =>
+  policy.layers.find((layer) => layer.name === "user")?.document.reviewBackend ?? { provider: "jev" };
+
 /**
  * Resolve built-in → user → project policy while retaining every relevant origin.
  * The returned value is immutable-by-convention and can be captured per event.
@@ -157,6 +161,10 @@ export const resolveConfiguration = (
   root = ".",
 ): ResolvedPolicy => {
   const layers = allLayers(suppliedLayers);
+  for (const layer of layers) if (layer.name !== "user" && layer.document.reviewBackend !== undefined) {
+    throw new ConfigurationError({ source: layer.source, field: "reviewBackend",
+      reason: "only user configuration may select a review destination" });
+  }
   for (const layer of layers) if (layer.name === "project" && layer.document.editPermitLimits !== undefined) {
     throw new ConfigurationError({ source: layer.source, field: "editPermitLimits",
       reason: "only user configuration may set shared resident edit permit limits" });
@@ -220,11 +228,12 @@ export const resolveConfiguration = (
     }
   }
 
-  let credentialEnvVar: Originated<string> = originated(DEFAULT_CREDENTIAL_ENV_VAR, {
-    layer: "built-in",
-    source: "built-in",
-    field: "credentialEnvVar",
-  });
+  const backendOwner = layers.find((layer) => layer.name === "user" && layer.document.reviewBackend?.provider === "cloudflare");
+  let credentialEnvVar: Originated<string> = originated(
+    backendOwner === undefined ? DEFAULT_CREDENTIAL_ENV_VAR : "CLOUDFLARE_API_TOKEN",
+    backendOwner === undefined ? { layer: "built-in", source: "built-in", field: "credentialEnvVar" }
+      : origin(backendOwner, "reviewBackend"),
+  );
   for (const layer of layers) {
     const value = layer.document.credentialEnvVar;
     if (value !== undefined) {

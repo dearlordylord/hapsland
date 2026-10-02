@@ -28,6 +28,7 @@
     "docs/installed-release-compatibility.md",
     "docs/status.md",
     "docs/configuration.md",
+    "docs/review-providers.md",
     "docs/installation-workflows.md",
     "docs/npm-publishing.md",
     "schemas/review-config-v1.schema.json",

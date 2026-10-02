@@ -1,3 +1,4 @@
+import { providerIdentity } from "../review-providers/catalog.ts";
 import { it } from "@effect/vitest";
 import { expect } from "vitest";
 import { Effect } from "effect";
@@ -8,7 +9,7 @@ import { makeResidentState } from "./capacity.ts";
 
 const prepared = (source = "type Count = number"): PreparedUnit => {
   const declaration: TypeDeclaration = { id: "count.ts::Count", kind: "type-alias", name: "Count", source, sourceHash: source };
-  const input = freezeInput({
+  const input = freezeInput({ providerIdentity: providerIdentity({ provider: "jev" }),
     contract: TYPE_INPUT_CONTRACT, completeness: "complete", path: "count.ts", declaration,
     unit: { root: { artifact: declaration, references: [] } }, rules: freezeRules([]),
     interpretation: "probability-strictly-greater-than-threshold",
