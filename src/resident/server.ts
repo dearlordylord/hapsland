@@ -822,17 +822,17 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       }
       // Stop can reoffer only an uncertain background write after its writer has
       // terminated; a submitted write counts as delivery.
-      for (const item of residentAdvice()) {
-        const delivery = item.delivery;
+      for (const { capability: item, content } of (yield* residentLedger.advice.snapshots())) {
+        const delivery = content.delivery;
         const sameGroup = adviceePartition(item.observation.root, item.observation.advicee) === partition;
         if (delivery !== undefined) yield* residentCheckAdviceLease(item, now, stopCollector, sameGroup);
       }
-      const available = residentAdvice().filter((item) => {
+      const available = (yield* residentLedger.advice.snapshots()).filter(({ capability: item, content }) => {
         const samePartition = composed
           ? adviceePartition(item.observation.root, item.observation.advicee) === partition
           : item.partition === partition;
-        const unleased = item.delivery === undefined;
-        const hasUnsuppressed = samePartition && unleased && item.findings.some((finding) =>
+        const unleased = content.delivery === undefined;
+        const hasUnsuppressed = samePartition && unleased && content.findings.some((finding) =>
           !residentComposedDelivery.suppresses(item.id,
             adviceePartition(item.observation.root, item.observation.advicee), finding,
             stopCollector ? "stop" : undefined));
@@ -844,11 +844,13 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           throw new Error("invalid canonical advice candidate");
         }
         return result.commands[0]?.kind === "collectionCandidate";
-      });
+      }).map(({ capability }) => capability);
       for (const item of available) {
         yield* residentLedger.advice.eligible(item, yield* residentJoined.hasAdmission(item.admissionId));
       }
-      const eligible = available.filter((item) => item.collectionEligible)
+      const eligible = (yield* Effect.forEach(available, Effect.fn("ResidentRuntime.eligibleAdvice")(function* (item) {
+        return { item, content: yield* residentLedger.advice.current(item) };
+      }))).filter(({ content }) => content.collectionEligible).map(({ item }) => item)
         .sort((left, right) => residentCollectionOrder(left, right))
         .map((item) => item.id);
       const token = collectionToken = randomUUID();
@@ -913,7 +915,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           else yield* residentReleaseAdviceLease(advice);
           continue;
         }
-        const fitting = yield* fittingFindings(selectedFindings, advice.findings.filter((finding) =>
+        const fitting = yield* fittingFindings(selectedFindings, (yield* residentLedger.advice.current(advice)).findings.filter((finding) =>
           !residentComposedDelivery.suppresses(advice.id,
             adviceePartition(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
         const fittingRoute = residentCandidateRoute({ kind: "postValidationCheck",
@@ -969,7 +971,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             else yield* residentReleaseAdviceLease(advice);
             continue;
           }
-          const fitting = yield* fittingFindings(finalFindings, advice.findings.filter((finding) =>
+          const fitting = yield* fittingFindings(finalFindings, (yield* residentLedger.advice.current(advice)).findings.filter((finding) =>
             !residentComposedDelivery.suppresses(advice.id,
               adviceePartition(advice.observation.root, advice.observation.advicee), finding, stopCollector ? "stop" : undefined)), advice, true);
           const fittingRoute = residentCandidateRoute({ kind: "postValidationCheck",
