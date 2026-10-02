@@ -1,3 +1,4 @@
+import { runClient } from "../../src/test-support/client-runtime.ts";
 /** Distinct-process resident witness: parent drives Unix IPC, child owns TypeSafe encoding. */
 import { spawn } from "node:child_process";
 import { access, readFile, rm, writeFile } from "node:fs/promises";
@@ -6,7 +7,7 @@ import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts";
 import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts";
 import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts";
-import { residentRequest } from "../../src/resident/client.ts";
+import { residentRequestEffect as residentRequest } from "../../src/resident/client.ts";
 import { monotonicNow } from "../../src/resident/hook-clock.ts";
 import { residentPaths } from "../../src/resident/paths.ts";
 import { decodeResidentRequest } from "../../src/resident/protocol.ts";
@@ -70,12 +71,12 @@ try {
   if (decodeResidentRequest(JSON.stringify(admission)) === undefined) {
     throw new Error("fixture admission failed resident protocol validation before send");
   }
-  const permit = await residentRequest(paths, {
+  const permit = await runClient(residentRequest(paths, {
     requestRoute: "shared", operation: "register-edit", lifetime,
     root: observation.root, advicee: observation.advicee, startedAt: monotonicNow(),
-  });
+  }));
   if (permit.status !== "advanced") throw new Error(`resident rejected fixture permit: ${permit.status}`);
-  const admit = await residentRequest(paths, admission);
+  const admit = await runClient(residentRequest(paths, admission));
   events.push({ kind: "admit", status: admit.status, source: "production", repoId: "fixture-repo", path });
   if (admit.status !== "accepted") throw new Error(`resident rejected fixture: ${admit.status}`);
   if (scenario !== "exclude-at-admission") {
@@ -93,17 +94,17 @@ try {
   await writeFile(join(root, "wire-release"), "go\n");
   let settled = false;
   for (let attempt = 0; attempt < 2_000; attempt += 1) {
-    const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime });
+    const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime }));
     if (stats.status === "stats" && stats.queued === 0 && stats.running === 0 && stats.pendingEvaluations === 0) {
       settled = true; break;
     }
     await pause();
   }
   if (!settled) throw new Error("offline resident did not become idle");
-  const collection = await residentRequest(paths, {
+  const collection = await runClient(residentRequest(paths, {
     requestRoute: "shared", operation: "collect", lifetime,
     root: observation.root, advicee: observation.advicee, dispatch, composed: true,
-  });
+  }));
   if (collection.status === "unsupported") throw new Error("resident rejected composed fixture collection");
   const journalPath = join(root, "wire-child-journal.jsonl");
   let childRecords = [];

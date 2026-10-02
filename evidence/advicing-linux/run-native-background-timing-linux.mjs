@@ -136,7 +136,7 @@ Socket.prototype.write=function(chunk,...rest){let q;try{q=JSON.parse(String(chu
     // startup has a separate host-timeout gate; it can exceed the legacy
     // five-second edit hook and confound the before/after delivery outcome.
     const warm = spawnSync(process.execPath, ['--input-type=module', '-e',
-      'import { ensureResident } from "./src/resident/client.ts"; import { residentPaths } from "./src/resident/paths.ts"; await ensureResident(residentPaths(), 10000);'],
+      "import { ensureResidentEffect as ensureResident } from \"./src/resident/client.ts\";\nimport { runClient } from \"./src/test-support/client-runtime.ts\"; import { residentPaths } from \"./src/resident/paths.ts\"; await runClient(ensureResident(residentPaths(), 10000));"],
     { cwd: project, env, encoding: 'utf8', timeout: 12_000 });
     if (warm.status !== 0) throw new Error('resident warmup failed');
     const command = (mode) => `${mode === 'before-edit' ? 'exec ' : ''}${quote(process.execPath)} ${quote(bridge)} ${mode} ${entry.host}`;

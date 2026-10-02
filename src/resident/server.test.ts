@@ -1,3 +1,4 @@
+import { runClient } from "../test-support/client-runtime.ts";
 import { reviewControlsLayer } from "../test-support/review-controls.ts";
 import { ReviewControlError } from "./review-controls.ts";
 import { nativeDeferred as deferred } from "../test-support/native-deferred.ts";
@@ -22,7 +23,7 @@ import { analyzerMaterializationPreflight } from "../direct-event/analyzer.ts";
 import { readActivity } from "../activity/status.ts";
 import { claudeHostOutputText } from "../direct-event/claude-output.ts";
 import { residentPaths } from "./paths.ts";
-import { residentRequest } from "./client.ts";
+import { residentRequestEffect as residentRequest } from "./client.ts";
 import {
   DELIVERY_LEASE_MS,
   decodeResidentRequest,
@@ -544,8 +545,8 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       const request = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end" as const, composed: true as const,
         reportWorkState: true as const, finish: { token: "finish", deadlineReached: false } };
-      expect((await residentRequest(paths, request)).status).toBe("pending");
-      expect((await residentRequest(paths, request)).status).toBe("advice");
+      expect((await runClient(residentRequest(paths, request))).status).toBe("pending");
+      expect((await runClient(residentRequest(paths, request))).status).toBe("advice");
     } finally { gate.resolve(); await Effect.runPromise(server.close); }
   });
 
@@ -588,19 +589,19 @@ beforeResponseHandoff: () => Effect.gen(function* () {
         observation, dispatch: findingDispatch(join(root, "consent")), controlledWriter: true as const, composed: true as const } as ResidentRequest;
       for (const composed of [undefined, false]) {
         const unsupported = { ...admission, composed } as unknown as ResidentRequest;
-        expect((await residentRequest(paths, unsupported)).status).toBe("unsupported");
+        expect((await runClient(residentRequest(paths, unsupported))).status).toBe("unsupported");
         expect((await Effect.runPromise(server.handle(unsupported))).status).toBe("unsupported");
       }
-      expect((await residentRequest(paths, admission)).status).toBe("rejected-stale");
+      expect((await runClient(residentRequest(paths, admission))).status).toBe("rejected-stale");
       await Effect.runPromise(server.whenIdle());
       expect(reviews).toBe(0);
       expect(Effect.runSync(server.stats())).toMatchObject({ queued: 0, running: 0, pendingEvaluations: 0 });
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
-        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-      expect((await residentRequest(paths, { ...admission, composed: false } as unknown as ResidentRequest)).status)
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
+      expect((await runClient(residentRequest(paths, { ...admission, composed: false } as unknown as ResidentRequest))).status)
         .toBe("unsupported");
-      expect((await residentRequest(paths, admission)).status).toBe("accepted");
-      expect((await residentRequest(paths, admission)).status).toBe("rejected-stale");
+      expect((await runClient(residentRequest(paths, admission))).status).toBe("accepted");
+      expect((await runClient(residentRequest(paths, admission))).status).toBe("rejected-stale");
       await Effect.runPromise(server.whenIdle());
       expect(reviews).toBeGreaterThan(0);
     } finally { await Effect.runPromise(server.close); }
@@ -618,41 +619,41 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     const dispatch = findingDispatch(join(root, "consent"));
     await Effect.runPromise(server.listen());
     try {
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
-        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-      const admission = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit",
-        lifetime: server.lifetime, observation, dispatch, controlledWriter: true, composed: true });
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+        lifetime: server.lifetime, root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
+      const admission = await runClient(residentRequest(paths, { requestRoute: "ticketed", operation: "admit",
+        lifetime: server.lifetime, observation, dispatch, controlledWriter: true, composed: true }));
       if (admission.status !== "accepted" || !("ticket" in admission)) throw new Error("missing ticket");
       await Effect.runPromise(server.whenIdle());
       const collect = { requestRoute: "shared" as const, operation: "collect" as const,
         lifetime: server.lifetime, root, advicee: observation.advicee, dispatch, composed: true as const };
-      const ordinary = await residentRequest(paths, collect);
+      const ordinary = await runClient(residentRequest(paths, collect));
       if (ordinary.status !== "advice") throw new Error("missing ordinary advice");
       for (const operation of ["acknowledge", "finalize"] as const) {
-        expect((await residentRequest(paths, { requestRoute: "shared", operation,
-          lifetime: server.lifetime, token: ordinary.token })).status).toBe("empty");
+        expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation,
+          lifetime: server.lifetime, token: ordinary.token }))).status).toBe("empty");
       }
       (await Effect.runPromise(server.releaseDelivery(ordinary.token)));
       for (const requestRoute of ["shared", "ticketed"] as const) {
         for (const composed of [undefined, false, true]) {
           const unsupported = { ...collect, requestRoute, ticket: admission.ticket, composed,
             mode: "turn-end" } as unknown as ResidentRequest;
-          expect((await residentRequest(paths, unsupported)).status).toBe("unsupported");
+          expect((await runClient(residentRequest(paths, unsupported))).status).toBe("unsupported");
           expect((await Effect.runPromise(server.handle(unsupported))).status).toBe("unsupported");
         }
       }
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-stop",
-        lifetime: server.lifetime, root, advicee: observation.advicee, token: "finish" })).status).toBe("advanced");
-      const finished = await residentRequest(paths, { ...collect, mode: "turn-end",
-        finish: { token: "finish", deadlineReached: false } });
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "begin-stop",
+        lifetime: server.lifetime, root, advicee: observation.advicee, token: "finish" }))).status).toBe("advanced");
+      const finished = await runClient(residentRequest(paths, { ...collect, mode: "turn-end",
+        finish: { token: "finish", deadlineReached: false } }));
       if (finished.status !== "advice") throw new Error("missing authorized Stop advice");
-      expect((await residentRequest(paths, collect)).status).toBe("empty");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-submission",
-        lifetime: server.lifetime, token: finished.token, surface: "stop" })).status).toBe("submitting");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "acknowledge",
-        lifetime: server.lifetime, token: finished.token })).status).toBe("acknowledged");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "finalize",
-        lifetime: server.lifetime, token: finished.token })).status).toBe("finalized");
+      expect((await runClient(residentRequest(paths, collect))).status).toBe("empty");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "begin-submission",
+        lifetime: server.lifetime, token: finished.token, surface: "stop" }))).status).toBe("submitting");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "acknowledge",
+        lifetime: server.lifetime, token: finished.token }))).status).toBe("acknowledged");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "finalize",
+        lifetime: server.lifetime, token: finished.token }))).status).toBe("finalized");
     } finally { await Effect.runPromise(server.close); }
   });
 
@@ -680,7 +681,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
           root, advicee: observation.advicee, token: "unsupported" },
       ];
       for (const request of requests) {
-        expect((await residentRequest(paths, request)).status).toBe("unsupported");
+        expect((await runClient(residentRequest(paths, request))).status).toBe("unsupported");
         expect((await Effect.runPromise(server.handle(request))).status).toBe("unsupported");
       }
       await Effect.runPromise(server.whenIdle());
@@ -1048,8 +1049,8 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       expect(Effect.runSync(gated.admit(observation, dispatch, false, true))).toEqual({ status: "accepted" });
       await Effect.runPromise(gated.whenIdle());
       await Effect.runPromise(gated.listen());
-      const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: gated.lifetime,
-        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true });
+      const result = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: gated.lifetime,
+        root, advicee: observation.advicee, dispatch, mode: "ordinary", composed: true }));
       expect(result).toEqual({ status: "empty" });
     } finally {
       await Effect.runPromise(gated.close);
@@ -1081,9 +1082,9 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       await Effect.runPromise(server.listen());
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" }))).toEqual({ status: "advanced" });
-      const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      const result = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-        finish: { token: "finish", deadlineReached: true } });
+        finish: { token: "finish", deadlineReached: true } }));
       expect(result).toEqual({ status: "empty" });
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
@@ -1114,9 +1115,9 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       await Effect.runPromise(server.listen());
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: observation.advicee, token: "finish" }))).toEqual({ status: "advanced" });
-      const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
+      const result = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
         root, advicee: observation.advicee, dispatch, mode: "turn-end", composed: true,
-        finish: { token: "finish", deadlineReached: true } });
+        finish: { token: "finish", deadlineReached: true } }));
       expect(result).toEqual({ status: "empty" });
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: observation.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
@@ -1156,7 +1157,7 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       await Effect.runPromise(server.listen());
       const request = { requestRoute: "shared" as const, operation: "collect" as const, lifetime: server.lifetime,
         root, advicee: finding.advicee, dispatch, mode: "ordinary" as const, composed: true as const };
-      const mixed = await residentRequest(paths, request);
+      const mixed = await runClient(residentRequest(paths, request));
       expect(mixed.status).toBe("advice");
       if (mixed.status !== "advice") return;
       expect(mixed.findingCount).toBe(1);
@@ -1166,8 +1167,8 @@ beforeResponseHandoff: () => Effect.gen(function* () {
       expect(await Effect.runPromise(server.handle({ requestRoute: "shared", operation: "begin-stop", lifetime: server.lifetime,
         root, advicee: finding.advicee, token: "finish" }))).toEqual({ status: "advanced" });
       invalidate = true;
-      const final = await residentRequest(paths, { ...request,
-        mode: "turn-end", finish: { token: "finish", deadlineReached: true } });
+      const final = await runClient(residentRequest(paths, { ...request,
+        mode: "turn-end", finish: { token: "finish", deadlineReached: true } }));
       expect(final).toEqual({ status: "empty" });
       const activity = readActivity({ statePath: activityPath, root,
         sessionId: finding.advicee.sessionId, resident: { available: true, lifetime: server.lifetime } });
@@ -1495,31 +1496,31 @@ beforeResponseHandoff: () => Effect.gen(function* () {
     const server = await acquireResidentFixture(paths);
     await Effect.runPromise(server.listen());
     try {
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
-        lifetime: server.lifetime, root, advicee: selected, startedAt: monotonicNow() })).status).toBe("advanced");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch, composed: true })).status).toBe("accepted");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+        lifetime: server.lifetime, root, advicee: selected, startedAt: monotonicNow() }))).status).toBe("advanced");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
+        observation, controlledWriter: true, dispatch, composed: true }))).status).toBe("accepted");
       await Effect.runPromise(server.whenIdle());
       const legacy = { requestRoute: "shared", operation: "consume-stop", lifetime: server.lifetime,
         root, advicee: selected } as unknown as ResidentRequest;
       for (let attempt = 0; attempt < 5; attempt += 1) {
         expect(decodeResidentRequest(JSON.stringify(legacy))).toBeUndefined();
-        expect((await residentRequest(paths, legacy)).status).toBe("unsupported");
+        expect((await runClient(residentRequest(paths, legacy))).status).toBe("unsupported");
         expect((await Effect.runPromise(server.handle(legacy))).status).toBe("unsupported");
       }
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-stop",
-        lifetime: server.lifetime, root, advicee: selected, token: "finish" })).status).toBe("advanced");
-      const result = await residentRequest(paths, { requestRoute: "shared", operation: "collect",
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "begin-stop",
+        lifetime: server.lifetime, root, advicee: selected, token: "finish" }))).status).toBe("advanced");
+      const result = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "collect",
         lifetime: server.lifetime, root, advicee: selected, dispatch, composed: true, mode: "turn-end",
-        finish: { token: "finish", deadlineReached: false } });
+        finish: { token: "finish", deadlineReached: false } }));
       expect(result.status).toBe("advice");
       if (result.status !== "advice") throw new Error("missing authorized Stop advice");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "begin-submission",
-        lifetime: server.lifetime, token: result.token, surface: "stop" })).status).toBe("submitting");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "acknowledge",
-        lifetime: server.lifetime, token: result.token })).status).toBe("acknowledged");
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "finalize",
-        lifetime: server.lifetime, token: result.token })).status).toBe("finalized");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "begin-submission",
+        lifetime: server.lifetime, token: result.token, surface: "stop" }))).status).toBe("submitting");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "acknowledge",
+        lifetime: server.lifetime, token: result.token }))).status).toBe("acknowledged");
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "finalize",
+        lifetime: server.lifetime, token: result.token }))).status).toBe("finalized");
     } finally { await Effect.runPromise(server.close); }
   });
 

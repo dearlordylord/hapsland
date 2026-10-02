@@ -191,7 +191,8 @@
     "Root admitObservation is named atomic Effect; resident ingress yields it. Refusal cleanup uses Effect.exit and Exit.isFailure to release ingress reservation, replacing synchronous try/catch which cannot catch yielded Effect defects. Native Bend-work/Jev/capacity/dispatch fixtures execute root effects; scoped advice/round fixtures yield. New Effect test proves lazy admission,16 distinct concurrent observation identities,invalid-round defect publishes no changed canonical state/round. Eight focused files passed184tests; final capacity/server run114tests passed after refusal cleanup and new test. Typecheck/build/all15boundaries/diffcheck passed. Remaining observation lifecycle/work/request/reservation/read APIs and final migration gates still required.",
     "Replaced the remaining six resident Promise coordination hooks with one scoped Effect review control service; Deferred fixtures prove cancellation, retained completed-finding preservation, pending-advice failure cleanup and revalidation workspace/lease cleanup. Root resident state and runtime expose Effects without runSync/runPromise or unsafe reads.",
     "Resident endpoint directory/socket preparation and verification compose as named Effects with typed source-free filesystem errors; ENOENT allowance, uid/mode/type/symlink checks and absolute client deadlines preserved.",
-    "Native process ownership acquisition/release and recovery publication compose as named Effects with typed errors, scoped candidate cleanup, explicit Effect recovery controls and live epoch Clock; production root acquireRelease owns the lock through runtime teardown."
+    "Native process ownership acquisition/release and recovery publication compose as named Effects with typed errors, scoped candidate cleanup, explicit Effect recovery controls and live epoch Clock; production root acquireRelease owns the lock through runtime teardown.",
+    "Deleted all seventeen resident client Promise facades and its hidden process ManagedRuntime; native fixtures and runners explicitly execute the sole Effect workflows at their process boundary"
   ],
   "verification": [
     {
@@ -2366,10 +2367,55 @@
         "Native candidate creation ENOENT is typed and does not expose the fixture path"
       ],
       "limitations": "The candidate resource structure covers an owner-file write failure, but this stage did not inject an OS write failure after candidate mkdir. Physical native IO is awaited rather than claimed abortable. Linux process/filesystem fixtures establish neither native host/platform acceptance nor final full-migration performance/package support. Final broad suite and declared conformance/performance gates remain pending."
+    },
+    {
+      "stage": "effect-only-client-workflows",
+      "parentCommit": "7f6cdca",
+      "sourceSha256": {
+        "evidence/advicing-linux/background-hook.mjs": "6e918474130c2bb4b8596c10840a912c72a6d97e4532fce30b5446a966c4f9e8",
+        "evidence/advicing-linux/run-linux.mjs": "69c0fbd3c2773863f33c8f9f2631b611936ebbaa5bf1c6e55da41ef1dfaa3e53",
+        "evidence/advicing-linux/run-matched-linux.mjs": "bc2cd9e51ed7b8ada07e33077d038bc17b3b93fb34d86ecc8dc2ed323e3f6f6b",
+        "evidence/advicing-linux/run-native-background-timing-linux.mjs": "09802f338c33772f6678bf1d4fe67a347d3d2a09906aee17ab6031afc3e18474",
+        "evidence/advicing-linux/run-native-isolation-linux.mjs": "23c30dd1a588074978931af05dbecd657f53afd70a532527700c5e19ee9a911c",
+        "evidence/advicing-linux/stop-hook.mjs": "a99a54ba99ac96add57f96422bcd581f0540acdbe7a7d6719083670c995f581c",
+        "evidence/delivery-97/resident-stop-hook.mjs": "5bf6a3d2f806d5c9209ff5b38e0b821a530963f298f30f98a39883a35db0f121",
+        "evidence/delivery-97/run-resident.mjs": "c44cd794c3d3cc5575054d81f6bbd7976cd9e8fd62d23e4dca0a9ed051ddb725",
+        "evidence/evaluation/paired-pilot/run-session.mjs": "6574f3de046ee5584fa4e83bc5ce2d60809e457c7a1d0f689bf1f5861275e085",
+        "scripts/check-production-authority.mjs": "595a04765990a0d4a844a710f87897cf2a22e7675be8fa5d9829d56cf43ceca4",
+        "scripts/run-direct-event-live-milestone.mjs": "3f7a006ab307f3e9529182c6245cc30edf2532899b668184bc6b16f01f8a337c",
+        "scripts/run-mvp-experience.mjs": "dc29fb465db7fcee069673ffc90334a32146223b944836162d2859a821a5b476",
+        "scripts/run-native-claude-136.mjs": "8304274a6ef47eb792b187f817085f3739719aa76e266a0587acd8981822d172",
+        "scripts/run-native-codex-136.mjs": "c6965bb9f4c32f5382d50a723b8bc98a561692bbe84ae8e76b68627d5369b783",
+        "scripts/run-native-crossfile-current.mjs": "a2a7b762cf27c5400482631b8bb07e49c7be17cb809b38c1a947f49c9a5c0bc2",
+        "scripts/run-rust-native-codex.mjs": "44c86f2e4566ee181796e89acedd8d950d8b86992186a05f23a48ded6b095304",
+        "scripts/security-prototype/resident-wire-process.mjs": "be42095cb8db5a4e0e26e57280c44e34a9c74fbb82d8d14f9b18b653a163e1a3",
+        "scripts/security-prototype/resident-wire.mjs": "496b640d22812d3673fa8003556b1269e800e86b30c555403a27299349e8fbd4",
+        "src/direct-event/claude-cli.test.ts": "62868242c95cc26403357d24d8d19f17b48ca82d9c2ff88f41d405808fa532bc",
+        "src/onboarding/doctor.ts": "764db7b8c351be3a6e521e1842d7c7ea442fbc432227902ff03ba0a4265a0aad",
+        "src/onboarding/first-review-demo.ts": "a6ed0f2444024d7be6b95454083757c94afde965e08f7edff3049cccd7962af5",
+        "src/resident/claude-delivery.test.ts": "25ddc3805d0cc266178f169f0095df1f360fd9bf212b6a17bb9865fa25aeca66",
+        "src/resident/client.test.ts": "9116c43913ef8f3671b484690cc5eb67545a1609e09121792f438cbe5f5958e4",
+        "src/resident/client.ts": "277a64727beab4280e94287dc52d74559cde4737153863356084e2fdff2fa5b6",
+        "src/resident/security-sinks.test.ts": "f7585042346b632ada711a9efaa313b6b10bc16999351fd4f731dcf4b029e0f1",
+        "src/resident/server.test.ts": "82165a95e5221bbce83c3867365a36bd83ce0fa6b6c18e3ad1b412dd3d5576bd",
+        "src/resident/subprocess.test.ts": "206bff5e177158599755912fd164f7b43b56b6e854f80924bdc6dd9f12e00df4",
+        "src/test-support/client-runtime.ts": "4f6b5bdda6fc922acbd59e445a29b801c9211f74f8dfa5c3e5d4f36d7aeabb16"
+      },
+      "tests": {
+        "command": "npx vitest run src/resident/client.test.ts src/resident/client-startup.test.ts src/resident/server.test.ts src/resident/subprocess.test.ts src/resident/security-sinks.test.ts src/resident/claude-delivery.test.ts src/direct-event/claude-cli.test.ts src/onboarding/doctor.test.ts src/onboarding/first-review-demo.test.ts --maxWorkers=1",
+        "testsPassed": 154,
+        "filesPassed": 9,
+        "durationSeconds": 154.68
+      },
+      "typecheck": true,
+      "build": true,
+      "nativeRunnerSyntaxFilesPassed": 18,
+      "scope": "Resident client exposes only Effect workflows and no execution/disposal bridges. Native fixture executor shares one startup service per process, preserving concurrent launch throttling. Tests and maintained native runners including embedded subprocess scripts explicitly execute Effects. Onboarding async consumers currently execute the read-only probe at their existing native boundary. Production guard rejects hidden client execution. Build contains only the production-imported controlled-decision-model test-support adapter; client-runtime is excluded.",
+      "limitations": "Client configuration/path defaults and typed service errors remain to audit. Async onboarding workflow composition still requires assessment. Selected offline tests and syntax checks do not establish live host, package or final performance support; final full suite and declared gates remain pending."
     }
   ],
   "next": [
-    "Audit remaining client Promise facades, configuration/trust/credential/native path and ownership adapters; keep Effect execution at process and host boundaries",
+    "Audit client configuration/trust/credential/native path defaults and typed service errors; keep Effect execution at process and host boundaries",
     "Finish any remaining fixture and service error/resource ownership gaps found by the full requirement audit",
     "Update architecture and boundary owners; consolidate advisory material according to its lifecycle",
     "Run final typecheck/test/direct-event/build/package/installed-release/applicable host validation and bounded authorized live Jev validation when credentials are available",
@@ -2378,7 +2424,7 @@
   ],
   "limitations": [
     "Native IPC fibers and resident coordination layers have scoped ownership; mutable per-job callback metadata remains an executor resource. Root resident state and runtime execution bridges and unsafe reads have been removed.",
-    "Client/host edges and native configuration/trust/ownership adapters still require their final audit; thin public client Promise facades remain for existing imperative callers.",
+    "Client Promise facades and hidden runtime have been removed. Client/host configuration, trust, credential and native path defaults plus async onboarding composition still require their final audit.",
     "Latest full offline rerun passed1149 tests with two credential-gated live tests skipped but failed one native credential test at its unchanged5000ms timeout. Isolated case and full23-test credential file passed without changing limits; timeout cause remains unproven. Final full-suite/package/installed-release/applicable host/live gates remain pending.",
     "Original workload now passes every unchanged budget with automatically observed peak 17625630 bytes (strict baseline 17807985). Deterministic workload reaches eight and passes all ownership fences. Physical-retirement shutdown latency comparison remains unproven because the fixed baseline shuts down before held callbacks complete; final full-migration reruns remain required.",
     "Independent agent-flow-viz package remains on its exact RC.116 cohort: foldkit 0.163.0 requires RC.116, and latest 0.164.0 still requires RC.117; no incompatible peer override applied",

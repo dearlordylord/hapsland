@@ -22,6 +22,9 @@ assert.doesNotMatch(read("src/resident/composed-delivery.ts"), /BendRound|\.poli
 assert.doesNotMatch(read("src/resident/client.ts"),
   /EnsureResidentDependencies|liveEnsureDependencies|dependencies\s*===|const launches = new Map|return residentRequest\(/,
   "resident client startup must use layer-owned services and admission must await its IPC Effect");
+assert.doesNotMatch(read("src/resident/client.ts"),
+  /Effect\.runPromise|Effect\.runSync|ManagedRuntime|processClientRuntime|process\.once\("beforeExit"/,
+  "resident client workflows must compose Effects; their process callers own execution and disposal");
 const obsoleteImports = [];
 const scan = (directory) => {
   for (const entry of readdirSync(resolve(root, directory), { withFileTypes: true })) {

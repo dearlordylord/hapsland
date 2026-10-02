@@ -1,8 +1,9 @@
+import { runClient } from "../src/test-support/client-runtime.ts";
 import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { ensureResident, residentRequest } from "../src/resident/client.ts";
+import { ensureResidentEffect as ensureResident, residentRequestEffect as residentRequest } from "../src/resident/client.ts";
 import { residentPaths } from "../src/resident/paths.ts";
 import { classifyHookOutput, classifyLiveOutcome } from "../src/conformance/live-evidence-outcome.ts";
 import { PaidExecutionNotAuthorized, assertPaidExecutionAuthorized, providerCallCountForEvidence } from "../src/conformance/live-runner-policy.ts";
@@ -143,12 +144,12 @@ try {
       }
     }
     const paths = residentPaths(runtime);
-    const owner = await ensureResident(paths);
+    const owner = await runClient(ensureResident(paths));
     let terminalStats;
     for (let attempt = 0; attempt < 100; attempt += 1) {
-      const observed = await residentRequest(paths, {
+      const observed = await runClient(residentRequest(paths, {
         requestRoute: "shared", operation: "stats", lifetime: owner.lifetime,
-      }).catch(() => undefined);
+      })).catch(() => undefined);
       if (observed?.status === "stats" && observed.queued === 0 && observed.running === 0) {
         terminalStats = observed;
         break;
@@ -173,18 +174,18 @@ try {
       let output;
       try { output = JSON.parse(reply.stdout); } catch { output = undefined; }
       hostOutputKind = classifyHookOutput(output ?? {});
-      terminalStats = await residentRequest(paths, {
+      terminalStats = await runClient(residentRequest(paths, {
         requestRoute: "shared", operation: "stats", lifetime: owner.lifetime,
-      }).catch(() => terminalStats);
+      })).catch(() => terminalStats);
     }
     ({ contractOutcome, successfulEvaluation } = classifyLiveOutcome({
       admissionExitCode: admitted.code,
       hostOutputKind,
       stats: terminalStats,
     }));
-    await residentRequest(paths, {
+    await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "cleanup", lifetime: owner.lifetime,
-    }).catch(() => undefined);
+    })).catch(() => undefined);
     await new Promise((resolveWait) => setTimeout(resolveWait, 100));
     try { process.kill(owner.pid, 0); process.kill(owner.pid, "SIGTERM"); } catch { /* exited */ }
     elapsedMilliseconds = Math.round(performance.now() - started);

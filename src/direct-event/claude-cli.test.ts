@@ -1,3 +1,4 @@
+import { runClient } from "../test-support/client-runtime.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { spawn, spawnSync } from "node:child_process";
@@ -8,7 +9,7 @@ import { readActivity } from "../activity/status.ts";
 import { encodeClaudeHostOutputLine, type ClaudeHostOutput } from "./claude-output.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { makeGitFixture, put } from "./test-fixtures.ts";
-import { ensureResident, residentRequest } from "../resident/client.ts";
+import { ensureResidentEffect as ensureResident, residentRequestEffect as residentRequest } from "../resident/client.ts";
 import { residentPaths } from "../resident/paths.ts";
 import { encodeCurrentResidentRequest } from "../resident/protocol.ts";
 import { MAX_COMBINED_RESPONSE_BYTES } from "../resident/collection.ts";
@@ -244,8 +245,8 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       expect(JSON.parse(stdout)).not.toHaveProperty("decision", "block");
       expect(readFileSync(path, "utf8")).toBe("type RevokedCount = number\n");
       const paths = residentPaths(join(root, "runtime"));
-      const owner = await ensureResident(paths);
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const owner = await runClient(ensureResident(paths));
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       expect(stats).toMatchObject({ status: "stats", pendingAdvice: 1 });
     } finally {
       writeFileSync(`${gate}.release`, "release\n");
@@ -343,8 +344,8 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
       expect(JSON.parse(stdout)).toEqual({});
       expect(readFileSync(path, "utf8")).toBe("type StaleCount = string\n");
       const paths = residentPaths(join(root, "runtime"));
-      const owner = await ensureResident(paths);
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const owner = await runClient(ensureResident(paths));
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       expect(stats).toMatchObject({ status: "stats", pendingAdvice: 0 });
     } finally {
       writeFileSync(`${gate}.release`, "release\n");
@@ -397,12 +398,12 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(JSON.parse(firstResult.stdout)).toEqual({});
     expect(JSON.parse(secondResult.stdout)).toEqual({});
     const paths = residentPaths(join(root, "runtime"));
-    const owner = await ensureResident(paths);
+    const owner = await runClient(ensureResident(paths));
     const deadline = Date.now() + 15_000;
     let pendingAdvice = 0;
     let lastStats: unknown;
     while (Date.now() < deadline && pendingAdvice < 2) {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       lastStats = stats;
       pendingAdvice = stats.status === "stats" ? stats.pendingAdvice : 0;
       if (pendingAdvice < 2) await new Promise<void>((resolve) => setTimeout(resolve, 20));
@@ -479,12 +480,12 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(JSON.parse(edit.stdout)).toEqual({});
     writeFileSync(backendGate, "release\n");
     const paths = residentPaths(join(root, "runtime"));
-    const owner = await ensureResident(paths);
+    const owner = await runClient(ensureResident(paths));
     const deadline = Date.now() + 15_000;
     let ready = false;
     let lastStats: unknown;
     while (Date.now() < deadline && !ready) {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       lastStats = stats;
       ready = stats.status === "stats" && stats.pendingAdvice === 6 && stats.queued === 0 && stats.running === 0;
       if (!ready) await new Promise<void>((resolve) => setTimeout(resolve, 20));
@@ -532,7 +533,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(output.hookSpecificOutput?.additionalContext).toContain("GoodCount");
     expect(output.hookSpecificOutput?.additionalContext).not.toContain("FailedCount");
     const paths = residentPaths(join(root, "runtime"));
-    const owner = await ensureResident(paths);
+    const owner = await runClient(ensureResident(paths));
     const deadline = Date.now() + 3_000;
     let activity = readActivity({ statePath: activityPath, root,
       sessionId: event.session_id, resident: { available: true, lifetime: owner.lifetime } });
@@ -572,11 +573,11 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(firstResult.status).toBe(0);
     expect(JSON.parse(firstResult.stdout)).toEqual({});
     const paths = residentPaths(join(root, "runtime"));
-    const oldOwner = await ensureResident(paths);
+    const oldOwner = await runClient(ensureResident(paths));
     process.kill(oldOwner.pid, "SIGKILL");
-    const newOwner = await ensureResident(paths);
+    const newOwner = await runClient(ensureResident(paths));
     expect(newOwner.lifetime).not.toBe(oldOwner.lifetime);
-    const stale = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: newOwner.lifetime });
+    const stale = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: newOwner.lifetime }));
     expect(stale).toMatchObject({ status: "stats", pendingAdvice: 0 });
     const second = event(await put(root, "second.ts", "type FreshCount = number\n"), "FreshCount", "fresh-tool");
     expect(preClaudeEdit(second, baseEnv).status).toBe(0);
@@ -604,7 +605,7 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     const env = { ...process.env, REVIEW_STATE_PATH: statePath, REVIEW_RESIDENT_DIR: join(root, "runtime") };
     expect(preClaudeEdit(event, env).status).toBe(0);
     const paths = residentPaths(join(root, "runtime"));
-    const owner = await ensureResident(paths);
+    const owner = await runClient(ensureResident(paths));
     const raw = (frame: string) => new Promise<unknown>((resolve, reject) => {
       const socket = createConnection(paths.socket);
       let response = "";
@@ -889,12 +890,12 @@ describe("Claude synchronous hook CLI", { timeout: 30_000 }, () => {
     expect(result.code).toBe(0);
     expect(acknowledgeWasRequested).toBe(false);
     const paths = residentPaths(join(root, "runtime"));
-    const owner = await ensureResident(paths);
-    const stats = await residentRequest(paths, {
+    const owner = await runClient(ensureResident(paths));
+    const stats = await runClient(residentRequest(paths, {
       requestRoute: "shared",
       operation: "stats",
       lifetime: owner.lifetime,
-    });
+    }));
     expect(stats).toMatchObject({ status: "stats", pendingFindingBatches: 1 });
     const activity = readActivity({
       statePath: activityPath,

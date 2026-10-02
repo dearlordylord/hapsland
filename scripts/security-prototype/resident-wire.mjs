@@ -1,3 +1,4 @@
+import { runClient } from "../../src/test-support/client-runtime.ts";
 import { Deferred, Exit, Scope } from "effect";
 import { reviewControlsLayer } from "../../src/test-support/review-controls.ts";
 /** Offline resident wire witness. Run with node --experimental-strip-types. */
@@ -10,7 +11,7 @@ import * as Effect from "effect/Effect";
 import { adaptCodexDirectEvent } from "../../src/direct-event/adapter.ts";
 import { makeGitFixture, put, updateEvent } from "../../src/direct-event/test-fixtures.ts";
 import { DEFAULT_DESTINATION } from "../../src/runtime/review-config.ts";
-import { residentRequest } from "../../src/resident/client.ts";
+import { residentRequestEffect as residentRequest } from "../../src/resident/client.ts";
 import { monotonicNow } from "../../src/resident/hook-clock.ts";
 import { residentPaths } from "../../src/resident/paths.ts";
 import { makeResidentRuntime } from "../../src/resident/server.ts";
@@ -102,15 +103,15 @@ try {
     },
     controlled: null,
   };
-  const permit = await residentRequest(paths, {
+  const permit = await runClient(residentRequest(paths, {
     requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
     root: observation.root, advicee: observation.advicee, startedAt: monotonicNow(),
-  });
+  }));
   if (permit.status !== "advanced") throw new Error(`resident rejected fixture permit: ${permit.status}`);
-  const admit = await residentRequest(paths, {
+  const admit = await runClient(residentRequest(paths, {
     requestRoute: "shared", operation: "admit", lifetime: server.lifetime,
     observation, controlledWriter: true, dispatch, composed: true,
-  });
+  }));
   event("admit", { status: admit.status, repoId: "fixture-repo", path, source: "production" });
   if (admit.status !== "accepted") throw new Error(`resident rejected fixture: ${admit.status}`);
   if (scenario !== "exclude-at-admission") await reachedPrepare;
@@ -129,10 +130,10 @@ try {
   }
   await Effect.runPromise(Deferred.succeed(held, undefined));
   await Effect.runPromise(server.whenIdle());
-  const collection = await residentRequest(paths, {
+  const collection = await runClient(residentRequest(paths, {
     requestRoute: "shared", operation: "collect", lifetime: server.lifetime,
     root: observation.root, advicee: observation.advicee, dispatch, composed: true,
-  });
+  }));
   if (collection.status === "unsupported") throw new Error("resident rejected composed fixture collection");
   event("settled", { repoId: "fixture-repo", path, source: "production" });
   const expectedCount = scenario === "allowed" ? 1 : 0;

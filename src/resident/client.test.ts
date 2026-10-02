@@ -1,3 +1,4 @@
+import { runClient } from "../test-support/client-runtime.ts";
 import { makeGitFixture } from "../direct-event/test-fixtures.ts";
 import { it as effectIt } from "@effect/vitest";
 import { ConfigProvider, Deferred, Effect, Fiber, Layer } from "effect";
@@ -10,12 +11,12 @@ import { join } from "node:path";
 import {
   ResidentIpcError,
   makeResidentDispatchContextEffect,
-  ensureResident,
-  admitTicketedObservation,
-  admitObservation,
+  ensureResidentEffect as ensureResident,
+  admitTicketedObservationEffect as admitTicketedObservation,
+  admitObservationEffect as admitObservation,
   admitObservationEffect,
-  collectOutcome,
-  residentRequest,
+  collectOutcomeEffect as collectOutcome,
+  residentRequestEffect as residentRequest,
   residentRequestEffect,
   ResidentStartup,
   ensureResidentEffect,
@@ -82,22 +83,22 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
-    expect(await admitObservation(observation, true, dispatch, paths, false)).toEqual({ status: "unsupported" });
-    expect(await admitTicketedObservation(observation, dispatch, paths, false)).toEqual({ status: "unsupported" });
+    expect(await runClient(admitObservation(observation, true, dispatch, paths, false))).toEqual({ status: "unsupported" });
+    expect(await runClient(admitTicketedObservation(observation, dispatch, paths, false))).toEqual({ status: "unsupported" });
     expect(requests).toEqual([]);
-    const accepted = await admitTicketedObservation(observation, dispatch, paths);
+    const accepted = await runClient(admitTicketedObservation(observation, dispatch, paths));
     expect(accepted.status).toBe("accepted");
     expect(requests.find((request) => request.operation === "admit")).toMatchObject({ composed: true });
     if (accepted.status !== "accepted") return;
-    expect(await collectOutcome(accepted.admission)).toEqual({ status: "pending" });
-    expect(await collectOutcome(accepted.admission)).toEqual({ status: "advice", advice: {
+    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "pending" });
+    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "advice", advice: {
       output: { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: "review advice" } },
       token: "lease", lifetime: "original-owner", paths, root: observation.root,
       advicee: observation.advicee, activityPath: undefined, findingCount: 1,
     } });
-    expect(await collectOutcome(accepted.admission)).toEqual({ status: "empty" });
-    expect(await collectOutcome(accepted.admission)).toEqual({ status: "unavailable", reason: "stale" });
-    expect(await collectOutcome(accepted.admission)).toEqual({ status: "unavailable", reason: "lost" });
+    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "empty" });
+    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "unavailable", reason: "stale" });
+    expect(await runClient(collectOutcome(accepted.admission))).toEqual({ status: "unavailable", reason: "lost" });
     expect(requests.map((request) => request.operation)).toEqual([
       "hello", "admit", "collect", "collect", "collect", "collect", "collect",
     ]);
@@ -215,7 +216,7 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
-    await expect(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500)).rejects.toThrow(
+    await expect(runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500))).rejects.toThrow(
       "resident response was invalid",
     );
   });
@@ -237,7 +238,7 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o666);
-    await expect(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500)).rejects.toThrow(
+    await expect(runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }, 500))).rejects.toThrow(
       "private user-owned socket",
     );
     expect(connections).toBe(0);
@@ -334,7 +335,7 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
-    await expect(residentRequest(paths, {
+    await expect(runClient(residentRequest(paths, {
       requestRoute: "shared",
       operation: "collect", composed: true,
       lifetime: "lifetime",
@@ -353,7 +354,7 @@ describe("resident client trust boundary", () => {
         credential: null,
         controlled: {},
       },
-    }, 20)).rejects.toThrow(
+    }, 20))).rejects.toThrow(
       "deadline exceeded",
     );
   });
@@ -374,7 +375,7 @@ describe("resident client trust boundary", () => {
       server.listen(paths.socket, resolve);
     });
     await chmod(paths.socket, 0o600);
-    await expect(residentRequest(paths, {
+    await expect(runClient(residentRequest(paths, {
       requestRoute: "shared",
       operation: "collect", composed: true,
       lifetime: "lifetime",
@@ -399,7 +400,7 @@ describe("resident client trust boundary", () => {
         },
         controlled: null,
       },
-    }, 500)).rejects.toThrow("request exceeded frame bound");
+    }, 500))).rejects.toThrow("request exceeded frame bound");
     expect(received).toBe(0);
   });
 });

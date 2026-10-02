@@ -1,3 +1,4 @@
+import { runClient } from "../test-support/client-runtime.ts";
 import { reviewControlsLayer } from "../test-support/review-controls.ts";
 import { acquireResidentFixture, type ResidentRuntime } from "./runtime-fixture.ts";
 import { describe, expect, it } from "vitest";
@@ -10,7 +11,7 @@ import { makeGitFixture, put } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
 import { residentPaths } from "./paths.ts";
 
-import { residentRequest } from "./client.ts";
+import { residentRequestEffect as residentRequest } from "./client.ts";
 import { MAX_COMBINED_RESPONSE_BYTES } from "./collection.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import type { ResidentDispatchContext } from "./protocol.ts";
@@ -233,15 +234,15 @@ describe("Claude advicee scoped resident delivery", () => {
     }) }) });
     await Effect.runPromise(server.listen());
     try {
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-        root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-      const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch, composed: true });
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+        root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
+      const accepted = await runClient(residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
+        observation, controlledWriter: true, dispatch, composed: true }));
       if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
       await Effect.runPromise(server.whenIdle());
       changeAtHandoff = true;
-      const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
+      const response = await runClient(residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
+        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true }));
       expect(response.status).not.toBe("advice");
       expect(Effect.runSync(server.stats()).pendingAdvice).toBe(0);
     } finally {
@@ -277,15 +278,15 @@ describe("Claude advicee scoped resident delivery", () => {
     });
     await Effect.runPromise(server.listen());
     try {
-      expect((await residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
-        root, advicee: observation.advicee, startedAt: monotonicNow() })).status).toBe("advanced");
-      const accepted = await residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
-        observation, controlledWriter: true, dispatch, composed: true });
+      expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit", lifetime: server.lifetime,
+        root, advicee: observation.advicee, startedAt: monotonicNow() }))).status).toBe("advanced");
+      const accepted = await runClient(residentRequest(paths, { requestRoute: "ticketed", operation: "admit", lifetime: server.lifetime,
+        observation, controlledWriter: true, dispatch, composed: true }));
       if (accepted.status !== "accepted" || !("requestRoute" in accepted) || accepted.requestRoute !== "ticketed") throw new Error("expected ticket");
       await Effect.runPromise(server.whenIdle());
       revoke = true;
-      const response = await residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
-        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true });
+      const response = await runClient(residentRequest(paths, { requestRoute: "ticketed", operation: "collect", lifetime: server.lifetime,
+        ticket: accepted.ticket, root, advicee: observation.advicee, dispatch, composed: true }));
       expect(response).toMatchObject({ requestRoute: "ticketed", status: "pending" });
       expect(Effect.runSync(server.stats()).pendingAdvice).toBe(1);
     } finally {

@@ -1,9 +1,10 @@
+import { runClient } from "../src/test-support/client-runtime.ts";
 // Opt-in real Codex + real Jev demonstration. Retains only source-free evidence.
 import { spawn, execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, writeFile, readFile, copyFile, chmod, rm, readdir } from 'node:fs/promises';
 import { tmpdir, homedir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { residentRequest } from '../src/resident/client.ts';
+import { residentRequestEffect as residentRequest } from '../src/resident/client.ts';
 import { residentPaths } from '../src/resident/paths.ts';
 const root = resolve(new URL('../', import.meta.url).pathname);
 const declaration = { attempt: 3, priorAttemptProviderRequests: 2, fixtureIds: ['rust-payment-edit-repair'], maximumProviderRequests: 6, deadlineMs: 15000, hostDeadlineMs: 240000, automaticHostRetries: 0, productionTransientRetries: 2, maximumFixtureFileBytes: 4096, syntheticRepositoryOnly: true, model: 'gpt-6-luna', reasoningEffort: 'max', expectedCodexVersion: '0.156.0' };
@@ -113,7 +114,7 @@ After the initial apply_patch, run npm test as the next tool call before any oth
   let stats;
   const terminalDeadline=Date.now()+15000;
   do {
-    stats=owner?await residentRequest(paths,{requestRoute: "shared",operation:'stats',lifetime:owner.lifetime}).catch(()=>undefined):undefined;
+    stats=owner?await runClient(residentRequest(paths,{requestRoute: "shared",operation:'stats',lifetime:owner.lifetime})).catch(()=>undefined):undefined;
     if(!owner||stats?.status==='stats'&&stats.queued===0&&stats.running===0)break;
     await new Promise(resolveWait=>setTimeout(resolveWait,100));
   } while(Date.now()<terminalDeadline);
@@ -132,7 +133,7 @@ After the initial apply_patch, run npm test as the next tool call before any oth
   }
 } finally {
   owner ??= json(await readFile(residentPaths(runtime).owner, 'utf8').catch(() => ''));
-  if(owner){const paths=residentPaths(runtime);await residentRequest(paths,{requestRoute: "shared",operation:'cleanup',lifetime:owner.lifetime}).catch(()=>{});try{process.kill(owner.pid,'SIGTERM')}catch{}}
+  if(owner){const paths=residentPaths(runtime);await runClient(residentRequest(paths,{requestRoute: "shared",operation:'cleanup',lifetime:owner.lifetime})).catch(()=>{});try{process.kill(owner.pid,'SIGTERM')}catch{}}
   await rm(temp,{recursive:true,force:true});
 }
 if(!prepareOnly&&record?.verdict!=='demonstrated')process.exitCode=1;

@@ -94,7 +94,7 @@ for (const item of cases) {
       const enabled = consent('enable-confirm', JSON.parse(preview.stdout).proposal.digest);
       if (enabled.status !== 0 || JSON.parse(enabled.stdout).status !== 'enabled') throw new Error('Consent enable failed');
     }
-    const warm = spawnSync(process.execPath, ['--input-type=module', '-e', 'import {ensureResident} from "./src/resident/client.ts";await ensureResident(undefined,10000);'],
+    const warm = spawnSync(process.execPath, ['--input-type=module', '-e', "import {ensureResidentEffect as ensureResident} from \"./src/resident/client.ts\";\nimport { runClient } from \"./src/test-support/client-runtime.ts\";await runClient(ensureResident(undefined,10000));"],
       { cwd: project, env: envBase, encoding: 'utf8', timeout: 12_000 });
     if (warm.status !== 0) throw new Error('Resident warmup failed');
     const jobs = [];

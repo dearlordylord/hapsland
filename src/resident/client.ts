@@ -1,7 +1,7 @@
 import type { RoundCloseReason } from "../activity/status.ts";
 import { spawn } from "node:child_process";
 import * as Effect from "effect/Effect";
-import { Config, Context, Layer, ManagedRuntime, Option, Redacted, Ref, Schema } from "effect";
+import { Config, Context, Layer, Option, Redacted, Ref, Schema } from "effect";
 import { connect } from "node:net";
 import { resolve } from "node:path";
 import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -93,11 +93,6 @@ export const residentRequestEffect = Effect.fn("ResidentClient.request")(functio
   return yield* requestConnected(paths, request, remaining);
 });
 
-/** Promise bridge for existing imperative host callers. */
-export const residentRequest = (
-  ...args: Parameters<typeof residentRequestEffect>
-): Promise<ResidentResponse> => Effect.runPromise(residentRequestEffect(...args));
-
 export interface ResidentStartupOperations {
   readonly now: () => number;
   readonly prepare: (paths: ResidentPaths, timeoutMs: number) => Effect.Effect<void, Error>;
@@ -179,12 +174,6 @@ export const makeResidentStartup = Effect.gen(function* () {
 
 export const residentStartupLayer = Layer.effect(ResidentStartup, makeResidentStartup).pipe(Layer.provide(residentLauncherLayer));
 
-/** Process entry-point owner for Promise callers; Effect callers use their root layer. */
-const processClientRuntime = ManagedRuntime.make(residentStartupLayer);
-process.once("beforeExit", () => { void processClientRuntime.dispose(); });
-const runClient = <A, E>(effect: Effect.Effect<A, E, ResidentStartup>): Promise<A> =>
-  processClientRuntime.runPromise(effect);
-
 export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(function* (
   paths = residentPaths(),
   readinessMs = STARTUP_READINESS_DEADLINE_MS,
@@ -221,10 +210,6 @@ export const ensureResidentEffect = Effect.fn("ResidentClient.ensureResident")(f
   return yield* Effect.fail(new ResidentIpcError({ message: `resident did not become ready within 10 seconds${detail}` }));
 });
 
-export const ensureResident = (
-  ...args: Parameters<typeof ensureResidentEffect>
-): Promise<Extract<ResidentResponse, { status: "ready" }>> => runClient(ensureResidentEffect(...args));
-
 /** Read-only bounded probe. Unlike ensureResident, this never launches or repairs a resident. */
 export const inspectResidentEffect = Effect.fn("ResidentClient.inspectResident")(function* (
   paths = residentPaths(),
@@ -238,9 +223,6 @@ export const inspectResidentEffect = Effect.fn("ResidentClient.inspectResident")
     ? { available: true, lifetime: response.lifetime, pid: response.pid }
     : { available: false };
 });
-
-export const inspectResident = (...args: Parameters<typeof inspectResidentEffect>) =>
-  Effect.runPromise(inspectResidentEffect(...args));
 
 export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeResidentDispatchContext")(function* (
   root: string,
@@ -300,9 +282,6 @@ export const makeResidentDispatchContextEffect = Effect.fn("ResidentClient.makeR
   };
 });
 
-export const makeResidentDispatchContext = (...args: Parameters<typeof makeResidentDispatchContextEffect>) =>
-  Effect.runPromise(makeResidentDispatchContextEffect(...args));
-
 export type CollectedAdvice = {
   readonly output: ClaudeHostOutput;
   readonly token: string;
@@ -334,9 +313,6 @@ export const admitObservationEffect = Effect.fn("ResidentClient.admitObservation
     dispatch,
   });
 });
-
-export const admitObservation = (...args: Parameters<typeof admitObservationEffect>) =>
-  runClient(admitObservationEffect(...args));
 
 export type TicketedAdmission = {
   readonly ticket: ResidentCollectionTicket;
@@ -389,9 +365,6 @@ export const admitTicketedObservationEffect = Effect.fn("ResidentClient.admitTic
   return { status: "unsupported" };
 });
 
-export const admitTicketedObservation = (...args: Parameters<typeof admitTicketedObservationEffect>) =>
-  runClient(admitTicketedObservationEffect(...args));
-
 export type CollectionOutcome =
   | { readonly status: "advice"; readonly advice: CollectedAdvice }
   | { readonly status: "pending" | "empty" }
@@ -432,9 +405,6 @@ export const collectOutcomeEffect = Effect.fn("ResidentClient.collectOutcome")(f
   return { status: "unavailable", reason: "lost" };
 });
 
-export const collectOutcome = (...args: Parameters<typeof collectOutcomeEffect>) =>
-  Effect.runPromise(collectOutcomeEffect(...args));
-
 export const collectReadyEffect = Effect.fn("ResidentClient.collectReady")(function* (
   root: string,
   advicee: DirectAdvicee,
@@ -466,9 +436,6 @@ export const collectReadyEffect = Effect.fn("ResidentClient.collectReady")(funct
       }
     : undefined;
 });
-
-export const collectReady = (...args: Parameters<typeof collectReadyEffect>) =>
-  runClient(collectReadyEffect(...args));
 
 export type AdviceeCollectionOutcome =
   | { readonly status: "advice"; readonly advice: CollectedAdvice & { readonly output: CodexDirectEventOutput } }
@@ -515,9 +482,6 @@ export const collectAdviceeOutcomeEffect = Effect.fn("ResidentClient.collectAdvi
   return { status: response.status === "pending" ? "pending" : "empty" };
 });
 
-export const collectAdviceeOutcome = (...args: Parameters<typeof collectAdviceeOutcomeEffect>) =>
-  Effect.runPromise(collectAdviceeOutcomeEffect(...args));
-
 export const markComposedUserPromptEffect = Effect.fn("ResidentClient.markComposedUserPrompt")(function* (
   root: string,
   advicee: DirectAdvicee,
@@ -536,9 +500,6 @@ export const markComposedUserPromptEffect = Effect.fn("ResidentClient.markCompos
   return response.status === "advanced";
 });
 
-export const markComposedUserPrompt = (...args: Parameters<typeof markComposedUserPromptEffect>) =>
-  runClient(markComposedUserPromptEffect(...args));
-
 export const claimComposedBackgroundEffect = Effect.fn("ResidentClient.claimComposedBackground")(function* (
   root: string, advicee: DirectAdvicee, token: string,
   paths = residentPaths(),
@@ -550,9 +511,6 @@ export const claimComposedBackgroundEffect = Effect.fn("ResidentClient.claimComp
   });
   return response.status === "background-claimed";
 });
-
-export const claimComposedBackground = (...args: Parameters<typeof claimComposedBackgroundEffect>) =>
-  runClient(claimComposedBackgroundEffect(...args));
 
 export const releaseComposedBackgroundEffect = Effect.fn("ResidentClient.releaseComposedBackground")(function* (
   root: string, advicee: DirectAdvicee, token: string,
@@ -567,9 +525,6 @@ export const releaseComposedBackgroundEffect = Effect.fn("ResidentClient.release
   return response.status === "released";
 });
 
-export const releaseComposedBackground = (...args: Parameters<typeof releaseComposedBackgroundEffect>) =>
-  Effect.runPromise(releaseComposedBackgroundEffect(...args));
-
 export const beginComposedSubmissionEffect = Effect.fn("ResidentClient.beginComposedSubmission")(function* (
   advice: CollectedAdvice,
   surface: "edit" | "background" | "stop",
@@ -581,9 +536,6 @@ export const beginComposedSubmissionEffect = Effect.fn("ResidentClient.beginComp
   return response.status === "submitting";
 });
 
-export const beginComposedSubmission = (...args: Parameters<typeof beginComposedSubmissionEffect>) =>
-  Effect.runPromise(beginComposedSubmissionEffect(...args));
-
 export const releaseComposedSubmissionEffect = Effect.fn("ResidentClient.releaseComposedSubmission")(function* (advice: CollectedAdvice): Effect.fn.Return<boolean, Error> {
   const response = yield* residentRequestEffect(advice.paths, {
     requestRoute: "shared", operation: "release", lifetime: advice.lifetime,
@@ -591,9 +543,6 @@ export const releaseComposedSubmissionEffect = Effect.fn("ResidentClient.release
   });
   return response.status === "released";
 });
-
-export const releaseComposedSubmission = (...args: Parameters<typeof releaseComposedSubmissionEffect>) =>
-  Effect.runPromise(releaseComposedSubmissionEffect(...args));
 
 export const acknowledgeAdviceEffect = Effect.fn("ResidentClient.acknowledgeAdvice")(function* (advice: CollectedAdvice) {
   const deadline = performance.now() + CLIENT_REQUEST_DEADLINE_MS;
@@ -609,9 +558,6 @@ export const acknowledgeAdviceEffect = Effect.fn("ResidentClient.acknowledgeAdvi
   return finalized?.status === "finalized";
 });
 
-export const acknowledgeAdvice = (advice: CollectedAdvice): Promise<boolean> =>
-  Effect.runPromise(acknowledgeAdviceEffect(advice));
-
 export const composedStopBoundaryEffect = Effect.fn("ResidentClient.composedStopBoundary")(function* (
   operation: "begin-stop" | "finish-stop", root: string, advicee: DirectAdvicee,
   token: string, close = false, paths = residentPaths(), reason: RoundCloseReason = "no-advice",
@@ -622,9 +568,6 @@ export const composedStopBoundaryEffect = Effect.fn("ResidentClient.composedStop
     lifetime: owner.lifetime, root, advicee, token, close, reason }, 250);
   return response.status === "advanced";
 });
-
-export const composedStopBoundary = (...args: Parameters<typeof composedStopBoundaryEffect>) =>
-  Effect.runPromise(composedStopBoundaryEffect(...args));
 
 export const registerComposedEditEffect = Effect.fn("ResidentClient.registerComposedEdit")(function* (
   root: string, advicee: DirectAdvicee, startedAt: number, paths = residentPaths(), activityPath?: string,
@@ -637,6 +580,3 @@ export const registerComposedEditEffect = Effect.fn("ResidentClient.registerComp
     ...(userConfigPath === undefined ? {} : { userConfigPath }) });
   return response.status === "advanced";
 });
-
-export const registerComposedEdit = (...args: Parameters<typeof registerComposedEditEffect>) =>
-  runClient(registerComposedEditEffect(...args));

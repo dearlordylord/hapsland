@@ -1,3 +1,4 @@
+import { runClient } from "../../src/test-support/client-runtime.ts";
 import { appendFileSync, readFileSync } from 'node:fs';
 import { realpath } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -41,7 +42,7 @@ try {
     })() });
   }
 
-  const { acknowledgeAdvice, collectReady, makeResidentDispatchContext } =
+  const { acknowledgeAdviceEffect: acknowledgeAdvice, collectReadyEffect: collectReady, makeResidentDispatchContextEffect: makeResidentDispatchContext } =
     await import('../../src/resident/client.ts');
   const { residentPaths } = await import('../../src/resident/paths.ts');
   const root = await realpath(input.cwd);
@@ -59,14 +60,14 @@ try {
     : process.env.HAPSLAND_PROBE_MULTI_UNIT === 'true'
     ? { answers: controlledAnswers }
     : { syntheticR6BrandedRepair: 'finding' };
-  const dispatch = await makeResidentDispatchContext(
+  const dispatch = await runClient(makeResidentDispatchContext(
     root,
     statePath,
     activityPath,
     undefined,
     { ...controlled, outcomePath: process.env.HAPSLAND_CONTROL_OUTCOME_PATH,
       capturePath: process.env.HAPSLAND_CONTROL_CAPTURE_PATH, delayMs },
-  );
+  ));
   const advicee = {
     host: 'codex-cli',
     hostVersion: '0.155.1',
@@ -82,7 +83,7 @@ try {
     const remaining = Math.max(1, deadline - performance.now());
     let timer;
     const result = await Promise.race([
-      collectReady(root, advicee, dispatch, paths, 'turn-end').catch(() => undefined),
+      runClient(collectReady(root, advicee, dispatch, paths, 'turn-end')).catch(() => undefined),
       new Promise((resolvePromise) => { timer = setTimeout(() => resolvePromise('deadline'), remaining); }),
     ]);
     clearTimeout(timer);
@@ -122,7 +123,7 @@ try {
     elapsedMs: Math.round(performance.now() - hookStarted),
     findingCount: advice.findingCount,
   });
-  const acknowledged = await acknowledgeAdvice(advice).catch(() => false);
+  const acknowledged = await runClient(acknowledgeAdvice(advice)).catch(() => false);
   log('stop-advice-finalized', { acknowledged });
 } catch {
   await quiet('stop-error');

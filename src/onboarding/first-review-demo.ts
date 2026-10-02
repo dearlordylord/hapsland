@@ -6,7 +6,7 @@ import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { readActivity } from "../activity/status.ts";
-import { inspectResident } from "../resident/client.ts";
+import { inspectResidentEffect as inspectResident } from "../resident/client.ts";
 import { inspectCodexInstallation } from "./codex-installation.ts";
 import { execFileClosedStdin } from "./codex-host-process.ts";
 import { initializeDemoBudget, readDemoBudgetUsage } from "./demo-budget.ts";
@@ -353,7 +353,7 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
     statePath: activityPath,
     root: options.root,
     sessionId,
-    resident: await inspectResident(),
+    resident: await Effect.runPromise(inspectResident()),
   });
   for (let attempt = 0; activity !== undefined && attempt < 20 && Date.now() + 250 <= deadlineAt; attempt += 1) {
     const terminals = activity.counts.clear + activity.counts.findings +
@@ -364,7 +364,7 @@ export const executeInstalledCodexDemo: DemoExecutor = async (options) => {
       statePath: activityPath,
       root: options.root,
       sessionId: observedSessionId,
-      resident: await inspectResident(),
+      resident: await Effect.runPromise(inspectResident()),
     });
   }
   const messages = events.filter((event) => event.type === "item.completed" &&

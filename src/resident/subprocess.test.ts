@@ -1,3 +1,4 @@
+import { runClient } from "../test-support/client-runtime.ts";
 import { afterEach, describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
 import { execFile, spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
@@ -10,7 +11,7 @@ import { adaptCodexDirectEvent } from "../direct-event/adapter.ts";
 import type { DirectObservation } from "../direct-event/model.ts";
 import { addEvent, makeGitFixture, put, advicee } from "../direct-event/test-fixtures.ts";
 import { configuredRules } from "../policy/rules.ts";
-import { acknowledgeAdvice, beginComposedSubmission, collectReady, composedStopBoundary, ensureResident, residentRequest } from "./client.ts";
+import { acknowledgeAdviceEffect as acknowledgeAdvice, beginComposedSubmissionEffect as beginComposedSubmission, collectReadyEffect as collectReady, composedStopBoundaryEffect as composedStopBoundary, ensureResidentEffect as ensureResident, residentRequestEffect as residentRequest } from "./client.ts";
 import { monotonicNow } from "./hook-clock.ts";
 import { residentPaths } from "./paths.ts";
 import { DELIVERY_LEASE_MS, type ResidentDispatchContext, type ResidentRequest } from "./protocol.ts";
@@ -69,8 +70,8 @@ const dispatchFor = (
 });
 
 const registerEdit = async (paths: ReturnType<typeof residentPaths>, lifetime: string, observation: DirectObservation) => {
-  const registered = await residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
-    lifetime, root: observation.root, advicee: observation.advicee, startedAt: monotonicNow() });
+  const registered = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "register-edit",
+    lifetime, root: observation.root, advicee: observation.advicee, startedAt: monotonicNow() }));
   expect(registered).toEqual({ status: "advanced" });
 };
 
@@ -80,7 +81,7 @@ const admitComposed = async (
   timeoutMs?: number,
 ) => {
   await registerEdit(paths, request.lifetime, request.observation);
-  return residentRequest(paths, { ...request, composed: true }, timeoutMs);
+  return runClient(residentRequest(paths, { ...request, composed: true }, timeoutMs));
 };
 
 describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
@@ -98,9 +99,9 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     expect(existsSync(paths.lock)).toBe(false);
     expect(existsSync(paths.owner)).toBe(false);
     await rm(paths.socket);
-    const next = await ensureResident(paths, 5_000);
+    const next = await runClient(ensureResident(paths, 5_000));
     processes.push(next.pid);
-    expect((await residentRequest(paths, { requestRoute: "shared", operation: "hello" })).status).toBe("ready");
+    expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))).status).toBe("ready");
   });
 
   it("exits losing launch contenders while one owner remains", async () => {
@@ -127,26 +128,26 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-idle-"));
     directories.push(temporary);
     const paths = residentPaths(join(temporary, "runtime"));
-    const first = await ensureResident(paths, 5_000);
+    const first = await runClient(ensureResident(paths, 5_000));
     processes.push(first.pid);
-    expect((await residentRequest(paths, { requestRoute: "shared", operation: "hello" })).status).toBe("ready");
+    expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))).status).toBe("ready");
     await waitFor(async () => {
       try { process.kill(first.pid, 0); return undefined; }
       catch { return true; }
     }, 26_000);
     expect(existsSync(paths.owner)).toBe(false);
-    const second = await ensureResident(paths, 5_000);
+    const second = await runClient(ensureResident(paths, 5_000));
     processes.push(second.pid);
     expect(second.pid).not.toBe(first.pid);
     expect(second.lifetime).not.toBe(first.lifetime);
-    expect((await residentRequest(paths, { requestRoute: "shared", operation: "hello" })).status).toBe("ready");
+    expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))).status).toBe("ready");
   });
 
   it("keeps a live connected client until it disconnects", async () => {
     const temporary = await mkdtemp(join(tmpdir(), "product-resident-connected-"));
     directories.push(temporary);
     const paths = residentPaths(join(temporary, "runtime"));
-    const owner = await ensureResident(paths, 5_000);
+    const owner = await runClient(ensureResident(paths, 5_000));
     processes.push(owner.pid);
     const client = (await import("node:net")).connect(paths.socket);
     const heartbeat = setInterval(() => client.write(" "), 500);
@@ -172,7 +173,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const gate = join(temporary, "backend.gate");
     const paths = residentPaths(join(temporary, "runtime"));
     const launched = spawn(process.execPath, ["--input-type=module", "-e",
-      "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));",
+      "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));",
     ], {
       cwd: process.cwd(),
       env: { ...process.env, REVIEW_RESIDENT_DIR: paths.directory,
@@ -188,14 +189,14 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       lifetime: owner.lifetime, observation, controlledWriter: true, dispatch: dispatchFor(statePath) });
     expect(accepted.status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       return stats.status === "stats" && stats.running > 0 ? true : undefined;
     });
     await new Promise<void>((resolve) => setTimeout(resolve, 5_500));
     expect(() => process.kill(owner.pid, 0)).not.toThrow();
     await writeFile(gate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       return stats.status === "stats" && stats.pendingAdvice > 0 ? true : undefined;
     });
     await new Promise<void>((resolve) => setTimeout(resolve, 5_500));
@@ -211,7 +212,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const gate = join(temporary, "backend.gate");
     const paths = residentPaths(join(temporary, "runtime"));
     const launched = spawn(process.execPath, ["--input-type=module", "-e",
-      "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));",
+      "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));",
     ], {
       cwd: process.cwd(),
       env: { ...process.env, REVIEW_RESIDENT_DIR: paths.directory,
@@ -227,7 +228,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       lifetime: owner.lifetime, observation, controlledWriter: true,
       dispatch: dispatchFor(statePath) })).status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       return stats.status === "stats" && stats.running > 0 ? true : undefined;
     });
     expect(existsSync(gate)).toBe(false);
@@ -236,11 +237,11 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       try { process.kill(owner.pid, 0); return undefined; }
       catch { return !existsSync(paths.owner) && !existsSync(paths.lock) ? true : undefined; }
     }, 5_000);
-    const restarted = await ensureResident(paths, 5_000);
+    const restarted = await runClient(ensureResident(paths, 5_000));
     processes.push(restarted.pid);
     expect(restarted.pid).not.toBe(owner.pid);
     expect(restarted.lifetime).not.toBe(owner.lifetime);
-    expect((await residentRequest(paths, { requestRoute: "shared", operation: "hello" })).status).toBe("ready");
+    expect((await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" }))).status).toBe("ready");
   });
 
   it("converges 100 starters across eight clients and keeps timed-out/disconnected work resident-owned", async () => {
@@ -275,9 +276,9 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       REVIEW_CONTROL_JSON: JSON.stringify({ answers }),
     };
     const ensureScript = [
-      "import { ensureResident } from './src/resident/client.ts';",
+      "import { ensureResidentEffect as ensureResident } from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
       "const count=Number(process.argv[1]);",
-      "const values=await Promise.all(Array.from({length:count},()=>ensureResident()));",
+      "const values=await Promise.all(Array.from({length:count},()=>runClient(ensureResident())));",
       "console.log(JSON.stringify(values));",
     ].join("");
     // This retains the accepted prototype stress shape at the production
@@ -315,9 +316,9 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     stale.kill("SIGKILL");
     await staleClosed;
     const boundedScript = [
-      "import {ensureResident} from './src/resident/client.ts';",
+      "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
       `const paths=${JSON.stringify(residentPaths(runtime))};`,
-      "await ensureResident(paths,250);",
+      "await runClient(ensureResident(paths,250));",
     ].join("");
     const bounded = spawn(process.execPath, ["--input-type=module", "-e", boundedScript], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
@@ -336,7 +337,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       "import * as Effect from 'effect/Effect';",
       "import {connect} from 'node:net';",
       "import { adaptCodexDirectEvent } from './src/direct-event/adapter.ts';",
-      "import {residentRequest} from './src/resident/client.ts';",
+      "import {residentRequestEffect as residentRequest} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
       "import {monotonicNow} from './src/resident/hook-clock.ts';",
       `const event=${JSON.stringify(addEvent(root))};`,
       `const dispatch=${JSON.stringify(dispatchFor(statePath))};`,
@@ -344,7 +345,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       `const paths=${JSON.stringify(residentPaths(runtime))};`,
       `const lifetime=${JSON.stringify(identities[0]!.lifetime)};`,
       "const observation=await Effect.runPromise(adaptCodexDirectEvent(event));",
-      "const registered=await residentRequest(paths,{requestRoute:'shared',operation:'register-edit',lifetime,root:observation.root,advicee:observation.advicee,startedAt:monotonicNow()});",
+      "const registered=await runClient(residentRequest(paths,{requestRoute:'shared',operation:'register-edit',lifetime,root:observation.root,advicee:observation.advicee,startedAt:monotonicNow()}));",
       "if(registered.status!=='advanced')throw new Error('edit permit was not registered');",
       "const socket=connect(socketPath);",
       "socket.once('connect',()=>socket.write(JSON.stringify({version:1,operation:'admit',lifetime,observation,controlledWriter:true,dispatch,composed:true})+'\\n'));",
@@ -388,29 +389,29 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     }
     await writeFile(`${admitGate}.release`, "release\n");
     const gated = await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       // Independent preparation jobs use free resident slots immediately.
       return stats.status === "stats" && stats.running === 3 && stats.queued === 0 ? stats : undefined;
     });
     expect(gated.retainedBytes).toBeLessThanOrEqual(64 * 1024 * 1024);
     await writeFile(gate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       // Event/tool ids do not distinguish complete evaluation identity: the
       // three accepted observations converge on one evaluation and advice.
       return stats.status === "stats" && stats.pendingAdvice === 1 ? stats : undefined;
     });
 
-    expect(await collectReady(root, advicee({ subagentId: "other-child" }), dispatch, paths)).toBeUndefined();
-    expect(await collectReady(otherRoot, advicee(), dispatch, paths)).toBeUndefined();
+    expect(await runClient(collectReady(root, advicee({ subagentId: "other-child" }), dispatch, paths))).toBeUndefined();
+    expect(await runClient(collectReady(otherRoot, advicee(), dispatch, paths))).toBeUndefined();
     await writeFile(`${collectGate}.enabled`, "enabled\n");
     const disconnectScript = [
-      "import {collectReady} from './src/resident/client.ts';",
+      "import {collectReadyEffect as collectReady} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
       `const root=${JSON.stringify(root)};`,
       `const advicee=${JSON.stringify(advicee({ turnId: "later", toolUseId: "disconnect" }))};`,
       `const dispatch=${JSON.stringify(dispatch)};`,
       `const paths=${JSON.stringify(paths)};`,
-      "await collectReady(root,advicee,dispatch,paths);",
+      "await runClient(collectReady(root,advicee,dispatch,paths));",
     ].join("");
     const disconnecting = spawn(process.execPath, ["--input-type=module", "-e", disconnectScript], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
@@ -421,21 +422,21 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await disconnected;
     await waitFor(async () => existsSync(collectDisconnected) ? true : undefined);
     await writeFile(`${collectGate}.release`, "release\n");
-    const advice = await waitFor(() => collectReady(
+    const advice = await waitFor(() => runClient(collectReady(
       root,
       advicee({ turnId: "later", toolUseId: "bash" }),
       dispatch,
       paths,
-    ), 10_000);
+    )), 10_000);
     expect(advice?.output.hookSpecificOutput.additionalContext).toContain("type.ts");
     if (advice === undefined) return;
 
     await writeFile(`${ackGate}.enabled`, "enabled\n");
-    expect(await beginComposedSubmission(advice, "edit")).toBe(true);
+    expect(await runClient(beginComposedSubmission(advice, "edit"))).toBe(true);
     const ackScript = [
-      "import {acknowledgeAdvice} from './src/resident/client.ts';",
+      "import {acknowledgeAdviceEffect as acknowledgeAdvice} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
       `const advice=${JSON.stringify(advice)};`,
-      "await acknowledgeAdvice(advice);",
+      "await runClient(acknowledgeAdvice(advice));",
     ].join("");
     const acknowledging = spawn(process.execPath, ["--input-type=module", "-e", ackScript], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
@@ -446,18 +447,18 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await writeFile(`${ackGate}.release`, "release\n");
     await acknowledgementClosed;
     await writeFile(clockPath, `${100 + DELIVERY_LEASE_MS}\n`);
-    const reclaimed = await collectReady(
+    const reclaimed = await runClient(collectReady(
       root,
       advicee({ turnId: "later", toolUseId: "after-ack-failure" }),
       dispatch,
       paths,
-    );
+    ));
     // The killed acknowledgement may have reached output authorization. It
     // cannot be silently offered again as an ordinary edit response.
     expect(reclaimed).toBeUndefined();
 
     await put(root, "type.ts", "type ChangedAfterReview = string\n");
-    expect(await collectReady(root, advicee({ turnId: "later-2", toolUseId: "bash-2" }), dispatch, paths)).toBeUndefined();
+    expect(await runClient(collectReady(root, advicee({ turnId: "later-2", toolUseId: "bash-2" }), dispatch, paths))).toBeUndefined();
   });
 
   it("rechecks file exclusions after admission and before backend dispatch", async () => {
@@ -477,7 +478,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       REVIEW_RESIDENT_BACKEND_GATE_PATH: gate,
       REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath }),
     };
-    const script = "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));";
+    const script = "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));";
     const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
     });
@@ -494,11 +495,11 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await put(root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}');
     await writeFile(gate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       return stats.status === "stats" && stats.running === 0 ? stats : undefined;
     });
     expect(existsSync(capturePath)).toBe(false);
-    expect(await collectReady(root, advicee(), dispatch, paths)).toBeUndefined();
+    expect(await runClient(collectReady(root, advicee(), dispatch, paths))).toBeUndefined();
     expect(JSON.parse(await readFile(paths.owner, "utf8"))).toMatchObject({ pid: owner.pid });
   });
 
@@ -519,7 +520,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       REVIEW_RESIDENT_BACKEND_GATE_PATH: gate,
       REVIEW_CONTROL_JSON: JSON.stringify({ answers, capturePath }),
     };
-    const script = "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));";
+    const script = "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));";
     const child = spawn(process.execPath, ["--input-type=module", "-e", script], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
     });
@@ -536,11 +537,11 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await put(root, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}\n');
     await writeFile(gate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: owner.lifetime }));
       return stats.status === "stats" && stats.running === 0 ? stats : undefined;
     });
     expect(existsSync(capturePath)).toBe(false);
-    expect(await collectReady(root, advicee(), dispatch, paths)).toBeUndefined();
+    expect(await runClient(collectReady(root, advicee(), dispatch, paths))).toBeUndefined();
   });
 
   it("kills one lifetime, rejects obsolete messages, restarts empty, and cleans up only when idle", async () => {
@@ -565,7 +566,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       REVIEW_RESIDENT_BACKEND_GATE_PATH: backendGate,
       REVIEW_RESIDENT_CLEANUP_RESPONSE_GATE_PATH: cleanupGate,
     };
-    const ensureScript = "import {ensureResident} from './src/resident/client.ts'; console.log(JSON.stringify(await ensureResident()));";
+    const ensureScript = "import {ensureResidentEffect as ensureResident} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts'; console.log(JSON.stringify(await runClient(ensureResident())));";
     const start = async () => {
       const child = spawn(process.execPath, ["--input-type=module", "-e", ensureScript], {
         cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
@@ -605,7 +606,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       observation: rootObservation, controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime }));
       return stats.status === "stats" && stats.pendingAdvice === 1 && stats.successfulCacheEntries === 1
         ? stats
         : undefined;
@@ -617,7 +618,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime }));
       return stats.status === "stats" && stats.running === 0 && stats.queued === 0 ? stats : undefined;
     });
 
@@ -630,14 +631,14 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       })).status).toBe("accepted");
     }
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime }));
       return stats.status === "stats" && stats.running === 0 && stats.noticeCooldowns === 1
         ? stats
         : undefined;
     });
-    expect((await residentRequest(paths, {
+    expect((await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "cleanup", lifetime: first.lifetime,
-    })).status).toBe("busy");
+    }))).status).toBe("busy");
 
     // Accepted work remains resident-owned with no client callback. Cleanup
     // refuses it, and killing the actual owner is the explicit loss boundary.
@@ -648,12 +649,12 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       observation: blockedObservation, controlledWriter: true, dispatch,
     })).status).toBe("accepted");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: first.lifetime }));
       return stats.status === "stats" && stats.running > 0 ? stats : undefined;
     });
-    expect((await residentRequest(paths, {
+    expect((await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "cleanup", lifetime: first.lifetime,
-    })).status).toBe("busy");
+    }))).status).toBe("busy");
     expect((await readdir(runtime)).sort()).toEqual(["owner.json", "owner.lock", "resident.sock"]);
     process.kill(first.pid, "SIGKILL");
     await waitFor(async () => {
@@ -664,13 +665,13 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const second = await start();
     processes.push(second.pid);
     expect(second.lifetime).not.toBe(first.lifetime);
-    expect((await residentRequest(paths, {
+    expect((await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "admit", lifetime: first.lifetime,
       observation: blockedObservation, controlledWriter: true, dispatch, composed: true,
-    })).status).toBe("obsolete-lifetime");
-    expect(await residentRequest(paths, {
+    }))).status).toBe("obsolete-lifetime");
+    expect(await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "stats", lifetime: second.lifetime,
-    })).toMatchObject({
+    }))).toMatchObject({
       status: "stats",
       queued: 0,
       running: 0,
@@ -681,7 +682,7 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
       noticeCooldowns: 0,
       currentWork: 0,
     });
-    expect(await collectReady(root, advicee(), dispatch, paths)).toBeUndefined();
+    expect(await runClient(collectReady(root, advicee(), dispatch, paths))).toBeUndefined();
 
     // One two-unit batch with a same-round join, one child partition, and one
     // distinct existing Git worktree travel through the new process. Exclusion
@@ -700,54 +701,54 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await put(otherRoot, ".review.jsonc", '{"version":1,"excludes":["type.ts"]}');
     await writeFile(backendGate, "release\n");
     await waitFor(async () => {
-      const stats = await residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: second.lifetime });
+      const stats = await runClient(residentRequest(paths, { requestRoute: "shared", operation: "stats", lifetime: second.lifetime }));
       return stats.status === "stats" && stats.running === 0 && stats.queued === 0 && stats.pendingAdvice === 3
         ? stats
         : undefined;
     });
-    expect(await collectReady(otherRoot, advicee(), dispatch, paths)).toBeUndefined();
-    const rootBatch = await collectReady(root, advicee({ turnId: "collect", toolUseId: "batch" }), dispatch, paths);
+    expect(await runClient(collectReady(otherRoot, advicee(), dispatch, paths))).toBeUndefined();
+    const rootBatch = await runClient(collectReady(root, advicee({ turnId: "collect", toolUseId: "batch" }), dispatch, paths));
     expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain("type.ts");
     expect(rootBatch?.output.hookSpecificOutput.additionalContext).toContain("second.ts");
     if (rootBatch === undefined) return;
-    expect((await residentRequest(paths, {
+    expect((await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "cleanup", lifetime: second.lifetime,
-    })).status).toBe("busy");
-    expect(await beginComposedSubmission(rootBatch, "edit")).toBe(true);
-    expect(await acknowledgeAdvice(rootBatch)).toBe(true);
-    const childAdvice = await collectReady(
+    }))).status).toBe("busy");
+    expect(await runClient(beginComposedSubmission(rootBatch, "edit"))).toBe(true);
+    expect(await runClient(acknowledgeAdvice(rootBatch))).toBe(true);
+    const childAdvice = await runClient(collectReady(
       root,
       advicee({ subagentId: "child-2", turnId: "collect", toolUseId: "child" }),
       dispatch,
       paths,
-    );
+    ));
     expect(childAdvice).toBeDefined();
     if (childAdvice !== undefined) {
-      expect(await beginComposedSubmission(childAdvice, "edit")).toBe(true);
-      expect(await acknowledgeAdvice(childAdvice)).toBe(true);
+      expect(await runClient(beginComposedSubmission(childAdvice, "edit"))).toBe(true);
+      expect(await runClient(acknowledgeAdvice(childAdvice))).toBe(true);
     }
 
-    const beforeClosure = await residentRequest(paths, {
+    const beforeClosure = await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "stats", lifetime: second.lifetime,
-    });
+    }));
     expect(beforeClosure).toMatchObject({ status: "stats", pendingAdvice: 3 });
     for (const [roundRoot, agent, token] of [[root, advicee(), "root-stop"],
       [root, advicee({ subagentId: "child-2" }), "child-stop"],
       [otherRoot, advicee(), "other-stop"]] as const) {
-      expect(await composedStopBoundary("begin-stop", roundRoot, agent, token, false, paths)).toBe(true);
-      expect(await composedStopBoundary("finish-stop", roundRoot, agent, token, true, paths)).toBe(true);
+      expect(await runClient(composedStopBoundary("begin-stop", roundRoot, agent, token, false, paths))).toBe(true);
+      expect(await runClient(composedStopBoundary("finish-stop", roundRoot, agent, token, true, paths))).toBe(true);
     }
-    const beforeCleanup = await residentRequest(paths, {
+    const beforeCleanup = await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "stats", lifetime: second.lifetime,
-    });
+    }));
     expect(beforeCleanup).toMatchObject({ status: "stats", pendingAdvice: 0 });
     if (beforeCleanup.status === "stats") expect(beforeCleanup.successfulCacheEntries).toBe(0);
     await writeFile(`${cleanupGate}.enabled`, "enabled\n");
     const cleanupScript = [
-      "import {residentRequest} from './src/resident/client.ts';",
+      "import {residentRequestEffect as residentRequest} from './src/resident/client.ts';\nimport { runClient } from './src/test-support/client-runtime.ts';",
       `const paths=${JSON.stringify(paths)};`,
       `const lifetime=${JSON.stringify(second.lifetime)};`,
-      "console.log(JSON.stringify(await residentRequest(paths,{requestRoute:'shared',operation:'cleanup',lifetime})));",
+      "console.log(JSON.stringify(await runClient(residentRequest(paths,{requestRoute:'shared',operation:'cleanup',lifetime}))));",
     ].join("");
     const cleaning = spawn(process.execPath, ["--input-type=module", "-e", cleanupScript], {
       cwd: process.cwd(), env, stdio: ["pipe", "pipe", "pipe"],
@@ -756,12 +757,12 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     await waitFor(async () => existsSync(`${cleanupGate}.entered`) ? true : undefined);
     // The cleanup response is still gated, so these arrive concurrently with
     // the retiring owner still listening. Neither can revive or reserve work.
-    expect(await residentRequest(paths, { requestRoute: "shared", operation: "hello" }))
+    expect(await runClient(residentRequest(paths, { requestRoute: "shared", operation: "hello" })))
       .toEqual({ status: "obsolete-lifetime" });
-    expect(await residentRequest(paths, {
+    expect(await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "admit", lifetime: second.lifetime,
       observation: batch, controlledWriter: true, dispatch, composed: true,
-    })).toEqual({ status: "obsolete-lifetime" });
+    }))).toEqual({ status: "obsolete-lifetime" });
     await writeFile(`${cleanupGate}.release`, "release\n");
     expect(JSON.parse(await cleanupResult)).toEqual({ status: "cleaned" });
     await waitFor(async () => {
@@ -771,9 +772,9 @@ describe("resident separate-process lifecycle", { timeout: 45_000 }, () => {
     const third = await start();
     processes.push(third.pid);
     expect(third.lifetime).not.toBe(second.lifetime);
-    expect(await residentRequest(paths, {
+    expect(await runClient(residentRequest(paths, {
       requestRoute: "shared", operation: "stats", lifetime: third.lifetime,
-    })).toMatchObject({
+    }))).toMatchObject({
       status: "stats", queued: 0, running: 0, pendingAdvice: 0,
       retainedBytes: 0, successfulCacheEntries: 0, noticeCooldowns: 0,
     });

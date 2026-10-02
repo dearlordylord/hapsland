@@ -1,9 +1,10 @@
+import * as Effect from "effect/Effect";
 import { accessSync, constants, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { analyzeTypeFile } from "../direct-event/analyzer.ts";
 import { registeredLanguages } from "../direct-event/languages/registry.ts";
-import { inspectResident } from "../resident/client.ts";
+import { inspectResidentEffect as inspectResident } from "../resident/client.ts";
 import {
   previewCodexInstallation,
   inspectCodexInstallation,
@@ -107,7 +108,7 @@ export const diagnoseInstalledIntegration = async (options: {
     });
   }
 
-  const resident = await inspectResident();
+  const resident = await Effect.runPromise(inspectResident());
   checks.push(resident.available
     ? { stage: "resident", status: "ready", observed: { lifetime: resident.lifetime, pid: resident.pid } }
     : { stage: "resident", status: "unknown", observed: "not-running-or-unreachable", action: "start or restart Codex so the installed hook can launch the resident" });
