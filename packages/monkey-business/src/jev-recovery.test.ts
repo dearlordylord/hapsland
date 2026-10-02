@@ -75,8 +75,7 @@ const row = (frame: Observation): number[] => {
 };
 
 it("compares four original twelve-cycle recovery scripts with the stateful native driver and public replay", () => {
-  const result = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-recovery.bend", import.meta.url)) as { recovery: number[][][]; targets: number[][][]; credentials: number[][][] };
-  const native = result.recovery;
+  const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-recovery-native.bend", import.meta.url)) as number[][][];
   const faults = ["neverSent", "backendFailure", "timeout", "interrupted"] as const;
   const expectedTimes = Array.from({ length: 24 }, (_, index) => index * 20 + 7);
   for (const [index, trace] of native.entries()) {
@@ -106,6 +105,51 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
     return run.observations.map(row);
   });
   expect(native).toEqual(emitted);
+}, 30000);
+
+it("agrees on compact native recovery after 2050 terminal requests without growing issuance history", () => {
+  const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-terminal-native.bend", import.meta.url)) as number[];
+  // Fixed original script: 2050 clear edits at cycle*10, PRE2/Jev1, then
+  // unavailable/restore/rotate and a finding edit one millisecond later.
+  expect(native).toEqual([2051, 2050, 1, 1, 0, 12306, 38978, 20497, 1, 5, 0, 0, 0, 2, 1]);
+  const run = createRun({ inputs: [], jevDelay: 1, preparationDelay: 2, retention: 1,
+    fileTrees: { ...DEFAULT_FILE_TREE_PROFILE, minFiles: 2, maxFiles: 2, maxImports: 1, maxDepth: 1, deniedPercent: 0,
+      minSourceBytes: 100, maxSourceBytes: 100, minTreeBytes: 20, maxTreeBytes: 20 } });
+  const totals = [0, 0, 0, 0, 0, 0, 0];
+  const unsubscribe = run.subscribe(frame => {
+    if (frame.event.kind === "jevRequestStarted") totals[0] = (totals[0] ?? 0) + 1;
+    if (frame.event.kind === "jevRequestSettled" && frame.event.outcome === "clear") totals[1] = (totals[1] ?? 0) + 1;
+    if (frame.event.kind === "jevRequestSettled" && frame.event.outcome === "finding") totals[2] = (totals[2] ?? 0) + 1;
+    if (frame.event.kind === "submissionTerminal") totals[3] = (totals[3] ?? 0) + 1;
+    if (frame.rejection) totals[4] = (totals[4] ?? 0) + 1;
+    if (frame.preparation) totals[5] = (totals[5] ?? 0) + 1;
+    totals[6] = (totals[6] ?? 0) + 1;
+  });
+  try {
+    for (let cycle = 0; cycle < 2050; cycle++) {
+      run.schedule({ at: cycle * 10, kind: "edit", bytes: 10, unitBytes: [5], outcome: "clear" });
+      run.advance({ untilTime: cycle * 10 + 9, maxEvents: 100 });
+      expect(run.projection.global).toEqual({ items: 0, bytes: 0 });
+      expect(run.projection.dispatch.requests).toEqual([]);
+      expect(run.projection.dispatch.running).toEqual([]);
+    }
+    run.applyControl({ kind: "credentials", action: "unavailable" });
+    run.applyControl({ kind: "credentials", action: "restore" });
+    run.applyControl({ kind: "credentials", action: "rotate" });
+    run.schedule({ at: run.now + 1, kind: "edit", bytes: 10, unitBytes: [5], outcome: "finding" });
+    run.advance({ untilTime: run.now + 20, maxEvents: 100 });
+  } finally {
+    unsubscribe();
+  }
+  const state = run.projection;
+  expect([...totals, run.now, state.global.items, state.global.bytes, state.dispatch.running.length,
+    state.dispatch.requests.length, state.collection.leases.length]).toEqual(native.slice(0, 13));
+  expect(run.interventions.map(report => report.result)).toEqual(["applied", "applied", "applied"]);
+  expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
+}, 30000);
+
+it("compares original targeted Jev interventions with native reports and full public traces", () => {
+  const native = runWorkloadNative(new URL("../../monkey-business-bend/conformance/jev-targets-native.bend", import.meta.url)) as number[][][];
   const targets = [
     { trigger: "issued", outcome: "neverSent", lifetime: 1, result: "applied", code: 1, outputs: 0 },
     { trigger: "started", outcome: "timeout", lifetime: 1, result: "applied", code: 1, outputs: 0 },
@@ -114,9 +158,9 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
     { trigger: "issued", outcome: "timeout", lifetime: 2, result: "requestMissing", code: 2, outputs: 1 },
     { trigger: "settled", outcome: "interrupted", lifetime: 1, result: "requestMissing", code: 2, outputs: 1 },
   ] as const;
-  expect(result.targets).toHaveLength(targets.length);
+  expect(native).toHaveLength(targets.length);
   for (const [index, scenario] of targets.entries()) {
-    const nativeTrace = result.targets[index] ?? [];
+    const nativeTrace = native[index] ?? [];
     const controls = nativeTrace.filter(row => row[0] === 30);
     expect(controls).toEqual([[30, scenario.trigger === "settled" ? 7 : 2, scenario.code, 1, scenario.lifetime, 1, 3, 4]]);
     expect(nativeTrace.filter(row => row[0] === 18)).toHaveLength(scenario.outputs);
@@ -137,8 +181,11 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
     expect(nativeTrace.filter(row => row[0] !== 30)).toEqual(run.observations.map(row));
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
   }
-  expect(result.credentials).toHaveLength(3);
-  for (const [mode, nativeTrace] of result.credentials.entries()) {
+}, 30000);
+
+it.each([0, 1, 2] as const)("compares original credential action script %i with the same native resident", mode => {
+  const fixtures = ["jev-credentials-unavailable-native.bend", "jev-credentials-restore-native.bend", "jev-credentials-rotation-native.bend"] as const;
+  const nativeTrace = runWorkloadNative(new URL(`../../monkey-business-bend/conformance/${fixtures[mode]}`, import.meta.url)) as number[][];
     const run = createRun({ outcome: "finding", inputs: mode === 1
       ? [{ at: 0, kind: "edit", bytes: 10, unitBytes: [5] }]
       : [0, 11].map(at => ({ at, kind: "edit" as const, bytes: 10, unitBytes: [5] })),
@@ -206,5 +253,4 @@ it("compares four original twelve-cycle recovery scripts with the stateful nativ
     expect(run.projection.collection.leases).toEqual([]);
     expect(run.interventions.every(report => report.result === "applied")).toBe(true);
     expect(restoreReplay(run.exportReplay()).observe()).toEqual(run.observe());
-  }
 }, 30000);
