@@ -315,7 +315,7 @@ export const productionFlowView = <Message>(
     { label: "Cancel unfinished work", active: stopEvent && has(commands, "cancelWork", "discardAllUnfinished", "discardNamedOnly") },
   ];
   return h.div([h.Class("production-topology")], [
-    h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"]),
+    ...(!infrastructure ? [h.p([h.Class("flow-legend")], ["Blue: state or decision · Gray: external work · Gold: Jev result · Orange: transition · Orange dotted: linked work and job with the same ID · Purple dashed: command"])] : []),
     h.div([h.Class("topology-scroll")], [
       h.svg([h.ViewBox("0 0 1400 830"), h.Role(inspect ? "group" : "img"),
         h.AriaLabel("Connected production flow from agent edit through Jev review to advice and round decision")], [
@@ -461,6 +461,7 @@ export const productionFlowView = <Message>(
         ])) : []),
       ]),
     ]),
+    ...(!infrastructure ? [
     ...(stepCaption === undefined ? [] : [h.p([h.Class("topology-current-step")], [stepCaption])]),
     h.details([h.Class("topology-route-key")], [
       h.summary([], ["Numbered route key"]),
@@ -510,5 +511,6 @@ export const productionFlowView = <Message>(
       ...(unmapped.length ? [h.p([h.Class("topology-unmapped-relations")], [`Checked relations outside drawn connections: ${unmapped.map(item => `${SQUARES[item.from].title} → ${SQUARES[item.to].title}: ${item.description}`).join("; ")}.`])] : []),
       h.p([], [`Branches at this step: ${commands.filter((command) => /Refused|Unavailable|Interrupted|Ignored|Stale|Cancel|Clear|Finding|Waiting|Allowed|Expired|Lease|Reoffer|Unknown|Recorded|Terminal/.test(command.kind)).map((command) => command.kind).join(", ") || "none"}.`]),
     ]),
+    ] : []),
   ]);
 };

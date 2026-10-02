@@ -31,19 +31,23 @@ export const numberRecords = (steps: readonly NumberingStep[]): RecordNumbers =>
     if (!numbers[kind].has(id)) numbers[kind].set(id, numbers[kind].size + 1);
   };
   for (const step of steps) {
-    if (step.rejection !== undefined) continue;
-    for (const item of [...step.after.work].sort((a, b) => a.operation - b.operation)) {
-      if (step.before.work.some((prior) => prior.operation === item.operation)) continue;
+    if (step.rejection !== undefined || step.before === step.after) continue;
+    // Number only newly observed records. Graph frames preserve the outer
+    // snapshot, and retained work should not be rescanned for every new item.
+    const priorWork = new Set(step.before.work.map(item => item.operation));
+    for (const item of step.after.work.filter(item => !priorWork.has(item.operation)).sort((a, b) => a.operation - b.operation)) {
       const kind = createdWorkKind(item.kind);
       if (kind !== undefined) assign(kind, item.operation);
     }
+    const priorRequests = new Set(step.before.dispatch.requests.map(item => item.request));
     for (const item of step.after.dispatch.requests)
-      if (!step.before.dispatch.requests.some((prior) => prior.request === item.request)) assign("request", item.request);
+      if (!priorRequests.has(item.request)) assign("request", item.request);
+    const priorFindings = new Set(step.before.pendingFindings.map(item => item.operation));
     for (const item of step.after.pendingFindings)
-      if (!step.before.pendingFindings.some((prior) => prior.operation === item.operation)) assign("advice", item.operation);
+      if (!priorFindings.has(item.operation)) assign("advice", item.operation);
+    const priorCharges = new Set(step.before.charges.map(item => `${item.id}:${item.purpose}`));
     for (const item of step.after.charges)
-      if (!step.before.charges.some((prior) => prior.id === item.id && prior.purpose === item.purpose))
-        assign(`charge:${item.purpose}`, item.id);
+      if (!priorCharges.has(`${item.id}:${item.purpose}`)) assign(`charge:${item.purpose}`, item.id);
   }
   return numbers;
 };

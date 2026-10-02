@@ -359,6 +359,18 @@ ratio; **3D layers** returns to the stack. Focus view removes the reserved 3D
 stage height. On narrow screens, focus preserves readable diagram scale with
 horizontal scrolling instead of shrinking all labels into an unreadable overview.
 
+Run `npm run test:render-browser` for a fixed six-agent, 601-event snapshot
+and 30 camera updates, followed by ten arrivals of new checked snapshots.
+The check reports sampled view CPU time and DOM size,
+then checks camera isolation, agent focus, history refresh and guided handlers.
+Simulator execution is outside the timed camera exercise. For a before/after
+comparison on the same host, run it with `-- --baseline=COMMIT` and then without
+that option; the baseline supplies only renderer and projection source files. These
+browser timings do not establish native throughput or a universal frame rate.
+Camera-only updates reuse the checked diagrams and inspector; unrelated live
+updates reuse the guided examples. The 3D planes omit explanatory DOM that their
+layout hides, while the guided replay retains it.
+
 Run `npm run test:ensemble-browser` for shared history/replay, targeted generator
 controls, the combined eight-permit pool, historical resource projections,
 hover/focus, rotation and narrow layout. The case to inspect is **Agents = 3**:
