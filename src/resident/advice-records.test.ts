@@ -51,7 +51,7 @@ it.effect("owns frozen advice content and leases together with canonical state",
   expect(Reflect.set(advice, "findings", [])).toBe(false);
   expect(yield* owner.advice.eligible(advice, false)).toBe(true);
   expect(advice.collectionEligible).toBe(true);
-  expect(owner.advice.reserveLease(advice, "collector")).toBe(true);
+  expect(yield* owner.advice.reserveLease(advice, "collector")).toBe(true);
   const first = advice.delivery;
   expect(Object.isFrozen(first)).toBe(true);
   expect(owner.canonicalProjection().collection.leases).toEqual([{ advice: initial.canonicalOperationId, owner: owner.collectionTokenId("collector") }]);
@@ -73,7 +73,7 @@ it.effect("rolls back retention and lease updates when native payload snapshotti
   expect(owner.advice.values()).toEqual([]);
   const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
-  owner.advice.reserveLease(advice, "collector");
+  yield* owner.advice.reserveLease(advice, "collector");
   const leased = owner.canonicalProjection();
   const delivery = advice.delivery;
   expect(() => owner.advice.updateDelivery(advice, "collector", { findings: [finding, invalid] })).toThrow("snapshot failed");
@@ -88,7 +88,7 @@ it.effect("retires advice, ticket bindings and leases while retaining active cap
   (yield* owner.ticketUnits.step(unit, "findingResult", "lost", { revision: initial.revision, adviceId: initial.id }));
   const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
-  owner.advice.reserveLease(advice, "collector");
+  yield* owner.advice.reserveLease(advice, "collector");
   const capture = owner.adviceCaptures.start(advice.reservation, advice.revision, 200);
   if (capture === undefined) throw new Error("capture refused");
   expect(owner.advice.remove(advice, "stale", "wrong")).toBe(false);
@@ -133,7 +133,7 @@ it.effect("rolls back advice retirement when authorized Stop output prevents sub
   const { owner, initial } = yield* fixture();
   const advice = yield* owner.advice.insert(initial);
   yield* owner.advice.eligible(advice, false);
-  owner.advice.reserveLease(advice, "collector");
+  yield* owner.advice.reserveLease(advice, "collector");
   const delivery = owner.delivery();
   expect(delivery.beginStop(advice.partition, "stop")).toBe(true);
   delivery.finishGate(advice.partition, "stop", 0, true);
@@ -206,4 +206,16 @@ it.effect("defers advice retention and snapshots source payloads at execution", 
   pendingFindings.push(finding);
   expect(retained.findings).toEqual([]);
   expect(owner.advice.values()).toEqual([retained]);
+}));
+
+
+it.effect("arbitrates competing collectors only when lease Effects execute", () => Effect.gen(function* () {
+  const { owner, initial } = yield* fixture();
+  const advice = yield* owner.advice.insert(initial);
+  yield* owner.advice.eligible(advice, false);
+  const attempts = Array.from({ length: 16 }, (_, index) => owner.advice.reserveLease(advice, `collector-${index}`));
+  expect(advice.delivery).toBeUndefined();
+  const results = yield* Effect.all(attempts, { concurrency: 16 });
+  expect(results.filter(Boolean)).toHaveLength(1);
+  expect(owner.canonicalProjection().collection.leases).toHaveLength(1);
 }));

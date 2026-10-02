@@ -143,7 +143,8 @@
     "Joined-review service now composes Effects throughout; release and settlement are named atomic operations, runtime cleanup and preparation finalizers yield them, synchronous joinedCommit removed",
     "Advice eligibility and content revision compose named atomic Effects; collection revalidation and finalization callers yield directly",
     "Advice publication composes a named atomic Effect over ticket-unit and joined-review state; preparation and retention callers yield it directly",
-    "Advice insertion composes a named atomic Effect; retention caller yields directly and payload/ownership defect fixtures verify rollback through Effect exits"
+    "Advice insertion composes a named atomic Effect; retention caller yields directly and payload/ownership defect fixtures verify rollback through Effect exits",
+    "Advice lease reservation composes a named atomic Effect; collection yields authorization and reservation through the state owner"
   ],
   "verification": [
     {
@@ -1826,6 +1827,15 @@
       "build": true,
       "ticketBoundaryCheck": true,
       "cases": "Insertion defers retention until execution and copies findings; failed payload snapshot and invalid canonical owner publish no partial state"
+    },
+    {
+      "stage": "advice-reserve-lease-effect",
+      "testsPassed": 118,
+      "testFiles": 3,
+      "typecheck": true,
+      "build": true,
+      "ticketBoundaryCheck": true,
+      "case": "Sixteen deferred competing lease Effects retain exactly one collector and one canonical lease"
     }
   ],
   "next": [

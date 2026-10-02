@@ -740,9 +740,8 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
   }
 
-  function residentReserveAdviceLease(advice: Advice, token: string): boolean {
-    return residentLedger.advice.reserveLease(advice, token);
-  }
+  const residentReserveAdviceLease = Effect.fn("ResidentRuntime.reserveAdviceLease")((advice: Advice, token: string) =>
+    residentLedger.advice.reserveLease(advice, token));
 
   function residentReleaseAdviceLease(advice: Advice): void { residentLedger.advice.releaseLease(advice); }
 
@@ -875,7 +874,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       for (const id of eligible) {
         const advice = residentAdvice().find((item) => item.id === id && item.delivery === undefined);
         if (advice === undefined) continue;
-        if (!residentReserveAdviceLease(advice, token)) continue;
+        if (!(yield* residentReserveAdviceLease(advice, token))) continue;
         yield* residentAdapter("collection revalidation barrier", () => Promise.resolve(residentBeforeRevalidate?.(advice.id)));
         const validity = yield* residentRevalidate(advice, dispatch);
         const retained = residentAdvice().find((item) => item.id === advice.id);

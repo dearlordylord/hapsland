@@ -92,3 +92,9 @@ if (!state.includes('insert: Effect.fn("AdviceRecords.insert")') ||
     !server.includes('yield* residentLedger.advice.insert(')) {
   throw new Error("advice retention must compose as an atomic Effect");
 }
+
+if (!state.includes('reserveLease: Effect.fn("AdviceRecords.reserveLease")') ||
+    !state.includes('commitAllEffect(adviceChange((operations) => operations.reserveLease(...args)))') ||
+    !server.includes('yield* residentReserveAdviceLease(advice, token)')) {
+  throw new Error("advice lease reservation must compose as an atomic Effect");
+}
