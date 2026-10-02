@@ -40,7 +40,7 @@ it.effect("publishes canonical cleanup, ticket eviction and retirement together"
 it.effect("busy ownership does not retire the runtime or evict tickets", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
   const ticket = (yield* owner.tickets.open(residentTicketInput(owner.residentLifetime)));
-  const reservation = owner.reserve("fixture", 10, "preparation")!;
+  const reservation = (yield* owner.reserve("fixture", 10, "preparation"))!;
   const before = owner.canonicalProjection();
   const outcome = yield* owner.runtime.cleanup(() => 10);
   expect(outcome).toBe("busy");
@@ -48,7 +48,7 @@ it.effect("busy ownership does not retire the runtime or evict tickets", () => E
   expect((yield* owner.tickets.get(ticket.ticket.nonce))).toBe(ticket);
   expect((yield* owner.runtime.snapshot()).lifecycle).toBe("active");
   expect((yield* owner.runtime.scheduleRetirement())).toBe(false);
-  expect(owner.release(reservation)).toBe(true);
+  expect((yield* owner.release(reservation))).toBe(true);
   expect((yield* owner.runtime.cleanup(() => 10))).toBe("cleaned");
 }));
 
@@ -57,13 +57,13 @@ it.effect("keeps connection ownership and immutable statistics through physical 
   const connection = (yield* owner.runtime.openConnection(2))!;
   const snapshot = (yield* owner.runtime.snapshot());
   expect(Object.isFrozen(snapshot)).toBe(true);
-  const reservation = owner.reserve("fixture", 20, "preparation")!;
+  const reservation = (yield* owner.reserve("fixture", 20, "preparation"))!;
   (yield* owner.runtime.observePreparedUnits(3));
   (yield* owner.runtime.rejectCapacity());
   expect((yield* owner.runtime.nextAuthoritySequence())).toBe(1);
   expect((yield* owner.runtime.nextAuthoritySequence())).toBe(2);
   expect(snapshot.peakLedgerBytes).toBe(0);
-  owner.release(reservation);
+  (yield* owner.release(reservation));
   yield* owner.runtime.close();
   yield* owner.clear();
   expect((yield* owner.runtime.snapshot())).toMatchObject({
@@ -101,16 +101,16 @@ it.effect("rolls back staged ticket eviction and retirement if native validation
 
 it.effect("records transient reservation peaks without a server sampling checkpoint", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const capture = owner.reserve("capture", 128, "preparation")!;
+  const capture = (yield* owner.reserve("capture", 128, "preparation"))!;
   expect((yield* owner.runtime.snapshot()).peakLedgerBytes).toBe(128);
-  expect(owner.resize(capture, 5)).toBe(true);
-  const concurrent = owner.reserve("other", 200, "preparation")!;
+  expect((yield* owner.resize(capture, 5))).toBe(true);
+  const concurrent = (yield* owner.reserve("other", 200, "preparation"))!;
   expect((yield* owner.runtime.snapshot()).peakLedgerBytes).toBe(205);
-  owner.release(capture);
-  owner.release(concurrent);
+  (yield* owner.release(capture));
+  (yield* owner.release(concurrent));
   expect((yield* owner.snapshot()).bytes).toBe(0);
-  expect(owner.reserve("other", 1_000_000_000, "preparation")).toBeUndefined();
-  expect(owner.resize(concurrent, 1_000)).toBe(false);
+  expect((yield* owner.reserve("other", 1_000_000_000, "preparation"))).toBeUndefined();
+  expect((yield* owner.resize(concurrent, 1_000))).toBe(false);
   yield* owner.clear();
   expect((yield* owner.runtime.snapshot()).peakLedgerBytes).toBe(205);
 }));

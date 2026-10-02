@@ -285,6 +285,14 @@ export const makeResidentState = <Pending = never, DispatchKey = string, Dispatc
     });
   return {
     ...capacity,
+    replace: Effect.fn("Capacity.replace")((...args: Arguments<typeof replace>) =>
+      commitAllEffect((draft, records) => [replace(draft, ...args), records]).pipe(Effect.map((result) => {
+        if ("invalidMeasurement" in result) throw new TypeError("invalid measured review unit size");
+        return result;
+      }))),
+    reserve: Effect.fn("Capacity.reserve")((...args: Arguments<typeof reserve>) => commitAllEffect((draft, records) => [reserve(draft, ...args), records])),
+    resize: Effect.fn("Capacity.resize")((...args: Arguments<typeof resize>) => commitAllEffect((draft, records) => [resize(draft, ...args), records])),
+    release: Effect.fn("Capacity.release")((...args: Arguments<typeof release>) => commitAllEffect((draft, records) => [release(draft, ...args), records])),
     snapshot: Effect.fn("Capacity.snapshot")((...args: Arguments<typeof snapshot>) => Ref.get(state).pipe(Effect.map((current) => snapshot(current, ...args)))),
     knownPartitionId: Effect.fn("Capacity.knownPartitionId")((...args: Arguments<typeof knownPartitionId>) => Ref.get(state).pipe(Effect.map((snapshot) => knownPartitionId(snapshot, ...args)))),
     readyJevRequest: Effect.fn("Capacity.readyJevRequest")((...args: Arguments<typeof readyJevRequest>) => commitAllEffect((draft, records) => [readyJevRequest(draft, ...args), records])),

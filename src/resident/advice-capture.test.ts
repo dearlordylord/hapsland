@@ -6,7 +6,7 @@ const revision = Object.freeze({ subject: "fixture", token: "fixture", generatio
 
 it.effect("retains retired capture capacity until physical settlement and fences duplicate completion", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const reservation = owner.reserve("partition", 100, "storedResult");
+  const reservation = (yield* owner.reserve("partition", 100, "storedResult"));
   if (reservation === undefined) throw new Error("missing fixture reservation");
   const capture = yield* owner.adviceCaptures.start(reservation, revision, 200);
   if (capture === undefined) throw new Error("missing fixture capture");
@@ -28,7 +28,7 @@ it.effect("retains retired capture capacity until physical settlement and fences
 
 it.effect("restores retained bytes and prevents a completed capture from settling its replacement", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const reservation = owner.reserve("partition", 100, "storedResult");
+  const reservation = (yield* owner.reserve("partition", 100, "storedResult"));
   if (reservation === undefined) throw new Error("missing fixture reservation");
   const first = yield* owner.adviceCaptures.start(reservation, revision, 200);
   if (first === undefined) throw new Error("missing fixture capture");
@@ -46,7 +46,7 @@ it.effect("restores retained bytes and prevents a completed capture from settlin
 
 it.effect("publishes no capture when workspace capacity is refused", () => Effect.gen(function* () {
   const owner = yield* makeResidentState({ globalItems: 1, globalBytes: 200, partitionItems: 1, partitionBytes: 200 });
-  const reservation = owner.reserve("partition", 100, "storedResult");
+  const reservation = (yield* owner.reserve("partition", 100, "storedResult"));
   if (reservation === undefined) throw new Error("missing fixture reservation");
   const before = owner.canonicalProjection();
   expect(yield* owner.adviceCaptures.start(reservation, revision, 101)).toBeUndefined();
@@ -58,7 +58,7 @@ it.effect("publishes no capture when workspace capacity is refused", () => Effec
 
 it.effect("acquires one workspace for competing deferred captures", () => Effect.gen(function* () {
   const owner = yield* makeResidentState();
-  const reservation = owner.reserve("partition", 100, "storedResult");
+  const reservation = (yield* owner.reserve("partition", 100, "storedResult"));
   if (reservation === undefined) throw new Error("missing fixture reservation");
   const start = owner.adviceCaptures.start(reservation, revision, 200);
   expect((yield* owner.reservationSnapshot(reservation))?.bytes).toBe(100);

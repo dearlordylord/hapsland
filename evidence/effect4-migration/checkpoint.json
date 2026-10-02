@@ -2088,6 +2088,17 @@
       "scope": "Public capacity snapshot and knownPartitionId are named Ref read Effects; runtime stats, finding selection and request identity readers compose them. Private draft readers remain pure within canonical commits.",
       "validation": "Nine files passed 157 tests and fresh capacity suite passed 28 after executing the item/byte boundary fixture Effects. Initial shadowed snapshot lambda and missed fixture assertions are corrected; intermediate failed runs do not establish final validation.",
       "limitations": "Remaining transition/canonicalProjection/reservation APIs and synchronous runtime facades require migration."
+    },
+    {
+      "stage": "reservation-mutation-effects",
+      "testsPassed": 134,
+      "testFiles": 5,
+      "typecheck": true,
+      "build": true,
+      "boundaryChecksPassed": 15,
+      "scope": "Public reserve, resize, release and replace are named atomic Effects. Runtime admission and preparation/evaluation/shutdown cleanup compose releases; capture failure finalizer returns release Effect directly. Replacement retains committed invalid-measurement result and subsequent defect contract.",
+      "validation": "Four files passed 106 tests; corrected partitionBytes fixture execution and converted replacement, then fresh capacity suite passed 28 tests. Typecheck/build and all boundary checks passed after replacement conversion.",
+      "limitations": "Canonical transition/projection, root synchronous commit/read bridges, fixture construction and runtime facades remain."
     }
   ],
   "next": [

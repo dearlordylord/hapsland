@@ -640,7 +640,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       { root: observation.root, advicee: observation.advicee, activityPath: dispatch.activityPath }, randomUUID());
     const partition = group;
     const canonicalRound = round?.canonicalRound ?? (yield* residentLedger.roundId(partition));
-    const reservation = residentLedger.reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch");
+    const reservation = (yield* residentLedger.reserve(partition, logicalBytes({ observation, dispatch }) + RESERVATION_OVERHEAD_BYTES, "observationDispatch"));
     if (reservation === undefined) {
       yield* residentLedger.runtime.rejectCapacity();
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
@@ -648,7 +648,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }
     const admission = yield* Effect.exit(residentLedger.admitObservation(partition, canonicalRound));
     if (Exit.isFailure(admission)) {
-      residentLedger.release(reservation);
+      (yield* residentLedger.release(reservation));
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
     }
     const canonicalObservationId = admission.value;
@@ -679,7 +679,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     if (!(yield* residentDispatcher.enqueue(partition, job))) {
       if (ticket !== undefined) yield* residentLedger.tickets.forget(ticket);
       (yield* residentLedger.observation(partition, canonicalObservationId, "interruptObservation", canonicalRound));
-      residentLedger.release(reservation);
+      (yield* residentLedger.release(reservation));
       yield* residentLedger.runtime.rejectCapacity();
       recordActivity({ statePath: dispatch.activityPath, root: observation.root, advicee: observation.advicee, lifetime: runtime.lifetime, stage: "unavailable" });
       return ticketed ? { requestRoute: "ticketed", status: "rejected-capacity" } : { status: "rejected-capacity" };
@@ -1408,7 +1408,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
   const residentReleaseUnit = Effect.fn("ResidentRuntime.releaseUnit")(function* (job: Pick<UnitJob, "reservation" | "revision" | "released">) {
     if (job.released) return;
     job.released = true;
-    residentLedger.release(job.reservation);
+    (yield* residentLedger.release(job.reservation));
     yield* residentReleaseCurrentWork(job.revision);
   }, Effect.uninterruptible);
 
@@ -1505,7 +1505,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
       yield* residentReleaseReuseClaim(job.evaluationKey);
       // An issued Jev permit remains reserved until its native Effect settles.
       if (job.requestId === undefined) yield* residentReleaseUnit(job);
-    } else residentLedger.release(job.reservation);
+    } else (yield* residentLedger.release(job.reservation));
     recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root,
       advicee: job.observation.advicee, lifetime: runtime.lifetime, stage: "incomplete" });
   }, Effect.uninterruptible);
@@ -1584,16 +1584,16 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     return Effect.gen(function* () {
       if (job.round !== undefined && job.workObservationId !== undefined &&
           !(yield* residentLedger.rounds.policyWork(job.round)).startSource(job.workObservationId)) {
-        residentLedger.release(job.reservation);
+        (yield* residentLedger.release(job.reservation));
         return;
       }
       if (!(yield* residentLedger.observation(job.partition, job.canonicalObservationId, "startObservation", job.canonicalRound))) {
-        residentLedger.release(job.reservation);
+        (yield* residentLedger.release(job.reservation));
         return;
       }
       yield* residentAwaitBackendGate();
       if ((yield* residentLedger.runtime.snapshot()).lifecycle !== "active") {
-        residentLedger.release(job.reservation);
+        (yield* residentLedger.release(job.reservation));
         return;
       }
       const userConfigPath = job.dispatch.userConfigPath ?? undefined;
@@ -1615,7 +1615,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
         return settings;
       }),
         job.work?.controller.signal ?? residentLifetimeController.signal);
-      residentLedger.release(job.reservation);
+      (yield* residentLedger.release(job.reservation));
       if (settings === undefined || (yield* residentLedger.runtime.snapshot()).lifecycle !== "active" || !(yield* residentJobActive(job))) {
         recordActivity({ statePath: job.dispatch.activityPath, root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime, stage: "unavailable" });
         return;
@@ -1645,14 +1645,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
               ...(residentCaptureSource === undefined ? {} : { captureSource: residentCaptureSource }),
               beforeAnalyze: (path, sourceBytes, preflight) => Effect.gen(function* () {
                 const required = analysisWorkspaceBytes(path, sourceBytes, preflight, settings.rules);
-                const resized = residentLedger.resize(workspace, required);
+                const resized = (yield* residentLedger.resize(workspace, required));
                 if (!resized) yield* residentLedger.runtime.rejectCapacity();
                 return resized;
               }),
             });
           }),
-        job.work?.controller.signal ?? residentLifetimeController.signal).pipe(Effect.onError(() => Effect.sync(() => { residentLedger.release(workspace); })));
-        if (!(yield* residentJobActive(job))) { residentLedger.release(workspace); return; }
+        job.work?.controller.signal ?? residentLifetimeController.signal).pipe(Effect.onError(() => residentLedger.release(workspace)));
+        if (!(yield* residentJobActive(job))) { (yield* residentLedger.release(workspace)); return; }
         const ready: Extract<(typeof prepared.outcomes)[number], { status: "ready" }>[] = [];
         for (const outcome of prepared.outcomes) {
           const offer = yield* residentLedger.preparedOffer(outcome.status === "ready", true);
@@ -1707,7 +1707,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
             Effect.mapError(() => new ResidentAdapterError({ operation: "owner claim barrier" }))),
           job.work?.controller.signal ?? residentLifetimeController.signal);
         }
-        if (!(yield* residentJobActive(job))) { residentLedger.release(workspace); return; }
+        if (!(yield* residentJobActive(job))) { (yield* residentLedger.release(workspace)); return; }
         const ticketUnitsByPlan = new Map<(typeof planned)[number], TicketUnit>();
         const retained = planned.filter((item) =>
           item.kind === "owner" || (item.kind === "cached" && item.cached.evaluation.findings.length > 0));
@@ -1770,7 +1770,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (!(yield* residentJobActive(job))) {
             for (let remaining = index; remaining < retained.length; remaining++) {
               const admitted = reservations[remaining];
-              if (admitted !== undefined) residentLedger.release(admitted.reservation);
+              if (admitted !== undefined) (yield* residentLedger.release(admitted.reservation));
               const pending = retained[remaining];
               if (pending?.kind === "owner") yield* residentReleaseReuseClaim(pending.evaluationKey);
             }
@@ -1797,7 +1797,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           if (job.round !== undefined && workUnitId === undefined) {
             if (ticketUnit !== undefined) yield* residentLedger.ticketUnits.fail(ticketUnit, "lost");
             if (item.kind === "owner") yield* residentReleaseReuseClaim(item.evaluationKey);
-            residentLedger.release(reservation);
+            (yield* residentLedger.release(reservation));
             yield* residentReleaseCurrentWork(revision);
             continue;
           }
@@ -1885,14 +1885,14 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
     }).pipe(
       Effect.catch(() => Effect.gen(function* () {
         if (runtimeConfiguration.debug) console.error("resident preparation unavailable");
-        residentLedger.release(job.reservation);
+        (yield* residentLedger.release(job.reservation));
         if ((yield* residentLedger.runtime.snapshot()).lifecycle === "active") recordActivity({ statePath: job.dispatch.activityPath,
           root: job.observation.root, advicee: job.observation.advicee, lifetime: server.lifetime,
           stage: "unavailable" });
       })),
       Effect.ensuring(Effect.gen(function* () {
-        residentLedger.release(job.reservation);
-        for (const workspace of activeWorkspaces) residentLedger.release(workspace);
+        (yield* residentLedger.release(job.reservation));
+        for (const workspace of activeWorkspaces) (yield* residentLedger.release(workspace));
         for (const key of unassignedClaims) yield* residentReleaseReuseClaim(key);
         if (!job.completed) (yield* residentLedger.observation(job.partition, job.canonicalObservationId, "interruptObservation", job.canonicalRound));
       })),
@@ -3049,7 +3049,7 @@ export const makeResidentRuntime = Effect.fn("ResidentRuntime.make")(function* (
           yield* residentReleaseReuseClaim(job.evaluationKey);
           yield* residentReleaseUnit(job);
         }
-        else residentLedger.release(job.reservation);
+        else (yield* residentLedger.release(job.reservation));
       }
       for (const advice of (yield* residentAdvice())) yield* residentRemoveAdvice(advice.id);
       for (const key of [...(yield* residentNotices.entries()).map(([key]) => key)]) yield* residentReleaseNoticeCooldown(key);

@@ -80,7 +80,7 @@ it.effect("settles a retired advice capture and its revision member in one owner
   const owner = yield* makeResidentState();
   const item = prepared();
   const revision = (yield* owner.revision.register("agent", item, true, "capture")).revision;
-  const reservation = owner.reserve("agent", 100, "storedResult");
+  const reservation = (yield* owner.reserve("agent", 100, "storedResult"));
   if (reservation === undefined) throw new Error("missing capture reservation");
   const capture = yield* owner.adviceCaptures.start(reservation, revision, 200);
   if (capture === undefined) throw new Error("missing capture");
