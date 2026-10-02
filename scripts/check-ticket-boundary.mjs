@@ -188,3 +188,8 @@ for (const operation of ["remove", "renew", "release", "acknowledge", "drop", "p
     throw new Error(`notice ${operation} must compose as an atomic Effect`);
   }
 }
+
+const noticeSurface = state.slice(state.indexOf("    notices:"), state.indexOf("    joinedReviews:", state.indexOf("    notices:")));
+if (noticeSurface.includes("Ref.getUnsafe") || !noticeSurface.includes('entries: Effect.fn("NoticeRecords.entries")')) {
+  throw new Error("notice listing must read a snapshot through Effect");
+}
