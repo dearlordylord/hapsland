@@ -315,3 +315,32 @@ the user's placement decision has not yet been made. Current review captures
 are `/workspace/hapsland-review/retained-resources/resident-panel-current.png`
 and `/workspace/hapsland-review/retained-resources/retained-detail-current.png`;
 delete them after the user views or reviews them.
+
+
+Demo retention capacities are computed once from the configured generator count
+N and stored in replay configuration: cache entries `min(8, max(4, 2*N))`, cache
+bytes `entries * 8192`, ticket retention `min(256, 16*N)`, and notice keys
+`min(64, 8*N)`. These are one resident-wide demo set, still subject to the shared
+ledger, not additional capacity granted per agent. Native constants are unchanged
+(cache 8 entries/128 KiB, tickets 256, notices 64). Explicit tiny boundary fixtures
+retain their supplied maxima; existing replay values remain explicit and are not
+rewritten. Optional scenarios create at most three tickets and two notice
+identities independently of these maxima, so ordinary demos do not imply that a
+handful of records saturates native retention. The retained-resource inset remains
+a preview, not an accepted placement.
+
+
+Validation of the demo-capacity amendment: Astra advised the formulas before
+implementation and reviewed the rendered ordinary three-agent narrow panel
+(`/tmp/hapsland-demo-limits-390.png`) without a blocking layout finding. The
+resource browser passed explicit replay-config assertions for cache 6/48 KiB and
+tickets 48, along with the existing explicit 2/1 saturation fixtures. The full
+Monkey suite passed 144 tests; subsequent focused tests also cover suppression
+of the demo badge after a checked effective-limit change while preserving older
+frames. Both package typechecks and the visualization build passed. Evidence
+logs: `/tmp/hapsland-demo-all-tests.log`,
+`/tmp/hapsland-demo-capacity-tests.log`,
+`/tmp/hapsland-demo-capacity-browser.log`, and
+`/tmp/hapsland-demo-capacity-build.log`. Demo provenance is shown only when
+supplied limits match the formula at the selected replay frame. This validates
+scalar demo defaults, not acceptance of the retained-resource inset preview.

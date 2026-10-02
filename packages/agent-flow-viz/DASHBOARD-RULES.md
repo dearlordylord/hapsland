@@ -172,3 +172,16 @@ per-rule evidence sufficiency or whether a supplied review unit exists.
 These rules document current projection behavior under the existing decision
 boundary. Browser checks and Astra rendered review are separate evidence;
 neither establishes native effect enforcement or release/platform support.
+
+
+Demo retention capacities are computed once from the configured generator count
+N and stored in replay configuration: cache entries `min(8, max(4, 2*N))`, cache
+bytes `entries * 8192`, ticket retention `min(256, 16*N)`, and notice keys
+`min(64, 8*N)`. These are one resident-wide demo set, still subject to the shared
+ledger, not additional capacity granted per agent. Native constants are unchanged
+(cache 8 entries/128 KiB, tickets 256, notices 64). Explicit tiny boundary fixtures
+retain their supplied maxima; existing replay values remain explicit and are not
+rewritten. Optional scenarios create at most three tickets and two notice
+identities independently of these maxima, so ordinary demos do not imply that a
+handful of records saturates native retention. The retained-resource inset remains
+a preview, not an accepted placement.

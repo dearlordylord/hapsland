@@ -19,7 +19,7 @@ try {
   assert.match(await resident.innerText(),/Preparation workers · shared by all agents\s+0 \/ 8/);
   assert.match(await resident.innerText(),/Edit permits · shared by all agents\s+0 \/ 8/);
   await resident.locator('.resident-resource-details summary').click();
-  assert.match(await resident.innerText(),/Cached evaluations · entries\s+0 \/ 8/);
+  assert.match(await resident.innerText(),/Cached evaluations · entries\s+0 \/ 6/);
   assert.match(await resident.innerText(),/Retained tickets\s+0 used · limit not recorded/);
   await page.locator('#agent-ensemble').screenshot({path:'/tmp/hapsland-capacity-initial-1512.png'});
   await click('Focus selected agent');
@@ -41,6 +41,11 @@ try {
   await click('Export replay');
   const configured=JSON.parse(await page.getByLabel('Replay JSON',{exact:true}).inputValue());
   assert.equal(configured.config.resourceScenarios.tickets,true);
+  assert.equal(configured.config.resourceScenarios.ticketRetention,48);
+  assert.equal(configured.config.lifecycles.reuse.entryLimit,6);
+  assert.equal(configured.config.lifecycles.reuse.byteLimit,49152);
+  assert.match(await resident.innerText(),/Demo limits · sized for 3 agents/);
+  await resident.screenshot({path:'/tmp/hapsland-demo-limits-390.png'});
   await page.getByLabel('Diagram stage',{exact:true}).selectOption('round');
   await click('Inspect selected stage');
   assert.match(await page.locator('.stage-resource-details').innerText(),/Select a current round and delivery group/);
@@ -54,7 +59,7 @@ try {
   };
   let focused = 'round';
   const focus = async stage => { await page.getByLabel('Diagram stage',{exact:true}).selectOption(stage); if(focused!==stage) await click('Inspect selected stage'); focused=stage; };
-  const retained = createRun({ inputs:[{at:0,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:['cached-example']}], outcome:'clear', lifecycles:{reuse:{entryLimit:2,byteLimit:100}}, resourceScenarios:{tickets:true,notices:true,startAt:10} });
+  const retained = createRun({ inputs:[{at:0,kind:'edit',bytes:10,unitBytes:[5],evaluationInputs:['cached-example']}], outcome:'clear', lifecycles:{reuse:{entryLimit:2,byteLimit:100}}, resourceScenarios:{tickets:true,ticketRetention:2,notices:true,noticeMaximumKeys:1,startAt:10} });
   retained.advance({untilTime:13,maxEvents:1000});
   assert.equal(retained.projection.reuse.cache.length,1);
   assert.equal(retained.projection.tickets.length,2);

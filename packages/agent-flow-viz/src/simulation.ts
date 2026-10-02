@@ -1,3 +1,4 @@
+import { demoResourceLimits } from "../../monkey-business/src/index";
 import { stageResourceDetails } from "./resource-details";
 import { preparationDetails } from "./preparation-details";
 import { preparationSnapshot } from "./preparation-mini";
@@ -376,11 +377,13 @@ export const actSimulation = (
     let loadedFields: Partial<SimulationModel> = {};
     if (action === "start") {
       const validSpeed = speedValue(model.speed);
+      const demoLimits = demoResourceLimits(number(model.agentCount, "Agent count", 1, 6));
       run = createRun({
+        demoAgentCount: number(model.agentCount, "Agent count", 1, 6),
         // One resident ledger and execution pool serve every independent generator.
         limits: { globalItems: 32, partitionItems: 16, globalBytes: 2000, partitionBytes: 2000 },
-        lifecycles: { permits: { adviceeLimit: 2, residentLimit: 8, holdMs: 1 }, collectors: { capacity: 64 }, reuse: { entryLimit: 8, byteLimit: 131072 }, quietWindowMs: 60000 },
-        resourceScenarios: model.resourceScenario === "none" ? undefined : { tickets: model.resourceScenario === "tickets", notices: model.resourceScenario === "notices", outputFit: model.resourceScenario === "fit" || model.resourceScenario === "oversized", outputBytes: model.resourceScenario === "oversized" ? 10241 : 512 },
+        lifecycles: { permits: { adviceeLimit: 2, residentLimit: 8, holdMs: 1 }, collectors: { capacity: 64 }, reuse: { entryLimit: demoLimits.entryLimit, byteLimit: demoLimits.byteLimit }, quietWindowMs: 60000 },
+        resourceScenarios: model.resourceScenario === "none" ? undefined : { ticketRetention: demoLimits.ticketRetention, noticeMaximumKeys: demoLimits.noticeMaximumKeys, tickets: model.resourceScenario === "tickets", notices: model.resourceScenario === "notices", outputFit: model.resourceScenario === "fit" || model.resourceScenario === "oversized", outputBytes: model.resourceScenario === "oversized" ? 10241 : 512 },
         environment: environmentFacts(model),
         outputProfile: outputProfile(model),
         seed: number(model.seed, "Seed", 0, 0xffffffff),

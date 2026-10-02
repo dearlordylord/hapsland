@@ -453,3 +453,16 @@ resource or ensemble suite does not imply all guided-browser assertions pass.
 Astra rendered review of the 11 requested case groups found no remaining UX
 blocker after the reviewed corrections. That scoped visual review remains
 separate from executable driver checks and native enforcement.
+
+
+Demo retention capacities are computed once from the configured generator count
+N and stored in replay configuration: cache entries `min(8, max(4, 2*N))`, cache
+bytes `entries * 8192`, ticket retention `min(256, 16*N)`, and notice keys
+`min(64, 8*N)`. These are one resident-wide demo set, still subject to the shared
+ledger, not additional capacity granted per agent. Native constants are unchanged
+(cache 8 entries/128 KiB, tickets 256, notices 64). Explicit tiny boundary fixtures
+retain their supplied maxima; existing replay values remain explicit and are not
+rewritten. Optional scenarios create at most three tickets and two notice
+identities independently of these maxima, so ordinary demos do not imply that a
+handful of records saturates native retention. The retained-resource inset remains
+a preview, not an accepted placement.

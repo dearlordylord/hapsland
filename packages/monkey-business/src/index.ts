@@ -1,4 +1,4 @@
-import { ResourceScenarios, type ResourceScenarioConfig } from "./resource-scenarios.ts";
+import { ResourceScenarios, demoResourceLimits, type ResourceScenarioConfig } from "./resource-scenarios.ts";
 export * from "./resource-scenarios.ts";
 export { projectAgent } from "./agent-projection.ts";
 import { generateFileTree, validateFileTreeProfile, DEFAULT_FILE_TREE_PROFILE, type FileTreeProfile } from "./file-trees.ts";
@@ -129,6 +129,8 @@ export type RunConfig = {
   readonly seed?: number;
   readonly lifecycles?: LifecycleProfile;
   readonly resourceScenarios?: ResourceScenarioConfig;
+  /** Explicit demo provenance; never a native capacity policy. */
+  readonly demoAgentCount?: number;
   readonly limits?: Parameters<typeof initialCanonical>[0];
   readonly inputs?: readonly RunInput[];
   readonly preparationDelay?: number;
@@ -244,7 +246,17 @@ export class Run {
   }
   private collectorCandidates = new Map<number, { advice: number; round: number; token: number }>();
   private readonly metadata: CapacityMetadata = { preparationWorkers: 8, jevRequests: 8, continuationBudget: 4 };
-  get capacityMetadata(): CapacityMetadata { return copy(this.metadata); }
+  get capacityMetadata(): CapacityMetadata {
+    const metadata = copy(this.metadata);
+    if (metadata.demoAgentCount !== undefined) {
+      const limits = demoResourceLimits(metadata.demoAgentCount);
+      if (metadata.reuse?.entryLimit !== limits.entryLimit || metadata.reuse.byteLimit !== limits.byteLimit
+        || (metadata.tickets !== undefined && metadata.tickets.retention !== limits.ticketRetention)
+        || (metadata.notices !== undefined && metadata.notices.maximumKeys !== limits.noticeMaximumKeys))
+        delete (metadata as { demoAgentCount?: number }).demoAgentCount;
+    }
+    return metadata;
+  }
   private preparation = new PreparationReplay();
   private canonicalAllowed = true;
   private queue: Scheduled[] = [];
@@ -302,8 +314,17 @@ export class Run {
     if (config.lifecycles?.quietWindowMs !== undefined && integer(config.lifecycles.quietWindowMs, "quiet window") === 0) throw new RangeError("quiet window must be positive");
     if (config.lifecycles?.permits) Object.assign(this.metadata, { permits: { adviceeLimit: config.lifecycles.permits.adviceeLimit, residentLimit: config.lifecycles.permits.residentLimit } });
     if (config.lifecycles?.reuse) Object.assign(this.metadata, { reuse: { entryLimit: config.lifecycles.reuse.entryLimit, byteLimit: config.lifecycles.reuse.byteLimit } });
-    if (config.resourceScenarios?.tickets) Object.assign(this.metadata, { tickets: { retention: config.resourceScenarios.ticketRetention ?? 2 } });
-    if (config.resourceScenarios?.notices) Object.assign(this.metadata, { notices: { maximumKeys: config.resourceScenarios.noticeMaximumKeys ?? 1 } });
+    const demoLimits = demoResourceLimits(config.sessions?.length ?? 1);
+    if (config.demoAgentCount !== undefined) {
+      const advertised = demoResourceLimits(config.demoAgentCount);
+      if (config.lifecycles?.reuse?.entryLimit === advertised.entryLimit && config.lifecycles.reuse.byteLimit === advertised.byteLimit
+        && (config.resourceScenarios?.ticketRetention ?? demoLimits.ticketRetention) === advertised.ticketRetention
+        && (config.resourceScenarios?.noticeMaximumKeys ?? demoLimits.noticeMaximumKeys) === advertised.noticeMaximumKeys)
+        Object.assign(this.metadata, { demoAgentCount: config.demoAgentCount });
+    }
+    if (config.resourceScenarios) config = { ...config, resourceScenarios: { ticketRetention: demoLimits.ticketRetention, noticeMaximumKeys: demoLimits.noticeMaximumKeys, ...config.resourceScenarios } };
+    if (config.resourceScenarios?.tickets) Object.assign(this.metadata, { tickets: { retention: config.resourceScenarios.ticketRetention ?? 16 } });
+    if (config.resourceScenarios?.notices) Object.assign(this.metadata, { notices: { maximumKeys: config.resourceScenarios.noticeMaximumKeys ?? 8 } });
     if (config.lifecycles?.collectors) Object.assign(this.metadata, { collectors: { capacity: config.lifecycles.collectors.capacity } });
     this.fileTrees = validateFileTreeProfile(config.fileTrees ?? DEFAULT_FILE_TREE_PROFILE);
     this.environment = copy(config.environment ?? { currentWork: true, credentialReady: true });

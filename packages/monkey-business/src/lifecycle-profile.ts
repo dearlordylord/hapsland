@@ -18,6 +18,7 @@ export type LifecycleProfile = {
 
 /** Captured at the viewing boundary; absent limits have never been supplied to this replay. */
 export type CapacityMetadata = {
+  readonly demoAgentCount?: number;
   /** Groups explicitly supplied by the synthetic resident driver, independent of occupancy. */
   readonly deliveryGroups?: readonly { readonly partition: number; readonly group: number }[];
   readonly permits?: {

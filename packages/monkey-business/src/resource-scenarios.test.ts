@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { initialCanonical, projectCanonical, stepCanonical, type CanonicalEvent } from "../../../src/canonical/adapter.ts";
-import { ResourceScenarios } from "./resource-scenarios.ts";
+import { ResourceScenarios, demoResourceLimits } from "./resource-scenarios.ts";
 
 const exercise = (config: ConstructorParameters<typeof ResourceScenarios>[0]) => {
   const scenario = new ResourceScenarios(config);
@@ -27,7 +27,7 @@ it("retains bounded ticket statuses, evicts oldest and gates invalid/expired col
   expect(frames.flatMap(f => f.commands)).toContainEqual({ kind: "ticketCollectUnavailable", reason: "credential" });
 });
 it("accumulates suppressed failures, preserves leased notice, bounds keys and frees storage for recovery", () => {
-  const frames = exercise({ notices: true });
+  const frames = exercise({ notices: true, noticeMaximumKeys: 1 });
   const suppressed = frames.find(f => f.commands.some(c => c.kind === "noticeSuppressed"))!;
   expect(suppressed.after.notices[0]!.suppressed).toBe(1);
   const merged = frames.find(f => f.commands.some(c => c.kind === "noticeMergePending"))!;
@@ -48,7 +48,7 @@ it("checks the explicit encoded-byte boundary and oversized candidate through Be
 
 it("replays optional exercises through one resident with exact ordered observations", async () => {
   const { createRun, replayRun } = await import("./index.ts");
-  const run = createRun({ inputs: [], resourceScenarios: { tickets: true, notices: true, outputFit: true } });
+  const run = createRun({ inputs: [], resourceScenarios: { tickets: true, ticketRetention: 2, notices: true, noticeMaximumKeys: 1, outputFit: true } });
   run.advance({ untilTime: 180010, maxEvents: 1000 });
   const replay = replayRun(run.exportReplay());
   replay.advance({ untilTime: 180010, maxEvents: 1000 });
@@ -69,4 +69,35 @@ it.each([10240, 10241])("gates generated advice handoff on %i explicit synthetic
   if (bytes === 10241) expect(run.observations.some(f => f.commands.some(c => c.kind === "submissionAuthorized"))).toBe(false);
   const replay = replayRun(run.exportReplay()); replay.advance({untilTime:100,maxEvents:1000});
   expect(replay.observations).toEqual(run.observations);
+});
+
+it("sizes demo resident limits once while keeping representative ticket events bounded", () => {
+  expect(demoResourceLimits(1)).toEqual({entryLimit:4,byteLimit:32768,ticketRetention:16,noticeMaximumKeys:8});
+  expect(demoResourceLimits(3)).toEqual({entryLimit:6,byteLimit:49152,ticketRetention:48,noticeMaximumKeys:24});
+  expect(demoResourceLimits(64)).toEqual({entryLimit:8,byteLimit:65536,ticketRetention:256,noticeMaximumKeys:64});
+  const frames=exercise({tickets:true,ticketRetention:256});
+  expect(frames.filter(f=>f.event.kind==="ticketOpen")).toHaveLength(3);
+  expect(frames.some(f=>f.commands.some(c=>c.kind==="ticketEvicted"))).toBe(false);
+  expect(frames.at(-1)!.after.tickets).toEqual([]);
+});
+
+it("records scaled maxima and preserves explicit tiny overrides in exact replay", async () => {
+ const {createRun,replayRun}=await import("./index.ts");
+ for (const override of [undefined,2]) {
+  const run=createRun({sessions:[{agent:"a"},{agent:"b"},{agent:"c"}],resourceScenarios:{tickets:true,...(override===undefined?{}:{ticketRetention:override})}});
+  expect(run.capacityMetadata.tickets?.retention).toBe(override??48);
+  run.advance({untilTime:5,maxEvents:500});
+  const replay=replayRun(run.exportReplay());replay.advance({untilTime:5,maxEvents:500});
+  expect(replay.observations).toEqual(run.observations);
+ }
+});
+
+it("hides scaled provenance after an explicit effective limit changes, preserving historical frames", async () => {
+ const {createRun}=await import("./index.ts");
+ const run=createRun({inputs:[],demoAgentCount:1,lifecycles:{reuse:{entryLimit:4,byteLimit:32768}},resourceScenarios:{tickets:true}});
+ expect(run.capacityMetadata.demoAgentCount).toBe(1);
+ run.schedule({at:10,kind:"canonical",event:{kind:"ticketRetentionCheck",limit:2}});
+ run.advance({untilTime:10,maxEvents:500});
+ expect(run.capacityMetadata.demoAgentCount).toBeUndefined();
+ expect(run.observations.find(f=>f.event.kind==="ticketOpen")?.capacityMetadata.demoAgentCount).toBe(1);
 });
